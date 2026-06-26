@@ -1,12 +1,12 @@
 {
-    "extends": "../tsconfig.packages.json",
-    "compilerOptions": {
-        "noEmit": true,
-        "paths": {
-            "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"],
-            "@nmi-agro/fdm-core": ["../fdm-core/src/index.ts"],
-            "@nmi-agro/fdm-calculator": ["../fdm-calculator/src/index.ts"]
-        }
-    },
-    "include": ["src/**/*", "vitest.config.ts"]
+  "extends": "../tsconfig.packages.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"],
+      "@nmi-agro/fdm-core": ["../fdm-core/src/index.ts"],
+      "@nmi-agro/fdm-calculator": ["../fdm-calculator/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*", "vitest.config.ts"]
 }

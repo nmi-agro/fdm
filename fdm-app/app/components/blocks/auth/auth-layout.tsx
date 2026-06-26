@@ -2,47 +2,47 @@ import { Cookie } from "lucide-react"
 import { Button } from "~/components/ui/button"
 
 interface AuthLayoutProps {
-    children: React.ReactNode
-    backgroundImage?: string
-    showCookieSettings?: boolean
+  children: React.ReactNode
+  backgroundImage?: string
+  showCookieSettings?: boolean
 }
 
 export function AuthLayout({
-    children,
-    backgroundImage = "https://images.unsplash.com/photo-1662127245625-a72f1ad7e6ca?q=80&w=1974&auto=format&fit=crop",
-    showCookieSettings = false,
+  children,
+  backgroundImage = "https://images.unsplash.com/photo-1662127245625-a72f1ad7e6ca?q=80&w=1974&auto=format&fit=crop",
+  showCookieSettings = false,
 }: AuthLayoutProps) {
-    const openCookieSettings = () => {
-        if (window?.openCookieSettings) {
-            window.openCookieSettings()
-        }
+  const openCookieSettings = () => {
+    if (window?.openCookieSettings) {
+      window.openCookieSettings()
     }
+  }
 
-    return (
-        <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
-            <div className="flex items-center justify-center py-12">
-                <div className="mx-auto grid w-87.5 gap-6">{children}</div>
-            </div>
-            <div className="hidden bg-muted lg:block relative">
-                <img
-                    src={backgroundImage}
-                    alt="Background"
-                    className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-                />
-            </div>
-            {showCookieSettings && (
-                <div className="fixed bottom-3 left-3 z-50">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs flex items-center gap-1 opacity-70 hover:opacity-100 bg-card/80 hover:bg-card border border-border"
-                        onClick={openCookieSettings}
-                    >
-                        <Cookie className="h-3 w-3" />
-                        <span>Cookie instellingen</span>
-                    </Button>
-                </div>
-            )}
+  return (
+    <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-87.5 gap-6">{children}</div>
+      </div>
+      <div className="hidden bg-muted lg:block relative">
+        <img
+          src={backgroundImage}
+          alt="Background"
+          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+        />
+      </div>
+      {showCookieSettings && (
+        <div className="fixed bottom-3 left-3 z-50">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs flex items-center gap-1 opacity-70 hover:opacity-100 bg-card/80 hover:bg-card border border-border"
+            onClick={openCookieSettings}
+          >
+            <Cookie className="h-3 w-3" />
+            <span>Cookie instellingen</span>
+          </Button>
         </div>
-    )
+      )}
+    </div>
+  )
 }

@@ -8,10 +8,10 @@ sidebar_position: 4
 
 ## Body size
 
-| Limit | Value | Error on violation |
-|---|---|---|
-| Maximum JSON body size | **5 MB** | `413 payload-too-large` |
-| Accepted content type | `application/json` | `415 unsupported-media-type` |
+| Limit                  | Value              | Error on violation           |
+| ---------------------- | ------------------ | ---------------------------- |
+| Maximum JSON body size | **5 MB**           | `413 payload-too-large`      |
+| Accepted content type  | `application/json` | `415 unsupported-media-type` |
 
 Requests with a body larger than 5 MB are rejected before processing. The limit applies to all JSON endpoints, including field creation with GeoJSON geometry.
 
@@ -28,8 +28,8 @@ Requests with a body larger than 5 MB are rejected before processing. The limit 
 
 ## Geometry limits
 
-| Limit | Value | Error on violation |
-|---|---|---|
+| Limit                            | Value                   | Error on violation         |
+| -------------------------------- | ----------------------- | -------------------------- |
 | Maximum GeoJSON coordinate count | **10,000 per geometry** | `422 unprocessable-entity` |
 
 The coordinate count is the total number of `[longitude, latitude]` pairs across all rings of a geometry (including holes). Simplify geometries before submission if needed.
@@ -38,12 +38,12 @@ The coordinate count is the total number of `[longitude, latitude]` pairs across
 
 Rate limits are enforced **per API key**. Limits reset on a rolling one-minute window.
 
-| Request category | Limit |
-|---|---|
-| General (all GET requests) | **120 requests / minute** |
-| Write / delete (POST, PATCH, DELETE) | **30 requests / minute** |
-| Calculation endpoints | **10 requests / minute** |
-| Key-management endpoints | Subject to the general limit |
+| Request category                     | Limit                        |
+| ------------------------------------ | ---------------------------- |
+| General (all GET requests)           | **120 requests / minute**    |
+| Write / delete (POST, PATCH, DELETE) | **30 requests / minute**     |
+| Calculation endpoints                | **10 requests / minute**     |
+| Key-management endpoints             | Subject to the general limit |
 
 When a limit is exceeded, the API returns `429` with a `Retry-After` header indicating the number of seconds until the limit resets.
 
@@ -68,10 +68,10 @@ Content-Type: application/problem+json
 
 All list endpoints use **offset-based pagination** with `limit` and `offset` query parameters.
 
-| Parameter | Default | Maximum | Description |
-|---|---|---|---|
-| `limit` | `50` | `200` | Number of items to return |
-| `offset` | `0` | — | Number of items to skip |
+| Parameter | Default | Maximum | Description               |
+| --------- | ------- | ------- | ------------------------- |
+| `limit`   | `50`    | `200`   | Number of items to return |
+| `offset`  | `0`     | —       | Number of items to skip   |
 
 Every list endpoint defines a **stable default ordering** (typically by creation date ascending). Ordering is documented per endpoint.
 

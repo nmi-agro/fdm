@@ -6,15 +6,15 @@ import { FieldDetailsAtlasLayout } from "./layout"
 import { SoilTextureSkeleton } from "./soil-texture"
 
 export function FieldDetailsAtlasSkeleton() {
-    return (
-        <div className="max-w-7xl mx-auto">
-            <FieldDetailsAtlasLayout
-                cultivationHistory={<CultivationHistorySkeleton />}
-                fieldDetails={<FieldDetailsSkeleton />}
-                carbon={<CarbonSequestrationSkeleton />}
-                soilTexture={<SoilTextureSkeleton />}
-                groundWater={<GroundwaterSkeleton />}
-            />
-        </div>
-    )
+  return (
+    <div className="max-w-7xl mx-auto">
+      <FieldDetailsAtlasLayout
+        cultivationHistory={<CultivationHistorySkeleton />}
+        fieldDetails={<FieldDetailsSkeleton />}
+        carbon={<CarbonSequestrationSkeleton />}
+        soilTexture={<SoilTextureSkeleton />}
+        groundWater={<GroundwaterSkeleton />}
+      />
+    </div>
+  )
 }

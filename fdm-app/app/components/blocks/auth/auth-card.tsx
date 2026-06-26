@@ -1,69 +1,59 @@
 import { NavLink } from "react-router"
 import { Button } from "~/components/ui/button"
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "~/components/ui/card"
 import { clientConfig } from "~/lib/config"
 import { cn } from "~/lib/utils"
 
 interface AuthCardProps {
-    title: string
-    description: string
-    children: React.ReactNode
-    backLink?: string
-    backLabel?: string
-    showLogo?: boolean
-    contentClassName?: string
+  title: string
+  description: string
+  children: React.ReactNode
+  backLink?: string
+  backLabel?: string
+  showLogo?: boolean
+  contentClassName?: string
 }
 
 export function AuthCard({
-    title,
-    description,
-    children,
-    backLink = "/signin",
-    backLabel = "Terug naar aanmelden",
-    showLogo = true,
-    contentClassName,
+  title,
+  description,
+  children,
+  backLink = "/signin",
+  backLabel = "Terug naar aanmelden",
+  showLogo = true,
+  contentClassName,
 }: AuthCardProps) {
-    return (
-        <Card className="shadow-xl">
-            <CardHeader className="text-center">
-                {showLogo && (
-                    <>
-                        <div className="flex justify-center mb-4">
-                            <div className="flex aspect-square size-16 items-center justify-center rounded-lg bg-[#122023]">
-                                <img
-                                    className="size-12"
-                                    src={clientConfig.logomark}
-                                    alt={clientConfig.name}
-                                />
-                            </div>
-                        </div>
-                        <h2 className="text-lg font-semibold tracking-tight text-muted-foreground mb-2">
-                            {clientConfig.name}
-                        </h2>
-                    </>
-                )}
-                <CardTitle className="text-xl">{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent className={cn("space-y-4", contentClassName)}>
-                {children}
-            </CardContent>
-            <CardFooter className="flex justify-center">
-                <Button
-                    asChild
-                    variant="ghost"
-                    className="w-full text-muted-foreground"
-                >
-                    <NavLink to={backLink}>{backLabel}</NavLink>
-                </Button>
-            </CardFooter>
-        </Card>
-    )
+  return (
+    <Card className="shadow-xl">
+      <CardHeader className="text-center">
+        {showLogo && (
+          <>
+            <div className="flex justify-center mb-4">
+              <div className="flex aspect-square size-16 items-center justify-center rounded-lg bg-[#122023]">
+                <img className="size-12" src={clientConfig.logomark} alt={clientConfig.name} />
+              </div>
+            </div>
+            <h2 className="text-lg font-semibold tracking-tight text-muted-foreground mb-2">
+              {clientConfig.name}
+            </h2>
+          </>
+        )}
+        <CardTitle className="text-xl">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className={cn("space-y-4", contentClassName)}>{children}</CardContent>
+      <CardFooter className="flex justify-center">
+        <Button asChild variant="ghost" className="w-full text-muted-foreground">
+          <NavLink to={backLink}>{backLabel}</NavLink>
+        </Button>
+      </CardFooter>
+    </Card>
+  )
 }

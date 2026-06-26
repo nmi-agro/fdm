@@ -11,10 +11,10 @@ import * as schema from "./db/schema"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
 import type {
-    Harvest,
-    HarvestableAnalysis,
-    HarvestParameters,
-    HarvestParametersDefault,
+  Harvest,
+  HarvestableAnalysis,
+  HarvestParameters,
+  HarvestParametersDefault,
 } from "./harvest.types"
 import { convertHarvestParameters } from "./harvest-conversion"
 import { createId } from "./id"
@@ -56,11 +56,53 @@ import type { Timeframe } from "./timeframe"
  * @throws Error If the cultivation does not exist, permission checks fail, or any database insertion fails.
  */
 export async function addHarvest(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_lu: schema.cultivationHarvestingTypeInsert["b_lu"],
-    b_lu_harvest_date: schema.cultivationHarvestingTypeInsert["b_lu_harvest_date"],
-    properties?: {
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_lu: schema.cultivationHarvestingTypeInsert["b_lu"],
+  b_lu_harvest_date: schema.cultivationHarvestingTypeInsert["b_lu_harvest_date"],
+  properties?: {
+    b_lu_yield?: schema.harvestableAnalysesTypeInsert["b_lu_yield"]
+    b_lu_yield_bruto?: schema.harvestableAnalysesTypeInsert["b_lu_yield_bruto"]
+    b_lu_yield_fresh?: schema.harvestableAnalysesTypeInsert["b_lu_yield_fresh"]
+    b_lu_tarra?: schema.harvestableAnalysesTypeInsert["b_lu_tarra"]
+    b_lu_dm?: schema.harvestableAnalysesTypeInsert["b_lu_dm"]
+    b_lu_moist?: schema.harvestableAnalysesTypeInsert["b_lu_moist"]
+    b_lu_uww?: schema.harvestableAnalysesTypeInsert["b_lu_uww"]
+    b_lu_cp?: schema.harvestableAnalysesTypeInsert["b_lu_cp"]
+    b_lu_n_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_n_harvestable"]
+    b_lu_n_residue?: schema.harvestableAnalysesTypeInsert["b_lu_n_residue"]
+    b_lu_p_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_p_harvestable"]
+    b_lu_p_residue?: schema.harvestableAnalysesTypeInsert["b_lu_p_residue"]
+    b_lu_k_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_k_harvestable"]
+    b_lu_k_residue?: schema.harvestableAnalysesTypeInsert["b_lu_k_residue"]
+  },
+): Promise<schema.cultivationHarvestingTypeSelect["b_id_harvesting"]> {
+  try {
+    await checkPermission(fdm, "cultivation", "write", b_lu, principal_id, "addHarvest")
+
+    return await fdm.transaction(async (tx) => {
+      // Validate if cultivation exists
+      const cultivation = await tx
+        .select({
+          b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
+        })
+        .from(schema.cultivations)
+        .leftJoin(
+          schema.cultivationsCatalogue,
+          eq(schema.cultivations.b_lu_catalogue, schema.cultivationsCatalogue.b_lu_catalogue),
+        )
+        .where(eq(schema.cultivations.b_lu, b_lu))
+        .limit(1)
+      if (cultivation.length === 0) {
+        throw new Error("Cultivation does not exist")
+      }
+
+      const b_lu_harvestable = await checkHarvestDateCompability(tx, b_lu, b_lu_harvest_date)
+
+      // Setup the harvestable analysis record
+      const b_id_harvestable_analysis = createId()
+      let harvestableAnalysis: {
+        b_id_harvestable_analysis: schema.harvestableAnalysesTypeInsert["b_id_harvestable_analysis"]
         b_lu_yield?: schema.harvestableAnalysesTypeInsert["b_lu_yield"]
         b_lu_yield_bruto?: schema.harvestableAnalysesTypeInsert["b_lu_yield_bruto"]
         b_lu_yield_fresh?: schema.harvestableAnalysesTypeInsert["b_lu_yield_fresh"]
@@ -75,143 +117,84 @@ export async function addHarvest(
         b_lu_p_residue?: schema.harvestableAnalysesTypeInsert["b_lu_p_residue"]
         b_lu_k_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_k_harvestable"]
         b_lu_k_residue?: schema.harvestableAnalysesTypeInsert["b_lu_k_residue"]
-    },
-): Promise<schema.cultivationHarvestingTypeSelect["b_id_harvesting"]> {
-    try {
-        await checkPermission(
-            fdm,
-            "cultivation",
-            "write",
-            b_lu,
-            principal_id,
-            "addHarvest",
+      } = {
+        b_id_harvestable_analysis: b_id_harvestable_analysis,
+      }
+      if (properties) {
+        const b_lu_harvestcat = cultivation[0].b_lu_harvestcat
+        const standardHarvest = convertHarvestParameters(
+          b_lu_harvestcat,
+          properties.b_lu_yield,
+          properties.b_lu_yield_bruto,
+          properties.b_lu_yield_fresh,
+          properties.b_lu_tarra,
+          properties.b_lu_moist,
+          properties.b_lu_uww,
+          properties.b_lu_dm,
+          properties.b_lu_cp,
+          properties.b_lu_n_harvestable,
         )
+        harvestableAnalysis = {
+          ...harvestableAnalysis,
+          b_lu_yield: standardHarvest.b_lu_yield,
+          b_lu_yield_bruto: properties.b_lu_yield_bruto,
+          b_lu_yield_fresh: properties.b_lu_yield_fresh,
+          b_lu_tarra: properties.b_lu_tarra,
+          b_lu_dm: properties.b_lu_dm,
+          b_lu_moist: properties.b_lu_moist,
+          b_lu_uww: properties.b_lu_uww,
+          b_lu_cp: properties.b_lu_cp,
+          b_lu_n_harvestable: standardHarvest.b_lu_n_harvestable,
+          b_lu_n_residue: properties.b_lu_n_residue,
+          b_lu_p_harvestable: properties.b_lu_p_harvestable,
+          b_lu_p_residue: properties.b_lu_p_residue,
+          b_lu_k_harvestable: properties.b_lu_k_harvestable,
+          b_lu_k_residue: properties.b_lu_k_residue,
+        }
+      }
 
-        return await fdm.transaction(async (tx) => {
-            // Validate if cultivation exists
-            const cultivation = await tx
-                .select({
-                    b_lu_harvestcat:
-                        schema.cultivationsCatalogue.b_lu_harvestcat,
-                })
-                .from(schema.cultivations)
-                .leftJoin(
-                    schema.cultivationsCatalogue,
-                    eq(
-                        schema.cultivations.b_lu_catalogue,
-                        schema.cultivationsCatalogue.b_lu_catalogue,
-                    ),
-                )
-                .where(eq(schema.cultivations.b_lu, b_lu))
-                .limit(1)
-            if (cultivation.length === 0) {
-                throw new Error("Cultivation does not exist")
-            }
+      // Insert the harvestable in the db
+      const b_id_harvestable = createId()
+      await tx.insert(schema.harvestables).values({
+        b_id_harvestable: b_id_harvestable,
+      })
 
-            const b_lu_harvestable = await checkHarvestDateCompability(
-                tx,
-                b_lu,
-                b_lu_harvest_date,
-            )
+      // Insert the harvest in the db
+      const b_id_harvesting = createId()
+      await tx.insert(schema.cultivationHarvesting).values({
+        b_id_harvesting: b_id_harvesting,
+        b_id_harvestable: b_id_harvestable,
+        b_lu: b_lu,
+        b_lu_harvest_date: b_lu_harvest_date,
+      })
 
-            // Setup the harvestable analysis record
-            const b_id_harvestable_analysis = createId()
-            let harvestableAnalysis: {
-                b_id_harvestable_analysis: schema.harvestableAnalysesTypeInsert["b_id_harvestable_analysis"]
-                b_lu_yield?: schema.harvestableAnalysesTypeInsert["b_lu_yield"]
-                b_lu_yield_bruto?: schema.harvestableAnalysesTypeInsert["b_lu_yield_bruto"]
-                b_lu_yield_fresh?: schema.harvestableAnalysesTypeInsert["b_lu_yield_fresh"]
-                b_lu_tarra?: schema.harvestableAnalysesTypeInsert["b_lu_tarra"]
-                b_lu_dm?: schema.harvestableAnalysesTypeInsert["b_lu_dm"]
-                b_lu_moist?: schema.harvestableAnalysesTypeInsert["b_lu_moist"]
-                b_lu_uww?: schema.harvestableAnalysesTypeInsert["b_lu_uww"]
-                b_lu_cp?: schema.harvestableAnalysesTypeInsert["b_lu_cp"]
-                b_lu_n_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_n_harvestable"]
-                b_lu_n_residue?: schema.harvestableAnalysesTypeInsert["b_lu_n_residue"]
-                b_lu_p_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_p_harvestable"]
-                b_lu_p_residue?: schema.harvestableAnalysesTypeInsert["b_lu_p_residue"]
-                b_lu_k_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_k_harvestable"]
-                b_lu_k_residue?: schema.harvestableAnalysesTypeInsert["b_lu_k_residue"]
-            } = {
-                b_id_harvestable_analysis: b_id_harvestable_analysis,
-            }
-            if (properties) {
-                const b_lu_harvestcat = cultivation[0].b_lu_harvestcat
-                const standardHarvest = convertHarvestParameters(
-                    b_lu_harvestcat,
-                    properties.b_lu_yield,
-                    properties.b_lu_yield_bruto,
-                    properties.b_lu_yield_fresh,
-                    properties.b_lu_tarra,
-                    properties.b_lu_moist,
-                    properties.b_lu_uww,
-                    properties.b_lu_dm,
-                    properties.b_lu_cp,
-                    properties.b_lu_n_harvestable,
-                )
-                harvestableAnalysis = {
-                    ...harvestableAnalysis,
-                    b_lu_yield: standardHarvest.b_lu_yield,
-                    b_lu_yield_bruto: properties.b_lu_yield_bruto,
-                    b_lu_yield_fresh: properties.b_lu_yield_fresh,
-                    b_lu_tarra: properties.b_lu_tarra,
-                    b_lu_dm: properties.b_lu_dm,
-                    b_lu_moist: properties.b_lu_moist,
-                    b_lu_uww: properties.b_lu_uww,
-                    b_lu_cp: properties.b_lu_cp,
-                    b_lu_n_harvestable: standardHarvest.b_lu_n_harvestable,
-                    b_lu_n_residue: properties.b_lu_n_residue,
-                    b_lu_p_harvestable: properties.b_lu_p_harvestable,
-                    b_lu_p_residue: properties.b_lu_p_residue,
-                    b_lu_k_harvestable: properties.b_lu_k_harvestable,
-                    b_lu_k_residue: properties.b_lu_k_residue,
-                }
-            }
+      // Terminate the cultivation if cultivation can only be harvested once
+      if (b_lu_harvestable === "once") {
+        await tx
+          .update(schema.cultivationEnding)
+          .set({ b_lu_end: b_lu_harvest_date })
+          .where(eq(schema.cultivationEnding.b_lu, b_lu))
+      }
 
-            // Insert the harvestable in the db
-            const b_id_harvestable = createId()
-            await tx.insert(schema.harvestables).values({
-                b_id_harvestable: b_id_harvestable,
-            })
+      // Add harvestable analysis
+      await tx.insert(schema.harvestableAnalyses).values(harvestableAnalysis)
 
-            // Insert the harvest in the db
-            const b_id_harvesting = createId()
-            await tx.insert(schema.cultivationHarvesting).values({
-                b_id_harvesting: b_id_harvesting,
-                b_id_harvestable: b_id_harvestable,
-                b_lu: b_lu,
-                b_lu_harvest_date: b_lu_harvest_date,
-            })
+      // Add sampling for harvestable analysis, defaults to same date as harvest
+      await tx.insert(schema.harvestableSampling).values({
+        b_id_harvestable: b_id_harvestable,
+        b_id_harvestable_analysis: b_id_harvestable_analysis,
+        b_sampling_date: b_lu_harvest_date,
+      })
 
-            // Terminate the cultivation if cultivation can only be harvested once
-            if (b_lu_harvestable === "once") {
-                await tx
-                    .update(schema.cultivationEnding)
-                    .set({ b_lu_end: b_lu_harvest_date })
-                    .where(eq(schema.cultivationEnding.b_lu, b_lu))
-            }
-
-            // Add harvestable analysis
-            await tx
-                .insert(schema.harvestableAnalyses)
-                .values(harvestableAnalysis)
-
-            // Add sampling for harvestable analysis, defaults to same date as harvest
-            await tx.insert(schema.harvestableSampling).values({
-                b_id_harvestable: b_id_harvestable,
-                b_id_harvestable_analysis: b_id_harvestable_analysis,
-                b_sampling_date: b_lu_harvest_date,
-            })
-
-            return b_id_harvesting
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for addHarvest", {
-            b_lu,
-            b_lu_harvest_date,
-            properties,
-        })
-    }
+      return b_id_harvesting
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for addHarvest", {
+      b_lu,
+      b_lu_harvest_date,
+      properties,
+    })
+  }
 }
 
 /**
@@ -227,25 +210,18 @@ export async function addHarvest(
  * @throws {Error} When the specified harvest record does not exist.
  */
 export async function getHarvest(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
 ): Promise<Harvest> {
-    try {
-        await checkPermission(
-            fdm,
-            "harvesting",
-            "read",
-            b_id_harvesting,
-            principal_id,
-            "getHarvest",
-        )
+  try {
+    await checkPermission(fdm, "harvesting", "read", b_id_harvesting, principal_id, "getHarvest")
 
-        const harvest = getHarvestSimplified(fdm, b_id_harvesting)
-        return harvest
-    } catch (err) {
-        throw handleError(err, "Exception for getHarvest", { b_id_harvesting })
-    }
+    const harvest = getHarvestSimplified(fdm, b_id_harvesting)
+    return harvest
+  } catch (err) {
+    throw handleError(err, "Exception for getHarvest", { b_id_harvesting })
+  }
 }
 
 /**
@@ -264,80 +240,57 @@ export async function getHarvest(
  * @throws {Error} If access is denied or if an error occurs during data retrieval.
  */
 export async function getHarvests(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_lu: schema.cultivationHarvestingTypeSelect["b_lu"],
-    timeframe?: Timeframe,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_lu: schema.cultivationHarvestingTypeSelect["b_lu"],
+  timeframe?: Timeframe,
 ): Promise<Harvest[]> {
-    try {
-        await checkPermission(
-            fdm,
-            "cultivation",
-            "read",
-            b_lu,
-            principal_id,
-            "getHarvests",
-        )
+  try {
+    await checkPermission(fdm, "cultivation", "read", b_lu, principal_id, "getHarvests")
 
-        let whereClause: SQL | undefined
-        if (timeframe?.start && timeframe?.end) {
-            whereClause = and(
-                eq(schema.cultivationHarvesting.b_lu, b_lu),
-                gte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.start,
-                ),
-                lte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.end,
-                ),
-            )
-        } else if (timeframe?.start) {
-            whereClause = and(
-                eq(schema.cultivationHarvesting.b_lu, b_lu),
-                gte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.start,
-                ),
-            )
-        } else if (timeframe?.end) {
-            whereClause = and(
-                eq(schema.cultivationHarvesting.b_lu, b_lu),
-                lte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.end,
-                ),
-            )
-        } else {
-            whereClause = eq(schema.cultivationHarvesting.b_lu, b_lu)
-        }
-
-        const harvests = await fdm
-            .select({
-                b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
-                b_lu_harvest_date:
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                b_lu: schema.cultivationHarvesting.b_lu,
-            })
-            .from(schema.cultivationHarvesting)
-            .where(whereClause)
-            .orderBy(desc(schema.cultivationHarvesting.b_lu_harvest_date))
-
-        // Get details of each harvest
-        const result = await Promise.all(
-            harvests.map(async (harvest) => {
-                const harvestDetails = getHarvestSimplified(
-                    fdm,
-                    harvest.b_id_harvesting,
-                )
-                return harvestDetails
-            }),
-        )
-
-        return result
-    } catch (err) {
-        throw handleError(err, "Exception for getHarvests", { b_lu })
+    let whereClause: SQL | undefined
+    if (timeframe?.start && timeframe?.end) {
+      whereClause = and(
+        eq(schema.cultivationHarvesting.b_lu, b_lu),
+        gte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.start),
+        lte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.end),
+      )
+    } else if (timeframe?.start) {
+      whereClause = and(
+        eq(schema.cultivationHarvesting.b_lu, b_lu),
+        gte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.start),
+      )
+    } else if (timeframe?.end) {
+      whereClause = and(
+        eq(schema.cultivationHarvesting.b_lu, b_lu),
+        lte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.end),
+      )
+    } else {
+      whereClause = eq(schema.cultivationHarvesting.b_lu, b_lu)
     }
+
+    const harvests = await fdm
+      .select({
+        b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
+        b_lu_harvest_date: schema.cultivationHarvesting.b_lu_harvest_date,
+        b_lu: schema.cultivationHarvesting.b_lu,
+      })
+      .from(schema.cultivationHarvesting)
+      .where(whereClause)
+      .orderBy(desc(schema.cultivationHarvesting.b_lu_harvest_date))
+
+    // Get details of each harvest
+    const result = await Promise.all(
+      harvests.map(async (harvest) => {
+        const harvestDetails = getHarvestSimplified(fdm, harvest.b_id_harvesting)
+        return harvestDetails
+      }),
+    )
+
+    return result
+  } catch (err) {
+    throw handleError(err, "Exception for getHarvests", { b_lu })
+  }
 }
 
 /**
@@ -357,173 +310,143 @@ export async function getHarvests(
  * @alpha
  */
 export async function getHarvestsForFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-    timeframe?: Timeframe,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  timeframe?: Timeframe,
 ): Promise<Map<string, Harvest[]>> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "read",
-            b_id_farm,
-            principal_id,
-            "getHarvestsForFarm",
-        )
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getHarvestsForFarm")
 
-        let whereClause: SQL | undefined
-        if (timeframe?.start && timeframe?.end) {
-            whereClause = and(
-                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-                gte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.start,
-                ),
-                lte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.end,
-                ),
-            )
-        } else if (timeframe?.start) {
-            whereClause = and(
-                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-                gte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.start,
-                ),
-            )
-        } else if (timeframe?.end) {
-            whereClause = and(
-                eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-                lte(
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                    timeframe.end,
-                ),
-            )
-        } else {
-            whereClause = eq(schema.fieldAcquiring.b_id_farm, b_id_farm)
-        }
-
-        const rows = await fdm
-            .select({
-                b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
-                b_lu_harvest_date:
-                    schema.cultivationHarvesting.b_lu_harvest_date,
-                b_lu: schema.cultivationHarvesting.b_lu,
-                b_id_harvestable: schema.harvestables.b_id_harvestable,
-                b_id_harvestable_analysis:
-                    schema.harvestableAnalyses.b_id_harvestable_analysis,
-                b_lu_yield: schema.harvestableAnalyses.b_lu_yield,
-                b_lu_yield_fresh: schema.harvestableAnalyses.b_lu_yield_fresh,
-                b_lu_yield_bruto: schema.harvestableAnalyses.b_lu_yield_bruto,
-                b_lu_tarra: schema.harvestableAnalyses.b_lu_tarra,
-                b_lu_dm: schema.harvestableAnalyses.b_lu_dm,
-                b_lu_moist: schema.harvestableAnalyses.b_lu_moist,
-                b_lu_uww: schema.harvestableAnalyses.b_lu_uww,
-                b_lu_cp: schema.harvestableAnalyses.b_lu_cp,
-                b_lu_n_harvestable:
-                    schema.harvestableAnalyses.b_lu_n_harvestable,
-                b_lu_n_residue: schema.harvestableAnalyses.b_lu_n_residue,
-                b_lu_p_harvestable:
-                    schema.harvestableAnalyses.b_lu_p_harvestable,
-                b_lu_p_residue: schema.harvestableAnalyses.b_lu_p_residue,
-                b_lu_k_harvestable:
-                    schema.harvestableAnalyses.b_lu_k_harvestable,
-                b_lu_k_residue: schema.harvestableAnalyses.b_lu_k_residue,
-            })
-            .from(schema.cultivationHarvesting)
-            .leftJoin(
-                schema.harvestables,
-                eq(
-                    schema.harvestables.b_id_harvestable,
-                    schema.cultivationHarvesting.b_id_harvestable,
-                ),
-            )
-            .leftJoin(
-                schema.harvestableSampling,
-                eq(
-                    schema.harvestableSampling.b_id_harvestable,
-                    schema.harvestables.b_id_harvestable,
-                ),
-            )
-            .leftJoin(
-                schema.harvestableAnalyses,
-                eq(
-                    schema.harvestableAnalyses.b_id_harvestable_analysis,
-                    schema.harvestableSampling.b_id_harvestable_analysis,
-                ),
-            )
-            .innerJoin(
-                schema.cultivations,
-                eq(schema.cultivations.b_lu, schema.cultivationHarvesting.b_lu),
-            )
-            .innerJoin(
-                schema.cultivationStarting,
-                eq(schema.cultivationStarting.b_lu, schema.cultivations.b_lu),
-            )
-            .innerJoin(
-                schema.fieldAcquiring,
-                eq(schema.fieldAcquiring.b_id, schema.cultivationStarting.b_id),
-            )
-            .where(whereClause)
-            .orderBy(desc(schema.cultivationHarvesting.b_lu_harvest_date))
-
-        // Reconstruct nested Harvest objects, grouping analyses by harvest ID, then by cultivation ID
-        const harvestsById = new Map<string, Harvest>()
-        for (const row of rows) {
-            if (!row.b_lu) continue
-
-            let harvest = harvestsById.get(row.b_id_harvesting)
-            if (!harvest) {
-                harvest = {
-                    b_id_harvesting: row.b_id_harvesting,
-                    b_lu_harvest_date: row.b_lu_harvest_date,
-                    b_lu: row.b_lu,
-                    harvestable: {
-                        b_id_harvestable: row.b_id_harvestable ?? "",
-                        harvestable_analyses: [],
-                    },
-                }
-                harvestsById.set(row.b_id_harvesting, harvest)
-            }
-
-            if (row.b_id_harvestable_analysis) {
-                harvest.harvestable.harvestable_analyses.push({
-                    b_id_harvestable_analysis: row.b_id_harvestable_analysis,
-                    b_lu_yield: row.b_lu_yield,
-                    b_lu_yield_fresh: row.b_lu_yield_fresh,
-                    b_lu_yield_bruto: row.b_lu_yield_bruto,
-                    b_lu_tarra: row.b_lu_tarra,
-                    b_lu_dm: row.b_lu_dm,
-                    b_lu_moist: row.b_lu_moist,
-                    b_lu_uww: row.b_lu_uww,
-                    b_lu_cp: row.b_lu_cp,
-                    b_lu_n_harvestable: row.b_lu_n_harvestable,
-                    b_lu_n_residue: row.b_lu_n_residue,
-                    b_lu_p_harvestable: row.b_lu_p_harvestable,
-                    b_lu_p_residue: row.b_lu_p_residue,
-                    b_lu_k_harvestable: row.b_lu_k_harvestable,
-                    b_lu_k_residue: row.b_lu_k_residue,
-                })
-            }
-        }
-
-        const result = new Map<string, Harvest[]>()
-        for (const harvest of harvestsById.values()) {
-            const existing = result.get(harvest.b_lu)
-            if (existing) {
-                existing.push(harvest)
-            } else {
-                result.set(harvest.b_lu, [harvest])
-            }
-        }
-        return result
-    } catch (err) {
-        throw handleError(err, "Exception for getHarvestsForFarm", {
-            b_id_farm,
-        })
+    let whereClause: SQL | undefined
+    if (timeframe?.start && timeframe?.end) {
+      whereClause = and(
+        eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+        gte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.start),
+        lte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.end),
+      )
+    } else if (timeframe?.start) {
+      whereClause = and(
+        eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+        gte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.start),
+      )
+    } else if (timeframe?.end) {
+      whereClause = and(
+        eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+        lte(schema.cultivationHarvesting.b_lu_harvest_date, timeframe.end),
+      )
+    } else {
+      whereClause = eq(schema.fieldAcquiring.b_id_farm, b_id_farm)
     }
+
+    const rows = await fdm
+      .select({
+        b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
+        b_lu_harvest_date: schema.cultivationHarvesting.b_lu_harvest_date,
+        b_lu: schema.cultivationHarvesting.b_lu,
+        b_id_harvestable: schema.harvestables.b_id_harvestable,
+        b_id_harvestable_analysis: schema.harvestableAnalyses.b_id_harvestable_analysis,
+        b_lu_yield: schema.harvestableAnalyses.b_lu_yield,
+        b_lu_yield_fresh: schema.harvestableAnalyses.b_lu_yield_fresh,
+        b_lu_yield_bruto: schema.harvestableAnalyses.b_lu_yield_bruto,
+        b_lu_tarra: schema.harvestableAnalyses.b_lu_tarra,
+        b_lu_dm: schema.harvestableAnalyses.b_lu_dm,
+        b_lu_moist: schema.harvestableAnalyses.b_lu_moist,
+        b_lu_uww: schema.harvestableAnalyses.b_lu_uww,
+        b_lu_cp: schema.harvestableAnalyses.b_lu_cp,
+        b_lu_n_harvestable: schema.harvestableAnalyses.b_lu_n_harvestable,
+        b_lu_n_residue: schema.harvestableAnalyses.b_lu_n_residue,
+        b_lu_p_harvestable: schema.harvestableAnalyses.b_lu_p_harvestable,
+        b_lu_p_residue: schema.harvestableAnalyses.b_lu_p_residue,
+        b_lu_k_harvestable: schema.harvestableAnalyses.b_lu_k_harvestable,
+        b_lu_k_residue: schema.harvestableAnalyses.b_lu_k_residue,
+      })
+      .from(schema.cultivationHarvesting)
+      .leftJoin(
+        schema.harvestables,
+        eq(schema.harvestables.b_id_harvestable, schema.cultivationHarvesting.b_id_harvestable),
+      )
+      .leftJoin(
+        schema.harvestableSampling,
+        eq(schema.harvestableSampling.b_id_harvestable, schema.harvestables.b_id_harvestable),
+      )
+      .leftJoin(
+        schema.harvestableAnalyses,
+        eq(
+          schema.harvestableAnalyses.b_id_harvestable_analysis,
+          schema.harvestableSampling.b_id_harvestable_analysis,
+        ),
+      )
+      .innerJoin(
+        schema.cultivations,
+        eq(schema.cultivations.b_lu, schema.cultivationHarvesting.b_lu),
+      )
+      .innerJoin(
+        schema.cultivationStarting,
+        eq(schema.cultivationStarting.b_lu, schema.cultivations.b_lu),
+      )
+      .innerJoin(
+        schema.fieldAcquiring,
+        eq(schema.fieldAcquiring.b_id, schema.cultivationStarting.b_id),
+      )
+      .where(whereClause)
+      .orderBy(desc(schema.cultivationHarvesting.b_lu_harvest_date))
+
+    // Reconstruct nested Harvest objects, grouping analyses by harvest ID, then by cultivation ID
+    const harvestsById = new Map<string, Harvest>()
+    for (const row of rows) {
+      if (!row.b_lu) continue
+
+      let harvest = harvestsById.get(row.b_id_harvesting)
+      if (!harvest) {
+        harvest = {
+          b_id_harvesting: row.b_id_harvesting,
+          b_lu_harvest_date: row.b_lu_harvest_date,
+          b_lu: row.b_lu,
+          harvestable: {
+            b_id_harvestable: row.b_id_harvestable ?? "",
+            harvestable_analyses: [],
+          },
+        }
+        harvestsById.set(row.b_id_harvesting, harvest)
+      }
+
+      if (row.b_id_harvestable_analysis) {
+        harvest.harvestable.harvestable_analyses.push({
+          b_id_harvestable_analysis: row.b_id_harvestable_analysis,
+          b_lu_yield: row.b_lu_yield,
+          b_lu_yield_fresh: row.b_lu_yield_fresh,
+          b_lu_yield_bruto: row.b_lu_yield_bruto,
+          b_lu_tarra: row.b_lu_tarra,
+          b_lu_dm: row.b_lu_dm,
+          b_lu_moist: row.b_lu_moist,
+          b_lu_uww: row.b_lu_uww,
+          b_lu_cp: row.b_lu_cp,
+          b_lu_n_harvestable: row.b_lu_n_harvestable,
+          b_lu_n_residue: row.b_lu_n_residue,
+          b_lu_p_harvestable: row.b_lu_p_harvestable,
+          b_lu_p_residue: row.b_lu_p_residue,
+          b_lu_k_harvestable: row.b_lu_k_harvestable,
+          b_lu_k_residue: row.b_lu_k_residue,
+        })
+      }
+    }
+
+    const result = new Map<string, Harvest[]>()
+    for (const harvest of harvestsById.values()) {
+      const existing = result.get(harvest.b_lu)
+      if (existing) {
+        existing.push(harvest)
+      } else {
+        result.set(harvest.b_lu, [harvest])
+      }
+    }
+    return result
+  } catch (err) {
+    throw handleError(err, "Exception for getHarvestsForFarm", {
+      b_id_farm,
+    })
+  }
 }
 
 /**
@@ -539,85 +462,64 @@ export async function getHarvestsForFarm(
  * @throws Error if an error occurs during the transaction.
  */
 export async function removeHarvest(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
 ): Promise<void> {
-    try {
-        await checkPermission(
-            fdm,
-            "harvesting",
-            "write",
-            b_id_harvesting,
-            principal_id,
-            "removeHarvest",
-        )
+  try {
+    await checkPermission(
+      fdm,
+      "harvesting",
+      "write",
+      b_id_harvesting,
+      principal_id,
+      "removeHarvest",
+    )
 
-        return await fdm.transaction(async (tx) => {
-            const harvest = await getHarvest(tx, principal_id, b_id_harvesting)
+    return await fdm.transaction(async (tx) => {
+      const harvest = await getHarvest(tx, principal_id, b_id_harvesting)
 
-            const b_id_harvestable = harvest.harvestable.b_id_harvestable
-            const b_id_harvestable_analysis =
-                harvest.harvestable.harvestable_analyses[0]
-                    .b_id_harvestable_analysis
-            const b_lu = harvest.b_lu
+      const b_id_harvestable = harvest.harvestable.b_id_harvestable
+      const b_id_harvestable_analysis =
+        harvest.harvestable.harvestable_analyses[0].b_id_harvestable_analysis
+      const b_lu = harvest.b_lu
 
-            // Delete related sampling entries
-            await tx
-                .delete(schema.harvestableSampling)
-                .where(
-                    eq(
-                        schema.harvestableSampling.b_id_harvestable,
-                        b_id_harvestable,
-                    ),
-                )
+      // Delete related sampling entries
+      await tx
+        .delete(schema.harvestableSampling)
+        .where(eq(schema.harvestableSampling.b_id_harvestable, b_id_harvestable))
 
-            // Delete related analyses
-            await tx
-                .delete(schema.harvestableAnalyses)
-                .where(
-                    eq(
-                        schema.harvestableAnalyses.b_id_harvestable_analysis,
-                        b_id_harvestable_analysis,
-                    ),
-                )
+      // Delete related analyses
+      await tx
+        .delete(schema.harvestableAnalyses)
+        .where(eq(schema.harvestableAnalyses.b_id_harvestable_analysis, b_id_harvestable_analysis))
 
-            // Delete the cultivationHarvesting entry
-            await tx
-                .delete(schema.cultivationHarvesting)
-                .where(
-                    eq(
-                        schema.cultivationHarvesting.b_id_harvesting,
-                        b_id_harvesting,
-                    ),
-                )
+      // Delete the cultivationHarvesting entry
+      await tx
+        .delete(schema.cultivationHarvesting)
+        .where(eq(schema.cultivationHarvesting.b_id_harvesting, b_id_harvesting))
 
-            // Delete the harvestable entry
-            await tx
-                .delete(schema.harvestables)
-                .where(
-                    eq(schema.harvestables.b_id_harvestable, b_id_harvestable),
-                )
+      // Delete the harvestable entry
+      await tx
+        .delete(schema.harvestables)
+        .where(eq(schema.harvestables.b_id_harvestable, b_id_harvestable))
 
-            // Check if cultivation can be harvested
-            const b_lu_harvestable = await getHarvestableTypeOfCultivation(
-                tx,
-                b_lu,
-            )
+      // Check if cultivation can be harvested
+      const b_lu_harvestable = await getHarvestableTypeOfCultivation(tx, b_lu)
 
-            if (b_lu_harvestable === "once") {
-                // Remove terminating date for once-harvestable crops, since the harvest is being removed
-                await tx
-                    .update(schema.cultivationEnding)
-                    .set({ b_lu_end: null, updated: new Date() })
-                    .where(eq(schema.cultivationEnding.b_lu, b_lu))
-            }
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for removeHarvest", {
-            b_id_harvesting,
-        })
-    }
+      if (b_lu_harvestable === "once") {
+        // Remove terminating date for once-harvestable crops, since the harvest is being removed
+        await tx
+          .update(schema.cultivationEnding)
+          .set({ b_lu_end: null, updated: new Date() })
+          .where(eq(schema.cultivationEnding.b_lu, b_lu))
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for removeHarvest", {
+      b_id_harvesting,
+    })
+  }
 }
 
 /**
@@ -632,29 +534,26 @@ export async function removeHarvest(
  * @throws {Error} If the cultivation does not exist.
  */
 export async function getHarvestableTypeOfCultivation(
-    tx: FdmType,
-    b_lu: schema.cultivationsTypeSelect["b_lu"],
+  tx: FdmType,
+  b_lu: schema.cultivationsTypeSelect["b_lu"],
 ) {
-    const b_lu_harvestable = await tx
-        .select({
-            b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
-        })
-        .from(schema.cultivations)
-        .leftJoin(
-            schema.cultivationsCatalogue,
-            eq(
-                schema.cultivations.b_lu_catalogue,
-                schema.cultivationsCatalogue.b_lu_catalogue,
-            ),
-        )
-        .where(eq(schema.cultivations.b_lu, b_lu))
-        .limit(1)
+  const b_lu_harvestable = await tx
+    .select({
+      b_lu_harvestable: schema.cultivationsCatalogue.b_lu_harvestable,
+    })
+    .from(schema.cultivations)
+    .leftJoin(
+      schema.cultivationsCatalogue,
+      eq(schema.cultivations.b_lu_catalogue, schema.cultivationsCatalogue.b_lu_catalogue),
+    )
+    .where(eq(schema.cultivations.b_lu, b_lu))
+    .limit(1)
 
-    if (b_lu_harvestable.length === 0) {
-        throw new Error("Cultivation does not exist")
-    }
+  if (b_lu_harvestable.length === 0) {
+    throw new Error("Cultivation does not exist")
+  }
 
-    return b_lu_harvestable[0].b_lu_harvestable
+  return b_lu_harvestable[0].b_lu_harvestable
 }
 
 /**
@@ -670,90 +569,85 @@ export async function getHarvestableTypeOfCultivation(
  * @throws {Error} If the harvest date is missing, the cultivation is not harvestable, the sowing date is missing or invalid (i.e., the harvest date is not after the sowing date), the terminating date is missing, or if the harvest date violates the constraints for single or multiple harvest cultivations.
  */
 export async function checkHarvestDateCompability(
-    tx: FdmType,
-    b_lu: schema.cultivationsTypeSelect["b_lu"],
-    b_lu_harvest_date: schema.cultivationHarvestingTypeInsert["b_lu_harvest_date"],
+  tx: FdmType,
+  b_lu: schema.cultivationsTypeSelect["b_lu"],
+  b_lu_harvest_date: schema.cultivationHarvestingTypeInsert["b_lu_harvest_date"],
 ) {
-    // console.log(b_lu_harvest_date)
-    if (!b_lu_harvest_date) {
-        // Handle undefined dates *before* anything else
-        throw new Error("Argument b_lu_harvest_date is missing")
+  // console.log(b_lu_harvest_date)
+  if (!b_lu_harvest_date) {
+    // Handle undefined dates *before* anything else
+    throw new Error("Argument b_lu_harvest_date is missing")
+  }
+
+  // Check if cultivation can be harvested
+  const b_lu_harvestable = await getHarvestableTypeOfCultivation(tx, b_lu)
+  // console.log(b_lu_harvestable)
+
+  if (b_lu_harvestable === "none") {
+    throw new Error("Cultivation cannot be harvested")
+  }
+
+  // Check if harvest date is after sowing date
+  const sowingDate = await tx
+    .select({
+      b_lu_start: schema.cultivationStarting.b_lu_start,
+    })
+    .from(schema.cultivationStarting)
+    .where(eq(schema.cultivationStarting.b_lu, b_lu))
+    .limit(1)
+
+  if (sowingDate.length === 0 || sowingDate[0].b_lu_start === null) {
+    throw new Error("Sowing date does not exist")
+  }
+
+  // If cultivation has harvest date before or on sowing date throw an error
+  if (b_lu_harvest_date.getTime() < sowingDate[0].b_lu_start.getTime()) {
+    throw new Error("Harvest date must be after or on sowing date")
+  }
+
+  const terminatingDate = await tx
+    .select({
+      b_lu_end: schema.cultivationEnding.b_lu_end,
+    })
+    .from(schema.cultivationEnding)
+    .where(eq(schema.cultivationEnding.b_lu, b_lu))
+    .limit(1)
+
+  if (terminatingDate.length === 0) {
+    throw new Error("Terminating date does not exist")
+  }
+
+  if (b_lu_harvestable === "once") {
+    // If cultivation can only be harvested once, check if a harvest is already present
+    const existingHarvest = await tx
+      .select()
+      .from(schema.cultivationHarvesting)
+      .where(eq(schema.cultivationHarvesting.b_lu, b_lu))
+      .limit(1)
+
+    if (existingHarvest.length > 0) {
+      throw new Error("Cultivation can only be harvested once")
     }
 
-    // Check if cultivation can be harvested
-    const b_lu_harvestable = await getHarvestableTypeOfCultivation(tx, b_lu)
-    // console.log(b_lu_harvestable)
-
-    if (b_lu_harvestable === "none") {
-        throw new Error("Cultivation cannot be harvested")
-    }
-
-    // Check if harvest date is after sowing date
-    const sowingDate = await tx
-        .select({
-            b_lu_start: schema.cultivationStarting.b_lu_start,
-        })
-        .from(schema.cultivationStarting)
-        .where(eq(schema.cultivationStarting.b_lu, b_lu))
-        .limit(1)
-
-    if (sowingDate.length === 0 || sowingDate[0].b_lu_start === null) {
-        throw new Error("Sowing date does not exist")
-    }
-
-    // If cultivation has harvest date before or on sowing date throw an error
-    if (b_lu_harvest_date.getTime() < sowingDate[0].b_lu_start.getTime()) {
-        throw new Error("Harvest date must be after or on sowing date")
-    }
-
-    const terminatingDate = await tx
-        .select({
-            b_lu_end: schema.cultivationEnding.b_lu_end,
-        })
-        .from(schema.cultivationEnding)
-        .where(eq(schema.cultivationEnding.b_lu, b_lu))
-        .limit(1)
-
-    if (terminatingDate.length === 0) {
-        throw new Error("Terminating date does not exist")
-    }
-
-    if (b_lu_harvestable === "once") {
-        // If cultivation can only be harvested once, check if a harvest is already present
-        const existingHarvest = await tx
-            .select()
-            .from(schema.cultivationHarvesting)
-            .where(eq(schema.cultivationHarvesting.b_lu, b_lu))
-            .limit(1)
-
-        if (existingHarvest.length > 0) {
-            throw new Error("Cultivation can only be harvested once")
-        }
-
-        // If cultivation can only be harvested once, check if harvest is on the same date as terminating date
-        if (
-            terminatingDate[0].b_lu_end &&
-            b_lu_harvest_date.getTime() !==
-                terminatingDate[0].b_lu_end.getTime()
-        ) {
-            throw new Error(
-                "Harvest date must be equal to terminating date for this cultivation",
-            )
-        }
-    }
-
-    // If cultivation can be harvested multiple times, check if harvest is before termination date
+    // If cultivation can only be harvested once, check if harvest is on the same date as terminating date
     if (
-        b_lu_harvestable === "multiple" &&
-        terminatingDate[0].b_lu_end &&
-        b_lu_harvest_date.getTime() > terminatingDate[0].b_lu_end.getTime()
+      terminatingDate[0].b_lu_end &&
+      b_lu_harvest_date.getTime() !== terminatingDate[0].b_lu_end.getTime()
     ) {
-        throw new Error(
-            "Harvest date must be before terminating date for this cultivation",
-        )
+      throw new Error("Harvest date must be equal to terminating date for this cultivation")
     }
+  }
 
-    return b_lu_harvestable
+  // If cultivation can be harvested multiple times, check if harvest is before termination date
+  if (
+    b_lu_harvestable === "multiple" &&
+    terminatingDate[0].b_lu_end &&
+    b_lu_harvest_date.getTime() > terminatingDate[0].b_lu_end.getTime()
+  ) {
+    throw new Error("Harvest date must be before terminating date for this cultivation")
+  }
+
+  return b_lu_harvestable
 }
 
 /**
@@ -789,199 +683,169 @@ export async function checkHarvestDateCompability(
  * @throws Error if the harvest does not exist, permission checks fail, or any database update fails.
  */
 export async function updateHarvest(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
-    b_lu_harvest_date: schema.cultivationHarvestingTypeInsert["b_lu_harvest_date"],
-    properties?: {
-        b_lu_yield?: schema.harvestableAnalysesTypeInsert["b_lu_yield"]
-        b_lu_yield_bruto?: schema.harvestableAnalysesTypeInsert["b_lu_yield_bruto"]
-        b_lu_yield_fresh?: schema.harvestableAnalysesTypeInsert["b_lu_yield_fresh"]
-        b_lu_tarra?: schema.harvestableAnalysesTypeInsert["b_lu_tarra"]
-        b_lu_dm?: schema.harvestableAnalysesTypeInsert["b_lu_dm"]
-        b_lu_moist?: schema.harvestableAnalysesTypeInsert["b_lu_moist"]
-        b_lu_uww?: schema.harvestableAnalysesTypeInsert["b_lu_uww"]
-        b_lu_cp?: schema.harvestableAnalysesTypeInsert["b_lu_cp"]
-        b_lu_n_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_n_harvestable"]
-        b_lu_n_residue?: schema.harvestableAnalysesTypeInsert["b_lu_n_residue"]
-        b_lu_p_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_p_harvestable"]
-        b_lu_p_residue?: schema.harvestableAnalysesTypeInsert["b_lu_p_residue"]
-        b_lu_k_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_k_harvestable"]
-        b_lu_k_residue?: schema.harvestableAnalysesTypeInsert["b_lu_k_residue"]
-    },
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
+  b_lu_harvest_date: schema.cultivationHarvestingTypeInsert["b_lu_harvest_date"],
+  properties?: {
+    b_lu_yield?: schema.harvestableAnalysesTypeInsert["b_lu_yield"]
+    b_lu_yield_bruto?: schema.harvestableAnalysesTypeInsert["b_lu_yield_bruto"]
+    b_lu_yield_fresh?: schema.harvestableAnalysesTypeInsert["b_lu_yield_fresh"]
+    b_lu_tarra?: schema.harvestableAnalysesTypeInsert["b_lu_tarra"]
+    b_lu_dm?: schema.harvestableAnalysesTypeInsert["b_lu_dm"]
+    b_lu_moist?: schema.harvestableAnalysesTypeInsert["b_lu_moist"]
+    b_lu_uww?: schema.harvestableAnalysesTypeInsert["b_lu_uww"]
+    b_lu_cp?: schema.harvestableAnalysesTypeInsert["b_lu_cp"]
+    b_lu_n_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_n_harvestable"]
+    b_lu_n_residue?: schema.harvestableAnalysesTypeInsert["b_lu_n_residue"]
+    b_lu_p_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_p_harvestable"]
+    b_lu_p_residue?: schema.harvestableAnalysesTypeInsert["b_lu_p_residue"]
+    b_lu_k_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_k_harvestable"]
+    b_lu_k_residue?: schema.harvestableAnalysesTypeInsert["b_lu_k_residue"]
+  },
 ): Promise<void> {
-    try {
-        await checkPermission(
-            fdm,
-            "harvesting",
-            "write",
-            b_id_harvesting,
-            principal_id,
-            "updateHarvest",
+  try {
+    await checkPermission(
+      fdm,
+      "harvesting",
+      "write",
+      b_id_harvesting,
+      principal_id,
+      "updateHarvest",
+    )
+
+    return await fdm.transaction(async (tx) => {
+      const harvest = await getHarvestSimplified(tx, b_id_harvesting)
+      if (!harvest) {
+        throw new Error("Harvest does not exist")
+      }
+
+      const b_lu = harvest.b_lu
+
+      // Validation logic
+      if (!b_lu_harvest_date) {
+        throw new Error("Argument b_lu_harvest_date is missing")
+      }
+
+      const sowingDate = await tx
+        .select({
+          b_lu_start: schema.cultivationStarting.b_lu_start,
+        })
+        .from(schema.cultivationStarting)
+        .where(eq(schema.cultivationStarting.b_lu, b_lu))
+        .limit(1)
+
+      if (sowingDate.length === 0 || !sowingDate[0].b_lu_start) {
+        throw new Error("Sowing date does not exist")
+      }
+
+      if (b_lu_harvest_date.getTime() < sowingDate[0].b_lu_start.getTime()) {
+        throw new Error("Harvest date must be after or on sowing date")
+      }
+
+      const b_lu_harvestable = await getHarvestableTypeOfCultivation(tx, b_lu)
+
+      // Get the standardized harvest parameters
+      const cultivation = await tx
+        .select({
+          b_lu_harvestcat: schema.cultivationsCatalogue.b_lu_harvestcat,
+        })
+        .from(schema.cultivationHarvesting)
+        .leftJoin(
+          schema.cultivations,
+          eq(schema.cultivations.b_lu, schema.cultivationHarvesting.b_lu),
         )
+        .leftJoin(
+          schema.cultivationsCatalogue,
+          eq(schema.cultivations.b_lu_catalogue, schema.cultivationsCatalogue.b_lu_catalogue),
+        )
+        .where(eq(schema.cultivationHarvesting.b_id_harvesting, b_id_harvesting))
+        .limit(1)
+      if (cultivation.length === 0) {
+        throw new Error("Cultivation catalogue not found")
+      }
+      const b_lu_harvestcat = cultivation[0].b_lu_harvestcat
 
-        return await fdm.transaction(async (tx) => {
-            const harvest = await getHarvestSimplified(tx, b_id_harvesting)
-            if (!harvest) {
-                throw new Error("Harvest does not exist")
-            }
+      if (b_lu_harvestable === "multiple") {
+        const terminatingDate = await tx
+          .select({
+            b_lu_end: schema.cultivationEnding.b_lu_end,
+          })
+          .from(schema.cultivationEnding)
+          .where(eq(schema.cultivationEnding.b_lu, b_lu))
+          .limit(1)
 
-            const b_lu = harvest.b_lu
+        if (
+          terminatingDate.length > 0 &&
+          terminatingDate[0].b_lu_end &&
+          b_lu_harvest_date.getTime() > terminatingDate[0].b_lu_end.getTime()
+        ) {
+          throw new Error("Harvest date must be before terminating date for this cultivation")
+        }
+      }
+      // End of validation logic
+      const b_id_harvestable_analysis =
+        harvest.harvestable.harvestable_analyses[0].b_id_harvestable_analysis
 
-            // Validation logic
-            if (!b_lu_harvest_date) {
-                throw new Error("Argument b_lu_harvest_date is missing")
-            }
-
-            const sowingDate = await tx
-                .select({
-                    b_lu_start: schema.cultivationStarting.b_lu_start,
-                })
-                .from(schema.cultivationStarting)
-                .where(eq(schema.cultivationStarting.b_lu, b_lu))
-                .limit(1)
-
-            if (sowingDate.length === 0 || !sowingDate[0].b_lu_start) {
-                throw new Error("Sowing date does not exist")
-            }
-
-            if (
-                b_lu_harvest_date.getTime() < sowingDate[0].b_lu_start.getTime()
-            ) {
-                throw new Error("Harvest date must be after or on sowing date")
-            }
-
-            const b_lu_harvestable = await getHarvestableTypeOfCultivation(
-                tx,
-                b_lu,
-            )
-
-            // Get the standardized harvest parameters
-            const cultivation = await tx
-                .select({
-                    b_lu_harvestcat:
-                        schema.cultivationsCatalogue.b_lu_harvestcat,
-                })
-                .from(schema.cultivationHarvesting)
-                .leftJoin(
-                    schema.cultivations,
-                    eq(
-                        schema.cultivations.b_lu,
-                        schema.cultivationHarvesting.b_lu,
-                    ),
-                )
-                .leftJoin(
-                    schema.cultivationsCatalogue,
-                    eq(
-                        schema.cultivations.b_lu_catalogue,
-                        schema.cultivationsCatalogue.b_lu_catalogue,
-                    ),
-                )
-                .where(
-                    eq(
-                        schema.cultivationHarvesting.b_id_harvesting,
-                        b_id_harvesting,
-                    ),
-                )
-                .limit(1)
-            if (cultivation.length === 0) {
-                throw new Error("Cultivation catalogue not found")
-            }
-            const b_lu_harvestcat = cultivation[0].b_lu_harvestcat
-
-            if (b_lu_harvestable === "multiple") {
-                const terminatingDate = await tx
-                    .select({
-                        b_lu_end: schema.cultivationEnding.b_lu_end,
-                    })
-                    .from(schema.cultivationEnding)
-                    .where(eq(schema.cultivationEnding.b_lu, b_lu))
-                    .limit(1)
-
-                if (
-                    terminatingDate.length > 0 &&
-                    terminatingDate[0].b_lu_end &&
-                    b_lu_harvest_date.getTime() >
-                        terminatingDate[0].b_lu_end.getTime()
-                ) {
-                    throw new Error(
-                        "Harvest date must be before terminating date for this cultivation",
-                    )
-                }
-            }
-            // End of validation logic
-            const b_id_harvestable_analysis =
-                harvest.harvestable.harvestable_analyses[0]
-                    .b_id_harvestable_analysis
-
-            await tx
-                .update(schema.cultivationHarvesting)
-                .set({
-                    b_lu_harvest_date: b_lu_harvest_date,
-                    updated: new Date(),
-                })
-                .where(
-                    eq(
-                        schema.cultivationHarvesting.b_id_harvesting,
-                        b_id_harvesting,
-                    ),
-                )
-
-            if (properties) {
-                const standardHarvest = convertHarvestParameters(
-                    b_lu_harvestcat,
-                    properties.b_lu_yield,
-                    properties.b_lu_yield_bruto,
-                    properties.b_lu_yield_fresh,
-                    properties.b_lu_tarra,
-                    properties.b_lu_moist,
-                    properties.b_lu_uww,
-                    properties.b_lu_dm,
-                    properties.b_lu_cp,
-                    properties.b_lu_n_harvestable,
-                )
-                await tx
-                    .update(schema.harvestableAnalyses)
-                    .set({
-                        b_lu_yield: standardHarvest.b_lu_yield,
-                        b_lu_yield_bruto: properties.b_lu_yield_bruto,
-                        b_lu_yield_fresh: properties.b_lu_yield_fresh,
-                        b_lu_tarra: properties.b_lu_tarra,
-                        b_lu_moist: properties.b_lu_moist,
-                        b_lu_uww: properties.b_lu_uww,
-                        b_lu_dm: properties.b_lu_dm,
-                        b_lu_cp: properties.b_lu_cp,
-                        b_lu_n_harvestable: standardHarvest.b_lu_n_harvestable,
-                        b_lu_n_residue: properties.b_lu_n_residue,
-                        b_lu_p_harvestable: properties.b_lu_p_harvestable,
-                        b_lu_p_residue: properties.b_lu_p_residue,
-                        b_lu_k_harvestable: properties.b_lu_k_harvestable,
-                        b_lu_k_residue: properties.b_lu_k_residue,
-                        updated: new Date(),
-                    })
-                    .where(
-                        eq(
-                            schema.harvestableAnalyses
-                                .b_id_harvestable_analysis,
-                            b_id_harvestable_analysis,
-                        ),
-                    )
-            }
-
-            if (b_lu_harvestable === "once") {
-                await tx
-                    .update(schema.cultivationEnding)
-                    .set({ b_lu_end: b_lu_harvest_date, updated: new Date() })
-                    .where(eq(schema.cultivationEnding.b_lu, b_lu))
-            }
+      await tx
+        .update(schema.cultivationHarvesting)
+        .set({
+          b_lu_harvest_date: b_lu_harvest_date,
+          updated: new Date(),
         })
-    } catch (err) {
-        throw handleError(err, "Exception for updateHarvest", {
-            b_id_harvesting,
-            b_lu_harvest_date,
-            properties,
-        })
-    }
+        .where(eq(schema.cultivationHarvesting.b_id_harvesting, b_id_harvesting))
+
+      if (properties) {
+        const standardHarvest = convertHarvestParameters(
+          b_lu_harvestcat,
+          properties.b_lu_yield,
+          properties.b_lu_yield_bruto,
+          properties.b_lu_yield_fresh,
+          properties.b_lu_tarra,
+          properties.b_lu_moist,
+          properties.b_lu_uww,
+          properties.b_lu_dm,
+          properties.b_lu_cp,
+          properties.b_lu_n_harvestable,
+        )
+        await tx
+          .update(schema.harvestableAnalyses)
+          .set({
+            b_lu_yield: standardHarvest.b_lu_yield,
+            b_lu_yield_bruto: properties.b_lu_yield_bruto,
+            b_lu_yield_fresh: properties.b_lu_yield_fresh,
+            b_lu_tarra: properties.b_lu_tarra,
+            b_lu_moist: properties.b_lu_moist,
+            b_lu_uww: properties.b_lu_uww,
+            b_lu_dm: properties.b_lu_dm,
+            b_lu_cp: properties.b_lu_cp,
+            b_lu_n_harvestable: standardHarvest.b_lu_n_harvestable,
+            b_lu_n_residue: properties.b_lu_n_residue,
+            b_lu_p_harvestable: properties.b_lu_p_harvestable,
+            b_lu_p_residue: properties.b_lu_p_residue,
+            b_lu_k_harvestable: properties.b_lu_k_harvestable,
+            b_lu_k_residue: properties.b_lu_k_residue,
+            updated: new Date(),
+          })
+          .where(
+            eq(schema.harvestableAnalyses.b_id_harvestable_analysis, b_id_harvestable_analysis),
+          )
+      }
+
+      if (b_lu_harvestable === "once") {
+        await tx
+          .update(schema.cultivationEnding)
+          .set({ b_lu_end: b_lu_harvest_date, updated: new Date() })
+          .where(eq(schema.cultivationEnding.b_lu, b_lu))
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateHarvest", {
+      b_id_harvesting,
+      b_lu_harvest_date,
+      properties,
+    })
+  }
 }
 
 /**
@@ -1001,103 +865,84 @@ export async function updateHarvest(
  * @remark Currently, only one-to-one joins for harvest, harvestable, and harvestable analysis are supported.
  */
 async function getHarvestSimplified(
-    fdm: FdmType,
-    b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
+  fdm: FdmType,
+  b_id_harvesting: schema.cultivationHarvestingTypeSelect["b_id_harvesting"],
 ): Promise<Harvest> {
-    // Get properties of the requested harvest action
-    const harvesting = await fdm
-        .select({
-            b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
-            b_lu_harvest_date: schema.cultivationHarvesting.b_lu_harvest_date,
-            b_lu: schema.cultivationHarvesting.b_lu,
-        })
-        .from(schema.cultivationHarvesting)
-        .where(
-            eq(schema.cultivationHarvesting.b_id_harvesting, b_id_harvesting),
-        )
-        .limit(1)
+  // Get properties of the requested harvest action
+  const harvesting = await fdm
+    .select({
+      b_id_harvesting: schema.cultivationHarvesting.b_id_harvesting,
+      b_lu_harvest_date: schema.cultivationHarvesting.b_lu_harvest_date,
+      b_lu: schema.cultivationHarvesting.b_lu,
+    })
+    .from(schema.cultivationHarvesting)
+    .where(eq(schema.cultivationHarvesting.b_id_harvesting, b_id_harvesting))
+    .limit(1)
 
-    // If no harvest is found return an error
-    if (harvesting.length === 0) {
-        throw new Error("Harvest does not exist")
-    }
+  // If no harvest is found return an error
+  if (harvesting.length === 0) {
+    throw new Error("Harvest does not exist")
+  }
 
-    const harvest = harvesting[0]
+  const harvest = harvesting[0]
 
-    // Get properties of harvestables for this harvesting
-    // CAUTION: Currently only 1:1 joins for harvesting, harvestables and harvestable_analysis is supported. When 1:M joins is supported in these functions (db schema alreayd supports it) than the code below needs to be updated
-    const harvestables = await fdm
-        .select({
-            b_id_harvestable: schema.harvestables.b_id_harvestable,
-        })
-        .from(schema.harvestables)
-        .leftJoin(
-            schema.cultivationHarvesting,
-            eq(
-                schema.harvestables.b_id_harvestable,
-                schema.cultivationHarvesting.b_id_harvestable,
-            ),
-        )
-        .where(
-            eq(
-                schema.cultivationHarvesting.b_id_harvesting,
-                harvest.b_id_harvesting,
-            ),
-        )
-        .limit(1)
+  // Get properties of harvestables for this harvesting
+  // CAUTION: Currently only 1:1 joins for harvesting, harvestables and harvestable_analysis is supported. When 1:M joins is supported in these functions (db schema alreayd supports it) than the code below needs to be updated
+  const harvestables = await fdm
+    .select({
+      b_id_harvestable: schema.harvestables.b_id_harvestable,
+    })
+    .from(schema.harvestables)
+    .leftJoin(
+      schema.cultivationHarvesting,
+      eq(schema.harvestables.b_id_harvestable, schema.cultivationHarvesting.b_id_harvestable),
+    )
+    .where(eq(schema.cultivationHarvesting.b_id_harvesting, harvest.b_id_harvesting))
+    .limit(1)
 
-    const harvestable = harvestables[0]
+  const harvestable = harvestables[0]
 
-    // Get properties of harvestable analyses for this harvesting
-    const harvestableAnalyses = await fdm
-        .select({
-            b_id_harvestable_analysis:
-                schema.harvestableAnalyses.b_id_harvestable_analysis,
-            b_lu_yield: schema.harvestableAnalyses.b_lu_yield,
-            b_lu_yield_fresh: schema.harvestableAnalyses.b_lu_yield_fresh,
-            b_lu_yield_bruto: schema.harvestableAnalyses.b_lu_yield_bruto,
-            b_lu_tarra: schema.harvestableAnalyses.b_lu_tarra,
-            b_lu_dm: schema.harvestableAnalyses.b_lu_dm,
-            b_lu_moist: schema.harvestableAnalyses.b_lu_moist,
-            b_lu_uww: schema.harvestableAnalyses.b_lu_uww,
-            b_lu_cp: schema.harvestableAnalyses.b_lu_cp,
-            b_lu_n_harvestable: schema.harvestableAnalyses.b_lu_n_harvestable,
-            b_lu_n_residue: schema.harvestableAnalyses.b_lu_n_residue,
-            b_lu_p_harvestable: schema.harvestableAnalyses.b_lu_p_harvestable,
-            b_lu_p_residue: schema.harvestableAnalyses.b_lu_p_residue,
-            b_lu_k_harvestable: schema.harvestableAnalyses.b_lu_k_harvestable,
-            b_lu_k_residue: schema.harvestableAnalyses.b_lu_k_residue,
-        })
-        .from(schema.harvestables)
-        .leftJoin(
-            schema.harvestableSampling,
-            eq(
-                schema.harvestables.b_id_harvestable,
-                schema.harvestableSampling.b_id_harvestable,
-            ),
-        )
-        .leftJoin(
-            schema.harvestableAnalyses,
-            eq(
-                schema.harvestableSampling.b_id_harvestable_analysis,
-                schema.harvestableAnalyses.b_id_harvestable_analysis,
-            ),
-        )
-        .where(
-            eq(
-                schema.harvestableSampling.b_id_harvestable,
-                harvestable.b_id_harvestable,
-            ),
-        )
-        .limit(1)
+  // Get properties of harvestable analyses for this harvesting
+  const harvestableAnalyses = await fdm
+    .select({
+      b_id_harvestable_analysis: schema.harvestableAnalyses.b_id_harvestable_analysis,
+      b_lu_yield: schema.harvestableAnalyses.b_lu_yield,
+      b_lu_yield_fresh: schema.harvestableAnalyses.b_lu_yield_fresh,
+      b_lu_yield_bruto: schema.harvestableAnalyses.b_lu_yield_bruto,
+      b_lu_tarra: schema.harvestableAnalyses.b_lu_tarra,
+      b_lu_dm: schema.harvestableAnalyses.b_lu_dm,
+      b_lu_moist: schema.harvestableAnalyses.b_lu_moist,
+      b_lu_uww: schema.harvestableAnalyses.b_lu_uww,
+      b_lu_cp: schema.harvestableAnalyses.b_lu_cp,
+      b_lu_n_harvestable: schema.harvestableAnalyses.b_lu_n_harvestable,
+      b_lu_n_residue: schema.harvestableAnalyses.b_lu_n_residue,
+      b_lu_p_harvestable: schema.harvestableAnalyses.b_lu_p_harvestable,
+      b_lu_p_residue: schema.harvestableAnalyses.b_lu_p_residue,
+      b_lu_k_harvestable: schema.harvestableAnalyses.b_lu_k_harvestable,
+      b_lu_k_residue: schema.harvestableAnalyses.b_lu_k_residue,
+    })
+    .from(schema.harvestables)
+    .leftJoin(
+      schema.harvestableSampling,
+      eq(schema.harvestables.b_id_harvestable, schema.harvestableSampling.b_id_harvestable),
+    )
+    .leftJoin(
+      schema.harvestableAnalyses,
+      eq(
+        schema.harvestableSampling.b_id_harvestable_analysis,
+        schema.harvestableAnalyses.b_id_harvestable_analysis,
+      ),
+    )
+    .where(eq(schema.harvestableSampling.b_id_harvestable, harvestable.b_id_harvestable))
+    .limit(1)
 
-    return {
-        ...harvest,
-        harvestable: {
-            ...harvestable,
-            harvestable_analyses: harvestableAnalyses as HarvestableAnalysis[],
-        },
-    } as Harvest
+  return {
+    ...harvest,
+    harvestable: {
+      ...harvestable,
+      harvestable_analyses: harvestableAnalyses as HarvestableAnalysis[],
+    },
+  } as Harvest
 }
 
 /**
@@ -1111,41 +956,26 @@ async function getHarvestSimplified(
  * @returns An array of strings, where each string is a required parameter name for the given harvest class. Returns an empty array if the class is not recognized.
  */
 export function getParametersForHarvestCat(
-    b_lu_harvestcat: schema.cultivationsCatalogueTypeSelect["b_lu_harvestcat"],
+  b_lu_harvestcat: schema.cultivationsCatalogueTypeSelect["b_lu_harvestcat"],
 ): HarvestParameters {
-    switch (b_lu_harvestcat) {
-        case "HC010":
-            return ["b_lu_yield_fresh", "b_lu_dm", "b_lu_n_harvestable"]
-        case "HC020":
-            return ["b_lu_yield", "b_lu_cp"]
-        case "HC031":
-            return ["b_lu_yield", "b_lu_cp"]
-        case "HC040":
-            return [
-                "b_lu_yield_bruto",
-                "b_lu_tarra",
-                "b_lu_dm",
-                "b_lu_n_harvestable",
-            ]
-        case "HC041":
-            return [
-                "b_lu_yield_bruto",
-                "b_lu_tarra",
-                "b_lu_dm",
-                "b_lu_n_harvestable",
-            ]
-        case "HC042":
-            return [
-                "b_lu_yield_bruto",
-                "b_lu_tarra",
-                "b_lu_uww",
-                "b_lu_n_harvestable",
-            ]
-        case "HC050":
-            return ["b_lu_yield_fresh", "b_lu_moist", "b_lu_cp"]
-        default:
-            return []
-    }
+  switch (b_lu_harvestcat) {
+    case "HC010":
+      return ["b_lu_yield_fresh", "b_lu_dm", "b_lu_n_harvestable"]
+    case "HC020":
+      return ["b_lu_yield", "b_lu_cp"]
+    case "HC031":
+      return ["b_lu_yield", "b_lu_cp"]
+    case "HC040":
+      return ["b_lu_yield_bruto", "b_lu_tarra", "b_lu_dm", "b_lu_n_harvestable"]
+    case "HC041":
+      return ["b_lu_yield_bruto", "b_lu_tarra", "b_lu_dm", "b_lu_n_harvestable"]
+    case "HC042":
+      return ["b_lu_yield_bruto", "b_lu_tarra", "b_lu_uww", "b_lu_n_harvestable"]
+    case "HC050":
+      return ["b_lu_yield_fresh", "b_lu_moist", "b_lu_cp"]
+    default:
+      return []
+  }
 }
 
 /**
@@ -1166,103 +996,89 @@ export function getParametersForHarvestCat(
  * // Output might be: { b_lu_yield: 10000, b_lu_dm: 850 }
  */
 export function getDefaultsForHarvestParameters(
-    b_lu_catalogue: schema.cultivationsCatalogueTypeSelect["b_lu_catalogue"],
-    cultivationsCatalogue: schema.cultivationsCatalogueTypeSelect[],
+  b_lu_catalogue: schema.cultivationsCatalogueTypeSelect["b_lu_catalogue"],
+  cultivationsCatalogue: schema.cultivationsCatalogueTypeSelect[],
 ): HarvestParametersDefault {
-    // Find the corresponding cultivation item in the catalogue.
-    const cultivationsCatalogueItem = cultivationsCatalogue.find(
-        (item) => item.b_lu_catalogue === b_lu_catalogue,
-    )
-    if (!cultivationsCatalogueItem) {
-        throw new Error("Cultivations catalogue item not found")
+  // Find the corresponding cultivation item in the catalogue.
+  const cultivationsCatalogueItem = cultivationsCatalogue.find(
+    (item) => item.b_lu_catalogue === b_lu_catalogue,
+  )
+  if (!cultivationsCatalogueItem) {
+    throw new Error("Cultivations catalogue item not found")
+  }
+
+  // Get the list of required harvest parameters for the given harvest category.
+  const harvestParameters = getParametersForHarvestCat(cultivationsCatalogueItem.b_lu_harvestcat)
+
+  const defaultHarvestParameters = {} as HarvestParametersDefault
+
+  // Initialize Decimal values from the catalogue, providing defaults if nullish.
+  const b_lu_yield = new Decimal(cultivationsCatalogueItem.b_lu_yield ?? 0)
+  const b_lu_dm = new Decimal(cultivationsCatalogueItem.b_lu_dm ?? 1)
+  // Default tarra (tare) percentage.
+  const b_lu_tarra = new Decimal(5)
+
+  // Iterate over the required parameters and calculate their default values.
+  for (const parameter of harvestParameters) {
+    if (parameter === "b_lu_yield") {
+      // Default dry matter yield.
+      defaultHarvestParameters[parameter] = b_lu_yield.toNumber()
+    } else if (parameter === "b_lu_yield_fresh") {
+      // Calculate fresh yield based on dry matter yield and content.
+      // Formula: fresh_yield = dry_yield / (dry_matter_content / 1000)
+      defaultHarvestParameters[parameter] = b_lu_yield
+        .dividedBy(b_lu_dm.dividedBy(1000))
+        .round()
+        .toNumber()
+    } else if (parameter === "b_lu_yield_bruto") {
+      // Calculate gross yield including tarra.
+      // Formula: gross_yield = dry_yield / (1 - tarra / 100)
+      defaultHarvestParameters[parameter] = b_lu_yield
+        .dividedBy(b_lu_dm.dividedBy(1000))
+        .dividedBy(new Decimal(1).minus(b_lu_tarra.dividedBy(100)))
+        .round()
+        .toNumber()
+    } else if (parameter === "b_lu_tarra") {
+      // Default tarra percentage.
+      defaultHarvestParameters[parameter] = b_lu_tarra.toNumber()
+    } else if (parameter === "b_lu_dm") {
+      // Default dry matter content.
+      defaultHarvestParameters[parameter] = b_lu_dm.toNumber()
+    } else if (parameter === "b_lu_moist") {
+      // Calculate moisture content from dry matter.
+      // Formula: moisture = (1000 - dry_matter_content) / 10
+      defaultHarvestParameters[parameter] = new Decimal(1000)
+        .minus(b_lu_dm)
+        .dividedBy(10)
+        .round()
+        .toNumber()
+    } else if (parameter === "b_lu_uww") {
+      // Default underwater weight.
+      defaultHarvestParameters[parameter] = b_lu_dm
+        .dividedBy(10)
+        .minus(2.0)
+        .dividedBy(0.049)
+        .round()
+        .toNumber()
+    } else if (parameter === "b_lu_cp") {
+      const b_lu_n_harvestable = new Decimal(cultivationsCatalogueItem.b_lu_n_harvestable ?? 0)
+      // Calculate crude protein based on nitrogen content and harvest category.
+      // The conversion factor from nitrogen to crude protein varies by crop type.
+      if (cultivationsCatalogueItem.b_lu_harvestcat === "HC020") {
+        defaultHarvestParameters[parameter] = b_lu_n_harvestable.times(6.25).round().toNumber()
+      } else if (cultivationsCatalogueItem.b_lu_harvestcat === "HC031") {
+        defaultHarvestParameters[parameter] = b_lu_n_harvestable.times(6.25).round().toNumber()
+      } else if (cultivationsCatalogueItem.b_lu_harvestcat === "HC050") {
+        defaultHarvestParameters[parameter] = b_lu_n_harvestable.times(5.7).round().toNumber()
+      } else {
+        // Default crude protein value if no specific category matches.
+        defaultHarvestParameters[parameter] = 170
+      }
+    } else if (parameter === "b_lu_n_harvestable") {
+      // Default harvestable nitrogen content.
+      defaultHarvestParameters[parameter] = cultivationsCatalogueItem[parameter]
     }
+  }
 
-    // Get the list of required harvest parameters for the given harvest category.
-    const harvestParameters = getParametersForHarvestCat(
-        cultivationsCatalogueItem.b_lu_harvestcat,
-    )
-
-    const defaultHarvestParameters = {} as HarvestParametersDefault
-
-    // Initialize Decimal values from the catalogue, providing defaults if nullish.
-    const b_lu_yield = new Decimal(cultivationsCatalogueItem.b_lu_yield ?? 0)
-    const b_lu_dm = new Decimal(cultivationsCatalogueItem.b_lu_dm ?? 1)
-    // Default tarra (tare) percentage.
-    const b_lu_tarra = new Decimal(5)
-
-    // Iterate over the required parameters and calculate their default values.
-    for (const parameter of harvestParameters) {
-        if (parameter === "b_lu_yield") {
-            // Default dry matter yield.
-            defaultHarvestParameters[parameter] = b_lu_yield.toNumber()
-        } else if (parameter === "b_lu_yield_fresh") {
-            // Calculate fresh yield based on dry matter yield and content.
-            // Formula: fresh_yield = dry_yield / (dry_matter_content / 1000)
-            defaultHarvestParameters[parameter] = b_lu_yield
-                .dividedBy(b_lu_dm.dividedBy(1000))
-                .round()
-                .toNumber()
-        } else if (parameter === "b_lu_yield_bruto") {
-            // Calculate gross yield including tarra.
-            // Formula: gross_yield = dry_yield / (1 - tarra / 100)
-            defaultHarvestParameters[parameter] = b_lu_yield
-                .dividedBy(b_lu_dm.dividedBy(1000))
-                .dividedBy(new Decimal(1).minus(b_lu_tarra.dividedBy(100)))
-                .round()
-                .toNumber()
-        } else if (parameter === "b_lu_tarra") {
-            // Default tarra percentage.
-            defaultHarvestParameters[parameter] = b_lu_tarra.toNumber()
-        } else if (parameter === "b_lu_dm") {
-            // Default dry matter content.
-            defaultHarvestParameters[parameter] = b_lu_dm.toNumber()
-        } else if (parameter === "b_lu_moist") {
-            // Calculate moisture content from dry matter.
-            // Formula: moisture = (1000 - dry_matter_content) / 10
-            defaultHarvestParameters[parameter] = new Decimal(1000)
-                .minus(b_lu_dm)
-                .dividedBy(10)
-                .round()
-                .toNumber()
-        } else if (parameter === "b_lu_uww") {
-            // Default underwater weight.
-            defaultHarvestParameters[parameter] = b_lu_dm
-                .dividedBy(10)
-                .minus(2.0)
-                .dividedBy(0.049)
-                .round()
-                .toNumber()
-        } else if (parameter === "b_lu_cp") {
-            const b_lu_n_harvestable = new Decimal(
-                cultivationsCatalogueItem.b_lu_n_harvestable ?? 0,
-            )
-            // Calculate crude protein based on nitrogen content and harvest category.
-            // The conversion factor from nitrogen to crude protein varies by crop type.
-            if (cultivationsCatalogueItem.b_lu_harvestcat === "HC020") {
-                defaultHarvestParameters[parameter] = b_lu_n_harvestable
-                    .times(6.25)
-                    .round()
-                    .toNumber()
-            } else if (cultivationsCatalogueItem.b_lu_harvestcat === "HC031") {
-                defaultHarvestParameters[parameter] = b_lu_n_harvestable
-                    .times(6.25)
-                    .round()
-                    .toNumber()
-            } else if (cultivationsCatalogueItem.b_lu_harvestcat === "HC050") {
-                defaultHarvestParameters[parameter] = b_lu_n_harvestable
-                    .times(5.7)
-                    .round()
-                    .toNumber()
-            } else {
-                // Default crude protein value if no specific category matches.
-                defaultHarvestParameters[parameter] = 170
-            }
-        } else if (parameter === "b_lu_n_harvestable") {
-            // Default harvestable nitrogen content.
-            defaultHarvestParameters[parameter] =
-                cultivationsCatalogueItem[parameter]
-        }
-    }
-
-    return defaultHarvestParameters
+  return defaultHarvestParameters
 }

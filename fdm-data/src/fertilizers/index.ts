@@ -23,14 +23,14 @@ import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"
  * ```
  */
 export async function getFertilizersCatalogue(
-    catalogueName: CatalogueFertilizerName,
+  catalogueName: CatalogueFertilizerName,
 ): Promise<CatalogueFertilizer> {
-    // Get the specified catalogue
-    if (catalogueName === "srm") {
-        return await getCatalogueSrm()
-    }
-    if (catalogueName === "baat") {
-        return await getCatalogueBaat()
-    }
-    throw new Error(`catalogue ${catalogueName} is not recognized`)
+  // Get the specified catalogue
+  if (catalogueName === "srm") {
+    return await getCatalogueSrm()
+  }
+  if (catalogueName === "baat") {
+    return await getCatalogueBaat()
+  }
+  throw new Error(`catalogue ${catalogueName} is not recognized`)
 }

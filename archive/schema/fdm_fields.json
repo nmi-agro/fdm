@@ -1,23 +1,23 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_fields.json",
-    "title": "Field asset in Farm Data Model",
-    "description": "The data model to describe the asset: field",
-    "type": "object",
-    "properties": {
-        "b_id": {
-            "description": "ID of the field",
-            "type": "string"
-        },
-        "b_name_field": {
-            "description": "Name of the field",
-            "type": "string"
-        },
-        "b_geometry": {
-            "description": "Geometry of the field in WKT format",
-            "type": "string",
-            "pattern": "^POLYGON"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_fields.json",
+  "title": "Field asset in Farm Data Model",
+  "description": "The data model to describe the asset: field",
+  "type": "object",
+  "properties": {
+    "b_id": {
+      "description": "ID of the field",
+      "type": "string"
     },
-    "required": ["b_id"]
+    "b_name_field": {
+      "description": "Name of the field",
+      "type": "string"
+    },
+    "b_geometry": {
+      "description": "Geometry of the field in WKT format",
+      "type": "string",
+      "pattern": "^POLYGON"
+    }
+  },
+  "required": ["b_id"]
 }

@@ -9,19 +9,19 @@ import { Button } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import type { Route as UpstreamRoute } from "./+types/farm.$b_id_farm.$calendar.rotation"
 import {
-    action as originalAction,
-    loader as originalLoader,
+  action as originalAction,
+  loader as originalLoader,
 } from "./farm.$b_id_farm.$calendar.rotation"
 
 // Meta
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Bouwplan - Bedrijf toevoegen | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: "Beheer de gewassen op je percelen.",
-        },
-    ]
+  return [
+    { title: `Bouwplan - Bedrijf toevoegen | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: "Beheer de gewassen op je percelen.",
+    },
+  ]
 }
 
 /**
@@ -41,76 +41,74 @@ export const meta: MetaFunction = () => {
  * @throws {Response} 404 if the farm is not found.
  */
 export async function loader(props: UpstreamRoute.LoaderArgs) {
-    return originalLoader(props)
+  return originalLoader(props)
 }
 
 export default function FarmCreateRotationIndex() {
-    const loaderData = useLoaderData<typeof loader>()
-    const currentFarmName =
-        loaderData.farmOptions.find(
-            (farm) => farm.b_id_farm === loaderData.b_id_farm,
-        )?.b_name_farm ?? ""
-    return (
-        <>
-            <Header action={undefined}>
-                <HeaderFarmCreate b_name_farm={currentFarmName} />
-            </Header>
-            <main>
-                {loaderData.fieldOptions.length === 0 ? (
-                    <>
-                        <FarmTitle
-                            title={`Bouwplan van ${currentFarmName}`}
-                            description="Dit bedrijf heeft nog geen bouwplan"
-                            action={{
-                                to: `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/access`,
-                                label: "Doorgaan",
-                            }}
-                        />
-                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
-                            <div className="flex flex-col space-y-2 text-center">
-                                <h1 className="text-2xl font-semibold tracking-tight">
-                                    Het lijkt erop dat je nog geen bouwplan hebt
-                                    :(
-                                </h1>
-                            </div>
-                            <div className="flex flex-col items-center relative">
-                                <Button asChild>
-                                    <NavLink
-                                        to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
-                                    >
-                                        Maak een perceel
-                                    </NavLink>
-                                </Button>
-                            </div>
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <FarmTitle
-                            title={`Bouwplan van ${currentFarmName}`}
-                            description="Bekijk het bouwplan en voeg gegevens toe."
-                            action={{
-                                to: `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/access`,
-                                label: "Doorgaan",
-                            }}
-                        />
-                        <FarmContent>
-                            <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
-                                <DataTable
-                                    columns={columns}
-                                    data={loaderData.rotationExtended}
-                                    canAddItem={loaderData.farmWritePermission}
-                                />
-                            </div>
-                        </FarmContent>
-                    </>
-                )}
-                <Outlet />
-            </main>
-        </>
-    )
+  const loaderData = useLoaderData<typeof loader>()
+  const currentFarmName =
+    loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
+    ""
+  return (
+    <>
+      <Header action={undefined}>
+        <HeaderFarmCreate b_name_farm={currentFarmName} />
+      </Header>
+      <main>
+        {loaderData.fieldOptions.length === 0 ? (
+          <>
+            <FarmTitle
+              title={`Bouwplan van ${currentFarmName}`}
+              description="Dit bedrijf heeft nog geen bouwplan"
+              action={{
+                to: `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/access`,
+                label: "Doorgaan",
+              }}
+            />
+            <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
+              <div className="flex flex-col space-y-2 text-center">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Het lijkt erop dat je nog geen bouwplan hebt :(
+                </h1>
+              </div>
+              <div className="flex flex-col items-center relative">
+                <Button asChild>
+                  <NavLink
+                    to={`/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/fields`}
+                  >
+                    Maak een perceel
+                  </NavLink>
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <FarmTitle
+              title={`Bouwplan van ${currentFarmName}`}
+              description="Bekijk het bouwplan en voeg gegevens toe."
+              action={{
+                to: `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/access`,
+                label: "Doorgaan",
+              }}
+            />
+            <FarmContent>
+              <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
+                <DataTable
+                  columns={columns}
+                  data={loaderData.rotationExtended}
+                  canAddItem={loaderData.farmWritePermission}
+                />
+              </div>
+            </FarmContent>
+          </>
+        )}
+        <Outlet />
+      </main>
+    </>
+  )
 }
 
 export async function action(props: UpstreamRoute.ActionArgs) {
-    return originalAction(props)
+  return originalAction(props)
 }

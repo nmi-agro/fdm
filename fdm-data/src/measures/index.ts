@@ -20,11 +20,11 @@ import type { CatalogueMeasure, CatalogueMeasureName } from "./d"
  * ```
  */
 export async function getMeasuresCatalogue(
-    catalogueName: CatalogueMeasureName,
-    nmiApiKey: string,
+  catalogueName: CatalogueMeasureName,
+  nmiApiKey: string,
 ): Promise<CatalogueMeasure> {
-    if (catalogueName === "bln") {
-        return await getCatalogueBln(nmiApiKey)
-    }
-    throw new Error(`catalogue ${catalogueName} is not recognized`)
+  if (catalogueName === "bln") {
+    return await getCatalogueBln(nmiApiKey)
+  }
+  throw new Error(`catalogue ${catalogueName} is not recognized`)
 }

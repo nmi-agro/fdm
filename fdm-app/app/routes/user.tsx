@@ -6,12 +6,7 @@ import { SidebarPlatform } from "~/components/blocks/sidebar/platform"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarInset,
-    SidebarProvider,
-} from "~/components/ui/sidebar"
+import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -28,24 +23,24 @@ import { handleLoaderError } from "~/lib/error"
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
-    try {
-        // Get the session
-        const session = await getSession(request)
-        const sessionCheckResponse = await checkSession(session, request)
-        // If checkSession returns a Response, it means a redirect is needed
-        if (sessionCheckResponse instanceof Response) {
-            return sessionCheckResponse
-        }
-
-        // Return user information from loader
-        return {
-            user: session.user,
-            userName: session.userName,
-            initials: session.initials,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+  try {
+    // Get the session
+    const session = await getSession(request)
+    const sessionCheckResponse = await checkSession(session, request)
+    // If checkSession returns a Response, it means a redirect is needed
+    if (sessionCheckResponse instanceof Response) {
+      return sessionCheckResponse
     }
+
+    // Return user information from loader
+    return {
+      user: session.user,
+      userName: session.userName,
+      initials: session.initials,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -54,42 +49,42 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * This component retrieves user data from the loader using React Router's useLoaderData hook and passes it to the SidebarApp component within a SidebarProvider context. It also renders an Outlet to display nested routes.
  */
 export default function App() {
-    const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
 
-    // Identify user if PostHog is configured
-    useEffect(() => {
-        if (clientConfig.analytics.posthog && loaderData.user) {
-            posthog.identify(loaderData.user.id, {
-                id: loaderData.user.id,
-                email: loaderData.user.email,
-                name: loaderData.user.name,
-            })
-        }
-    }, [loaderData.user])
+  // Identify user if PostHog is configured
+  useEffect(() => {
+    if (clientConfig.analytics.posthog && loaderData.user) {
+      posthog.identify(loaderData.user.id, {
+        id: loaderData.user.id,
+        email: loaderData.user.email,
+        name: loaderData.user.name,
+      })
+    }
+  }, [loaderData.user])
 
-    return (
-        <SidebarProvider>
-            <Sidebar>
-                <SidebarTitle />
-                <SidebarContent>
-                    <SidebarPlatform />
-                </SidebarContent>
-                <SidebarSupport
-                    name={loaderData.userName}
-                    email={loaderData.user.email}
-                    hasNotification={false}
-                />
-                <SidebarUser
-                    name={loaderData.userName}
-                    email={loaderData.user.email}
-                    image={loaderData.user.image}
-                    avatarInitials={loaderData.initials}
-                    userName={loaderData.userName}
-                />
-            </Sidebar>
-            <SidebarInset>
-                <Outlet />
-            </SidebarInset>
-        </SidebarProvider>
-    )
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarTitle />
+        <SidebarContent>
+          <SidebarPlatform />
+        </SidebarContent>
+        <SidebarSupport
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          hasNotification={false}
+        />
+        <SidebarUser
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          image={loaderData.user.image}
+          avatarInitials={loaderData.initials}
+          userName={loaderData.userName}
+        />
+      </Sidebar>
+      <SidebarInset>
+        <Outlet />
+      </SidebarInset>
+    </SidebarProvider>
+  )
 }

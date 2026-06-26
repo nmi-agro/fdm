@@ -9,80 +9,77 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/organization.new"
 
 export const meta: Route.MetaFunction = () => {
-    return [
-        { title: `Organisatie aanmaken | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: "Voeg een nieuwe organisatie toe.",
-        },
-    ]
+  return [
+    { title: `Organisatie aanmaken | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: "Voeg een nieuwe organisatie toe.",
+    },
+  ]
 }
 
 export async function loader() {
-    try {
-        return {}
-    } catch (error) {
-        throw handleLoaderError(error)
-    }
+  try {
+    return {}
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 export default function AddOrganizationPage() {
-    return (
-        <main>
-            <FarmTitle
-                title={"Organisatie aanmaken"}
-                description={
-                    "Start een organisatie om met anderen samen te werken, gebruikers uit te nodigen en gegevens te delen."
-                }
-            />
-            <div className="max-w-3xl mx-auto px-4">
-                <OrganizationSettingsForm method="post" canModify={true} />
-            </div>
-        </main>
-    )
+  return (
+    <main>
+      <FarmTitle
+        title={"Organisatie aanmaken"}
+        description={
+          "Start een organisatie om met anderen samen te werken, gebruikers uit te nodigen en gegevens te delen."
+        }
+      />
+      <div className="max-w-3xl mx-auto px-4">
+        <OrganizationSettingsForm method="post" canModify={true} />
+      </div>
+    </main>
+  )
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  try {
+    // Get the session
+    await getSession(request)
+
+    // Get the form values
+    const formValues = await extractFormValuesFromRequest(request, FormSchema)
+    const name = formValues.name
+    const slug = formValues.slug
+    const description = formValues.description || ""
+
     try {
-        // Get the session
-        await getSession(request)
+      // Create the organization
+      await auth.api.createOrganization({
+        headers: request.headers,
+        body: {
+          name,
+          slug,
+          metadata: {
+            description,
+          },
+        },
+      })
 
-        // Get the form values
-        const formValues = await extractFormValuesFromRequest(
-            request,
-            FormSchema,
+      return redirectWithSuccess(`/organization/${formValues.slug}`, {
+        message: `Organisatie ${formValues.name} is aangemaakt! 🎉`,
+      })
+    } catch (e) {
+      if (e && (e as any).body?.code === "ORGANIZATION_ALREADY_EXISTS") {
+        return dataWithError(
+          null,
+          "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
         )
-        const name = formValues.name
-        const slug = formValues.slug
-        const description = formValues.description || ""
+      }
 
-        try {
-            // Create the organization
-            await auth.api.createOrganization({
-                headers: request.headers,
-                body: {
-                    name,
-                    slug,
-                    metadata: {
-                        description,
-                    },
-                },
-            })
-
-            return redirectWithSuccess(`/organization/${formValues.slug}`, {
-                message: `Organisatie ${formValues.name} is aangemaakt! 🎉`,
-            })
-        } catch (e) {
-            if (e && (e as any).body?.code === "ORGANIZATION_ALREADY_EXISTS") {
-                return dataWithError(
-                    null,
-                    "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
-                )
-            }
-
-            throw e
-        }
-    } catch (error) {
-        throw handleActionError(error)
+      throw e
     }
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }

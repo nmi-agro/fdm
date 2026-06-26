@@ -1,6 +1,7 @@
 # Klaver (klaver) — zuivere teelt, klaverzaad en klaver als vanggewas
 
 Omvat:
+
 - **Productie- / zaadteelten**: rode klaver (nl_799), birdsfoot trefoil / rolklaver
   (nl_800), witte klaver (nl_3524), Alexandrijnse klaver (nl_3500), incarnaatklaver
   (nl_3511), Perzische klaver (nl_3515).
@@ -13,8 +14,9 @@ Voor gras-/klavermengsels zie `grasland.md` (klaverpersistentie maakt deel uit v
 bekalkings- en K-overwegingen voor grasland).
 
 **Voorkeur:**
+
 - **Inoculatie** wanneer klaver wordt gezaaid in een rotatie zonder recente klavergeschiedenis —
-  *Rhizobium leguminosarum* bv. *trifolii* is meestal aanwezig in Nederlandse bodems, maar op
+  _Rhizobium leguminosarum_ bv. _trifolii_ is meestal aanwezig in Nederlandse bodems, maar op
   percelen met eerste teelt of na langdurige braak is inoculatie een verzekering.
 - P, K, S, B volgens `advice.d_p_req` / `advice.d_k_req` / `advice.d_s_req` /
   `advice.d_b_req`. Klaver heeft een hoge P- en K-behoefte en is B-gevoelig.
@@ -24,12 +26,14 @@ bekalkings- en K-overwegingen voor grasland).
   cofactor voor nitrogenase. Raadpleeg `advice.d_mo_req`.
 
 **Vermijden:**
+
 - Minerale N — onderdrukt knolvorming. Volg `advice.d_n_req` (normaal nul voor productieklaver
   en klaver als vanggewas).
 - Drijfmest in het voorjaar op productieklaver — hoog N-gehalte en ongelijkmatige N-vrijstelling.
   Een bescheiden drijfmestgift in de late herfst of vóór het zaaien is acceptabel.
 
 **Klaverzaadteelten — extra:**
+
 - Bijenactiviteit is essentieel voor de zaadzetting. Vermijd insecticidetoepassingen tijdens
   de bloei; dit is geen bemestingsbeslissing, maar moet in het plan worden vermeld wanneer
   klaverzaad op het bedrijf staat.
@@ -37,6 +41,7 @@ bekalkings- en K-overwegingen voor grasland).
   `advice.d_n_req` ondersteunt.
 
 **Klaver als groenbemester / vanggewas — extra:**
+
 - Het doel is resterende N voor het volggewas. Geen bemesting nodig; houd `advice.d_n_req`
   dicht bij nul.
 - Neem bij inwerken de N-vrijstelling op in de N-begroting van volgend jaar via de standaard

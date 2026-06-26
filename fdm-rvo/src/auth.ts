@@ -15,38 +15,36 @@ import { RvoClient } from "@nmi-agro/rvo-connector"
  * @returns An initialized `RvoClient` instance ready for authentication.
  */
 export const createRvoClient = (
-    clientId: string,
-    clientName: string,
-    redirectUri: string,
-    pkioPrivateKey: string,
-    environment: "acceptance" | "production" = "production",
+  clientId: string,
+  clientName: string,
+  redirectUri: string,
+  pkioPrivateKey: string,
+  environment: "acceptance" | "production" = "production",
 ) => {
-    let privateKey = pkioPrivateKey
-    if (
-        pkioPrivateKey.startsWith("/") ||
-        pkioPrivateKey.startsWith("./") ||
-        pkioPrivateKey.startsWith("../") ||
-        /^[a-zA-Z]:[/\\]/.test(pkioPrivateKey)
-    ) {
-        if (fs.existsSync(pkioPrivateKey)) {
-            privateKey = fs.readFileSync(pkioPrivateKey, "utf8")
-        } else {
-            throw new Error(
-                `PKIO private key file not found: ${pkioPrivateKey}`,
-            )
-        }
+  let privateKey = pkioPrivateKey
+  if (
+    pkioPrivateKey.startsWith("/") ||
+    pkioPrivateKey.startsWith("./") ||
+    pkioPrivateKey.startsWith("../") ||
+    /^[a-zA-Z]:[/\\]/.test(pkioPrivateKey)
+  ) {
+    if (fs.existsSync(pkioPrivateKey)) {
+      privateKey = fs.readFileSync(pkioPrivateKey, "utf8")
+    } else {
+      throw new Error(`PKIO private key file not found: ${pkioPrivateKey}`)
     }
+  }
 
-    return new RvoClient({
-        clientId,
-        clientName,
-        environment,
-        tvs: {
-            clientId,
-            redirectUri,
-            pkioPrivateKey: privateKey,
-        },
-    })
+  return new RvoClient({
+    clientId,
+    clientName,
+    environment,
+    tvs: {
+      clientId,
+      redirectUri,
+      pkioPrivateKey: privateKey,
+    },
+  })
 }
 
 /**
@@ -59,10 +57,10 @@ export const createRvoClient = (
  * @returns The full URL to redirect the user to.
  */
 export const generateAuthUrl = (rvoClient: RvoClient, state: string) => {
-    return rvoClient.getAuthorizationUrl({
-        state,
-        services: ["opvragenBedrijfspercelen", "opvragenRegelingspercelenMest"],
-    })
+  return rvoClient.getAuthorizationUrl({
+    state,
+    services: ["opvragenBedrijfspercelen", "opvragenRegelingspercelenMest"],
+  })
 }
 
 /**
@@ -76,6 +74,6 @@ export const generateAuthUrl = (rvoClient: RvoClient, state: string) => {
  * @throws Will throw an error if the token exchange fails (e.g., invalid code, network error).
  */
 export const exchangeToken = async (rvoClient: RvoClient, code: string) => {
-    const tokenResponse = await rvoClient.exchangeAuthCode(code)
-    return tokenResponse.access_token
+  const tokenResponse = await rvoClient.exchangeAuthCode(code)
+  return tokenResponse.access_token
 }

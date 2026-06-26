@@ -10,11 +10,11 @@ packages:
   - fdm-helpdesk
 
 catalog:
-  '@better-auth/api-key': ^1.6.20
+  "@better-auth/api-key": ^1.6.20
   jose: ^6.2.3
-  '@dotenvx/dotenvx': ^1.75.1
-  '@types/node': ^24.x
-  '@vitest/coverage-v8': 4.1.9
+  "@dotenvx/dotenvx": ^1.75.1
+  "@types/node": ^24.x
+  "@vitest/coverage-v8": 4.1.9
   better-auth: ^1.6.20
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
@@ -29,21 +29,21 @@ strictDepBuilds: true
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
-  - '@nmi-agro/*'
+  - "@nmi-agro/*"
 allowBuilds:
-  '@geomatico/maplibre-cog-protocol': true
-  '@geomatico/maplibre-cog-protocol@https://codeload.github.com/SvenVw/maplibre-cog-protocol/tar.gz/fd6765830cd1453c3d20d290d6c40684153c5b7d': true
-  '@google/genai': true
-  '@nmi-agro/fdm-agents@file:fdm-agents': true
-  '@nmi-agro/fdm-calculator@file:fdm-calculator': true
-  '@nmi-agro/fdm-core@file:fdm-core': true
-  '@nmi-agro/fdm-data@file:fdm-data': true
-  '@nmi-agro/fdm-helpdesk@file:fdm-helpdesk': true
-  '@nmi-agro/fdm-rvo@file:fdm-rvo': true
-  '@sentry-internal/node-cpu-profiler': true
-  '@sentry/cli': true
-  '@sentry/node-cpu-profiler': true
-  '@swc/core': true
+  "@geomatico/maplibre-cog-protocol": true
+  "@geomatico/maplibre-cog-protocol@https://codeload.github.com/SvenVw/maplibre-cog-protocol/tar.gz/fd6765830cd1453c3d20d290d6c40684153c5b7d": true
+  "@google/genai": true
+  "@nmi-agro/fdm-agents@file:fdm-agents": true
+  "@nmi-agro/fdm-calculator@file:fdm-calculator": true
+  "@nmi-agro/fdm-core@file:fdm-core": true
+  "@nmi-agro/fdm-data@file:fdm-data": true
+  "@nmi-agro/fdm-helpdesk@file:fdm-helpdesk": true
+  "@nmi-agro/fdm-rvo@file:fdm-rvo": true
+  "@sentry-internal/node-cpu-profiler": true
+  "@sentry/cli": true
+  "@sentry/node-cpu-profiler": true
+  "@swc/core": true
   core-js: true
   esbuild: true
   protobufjs: true

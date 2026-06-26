@@ -22,12 +22,12 @@ import type { CatalogueCultivation, CatalogueCultivationName } from "./d"
  * ```
  */
 export async function getCultivationCatalogue(
-    catalogueName: CatalogueCultivationName,
+  catalogueName: CatalogueCultivationName,
 ): Promise<CatalogueCultivation> {
-    // Get the specified catalogue
-    if (catalogueName === "brp") {
-        return await getCatalogueBrp()
-    }
+  // Get the specified catalogue
+  if (catalogueName === "brp") {
+    return await getCatalogueBrp()
+  }
 
-    throw new Error(`catalogue ${catalogueName} is not recognized`)
+  throw new Error(`catalogue ${catalogueName} is not recognized`)
 }

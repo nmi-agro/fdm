@@ -2,6 +2,7 @@
 name: crop-specific-fertilizer-preferences
 description: Gewasspecifieke bemestingsbeperkingen en -voorkeuren voor de Nederlandse landbouw
 ---
+
 # Gewasspecifieke bemestingsvoorkeuren en -beperkingen
 
 Bepaalde gewassen hebben sterke agronomische voorkeuren of kwaliteitsgedreven beperkingen
@@ -23,9 +24,9 @@ skill biedt, is de kwalitatieve laag die de calculator niet produceert:
   bodemtemperatuur, RVO-sluitingsdata),
 - bandbreedtes voor mestdoseringen (m³/ha) wanneer deze operationeel zijn en niet door de
   nutriëntengift worden gestuurd,
-- gewaskwaliteits- / contractreferentiewaarden die de *landbouwer* moet respecteren
+- gewaskwaliteits- / contractreferentiewaarden die de _landbouwer_ moet respecteren
   (brouwgerst-eiwitband, pootaardappel sortering, frites drogestof, OWG, bakkleur, etc.),
-- door grondsoort en pH gestuurde *risicosignalen* die de agent aangeven wanneer het
+- door grondsoort en pH gestuurde _risicosignalen_ die de agent aangeven wanneer het
   relevante `advice.d_*_req`-veld of de bodemanalyse moet worden geraadpleegd.
 
 Waar bodemafhankelijke risico's worden genoemd (bijv. Mn-gebrek op kalkrijke gronden,
@@ -47,7 +48,7 @@ afzonderlijke percelen.
 
 Sommige referentiebestanden dekken meerdere agronomische segmenten onder één
 paraplugewas. Wanneer zo'n bestand wordt geretourneerd, kies dan de subsectie waarvan de
-cataloguscodes overeenkomen met het perceel, *niet* de eerste sectie in het bestand:
+cataloguscodes overeenkomen met het perceel, _niet_ de eerste sectie in het bestand:
 
 **Belangrijk**: Als cataloguscodes worden gedeeld door meerdere subsecties (bijv.
 "consumptie" in aardappelen.md), moet de agent ook een secundair contextveld matchen (zoals
@@ -69,11 +70,12 @@ wijze van terugval die dubbelzinnige subsectie niet.
   Glycine max, Phaseolus vulgaris) die verschillen in N₂-fixatiekracht en behoefte aan
   starter-N.
 
-***
+---
 
 ## Gewassen zonder referentiebestand (fallback)
 
 Voor gewassen zonder eigen referentiebestand:
+
 1. Volg de standaard workflow om tekorten te sluiten uit de skills `fertilizer-selection`
    en `nutrient-advice-targeting`.
 2. Pas algemene principes toe: K₂SO₄ boven KCl voor kwaliteitsgevoelige gewassen
@@ -84,14 +86,15 @@ Voor gewassen zonder eigen referentiebestand:
 4. Noteer bij twijfel over gewasspecifieke gevoeligheid in het plan dat er geen specifieke
    gewas-bemestingsregel beschikbaar was en dat standaardadvies is gevolgd.
 
-***
+---
 
 ## Interpretatie en communicatie
 
 Wanneer je een gewasspecifieke regel toepast:
-1. Noteer dit in de plansamenvatting: bijv. *"Voor zetmeelaardappelen is KCl vermeden; K is als K₂SO₄
-   toegediend vanwege het onderwatergewicht."* of *"Rijenbemesting met NP-meststof is
-   opgenomen voor de maïspercelen."*
+
+1. Noteer dit in de plansamenvatting: bijv. _"Voor zetmeelaardappelen is KCl vermeden; K is als K₂SO₄
+   toegediend vanwege het onderwatergewicht."_ of _"Rijenbemesting met NP-meststof is
+   opgenomen voor de maïspercelen."_
 2. Als de beschikbare meststoffen in het systeem het voorkeursproduct niet bevatten,
    benoem dan het tekort en stel voor dat de landbouwer het aanschaft, of leg uit welk
    beschikbaar product het beste alternatief is.

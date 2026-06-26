@@ -13,17 +13,17 @@ In FDM, there are two main ways to work with fertilizers:
 
 When you apply a fertilizer to a `Field`, you create a fertilizer application action. This action is stored in the `fertilizerApplication` table and records:
 
-* **`p_app_id`**: A unique identifier for the application event.
-* **`b_id`**: The ID of the `Field` where the fertilizer was applied.
-* **`p_id`**: The ID of the specific fertilizer instance that was used.
-* **`p_app_amount`**: The amount of fertilizer that was applied (typically in kg/ha).
-* **`p_app_method`**: The method of application (e.g., broadcasting, injection).
-* **`p_app_date`**: The date of the application.
+- **`p_app_id`**: A unique identifier for the application event.
+- **`b_id`**: The ID of the `Field` where the fertilizer was applied.
+- **`p_id`**: The ID of the specific fertilizer instance that was used.
+- **`p_app_amount`**: The amount of fertilizer that was applied (typically in kg/ha).
+- **`p_app_method`**: The method of application (e.g., broadcasting, injection).
+- **`p_app_date`**: The date of the application.
 
 ## The `fertilizersCatalogue`
 
 The `fertilizersCatalogue` is a key component of the FDM. It provides a structured way to represent fertilizers, which has several benefits:
 
-* **Data Consistency:** Using a standardized list of fertilizers helps ensure that data is consistent and comparable across different farms and applications.
-* **Reduced Data Entry:** By pre-defining common fertilizers, the need for manual data entry is reduced.
-* **Facilitates Calculations:** The `fertilizersCatalogue` provides data useful for agronomic calculations, such as nutrient balance and fertilizer recommendations. Each entry in the catalogue contains a detailed breakdown of the fertilizer's composition, including its content of macro and micronutrients.
+- **Data Consistency:** Using a standardized list of fertilizers helps ensure that data is consistent and comparable across different farms and applications.
+- **Reduced Data Entry:** By pre-defining common fertilizers, the need for manual data entry is reduced.
+- **Facilitates Calculations:** The `fertilizersCatalogue` provides data useful for agronomic calculations, such as nutrient balance and fertilizer recommendations. Each entry in the catalogue contains a detailed breakdown of the fertilizer's composition, including its content of macro and micronutrients.

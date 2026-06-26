@@ -1,24 +1,19 @@
 import type { BaseMessage } from "@langchain/core/messages"
 import { AIMessage } from "@langchain/core/messages"
 import type { FdmType } from "@nmi-agro/fdm-core"
-import {
-    createAgent,
-    dynamicSystemPromptMiddleware,
-    toolStrategy,
-} from "langchain"
+import { createAgent, dynamicSystemPromptMiddleware, toolStrategy } from "langchain"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 import { FertilizerPlanSchema } from "./schema"
 
 export const GERRIT_NAME = "Gerrit"
-export const GERRIT_DESCRIPTION =
-    "Nederlandse agronoom-expert voor bemestingsplanning."
+export const GERRIT_DESCRIPTION = "Nederlandse agronoom-expert voor bemestingsplanning."
 
 /** Default soft limit on tool roundtrips before the agent is warned to wrap up. */
 export const DEFAULT_TOOL_ROUND_LIMIT = 40
 
 export const TOOL_LIMIT_WARNING =
-    "BELANGRIJK: Je nadert het maximale aantal toegestane tool-aanroepen. STOP met het aanroepen van planning-, simulatie- en zoek-tools. Je MOET NU je definitieve bemestingsplan opleveren in het vereiste gestructureerde JSON-formaat."
+  "BELANGRIJK: Je nadert het maximale aantal toegestane tool-aanroepen. STOP met het aanroepen van planning-, simulatie- en zoek-tools. Je MOET NU je definitieve bemestingsplan opleveren in het vereiste gestructureerde JSON-formaat."
 
 export const GERRIT_INSTRUCTION = `Je bent Gerrit, een Nederlandse agronoom-expert.
 Je doel is om een wettelijk conform en agronomisch verantwoord bemestingsplan voor het hele bedrijf op te stellen.
@@ -233,17 +228,13 @@ Alle nutriënthoeveelheden per perceel zijn in **kg/ha**.
  * A tool roundtrip is an AI message that requested tool calls.
  */
 export function countToolRoundtrips(messages: readonly BaseMessage[]): number {
-    let count = 0
-    for (const msg of messages) {
-        if (
-            AIMessage.isInstance(msg) &&
-            msg.tool_calls &&
-            msg.tool_calls.length > 0
-        ) {
-            count++
-        }
+  let count = 0
+  for (const msg of messages) {
+    if (AIMessage.isInstance(msg) && msg.tool_calls && msg.tool_calls.length > 0) {
+      count++
     }
-    return count
+  }
+  return count
 }
 
 /**
@@ -252,16 +243,16 @@ export function countToolRoundtrips(messages: readonly BaseMessage[]): number {
  * types (e.g. DierlijkeMestGebruiksnormResult) into the package's declaration files.
  */
 export type AgentGraph = {
-    stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
-    streamEvents(input: unknown, options?: unknown): AsyncIterable<unknown>
+  stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
+  streamEvents(input: unknown, options?: unknown): AsyncIterable<unknown>
 }
 
 function isAgentGraph(obj: unknown): obj is AgentGraph {
-    return (
-        obj != null &&
-        typeof (obj as AgentGraph).stream === "function" &&
-        typeof (obj as AgentGraph).streamEvents === "function"
-    )
+  return (
+    obj != null &&
+    typeof (obj as AgentGraph).stream === "function" &&
+    typeof (obj as AgentGraph).streamEvents === "function"
+  )
 }
 
 /**
@@ -272,36 +263,36 @@ function isAgentGraph(obj: unknown): obj is AgentGraph {
  * @param toolRoundLimit Soft limit on tool roundtrips before the agent is warned to finalize (default: 40).
  */
 export function createFertilizerPlannerAgent(
-    fdm: FdmType,
-    apiKey?: string,
-    modelName?: string,
-    toolRoundLimit: number = DEFAULT_TOOL_ROUND_LIMIT,
+  fdm: FdmType,
+  apiKey?: string,
+  modelName?: string,
+  toolRoundLimit: number = DEFAULT_TOOL_ROUND_LIMIT,
 ): AgentGraph {
-    const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
-    if (!resolvedKey) {
-        throw new Error(
-            "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
-        )
-    }
-    const toolLimitMiddleware = dynamicSystemPromptMiddleware((state) => {
-        const rounds = countToolRoundtrips(state.messages)
-        return rounds >= toolRoundLimit
-            ? `${GERRIT_INSTRUCTION}\n\n${TOOL_LIMIT_WARNING}`
-            : GERRIT_INSTRUCTION
-    })
+  const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
+  if (!resolvedKey) {
+    throw new Error(
+      "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
+    )
+  }
+  const toolLimitMiddleware = dynamicSystemPromptMiddleware((state) => {
+    const rounds = countToolRoundtrips(state.messages)
+    return rounds >= toolRoundLimit
+      ? `${GERRIT_INSTRUCTION}\n\n${TOOL_LIMIT_WARNING}`
+      : GERRIT_INSTRUCTION
+  })
 
-    const result: unknown = createAgent({
-        name: GERRIT_NAME,
-        description: GERRIT_DESCRIPTION,
-        model: createDefaultModel(resolvedKey, modelName),
-        tools: createFertilizerPlannerTools(fdm),
-        responseFormat: toolStrategy(FertilizerPlanSchema),
-        middleware: [toolLimitMiddleware],
-    })
-    if (!isAgentGraph(result)) {
-        throw new Error(
-            "createAgent did not return an object with callable stream and streamEvents methods.",
-        )
-    }
-    return result
+  const result: unknown = createAgent({
+    name: GERRIT_NAME,
+    description: GERRIT_DESCRIPTION,
+    model: createDefaultModel(resolvedKey, modelName),
+    tools: createFertilizerPlannerTools(fdm),
+    responseFormat: toolStrategy(FertilizerPlanSchema),
+    middleware: [toolLimitMiddleware],
+  })
+  if (!isAgentGraph(result)) {
+    throw new Error(
+      "createAgent did not return an object with callable stream and streamEvents methods.",
+    )
+  }
+  return result
 }

@@ -1,24 +1,16 @@
 import type { Field } from "@nmi-agro/fdm-core"
-import {
-    type CatalogueCultivationItem,
-    getCultivationCatalogue,
-} from "@nmi-agro/fdm-data"
+import { type CatalogueCultivationItem, getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import centroid from "@turf/centroid"
-import type {
-    Feature,
-    FeatureCollection,
-    GeoJsonProperties,
-    Geometry,
-} from "geojson"
+import type { Feature, FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
 import throttle from "lodash.throttle"
 import {
-    type Dispatch,
-    type ReactNode,
-    type SetStateAction,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react"
 import { type MapLayerMouseEvent, Source, useMap } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
@@ -27,333 +19,311 @@ import { generateFeatureClass } from "./atlas-functions"
 import { getAvailableFieldsUrl } from "./atlas-url"
 
 export function FieldsSourceNotClickable({
-    id,
-    fieldsData,
-    children,
+  id,
+  fieldsData,
+  children,
 }: {
-    id: string
-    fieldsData: FeatureCollection
-    children: ReactNode
+  id: string
+  fieldsData: FeatureCollection
+  children: ReactNode
 }) {
-    return (
-        <Source id={id} type="geojson" data={fieldsData}>
-            {children}
-        </Source>
-    )
+  return (
+    <Source id={id} type="geojson" data={fieldsData}>
+      {children}
+    </Source>
+  )
 }
 
 export function FieldsSourceSelected({
-    id,
-    availableLayerId,
-    fieldsData,
-    setFieldsData,
-    children,
-    excludedLayerId,
+  id,
+  availableLayerId,
+  fieldsData,
+  setFieldsData,
+  children,
+  excludedLayerId,
 }: {
-    id: string
-    availableLayerId: string
-    excludedLayerId?: string
-    fieldsData: FeatureCollection
-    setFieldsData: React.Dispatch<
-        React.SetStateAction<FeatureCollection>
-    > | null
-    children: ReactNode
+  id: string
+  availableLayerId: string
+  excludedLayerId?: string
+  fieldsData: FeatureCollection
+  setFieldsData: React.Dispatch<React.SetStateAction<FeatureCollection>> | null
+  children: ReactNode
 }) {
-    const { current: map } = useMap()
+  const { current: map } = useMap()
 
-    useEffect(() => {
-        function clickOnMap(evt: MapLayerMouseEvent) {
-            if (!map) return
+  useEffect(() => {
+    function clickOnMap(evt: MapLayerMouseEvent) {
+      if (!map) return
 
-            if (
-                excludedLayerId &&
-                map.queryRenderedFeatures(evt.point, {
-                    layers: [excludedLayerId],
-                }).length
-            ) {
-                return
-            }
+      if (
+        excludedLayerId &&
+        map.queryRenderedFeatures(evt.point, {
+          layers: [excludedLayerId],
+        }).length
+      ) {
+        return
+      }
 
-            const features = map.queryRenderedFeatures(evt.point, {
-                layers: [availableLayerId],
-            })
-            // console.log(features)
+      const features = map.queryRenderedFeatures(evt.point, {
+        layers: [availableLayerId],
+      })
+      // console.log(features)
 
-            if (
-                features.length > 0 &&
-                features[0].layer &&
-                features[0].layer.id !== excludedLayerId &&
-                setFieldsData
-            ) {
-                handleFieldClick(features[0], setFieldsData)
-            }
-        }
+      if (
+        features.length > 0 &&
+        features[0].layer &&
+        features[0].layer.id !== excludedLayerId &&
+        setFieldsData
+      ) {
+        handleFieldClick(features[0], setFieldsData)
+      }
+    }
 
-        if (map) {
-            map.on("click", clickOnMap)
-            return () => {
-                map.off("click", clickOnMap)
-            }
-        }
-    }, [map, availableLayerId, excludedLayerId, setFieldsData])
+    if (map) {
+      map.on("click", clickOnMap)
+      return () => {
+        map.off("click", clickOnMap)
+      }
+    }
+  }, [map, availableLayerId, excludedLayerId, setFieldsData])
 
-    return (
-        <Source id={id} type="geojson" data={fieldsData}>
-            {children}
-        </Source>
-    )
+  return (
+    <Source id={id} type="geojson" data={fieldsData}>
+      {children}
+    </Source>
+  )
 }
 
 function handleFieldClick(
-    feature: GeoJSON.Feature<Geometry, GeoJsonProperties>,
-    setSelectedFieldsData: Dispatch<
-        SetStateAction<FeatureCollection<Geometry, GeoJsonProperties>>
-    >,
+  feature: GeoJSON.Feature<Geometry, GeoJsonProperties>,
+  setSelectedFieldsData: Dispatch<SetStateAction<FeatureCollection<Geometry, GeoJsonProperties>>>,
 ) {
-    const fieldData = {
-        type: feature.type,
-        geometry: feature.geometry,
-        properties: feature.properties,
+  const fieldData = {
+    type: feature.type,
+    geometry: feature.geometry,
+    properties: feature.properties,
+  }
+
+  setSelectedFieldsData((prevFieldsData) => {
+    const isAlreadySelected = prevFieldsData.features.some(
+      (f) =>
+        f.properties &&
+        fieldData.properties &&
+        f.properties.b_id_source === fieldData.properties.b_id_source,
+    )
+
+    if (isAlreadySelected) {
+      return {
+        ...prevFieldsData,
+        features: prevFieldsData.features.filter(
+          (f) =>
+            f.properties &&
+            fieldData.properties &&
+            f.properties.b_id_source !== fieldData.properties.b_id_source,
+        ),
+      }
     }
 
-    setSelectedFieldsData((prevFieldsData) => {
-        const isAlreadySelected = prevFieldsData.features.some(
-            (f) =>
-                f.properties &&
-                fieldData.properties &&
-                f.properties.b_id_source === fieldData.properties.b_id_source,
-        )
-
-        if (isAlreadySelected) {
-            return {
-                ...prevFieldsData,
-                features: prevFieldsData.features.filter(
-                    (f) =>
-                        f.properties &&
-                        fieldData.properties &&
-                        f.properties.b_id_source !==
-                            fieldData.properties.b_id_source,
-                ),
-            }
-        }
-
-        return {
-            ...prevFieldsData,
-            features: [...prevFieldsData.features, fieldData],
-        }
-    })
+    return {
+      ...prevFieldsData,
+      features: [...prevFieldsData.features, fieldData],
+    }
+  })
 }
 
 export function FieldsSourceAvailable({
-    id,
-    calendar,
-    zoomLevelFields,
-    redirectToDetailsPage = false,
-    children,
+  id,
+  calendar,
+  zoomLevelFields,
+  redirectToDetailsPage,
+  children,
 }: {
-    id: string
-    calendar: string
-    zoomLevelFields: number
-    redirectToDetailsPage: boolean
-    children: ReactNode
+  id: string
+  calendar: string
+  zoomLevelFields: number
+  redirectToDetailsPage: boolean
+  children: ReactNode
 }) {
-    const { current: map } = useMap()
-    const [data, setData] = useState(generateFeatureClass())
-    const availableFieldsUrl = getAvailableFieldsUrl(calendar)
+  const { current: map } = useMap()
+  const [data, setData] = useState(generateFeatureClass())
+  const availableFieldsUrl = getAvailableFieldsUrl(calendar)
 
-    const navigate = useNavigate()
+  const navigate = useNavigate()
 
-    const cultivationCataloguePromise = useMemo(async () => {
-        try {
-            const items = await getCultivationCatalogue("brp")
-            const result: Record<string, CatalogueCultivationItem> = {}
-            for (const item of items) {
-                result[item.b_lu_catalogue] = item
-            }
-            return result
-        } catch (err) {
-            console.error(
-                "Failed to load cultivation catalogue; defaulting to other color.",
-                err,
-            )
-            return {}
+  const cultivationCataloguePromise = useMemo(async () => {
+    try {
+      const items = await getCultivationCatalogue("brp")
+      const result: Record<string, CatalogueCultivationItem> = {}
+      for (const item of items) {
+        result[item.b_lu_catalogue] = item
+      }
+      return result
+    } catch (err) {
+      console.error("Failed to load cultivation catalogue; defaulting to other color.", err)
+      return {}
+    }
+  }, [])
+
+  useEffect(() => {
+    if (map && redirectToDetailsPage) {
+      const handleClick = (e: MapLayerMouseEvent) => {
+        // Get the coordinates of the centroid of the clicked field
+        if (e.features) {
+          try {
+            const clickedFeature = e.features[0]
+            const featureCentroid = centroid(clickedFeature)
+            const featureCentroidCoordinates = featureCentroid.geometry.coordinates.join(",")
+            void navigate(featureCentroidCoordinates)
+          } catch (error) {
+            console.error("Failed to calculate centroid or navigate:", error)
+          }
         }
-    }, [])
+      }
+      map.on("click", id, handleClick)
+      return () => {
+        map.off("click", id, handleClick)
+      }
+    }
+  }, [map, id, redirectToDetailsPage, navigate])
 
-    useEffect(() => {
-        if (map && redirectToDetailsPage) {
-            const handleClick = (e: MapLayerMouseEvent) => {
-                // Get the coordinates of the centroid of the clicked field
-                if (e.features) {
-                    try {
-                        const clickedFeature = e.features[0]
-                        const featureCentroid = centroid(clickedFeature)
-                        const featureCentroidCoordinates =
-                            featureCentroid.geometry.coordinates.join(",")
-                        navigate(featureCentroidCoordinates)
-                    } catch (error) {
-                        console.error(
-                            "Failed to calculate centroid or navigate:",
-                            error,
-                        )
-                    }
-                }
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    async function loadData() {
+      // Cancel previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      if (map) {
+        const zoom = map.getZoom()
+
+        if (zoom && zoom > zoomLevelFields) {
+          const abortController = new AbortController()
+          abortControllerRef.current = abortController
+          const signal = abortController.signal
+
+          const bounds = map.getBounds()
+
+          if (bounds) {
+            const [[minX, minY], [maxX, maxY]] = bounds.toArray()
+            const bbox = {
+              minX: 0.9995 * minX,
+              maxX: 1.0005 * maxX,
+              minY: 0.9995 * minY,
+              maxY: 1.0005 * maxY,
             }
-            map.on("click", id, handleClick)
-            return () => {
-                map.off("click", id, handleClick)
+            const cultivationCatalogue = await cultivationCataloguePromise
+
+            if (signal.aborted) return
+
+            try {
+              const iter = deserializeFgb(availableFieldsUrl, bbox)
+
+              let i = 0
+              const featureClass = generateFeatureClass()
+
+              for await (const feature of iter) {
+                // Do NOT check signal.aborted here. FlatGeobuf does not
+                // support AbortController, so its HTTP Range requests
+                // continue regardless.
+                const catalogueKey = feature.properties?.b_lu_catalogue
+                featureClass.features.push({
+                  ...feature,
+                  id: i,
+                  properties: {
+                    ...feature.properties,
+                    b_lu_croprotation: cultivationCatalogue[catalogueKey]?.b_lu_croprotation,
+                  },
+                })
+                i += 1
+              }
+
+              if (!signal.aborted) {
+                setData(featureClass)
+              }
+            } catch (error) {
+              if ((error as Error).name !== "AbortError") {
+                console.error("Failed to deserialize data: ", error)
+                setData(generateFeatureClass())
+              }
             }
+          } else {
+            setData(generateFeatureClass())
+          }
+        } else {
+          setData(generateFeatureClass())
         }
-    }, [map, id, redirectToDetailsPage, navigate])
+      }
+    }
 
-    const abortControllerRef = useRef<AbortController | null>(null)
+    const throttledLoadData = throttle(loadData, 250, { trailing: true })
 
-    useEffect(() => {
-        async function loadData() {
-            // Cancel previous request
-            if (abortControllerRef.current) {
-                abortControllerRef.current.abort()
-            }
-
-            if (map) {
-                const zoom = map.getZoom()
-
-                if (zoom && zoom > zoomLevelFields) {
-                    const abortController = new AbortController()
-                    abortControllerRef.current = abortController
-                    const signal = abortController.signal
-
-                    const bounds = map.getBounds()
-
-                    if (bounds) {
-                        const [[minX, minY], [maxX, maxY]] = bounds.toArray()
-                        const bbox = {
-                            minX: 0.9995 * minX,
-                            maxX: 1.0005 * maxX,
-                            minY: 0.9995 * minY,
-                            maxY: 1.0005 * maxY,
-                        }
-                        const cultivationCatalogue =
-                            await cultivationCataloguePromise
-
-                        if (signal.aborted) return
-
-                        try {
-                            const iter = deserializeFgb(
-                                availableFieldsUrl,
-                                bbox,
-                            )
-
-                            let i = 0
-                            const featureClass = generateFeatureClass()
-
-                            for await (const feature of iter) {
-                                // Do NOT check signal.aborted here. FlatGeobuf does not
-                                // support AbortController, so its HTTP Range requests
-                                // continue regardless.
-                                const catalogueKey =
-                                    feature.properties?.b_lu_catalogue
-                                featureClass.features.push({
-                                    ...feature,
-                                    id: i,
-                                    properties: {
-                                        ...feature.properties,
-                                        b_lu_croprotation:
-                                            cultivationCatalogue[catalogueKey]
-                                                ?.b_lu_croprotation,
-                                    },
-                                })
-                                i += 1
-                            }
-
-                            if (!signal.aborted) {
-                                setData(featureClass)
-                            }
-                        } catch (error) {
-                            if ((error as Error).name !== "AbortError") {
-                                console.error(
-                                    "Failed to deserialize data: ",
-                                    error,
-                                )
-                                setData(generateFeatureClass())
-                            }
-                        }
-                    } else {
-                        setData(generateFeatureClass())
-                    }
-                } else {
-                    setData(generateFeatureClass())
-                }
-            }
+    if (map) {
+      map.on("moveend", throttledLoadData)
+      map.on("zoomend", throttledLoadData)
+      void map.once("load", loadData)
+      return () => {
+        map.off("moveend", throttledLoadData)
+        map.off("zoomend", throttledLoadData)
+        throttledLoadData.cancel()
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
         }
+      }
+    }
+  }, [map, availableFieldsUrl, zoomLevelFields, cultivationCataloguePromise])
 
-        const throttledLoadData = throttle(loadData, 250, { trailing: true })
-
-        if (map) {
-            map.on("moveend", throttledLoadData)
-            map.on("zoomend", throttledLoadData)
-            map.once("load", loadData)
-            return () => {
-                map.off("moveend", throttledLoadData)
-                map.off("zoomend", throttledLoadData)
-                throttledLoadData.cancel()
-                if (abortControllerRef.current) {
-                    abortControllerRef.current.abort()
-                }
-            }
-        }
-    }, [map, availableFieldsUrl, zoomLevelFields, cultivationCataloguePromise])
-
-    return (
-        <Source id={id} type="geojson" data={data}>
-            {children}
-        </Source>
-    )
+  return (
+    <Source id={id} type="geojson" data={data}>
+      {children}
+    </Source>
+  )
 }
 
 export function FieldSourceClickable({
-    id,
-    excludedLayerId,
-    fieldsData,
-    children,
-    onFieldClick,
+  id,
+  excludedLayerId,
+  fieldsData,
+  children,
+  onFieldClick,
 }: {
-    id: string
-    excludedLayerId?: string
-    fieldsData: FeatureCollection<Geometry, GeoJsonProperties>
-    children: ReactNode
-    onFieldClick: (feature: Feature<Geometry, Field>) => unknown
+  id: string
+  excludedLayerId?: string
+  fieldsData: FeatureCollection<Geometry, GeoJsonProperties>
+  children: ReactNode
+  onFieldClick: (feature: Feature<Geometry, Field>) => unknown
 }) {
-    const { current: map } = useMap()
+  const { current: map } = useMap()
 
-    useEffect(() => {
-        function clickOnMap(evt: MapLayerMouseEvent) {
-            if (!map) return
-            if (!(evt.features && evt.features.length > 0)) return
+  useEffect(() => {
+    function clickOnMap(evt: MapLayerMouseEvent) {
+      if (!map) return
+      if (!(evt.features && evt.features.length > 0)) return
 
-            if (
-                excludedLayerId &&
-                map.queryRenderedFeatures(evt.point, {
-                    layers: [excludedLayerId],
-                }).length
-            ) {
-                return
-            }
+      if (
+        excludedLayerId &&
+        map.queryRenderedFeatures(evt.point, {
+          layers: [excludedLayerId],
+        }).length
+      ) {
+        return
+      }
 
-            onFieldClick(evt.features[0] as unknown as Feature<Geometry, Field>)
-        }
+      onFieldClick(evt.features[0] as unknown as Feature<Geometry, Field>)
+    }
 
-        if (map) {
-            map.on("click", id, clickOnMap)
-            return () => {
-                map.off("click", id, clickOnMap)
-            }
-        }
-    }, [map, id, excludedLayerId, onFieldClick])
+    if (map) {
+      map.on("click", id, clickOnMap)
+      return () => {
+        map.off("click", id, clickOnMap)
+      }
+    }
+  }, [map, id, excludedLayerId, onFieldClick])
 
-    return (
-        <Source id={id} type="geojson" data={fieldsData}>
-            {children}
-        </Source>
-    )
+  return (
+    <Source id={id} type="geojson" data={fieldsData}>
+      {children}
+    </Source>
+  )
 }

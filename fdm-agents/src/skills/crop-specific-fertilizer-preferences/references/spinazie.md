@@ -5,6 +5,7 @@ verwerkers. De combinatie van korte cyclus + bladconsumptie maakt **N-management
 zowel uniforme groei als nitraatresidu in het blad zijn contracteisen.
 
 **Voorkeur:**
+
 - **Vroege, ruime basisgift N vóór het zaaien** of direct na het zaaien, gevolgd door één
   bijbemesting halverwege het seizoen voor late winter- en zomerzaai. Voor herfst- /
   winterspinazie is één gift vaak voldoende. Totale N volgt `advice.d_n_req`.
@@ -15,14 +16,16 @@ zowel uniforme groei als nitraatresidu in het blad zijn contracteisen.
 - B volgens `advice.d_b_req`.
 
 **Vermijden:**
+
 - N kort voor de oogst: bladnitraat piekt en overschrijdt gemakkelijk de contractlimiet en de
   EU-limiet (Verordening 1258/2011). Respecteer de N-vrije periode vóór de oogst zoals
   gespecificeerd door de verwerker (meestal 2–3 weken; volg het contract).
 - Verse drijfmest kort voor zaaien of opkomst: ongelijkmatige opkomst, ziekterisico
-  (*Pythium*) en onvoorspelbare N-mineralisatie verhogen het nitraatresidu.
+  (_Pythium_) en onvoorspelbare N-mineralisatie verhogen het nitraatresidu.
 - KCl wanneer de verwerker chloridevrij product vereist — controleer het contract.
 
 **Extra aandacht:**
+
 - Voor spinazie voor de verwerkende industrie zijn de drie harde grensparameters nitraat,
   zware metalen en residu van gewasbeschermingsmiddelen. Bemesting beïnvloedt vooral de eerste;
   markeer dit in het plan.

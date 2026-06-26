@@ -1,7 +1,7 @@
 import {
-    type BaseFertilizerApplication,
-    type Fertilizer,
-    withCalculationCache,
+  type BaseFertilizerApplication,
+  type Fertilizer,
+  withCalculationCache,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import pkg from "../../../../package"
@@ -38,199 +38,170 @@ const rvoMestcodesOrganicRich75PercentOrganic = ["40"] // Varkens - Vaste mest (
  * @returns {NormFilling} An object containing the total norm filling and a breakdown per application.
  */
 export function calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm(
-    input: NL2026NormsFillingInput,
+  input: NL2026NormsFillingInput,
 ): NormFilling {
-    const {
-        applications,
-        fertilizers,
-        has_organic_certification,
-        fosfaatgebruiksnorm,
-    } = input
+  const { applications, fertilizers, has_organic_certification, fosfaatgebruiksnorm } = input
 
-    // Create maps for efficient lookups of fertilizers and RVO types.
-    // This avoids iterating over the arrays repeatedly in a loop.
-    const fertilizersMap = new Map(
-        fertilizers.map((fertilizer) => [
-            fertilizer.p_id_catalogue,
-            fertilizer,
-        ]),
-    )
+  // Create maps for efficient lookups of fertilizers and RVO types.
+  // This avoids iterating over the arrays repeatedly in a loop.
+  const fertilizersMap = new Map(
+    fertilizers.map((fertilizer) => [fertilizer.p_id_catalogue, fertilizer]),
+  )
 
-    // Determines if at least 20 kg P2O5 / ha is applied with organic-rich fertilizers
-    const condition1 =
-        determineCondition1StimuleringOrganischeStofrijkeMeststoffen(
-            applications,
-            fertilizersMap,
-            has_organic_certification,
-        )
+  // Determines if at least 20 kg P2O5 / ha is applied with organic-rich fertilizers
+  const condition1 = determineCondition1StimuleringOrganischeStofrijkeMeststoffen(
+    applications,
+    fertilizersMap,
+    has_organic_certification,
+  )
 
-    let totalFilling = new Decimal(0)
-    const normLimit = new Decimal(fosfaatgebruiksnorm)
-    let remainingDiscountablePhosphate = normLimit // This tracks the remaining P that can be discounted
+  let totalFilling = new Decimal(0)
+  const normLimit = new Decimal(fosfaatgebruiksnorm)
+  let remainingDiscountablePhosphate = normLimit // This tracks the remaining P that can be discounted
 
-    // Separate applications into standard and organic-rich
-    const standardApplications: {
-        application: BaseFertilizerApplication
-        p_p_rt: Decimal
-        p_app_amount: Decimal
-    }[] = []
-    const organicRichApplications: {
-        application: BaseFertilizerApplication
-        p_p_rt: Decimal
-        p_app_amount: Decimal
-        p_type_rvo: string
-        discountFactor: Decimal
-        originalIndex: number
-    }[] = []
+  // Separate applications into standard and organic-rich
+  const standardApplications: {
+    application: BaseFertilizerApplication
+    p_p_rt: Decimal
+    p_app_amount: Decimal
+  }[] = []
+  const organicRichApplications: {
+    application: BaseFertilizerApplication
+    p_p_rt: Decimal
+    p_app_amount: Decimal
+    p_type_rvo: string
+    discountFactor: Decimal
+    originalIndex: number
+  }[] = []
 
-    applications.forEach((application, index) => {
-        const p_app_amount = new Decimal(application.p_app_amount ?? 0)
-        const fertilizer = fertilizersMap.get(application.p_id_catalogue)
-        if (!fertilizer) {
-            throw new Error(
-                `Fertilizer ${application.p_id_catalogue} not found for application ${application.p_app_id}`,
-            )
-        }
-        const p_p_rt = new Decimal(
-            fertilizer.p_p_rt ??
-                table11Mestcodes.find(
-                    (t) => t.p_type_rvo === fertilizer.p_type_rvo,
-                )?.p_p_rt ??
-                0,
-        )
-        const p_type_rvo = fertilizer.p_type_rvo ?? ""
-
-        if (
-            rvoMestcodesOrganicRich25Percent.includes(p_type_rvo) ||
-            rvoMestcodesOrganicRich75Percent.includes(p_type_rvo) ||
-            (rvoMestcodesOrganicRich75PercentOrganic.includes(p_type_rvo) &&
-                has_organic_certification)
-        ) {
-            let discountFactor: Decimal
-            if (rvoMestcodesOrganicRich25Percent.includes(p_type_rvo)) {
-                discountFactor = new Decimal(0.25)
-            } else {
-                discountFactor = new Decimal(0.75)
-            }
-            organicRichApplications.push({
-                application,
-                p_p_rt,
-                p_app_amount,
-                p_type_rvo,
-                discountFactor,
-                originalIndex: index,
-            })
-        } else {
-            standardApplications.push({ application, p_p_rt, p_app_amount })
-        }
-    })
-
-    // Sort organic-rich applications to prioritize 25% discount over 75% discount
-    organicRichApplications.sort((a, b) =>
-        a.discountFactor.cmp(b.discountFactor),
-    )
-
-    // Initialize applicationsFilling with placeholders to maintain original order
-    const orderedApplicationsFilling: {
-        p_app_id: string
-        normFilling: number
-        normFillingDetails?: string
-    }[] = new Array(applications.length)
-
-    // Process standard applications first
-    for (const { application, p_p_rt, p_app_amount } of standardApplications) {
-        const normFilling = p_app_amount.times(p_p_rt).dividedBy(1000)
-        totalFilling = totalFilling.plus(normFilling)
-        orderedApplicationsFilling[
-            applications.findIndex(
-                (app) => app.p_app_id === application.p_app_id,
-            )
-        ] = {
-            p_app_id: application.p_app_id,
-            normFilling: normFilling.toNumber(),
-        }
+  applications.forEach((application, index) => {
+    const p_app_amount = new Decimal(application.p_app_amount ?? 0)
+    const fertilizer = fertilizersMap.get(application.p_id_catalogue)
+    if (!fertilizer) {
+      throw new Error(
+        `Fertilizer ${application.p_id_catalogue} not found for application ${application.p_app_id}`,
+      )
     }
+    const p_p_rt = new Decimal(
+      fertilizer.p_p_rt ??
+        table11Mestcodes.find((t) => t.p_type_rvo === fertilizer.p_type_rvo)?.p_p_rt ??
+        0,
+    )
+    const p_type_rvo = fertilizer.p_type_rvo ?? ""
 
-    // Process organic-rich applications with iterative discounting
-    if (condition1) {
-        for (const {
-            application,
-            p_p_rt,
-            p_app_amount,
-            discountFactor,
-            originalIndex,
-        } of organicRichApplications) {
-            const actualPhosphateApplied = p_app_amount
-                .times(p_p_rt)
-                .dividedBy(1000)
-            let currentApplicationFilling = new Decimal(0)
-            let normFillingDetails: string
-
-            // Calculate how much of this application can be discounted
-            const phosphateToDiscount = Decimal.min(
-                actualPhosphateApplied,
-                remainingDiscountablePhosphate,
-            )
-
-            if (phosphateToDiscount.gt(0)) {
-                currentApplicationFilling = currentApplicationFilling.plus(
-                    phosphateToDiscount.times(discountFactor),
-                )
-                remainingDiscountablePhosphate =
-                    remainingDiscountablePhosphate.minus(phosphateToDiscount)
-                normFillingDetails = `OS-rijke meststof (${discountFactor.times(
-                    100,
-                )}% korting) draagt ${phosphateToDiscount
-                    .times(discountFactor)
-                    .toFixed(2)}kg bij aan de norm.`
-            } else {
-                normFillingDetails =
-                    "OS-rijke meststof, geen korting toegepast."
-            }
-
-            // Add any remaining actual phosphate (beyond the discountable limit) at 100%
-            const phosphateBeyondDiscount =
-                actualPhosphateApplied.minus(phosphateToDiscount)
-            if (phosphateBeyondDiscount.gt(0)) {
-                currentApplicationFilling = currentApplicationFilling.plus(
-                    phosphateBeyondDiscount,
-                )
-                normFillingDetails += ` Plus ${phosphateBeyondDiscount.toFixed(
-                    2,
-                )}kg (100% geteld) boven de kortingslimiet.`
-            }
-
-            totalFilling = totalFilling.plus(currentApplicationFilling)
-            orderedApplicationsFilling[originalIndex] = {
-                p_app_id: application.p_app_id,
-                normFilling: currentApplicationFilling.toNumber(),
-                normFillingDetails: normFillingDetails,
-            }
-        }
+    if (
+      rvoMestcodesOrganicRich25Percent.includes(p_type_rvo) ||
+      rvoMestcodesOrganicRich75Percent.includes(p_type_rvo) ||
+      (rvoMestcodesOrganicRich75PercentOrganic.includes(p_type_rvo) && has_organic_certification)
+    ) {
+      let discountFactor: Decimal
+      if (rvoMestcodesOrganicRich25Percent.includes(p_type_rvo)) {
+        discountFactor = new Decimal(0.25)
+      } else {
+        discountFactor = new Decimal(0.75)
+      }
+      organicRichApplications.push({
+        application,
+        p_p_rt,
+        p_app_amount,
+        p_type_rvo,
+        discountFactor,
+        originalIndex: index,
+      })
     } else {
-        // If condition1 is not met, organic-rich fertilizers are counted at 100%
-        for (const {
-            application,
-            p_p_rt,
-            p_app_amount,
-            originalIndex,
-        } of organicRichApplications) {
-            const normFilling = p_app_amount.times(p_p_rt).dividedBy(1000)
-            totalFilling = totalFilling.plus(normFilling)
-            orderedApplicationsFilling[originalIndex] = {
-                p_app_id: application.p_app_id,
-                normFilling: normFilling.toNumber(),
-                normFillingDetails:
-                    "OS-rijke meststof, minimumdrempel niet gehaald, 100% geteld.",
-            }
-        }
+      standardApplications.push({ application, p_p_rt, p_app_amount })
     }
+  })
 
-    // Return the total norm filling and the breakdown per application.
-    return {
-        normFilling: totalFilling.toNumber(),
-        applicationFilling: orderedApplicationsFilling,
+  // Sort organic-rich applications to prioritize 25% discount over 75% discount
+  organicRichApplications.sort((a, b) => a.discountFactor.cmp(b.discountFactor))
+
+  // Initialize applicationsFilling with placeholders to maintain original order
+  const orderedApplicationsFilling: {
+    p_app_id: string
+    normFilling: number
+    normFillingDetails?: string
+  }[] = Array.from({ length: applications.length })
+
+  // Process standard applications first
+  for (const { application, p_p_rt, p_app_amount } of standardApplications) {
+    const normFilling = p_app_amount.times(p_p_rt).dividedBy(1000)
+    totalFilling = totalFilling.plus(normFilling)
+    orderedApplicationsFilling[
+      applications.findIndex((app) => app.p_app_id === application.p_app_id)
+    ] = {
+      p_app_id: application.p_app_id,
+      normFilling: normFilling.toNumber(),
     }
+  }
+
+  // Process organic-rich applications with iterative discounting
+  if (condition1) {
+    for (const {
+      application,
+      p_p_rt,
+      p_app_amount,
+      discountFactor,
+      originalIndex,
+    } of organicRichApplications) {
+      const actualPhosphateApplied = p_app_amount.times(p_p_rt).dividedBy(1000)
+      let currentApplicationFilling = new Decimal(0)
+      let normFillingDetails: string
+
+      // Calculate how much of this application can be discounted
+      const phosphateToDiscount = Decimal.min(
+        actualPhosphateApplied,
+        remainingDiscountablePhosphate,
+      )
+
+      if (phosphateToDiscount.gt(0)) {
+        currentApplicationFilling = currentApplicationFilling.plus(
+          phosphateToDiscount.times(discountFactor),
+        )
+        remainingDiscountablePhosphate = remainingDiscountablePhosphate.minus(phosphateToDiscount)
+        normFillingDetails = `OS-rijke meststof (${discountFactor.times(
+          100,
+        )}% korting) draagt ${phosphateToDiscount
+          .times(discountFactor)
+          .toFixed(2)}kg bij aan de norm.`
+      } else {
+        normFillingDetails = "OS-rijke meststof, geen korting toegepast."
+      }
+
+      // Add any remaining actual phosphate (beyond the discountable limit) at 100%
+      const phosphateBeyondDiscount = actualPhosphateApplied.minus(phosphateToDiscount)
+      if (phosphateBeyondDiscount.gt(0)) {
+        currentApplicationFilling = currentApplicationFilling.plus(phosphateBeyondDiscount)
+        normFillingDetails += ` Plus ${phosphateBeyondDiscount.toFixed(
+          2,
+        )}kg (100% geteld) boven de kortingslimiet.`
+      }
+
+      totalFilling = totalFilling.plus(currentApplicationFilling)
+      orderedApplicationsFilling[originalIndex] = {
+        p_app_id: application.p_app_id,
+        normFilling: currentApplicationFilling.toNumber(),
+        normFillingDetails: normFillingDetails,
+      }
+    }
+  } else {
+    // If condition1 is not met, organic-rich fertilizers are counted at 100%
+    for (const { application, p_p_rt, p_app_amount, originalIndex } of organicRichApplications) {
+      const normFilling = p_app_amount.times(p_p_rt).dividedBy(1000)
+      totalFilling = totalFilling.plus(normFilling)
+      orderedApplicationsFilling[originalIndex] = {
+        p_app_id: application.p_app_id,
+        normFilling: normFilling.toNumber(),
+        normFillingDetails: "OS-rijke meststof, minimumdrempel niet gehaald, 100% geteld.",
+      }
+    }
+  }
+
+  // Return the total norm filling and the breakdown per application.
+  return {
+    normFilling: totalFilling.toNumber(),
+    applicationFilling: orderedApplicationsFilling,
+  }
 }
 
 /**
@@ -243,50 +214,45 @@ export function calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNor
  * @returns {boolean} True if the 20 kg/ha threshold is met, false otherwise.
  */
 function determineCondition1StimuleringOrganischeStofrijkeMeststoffen(
-    applications: BaseFertilizerApplication[],
-    fertilizersMap: Map<string, Fertilizer>,
-    has_organic_certification: boolean,
+  applications: BaseFertilizerApplication[],
+  fertilizersMap: Map<string, Fertilizer>,
+  has_organic_certification: boolean,
 ): boolean {
-    // Set the RVO mestcodes for organic-rich fertilizers
-    const rvoMestcodesOrganicRich = [
-        ...rvoMestcodesOrganicRich25Percent,
-        ...rvoMestcodesOrganicRich75Percent,
-    ]
-    if (has_organic_certification) {
-        rvoMestcodesOrganicRich.push(...rvoMestcodesOrganicRich75PercentOrganic)
+  // Set the RVO mestcodes for organic-rich fertilizers
+  const rvoMestcodesOrganicRich = [
+    ...rvoMestcodesOrganicRich25Percent,
+    ...rvoMestcodesOrganicRich75Percent,
+  ]
+  if (has_organic_certification) {
+    rvoMestcodesOrganicRich.push(...rvoMestcodesOrganicRich75PercentOrganic)
+  }
+
+  // Sum the phosphate dose of organic-rich fertilizers
+  const totalPhosphateDoseOrganicDose = applications.reduce((acc, application) => {
+    const fertilizer = fertilizersMap.get(application.p_id_catalogue)
+    if (!fertilizer) {
+      return acc
     }
 
-    // Sum the phosphate dose of organic-rich fertilizers
-    const totalPhosphateDoseOrganicDose = applications.reduce(
-        (acc, application) => {
-            const fertilizer = fertilizersMap.get(application.p_id_catalogue)
-            if (!fertilizer) {
-                return acc
-            }
-
-            const p_p_rt = new Decimal(
-                fertilizer.p_p_rt ??
-                    table11Mestcodes.find(
-                        (t) => t.p_type_rvo === fertilizer.p_type_rvo,
-                    )?.p_p_rt ??
-                    0,
-            )
-
-            if (p_p_rt.isZero()) {
-                return acc
-            }
-
-            const p_app_amount = new Decimal(application.p_app_amount ?? 0)
-            const actualPhosphate = p_app_amount.times(p_p_rt).dividedBy(1000)
-
-            if (rvoMestcodesOrganicRich.includes(fertilizer.p_type_rvo ?? "")) {
-                return acc.plus(actualPhosphate)
-            }
-            return acc
-        },
-        new Decimal(0),
+    const p_p_rt = new Decimal(
+      fertilizer.p_p_rt ??
+        table11Mestcodes.find((t) => t.p_type_rvo === fertilizer.p_type_rvo)?.p_p_rt ??
+        0,
     )
-    return totalPhosphateDoseOrganicDose.gte(20)
+
+    if (p_p_rt.isZero()) {
+      return acc
+    }
+
+    const p_app_amount = new Decimal(application.p_app_amount ?? 0)
+    const actualPhosphate = p_app_amount.times(p_p_rt).dividedBy(1000)
+
+    if (rvoMestcodesOrganicRich.includes(fertilizer.p_type_rvo ?? "")) {
+      return acc.plus(actualPhosphate)
+    }
+    return acc
+  }, new Decimal(0))
+  return totalPhosphateDoseOrganicDose.gte(20)
 }
 
 /**
@@ -298,9 +264,8 @@ function determineCondition1StimuleringOrganischeStofrijkeMeststoffen(
  * @param {NL2026NormsFillingInput} input - The standardized input object containing all necessary data.
  * @returns {NormFilling} An object containing the total norm filling and a breakdown per application.
  */
-export const getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm =
-    withCalculationCache(
-        calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
-        "calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm",
-        pkg.calculatorVersion,
-    )
+export const getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm = withCalculationCache(
+  calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+  "calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm",
+  pkg.calculatorVersion,
+)

@@ -1,18 +1,18 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_harvestables.json",
-    "title": "Harvestable asset in Farm Data Model",
-    "description": "The data model to describe the asset: harvestables",
-    "type": "object",
-    "properties": {
-        "b_id_harvestable": {
-            "description": "ID of harvestable",
-            "type": "string"
-        },
-        "b_lu_yield": {
-            "description": "Amount of yield",
-            "type": "number"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_harvestables.json",
+  "title": "Harvestable asset in Farm Data Model",
+  "description": "The data model to describe the asset: harvestables",
+  "type": "object",
+  "properties": {
+    "b_id_harvestable": {
+      "description": "ID of harvestable",
+      "type": "string"
     },
-    "required": ["b_id_harvestable"]
+    "b_lu_yield": {
+      "description": "Amount of yield",
+      "type": "number"
+    }
+  },
+  "required": ["b_id_harvestable"]
 }

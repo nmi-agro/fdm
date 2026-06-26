@@ -1,9 +1,9 @@
 import { and, eq, inArray, isNotNull, not, or, sql } from "drizzle-orm"
 import type {
-    ApplicationRole,
-    HelpdeskAction,
-    HelpdeskPrincipalId,
-    HelpdeskResource,
+  ApplicationRole,
+  HelpdeskAction,
+  HelpdeskPrincipalId,
+  HelpdeskResource,
 } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
@@ -33,42 +33,35 @@ export const helpdeskActions = ["read", "write", "share"] as const
  * @throws {Error} When the principal does not have the required permission or a database transaction fails.
  */
 export async function checkHelpdeskPermission(
-    fdm: FdmHelpdeskType,
-    resource: HelpdeskResource,
-    action: HelpdeskAction,
-    resource_id: string,
-    principal_id: HelpdeskPrincipalId,
-    _origin: string,
-    strict = true,
+  fdm: FdmHelpdeskType,
+  resource: HelpdeskResource,
+  action: HelpdeskAction,
+  resource_id: string,
+  principal_id: HelpdeskPrincipalId,
+  _origin: string,
+  strict = true,
 ) {
-    try {
-        const permission = await getHelpdeskPermission(
-            fdm,
-            resource,
-            action,
-            resource_id,
-            principal_id,
-        )
+  try {
+    const permission = await getHelpdeskPermission(fdm, resource, action, resource_id, principal_id)
 
-        // Throw exception if strict
-        if (strict && !permission) {
-            throw new Error("Permission denied")
-        }
-
-        return !!permission
-    } catch (err) {
-        let message = "Exception for checkPermission"
-        if (err instanceof Error && err.message === "Permission denied") {
-            message =
-                "Principal does not have permission to perform this action"
-        }
-        throw handleError(err, message, {
-            resource: resource,
-            action: action,
-            resource_id: resource_id,
-            principal_id: principal_id,
-        })
+    // Throw exception if strict
+    if (strict && !permission) {
+      throw new Error("Permission denied")
     }
+
+    return !!permission
+  } catch (err) {
+    let message = "Exception for checkPermission"
+    if (err instanceof Error && err.message === "Permission denied") {
+      message = "Principal does not have permission to perform this action"
+    }
+    throw handleError(err, message, {
+      resource: resource,
+      action: action,
+      resource_id: resource_id,
+      principal_id: principal_id,
+    })
+  }
 }
 
 /**
@@ -82,30 +75,23 @@ export async function checkHelpdeskPermission(
  * @throws {Error} When a database transaction fails.
  */
 export async function getHelpdeskRole(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
 ): Promise<ApplicationRole> {
-    const principal_ids = [
-        ...new Set(Array.isArray(principal_id) ? principal_id : [principal_id]),
-    ]
+  const principal_ids = [...new Set(Array.isArray(principal_id) ? principal_id : [principal_id])]
 
-    const agents = await fdm
-        .select({ role: schema.agents.role })
-        .from(schema.agents)
-        .where(
-            and(
-                schema.agents.is_active,
-                inArray(schema.agents.agent_id, principal_ids),
-            ),
-        )
+  const agents = await fdm
+    .select({ role: schema.agents.role })
+    .from(schema.agents)
+    .where(and(schema.agents.is_active, inArray(schema.agents.agent_id, principal_ids)))
 
-    if (agents.length < principal_ids.length) return "user"
+  if (agents.length < principal_ids.length) return "user"
 
-    return agents.every((a) => a.role === "admin")
-        ? "admin"
-        : agents.some((a) => a.role === "agent")
-          ? "agent"
-          : "user"
+  return agents.every((a) => a.role === "admin")
+    ? "admin"
+    : agents.some((a) => a.role === "agent")
+      ? "agent"
+      : "user"
 }
 
 /**
@@ -125,191 +111,169 @@ export async function getHelpdeskRole(
  * @throws {Error} When a database transaction fails.
  */
 export async function getHelpdeskPermission(
-    fdm: FdmHelpdeskType,
-    resource: HelpdeskResource,
-    action: HelpdeskAction,
-    resource_id: string,
-    principal_id: HelpdeskPrincipalId,
+  fdm: FdmHelpdeskType,
+  resource: HelpdeskResource,
+  action: HelpdeskAction,
+  resource_id: string,
+  principal_id: HelpdeskPrincipalId,
 ): Promise<{
-    granting_resource: HelpdeskResource
-    granting_resource_id?: string
+  granting_resource: HelpdeskResource
+  granting_resource_id?: string
 } | null> {
-    const principal_ids = Array.isArray(principal_id)
-        ? principal_id
-        : [principal_id]
+  const principal_ids = Array.isArray(principal_id) ? principal_id : [principal_id]
 
-    const role = await getHelpdeskRole(fdm, principal_id)
+  const role = await getHelpdeskRole(fdm, principal_id)
 
-    // Helpdesk management
-    if (resource === "helpdesk") {
-        const value: Awaited<ReturnType<typeof getHelpdeskPermission>> =
-            action !== "read" && role === "admin"
-                ? { granting_resource: "helpdesk" }
-                : action === "read" && helpdeskRoles.includes(role)
-                  ? { granting_resource: "helpdesk" }
-                  : null
-        return value
-    }
+  // Helpdesk management
+  if (resource === "helpdesk") {
+    const value: Awaited<ReturnType<typeof getHelpdeskPermission>> =
+      action !== "read" && role === "admin"
+        ? { granting_resource: "helpdesk" }
+        : action === "read" && helpdeskRoles.includes(role)
+          ? { granting_resource: "helpdesk" }
+          : null
+    return value
+  }
 
-    // Agent's own data
-    // Inactive agents also have access to themselves
-    if (resource === "agent") {
-        if (
-            (
-                await fdm
-                    .select()
-                    .from(schema.agents)
-                    .where(eq(schema.agents.agent_id, resource_id))
-                    .limit(1)
-            ).length > 0
-        ) {
-            const isSelf =
-                principal_ids.length > 0 &&
-                principal_ids.every(
-                    (principal_id) => principal_id === resource_id,
-                )
+  // Agent's own data
+  // Inactive agents also have access to themselves
+  if (resource === "agent") {
+    if (
+      (
+        await fdm
+          .select()
+          .from(schema.agents)
+          .where(eq(schema.agents.agent_id, resource_id))
+          .limit(1)
+      ).length > 0
+    ) {
+      const isSelf =
+        principal_ids.length > 0 &&
+        principal_ids.every((principal_id) => principal_id === resource_id)
 
-            return isSelf ||
-                (helpdeskRoles.includes(role) &&
-                    (action === "read" || role === "admin"))
-                ? {
-                      granting_resource: "agent",
-                      granting_resource_id: resource_id,
-                  }
-                : null
-        }
-
-        return null
-    }
-
-    // Agent's saved replies
-    if (resource === "saved_reply") {
-        if (!helpdeskRoles.includes(role)) {
-            return null
-        }
-
-        return helpdeskRoles.includes(role) &&
-            (
-                await fdm
-                    .select()
-                    .from(schema.savedReplies)
-                    .where(
-                        and(
-                            eq(schema.savedReplies.reply_id, resource_id),
-                            or(
-                                action === "read"
-                                    ? schema.savedReplies.is_shared
-                                    : sql`false`,
-                                inArray(
-                                    schema.savedReplies.created_by,
-                                    principal_ids,
-                                ),
-                            ),
-                        ),
-                    )
-                    .limit(1)
-            ).length > 0
-            ? {
-                  granting_resource: "saved_reply",
-                  granting_resource_id: resource_id,
-              }
-            : null
-    }
-
-    // Ticket
-    if (resource === "ticket-user-side" || resource === "ticket-agent-side") {
-        const agentStatus = await fdm
-            .select({ is_active: schema.agents.is_active })
-            .from(schema.agents)
-            .where(inArray(schema.agents.agent_id, principal_ids))
-        const isActiveAgent =
-            agentStatus.length === principal_ids.length &&
-            agentStatus.every((stat) => stat.is_active)
-        const isAdmin = role === "admin"
-
-        // Users can't modify ticket assignments etc. but they can see this status on their own tickets
-        if (
-            action !== "read" &&
-            resource === "ticket-agent-side" &&
-            (!isActiveAgent || !helpdeskRoles.includes(role))
-        ) {
-            return null
-        }
-
-        return (
-            await fdm
-                .select()
-                .from(schema.tickets)
-                .where(
-                    and(
-                        eq(schema.tickets.ticket_id, resource_id),
-                        !isActiveAgent && !isAdmin
-                            ? and(
-                                  isNotNull(schema.tickets.requester_id),
-                                  inArray(
-                                      schema.tickets.requester_id,
-                                      principal_ids,
-                                  ),
-                              )
-                            : undefined,
-                    ),
-                )
-                .limit(1)
-        ).length > 0
-            ? {
-                  granting_resource: resource,
-                  granting_resource_id: resource_id,
-              }
-            : null
-    }
-
-    // Message
-    if (resource === "message") {
-        const agentStatus = await fdm
-            .select({ is_active: schema.agents.is_active })
-            .from(schema.agents)
-            .where(and(inArray(schema.agents.agent_id, principal_ids)))
-        const isActiveAgent =
-            agentStatus.length === principal_ids.length &&
-            agentStatus.every((stat) => stat.is_active)
-        const isAdmin = role === "admin"
-
-        return (
-            await fdm
-                .select()
-                .from(schema.messages)
-                .leftJoin(
-                    schema.tickets,
-                    eq(schema.messages.ticket_id, schema.tickets.ticket_id),
-                )
-                .where(
-                    and(
-                        eq(schema.messages.message_id, resource_id),
-                        // Users and regular agents can only modify their own messages
-                        action === "write" && !isAdmin
-                            ? inArray(schema.messages.sender_id, principal_ids)
-                            : undefined,
-                        // Regular users can only view non-internal messages under their own tickets
-                        !isActiveAgent && !isAdmin
-                            ? and(
-                                  not(schema.messages.is_internal),
-                                  isNotNull(schema.tickets.requester_id),
-                                  inArray(
-                                      schema.tickets.requester_id,
-                                      principal_ids,
-                                  ),
-                              )
-                            : undefined,
-                    ),
-                )
-                .limit(1)
-        ).length > 0
-            ? {
-                  granting_resource: "message",
-                  granting_resource_id: resource_id,
-              }
-            : null
+      return isSelf || (helpdeskRoles.includes(role) && (action === "read" || role === "admin"))
+        ? {
+            granting_resource: "agent",
+            granting_resource_id: resource_id,
+          }
+        : null
     }
 
     return null
+  }
+
+  // Agent's saved replies
+  if (resource === "saved_reply") {
+    if (!helpdeskRoles.includes(role)) {
+      return null
+    }
+
+    return helpdeskRoles.includes(role) &&
+      (
+        await fdm
+          .select()
+          .from(schema.savedReplies)
+          .where(
+            and(
+              eq(schema.savedReplies.reply_id, resource_id),
+              or(
+                action === "read" ? schema.savedReplies.is_shared : sql`false`,
+                inArray(schema.savedReplies.created_by, principal_ids),
+              ),
+            ),
+          )
+          .limit(1)
+      ).length > 0
+      ? {
+          granting_resource: "saved_reply",
+          granting_resource_id: resource_id,
+        }
+      : null
+  }
+
+  // Ticket
+  if (resource === "ticket-user-side" || resource === "ticket-agent-side") {
+    const agentStatus = await fdm
+      .select({ is_active: schema.agents.is_active })
+      .from(schema.agents)
+      .where(inArray(schema.agents.agent_id, principal_ids))
+    const isActiveAgent =
+      agentStatus.length === principal_ids.length && agentStatus.every((stat) => stat.is_active)
+    const isAdmin = role === "admin"
+
+    // Users can't modify ticket assignments etc. but they can see this status on their own tickets
+    if (
+      action !== "read" &&
+      resource === "ticket-agent-side" &&
+      (!isActiveAgent || !helpdeskRoles.includes(role))
+    ) {
+      return null
+    }
+
+    return (
+      await fdm
+        .select()
+        .from(schema.tickets)
+        .where(
+          and(
+            eq(schema.tickets.ticket_id, resource_id),
+            !isActiveAgent && !isAdmin
+              ? and(
+                  isNotNull(schema.tickets.requester_id),
+                  inArray(schema.tickets.requester_id, principal_ids),
+                )
+              : undefined,
+          ),
+        )
+        .limit(1)
+    ).length > 0
+      ? {
+          granting_resource: resource,
+          granting_resource_id: resource_id,
+        }
+      : null
+  }
+
+  // Message
+  if (resource === "message") {
+    const agentStatus = await fdm
+      .select({ is_active: schema.agents.is_active })
+      .from(schema.agents)
+      .where(and(inArray(schema.agents.agent_id, principal_ids)))
+    const isActiveAgent =
+      agentStatus.length === principal_ids.length && agentStatus.every((stat) => stat.is_active)
+    const isAdmin = role === "admin"
+
+    return (
+      await fdm
+        .select()
+        .from(schema.messages)
+        .leftJoin(schema.tickets, eq(schema.messages.ticket_id, schema.tickets.ticket_id))
+        .where(
+          and(
+            eq(schema.messages.message_id, resource_id),
+            // Users and regular agents can only modify their own messages
+            action === "write" && !isAdmin
+              ? inArray(schema.messages.sender_id, principal_ids)
+              : undefined,
+            // Regular users can only view non-internal messages under their own tickets
+            !isActiveAgent && !isAdmin
+              ? and(
+                  not(schema.messages.is_internal),
+                  isNotNull(schema.tickets.requester_id),
+                  inArray(schema.tickets.requester_id, principal_ids),
+                )
+              : undefined,
+          ),
+        )
+        .limit(1)
+    ).length > 0
+      ? {
+          granting_resource: "message",
+          granting_resource_id: resource_id,
+        }
+      : null
+  }
+
+  return null
 }

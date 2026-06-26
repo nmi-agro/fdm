@@ -7,6 +7,7 @@ op klei onder plastic / vliesdoek, normaal poten vanaf maart; oogst vanaf juni).
 De algemene versmarktregels uit `aardappelen.md` gelden, met deze aanpassingen:
 
 **Voorkeur:**
+
 - Sterke N-aanvoer aan het begin: het grootste deel of alle `advice.d_n_req` bij het poten, met hooguit een
   kleine vroege bijbemesting. Late bijbemestingen hebben geen zin omdat het loof
   vóór half juli wordt vernietigd.
@@ -18,6 +19,7 @@ De algemene versmarktregels uit `aardappelen.md` gelden, met deze aanpassingen:
   vóór gewasopname te beperken.
 
 **Vermijden:**
+
 - Drijfmest kort voor het poten: koude bodems mineraliseren langzaam en het gewas
   staat te kort om ervan te profiteren. Dien drijfmest ruim van tevoren toe of gebruik minerale N voor dit
   segment.
@@ -25,6 +27,7 @@ De algemene versmarktregels uit `aardappelen.md` gelden, met deze aanpassingen:
 - Bekalking op zand kort voor het poten: schurfrisico (zie `aardappelen.md` → Tafelaardappelen).
 
 **Extra aandacht:**
+
 - Drogestof en kookkwaliteit zijn belangrijk voor de vers-/primeurmarkt — houd N binnen
   `advice.d_n_req`.
 - Op klei (nl_1911) is de bewortelingsdiepte onder plastic geringer; zorg voor een gelijkmatige N-aanvoer.

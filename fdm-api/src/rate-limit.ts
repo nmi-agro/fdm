@@ -11,9 +11,9 @@ const WINDOW_MS = 60_000
  * Defines per-API-key request limits for each rate-limited route bucket.
  */
 export const RATE_LIMITS = {
-    general: 120,
-    write: 30,
-    calc: 10,
+  general: 120,
+  write: 30,
+  calc: 10,
 } as const
 
 /**
@@ -33,67 +33,59 @@ export type RateBucket = keyof typeof RATE_LIMITS
  * app.use("/farms", rateLimitMiddleware(fdm, "general"))
  * ```
  */
-export function rateLimitMiddleware(
-    fdm: FdmType,
-    bucket: RateBucket,
-): MiddlewareHandler<ApiEnv> {
-    const limit = RATE_LIMITS[bucket]
+export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): MiddlewareHandler<ApiEnv> {
+  const limit = RATE_LIMITS[bucket]
 
-    return async (c, next) => {
-        // Guard against double-counting: if this bucket already ran for this request, skip the increment.
-        let seen = c.get("rateLimitBucketsSeen")
-        if (!seen) {
-            seen = new Set<string>()
-            c.set("rateLimitBucketsSeen", seen)
-        }
-        if (seen.has(bucket)) {
-            return next()
-        }
-        seen.add(bucket)
-
-        const principal = c.get("principal") as ApiPrincipalContext
-        const key = `fdm-api:${principal.apiKeyId}:${bucket}`
-        const now = Date.now()
-        const windowStart = now - WINDOW_MS
-
-        const [record] = await fdm
-            .insert(rateLimit)
-            .values({ id: nanoid(), key, count: 1, lastRequest: now })
-            .onConflictDoUpdate({
-                target: rateLimit.key,
-                set: {
-                    count: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN 1 ELSE ${rateLimit.count} + 1 END`,
-                    lastRequest: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN ${now} ELSE ${rateLimit.lastRequest} END`,
-                },
-            })
-            .returning({
-                count: rateLimit.count,
-                lastRequest: rateLimit.lastRequest,
-            })
-
-        if (record.count > limit) {
-            const retryAfter = Math.ceil(
-                (record.lastRequest + WINDOW_MS - now) / 1000,
-            )
-            c.header("Retry-After", String(Math.max(retryAfter, 1)))
-            c.header("RateLimit-Limit", String(limit))
-            c.header("RateLimit-Remaining", "0")
-            c.header("RateLimit-Reset", String(Math.max(retryAfter, 1)))
-            throw new ApiError(
-                429,
-                "rate-limit-exceeded",
-                `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`,
-            )
-        }
-
-        const resetIn = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
-        c.header("RateLimit-Limit", String(limit))
-        c.header(
-            "RateLimit-Remaining",
-            String(Math.max(limit - record.count, 0)),
-        )
-        c.header("RateLimit-Reset", String(Math.max(resetIn, 0)))
-
-        return next()
+  return async (c, next) => {
+    // Guard against double-counting: if this bucket already ran for this request, skip the increment.
+    let seen = c.get("rateLimitBucketsSeen")
+    if (!seen) {
+      seen = new Set<string>()
+      c.set("rateLimitBucketsSeen", seen)
     }
+    if (seen.has(bucket)) {
+      return next()
+    }
+    seen.add(bucket)
+
+    const principal = c.get("principal") as ApiPrincipalContext
+    const key = `fdm-api:${principal.apiKeyId}:${bucket}`
+    const now = Date.now()
+    const windowStart = now - WINDOW_MS
+
+    const [record] = await fdm
+      .insert(rateLimit)
+      .values({ id: nanoid(), key, count: 1, lastRequest: now })
+      .onConflictDoUpdate({
+        target: rateLimit.key,
+        set: {
+          count: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN 1 ELSE ${rateLimit.count} + 1 END`,
+          lastRequest: sql`CASE WHEN ${rateLimit.lastRequest} < ${windowStart} THEN ${now} ELSE ${rateLimit.lastRequest} END`,
+        },
+      })
+      .returning({
+        count: rateLimit.count,
+        lastRequest: rateLimit.lastRequest,
+      })
+
+    if (record.count > limit) {
+      const retryAfter = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
+      c.header("Retry-After", String(Math.max(retryAfter, 1)))
+      c.header("RateLimit-Limit", String(limit))
+      c.header("RateLimit-Remaining", "0")
+      c.header("RateLimit-Reset", String(Math.max(retryAfter, 1)))
+      throw new ApiError(
+        429,
+        "rate-limit-exceeded",
+        `Rate limit exceeded. Try again in ${Math.max(retryAfter, 1)}s.`,
+      )
+    }
+
+    const resetIn = Math.ceil((record.lastRequest + WINDOW_MS - now) / 1000)
+    c.header("RateLimit-Limit", String(limit))
+    c.header("RateLimit-Remaining", String(Math.max(limit - record.count, 0)))
+    c.header("RateLimit-Reset", String(Math.max(resetIn, 0)))
+
+    return next()
+  }
 }

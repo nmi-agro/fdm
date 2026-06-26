@@ -2,19 +2,11 @@ import { apiKey } from "@better-auth/api-key"
 import type { GoogleOptions, User } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { betterAuth } from "better-auth/minimal"
-import {
-    genericOAuth,
-    magicLink,
-    organization,
-    username,
-} from "better-auth/plugins"
+import { genericOAuth, magicLink, organization, username } from "better-auth/plugins"
 import { eq } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import { generateFromEmail } from "unique-username-generator"
-import {
-    createMicrosoftOAuthConfig,
-    type MicrosoftCertConfig,
-} from "./authentication-ms"
+import { createMicrosoftOAuthConfig, type MicrosoftCertConfig } from "./authentication-ms"
 import * as authNSchema from "./db/schema-authn"
 import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
@@ -41,259 +33,222 @@ export type BetterAuth = FdmAuth
  * @throws {Error} If required environment variables are missing or if role assignment fails.
  */
 export function createFdmAuth(
-    fdm: FdmType,
-    google?: { clientSecret: string; clientId: string },
-    microsoft?: MicrosoftCertConfig,
-    sendMagicLinkEmail?: (
-        email: string,
-        url: string,
-        code: string,
-    ) => Promise<void>,
-    emailAndPassword?: boolean,
-    sendWelcomeEmail?: (user: User) => Promise<void>,
+  fdm: FdmType,
+  google?: { clientSecret: string; clientId: string },
+  microsoft?: MicrosoftCertConfig,
+  sendMagicLinkEmail?: (email: string, url: string, code: string) => Promise<void>,
+  emailAndPassword?: boolean,
+  sendWelcomeEmail?: (user: User) => Promise<void>,
 ) {
-    // Setup social auth providers
-    let googleAuth: GoogleOptions | undefined
-    if (google) {
-        googleAuth = {
-            clientId: google?.clientId,
-            clientSecret: google?.clientSecret,
-            mapProfileToUser: async (profile) => {
-                return {
-                    name: profile.name,
-                    email: profile.email,
-                    emailVerified: true,
-                    image: profile.picture,
-                    firstname: profile.given_name,
-                    surname: profile.family_name,
-                    username: await createUsername(fdm, profile.email),
-                    displayUsername: createDisplayUsername(
-                        profile.given_name,
-                        profile.family_name,
-                    ),
-                }
-            },
+  // Setup social auth providers
+  let googleAuth: GoogleOptions | undefined
+  if (google) {
+    googleAuth = {
+      clientId: google?.clientId,
+      clientSecret: google?.clientSecret,
+      mapProfileToUser: async (profile) => {
+        return {
+          name: profile.name,
+          email: profile.email,
+          emailVerified: true,
+          image: profile.picture,
+          firstname: profile.given_name,
+          surname: profile.family_name,
+          username: await createUsername(fdm, profile.email),
+          displayUsername: createDisplayUsername(profile.given_name, profile.family_name),
         }
+      },
     }
+  }
 
-    const microsoftGenericOAuthConfig = microsoft
-        ? createMicrosoftOAuthConfig(microsoft, {
-              splitFullName,
-              createUsername: (email) => createUsername(fdm, email),
-              createDisplayUsername,
-          })
-        : undefined
+  const microsoftGenericOAuthConfig = microsoft
+    ? createMicrosoftOAuthConfig(microsoft, {
+        splitFullName,
+        createUsername: (email) => createUsername(fdm, email),
+        createDisplayUsername,
+      })
+    : undefined
 
-    const auth = betterAuth({
-        database: drizzleAdapter(fdm, {
-            provider: "pg",
-            schema: authNSchema,
-        }),
-        user: {
-            additionalFields: {
-                firstname: {
-                    type: "string",
-                    required: false,
-                    defaultValue: null,
-                },
-                surname: {
-                    type: "string",
-                    required: false,
-                    defaultValue: null,
-                },
-                lang: {
-                    type: "string",
-                    required: true,
-                    defaultValue: "nl-NL",
-                },
-                farm_active: {
-                    type: "string",
-                    required: false,
-                    defaultValue: null,
-                },
-            },
+  const auth = betterAuth({
+    database: drizzleAdapter(fdm, {
+      provider: "pg",
+      schema: authNSchema,
+    }),
+    user: {
+      additionalFields: {
+        firstname: {
+          type: "string",
+          required: false,
+          defaultValue: null,
         },
-        session: {
-            expiresIn: 60 * 60 * 24 * 30, // 30 days
-            updateAge: 60 * 60 * 24, // 1 day (every 1 day the session expiration is updated)
+        surname: {
+          type: "string",
+          required: false,
+          defaultValue: null,
         },
-        socialProviders: {
-            google: googleAuth,
+        lang: {
+          type: "string",
+          required: true,
+          defaultValue: "nl-NL",
         },
+        farm_active: {
+          type: "string",
+          required: false,
+          defaultValue: null,
+        },
+      },
+    },
+    session: {
+      expiresIn: 60 * 60 * 24 * 30, // 30 days
+      updateAge: 60 * 60 * 24, // 1 day (every 1 day the session expiration is updated)
+    },
+    socialProviders: {
+      google: googleAuth,
+    },
+    rateLimit: {
+      enabled: process.env.NODE_ENV === "production",
+      window: 10,
+      max: 100,
+      storage: "database",
+      customRules: {
+        "/magic-link/verify": {
+          window: 60 * 15, // 15 minutes
+          max: 5,
+        },
+      },
+    },
+    emailAndPassword: {
+      enabled: emailAndPassword || false,
+    },
+    plugins: [
+      apiKey({
+        references: "user",
         rateLimit: {
-            enabled: process.env.NODE_ENV === "production",
-            window: 10,
-            max: 100,
-            storage: "database",
-            customRules: {
-                "/magic-link/verify": {
-                    window: 60 * 15, // 15 minutes
-                    max: 5,
-                },
-            },
+          enabled: false,
         },
-        emailAndPassword: {
-            enabled: emailAndPassword || false,
+      }),
+      username(),
+      genericOAuth({
+        config: microsoftGenericOAuthConfig ? [microsoftGenericOAuthConfig] : [],
+      }),
+      organization({
+        organizationHooks: {
+          beforeCreateOrganization: async ({ organization }) => {
+            return {
+              data: {
+                ...organization,
+                metadata: {
+                  description: "",
+                  ...organization.metadata,
+                  // isVerified is forced to be false and cannot be overridden
+                  isVerified: false,
+                },
+              },
+            }
+          },
         },
-        plugins: [
-            apiKey({
-                references: "user",
-                rateLimit: {
-                    enabled: false,
-                },
-            }),
-            username(),
-            genericOAuth({
-                config: microsoftGenericOAuthConfig
-                    ? [microsoftGenericOAuthConfig]
-                    : [],
-            }),
-            organization({
-                organizationHooks: {
-                    beforeCreateOrganization: async ({ organization }) => {
-                        return {
-                            data: {
-                                ...organization,
-                                metadata: {
-                                    description: "",
-                                    ...(organization.metadata || {}),
-                                    // isVerified is forced to be false and cannot be overridden
-                                    isVerified: false,
-                                },
-                            },
-                        }
-                    },
-                },
-                allowUserToCreateOrganization: true,
-            }),
-            magicLink({
-                expiresIn: 60 * 15,
-                generateToken: () => generateReadSafeOTP(),
-                sendMagicLink: async (
-                    { email, url, token },
-                    _request,
-                ): Promise<void> => {
-                    if (sendMagicLinkEmail) {
-                        await sendMagicLinkEmail(email, url, token)
+        allowUserToCreateOrganization: true,
+      }),
+      magicLink({
+        expiresIn: 60 * 15,
+        generateToken: () => generateReadSafeOTP(),
+        sendMagicLink: async ({ email, url, token }, _request): Promise<void> => {
+          if (sendMagicLinkEmail) {
+            await sendMagicLinkEmail(email, url, token)
 
-                        // Set username if user is new
-                        const user = await fdm
-                            .select({
-                                id: authNSchema.user.id,
-                                username: authNSchema.user.username,
-                                email: authNSchema.user.email,
-                            })
-                            .from(authNSchema.user)
-                            .where(eq(authNSchema.user.email, email))
-                            .limit(1)
+            // Set username if user is new
+            const user = await fdm
+              .select({
+                id: authNSchema.user.id,
+                username: authNSchema.user.username,
+                email: authNSchema.user.email,
+              })
+              .from(authNSchema.user)
+              .where(eq(authNSchema.user.email, email))
+              .limit(1)
 
-                        if (user.length > 0 && !user[0].username) {
-                            await fdm
-                                .update(authNSchema.user)
-                                .set({
-                                    username: await createUsername(fdm, email),
-                                })
-                                .where(eq(authNSchema.user.id, user[0].id))
-                        }
-                    } else {
-                        console.warn(
-                            "sendMagicLinkEmail function not provided to createFdmAuth. Magic link emails will not be sent.",
-                        )
-                    }
-                },
-            }),
-        ],
-        databaseHooks: {
-            user: {
-                create: {
-                    after: async (incomingUser) => {
-                        // Check if username is created after signup, otherwise add an username (typically when signed up with magic link)
-                        const dbUsernames = await fdm
-                            .select({
-                                username: authNSchema.user.username,
-                            })
-                            .from(authNSchema.user)
-                            .where(eq(authNSchema.user.id, incomingUser.id))
-                            .limit(1)
-
-                        let username: string | null | undefined =
-                            dbUsernames.length > 0
-                                ? dbUsernames[0].username
-                                : undefined
-
-                        if (!username || username.trim().length === 0) {
-                            username = await createUsername(
-                                fdm,
-                                incomingUser.email,
-                            )
-                            await fdm
-                                .update(authNSchema.user)
-                                .set({
-                                    username: username,
-                                })
-                                .where(eq(authNSchema.user.id, incomingUser.id))
-                        }
-
-                        const user = {
-                            ...incomingUser,
-                            name: username,
-                        }
-
-                        // Auto-accept pending invitations if email is already verified (e.g. social login)
-                        if (user.emailVerified) {
-                            try {
-                                await autoAcceptInvitationsForNewUser(
-                                    fdm,
-                                    user.email,
-                                    user.id,
-                                )
-                            } catch (err) {
-                                console.warn(
-                                    "autoAcceptInvitationsForNewUser failed for user",
-                                    user.id,
-                                    err,
-                                )
-                            }
-                        }
-
-                        if (sendWelcomeEmail) {
-                            try {
-                                await sendWelcomeEmail(user)
-                            } catch (err) {
-                                console.warn(
-                                    "sendWelcomeEmail failed for user",
-                                    user.id,
-                                    err,
-                                )
-                            }
-                        }
-                    },
-                },
-                update: {
-                    after: async (user) => {
-                        // Auto-accept pending invitations when email becomes verified
-                        if (user.emailVerified) {
-                            try {
-                                await autoAcceptInvitationsForNewUser(
-                                    fdm,
-                                    user.email,
-                                    user.id,
-                                )
-                            } catch (err) {
-                                console.warn(
-                                    "autoAcceptInvitationsForNewUser failed for user",
-                                    user.id,
-                                    err,
-                                )
-                            }
-                        }
-                    },
-                },
-            },
+            if (user.length > 0 && !user[0].username) {
+              await fdm
+                .update(authNSchema.user)
+                .set({
+                  username: await createUsername(fdm, email),
+                })
+                .where(eq(authNSchema.user.id, user[0].id))
+            }
+          } else {
+            console.warn(
+              "sendMagicLinkEmail function not provided to createFdmAuth. Magic link emails will not be sent.",
+            )
+          }
         },
-    })
+      }),
+    ],
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (incomingUser) => {
+            // Check if username is created after signup, otherwise add an username (typically when signed up with magic link)
+            const dbUsernames = await fdm
+              .select({
+                username: authNSchema.user.username,
+              })
+              .from(authNSchema.user)
+              .where(eq(authNSchema.user.id, incomingUser.id))
+              .limit(1)
 
-    return auth
+            let username: string | null | undefined =
+              dbUsernames.length > 0 ? dbUsernames[0].username : undefined
+
+            if (!username || username.trim().length === 0) {
+              username = await createUsername(fdm, incomingUser.email)
+              await fdm
+                .update(authNSchema.user)
+                .set({
+                  username: username,
+                })
+                .where(eq(authNSchema.user.id, incomingUser.id))
+            }
+
+            const user = {
+              ...incomingUser,
+              name: username,
+            }
+
+            // Auto-accept pending invitations if email is already verified (e.g. social login)
+            if (user.emailVerified) {
+              try {
+                await autoAcceptInvitationsForNewUser(fdm, user.email, user.id)
+              } catch (err) {
+                console.warn("autoAcceptInvitationsForNewUser failed for user", user.id, err)
+              }
+            }
+
+            if (sendWelcomeEmail) {
+              try {
+                await sendWelcomeEmail(user)
+              } catch (err) {
+                console.warn("sendWelcomeEmail failed for user", user.id, err)
+              }
+            }
+          },
+        },
+        update: {
+          after: async (user) => {
+            // Auto-accept pending invitations when email becomes verified
+            if (user.emailVerified) {
+              try {
+                await autoAcceptInvitationsForNewUser(fdm, user.email, user.id)
+              } catch (err) {
+                console.warn("autoAcceptInvitationsForNewUser failed for user", user.id, err)
+              }
+            }
+          },
+        },
+      },
+    },
+  })
+
+  return auth
 }
 
 export type FdmAuth = ReturnType<typeof createFdmAuth>
@@ -315,74 +270,60 @@ export type FdmAuth = ReturnType<typeof createFdmAuth>
  *
  */
 export async function updateUserProfile(
-    fdm: FdmType,
-    user_id: string,
-    firstname?: string,
-    surname?: string,
-    lang?: "nl-NL",
+  fdm: FdmType,
+  user_id: string,
+  firstname?: string,
+  surname?: string,
+  lang?: "nl-NL",
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            const updatedFields: Partial<typeof authNSchema.user.$inferInsert> =
-                {}
-            if (firstname !== undefined) {
-                updatedFields.firstname = firstname
-            }
-            if (surname !== undefined) {
-                updatedFields.surname = surname
-            }
-            if (lang !== undefined) {
-                updatedFields.lang = lang
-            }
+  try {
+    return await fdm.transaction(async (tx) => {
+      const updatedFields: Partial<typeof authNSchema.user.$inferInsert> = {}
+      if (firstname !== undefined) {
+        updatedFields.firstname = firstname
+      }
+      if (surname !== undefined) {
+        updatedFields.surname = surname
+      }
+      if (lang !== undefined) {
+        updatedFields.lang = lang
+      }
 
-            // Update displayUsername if firstname or surname are updated
-            if (firstname !== undefined || surname !== undefined) {
-                const currentUser = await tx
-                    .select({
-                        firstname: authNSchema.user.firstname,
-                        surname: authNSchema.user.surname,
-                        username: authNSchema.user.username,
-                    })
-                    .from(authNSchema.user)
-                    .where(eq(authNSchema.user.id, user_id))
-                    .limit(1)
+      // Update displayUsername if firstname or surname are updated
+      if (firstname !== undefined || surname !== undefined) {
+        const currentUser = await tx
+          .select({
+            firstname: authNSchema.user.firstname,
+            surname: authNSchema.user.surname,
+            username: authNSchema.user.username,
+          })
+          .from(authNSchema.user)
+          .where(eq(authNSchema.user.id, user_id))
+          .limit(1)
 
-                if (currentUser.length > 0) {
-                    const currentFirstname =
-                        firstname !== undefined
-                            ? firstname
-                            : currentUser[0].firstname
-                    const currentSurname =
-                        surname !== undefined ? surname : currentUser[0].surname
-                    updatedFields.displayUsername = createDisplayUsername(
-                        currentFirstname,
-                        currentSurname,
-                    )
+        if (currentUser.length > 0) {
+          const currentFirstname = firstname !== undefined ? firstname : currentUser[0].firstname
+          const currentSurname = surname !== undefined ? surname : currentUser[0].surname
+          updatedFields.displayUsername = createDisplayUsername(currentFirstname, currentSurname)
 
-                    // Build `name` from non-null parts (or set to null if none)
-                    const nameParts = [currentFirstname, currentSurname].filter(
-                        (part) => part != null,
-                    )
-                    updatedFields.name =
-                        nameParts.length > 0 ? nameParts.join(" ") : undefined
-                }
-            }
+          // Build `name` from non-null parts (or set to null if none)
+          const nameParts = [currentFirstname, currentSurname].filter((part) => part != null)
+          updatedFields.name = nameParts.length > 0 ? nameParts.join(" ") : undefined
+        }
+      }
 
-            if (Object.keys(updatedFields).length > 0) {
-                await tx
-                    .update(authNSchema.user)
-                    .set(updatedFields)
-                    .where(eq(authNSchema.user.id, user_id))
-            }
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for updateUserProfile", {
-            user_id,
-            firstname,
-            surname,
-            lang,
-        })
-    }
+      if (Object.keys(updatedFields).length > 0) {
+        await tx.update(authNSchema.user).set(updatedFields).where(eq(authNSchema.user.id, user_id))
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateUserProfile", {
+      user_id,
+      firstname,
+      surname,
+      lang,
+    })
+  }
 }
 
 /**
@@ -392,82 +333,82 @@ export async function updateUserProfile(
  * @returns An object containing the first name and surname.
  */
 export function splitFullName(fullName: string | undefined): {
-    firstname: string | null
-    surname: string | null
+  firstname: string | null
+  surname: string | null
 } {
-    if (!fullName || fullName.trim() === "") {
-        return { firstname: null, surname: null }
+  if (!fullName || fullName.trim() === "") {
+    return { firstname: null, surname: null }
+  }
+
+  const trimmedName = fullName.trim()
+  // Check for "LastName, FirstName" format
+  if (trimmedName.includes(",")) {
+    const parts = trimmedName.split(",").map((part) => part.trim())
+    if (parts.length === 2) {
+      return { firstname: parts[1], surname: parts[0] }
     }
+  }
 
-    const trimmedName = fullName.trim()
-    // Check for "LastName, FirstName" format
-    if (trimmedName.includes(",")) {
-        const parts = trimmedName.split(",").map((part) => part.trim())
-        if (parts.length === 2) {
-            return { firstname: parts[1], surname: parts[0] }
-        }
-    }
+  const names = trimmedName.split(/\s+/) // Split by one or more spaces
 
-    const names = trimmedName.split(/\s+/) // Split by one or more spaces
+  if (names.length === 1) {
+    // Only one name provided
+    return { firstname: names[0], surname: null }
+  }
 
-    if (names.length === 1) {
-        // Only one name provided
-        return { firstname: names[0], surname: null }
-    }
-
-    // Multiple names provided
-    const firstname = names[0]
-    const surname = names.slice(-1)[0] // Get the last name
-    return { firstname, surname }
+  // Multiple names provided
+  const firstname = names[0]
+  const surname = names.slice(-1)[0] // Get the last name
+  return { firstname, surname }
 }
 
 async function createUsername(fdm: FdmType, email: string): Promise<string> {
-    const digits = 3
+  const digits = 3
 
-    // Create username from email
-    let username = generateFromEmail(email, digits)
+  // Create username from email
+  let username = generateFromEmail(email, digits)
 
-    // Check if username already exists
-    const existingUser = await fdm
+  // Check if username already exists
+  const existingUser = await fdm
+    .select({
+      username: authNSchema.user.username,
+    })
+    .from(authNSchema.user)
+    .where(eq(authNSchema.user.username, username))
+    .limit(1)
+
+  // If username exists, append random digits until we find a unique one
+  if (existingUser && existingUser.length > 0) {
+    while (existingUser) {
+      username = generateFromEmail(email, digits)
+      const checkUser = await fdm
         .select({
-            username: authNSchema.user.username,
+          username: authNSchema.user.username,
         })
         .from(authNSchema.user)
         .where(eq(authNSchema.user.username, username))
         .limit(1)
-
-    // If username exists, append random digits until we find a unique one
-    if (existingUser && existingUser.length > 0) {
-        while (existingUser) {
-            username = generateFromEmail(email, digits)
-            const checkUser = await fdm
-                .select({
-                    username: authNSchema.user.username,
-                })
-                .from(authNSchema.user)
-                .where(eq(authNSchema.user.username, username))
-                .limit(1)
-            if (checkUser && checkUser.length === 0) break
-        }
+      if (checkUser && checkUser.length === 0) break
     }
+  }
 
-    return username
+  return username
 }
 
 export function createDisplayUsername(
-    firstname: string | null | undefined,
-    surname: string | null | undefined,
+  firstname: string | null | undefined,
+  surname: string | null | undefined,
 ): string | null {
-    // Filter out null or empty name parts and join with a space
-    const nameParts = [firstname, surname].filter((part) => part?.trim())
-    const name = nameParts.join(" ")
+  // Filter out null or empty name parts and join with a space
+  const nameParts = [firstname, surname].filter((part) => part?.trim())
+  const name = nameParts.join(" ")
 
-    // If no name is given return null
-    if (!name || name.trim() === "") {
-        return null
-    }
+  // If no name is given return null
+  if (!name || name.trim() === "") {
+    return null
+  }
 
-    return name
+  return name
 }
 
 const ALPHABET = "23456789ABCDFGHJKLMNPQRSTVWXYZ"
@@ -482,5 +423,5 @@ const generateCodeWithNanoId = customAlphabet(ALPHABET, 8)
  * @returns {string} An 8-character read-safe OTP.
  */
 function generateReadSafeOTP(): string {
-    return generateCodeWithNanoId()
+  return generateCodeWithNanoId()
 }

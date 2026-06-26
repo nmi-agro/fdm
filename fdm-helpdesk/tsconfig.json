@@ -1,7 +1,7 @@
 {
-    "extends": "../tsconfig.packages.json",
-    "compilerOptions": {
-        "noEmit": true
-    },
-    "include": ["src/**/*", "vitest.config.ts", "drizzle.config.ts"]
+  "extends": "../tsconfig.packages.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*", "vitest.config.ts", "drizzle.config.ts"]
 }

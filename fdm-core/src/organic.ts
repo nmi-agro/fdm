@@ -25,7 +25,7 @@ const SKAL_REGEX = /^\d{6}$/
  * @returns True if the TRACES number is valid, false otherwise.
  */
 export function isValidTracesNumber(tracesNumber: string): boolean {
-    return TRACES_REGEX.test(tracesNumber)
+  return TRACES_REGEX.test(tracesNumber)
 }
 
 /**
@@ -34,7 +34,7 @@ export function isValidTracesNumber(tracesNumber: string): boolean {
  * @returns True if the SKAL number is valid, false otherwise.
  */
 export function isValidSkalNumber(skalNumber: string): boolean {
-    return SKAL_REGEX.test(skalNumber)
+  return SKAL_REGEX.test(skalNumber)
 }
 
 /**
@@ -55,100 +55,84 @@ export function isValidSkalNumber(skalNumber: string): boolean {
  * @throws {Error} If the principal does not have permission, validation fails, or the database transaction fails.
  */
 export async function addOrganicCertification(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
-    b_organic_traces: schema.organicCertificationsTypeInsert["b_organic_traces"],
-    b_organic_skal: schema.organicCertificationsTypeInsert["b_organic_skal"],
-    b_organic_issued: schema.organicCertificationsTypeInsert["b_organic_issued"],
-    b_organic_expires: schema.organicCertificationsTypeInsert["b_organic_expires"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  b_organic_traces: schema.organicCertificationsTypeInsert["b_organic_traces"],
+  b_organic_skal: schema.organicCertificationsTypeInsert["b_organic_skal"],
+  b_organic_issued: schema.organicCertificationsTypeInsert["b_organic_issued"],
+  b_organic_expires: schema.organicCertificationsTypeInsert["b_organic_expires"],
 ): Promise<schema.organicCertificationsTypeInsert["b_id_organic"]> {
-    if (b_organic_traces && !isValidTracesNumber(b_organic_traces)) {
-        throw new Error("Invalid TRACES document number format.")
-    }
-    if (b_organic_skal && !isValidSkalNumber(b_organic_skal)) {
-        throw new Error("Invalid SKAL number format.")
-    }
-    if (
-        b_organic_issued &&
-        b_organic_expires &&
-        b_organic_issued.getTime() >= b_organic_expires.getTime()
-    ) {
-        throw new Error("Issue date must be before expiry date.")
-    }
+  if (b_organic_traces && !isValidTracesNumber(b_organic_traces)) {
+    throw new Error("Invalid TRACES document number format.")
+  }
+  if (b_organic_skal && !isValidSkalNumber(b_organic_skal)) {
+    throw new Error("Invalid SKAL number format.")
+  }
+  if (
+    b_organic_issued &&
+    b_organic_expires &&
+    b_organic_issued.getTime() >= b_organic_expires.getTime()
+  ) {
+    throw new Error("Issue date must be before expiry date.")
+  }
 
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "write",
-                b_id_farm,
-                principal_id,
-                "addOrganicCertification",
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "farm", "write", b_id_farm, principal_id, "addOrganicCertification")
 
-            const existingCertification = await tx
-                .select({ id: schema.organicCertifications.b_id_organic })
-                .from(schema.organicCertifications)
-                .leftJoin(
-                    schema.organicCertificationsHolding,
-                    eq(
-                        schema.organicCertifications.b_id_organic,
-                        schema.organicCertificationsHolding.b_id_organic,
-                    ),
-                )
-                .where(
-                    and(
-                        eq(
-                            schema.organicCertificationsHolding.b_id_farm,
-                            b_id_farm,
-                        ),
-                        b_organic_traces
-                            ? eq(
-                                  schema.organicCertifications.b_organic_traces,
-                                  b_organic_traces,
-                              )
-                            : undefined,
-                        b_organic_skal
-                            ? eq(
-                                  schema.organicCertifications.b_organic_skal,
-                                  b_organic_skal,
-                              )
-                            : undefined,
-                    ),
-                )
-                .limit(1)
+      const existingCertification = await tx
+        .select({ id: schema.organicCertifications.b_id_organic })
+        .from(schema.organicCertifications)
+        .leftJoin(
+          schema.organicCertificationsHolding,
+          eq(
+            schema.organicCertifications.b_id_organic,
+            schema.organicCertificationsHolding.b_id_organic,
+          ),
+        )
+        .where(
+          and(
+            eq(schema.organicCertificationsHolding.b_id_farm, b_id_farm),
+            b_organic_traces
+              ? eq(schema.organicCertifications.b_organic_traces, b_organic_traces)
+              : undefined,
+            b_organic_skal
+              ? eq(schema.organicCertifications.b_organic_skal, b_organic_skal)
+              : undefined,
+          ),
+        )
+        .limit(1)
 
-            if (existingCertification.length > 0) {
-                throw new Error(
-                    "Organic certification with similar TRACES/SKAL number already exists for this farm.",
-                )
-            }
+      if (existingCertification.length > 0) {
+        throw new Error(
+          "Organic certification with similar TRACES/SKAL number already exists for this farm.",
+        )
+      }
 
-            const b_id_organic = createId()
-            await tx.insert(schema.organicCertifications).values({
-                b_id_organic,
-                b_organic_traces,
-                b_organic_skal,
-                b_organic_issued,
-                b_organic_expires,
-            })
+      const b_id_organic = createId()
+      await tx.insert(schema.organicCertifications).values({
+        b_id_organic,
+        b_organic_traces,
+        b_organic_skal,
+        b_organic_issued,
+        b_organic_expires,
+      })
 
-            await tx.insert(schema.organicCertificationsHolding).values({
-                b_id_farm,
-                b_id_organic,
-            })
+      await tx.insert(schema.organicCertificationsHolding).values({
+        b_id_farm,
+        b_id_organic,
+      })
 
-            return b_id_organic
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for addOrganicCertification", {
-            b_id_farm,
-            b_organic_traces,
-            b_organic_skal,
-        })
-    }
+      return b_id_organic
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for addOrganicCertification", {
+      b_id_farm,
+      b_organic_traces,
+      b_organic_skal,
+    })
+  }
 }
 
 /**
@@ -163,55 +147,43 @@ export async function addOrganicCertification(
  * @throws {Error} If the principal does not have permission, the certification does not exist, or the database transaction fails.
  */
 export async function removeOrganicCertification(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_organic: schema.organicCertificationsTypeInsert["b_id_organic"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_organic: schema.organicCertificationsTypeInsert["b_id_organic"],
 ): Promise<void> {
-    try {
-        await fdm.transaction(async (tx) => {
-            const holding = await tx
-                .select()
-                .from(schema.organicCertificationsHolding)
-                .where(
-                    eq(
-                        schema.organicCertificationsHolding.b_id_organic,
-                        b_id_organic,
-                    ),
-                )
+  try {
+    await fdm.transaction(async (tx) => {
+      const holding = await tx
+        .select()
+        .from(schema.organicCertificationsHolding)
+        .where(eq(schema.organicCertificationsHolding.b_id_organic, b_id_organic))
 
-            if (!holding[0]) {
-                throw new Error("Organic certification not found on any farm.")
-            }
+      if (!holding[0]) {
+        throw new Error("Organic certification not found on any farm.")
+      }
 
-            await checkPermission(
-                tx,
-                "farm",
-                "write",
-                holding[0].b_id_farm,
-                principal_id,
-                "removeOrganicCertification",
-            )
+      await checkPermission(
+        tx,
+        "farm",
+        "write",
+        holding[0].b_id_farm,
+        principal_id,
+        "removeOrganicCertification",
+      )
 
-            await tx
-                .delete(schema.organicCertificationsHolding)
-                .where(
-                    eq(
-                        schema.organicCertificationsHolding.b_id_organic,
-                        b_id_organic,
-                    ),
-                )
+      await tx
+        .delete(schema.organicCertificationsHolding)
+        .where(eq(schema.organicCertificationsHolding.b_id_organic, b_id_organic))
 
-            await tx
-                .delete(schema.organicCertifications)
-                .where(
-                    eq(schema.organicCertifications.b_id_organic, b_id_organic),
-                )
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for removeOrganicCertification", {
-            b_id_organic,
-        })
-    }
+      await tx
+        .delete(schema.organicCertifications)
+        .where(eq(schema.organicCertifications.b_id_organic, b_id_organic))
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for removeOrganicCertification", {
+      b_id_organic,
+    })
+  }
 }
 
 /**
@@ -226,57 +198,44 @@ export async function removeOrganicCertification(
  * @throws {Error} If the principal does not have permission to read the farm's certifications.
  */
 export async function listOrganicCertifications(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<OrganicCertification[]> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "read",
-                b_id_farm,
-                principal_id,
-                "listOrganicCertifications",
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(
+        tx,
+        "farm",
+        "read",
+        b_id_farm,
+        principal_id,
+        "listOrganicCertifications",
+      )
 
-            const holdings = await tx
-                .select({
-                    b_id_organic:
-                        schema.organicCertificationsHolding.b_id_organic,
-                })
-                .from(schema.organicCertificationsHolding)
-                .where(
-                    eq(
-                        schema.organicCertificationsHolding.b_id_farm,
-                        b_id_farm,
-                    ),
-                )
-
-            if (holdings.length === 0) {
-                return []
-            }
-
-            const organicIds = holdings.map(
-                (holding: { b_id_organic: string }) => holding.b_id_organic,
-            )
-
-            return await tx
-                .select()
-                .from(schema.organicCertifications)
-                .where(
-                    inArray(
-                        schema.organicCertifications.b_id_organic,
-                        organicIds,
-                    ),
-                )
+      const holdings = await tx
+        .select({
+          b_id_organic: schema.organicCertificationsHolding.b_id_organic,
         })
-    } catch (err) {
-        throw handleError(err, "Exception for listOrganicCertifications", {
-            b_id_farm,
-        })
-    }
+        .from(schema.organicCertificationsHolding)
+        .where(eq(schema.organicCertificationsHolding.b_id_farm, b_id_farm))
+
+      if (holdings.length === 0) {
+        return []
+      }
+
+      const organicIds = holdings.map((holding: { b_id_organic: string }) => holding.b_id_organic)
+
+      return await tx
+        .select()
+        .from(schema.organicCertifications)
+        .where(inArray(schema.organicCertifications.b_id_organic, organicIds))
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for listOrganicCertifications", {
+      b_id_farm,
+    })
+  }
 }
 
 /**
@@ -292,53 +251,46 @@ export async function listOrganicCertifications(
  * @throws {Error} If the principal does not have permission or the database transaction fails.
  */
 export async function getOrganicCertification(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_organic: schema.organicCertificationsTypeSelect["b_id_organic"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_organic: schema.organicCertificationsTypeSelect["b_id_organic"],
 ): Promise<OrganicCertification | undefined> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            const holding = await tx
-                .select({
-                    b_id_farm: schema.organicCertificationsHolding.b_id_farm,
-                })
-                .from(schema.organicCertificationsHolding)
-                .where(
-                    eq(
-                        schema.organicCertificationsHolding.b_id_organic,
-                        b_id_organic,
-                    ),
-                )
-                .limit(1)
-
-            if (!holding[0]) {
-                return undefined // Certification not linked to any farm or does not exist
-            }
-
-            await checkPermission(
-                tx,
-                "farm",
-                "read",
-                holding[0].b_id_farm,
-                principal_id,
-                "getOrganicCertification",
-            )
-
-            const certification = await tx
-                .select()
-                .from(schema.organicCertifications)
-                .where(
-                    eq(schema.organicCertifications.b_id_organic, b_id_organic),
-                )
-                .limit(1)
-
-            return certification[0]
+  try {
+    return await fdm.transaction(async (tx) => {
+      const holding = await tx
+        .select({
+          b_id_farm: schema.organicCertificationsHolding.b_id_farm,
         })
-    } catch (err) {
-        throw handleError(err, "Exception for getOrganicCertification", {
-            b_id_organic,
-        })
-    }
+        .from(schema.organicCertificationsHolding)
+        .where(eq(schema.organicCertificationsHolding.b_id_organic, b_id_organic))
+        .limit(1)
+
+      if (!holding[0]) {
+        return undefined // Certification not linked to any farm or does not exist
+      }
+
+      await checkPermission(
+        tx,
+        "farm",
+        "read",
+        holding[0].b_id_farm,
+        principal_id,
+        "getOrganicCertification",
+      )
+
+      const certification = await tx
+        .select()
+        .from(schema.organicCertifications)
+        .where(eq(schema.organicCertifications.b_id_organic, b_id_organic))
+        .limit(1)
+
+      return certification[0]
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for getOrganicCertification", {
+      b_id_organic,
+    })
+  }
 }
 
 /**
@@ -355,56 +307,47 @@ export async function getOrganicCertification(
  * @throws {Error} If the principal does not have permission to read the farm's certifications.
  */
 export async function isOrganicCertificationValid(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
-    date: Date,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  date: Date,
 ): Promise<boolean> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "read",
-                b_id_farm,
-                principal_id,
-                "isOrganicCertificationValid",
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(
+        tx,
+        "farm",
+        "read",
+        b_id_farm,
+        principal_id,
+        "isOrganicCertificationValid",
+      )
 
-            const result = await tx
-                .select({ id: schema.organicCertifications.b_id_organic })
-                .from(schema.organicCertifications)
-                .leftJoin(
-                    schema.organicCertificationsHolding,
-                    eq(
-                        schema.organicCertifications.b_id_organic,
-                        schema.organicCertificationsHolding.b_id_organic,
-                    ),
-                )
-                .where(
-                    and(
-                        eq(
-                            schema.organicCertificationsHolding.b_id_farm,
-                            b_id_farm,
-                        ),
-                        lte(
-                            schema.organicCertifications.b_organic_issued,
-                            date,
-                        ),
-                        gte(
-                            schema.organicCertifications.b_organic_expires,
-                            date,
-                        ),
-                    ),
-                )
-                .limit(1)
+      const result = await tx
+        .select({ id: schema.organicCertifications.b_id_organic })
+        .from(schema.organicCertifications)
+        .leftJoin(
+          schema.organicCertificationsHolding,
+          eq(
+            schema.organicCertifications.b_id_organic,
+            schema.organicCertificationsHolding.b_id_organic,
+          ),
+        )
+        .where(
+          and(
+            eq(schema.organicCertificationsHolding.b_id_farm, b_id_farm),
+            lte(schema.organicCertifications.b_organic_issued, date),
+            gte(schema.organicCertifications.b_organic_expires, date),
+          ),
+        )
+        .limit(1)
 
-            return result.length > 0
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for isOrganicCertificationValid", {
-            b_id_farm,
-            date,
-        })
-    }
+      return result.length > 0
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for isOrganicCertificationValid", {
+      b_id_farm,
+      date,
+    })
+  }
 }

@@ -11,6 +11,7 @@ veengebieden te behouden.
 ## Regels
 
 **Voorkeur:**
+
 - Controleer eerst de beheerovereenkomst (beheerpakket / ANLb-overeenkomst) voor het perceel —
   veel pakketten hebben expliciete bemestingsbeperkingen (bijv. "geen kunstmest",
   "vaste stalmest twee keer per jaar", rustperiodedata). Respecteer deze grenzen voordat
@@ -20,6 +21,7 @@ veengebieden te behouden.
   het perceelspecifieke `advice.d_n_req` dit ondersteunt.
 
 **Vermijden:**
+
 - Minerale N (kunstmest) — doorgaans niet toegestaan binnen botanische of weidevogelbeheer-
   pakketten, en niet passend bij het extensieve beheerdoel, zelfs waar dit niet expliciet
   verboden is.
@@ -31,6 +33,7 @@ veengebieden te behouden.
   een lagere pH; overbekalking schaadt de diversiteit.
 
 **Extra aandacht:**
+
 - Als `advice.d_n_req = 0` of er geen advies wordt teruggegeven, ga dan uit van nulbemesting.
 - Onderscheid dit van nl_332 ("hoofdfunctie natuur"), waar strengere of nul-aanvoer geldt (zie
   `natuurgrasland.md`), en van nl_265 / nl_266 (productiegrasland).

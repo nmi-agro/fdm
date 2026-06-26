@@ -7,14 +7,10 @@ const MAX_BODY_BYTES = 5 * 1024 * 1024
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"])
 
 const bodyLimitMiddleware = bodyLimit({
-    maxSize: MAX_BODY_BYTES,
-    onError: () => {
-        throw new ApiError(
-            413,
-            "payload-too-large",
-            "Request body exceeds the 5 MB limit.",
-        )
-    },
+  maxSize: MAX_BODY_BYTES,
+  onError: () => {
+    throw new ApiError(413, "payload-too-large", "Request body exceeds the 5 MB limit.")
+  },
 })
 
 /**
@@ -35,33 +31,29 @@ const bodyLimitMiddleware = bodyLimit({
  * ```
  */
 export function createPathExistenceGuard(appUrl: string): MiddlewareHandler {
-    return async (c, next) => {
-        if (c.req.method === "OPTIONS") {
-            return next()
-        }
-
-        const hasRouteHandler = c.req.matchedRoutes.some(
-            (r) => r.method !== "ALL",
-        )
-        if (!hasRouteHandler) {
-            console.debug(
-                `[fdm-api] path-not-found path=${c.req.path}`,
-            )
-            return c.json(
-                {
-                    type: `${appUrl}/problems/not-found`,
-                    title: "Not Found",
-                    status: 404,
-                    detail: `${c.req.path} does not exist.`,
-                    instance: c.req.path,
-                },
-                404 as ContentfulStatusCode,
-                { "content-type": "application/problem+json" },
-            )
-        }
-
-        return next()
+  return async (c, next) => {
+    if (c.req.method === "OPTIONS") {
+      return next()
     }
+
+    const hasRouteHandler = c.req.matchedRoutes.some((r) => r.method !== "ALL")
+    if (!hasRouteHandler) {
+      console.debug(`[fdm-api] path-not-found path=${c.req.path}`)
+      return c.json(
+        {
+          type: `${appUrl}/problems/not-found`,
+          title: "Not Found",
+          status: 404,
+          detail: `${c.req.path} does not exist.`,
+          instance: c.req.path,
+        },
+        404 as ContentfulStatusCode,
+        { "content-type": "application/problem+json" },
+      )
+    }
+
+    return next()
+  }
 }
 
 /**
@@ -81,24 +73,20 @@ export function createPathExistenceGuard(appUrl: string): MiddlewareHandler {
  * ```
  */
 export const requestGuard: MiddlewareHandler = async (c, next) => {
-    const method = c.req.method
+  const method = c.req.method
 
-    if (WRITE_METHODS.has(method)) {
-        const rawContentType = c.req.header("content-type") ?? ""
-        const mediaType = rawContentType.split(";")[0]?.trim().toLowerCase()
-        if (mediaType !== "application/json") {
-            throw new ApiError(
-                415,
-                "unsupported-media-type",
-                "Content-Type must be application/json.",
-            )
-        }
-
-        await bodyLimitMiddleware(c, next)
-        return
+  if (WRITE_METHODS.has(method)) {
+    const rawContentType = c.req.header("content-type") ?? ""
+    const mediaType = rawContentType.split(";")[0]?.trim().toLowerCase()
+    if (mediaType !== "application/json") {
+      throw new ApiError(415, "unsupported-media-type", "Content-Type must be application/json.")
     }
 
-    return next()
+    await bodyLimitMiddleware(c, next)
+    return
+  }
+
+  return next()
 }
 
 /**
@@ -113,38 +101,38 @@ export const requestGuard: MiddlewareHandler = async (c, next) => {
  * ```
  */
 export function assertGeoJsonCoordinates(geometry: unknown): void {
-    let count = 0
+  let count = 0
 
-    function walk(coords: unknown) {
-        if (!Array.isArray(coords)) return
-        if (typeof coords[0] === "number") {
-            count++
-            return
-        }
-        for (const c of coords) walk(c)
+  function walk(coords: unknown) {
+    if (!Array.isArray(coords)) return
+    if (typeof coords[0] === "number") {
+      count++
+      return
     }
+    for (const c of coords) walk(c)
+  }
 
-    function walkGeometry(geom: unknown) {
-        if (geom == null || typeof geom !== "object") return
-        const g = geom as {
-            type?: string
-            coordinates?: unknown
-            geometries?: unknown[]
-        }
-        if (g.type === "GeometryCollection" && Array.isArray(g.geometries)) {
-            for (const member of g.geometries) walkGeometry(member)
-        } else {
-            walk(g.coordinates)
-        }
+  function walkGeometry(geom: unknown) {
+    if (geom == null || typeof geom !== "object") return
+    const g = geom as {
+      type?: string
+      coordinates?: unknown
+      geometries?: unknown[]
     }
-
-    walkGeometry(geometry)
-
-    if (count > 10_000) {
-        throw new ApiError(
-            422,
-            "unprocessable-entity",
-            "GeoJSON geometry exceeds the 10,000 coordinate limit.",
-        )
+    if (g.type === "GeometryCollection" && Array.isArray(g.geometries)) {
+      for (const member of g.geometries) walkGeometry(member)
+    } else {
+      walk(g.coordinates)
     }
+  }
+
+  walkGeometry(geometry)
+
+  if (count > 10_000) {
+    throw new ApiError(
+      422,
+      "unprocessable-entity",
+      "GeoJSON geometry exceeds the 10,000 coordinate limit.",
+    )
+  }
 }
