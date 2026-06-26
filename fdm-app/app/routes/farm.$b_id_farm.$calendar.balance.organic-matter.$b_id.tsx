@@ -1,6 +1,7 @@
 import {
     calculateOrganicMatterBalance,
     collectInputForOrganicMatterBalance,
+    type OrganicMatterBalanceFieldResultNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
@@ -32,7 +33,6 @@ import {
     CardHeader,
     CardTitle,
 } from "~/components/ui/card"
-import type { getOrganicMatterBalanceForField } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -40,11 +40,10 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
-type OrganicMatterFieldResultWithErrorId = Awaited<
-    ReturnType<typeof getOrganicMatterBalanceForField>
->["fieldResult"] & {
-    errorId?: string
-}
+type OrganicMatterFieldResultWithErrorId =
+    OrganicMatterBalanceFieldResultNumeric & {
+        errorId?: string
+    }
 
 // Meta
 export const meta: MetaFunction = () => {
