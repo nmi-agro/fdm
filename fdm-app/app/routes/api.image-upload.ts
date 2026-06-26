@@ -74,7 +74,8 @@ export async function action({ request }: ActionFunctionArgs) {
     return Response.json({ error: "No valid image file provided" }, { status: 400 })
   }
 
-  const b_id_sampling = formData.get("b_id_sampling")?.toString()
+  const b_id_sampling_val = formData.get("b_id_sampling")
+  const b_id_sampling = typeof b_id_sampling_val === "string" ? b_id_sampling_val : null
   if (!b_id_sampling) {
     return Response.json({ error: "b_id_sampling is required" }, { status: 400 })
   }
@@ -91,7 +92,8 @@ export async function action({ request }: ActionFunctionArgs) {
     "other",
   ])
 
-  const rawImageType = formData.get("a_image_type")?.toString()
+  const rawImageTypeVal = formData.get("a_image_type")
+  const rawImageType = typeof rawImageTypeVal === "string" ? rawImageTypeVal : undefined
   if (rawImageType !== undefined && !ALLOWED_IMAGE_TYPES.has(rawImageType)) {
     return Response.json(
       {
@@ -125,7 +127,10 @@ export async function action({ request }: ActionFunctionArgs) {
       {
         a_image_path: objectKey,
         a_image_type,
-        a_image_caption: formData.get("a_image_caption")?.toString(),
+        a_image_caption:
+          typeof formData.get("a_image_caption") === "string"
+            ? (formData.get("a_image_caption") as string)
+            : undefined,
         a_image_order: rawOrder,
       },
       async (path) => {

@@ -518,7 +518,7 @@ export async function action({ request, params, url }: Route.ActionArgs) {
     let rvoImportReviewData: ReviewItem[] = []
     let userChoices: UserChoiceMap = {}
 
-    if (!rvoImportReviewDataJson || !userChoicesJson) {
+    if (typeof rvoImportReviewDataJson !== "string" || typeof userChoicesJson !== "string") {
       return {
         success: false,
         message: "Geen data gevonden om te verwerken. Start 'percelen ophalen bij RVO' opnieuw.",
@@ -526,8 +526,8 @@ export async function action({ request, params, url }: Route.ActionArgs) {
     }
 
     try {
-      rvoImportReviewData = JSON.parse(String(rvoImportReviewDataJson))
-      userChoices = JSON.parse(String(userChoicesJson))
+      rvoImportReviewData = JSON.parse(rvoImportReviewDataJson)
+      userChoices = JSON.parse(userChoicesJson)
 
       // Basic validation: ensure we have an array of items
       if (!Array.isArray(rvoImportReviewData)) {

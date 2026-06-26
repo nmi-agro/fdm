@@ -181,7 +181,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   if (intent === "accept") {
-    const planStr = formData.get("plan")?.toString()
+    const planEntry = formData.get("plan")
+    const planStr = typeof planEntry === "string" ? planEntry : null
     if (!planStr) return dataWithError(null, "Geen plan gevonden om op te slaan.")
 
     try {
@@ -582,7 +583,11 @@ export default function GerritApp() {
   function toggleRow(b_id: string) {
     setExpandedRows((prev) => {
       const next = new Set(prev)
-      next.has(b_id) ? next.delete(b_id) : next.add(b_id)
+      if (next.has(b_id)) {
+        next.delete(b_id)
+      } else {
+        next.add(b_id)
+      }
       return next
     })
   }

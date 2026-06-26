@@ -135,6 +135,7 @@ export async function computePlanMetrics(
         }
 
         const syntheticApps: FertilizerApplication[] = field.applications.map((app, i) => {
+          // eslint-disable-next-line no-control-regex
           const sanitizedCatalogueId = app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
           const fert = fertilizers.find((f) => f.p_id_catalogue === sanitizedCatalogueId)
           return {

@@ -204,7 +204,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Get the session
     const session = await getSession(request)
-    const calendar =  getCalendar(params)
+    const calendar = getCalendar(params)
 
     // Get the action from the form
     if (request.method === "POST") {

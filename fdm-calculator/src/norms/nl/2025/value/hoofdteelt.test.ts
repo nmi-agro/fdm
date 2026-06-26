@@ -20,7 +20,7 @@ describe("determineNLHoofdteelt", () => {
         b_lu_variety: null,
       },
     ]
-    const result =  determineNLHoofdteelt(cultivations, 2025)
+    const result = determineNLHoofdteelt(cultivations, 2025)
     expect(result).toBe("cat_B")
   })
 
@@ -41,7 +41,7 @@ describe("determineNLHoofdteelt", () => {
         b_lu_variety: null,
       },
     ]
-    const result =  determineNLHoofdteelt(cultivations, 2025)
+    const result = determineNLHoofdteelt(cultivations, 2025)
     expect(result).toBe("cat_C")
   })
 
@@ -55,7 +55,7 @@ describe("determineNLHoofdteelt", () => {
         b_lu_variety: null,
       },
     ]
-    const result =  determineNLHoofdteelt(cultivations, 2025)
+    const result = determineNLHoofdteelt(cultivations, 2025)
     expect(result).toBe("nl_6794")
   })
 
@@ -76,13 +76,13 @@ describe("determineNLHoofdteelt", () => {
         b_lu_variety: null,
       },
     ]
-    const result =  determineNLHoofdteelt(cultivations, 2025)
+    const result = determineNLHoofdteelt(cultivations, 2025)
     expect(result).toBe("cat_F")
   })
 
   it("should handle an empty array of cultivations by returning nl_6794", async () => {
     const cultivations: NL2025NormsInputForCultivation[] = []
-    const result =  determineNLHoofdteelt(cultivations, 2025)
+    const result = determineNLHoofdteelt(cultivations, 2025)
     expect(result).toBe("nl_6794")
   })
 
@@ -96,7 +96,7 @@ describe("determineNLHoofdteelt", () => {
         b_lu_variety: null,
       },
     ]
-    const result =  determineNLHoofdteelt(cultivations, 2025)
+    const result = determineNLHoofdteelt(cultivations, 2025)
     expect(result).toBe("cat_H")
   })
 })

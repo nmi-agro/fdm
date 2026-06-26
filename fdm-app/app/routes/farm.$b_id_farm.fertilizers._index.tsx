@@ -69,7 +69,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     })
 
     // Get the options for p_type_rvo
-    const fertilizerParameterDescription =  getFertilizerParametersDescription("NL-nl")
+    const fertilizerParameterDescription = getFertilizerParametersDescription("NL-nl")
     const p_type_rvo_options =
       fertilizerParameterDescription.find(
         (x: { parameter: string }) => x.parameter === "p_type_rvo",

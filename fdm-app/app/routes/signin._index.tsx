@@ -1372,7 +1372,7 @@ export async function action({ request }: ActionFunctionArgs) {
     try {
       Intl.DateTimeFormat(undefined, { timeZone: formValues.timeZone })
       timeZone = formValues.timeZone
-    } catch  {}
+    } catch {}
   }
 
   if (timeZone) {

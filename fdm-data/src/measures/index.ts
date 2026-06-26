@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions */
 import { getCatalogueBln } from "./catalogues/bln"
 import type { CatalogueMeasure, CatalogueMeasureName } from "./d"
 

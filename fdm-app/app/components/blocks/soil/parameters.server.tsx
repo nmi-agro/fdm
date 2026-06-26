@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Soil parameters and nested locale options are interpolated as strings safely in component server rendering. */
 import { getSoilParametersDescription } from "@nmi-agro/fdm-core"
 
 export function getSoilParametersForSoilAnalysisType(

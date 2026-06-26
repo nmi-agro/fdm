@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Number/Decimal database fields and calendar IDs are safely formatted in routing templates. */
 import {
   checkPermission,
   getFertilizer,

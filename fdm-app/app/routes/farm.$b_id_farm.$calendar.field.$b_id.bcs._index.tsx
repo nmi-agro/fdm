@@ -241,7 +241,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     const formData = await request.formData()
-    const a_id = formData.get("a_id")?.toString()
+    const a_id_val = formData.get("a_id")
+    const a_id = typeof a_id_val === "string" ? a_id_val : null
     if (!a_id) {
       throw data("Analysis ID is required", {
         status: 400,

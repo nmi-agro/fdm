@@ -170,6 +170,7 @@ describe("getBln3Score cache semantics", () => {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
     limit: vi.fn().mockImplementation(() => ({
+      // eslint-disable-next-line unicorn/no-thenable
       then: (cb: any) => Promise.resolve(cb(mockRows)),
     })),
     insert: vi.fn().mockReturnThis(),
@@ -230,6 +231,7 @@ describe("getBln3Score cache semantics", () => {
 
     // Mock select chain to throw
     mockFdm.limit.mockImplementationOnce(() => ({
+      // eslint-disable-next-line unicorn/no-thenable
       then: () => Promise.reject(new Error("DB Error")),
     }))
     const spyConsole = vi.spyOn(console, "error").mockImplementation(() => {})

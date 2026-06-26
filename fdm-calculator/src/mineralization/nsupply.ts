@@ -95,7 +95,7 @@ export async function requestNSupply(input: NSupplyComputeInput): Promise<NSuppl
     let json: unknown
     try {
       json = await response.json()
-    } catch  {
+    } catch {
       throw new Error("Ongeldig antwoord van NMI API: Geen geldige JSON")
     }
 

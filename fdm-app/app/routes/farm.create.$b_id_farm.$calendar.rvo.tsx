@@ -408,7 +408,7 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
     let rvoImportReviewData: ReviewItem[] = []
     let userChoices: UserChoiceMap = {}
 
-    if (!RvoImportReviewDataJson || !userChoicesJson) {
+    if (typeof RvoImportReviewDataJson !== "string" || typeof userChoicesJson !== "string") {
       return {
         success: false,
         message: "Geen data gevonden om te verwerken. Start de RVO import opnieuw.",
@@ -416,8 +416,8 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
     }
 
     try {
-      rvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
-      userChoices = JSON.parse(String(userChoicesJson))
+      rvoImportReviewData = JSON.parse(RvoImportReviewDataJson)
+      userChoices = JSON.parse(userChoicesJson)
 
       if (!Array.isArray(rvoImportReviewData)) {
         throw new Error("Invalid review data format")

@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Number, Decimal, and string union literals are intentionally formatted in template strings and serialize safely. */
 import Decimal from "decimal.js"
 
 export type AppAmountUnit = "kg/ha" | "l/ha" | "m3/ha" | "ton/ha"

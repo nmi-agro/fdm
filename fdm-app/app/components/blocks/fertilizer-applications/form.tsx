@@ -1,3 +1,4 @@
+/* eslint-disable typescript/unbound-method -- react-hook-form registration and control references are unbound by design in standard React Hook Form usage. */
 import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"

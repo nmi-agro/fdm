@@ -479,7 +479,7 @@ describe("updateTicketSubject", () => {
   test("should not let regular users update the subject", async ({ fdm }) => {
     try {
       await updateTicketSubject(fdm, requester_id, ticket_id, "Ticket 1 Subject")
-    } catch  {
+    } catch {
       const ticket = await getTicket(fdm, requester_id, ticket_id)
       expect(ticket.subject).toBe("Ticket 1")
       expect(ticket.updated).toBeNull()
@@ -512,7 +512,7 @@ describe("updateTicketPriority", () => {
   test("should not let regular users update the priority", async ({ fdm }) => {
     try {
       await updateTicketPriority(fdm, requester_id, ticket_id, "high")
-    } catch  {
+    } catch {
       const ticket = await getTicket(fdm, requester_id, ticket_id)
       expect(ticket.priority).toBe("normal")
       expect(ticket.updated).toBeNull()

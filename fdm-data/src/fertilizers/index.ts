@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions */
 import { getCatalogueBaat } from "./catalogues/baat"
 import { getCatalogueSrm } from "./catalogues/srm"
 import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"

@@ -409,7 +409,7 @@ export async function addCultivation(
 
         if (harvestableType === "once") {
           // If cultivation can only be harvested once, add harvest on terminate date
-          const defaultHarvestParameters =  getDefaultsForHarvestParameters(
+          const defaultHarvestParameters = getDefaultsForHarvestParameters(
             b_lu_catalogue,
             cultivation,
           )
@@ -1205,7 +1205,7 @@ export async function updateCultivation(
               .where(eq(schema.cultivationHarvesting.b_id_harvesting, harvests[0].b_id_harvesting))
           } else {
             // If cultivation can only be harvested once, add harvest on terminate date
-            const defaultHarvestParameters =  getDefaultsForHarvestParameters(
+            const defaultHarvestParameters = getDefaultsForHarvestParameters(
               b_lu_catalogue ?? existingCultivation[0].b_lu_catalogue,
               cultivation,
             )

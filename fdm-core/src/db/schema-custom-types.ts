@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Custom type structures and union parameters are intentionally stringified inside schema templates. */
 import { sql } from "drizzle-orm"
 import { type CustomTypeValues, customType } from "drizzle-orm/pg-core"
 import type * as GeoJSON from "geojson"

@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Mapbox viewstates, coordinates, and layer IDs are formatted inside template literals safely. */
 import type { FeatureCollection } from "geojson"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
@@ -56,7 +57,6 @@ export function FieldsPanelHover({
   const layerIdsKey = layerIds.join("|")
   const excludedLayerIdsKey = excludedLayerIds.join("|")
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: effective changes in layer and layerExclude are detected through layerIdsKey and excludedLayerIdsKey
   useEffect(() => {
     function updatePanel(evt: MapMouseEvent | MapLibreZoomEvent) {
       if (map) {

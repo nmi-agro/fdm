@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Decimal.js instances are intentionally formatted inside template strings as they serialize safely to primitive string values. */
 import type { BaseFertilizerApplication } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type {

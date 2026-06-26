@@ -1,5 +1,6 @@
 "use client"
 
+/* eslint-disable typescript/restrict-template-expressions -- Chart keys and CSS variables are interpolated as strings safely in component styling templates. */
 import * as React from "react"
 import type { TooltipValueType } from "recharts"
 import * as RechartsPrimitive from "recharts"

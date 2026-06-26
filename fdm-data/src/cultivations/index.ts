@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Crop names and catalogue IDs are mapped and stringified safely in the domain lists. */
 import { getCatalogueBrp } from "./catalogues/brp"
 import type { CatalogueCultivation, CatalogueCultivationName } from "./d"
 

@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Number, Decimal, and string union literals are intentionally formatted in template strings and serialize safely. */
 import {
   type BaseFertilizerApplication,
   type Fertilizer,

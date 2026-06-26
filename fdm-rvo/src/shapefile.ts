@@ -115,14 +115,14 @@ export function convertShapefileFeatureIntoRvoField(
     if (isDefined(BEGINDAT)) {
       beginDate = new Date(BEGINDAT).toISOString()
     }
-  } catch  {}
+  } catch {}
   try {
     // 253402297199 (the "null" date) can successfully be converted to a JS Date object
     // so just doing that is easier
     if (isDefined(EINDDAT)) {
       endDate = new Date(EINDDAT).toISOString()
     }
-  } catch  {}
+  } catch {}
 
   if (
     !isDefined(SECTORID) ||

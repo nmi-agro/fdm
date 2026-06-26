@@ -74,7 +74,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
-    const timeframe =  getTimeframe(params)
+    const timeframe = getTimeframe(params)
 
     // Get the field data
     const field = await getField(fdm, session.principal_id, b_id)

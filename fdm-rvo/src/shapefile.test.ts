@@ -240,7 +240,7 @@ describe("convertShapefileFeatureIntoRvoField", () => {
   })
 
   it("should throw an error if there are missing but required properties", () => {
-    const { NAAM, ...otherProps } = MOCK_PROPERTIES
+    const { NAAM: _NAAM, ...otherProps } = MOCK_PROPERTIES
 
     expect(() =>
       convertShapefileFeatureIntoRvoField({

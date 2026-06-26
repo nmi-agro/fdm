@@ -389,7 +389,7 @@ export async function action({ request, params }: Route.ActionArgs) {
               message: errorData[0].message,
             })
           }
-        } catch  {}
+        } catch {}
       }
       throw e
     }

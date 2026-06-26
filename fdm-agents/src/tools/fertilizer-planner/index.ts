@@ -438,9 +438,13 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
               applications: proposedApps,
             }
             const [manureFilling, nitrogenFilling, phosphateFilling] = await Promise.all([
-              fillFuncs.calculateFertilizerApplicationFillingForManure(fillingInput),
+              Promise.resolve(
+                fillFuncs.calculateFertilizerApplicationFillingForManure(fillingInput),
+              ),
               fillFuncs.calculateFertilizerApplicationFillingForNitrogen(fillingInput),
-              fillFuncs.calculateFertilizerApplicationFillingForPhosphate(fillingInput),
+              Promise.resolve(
+                fillFuncs.calculateFertilizerApplicationFillingForPhosphate(fillingInput),
+              ),
             ])
 
             // Calculate organic matter balance using proposed applications.
@@ -518,7 +522,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
                     nmiApiKey,
                     b_bufferstrip: fieldInfo.b_bufferstrip,
                   })
-                } catch  {
+                } catch {
                   // advice remains null if the fetch fails; not an error
                   adviceSkipped = `Could not fetch NMI nutrient advice for field ${fieldData.b_id}`
                 }

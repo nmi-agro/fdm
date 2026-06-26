@@ -420,7 +420,7 @@ async function selectTickets(
 
   // Pick the necessary fields before returning
   return tickets.map((ticket) => {
-    const { priority_rank, text_relevance, ...baseTicket } = ticket
+    const { priority_rank: _priority_rank, text_relevance: _text_relevance, ...baseTicket } = ticket
     return baseTicket
   })
 }

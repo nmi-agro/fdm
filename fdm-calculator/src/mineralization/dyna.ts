@@ -98,7 +98,7 @@ export async function requestDyna(input: DynaComputeInput): Promise<DynaResult> 
     let json: unknown
     try {
       json = await response.json()
-    } catch  {
+    } catch {
       throw new Error("Ongeldig DYNA-antwoord van NMI API: Geen geldige JSON")
     }
 

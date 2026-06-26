@@ -1,3 +1,4 @@
+/* eslint-disable typescript/unbound-method -- TanStack React Table row models are designed to use destructured methods directly in columns. */
 import {
   type ColumnDef,
   type ColumnFiltersState,

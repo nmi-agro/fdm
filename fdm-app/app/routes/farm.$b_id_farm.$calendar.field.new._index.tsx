@@ -434,7 +434,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const nmiApiKey = getNmiApiKey()
 
     // Get form values
-    const selectedFields = JSON.parse(String(formData.get("selected_fields")))
+    const selectedFieldsRaw = formData.get("selected_fields")
+    if (typeof selectedFieldsRaw !== "string") {
+      throw new Error("Missing selected_fields")
+    }
+    const selectedFields = JSON.parse(selectedFieldsRaw)
 
     // Add fields to farm
     const fieldIds: string[] = await Promise.all(

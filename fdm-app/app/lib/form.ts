@@ -32,7 +32,7 @@ export async function extractFormValuesFromRequest<T extends z.ZodType<unknown>>
         if (value.startsWith("[") && value.endsWith("]") && key !== "b_geometry") {
           try {
             formObject[key] = JSON.parse(value)
-          } catch  {
+          } catch {
             // Not a valid JSON, so leave it as a string
           }
         } else if (key !== "b_geometry") {

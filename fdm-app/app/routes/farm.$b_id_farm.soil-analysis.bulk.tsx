@@ -182,16 +182,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
             }
             // Strip UI-only and redundant properties before saving to DB
             const {
-              id,
-              location,
-              a_source,
-              matchedFieldId,
-              matchReason,
-              filename,
-              b_name,
-              b_sampling_date,
-              a_depth_upper,
-              a_depth_lower,
+              id: _id,
+              location: _location,
+              a_source: _a_source,
+              matchedFieldId: _matchedFieldId,
+              matchReason: _matchReason,
+              filename: _filename,
+              b_name: _b_name,
+              b_sampling_date: _b_sampling_date,
+              a_depth_upper: _a_depth_upper,
+              a_depth_lower: _a_depth_lower,
               data: _data, // Strip raw data
               ...dbAnalysis
             } = analysis

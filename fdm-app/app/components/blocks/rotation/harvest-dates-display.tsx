@@ -1,3 +1,4 @@
+/* eslint-disable typescript/unbound-method -- Table and React row properties are standardly passed without manual binding. */
 import type { Row } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"

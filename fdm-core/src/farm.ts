@@ -796,7 +796,7 @@ export async function isAllowedToShareFarm(
   try {
     await checkPermission(fdm, "farm", "share", b_id_farm, principal_id, "isAllowedToShareFarm")
     return true
-  } catch  {
+  } catch {
     return false
   }
 }
@@ -962,7 +962,7 @@ export async function isAllowedToDeleteFarm(
   try {
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "isAllowedToDeleteFarm")
     return true
-  } catch  {
+  } catch {
     return false
   }
 }

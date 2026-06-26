@@ -10,7 +10,7 @@ import { type Fertilizer, getFertilizerParametersDescription } from "@nmi-agro/f
  *   - `rvoToType`: A record mapping RVO codes to fertilizer types (manure, compost, etc.).
  */
 export async function getRvoMappings(fertilizers: Partial<Fertilizer>[] = []) {
-  const fertilizerParameterDescription =  getFertilizerParametersDescription("NL-nl")
+  const fertilizerParameterDescription = getFertilizerParametersDescription("NL-nl")
   const p_type_rvo_options =
     fertilizerParameterDescription.find((x) => x.parameter === "p_type_rvo")?.options ?? []
 

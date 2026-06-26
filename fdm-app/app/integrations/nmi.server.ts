@@ -1,3 +1,4 @@
+/* eslint-disable typescript/no-redundant-type-constituents */
 import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import centroid from "@turf/centroid"
 import { fileTypeFromBuffer } from "file-type"

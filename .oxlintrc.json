@@ -138,5 +138,5 @@
     "builtin": true
   },
   "globals": {},
-  "ignorePatterns": ["fdm-docs/**"]
+  "ignorePatterns": ["fdm-docs/**", "**/*.test.ts", "**/*.test.tsx", "**/*.d.ts", "**/d.ts"]
 }

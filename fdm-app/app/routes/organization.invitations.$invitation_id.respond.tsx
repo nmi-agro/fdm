@@ -190,7 +190,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         headers: request.headers,
         body: { invitationId: invitationId },
       })
-    } catch  {
+    } catch {
       throw data("Invitation not found", 404)
     }
     return redirectWithSuccess("/organization", {

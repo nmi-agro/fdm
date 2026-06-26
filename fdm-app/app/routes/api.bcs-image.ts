@@ -63,7 +63,8 @@ export async function action({ request }: ActionFunctionArgs) {
     return Response.json({ error: "No valid image file provided" }, { status: 400 })
   }
 
-  const b_id = formData.get("b_id")?.toString()
+  const b_id_val = formData.get("b_id")
+  const b_id = typeof b_id_val === "string" ? b_id_val : null
   if (!b_id) {
     return Response.json({ error: "b_id is required" }, { status: 400 })
   }

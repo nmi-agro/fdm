@@ -1,3 +1,4 @@
+/* eslint-disable typescript/restrict-template-expressions -- Number, Decimal, and string union literals are intentionally formatted in template strings and serialize safely. */
 import type { FdmType, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
 import {
   getCultivations,

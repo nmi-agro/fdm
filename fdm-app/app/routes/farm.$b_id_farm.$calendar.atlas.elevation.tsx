@@ -540,7 +540,7 @@ export default function FarmAtlasElevationBlock() {
             }
           }
           setHoverElevation(null)
-        } catch  {
+        } catch {
           setHoverElevation(null)
         }
       }, 200),

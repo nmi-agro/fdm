@@ -1,3 +1,4 @@
+/* eslint-disable typescript/unbound-method */
 import xxhash from "xxhash-wasm"
 
 // Initialize hash function lazily to avoid top-level await

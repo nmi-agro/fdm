@@ -124,7 +124,6 @@ export function Layout() {
   }, [])
 
   // Capture pageviews if PostHog is configured
-  // biome-ignore lint/correctness/useExhaustiveDependencies: This is a false positive: the useEffect should run whenever the location changes to capture new pageviews correctly
   useEffect(() => {
     if (clientConfig.analytics.posthog && typeof window !== "undefined") {
       posthog.capture("$pageview")
@@ -161,7 +160,6 @@ export function Layout() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <script
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Polyfill for Maplibre and other libs expecting global
           dangerouslySetInnerHTML={{
             __html: "window.global = window;",
           }}
@@ -184,14 +182,12 @@ export function Layout() {
           <script
             id="runtime-config"
             type="application/json"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: This is safe because we are stringifying a JSON object
             dangerouslySetInnerHTML={{
               __html: JSON.stringify(runtimeEnv).replace(/</g, "\\u003c"),
             }}
           />
         )}
         <script
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: This is safe because we are stringifying a JSON object
           dangerouslySetInnerHTML={{
             __html: `
                             try {

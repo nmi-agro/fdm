@@ -166,7 +166,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     // Exclude a_source from the spread
-    const { a_source, ...soilAnalysisData } = soilAnalysisResult as any
+    const { a_source: _a_source, ...soilAnalysisData } = soilAnalysisResult as any
 
     // Add soil analysis
     await addSoilAnalysis(

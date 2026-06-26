@@ -27,22 +27,23 @@ export async function getCatalogueBrp(): Promise<CatalogueCultivation> {
         : cultivation.b_lu_harvestable
 
     // Validate b_lu_croprotation
-    cultivation.b_lu_croprotation !== "other" &&
-    cultivation.b_lu_croprotation !== "clover" &&
-    cultivation.b_lu_croprotation !== "nature" &&
-    cultivation.b_lu_croprotation !== "potato" &&
-    cultivation.b_lu_croprotation !== "grass" &&
-    cultivation.b_lu_croprotation !== "rapeseed" &&
-    cultivation.b_lu_croprotation !== "starch" &&
-    cultivation.b_lu_croprotation !== "maize" &&
-    cultivation.b_lu_croprotation !== "cereal" &&
-    cultivation.b_lu_croprotation !== "sugarbeet" &&
-    cultivation.b_lu_croprotation !== "alfalfa" &&
-    cultivation.b_lu_croprotation !== "catchcrop"
-      ? (() => {
-          throw new Error(`Invalid value for b_lu_croprotation: ${cultivation.b_lu_croprotation}.`)
-        })()
-      : cultivation.b_lu_croprotation
+    const validCroprotations = [
+      "other",
+      "clover",
+      "nature",
+      "potato",
+      "grass",
+      "rapeseed",
+      "starch",
+      "maize",
+      "cereal",
+      "sugarbeet",
+      "alfalfa",
+      "catchcrop",
+    ]
+    if (!validCroprotations.includes(cultivation.b_lu_croprotation)) {
+      throw new Error(`Invalid value for b_lu_croprotation: ${cultivation.b_lu_croprotation}.`)
+    }
 
     // Validate harvestcat
     const harvestcat =
@@ -68,7 +69,7 @@ export async function getCatalogueBrp(): Promise<CatalogueCultivation> {
       b_lu_harvestable: harvestable,
       b_lu_hcat3: cultivation.b_lu_hcat3,
       b_lu_hcat3_name: cultivation.b_lu_hcat3_name,
-      b_lu_croprotation: cultivation.b_lu_croprotation,
+      b_lu_croprotation: cultivation.b_lu_croprotation as any,
       b_lu_harvestcat: harvestcat,
       b_lu_yield: cultivation.b_lu_yield,
       b_lu_dm: cultivation.b_lu_dm,

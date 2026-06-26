@@ -241,7 +241,7 @@ export async function genericAction(
       let rvoImportReviewData: ReviewItem[] = []
       let userChoices: UserChoiceMap = {}
 
-      if (!RvoImportReviewDataJson || !userChoicesJson) {
+      if (typeof RvoImportReviewDataJson !== "string" || typeof userChoicesJson !== "string") {
         return {
           success: false,
           message: "Geen data gevonden om te verwerken. Start de shapefile import opnieuw.",
@@ -249,8 +249,8 @@ export async function genericAction(
         }
       }
 
-      rvoImportReviewData = JSON.parse(String(RvoImportReviewDataJson))
-      userChoices = JSON.parse(String(userChoicesJson))
+      rvoImportReviewData = JSON.parse(RvoImportReviewDataJson)
+      userChoices = JSON.parse(userChoicesJson)
 
       if (!Array.isArray(rvoImportReviewData)) {
         throw new Error("Invalid review data format")
@@ -336,6 +336,7 @@ export async function genericAction(
       message: `Error at saving RVO fields: ${await extractErrorMessage(e)}`,
     }
   } finally {
+    // eslint-disable-next-line typescript/await-thenable
     await Promise.allSettled(storageKeys.map((storageKey) => fileStorage.remove(storageKey)))
     await fs
       .rm(`./uploads/shapefiles/${uploadRequestId}`, {

@@ -2,7 +2,7 @@
 
 Omvat:
 
-- **Andijvie** (nl_2708 productie, nl_2709 zaad / vermeerdering) — _Cichorium endivia_.
+- **Andijvie** (nl*2708 productie, nl_2709 zaad / vermeerdering) — \_Cichorium endivia*.
 - **IJsbergsla** (nl_2767, nl_2768).
 - **Radicchio rosso** (nl_2769, nl_2770).
 - **Sla, overige** (kropsla, batavia, lollo, eikenbladsla, enz.) (nl_2771, nl_2772).
