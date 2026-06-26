@@ -53,6 +53,14 @@ export function HeaderHelpdesk() {
                     <BreadcrumbItem>Opgeslagen reacties</BreadcrumbItem> */}
                 </>
             )}
+            {currentHelpdeskPage === "profile" && (
+                <>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>Instellingen</BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>Mijn profiel</BreadcrumbItem>
+                </>
+            )}
             {currentHelpdeskPage === "agents" && (
                 <>
                     <BreadcrumbSeparator />

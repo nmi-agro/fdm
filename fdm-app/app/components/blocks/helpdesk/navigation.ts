@@ -7,6 +7,9 @@ export function useCurrentHelpdeskPage() {
     const isTicketViewer = matches.some(
         (match) => match.id === "routes/support._ticketviewer",
     )
+    const isProfile = matches.some(
+        (match) => match.id === "routes/support.settings.profile",
+    )
     const isAgents = matches.some(
         (match) => match.id === "routes/support.settings.agents",
     )
@@ -28,13 +31,15 @@ export function useCurrentHelpdeskPage() {
               : searchParams.has("unassigned")
                 ? "unassigned_tickets"
                 : "my_tickets"
-        : isAgents
-          ? "agents"
-          : isTags
-            ? "tags"
-            : isNewTicket
-              ? "new_ticket"
-              : isSavedReplies
-                ? "saved_replies"
-                : null
+        : isProfile
+          ? "profile"
+          : isAgents
+            ? "agents"
+            : isTags
+              ? "tags"
+              : isNewTicket
+                ? "new_ticket"
+                : isSavedReplies
+                  ? "saved_replies"
+                  : null
 }

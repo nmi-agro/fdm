@@ -124,7 +124,7 @@ export async function getAvailableAgents(
  * Auto-assign to least-loaded available agent (respects tier cascade) as the primary assignment.
  *
  * No permission checks are performed, and assigned_by is set to "SYSTEM". Use with caution.
- * 
+ *
  * This function will always assign when there is a currently available agent, even if the ticket is
  * already assigned. It will also change the primary assignee to the newly assigned agent.
  *
@@ -166,7 +166,7 @@ export async function autoAssignTicket(
  * Redistributes an agent's currently active tickets. It first checks if there is already another assignee.
  * If so, it ensures they are the primary assignee. Otherwise, it lists all the available agents who will
  * meet the ticket deadline and assigns the ticket to the least-loaded one.
- * 
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param departing_agent_id The ID of the agent whose tickets are being reassigned.
@@ -202,7 +202,9 @@ export async function reassignAgentTickets(
         const unassigned: string[] = []
         for (const ticket of ticketsToReassign) {
             // No need to reassign if there is already another primary assignee
-            const otherAssignee = ticket.assignees.find((a) => a.agent_id !== departing_agent_id)
+            const otherAssignee = ticket.assignees.find(
+                (a) => a.agent_id !== departing_agent_id,
+            )
             if (otherAssignee) {
                 if (!otherAssignee.is_primary) {
                     await assignTicketUnchecked(
@@ -245,9 +247,9 @@ export async function reassignAgentTickets(
 
 /**
  * Sets the agent status.
- * 
+ *
  * If the agent will be out-of-office, this will also reassign all of their currently active tickets.
- * 
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
@@ -271,15 +273,18 @@ export async function setAgentStatus(
             "setAgentStatus",
         )
 
-        await fdm.transaction(async tx => {
+        await fdm.transaction(async (tx) => {
             if (status === "out_of_office") {
                 await reassignAgentTickets(tx, agent_id, agent_id)
             }
 
-            await tx.update(schema.agents).set({
-                availability_status: status,
-                updated: sql`now()`,
-            }).where(eq(schema.agents.agent_id, agent_id))
+            await tx
+                .update(schema.agents)
+                .set({
+                    availability_status: status,
+                    updated: sql`now()`,
+                })
+                .where(eq(schema.agents.agent_id, agent_id))
         })
     } catch (err) {
         throw handleError(err, "Exception for setAgentStatus", {
@@ -291,7 +296,7 @@ export async function setAgentStatus(
 
 /**
  * Sets the days of the week that the agent is available to handle tickets.
- * 
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
@@ -320,10 +325,13 @@ export async function setWorkDays(
             "setWorkDays",
         )
 
-        await fdm.update(schema.agents).set({
-            work_days: [...new Set(work_days)].sort((a, b) => a - b),
-            updated: sql`now()`,
-        }).where(eq(schema.agents.agent_id, agent_id))
+        await fdm
+            .update(schema.agents)
+            .set({
+                work_days: [...new Set(work_days)].sort((a, b) => a - b),
+                updated: sql`now()`,
+            })
+            .where(eq(schema.agents.agent_id, agent_id))
     } catch (err) {
         throw handleError(err, "Exception for setWorkDays", {
             agent_id,
@@ -334,7 +342,7 @@ export async function setWorkDays(
 
 /**
  * Sets the assignment tier for the agent.
- * 
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
@@ -362,10 +370,13 @@ export async function setAssignmentTier(
             "setAssignmentTier",
         )
 
-        await fdm.update(schema.agents).set({
-            assignment_tier: assignment_tier,
-            updated: sql`now()`,
-        }).where(eq(schema.agents.agent_id, agent_id))
+        await fdm
+            .update(schema.agents)
+            .set({
+                assignment_tier: assignment_tier,
+                updated: sql`now()`,
+            })
+            .where(eq(schema.agents.agent_id, agent_id))
     } catch (err) {
         throw handleError(err, "Exception for setAssignmentTier", {
             agent_id,
@@ -374,9 +385,50 @@ export async function setAssignmentTier(
     }
 }
 
+export async function setMaxTickets(
+    fdm: FdmHelpdeskType,
+    principal_id: string,
+    agent_id: string,
+    max_tickets?: number | null | undefined,
+) {
+    try {
+        if (
+            max_tickets !== undefined &&
+            max_tickets !== null &&
+            max_tickets < 0
+        ) {
+            throw new Error(`Invalid max tickets: ${max_tickets}`)
+        }
+
+        await checkHelpdeskPermission(
+            fdm,
+            "agent",
+            "write",
+            agent_id,
+            principal_id,
+            "setMaxTickets",
+        )
+
+        if (max_tickets !== undefined) {
+            await fdm
+                .update(schema.agents)
+                .set({
+                    max_tickets: max_tickets,
+                    updated: sql`now()`,
+                })
+                .where(eq(schema.agents.agent_id, agent_id))
+        }
+    } catch (err) {
+        throw handleError(err, "Exception for setMaxTickets", {
+            agent_id,
+            max_tickets,
+        })
+    }
+}
+
 /**
  * Records the absence of an agent between two specific dates, along with a reason and an optional note.
- * 
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
@@ -423,7 +475,10 @@ export async function scheduleAbsence(
     }
 }
 
-export async function cancelAbsence(fdm: FdmHelpdeskType, availability_id: string) {
+export async function cancelAbsence(
+    fdm: FdmHelpdeskType,
+    availability_id: string,
+) {
     try {
         const absence = await getAbsence(fdm, availability_id)
 
@@ -436,7 +491,9 @@ export async function cancelAbsence(fdm: FdmHelpdeskType, availability_id: strin
             "cancelAbsence",
         )
 
-        await fdm.delete(schema.agentAbsences).where(eq(schema.agentAbsences.absence_id, availability_id))
+        await fdm
+            .delete(schema.agentAbsences)
+            .where(eq(schema.agentAbsences.absence_id, availability_id))
     } catch (err) {
         throw handleError(err, "Exception for cancelAbsence", {
             availability_id,
@@ -446,7 +503,11 @@ export async function cancelAbsence(fdm: FdmHelpdeskType, availability_id: strin
 
 export async function getAbsence(fdm: FdmHelpdeskType, absence_id: string) {
     try {
-        const absences = await fdm.select().from(schema.agentAbsences).where(eq(schema.agentAbsences.absence_id, absence_id)).limit(1)
+        const absences = await fdm
+            .select()
+            .from(schema.agentAbsences)
+            .where(eq(schema.agentAbsences.absence_id, absence_id))
+            .limit(1)
 
         if (absences.length === 0) {
             throw new Error(`Absence with ID ${absence_id} not found`)
@@ -470,5 +531,9 @@ export async function getAbsence(fdm: FdmHelpdeskType, absence_id: string) {
 }
 
 export async function getAgentAbsences(fdm: FdmHelpdeskType, agent_id: string) {
-    return fdm.select().from(schema.agentAbsences).where(eq(schema.agentAbsences.agent_id, agent_id)).orderBy((t) => [asc(t.start_date)])
+    return fdm
+        .select()
+        .from(schema.agentAbsences)
+        .where(eq(schema.agentAbsences.agent_id, agent_id))
+        .orderBy((t) => [asc(t.start_date)])
 }

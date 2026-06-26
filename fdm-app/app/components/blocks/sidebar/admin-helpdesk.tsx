@@ -1,4 +1,12 @@
-import { Asterisk, Inbox, MessageSquareDashed, Tag, Users } from "lucide-react"
+import {
+    Asterisk,
+    IdCardLanyard,
+    Inbox,
+    MessageSquareDashed,
+    Tag,
+    User,
+    Users,
+} from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
@@ -41,84 +49,91 @@ export function SidebarAdminHelpdesk({
         : `${location.pathname}${location.search}`
 
     return (
-        <SidebarGroup>
-            <SidebarGroupLabel>Medewerker</SidebarGroupLabel>
-            <SidebarGroupContent>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={currentHelpdeskPage === "inbox"}
-                        >
-                            <NavLink
-                                to={
-                                    isTicketViewerPage
-                                        ? modifySearchParams(
-                                              urlWithNoFilters,
-                                              (searchParams) => {
-                                                  searchParams.set("inbox", "")
-                                              },
-                                          )
-                                        : "/support?inbox"
+        <>
+            <SidebarGroup>
+                <SidebarGroupLabel>Medewerker</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={currentHelpdeskPage === "inbox"}
+                            >
+                                <NavLink
+                                    to={
+                                        isTicketViewerPage
+                                            ? modifySearchParams(
+                                                  urlWithNoFilters,
+                                                  (searchParams) => {
+                                                      searchParams.set(
+                                                          "inbox",
+                                                          "",
+                                                      )
+                                                  },
+                                              )
+                                            : "/support?inbox"
+                                    }
+                                >
+                                    <Inbox />
+                                    <span>Mijn inbox</span>
+                                    <NumberBadge number={numUnreadAssigned} />
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={
+                                    currentHelpdeskPage === "unassigned_tickets"
                                 }
                             >
-                                <Inbox />
-                                <span>Mijn inbox</span>
-                                <NumberBadge number={numUnreadAssigned} />
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={
-                                currentHelpdeskPage === "unassigned_tickets"
-                            }
-                        >
-                            <NavLink
-                                to={
-                                    isTicketViewerPage
-                                        ? modifySearchParams(
-                                              urlWithNoFilters,
-                                              (searchParams) => {
-                                                  searchParams.set(
-                                                      "unassigned",
-                                                      "",
-                                                  )
-                                              },
-                                          )
-                                        : "/support?unassigned"
-                                }
+                                <NavLink
+                                    to={
+                                        isTicketViewerPage
+                                            ? modifySearchParams(
+                                                  urlWithNoFilters,
+                                                  (searchParams) => {
+                                                      searchParams.set(
+                                                          "unassigned",
+                                                          "",
+                                                      )
+                                                  },
+                                              )
+                                            : "/support?unassigned"
+                                    }
+                                >
+                                    <Asterisk />
+                                    <span>Niet toegewezen</span>
+                                    <NumberBadge number={numUnassigned} />
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={currentHelpdeskPage === "all_tickets"}
                             >
-                                <Asterisk />
-                                <span>Niet toegewezen</span>
-                                <NumberBadge number={numUnassigned} />
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={currentHelpdeskPage === "all_tickets"}
-                        >
-                            <NavLink
-                                to={
-                                    isTicketViewerPage
-                                        ? modifySearchParams(
-                                              urlWithNoFilters,
-                                              (searchParams) => {
-                                                  searchParams.set("all", "")
-                                              },
-                                          )
-                                        : "/support?all"
-                                }
-                            >
-                                <MessageSquareDashed />
-                                <span>Alle tickets</span>
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    {/* <SidebarMenuItem>
+                                <NavLink
+                                    to={
+                                        isTicketViewerPage
+                                            ? modifySearchParams(
+                                                  urlWithNoFilters,
+                                                  (searchParams) => {
+                                                      searchParams.set(
+                                                          "all",
+                                                          "",
+                                                      )
+                                                  },
+                                              )
+                                            : "/support?all"
+                                    }
+                                >
+                                    <MessageSquareDashed />
+                                    <span>Alle tickets</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        {/* <SidebarMenuItem>
                         <SidebarMenuButton
                             asChild
                             isActive={currentHelpdeskPage === "saved_replies"}
@@ -129,30 +144,48 @@ export function SidebarAdminHelpdesk({
                             </NavLink>
                         </SidebarMenuButton>
                     </SidebarMenuItem> */}
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={currentHelpdeskPage === "agents"}
-                        >
-                            <NavLink to="/support/settings/agents">
-                                <Users />
-                                <span>Medewerkers</span>
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={currentHelpdeskPage === "tags"}
-                        >
-                            <NavLink to="/support/settings/tags">
-                                <Tag />
-                                <span>Tags</span>
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarGroupContent>
-        </SidebarGroup>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+            <SidebarGroup>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={currentHelpdeskPage === "profile"}
+                            >
+                                <NavLink to="/support/settings/profile">
+                                    <IdCardLanyard />
+                                    <span>Mijn profiel</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={currentHelpdeskPage === "agents"}
+                            >
+                                <NavLink to="/support/settings/agents">
+                                    <Users />
+                                    <span>Medewerkers</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton
+                                asChild
+                                isActive={currentHelpdeskPage === "tags"}
+                            >
+                                <NavLink to="/support/settings/tags">
+                                    <Tag />
+                                    <span>Tags</span>
+                                </NavLink>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        </>
     )
 }

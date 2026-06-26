@@ -13,8 +13,31 @@ export const UpdateAgentRoleSchema = z.object({
 })
 
 export const UpdateAgentSchema = z.object({
-    principal_id: z.string().min(1),
+    agent_id: z.string().min(1),
     display_name: z.string(),
+    availability_status: z.enum(["online", "away", "out-of-office"]),
+    max_tickets: z
+        .preprocess(
+            (val) =>
+                val === ""
+                    ? undefined
+                    : typeof val === "string"
+                      ? Number(val)
+                      : val,
+            z
+                .number({
+                    error: "Dit moet een getaal zijn.",
+                })
+                .int({
+                    message: "Dit moet een hele getaal zijn.",
+                })
+                .positive({
+                    message: "Jij moet meer dan 0 tickets kunnen verwerken.",
+                }),
+        )
+        .nullable()
+        .optional(),
+    work_days: z.array(z.number().min(0).max(6)),
 })
 
 export const SetAgentActiveStatusSchema = z.object({
