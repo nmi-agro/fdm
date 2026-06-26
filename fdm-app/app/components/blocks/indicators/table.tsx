@@ -1,8 +1,8 @@
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { NavLink } from "react-router"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import type { FieldBln3Score } from "~/integrations/bln3.server"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import {
   ECOSYSTEEMDIENSTEN,
   type Ecosysteemdienst,
@@ -119,7 +119,7 @@ export function HeatmapTable({
               ? basePathFormatter(row.original.b_id)
               : `${basePath}/${row.original.b_id}`
           }
-          className="hover:underline font-medium"
+          className="font-medium hover:underline"
         >
           {row.original.b_name ?? row.original.b_id}
         </NavLink>
@@ -131,13 +131,13 @@ export function HeatmapTable({
       header: () => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="vertical-header text-[11px] font-medium cursor-default self-stretch text-red-700 dark:text-red-400">
+            <span className="vertical-header cursor-default self-stretch text-[11px] font-medium text-red-700 dark:text-red-400">
               Knelpunten
             </span>
           </TooltipTrigger>
           <TooltipContent
             side="right"
-            className="max-w-[220px] text-xs bg-popover text-popover-foreground border shadow-md"
+            className="bg-popover text-popover-foreground max-w-[220px] border text-xs shadow-md"
           >
             Aantal knelpunten voor dit perceel
           </TooltipContent>
@@ -146,7 +146,7 @@ export function HeatmapTable({
       cell: ({ row }) => {
         const count = row.original.knelpuntCount
         return count > 0 ? (
-          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs font-bold">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-700 dark:bg-red-900/40 dark:text-red-400">
             {count}
           </span>
         ) : null
@@ -163,13 +163,13 @@ export function HeatmapTable({
         header: () => (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="vertical-header text-[11px] font-medium text-foreground cursor-default self-stretch">
+              <span className="vertical-header text-foreground cursor-default self-stretch text-[11px] font-medium">
                 {ind.name}
               </span>
             </TooltipTrigger>
             <TooltipContent
               side="right"
-              className="max-w-[220px] text-xs bg-popover text-popover-foreground border shadow-md"
+              className="bg-popover text-popover-foreground max-w-[220px] border text-xs shadow-md"
             >
               {ind.name}
             </TooltipContent>
@@ -245,8 +245,8 @@ export function HeatmapTable({
        * Single overflow-auto container so sticky thead scrolls correctly
        * with horizontal scroll (placing sticky inside a single scroll root).
        */}
-      <div className="w-full overflow-auto max-h-[75vh] rounded-md border">
-        <table className="w-full caption-bottom text-sm border-separate border-spacing-0">
+      <div className="max-h-[75vh] w-full overflow-auto rounded-md border">
+        <table className="w-full caption-bottom border-separate border-spacing-0 text-sm">
           <thead className="sticky top-0 z-20">
             {/* Row 1: Category group labels (colSpan per group) */}
             <tr>
@@ -259,7 +259,7 @@ export function HeatmapTable({
                         key={header.id}
                         className={cn(
                           stickyCorner,
-                          "w-[160px] min-w-[160px] px-3 py-1.5 border-b border-r border-border",
+                          "border-border w-[160px] min-w-[160px] border-r border-b px-3 py-1.5",
                         )}
                       />
                     )
@@ -270,7 +270,7 @@ export function HeatmapTable({
                       key={header.id}
                       className={cn(
                         stickyKnelpuntCorner,
-                        "w-12 min-w-[48px] px-1 py-1.5 border-b border-r border-border",
+                        "border-border w-12 min-w-[48px] border-r border-b px-1 py-1.5",
                       )}
                     />
                   )
@@ -282,7 +282,7 @@ export function HeatmapTable({
                     colSpan={header.colSpan}
                     className={cn(
                       thBase,
-                      "text-center py-1.5 h-8 border-l border-border border-b-2 max-w-0",
+                      "border-border h-8 max-w-0 border-b-2 border-l py-1.5 text-center",
                       CATEGORY_TEXT[cat],
                       CATEGORY_BORDER[cat],
                     )}
@@ -304,7 +304,7 @@ export function HeatmapTable({
                       key={header.id}
                       className={cn(
                         stickyCorner,
-                        "w-[160px] min-w-[160px] px-3 pb-2 text-left text-xs font-medium text-muted-foreground border-b border-r border-border",
+                        "text-muted-foreground border-border w-[160px] min-w-[160px] border-r border-b px-3 pb-2 text-left text-xs font-medium",
                       )}
                     >
                       Perceel
@@ -317,7 +317,7 @@ export function HeatmapTable({
                       key={header.id}
                       className={cn(
                         stickyKnelpuntCorner,
-                        "w-12 min-w-[48px] px-1 pb-2 text-center border-b border-r border-border align-middle",
+                        "border-border w-12 min-w-[48px] border-r border-b px-1 pb-2 text-center align-middle",
                       )}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
@@ -329,16 +329,16 @@ export function HeatmapTable({
                     key={header.id}
                     className={cn(
                       thBase,
-                      "h-36 w-12 min-w-[48px] pb-2 align-bottom overflow-hidden",
+                      "h-36 w-12 min-w-[48px] overflow-hidden pb-2 align-bottom",
                     )}
                   >
                     {onIndicatorClick ? (
                       <button
                         type="button"
                         className={cn(
-                          "flex justify-center items-end h-full w-full overflow-hidden cursor-pointer hover:bg-muted/40",
+                          "hover:bg-muted/40 flex h-full w-full cursor-pointer items-end justify-center overflow-hidden",
                           selectedIndicatorId === header.column.id &&
-                            "bg-muted/60 ring-2 ring-inset ring-primary/50",
+                            "bg-muted/60 ring-primary/50 ring-2 ring-inset",
                         )}
                         aria-pressed={selectedIndicatorId === header.column.id}
                         aria-label={`${selectedIndicatorId === header.column.id ? "Unpin" : "Pin"} indicator ${header.column.id}`}
@@ -351,7 +351,7 @@ export function HeatmapTable({
                         {flexRender(header.column.columnDef.header, header.getContext())}
                       </button>
                     ) : (
-                      <div className="flex justify-center items-end h-full overflow-hidden">
+                      <div className="flex h-full items-end justify-center overflow-hidden">
                         {flexRender(header.column.columnDef.header, header.getContext())}
                       </div>
                     )}
@@ -367,7 +367,7 @@ export function HeatmapTable({
               <td
                 className={cn(
                   stickyCol,
-                  "px-3 py-2 text-xs font-semibold border-b-2 border-r border-border",
+                  "border-border border-r border-b-2 px-3 py-2 text-xs font-semibold",
                   totalKnelpunten > 0
                     ? "text-red-700 dark:text-red-400"
                     : "text-green-700 dark:text-green-400",
@@ -379,15 +379,15 @@ export function HeatmapTable({
               <td
                 className={cn(
                   stickyKnelpunt,
-                  "text-center px-1 py-2 border-b-2 border-r border-border",
+                  "border-border border-r border-b-2 px-1 py-2 text-center",
                 )}
               >
                 <span
                   className={cn(
-                    "inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold",
+                    "inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold",
                     totalKnelpunten > 0
-                      ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
-                      : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400",
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
                   )}
                 >
                   {totalKnelpunten}
@@ -398,7 +398,7 @@ export function HeatmapTable({
                 return (
                   <td key={header.id} className={cn(tdBase, "border-b-2")}>
                     {count > 0 ? (
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 text-xs font-bold">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-700 dark:bg-red-900/40 dark:text-red-400">
                         {count}
                       </span>
                     ) : null}
@@ -415,7 +415,7 @@ export function HeatmapTable({
                     return (
                       <td
                         key={cell.id}
-                        className={cn(stickyCol, "px-3 py-2 border-b border-r border-border")}
+                        className={cn(stickyCol, "border-border border-r border-b px-3 py-2")}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
@@ -427,7 +427,7 @@ export function HeatmapTable({
                         key={cell.id}
                         className={cn(
                           stickyKnelpunt,
-                          "text-center px-1 py-2 border-b border-r border-border",
+                          "border-border border-r border-b px-1 py-2 text-center",
                         )}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -48,8 +48,8 @@ export function getColumns(
       header: "Maatregel",
       cell: ({ row }) => (
         <div>
-          <p className="font-medium text-sm">{row.original.m_name}</p>
-          <p className="text-xs text-muted-foreground font-mono">
+          <p className="text-sm font-medium">{row.original.m_name}</p>
+          <p className="text-muted-foreground font-mono text-xs">
             {row.original.m_id.replace("bln_", "")}
           </p>
         </div>
@@ -63,9 +63,9 @@ export function getColumns(
         const allSame = row.original.fields.every(
           (f) => (f.m_start?.getTime() ?? null) === (first?.m_start?.getTime() ?? null),
         )
-        if (!first?.m_start) return <span className="text-sm text-muted-foreground">—</span>
+        if (!first?.m_start) return <span className="text-muted-foreground text-sm">—</span>
         return (
-          <span className="text-sm text-muted-foreground">
+          <span className="text-muted-foreground text-sm">
             {allSame ? formatDate(first.m_start) : "Variabel"}
           </span>
         )
@@ -80,7 +80,7 @@ export function getColumns(
           (f) => (f.m_end?.getTime() ?? null) === (first?.m_end?.getTime() ?? null),
         )
         if (first?.m_end && allSame) {
-          return <span className="text-sm text-muted-foreground">{formatDate(first.m_end)}</span>
+          return <span className="text-muted-foreground text-sm">{formatDate(first.m_end)}</span>
         }
         if (!first?.m_end) {
           return (table.options.meta?.canModify ?? true) ? (
@@ -93,10 +93,10 @@ export function getColumns(
               Afsluiten
             </Button>
           ) : (
-            <span className="text-sm text-muted-foreground">Geen</span>
+            <span className="text-muted-foreground text-sm">Geen</span>
           )
         }
-        return <span className="text-sm text-muted-foreground">Variabel</span>
+        return <span className="text-muted-foreground text-sm">Variabel</span>
       },
     },
     {
@@ -108,7 +108,7 @@ export function getColumns(
         return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1.5">
+              <Button variant="outline" size="sm" className="h-7 gap-1.5 px-2 text-xs">
                 {fields.length}{" "}
                 {domain === "organization"
                   ? fields.length === 1
@@ -125,7 +125,7 @@ export function getColumns(
                   <li key={f.b_id}>
                     <NavLink
                       to={basePathFormatter(f.b_id)}
-                      className="block text-sm px-2 py-1 rounded hover:bg-muted transition-colors"
+                      className="hover:bg-muted block rounded px-2 py-1 text-sm transition-colors"
                     >
                       {f.b_name ?? f.b_id}
                     </NavLink>
@@ -159,11 +159,11 @@ export function getColumns(
       id: "actions",
       header: "",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 justify-end">
+        <div className="flex items-center justify-end gap-1">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground h-8 w-8"
             title="Bewerken / afsluiten"
             onClick={() => onEdit?.(row.original)}
           >
@@ -175,7 +175,7 @@ export function getColumns(
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive h-8 w-8"
                 title="Verwijderen"
               >
                 <Trash2 className="h-4 w-4" />
@@ -194,7 +194,7 @@ export function getColumns(
                     Wil je de maatregel alleen beëindigen?
                   </span>{" "}
                   Gebruik dan de bewerkknop (
-                  <Pencil className="inline h-3.5 w-3.5 mx-0.5" />) en stel een einddatum in.
+                  <Pencil className="mx-0.5 inline h-3.5 w-3.5" />) en stel een einddatum in.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

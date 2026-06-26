@@ -1,7 +1,7 @@
+import type { FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
 import { Command as CommandPrimitive } from "cmdk"
 import { Check, User, Users, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import type { FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import {
@@ -262,7 +262,7 @@ export function AutoComplete<
                     e.preventDefault()
                     handleClear()
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
                 >
                   <X className="size-3.5" />
                 </button>

@@ -1,6 +1,6 @@
+import type { Control, FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { type ReactNode, useMemo, useState } from "react"
-import type { Control, FieldPathValue, FieldValues, Path, UseFormSetValue } from "react-hook-form"
 import { Button } from "~/components/ui/button"
 import {
   Command,
@@ -111,7 +111,7 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
                           setOpen(false)
                         }}
                       >
-                        <p className="text-pretty w-[350px]">{option.label}</p>
+                        <p className="w-[350px] text-pretty">{option.label}</p>
                         <Check
                           className={cn(
                             "ml-auto",

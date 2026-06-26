@@ -1,3 +1,5 @@
+import type { FeatureCollection, Geometry } from "geojson"
+import type { MetaFunction } from "react-router"
 import {
   type CurrentSoilData,
   getCurrentSoilDataForFarm,
@@ -7,7 +9,6 @@ import {
 import { simplify } from "@turf/simplify"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
-import type { FeatureCollection, Geometry } from "geojson"
 import maplibregl, { type GeoJSONFeature } from "maplibre-gl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -18,7 +19,6 @@ import {
   type MapRef,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import type { MetaFunction } from "react-router"
 import { type LoaderFunctionArgs, useLoaderData, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -318,13 +318,13 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         )}
       </MapGL>
       {/* Soil Parameter Dropdown */}
-      <Card className="absolute top-3 left-3 z-10 w-52 shadow-md bg-background/90 backdrop-blur-sm">
+      <Card className="bg-background/90 absolute top-3 left-3 z-10 w-52 shadow-md backdrop-blur-sm">
         <CardContent className="p-2">
           <Select
             value={selectedParameter}
             onValueChange={(val) => setSelectedParameter(val as ShadedSoilParameters)}
           >
-            <SelectTrigger className="w-full text-xs h-8">
+            <SelectTrigger className="h-8 w-full text-xs">
               {parameterDescription?.name}
             </SelectTrigger>
             {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
@@ -334,7 +334,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                   <SelectItem key={opt.parameter} value={opt.parameter}>
                     <div>
                       <div className="font-medium">{opt.name}</div>
-                      <div className="text-xs text-muted-foreground">{opt.description}</div>
+                      <div className="text-muted-foreground text-xs">{opt.description}</div>
                     </div>
                   </SelectItem>
                 )
@@ -346,22 +346,22 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
       {/* Hover tooltip */}
       {hoverInfo && (
         <Card
-          className="absolute z-20 pointer-events-none bg-background/95 backdrop-blur-sm px-3 py-2 shadow-md text-xs min-w-[160px]"
+          className="bg-background/95 pointer-events-none absolute z-20 min-w-[160px] px-3 py-2 text-xs shadow-md backdrop-blur-sm"
           style={{
             left: hoverInfo.x + 12,
             top: hoverInfo.y - 8,
             transform: "translateY(-100%)",
           }}
         >
-          <CardHeader className="p-0 mb-1.5">
-            <p className="font-semibold text-foreground">{hoverInfo.feature.properties.b_name}</p>
+          <CardHeader className="mb-1.5 p-0">
+            <p className="text-foreground font-semibold">{hoverInfo.feature.properties.b_name}</p>
             {hoverInfo.feature.properties.b_area != null && (
               <p className="text-muted-foreground mt-0.5">
                 {Number(hoverInfo.feature.properties.b_area).toFixed(2)} ha
               </p>
             )}
           </CardHeader>
-          <CardContent className="mt-1.5 p-0 pt-1.5 border-t flex items-center justify-between gap-3">
+          <CardContent className="mt-1.5 flex items-center justify-between gap-3 border-t p-0 pt-1.5">
             <p className="text-muted-foreground">{parameterDescription?.name}</p>
             {typeof hoverInfo.feature.properties[selectedParameter] === "undefined" ? (
               <p>Geen data</p>
@@ -374,7 +374,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
             ) : selectedParameter === "b_soiltype_agr" ? (
               <p>
                 <span
-                  className="inline-block me-0.5 size-2.5 rounded align-middle"
+                  className="me-0.5 inline-block size-2.5 rounded align-middle"
                   style={{
                     backgroundColor:
                       SHADED_SOIL_TYPES.find(
@@ -395,7 +395,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         </Card>
       )}
       {/* Soil Analysis Color Legend */}
-      <div className="absolute left-4 bottom-9 pointer-none">
+      <div className="pointer-none absolute bottom-9 left-4">
         <SoilAnalysisLegend
           fieldsData={fieldsData}
           selectedParameter={selectedParameter}

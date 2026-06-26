@@ -28,8 +28,8 @@ import {
 } from "~/components/ui/dialog"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
-import { getSession } from "~/lib/auth.server"
 import { authClient } from "~/lib/auth-client"
+import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 
@@ -174,7 +174,7 @@ export default function UserSettingsApiKeys() {
         title="API-sleutels"
         description={`Gebruik API-sleutels voor programmatische toegang tot ${clientConfig.name}. Behandel sleutels als wachtwoorden — deel ze nooit en sla ze veilig op.`}
       />
-      <div className="space-y-6 px-4 md:px-8 pb-8">
+      <div className="space-y-6 px-4 pb-8 md:px-8">
         <div className="flex justify-end gap-2">
           {clientConfig.apiUrl && (
             <Button variant="outline" size="sm" asChild>
@@ -232,7 +232,7 @@ export default function UserSettingsApiKeys() {
                 plek op. Na het sluiten van dit venster is de sleutel niet meer op te vragen.
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-md bg-muted px-3 py-2 font-mono text-sm break-all select-all">
+            <div className="bg-muted rounded-md px-3 py-2 font-mono text-sm break-all select-all">
               {rawKey}
             </div>
             <DialogFooter>
@@ -259,11 +259,11 @@ export default function UserSettingsApiKeys() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Laden…</p>
+              <p className="text-muted-foreground text-sm">Laden…</p>
             ) : keys.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center">
-                <KeyIcon className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
+                <KeyIcon className="text-muted-foreground h-8 w-8" />
+                <p className="text-muted-foreground text-sm">
                   Geen API-sleutels gevonden. Maak er een aan om te beginnen.
                 </p>
               </div>
@@ -271,7 +271,7 @@ export default function UserSettingsApiKeys() {
               <ul className="divide-y">
                 {keys.map((k) => (
                   <li key={k.id} className="flex items-center gap-3 py-3">
-                    <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="min-w-0 flex-1 space-y-0.5">
                       {editId === k.id ? (
                         <div className="flex items-center gap-2">
                           <Input
@@ -301,7 +301,7 @@ export default function UserSettingsApiKeys() {
                       ) : (
                         <button
                           type="button"
-                          className="text-sm font-medium hover:underline text-left truncate max-w-xs"
+                          className="max-w-xs truncate text-left text-sm font-medium hover:underline"
                           onClick={() => {
                             setEditId(k.id)
                             setEditName(k.name ?? "")
@@ -311,9 +311,9 @@ export default function UserSettingsApiKeys() {
                           {k.name ?? "(naamloos)"}
                         </button>
                       )}
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex flex-wrap items-center gap-2">
                         {k.start && (
-                          <span className="font-mono text-xs text-muted-foreground">
+                          <span className="text-muted-foreground font-mono text-xs">
                             {k.prefix ? `${k.prefix}_` : ""}
                             {k.start}…
                           </span>
@@ -322,15 +322,15 @@ export default function UserSettingsApiKeys() {
                           {k.enabled ? "Actief" : "Inactief"}
                         </Badge>
                         {k.expiresAt && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             Verloopt: {new Date(k.expiresAt).toLocaleDateString("nl-NL")}
                           </span>
                         )}
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           Aangemaakt: {new Date(k.createdAt).toLocaleDateString("nl-NL")}
                         </span>
                         {k.lastRequest && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             Laatste gebruik: {new Date(k.lastRequest).toLocaleDateString("nl-NL")}
                           </span>
                         )}
@@ -342,7 +342,7 @@ export default function UserSettingsApiKeys() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="shrink-0 text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive shrink-0"
                           title="Sleutel intrekken"
                         >
                           <TrashIcon className="h-4 w-4" />

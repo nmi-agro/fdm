@@ -1,11 +1,11 @@
 import type { Fertilizer, FertilizerApplication, Field } from "@nmi-agro/fdm-core"
+import type { NutrientDescription } from "./types"
 import { NutrientCard } from "./cards"
 import {
   NutrientKPICardForNutrientDeficit,
   NutrientKPICardForNutrientExcess,
   NutrientKPICardForTotalApplications,
 } from "./kpi"
-import type { NutrientDescription } from "./types"
 
 type Dose = any
 interface AsyncData {

@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
+import type { FdmType } from "./fdm.types"
 import { generateCalculationHash, setCachedCalculation, withCalculationCache } from "./calculator"
 import { calculationCache, calculationErrors } from "./db/schema-calculator"
-import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 
 describe("generateCalculationHash", () => {

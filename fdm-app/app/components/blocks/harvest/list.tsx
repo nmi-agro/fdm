@@ -6,8 +6,8 @@ import { NavLink } from "react-router"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import { Label } from "~/components/ui/label"
-import { getHarvestParameterLabel } from "./parameters"
 import type { HarvestableType } from "./types"
+import { getHarvestParameterLabel } from "./parameters"
 import { getHarvestTerm } from "./utils"
 
 export function HarvestsList({
@@ -28,8 +28,8 @@ export function HarvestsList({
     <div className="grid grid-cols-2 gap-4 pt-4">
       {harvestParameters.map((param: HarvestParameters[number]) => (
         <div key={param}>
-          <Label className="text-xs text-muted-foreground">{getHarvestParameterLabel(param)}</Label>
-          <p className="text-sm font-medium leading-none">
+          <Label className="text-muted-foreground text-xs">{getHarvestParameterLabel(param)}</Label>
+          <p className="text-sm leading-none font-medium">
             {harvest.harvestable?.harvestable_analyses?.[0]?.[param] ?? "–"}
           </p>
         </div>
@@ -40,7 +40,7 @@ export function HarvestsList({
   const renderHarvestSummary = (harvest: Harvest) => (
     <div className="flex items-center justify-between">
       <div className="flex items-center">
-        <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+        <Calendar className="text-muted-foreground mr-2 h-4 w-4" />
         <span className="text-md font-medium">
           {harvest.b_lu_harvest_date
             ? format(harvest.b_lu_harvest_date, "PPP", {
@@ -49,7 +49,7 @@ export function HarvestsList({
             : "—"}
         </span>
       </div>
-      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+      <ArrowRight className="text-muted-foreground h-4 w-4" />
     </div>
   )
 
@@ -62,7 +62,7 @@ export function HarvestsList({
           to={`./harvest/${harvest.b_id_harvesting}`}
           className="block rounded-lg"
         >
-          <Card className="transition-all hover:bg-muted/50">
+          <Card className="hover:bg-muted/50 transition-all">
             <CardHeader>{renderHarvestSummary(harvest)}</CardHeader>
             <CardContent>{renderHarvestDetails(harvest)}</CardContent>
           </Card>
@@ -95,14 +95,14 @@ export function HarvestsList({
               to={`./harvest/${harvest.b_id_harvesting}`}
               className="block rounded-lg"
             >
-              <Card className="transition-all hover:bg-muted/50">
+              <Card className="hover:bg-muted/50 transition-all">
                 <CardHeader>{renderHarvestSummary(harvest)}</CardHeader>
                 {summaryParams.length > 0 && (
                   <CardContent className="pt-0">
                     <div className="flex items-center space-x-6">
                       {summaryParams.map((p) => (
                         <div key={p.label}>
-                          <p className="text-xs text-muted-foreground">{p.label}</p>
+                          <p className="text-muted-foreground text-xs">{p.label}</p>
                           <p className="text-sm font-semibold">{p.value}</p>
                         </div>
                       ))}

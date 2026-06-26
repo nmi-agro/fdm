@@ -69,18 +69,18 @@ export function MeasuresDataTable({
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <div className="relative max-w-sm flex-1">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             placeholder="Zoek maatregel…"
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-9 h-9"
+            className="h-9 pl-9"
           />
         </div>
         {canModify && (
           <Button size="sm" onClick={onAddClick} className="shrink-0">
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="mr-1 h-4 w-4" />
             Toevoegen
           </Button>
         )}
@@ -117,7 +117,7 @@ export function MeasuresDataTable({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground text-sm"
+                  className="text-muted-foreground h-24 text-center text-sm"
                 >
                   {globalFilter
                     ? `Geen maatregelen gevonden voor "${globalFilter}".`

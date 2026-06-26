@@ -208,7 +208,7 @@ function MineralizationFarmContent({
             </Card>
           </div>
           <div className="col-span-3">
-            <Card className="h-full flex flex-col">
+            <Card className="flex h-full flex-col">
               <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <div>
                   <CardTitle>Percelen</CardTitle>
@@ -216,7 +216,7 @@ function MineralizationFarmContent({
                 </div>
                 <MethodSelector value={method} />
               </CardHeader>
-              <CardContent className="flex-1 overflow-auto max-h-[400px]">
+              <CardContent className="max-h-[400px] flex-1 overflow-auto">
                 <FieldList results={results} b_id_farm={b_id_farm} calendar={calendar} />
               </CardContent>
             </Card>
@@ -239,7 +239,7 @@ function MineralizationFarmContent({
               én bemesting. Resultaten laden per perceel.
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-auto max-h-[500px]">
+          <CardContent className="max-h-[500px] overflow-auto">
             <DynaFieldList
               fields={fields}
               promises={dynaPromises}

@@ -37,10 +37,10 @@ export function ElevationLegend({
 }: ElevationLegendProps) {
   return (
     <div className="w-40">
-      <Card className="bg-background/90 backdrop-blur-sm shadow-sm">
+      <Card className="bg-background/90 shadow-sm backdrop-blur-sm">
         <CardContent className="p-3">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
               Hoogte (AHN4)
             </h4>
             {loading && <Spinner className="h-3 w-3" />}
@@ -51,18 +51,18 @@ export function ElevationLegend({
           )}
 
           {networkStatus === "error" && (
-            <div className="mb-2 text-xs font-medium text-destructive">Fout bij laden</div>
+            <div className="text-destructive mb-2 text-xs font-medium">Fout bij laden</div>
           )}
 
           {message && (
-            <div className="mb-2 text-xs font-medium text-muted-foreground">{message}</div>
+            <div className="text-muted-foreground mb-2 text-xs font-medium">{message}</div>
           )}
 
           {showScale && (
             <div className="flex flex-col gap-1">
-              <div className="flex h-4 w-full rounded border border-border overflow-hidden relative">
+              <div className="border-border relative flex h-4 w-full overflow-hidden rounded border">
                 <div
-                  className="absolute inset-0 w-full h-full"
+                  className="absolute inset-0 h-full w-full"
                   style={{
                     // BrewerSpectral11 Reversed (Blue -> Red)
                     background:
@@ -70,7 +70,7 @@ export function ElevationLegend({
                   }}
                 />
               </div>
-              <div className="flex justify-between text-[12px] text-muted-foreground font-medium font-mono">
+              <div className="text-muted-foreground flex justify-between font-mono text-[12px] font-medium">
                 <span>{min !== undefined ? `${min.toFixed(1)}m` : "Laag"}</span>
                 <span>{max !== undefined ? `${max.toFixed(1)}m` : "Hoog"}</span>
               </div>
@@ -121,9 +121,9 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
   const title = parameterDescription ? `${parameterDescription.name}${unitDisplay}` : undefined
 
   return (
-    <Card className="p-4 space-y-2 flex-initial min-h-0 overflow-y-auto">
+    <Card className="min-h-0 flex-initial space-y-2 overflow-y-auto p-4">
       <CardHeader className="p-0">
-        <CardTitle className="text-xs text-center text-muted-foreground">{title}</CardTitle>
+        <CardTitle className="text-muted-foreground text-center text-xs">{title}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         {!shadingConfig[selectedParameter] ? null : shadingConfig[selectedParameter].shading ===
@@ -168,7 +168,7 @@ function EnumSoilAnalysisLegend(props: SoilAnalysisLegendProps) {
             <td className="align-middle">
               <div className="size-3 rounded" style={{ backgroundColor: opt.fill }} />
             </td>
-            <td className="align-middle text-sm text-muted-foreground">{opt.label}</td>
+            <td className="text-muted-foreground align-middle text-sm">{opt.label}</td>
           </tr>
         ))}
       </tbody>
@@ -207,7 +207,7 @@ function GradientSoilAnalysisLegend(
     <ChartContainer
       config={{}}
       initialDimension={{ width: 200, height: 50 }}
-      className="-mx-3 last:-mbe-3 min-w-60 aspect-24/5"
+      className="-mx-3 aspect-24/5 min-w-60 last:-mbe-3"
     >
       <BarChart
         className="overflow-visible"

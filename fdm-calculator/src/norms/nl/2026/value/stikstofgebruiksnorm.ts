@@ -1,12 +1,6 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import { NormNotApplicableError } from "../../../../error"
-import pkg from "../../../../package"
-import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
-import { getRegion, isFieldInNVGebied } from "../../2025/value/stikstofgebruiksnorm"
-import { nonBouwlandCodes } from "../../constant"
 import type { GebruiksnormResult } from "../../types"
-import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 import type {
   NitrogenStandard,
   NL2026NormsInput,
@@ -14,6 +8,12 @@ import type {
   NormsByRegion,
   RegionKey,
 } from "./types"
+import { NormNotApplicableError } from "../../../../error"
+import pkg from "../../../../package"
+import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
+import { getRegion, isFieldInNVGebied } from "../../2025/value/stikstofgebruiksnorm"
+import { nonBouwlandCodes } from "../../constant"
+import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 
 /**
  * Retrieves the appropriate set of nitrogen norms (`NormsByRegion`) for a given cultivation.

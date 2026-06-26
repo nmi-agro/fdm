@@ -40,9 +40,9 @@ export function SoilAnalysesList({
             fetcher.state !== "idle" && fetcher.formData?.get("a_id") === analysis.a_id
 
           return (
-            <div className="grid grid-cols-3 gap-x-3 items-center" key={analysis.a_id}>
+            <div className="grid grid-cols-3 items-center gap-x-3" key={analysis.a_id}>
               <div className="col-span-1">
-                <p className="text-sm font-medium leading-none">
+                <p className="text-sm leading-none font-medium">
                   {analysis.a_source === "nl-other-nmi"
                     ? "Geschat met NMI BodemSchat"
                     : analysis.b_sampling_date
@@ -51,7 +51,7 @@ export function SoilAnalysesList({
                         })
                       : "Onbekende datum"}
                 </p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {analysis.a_source === "nl-other-nmi"
                     ? null
                     : analysis.a_source === "" || !analysis.a_source

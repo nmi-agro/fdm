@@ -55,19 +55,19 @@ export function PendingInvitationCard({ invitation, principalType = "user" }: Pr
           </div>
         </div>
       </CardHeader>
-      <CardContent className="grow py-2 text-sm text-muted-foreground">
+      <CardContent className="text-muted-foreground grow py-2 text-sm">
         {principalType === "organization"
           ? `${invitation.org_name ?? "Jouw organisatie"} heeft`
           : "Je hebt"}{" "}
         een uitnodiging ontvangen voor toegang tot bedrijf {farmLabel} als{" "}
         {getRoleLabel(invitation.role)}.
         {principalType === "user" && invitation.org_name && (
-          <span className="block text-xs text-muted-foreground">
+          <span className="text-muted-foreground block text-xs">
             Deze uitnodiging ontvang je namens organisatie: {invitation.org_name}
           </span>
         )}{" "}
         Je kunt deze uitnodiging accepteren of weigeren.
-        <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground/80">
+        <div className="text-muted-foreground/80 mt-2 flex items-center gap-1 text-xs">
           <Clock className="h-3 w-3" />
           <span>Verloopt {expiresText}</span>
         </div>

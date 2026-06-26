@@ -1,3 +1,5 @@
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
+import type { Navigation } from "react-router"
 import {
   addFertilizerApplication,
   getCultivations,
@@ -7,10 +9,8 @@ import {
   getFertilizers,
   getFields,
 } from "@nmi-agro/fdm-core"
-import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { AlertTriangle, Info } from "lucide-react"
 import { useEffect, useState } from "react"
-import type { Navigation } from "react-router"
 import {
   type ActionFunctionArgs,
   data,
@@ -25,11 +25,11 @@ import {
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
 import { FormSchema } from "~/components/blocks/fertilizer-applications/formschema"
-import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -317,15 +317,15 @@ export default function FarmRotationFertilizerAddIndex() {
         />
         <div className="relative">
           {isSubmitting && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-              <div className="flex items-center text-sm text-muted-foreground">
+            <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+              <div className="text-muted-foreground flex items-center text-sm">
                 <Spinner className="mr-2" />
                 <span>Bemesting wordt toegevoegd...</span>
               </div>
             </div>
           )}
           <FarmContent>
-            <div className="flex flex-col space-y-8 pb-10 md:flex-row md:space-x-12 md:space-y-0">
+            <div className="flex flex-col space-y-8 pb-10 md:flex-row md:space-y-0 md:space-x-12">
               <Card className="md:w-1/3">
                 <CardHeader>
                   <CardTitle>Geselecteerde percelen</CardTitle>
@@ -342,7 +342,7 @@ export default function FarmRotationFertilizerAddIndex() {
                           className="flex items-center justify-between rounded-md border p-3"
                         >
                           <p className="text-sm font-medium">{field.b_name}</p>
-                          <div className="flex gap-2 items-center">
+                          <div className="flex items-center gap-2">
                             {!field.cultivations.some((c) =>
                               loaderData.cultivationIds.includes(c),
                             ) && (
@@ -364,9 +364,9 @@ export default function FarmRotationFertilizerAddIndex() {
                     </div>
                   ) : (
                     <div className="flex h-full min-h-96 flex-col items-center justify-center rounded-md border border-dashed text-center">
-                      <Info className="h-10 w-10 text-muted-foreground/50" />
+                      <Info className="text-muted-foreground/50 h-10 w-10" />
                       <h3 className="mt-4 text-lg font-semibold">Geen percelen geselecteerd</h3>
-                      <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+                      <p className="text-muted-foreground mt-2 max-w-xs text-sm">
                         Pas uw selectie aan, of ga naar het percelenoverzicht voor meer
                         filtermogelijkheden.
                       </p>
@@ -395,7 +395,7 @@ export default function FarmRotationFertilizerAddIndex() {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="grid gap-4 py-4">
-                        <div className="max-h-[30vh] space-y-2 overflow-y-auto rounded-md border p-2 mb-4">
+                        <div className="mb-4 max-h-[30vh] space-y-2 overflow-y-auto rounded-md border p-2">
                           {loaderData.fieldOptions
                             .filter((field) =>
                               field.cultivations.some((c) => loaderData.cultivationIds.includes(c)),
@@ -403,7 +403,7 @@ export default function FarmRotationFertilizerAddIndex() {
                             .map((field) => (
                               <div
                                 key={field.b_id}
-                                className="flex items-center space-x-2 rounded-md p-2 hover:bg-accent"
+                                className="hover:bg-accent flex items-center space-x-2 rounded-md p-2"
                               >
                                 <Checkbox
                                   id={field.b_id}
@@ -437,7 +437,7 @@ export default function FarmRotationFertilizerAddIndex() {
                                     .map((field) => (
                                       <div
                                         key={field.b_id}
-                                        className="flex items-center space-x-2 rounded-md p-2 hover:bg-accent"
+                                        className="hover:bg-accent flex items-center space-x-2 rounded-md p-2"
                                       >
                                         <Checkbox
                                           id={field.b_id}
@@ -499,7 +499,7 @@ export default function FarmRotationFertilizerAddIndex() {
                     />
                   ) : (
                     <div className="flex h-full min-h-60 items-center justify-center rounded-md border border-dashed">
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         Selecteer eerst percelen in de linkerkolom.
                       </p>
                     </div>

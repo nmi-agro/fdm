@@ -90,13 +90,13 @@ function SoilDataCard({
 }) {
   const EditIcon = canModify ? Pencil : ExternalLink
   return (
-    <Card className="flex flex-col h-full transition-colors hover:bg-accent/5">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 space-x-2">
-        <div className="flex items-center gap-1.5 min-w-0">
+    <Card className="hover:bg-accent/5 flex h-full flex-col transition-colors">
+      <CardHeader className="flex flex-row items-start justify-between space-y-0 space-x-2 pb-2">
+        <div className="flex min-w-0 items-center gap-1.5">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <CardTitle className="text-sm font-semibold leading-tight truncate cursor-help decoration-dotted underline underline-offset-4 decoration-muted-foreground/30 hover:decoration-muted-foreground/60 transition-colors">
+                <CardTitle className="decoration-muted-foreground/30 hover:decoration-muted-foreground/60 cursor-help truncate text-sm leading-tight font-semibold underline decoration-dotted underline-offset-4 transition-colors">
                   {title}
                 </CardTitle>
               </TooltipTrigger>
@@ -109,7 +109,7 @@ function SoilDataCard({
             <Tooltip>
               <TooltipTrigger asChild>
                 <NavLink to={link} className="h-4 w-4 shrink-0">
-                  <EditIcon className="text-xs text-muted-foreground h-full w-full opacity-50 hover:opacity-100 transition-opacity" />
+                  <EditIcon className="text-muted-foreground h-full w-full text-xs opacity-50 transition-opacity hover:opacity-100" />
                 </NavLink>
               </TooltipTrigger>
               <TooltipContent>{canModify ? "Bewerken" : "Bekijken"}</TooltipContent>
@@ -117,12 +117,12 @@ function SoilDataCard({
           </TooltipProvider>
         ) : null}
       </CardHeader>
-      <CardContent className="mt-auto pt-0 space-y-3">
+      <CardContent className="mt-auto space-y-3 pt-0">
         <div className="flex items-baseline space-x-1.5">
           {value === null ? (
             "Onbekend"
           ) : type === "enum" ? (
-            <div className="text-xl font-bold leading-tight">
+            <div className="text-xl leading-tight font-bold">
               {label && type === "enum" ? label : value}
             </div>
           ) : (
@@ -130,18 +130,18 @@ function SoilDataCard({
               <div className="text-2xl font-bold tracking-tight">
                 {typeof value === "number" ? Math.round(value * 10) / 10 : value}
               </div>
-              <div className="text-[10px] font-medium text-muted-foreground">{unit}</div>
+              <div className="text-muted-foreground text-[10px] font-medium">{unit}</div>
             </>
           )}
         </div>
 
-        <div className="flex flex-col space-y-1.5 pt-1 border-t border-border/40">
+        <div className="border-border/40 flex flex-col space-y-1.5 border-t pt-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
                   className={cn(
-                    "flex items-center space-x-1.5 text-[10px] text-muted-foreground",
+                    "text-muted-foreground flex items-center space-x-1.5 text-[10px]",
                     !source ? "invisible" : "",
                   )}
                 >
@@ -150,9 +150,9 @@ function SoilDataCard({
                   ) : source === "other" || !source ? (
                     <User className="h-3 w-3 shrink-0" />
                   ) : (
-                    <Microscope className="h-3 w-3 shrink-0 text-primary/60" />
+                    <Microscope className="text-primary/60 h-3 w-3 shrink-0" />
                   )}
-                  <span className="truncate max-w-full">{sourceLabel}</span>
+                  <span className="max-w-full truncate">{sourceLabel}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom">
@@ -166,7 +166,7 @@ function SoilDataCard({
           </TooltipProvider>
 
           {!(!date || source === "nl-other-nmi") && (
-            <div className="flex items-center space-x-1.5 text-[10px] text-muted-foreground">
+            <div className="text-muted-foreground flex items-center space-x-1.5 text-[10px]">
               <Calendar className="h-3 w-3 shrink-0 opacity-60" />
               <span>{format(date, "P", { locale: nl })}</span>
             </div>
@@ -204,12 +204,12 @@ export function SoilDataCards({
         return (
           <div key={group.title} className="space-y-4">
             <div className="flex items-center gap-4">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.1em] whitespace-nowrap">
+              <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] whitespace-nowrap uppercase">
                 {group.title}
               </h4>
               <Separator className="flex-1 opacity-40" />
             </div>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
               {groupCards.map((card) => {
                 const sourceParam = soilParameterDescription.find((x) => x.parameter === "a_source")
                 const sourceOption = sourceParam?.options?.find((x) => x.value === card.source)

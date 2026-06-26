@@ -1,11 +1,11 @@
+import type React from "react"
+import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import type React from "react"
 import { useEffect, useState } from "react"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -113,14 +113,14 @@ export const PrincipalRow = ({
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-medium leading-none">{displayUserName}</p>
+          <p className="text-sm leading-none font-medium">{displayUserName}</p>
           {isPending ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Uitnodiging
               {expiryLabel ? ` · verloopt ${expiryLabel}` : ""}
             </p>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {type === "user" ? "Gebruiker" : type === "organization" ? "Organisatie" : "Onbekend"}
             </p>
           )}
@@ -181,7 +181,7 @@ export const PrincipalRow = ({
         </fetcher.Form>
       ) : (
         // Display role as Badge if user doesn't have permission to change it
-        <p className="text-sm font-medium leading-none">
+        <p className="text-sm leading-none font-medium">
           <Badge>
             {role === "owner"
               ? "Eigenaar"

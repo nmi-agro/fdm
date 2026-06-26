@@ -1,9 +1,9 @@
 import { and, asc, eq, inArray } from "drizzle-orm"
-import { checkHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
+import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
-import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 
 /** Full tag record as stored in the database. */

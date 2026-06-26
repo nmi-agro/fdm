@@ -82,9 +82,9 @@ export const columns: ColumnDef<FieldExtended>[] = [
       const field = row.original
 
       return (
-        <NavLink to={`./${field.b_id}`} className="group flex items-center hover:underline w-fit">
+        <NavLink to={`./${field.b_id}`} className="group flex w-fit items-center hover:underline">
           {field.b_name}
-          <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 transition-opacity group-hover:opacity-100" />
         </NavLink>
       )
     },
@@ -108,7 +108,7 @@ export const columns: ColumnDef<FieldExtended>[] = [
       )
 
       return (
-        <div className="flex items-start flex-col space-y-2">
+        <div className="flex flex-col items-start space-y-2">
           {cultivationsSorted.map((cultivation, idx) => (
             <Badge
               key={`${cultivation.b_lu_name}-${idx}`}
@@ -141,22 +141,22 @@ export const columns: ColumnDef<FieldExtended>[] = [
       const fertilizers = row.original.fertilizers
 
       return (
-        <div className="flex items-start flex-col space-y-2">
+        <div className="flex flex-col items-start space-y-2">
           {fertilizers.map((fertilizer) => (
             <NavLink
               key={fertilizer.p_id}
               to={`./modify_fertilizer/${fertilizer.p_id}?fieldIds=${row.original.b_id}`}
             >
-              <Badge variant="outline" className="gap-1 text-muted-foreground">
+              <Badge variant="outline" className="text-muted-foreground gap-1">
                 <span>
                   {fertilizer.p_type === "manure" ? (
-                    <Square className="size-3 text-yellow-600 fill-yellow-600" />
+                    <Square className="size-3 fill-yellow-600 text-yellow-600" />
                   ) : fertilizer.p_type === "mineral" ? (
-                    <Circle className="size-3 text-sky-600 fill-sky-600" />
+                    <Circle className="size-3 fill-sky-600 text-sky-600" />
                   ) : fertilizer.p_type === "compost" ? (
-                    <Triangle className="size-3 text-green-600 fill-green-600" />
+                    <Triangle className="size-3 fill-green-600 text-green-600" />
                   ) : (
-                    <Diamond className="size-3 text-gray-600 fill-gray-600" />
+                    <Diamond className="size-3 fill-gray-600 text-gray-600" />
                   )}
                 </span>
                 {fertilizer.p_name_nl}

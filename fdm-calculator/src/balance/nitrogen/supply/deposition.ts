@@ -1,8 +1,8 @@
 import type { Field, Timeframe } from "@nmi-agro/fdm-core"
 import { differenceInCalendarDays } from "date-fns"
 import Decimal from "decimal.js"
-import { getGeoTiffValue } from "../../../shared/geotiff"
 import type { NitrogenSupply } from "../types"
+import { getGeoTiffValue } from "../../../shared/geotiff"
 
 /**
  * Calculates the nitrogen deposition for a batch of fields from a GeoTIFF file.

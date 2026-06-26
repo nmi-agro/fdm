@@ -1,11 +1,12 @@
-import { OpenAPIHono } from "@hono/zod-openapi"
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
+import { OpenAPIHono } from "@hono/zod-openapi"
 import { apiReference } from "@scalar/hono-api-reference"
 import { cors } from "hono/cors"
+import type { FdmApiConfig, FdmApiServices } from "./index"
+import type { ApiEnv } from "./types"
 import { createApiKeyAuth } from "./auth"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { createPathExistenceGuard, requestGuard } from "./guards"
-import type { FdmApiConfig, FdmApiServices } from "./index"
 import { registerCalculationRoutes } from "./routes/calculations"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
@@ -18,7 +19,6 @@ import { registerHarvestRoutes } from "./routes/harvests"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
-import type { ApiEnv } from "./types"
 
 /**
  * Builds the OpenAPI-enabled Hono application that serves the FDM API.

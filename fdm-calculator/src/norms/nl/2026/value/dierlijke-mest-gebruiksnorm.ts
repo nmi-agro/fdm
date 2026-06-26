@@ -1,8 +1,7 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
-import pkg from "../../../../package"
 import type { DierlijkeMestGebruiksnormResult } from "../../types"
-
 import type { NL2026NormsInput } from "./types"
+import pkg from "../../../../package"
 
 /**
  * Determines the 'gebruiksnorm' (usage standard) for nitrogen from animal manure

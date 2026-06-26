@@ -2,12 +2,12 @@ import type {
   FertilizerParameterDescription,
   FertilizerParameterDescriptionItem,
 } from "@nmi-agro/fdm-core"
+import type { z } from "zod"
 import { Copy, InfoIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useLocation, useParams } from "react-router"
 import { RemixFormProvider, type useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
 import type { FormSchema } from "~/components/blocks/fertilizer/formschema"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
@@ -158,14 +158,14 @@ export function FertilizerForm({
     if (!param) return null
 
     return (
-      <div className="mt-6 pt-4 border-t">
+      <div className="mt-6 border-t pt-4">
         <div className="mb-2">
           <FieldLabel className="text-base font-semibold">{param.name}</FieldLabel>
           {param.description && (
             <FieldDescription className="mt-0.5">{param.description}</FieldDescription>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
           {param.options?.map((option) => (
             <Controller
               key={option.value}
@@ -192,7 +192,7 @@ export function FertilizerForm({
                   />
                   <FieldLabel
                     htmlFor={`method-${option.value}`}
-                    className="font-normal cursor-pointer text-sm py-1"
+                    className="cursor-pointer py-1 text-sm font-normal"
                   >
                     {option.label}
                   </FieldLabel>
@@ -257,15 +257,15 @@ export function FertilizerForm({
         id="formFertilizer"
         onSubmit={form.handleSubmit}
         method="post"
-        className="flex flex-col xl:flex-row gap-8 pb-24 xl:pb-10"
+        className="flex flex-col gap-8 pb-24 xl:flex-row xl:pb-10"
       >
         <div className="flex-1 space-y-6">
           {!editable && (
             <Alert className="bg-muted/50 border-primary/20">
-              <InfoIcon className="h-4 w-4 text-primary" />
+              <InfoIcon className="text-primary h-4 w-4" />
               <AlertTitle className="text-foreground font-bold">Standaard uit catalogus</AlertTitle>
-              <AlertDescription className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mt-2">
-                <span className="max-w-2xl leading-relaxed text-muted-foreground">
+              <AlertDescription className="mt-2 flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+                <span className="text-muted-foreground max-w-2xl leading-relaxed">
                   Deze meststof komt uit de standaard catalogus en kan daarom niet direct worden
                   aangepast. Wilt u deze waarden toch wijzigen? Gebruik deze meststof dan als
                   sjabloon om een eigen variant aan te maken.
@@ -302,7 +302,7 @@ export function FertilizerForm({
           })}
         </div>
 
-        <div className="w-full xl:w-80 space-y-6">
+        <div className="w-full space-y-6 xl:w-80">
           <Card className="sticky top-4 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Samenvatting</CardTitle>
@@ -310,7 +310,7 @@ export function FertilizerForm({
             <CardContent className="space-y-6">
               <div className="space-y-1.5">
                 <div
-                  className="text-xl font-bold leading-tight break-words"
+                  className="text-xl leading-tight font-bold break-words"
                   title={formValues.p_name_nl}
                 >
                   {formValues.p_name_nl || "Naamloze meststof"}
@@ -338,13 +338,13 @@ export function FertilizerForm({
                 </div>
               </div>
 
-              <div className="space-y-3 pt-4 border-t">
+              <div className="space-y-3 border-t pt-4">
                 {nutrientStats.map((stat) => (
-                  <div key={stat.label} className="flex items-center justify-between group">
-                    <span className="text-sm text-muted-foreground">{stat.label}</span>
+                  <div key={stat.label} className="group flex items-center justify-between">
+                    <span className="text-muted-foreground text-sm">{stat.label}</span>
                     <div className="flex items-baseline gap-1">
                       <span className="text-sm font-bold">{stat.value ?? "0"}</span>
-                      <span className="text-[10px] font-medium text-muted-foreground">
+                      <span className="text-muted-foreground text-[10px] font-medium">
                         {stat.unit}
                       </span>
                     </div>
@@ -369,11 +369,11 @@ export function FertilizerForm({
 
         {/* Mobile Sticky Footer */}
         {editable && !isSidebarButtonVisible && (
-          <div className="xl:hidden fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t z-50 flex gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="bg-background/80 animate-in fade-in slide-in-from-bottom-4 fixed right-0 bottom-0 left-0 z-50 flex gap-4 border-t p-4 backdrop-blur-md duration-200 xl:hidden">
             <Button
               type="submit"
               form="formFertilizer"
-              className="flex-1 h-12 font-bold shadow-lg"
+              className="h-12 flex-1 font-bold shadow-lg"
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? "Opslaan..." : "Meststof opslaan"}

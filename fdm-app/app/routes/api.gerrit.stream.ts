@@ -1,3 +1,4 @@
+import type { LoaderFunctionArgs } from "react-router"
 import {
   buildFertilizerPlanPrompt,
   createFertilizerPlannerAgent,
@@ -15,14 +16,13 @@ import {
   getFertilizers,
   getFields,
 } from "@nmi-agro/fdm-core"
-import type { LoaderFunctionArgs } from "react-router"
 import type { ParsedPlan } from "~/components/blocks/gerrit/types"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { fdm } from "~/lib/fdm.server"
-import { computePlanMetrics, repairTruncatedJson } from "~/lib/gerrit.server"
 import { countGerritRequestsToday, getGerritDailyLimit } from "~/lib/gerrit-limit.server"
+import { computePlanMetrics, repairTruncatedJson } from "~/lib/gerrit.server"
 import PostHogClient from "~/posthog.server"
 
 export async function loader({ request }: LoaderFunctionArgs) {

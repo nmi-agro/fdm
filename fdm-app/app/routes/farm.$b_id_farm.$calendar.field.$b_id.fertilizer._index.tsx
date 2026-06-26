@@ -1,3 +1,5 @@
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
+import type { ComponentProps } from "react"
 import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
 import {
   addFertilizerApplication,
@@ -11,8 +13,6 @@ import {
   removeFertilizerApplication,
   updateFertilizerApplication,
 } from "@nmi-agro/fdm-core"
-import type { ApplicationMethods } from "@nmi-agro/fdm-data"
-import type { ComponentProps } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -22,13 +22,13 @@ import {
   useNavigation,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { FertilizerApplicationCard } from "~/components/blocks/fertilizer-applications/card"
 import {
   FormSchema,
   FormSchemaModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { FertilizerApplicationMetricsCard } from "~/components/blocks/fertilizer-applications/metrics"
-import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -279,7 +279,7 @@ export default function FarmFieldsOverviewBlock() {
           canModifyFertilizerApplication={loaderData.fertilizerApplicationWritePermissions}
         />
       </div>
-      <div className="2xl:col-span-2 min-w-0">
+      <div className="min-w-0 2xl:col-span-2">
         <FertilizerApplicationMetricsCard
           fertilizerApplicationMetricsData={
             loaderData.fertilizerApplicationMetricsData as ComponentProps<

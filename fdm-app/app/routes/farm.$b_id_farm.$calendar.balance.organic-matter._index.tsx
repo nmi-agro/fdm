@@ -152,7 +152,7 @@ function FarmBalanceOrganicMatterOverview({
                 foutmelding:
               </p>
               <div className="mt-8 w-full max-w-2xl">
-                <pre className="bg-gray-200 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
+                <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                   {JSON.stringify(
                     {
                       message: organicMatterBalanceResult.errorMessage,
@@ -184,31 +184,31 @@ function FarmBalanceOrganicMatterOverview({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Balans (Bedrijf)</CardTitle>
-            <ArrowRightLeft className="text-xs text-muted-foreground" />
+            <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{organicMatterBalanceResult.balance}</div>
-            <p className="text-xs text-muted-foreground">kg OS / ha</p>
+            <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDownToLine className="text-xs text-muted-foreground" />
+            <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{organicMatterBalanceResult.supply}</div>
-            <p className="text-xs text-muted-foreground">kg EOS / ha</p>
+            <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Afbraak</CardTitle>
-            <ArrowUpFromLine className="text-xs text-muted-foreground" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{organicMatterBalanceResult.degradation}</div>
-            <p className="text-xs text-muted-foreground">kg OS / ha</p>
+            <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
       </div>
@@ -245,22 +245,22 @@ function FarmBalanceOrganicMatterOverview({
                   <div className="flex items-center" key={fieldResult.b_id}>
                     {fieldResult.balance ? (
                       fieldResult.balance.balance > 0 ? (
-                        <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full w-6 h-6" />
+                        <CircleCheck className="h-6 w-6 rounded-full bg-green-100 p-0 text-green-500" />
                       ) : (
-                        <CircleX className="text-red-500 bg-red-100 p-0 rounded-full w-6 h-6" />
+                        <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
                       )
                     ) : (
-                      <CircleAlert className="text-orange-500 bg-orange-100 p-0 rounded-full w-6 h-6" />
+                      <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
                     )}
 
                     <div className="ml-4 space-y-1">
                       <div className="flex items-baseline gap-2">
                         <NavLink to={`./${fieldResult.b_id}`}>
-                          <p className="text-sm font-medium leading-none hover:underline">
+                          <p className="text-sm leading-none font-medium hover:underline">
                             {fieldData?.b_name}
                           </p>
                         </NavLink>
-                        <p className="text-xs text-muted-foreground">{fieldData?.b_area} ha</p>
+                        <p className="text-muted-foreground text-xs">{fieldData?.b_area} ha</p>
                       </div>
                       <FieldCultivationsBadge
                         cultivations={cultivationsMap.get(fieldResult.b_id) ?? []}
@@ -274,7 +274,7 @@ function FarmBalanceOrganicMatterOverview({
                         `${fieldResult.balance.balance}`
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}`}>
-                          <p className="text-sm text-end text-orange-500 hover:underline">
+                          <p className="text-end text-sm text-orange-500 hover:underline">
                             {"Bekijk foutmelding"}
                           </p>
                         </NavLink>

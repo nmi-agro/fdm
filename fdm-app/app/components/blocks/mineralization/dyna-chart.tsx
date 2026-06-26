@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Area, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } from "recharts"
+import type { DynaDailyPoint, DynaFertilizerAdvice } from "~/integrations/mineralization.server"
 import {
   type ChartConfig,
   ChartContainer,
@@ -10,7 +11,6 @@ import {
   ChartTooltip,
 } from "~/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
-import type { DynaDailyPoint, DynaFertilizerAdvice } from "~/integrations/mineralization.server"
 
 const MONTH_LABELS_NL = [
   "Jan",
@@ -147,13 +147,13 @@ function DynaTooltipContent({
     : payload.filter((p) => SERIES_TO_SHOW.includes(p.dataKey as (typeof SERIES_TO_SHOW)[number]))
 
   return (
-    <div className="grid min-w-40 items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+    <div className="border-border/50 bg-background grid min-w-40 items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl">
       <div className="font-medium">{formatDateLabel(point.date)}</div>
       <div className="grid gap-1.5">
         {visibleEntries.map((entry) => (
           <div key={entry.dataKey} className="flex items-center gap-1.5">
             <div
-              className="shrink-0 rounded-[2px] h-2.5 w-2.5"
+              className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-muted-foreground">
@@ -168,11 +168,11 @@ function DynaTooltipContent({
         ))}
       </div>
       {point._events && point._events.length > 0 && (
-        <div className="border-t border-border/50 pt-1.5 grid gap-1">
+        <div className="border-border/50 grid gap-1 border-t pt-1.5">
           {point._events.map((ev, i) => (
             <div key={i} className="flex items-center gap-1.5">
               <div
-                className="shrink-0 rounded-full h-2.5 w-2.5"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{
                   backgroundColor: EVENT_COLORS[ev.type],
                 }}

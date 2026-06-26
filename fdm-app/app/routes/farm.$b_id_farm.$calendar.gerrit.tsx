@@ -1,5 +1,6 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { ClarifyingQuestion } from "@nmi-agro/fdm-agents"
+import type { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addFertilizerApplication,
   type Fertilizer,
@@ -28,7 +29,7 @@ import {
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
-import type { z } from "zod"
+import type { FarmTotals, ParsedPlan } from "~/components/blocks/gerrit/types"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { ClarifyLoading } from "~/components/blocks/gerrit/clarify-loading"
 import { GerritLoading } from "~/components/blocks/gerrit/loading"
@@ -40,7 +41,6 @@ import {
 import { GerritFormSchema, STRATEGY_LABELS } from "~/components/blocks/gerrit/schema"
 import { StrategyForm } from "~/components/blocks/gerrit/strategy-form"
 import { SummaryCards } from "~/components/blocks/gerrit/summary-cards"
-import type { FarmTotals, ParsedPlan } from "~/components/blocks/gerrit/types"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import {
@@ -629,10 +629,10 @@ export default function GerritApp() {
           <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
         </Header>
         <FarmContent>
-          <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
-            <div className="bg-primary/10 border border-primary/20 p-8 rounded-xl">
-              <Bot className="w-12 h-12 text-primary mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">
+          <div className="mx-auto mt-20 max-w-2xl space-y-6 text-center">
+            <div className="bg-primary/10 border-primary/20 rounded-xl border p-8">
+              <Bot className="text-primary mx-auto mb-4 h-12 w-12" />
+              <h2 className="text-foreground mb-2 text-2xl font-bold">
                 Gerrit is nog niet beschikbaar voor je.
               </h2>
               <p className="text-muted-foreground mb-6">
@@ -655,13 +655,13 @@ export default function GerritApp() {
             <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
           </Header>
           <FarmContent>
-            <div className="max-w-2xl mx-auto mt-20 text-center space-y-6">
-              <div className="bg-amber-50 border border-amber-200 p-8 rounded-xl">
-                <Bot className="w-12 h-12 text-amber-600 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-amber-900 mb-2">
+            <div className="mx-auto mt-20 max-w-2xl space-y-6 text-center">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-8">
+                <Bot className="mx-auto mb-4 h-12 w-12 text-amber-600" />
+                <h2 className="mb-2 text-2xl font-bold text-amber-900">
                   Gerrit is alleen beschikbaar voor 2025 en 2026
                 </h2>
-                <p className="text-amber-800 mb-6">
+                <p className="mb-6 text-amber-800">
                   Het AI-bemestingsplan van Gerrit kan momenteel alleen worden gegenereerd voor 2025
                   en 2026. Schakel over naar een van deze jaren om aan de slag te gaan.
                 </p>
@@ -689,36 +689,36 @@ export default function GerritApp() {
           <HeaderFarm b_id_farm={farm.b_id_farm} farmOptions={farmOptions} />
         </Header>
         <FarmContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* ── Left column ── */}
-            <div className="lg:col-span-1 flex flex-col gap-6">
+            <div className="flex flex-col gap-6 lg:col-span-1">
               {/* Research preview notice + daily usage counter */}
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-2">
+              <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <FlaskConical className="w-4 h-4 text-amber-600 shrink-0" />
+                    <FlaskConical className="h-4 w-4 shrink-0 text-amber-600" />
                     <p className="text-sm font-semibold text-amber-800">Experimenteel</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowInfoDialog(true)}
-                    className="text-[11px] text-amber-700 hover:underline shrink-0"
+                    className="shrink-0 text-[11px] text-amber-700 hover:underline"
                   >
                     Meer info
                   </button>
                 </div>
-                <p className="text-xs text-amber-700 leading-relaxed">
+                <p className="text-xs leading-relaxed text-amber-700">
                   Gerrit is een vroege onderzoeksversie. De uitkomsten kunnen onjuist zijn —
                   controleer altijd het gegenereerde plan.
                 </p>
                 {gerritUsage.limit !== null && (
-                  <p className="text-xs text-amber-700 font-medium">
+                  <p className="text-xs font-medium text-amber-700">
                     Gebruikt vandaag:{" "}
-                    <span className={isRateLimited ? "text-red-600 font-bold" : ""}>
+                    <span className={isRateLimited ? "font-bold text-red-600" : ""}>
                       {optimisticUsed} / {gerritUsage.limit}
                     </span>
                     {isRateLimited && (
-                      <span className="block mt-1 text-red-600">
+                      <span className="mt-1 block text-red-600">
                         Dagelijks limiet bereikt. Probeer morgen opnieuw.
                       </span>
                     )}
@@ -748,11 +748,11 @@ export default function GerritApp() {
             </div>
 
             {/* ── Right column ── */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6 lg:col-span-2">
               {errorMessage ? (
-                <div className="bg-red-50 border border-red-200 p-8 rounded-xl text-center">
-                  <Bot className="w-12 h-12 text-red-600 mx-auto mb-4" />
-                  <h2 className="text-xl font-bold text-red-900 mb-2">Er is een fout opgetreden</h2>
+                <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
+                  <Bot className="mx-auto mb-4 h-12 w-12 text-red-600" />
+                  <h2 className="mb-2 text-xl font-bold text-red-900">Er is een fout opgetreden</h2>
                   <p className="text-red-800">{errorMessage}</p>
                   <Button onClick={() => setErrorMessage(null)} className="mt-4" variant="outline">
                     Probeer opnieuw
@@ -784,14 +784,14 @@ export default function GerritApp() {
                   toggleRow={toggleRow}
                 />
               ) : (
-                <Card className="h-full min-h-100 flex flex-col items-center justify-center text-center p-12 text-muted-foreground border-dashed">
-                  <div className="bg-primary/10 p-6 rounded-full mb-6">
-                    <Bot className="w-12 h-12 text-primary opacity-80" />
+                <Card className="text-muted-foreground flex h-full min-h-100 flex-col items-center justify-center border-dashed p-12 text-center">
+                  <div className="bg-primary/10 mb-6 rounded-full p-6">
+                    <Bot className="text-primary h-12 w-12 opacity-80" />
                   </div>
-                  <h3 className="font-semibold text-xl text-foreground mb-3">
+                  <h3 className="text-foreground mb-3 text-xl font-semibold">
                     Gerrit staat voor je klaar
                   </h3>
-                  <p className="max-w-lg leading-relaxed text-muted-foreground">
+                  <p className="text-muted-foreground max-w-lg leading-relaxed">
                     Selecteer aan de linkerkant jouw bedrijfsvoorkeuren. Gerrit berekent een
                     integraal bemestingsplan voor het hele bedrijf, rekening houdend met
                     gebruiksnormen, bemestingsadvies en je voorkeuren.
@@ -807,7 +807,7 @@ export default function GerritApp() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Bot className="w-5 h-5 text-primary" />
+              <Bot className="text-primary h-5 w-5" />
               Hoe werkt Gerrit?
             </DialogTitle>
             <DialogDescription>
@@ -816,38 +816,38 @@ export default function GerritApp() {
               is.
             </DialogDescription>
           </DialogHeader>
-          <ol className="space-y-4 mt-2">
+          <ol className="mt-2 space-y-4">
             <li className="flex items-start gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                 1
               </div>
               <div>
-                <p className="font-semibold text-sm">Inventarisatie</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm font-semibold">Inventarisatie</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   Eerst worden alle gegevens verzameld: je percelen, de gewassen, de bodemanalyses
                   en welke meststoffen beschikbaar zijn.
                 </p>
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                 2
               </div>
               <div>
-                <p className="font-semibold text-sm">Verduidelijkende vragen</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm font-semibold">Verduidelijkende vragen</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   Als er onduidelijkheden zijn over je strategie of percelen, stelt Gerrit een paar
                   gerichte vragen. Je kunt deze beantwoorden of overslaan.
                 </p>
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                 3
               </div>
               <div>
-                <p className="font-semibold text-sm">Ontwerpen en controleren</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm font-semibold">Ontwerpen en controleren</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   Gerrit maakt een eerste bemestingsplan en rekent dit direct door. Er wordt
                   getoetst of het plan past binnen de gebruiksruimte en of de gewassen voldoende
                   krijgen.
@@ -855,19 +855,19 @@ export default function GerritApp() {
               </div>
             </li>
             <li className="flex items-start gap-3">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                 4
               </div>
               <div>
-                <p className="font-semibold text-sm">Bijsturen tot het klopt</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm font-semibold">Bijsturen tot het klopt</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">
                   Als het eerste ontwerp niet voldoet, past Gerrit het plan zelfstandig aan. Dit
                   herhaalt zich tot er een agronomisch en wettelijk correct voorstel ligt.
                 </p>
               </div>
             </li>
           </ol>
-          <p className="text-xs italic text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-2 text-xs italic">
             Het uiteindelijke voorstel zie je op je scherm. Pas als je op 'Plan toepassen' klikt,
             worden de bemestingen opgeslagen.
           </p>

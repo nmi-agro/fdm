@@ -150,7 +150,7 @@ export default function FarmFieldsOverviewBlock() {
   if ("warning" in loaderData) {
     return (
       <div className="space-y-6">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {loaderData.warning instanceof Error
             ? loaderData.warning.message
             : String(loaderData.warning)}
@@ -161,7 +161,7 @@ export default function FarmFieldsOverviewBlock() {
 
   return (
     <div className="space-y-6">
-      <div className="grid 2xl:grid-cols-2 gap-4">
+      <div className="grid gap-4 2xl:grid-cols-2">
         <CultivationListCard
           cultivationsCatalogueOptions={loaderData.cultivationsCatalogueOptions}
           cultivations={loaderData.cultivations}

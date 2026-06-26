@@ -1,6 +1,6 @@
+import type postgres from "postgres"
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js"
 import { migrate } from "drizzle-orm/postgres-js/migrator"
-import type postgres from "postgres"
 
 /**
  * Creates the fdm-helpdesk schema if it is missing, then migrates it

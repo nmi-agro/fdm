@@ -1,6 +1,6 @@
+import type { CatalogueCultivation, CatalogueCultivationName } from "./d"
 /* eslint-disable typescript/restrict-template-expressions -- Crop names and catalogue IDs are mapped and stringified safely in the domain lists. */
 import { getCatalogueBrp } from "./catalogues/brp"
-import type { CatalogueCultivation, CatalogueCultivationName } from "./d"
 
 /**
  * Retrieves a cultivation catalogue based on the specified name.

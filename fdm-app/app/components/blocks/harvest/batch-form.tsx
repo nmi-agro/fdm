@@ -1,5 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { HarvestParameters } from "@nmi-agro/fdm-core"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus, Trash2 } from "lucide-react"
@@ -32,11 +32,11 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
+import type { HarvestableType } from "./types"
 import { HarvestFormExplainer } from "./form"
 import { HarvestModeSwitchAlert } from "./mode-switch"
 import { getHarvestParameterLabel } from "./parameters"
 import { BatchFormSchema } from "./schema"
-import type { HarvestableType } from "./types"
 import { getHarvestDateTerm, getHarvestTerm } from "./utils"
 
 type TableColumnName = HarvestParameters[number] | "b_lu_harvest_date" | "cutting" | "delete"
@@ -343,7 +343,7 @@ function BatchHarvestFormRow({
                 type="button"
                 variant="ghost"
                 onClick={onDelete}
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive h-8 w-8"
                 title="Verwijderen"
                 aria-label="Verwijderen"
                 data-delete
@@ -401,7 +401,7 @@ function BatchHarvestFormItemCard({
   croprotation?: string | null
 }) {
   return (
-    <Card className="p-2 space-y-2">
+    <Card className="space-y-2 p-2">
       <CardHeader className="flex flex-row items-center p-0">
         <CardTitle className="grow">
           {index + 1}e {getHarvestTerm(croprotation)}
@@ -411,13 +411,13 @@ function BatchHarvestFormItemCard({
           variant="ghost"
           title="Verwijderen"
           aria-label="Verwijderen"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          className="text-muted-foreground hover:text-destructive h-8 w-8"
           onClick={onDelete}
         >
           <Trash2 />
         </Button>
       </CardHeader>
-      <CardContent className="grid gap-2 p-0 grid-cols-1 sm:grid-cols-2">
+      <CardContent className="grid grid-cols-1 gap-2 p-0 sm:grid-cols-2">
         {columnNames.map((columnName) => (
           <BatchHarvestDataCell
             key={columnName}
@@ -549,7 +549,7 @@ function BatchHarvestFormFields({
           type="button"
           variant="secondary"
           onClick={addRow}
-          className="w-full flex mt-2 items-center"
+          className="mt-2 flex w-full items-center"
         >
           <Plus />
           Nieuwe {getHarvestTerm(b_lu_croprotation)} toevoegen
@@ -625,7 +625,7 @@ export function BatchHarvestFormDialog(props: BatchHarvestFormProps) {
 
   return (
     <Dialog open={true} onOpenChange={() => navigate("..")}>
-      <DialogContent className="flex flex-col max-w-2xl max-h-svh">
+      <DialogContent className="flex max-h-svh max-w-2xl flex-col">
         <DialogHeader>
           <DialogTitle>
             Meerdere {getHarvestTerm(props.b_lu_croprotation, true)} toevoegen
@@ -709,7 +709,7 @@ export function BatchHarvestForm(props: BatchHarvestFormProps) {
             <div className="flex justify-end gap-4">
               <Button
                 type="submit"
-                className="flex ml-auto"
+                className="ml-auto flex"
                 disabled={
                   form.formState.isSubmitting || fetcher.state !== "idle" || harvests.length === 0
                 }

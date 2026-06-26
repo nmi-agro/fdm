@@ -97,24 +97,24 @@ const DiffCell = ({
 }) => {
   // If MATCH, just show one value
   if (status === "MATCH") {
-    return <span className="text-sm text-muted-foreground">{formatter(local)}</span>
+    return <span className="text-muted-foreground text-sm">{formatter(local)}</span>
   }
 
   // NEW REMOTE -> Show remote without badge
   if (status === "NEW_REMOTE") {
-    return <span className="text-sm font-medium text-muted-foreground">{formatter(remote)}</span>
+    return <span className="text-muted-foreground text-sm font-medium">{formatter(remote)}</span>
   }
 
   // NEW LOCAL -> Show local without badge
   if (status === "NEW_LOCAL" || status === "EXPIRED_LOCAL") {
-    return <span className="text-sm font-medium text-muted-foreground">{formatter(local)}</span>
+    return <span className="text-muted-foreground text-sm font-medium">{formatter(local)}</span>
   }
 
   // CONFLICT
   if (status === "CONFLICT") {
     // If values are effectively equal (deep check), show one
     if (JSON.stringify(local) === JSON.stringify(remote)) {
-      return <span className="text-sm text-foreground">{formatter(local)}</span>
+      return <span className="text-foreground text-sm">{formatter(local)}</span>
     }
 
     const useRemote = action === "UPDATE_FROM_REMOTE" || action === "ADD_REMOTE"
@@ -132,7 +132,7 @@ const DiffCell = ({
           >
             <Badge
               variant="outline"
-              className="h-5 px-1 text-[10px] text-muted-foreground border-border min-w-[45px] justify-center"
+              className="text-muted-foreground border-border h-5 min-w-[45px] justify-center px-1 text-[10px]"
             >
               {clientConfig.name}
             </Badge>
@@ -141,7 +141,7 @@ const DiffCell = ({
               className={cn(
                 "text-sm",
 
-                useRemote && "line-through decoration-muted-foreground/50 text-muted-foreground",
+                useRemote && "decoration-muted-foreground/50 text-muted-foreground line-through",
 
                 useLocal && "font-bold",
               )}
@@ -161,7 +161,7 @@ const DiffCell = ({
           >
             <Badge
               variant="outline"
-              className="h-5 px-1 text-[10px] text-blue-700 bg-blue-50 border-blue-200 min-w-[45px] justify-center"
+              className="h-5 min-w-[45px] justify-center border-blue-200 bg-blue-50 px-1 text-[10px] text-blue-700"
             >
               RVO
             </Badge>
@@ -170,7 +170,7 @@ const DiffCell = ({
               className={cn(
                 "text-sm",
 
-                useLocal && "line-through decoration-muted-foreground/50 text-muted-foreground",
+                useLocal && "decoration-muted-foreground/50 text-muted-foreground line-through",
 
                 useRemote && "font-bold",
               )}
@@ -202,7 +202,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
       switch (status) {
         case "MATCH":
           return (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+            <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
               <Tooltip>
                 <TooltipTrigger>Gelijk</TooltipTrigger>
                 <TooltipContent>
@@ -213,7 +213,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
           )
         case "NEW_REMOTE":
           return (
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
               <Tooltip>
                 <TooltipTrigger>Nieuw (RVO)</TooltipTrigger>
                 <TooltipContent>
@@ -224,7 +224,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
           )
         case "NEW_LOCAL":
           return (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+            <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-yellow-700">
               <Tooltip>
                 <TooltipTrigger>Nieuw ( {clientConfig.name})</TooltipTrigger>
                 <TooltipContent>
@@ -235,7 +235,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
           )
         case "EXPIRED_LOCAL":
           return (
-            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+            <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700">
               <Tooltip>
                 <TooltipTrigger>Niet meer actief</TooltipTrigger>
                 <TooltipContent>
@@ -246,7 +246,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
           )
         case "CONFLICT":
           return (
-            <Badge variant="destructive" className="bg-red-50 text-red-700 border-red-200">
+            <Badge variant="destructive" className="border-red-200 bg-red-50 text-red-700">
               <Tooltip>
                 <TooltipTrigger>Verschil</TooltipTrigger>
                 <TooltipContent>
@@ -281,7 +281,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
           status={item.status}
           action={action}
           formatter={(val) => (
-            <span className="font-medium text-foreground">{val || "Naamloos"}</span>
+            <span className="text-foreground font-medium">{val || "Naamloos"}</span>
           )}
         />
       )
@@ -482,7 +482,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
       <Tooltip>
         <TooltipTrigger className="flex flex-row items-center gap-1">
           Bufferstrook
-          <Info className="w-4 h-4" />
+          <Info className="h-4 w-4" />
         </TooltipTrigger>
         <TooltipContent>
           <div className="max-w-75 text-center">
@@ -496,7 +496,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
       if (!row.original.rvoField) {
         // Bufferstrip status shouldn't be editable for local fields
         return (
-          <div className="ps-5 text-muted-foreground">
+          <div className="text-muted-foreground ps-5">
             {row.original.localField?.b_bufferstrip ? "Ja" : "Nee"}
           </div>
         )
@@ -521,7 +521,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
       }
 
       return (
-        <label className="flex flex-row items-center gap-1 text-muted-foreground">
+        <label className="text-muted-foreground flex flex-row items-center gap-1">
           <Checkbox checked={value} onCheckedChange={handleUpdateValue} />
           <span className="align-top">{value ? "Ja" : "Nee"}</span>
         </label>
@@ -544,7 +544,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
 
       if (item.status === "MATCH") {
         return (
-          <div className="flex items-center gap-2 text-green-600 text-sm">
+          <div className="flex items-center gap-2 text-sm text-green-600">
             <Check className="h-4 w-4" />
             <span>Aanwezig</span>
           </div>
@@ -556,7 +556,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
           value={currentChoice}
           onValueChange={(val) => onChoiceChange(id, val as ImportReviewAction)}
         >
-          <SelectTrigger className="w-[180px] h-8 text-xs z-10">
+          <SelectTrigger className="z-10 h-8 w-[180px] text-xs">
             <SelectValue placeholder="Kies actie" />
           </SelectTrigger>
           <SelectContent>
@@ -568,7 +568,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
                   </div>
                 </SelectItem>
                 <SelectItem value="IGNORE">
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="text-muted-foreground flex items-center gap-2">
                     <X className="h-3 w-3" /> Negeren
                   </div>
                 </SelectItem>
@@ -577,7 +577,7 @@ export const columns: ColumnDef<ReviewItem>[] = [
             {item.status === "NEW_LOCAL" && (
               <>
                 <SelectItem value="REMOVE_LOCAL">
-                  <div className="flex items-center gap-2 text-destructive">
+                  <div className="text-destructive flex items-center gap-2">
                     <Trash2 className="h-3 w-3" /> Verwijderen
                   </div>
                 </SelectItem>

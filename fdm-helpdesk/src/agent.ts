@@ -1,11 +1,11 @@
 import { and, count, desc, eq, sql } from "drizzle-orm"
-import { checkHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
+import type { ActivityFilter, AgentFilters, PaginationFilter } from "./filter.types"
+import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
-import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getAgentWhereClause } from "./filter"
-import type { ActivityFilter, AgentFilters, PaginationFilter } from "./filter.types"
 import { getPageOffsetAndLimit } from "./pagination"
 
 /**

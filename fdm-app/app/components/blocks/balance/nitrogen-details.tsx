@@ -10,9 +10,9 @@ import type {
   NitrogenSupplyMineralizationNumeric,
   NitrogenSupplyNumeric,
 } from "@nmi-agro/fdm-calculator"
+import type React from "react"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
-import type React from "react"
 import { NavLink } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import {
@@ -120,7 +120,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
           {title} (Totaal): {applications.total} kg N / ha
         </AccordionTrigger>
         <AccordionContent>
-          <ul className="ml-6 list-disc list-outside space-y-1">
+          <ul className="ml-6 list-outside list-disc space-y-1">
             {applications.applications.map((app: { id: string; value: number }) => {
               if (app.value === 0) {
                 return null
@@ -137,7 +137,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   to={`../../${calendar}/field/${fieldInput.field.b_id}/fertilizer`}
                   key={app.id}
                 >
-                  <li className="text-sm text-muted-foreground hover:underline">
+                  <li className="text-muted-foreground text-sm hover:underline">
                     {application.p_name_nl} op{" "}
                     {format(application.p_app_date, "PP", { locale: nl })}: {app.value} kg N / ha
                   </li>
@@ -160,7 +160,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Fixatie (Totaal): {fixation.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <ul className="ml-6 list-disc list-outside space-y-1">
+          <ul className="ml-6 list-outside list-disc space-y-1">
             {fixation.cultivations.map((cult: { id: string; value: number }) => {
               if (cult.value === 0) {
                 return null
@@ -174,7 +174,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
                   key={cult.id}
                 >
-                  <li className="text-sm text-muted-foreground hover:underline">
+                  <li className="text-muted-foreground text-sm hover:underline">
                     {cultivation.b_lu_name}: {cult.value} kg N / ha
                   </li>
                 </NavLink>
@@ -190,7 +190,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <p className="flex flex-1 items-center justify-between py-4 text-sm font-medium transition-all text-left">
+        <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
           Depositie: {deposition.total} kg N / ha
         </p>
         <AccordionContent />
@@ -203,7 +203,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <p className="flex flex-1 items-center justify-between py-4 text-sm font-medium transition-all text-left">
+        <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
           Mineralisatie: {mineralization.total} kg N / ha
         </p>
       </AccordionItem>
@@ -239,7 +239,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Oogsten (Totaal): {harvests.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <ul className="ml-6 list-disc list-outside space-y-1">
+          <ul className="ml-6 list-outside list-disc space-y-1">
             {harvests.harvests.map((harvest: { id: string; value: number }) => {
               const harvestDetails = fieldInput.harvests.find(
                 (item: { b_id_harvesting: string }) => item.b_id_harvesting === harvest.id,
@@ -264,7 +264,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivationDetails.b_lu}/harvest/${harvest.id}`}
                   key={harvest.id}
                 >
-                  <li className="text-sm text-muted-foreground hover:underline">
+                  <li className="text-muted-foreground text-sm hover:underline">
                     Oogst op{" "}
                     {harvestDate
                       ? format(harvestDate, "PP", {
@@ -292,7 +292,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Gewasresten (Totaal): {residues.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <ul className="ml-6 list-disc list-outside space-y-1">
+          <ul className="ml-6 list-outside list-disc space-y-1">
             {residues.cultivations.map((cult: { id: string; value: number }) => {
               if (cult.value === 0) {
                 return null
@@ -306,7 +306,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
                   key={cult.id}
                 >
-                  <li className="text-sm text-muted-foreground hover:underline">
+                  <li className="text-muted-foreground text-sm hover:underline">
                     {cultivation.b_lu_name}: {cult.value} kg N / ha
                   </li>
                 </NavLink>
@@ -345,7 +345,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
 
     return (
       <AccordionItem value={sectionKey}>
-        <p className="flex flex-1 items-center justify-between py-4 text-sm font-medium transition-all text-left">
+        <p className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium transition-all">
           Nitraat: {nitrate.total} kg N / ha
         </p>
         <AccordionContent />
@@ -411,7 +411,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
       <AccordionItem value={sectionKey}>
         <AccordionTrigger>Gewasresten (Totaal): {residues.total} kg N / ha</AccordionTrigger>
         <AccordionContent>
-          <ul className="ml-6 list-disc list-outside space-y-1">
+          <ul className="ml-6 list-outside list-disc space-y-1">
             {residues.cultivations.map((cult: { id: string; value: number }) => {
               if (cult.value === 0) {
                 return null
@@ -425,7 +425,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   to={`../../${calendar}/field/${fieldInput.field.b_id}/cultivation/${cultivation.b_lu}`}
                   key={cult.id}
                 >
-                  <li className="text-sm text-muted-foreground hover:underline">
+                  <li className="text-muted-foreground text-sm hover:underline">
                     {cultivation.b_lu_name}: {cult.value} kg N / ha
                   </li>
                 </NavLink>
@@ -452,7 +452,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
           {title} (Totaal): {applications.total} kg N / ha
         </AccordionTrigger>
         <AccordionContent>
-          <ul className="ml-6 list-disc list-outside space-y-1">
+          <ul className="ml-6 list-outside list-disc space-y-1">
             {applications.applications.map((app: { id: string; value: number }) => {
               if (app.value === 0) {
                 return null
@@ -469,7 +469,7 @@ const NitrogenBalanceDetails: React.FC<NitrogenBalanceDetailsProps> = ({
                   to={`../../${calendar}/field/${fieldInput.field.b_id}/fertilizer`}
                   key={app.id}
                 >
-                  <li className="text-sm text-muted-foreground hover:underline">
+                  <li className="text-muted-foreground text-sm hover:underline">
                     {application.p_name_nl} op{" "}
                     {format(application.p_app_date, "PP", { locale: nl })}: {app.value} kg N / ha
                   </li>

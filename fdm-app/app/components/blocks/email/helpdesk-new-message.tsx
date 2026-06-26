@@ -65,24 +65,24 @@ export function HelpdeskNewMessageEmail({
       reasonText={`Je ontvangt deze e-mail omdat er een nieuw bericht is geplaatst op ticket ${ticketRef} in ${appName}.`}
       preview={previewText}
     >
-      <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
+      <Heading className="mx-0 my-7.5 p-0 text-center text-[24px] font-normal text-black">
         Nieuw bericht op je ticket
       </Heading>
-      <Text className="text-black text-[14px] leading-6">Hallo {recipientName},</Text>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">Hallo {recipientName},</Text>
+      <Text className="text-[14px] leading-6 text-black">
         <b>{senderName}</b> heeft gereageerd op je ticket. Hieronder lees je het bericht.
       </Text>
 
-      <Section className="bg-gray-100 rounded p-4 my-6 border border-gray-200">
+      <Section className="my-6 rounded border border-gray-200 bg-gray-100 p-4">
         <table border={0} cellPadding="0" cellSpacing="0" role="presentation" className="w-full">
           <tr>
-            <td className="text-gray-500 text-[12px] leading-6 align-top pr-3 w-20">Ticket</td>
-            <td className="text-black text-[12px] leading-6 align-top font-mono">{ticketRef}</td>
+            <td className="w-20 pr-3 align-top text-[12px] leading-6 text-gray-500">Ticket</td>
+            <td className="align-top font-mono text-[12px] leading-6 text-black">{ticketRef}</td>
           </tr>
           {ticketSubject && (
             <tr>
-              <td className="text-gray-500 text-[12px] leading-6 align-top pr-3 w-20">Onderwerp</td>
-              <td className="text-black text-[12px] leading-6 align-top font-semibold">
+              <td className="w-20 pr-3 align-top text-[12px] leading-6 text-gray-500">Onderwerp</td>
+              <td className="align-top text-[12px] leading-6 font-semibold text-black">
                 {ticketSubject}
               </td>
             </tr>
@@ -90,13 +90,13 @@ export function HelpdeskNewMessageEmail({
         </table>
       </Section>
 
-      <Section className="bg-white rounded p-4 my-6 border border-gray-200">
-        <Text className="m-0 text-gray-500 text-xs uppercase tracking-wider font-semibold mb-2">
+      <Section className="my-6 rounded border border-gray-200 bg-white p-4">
+        <Text className="m-0 mb-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">
           Bericht van {senderName}
         </Text>
-        <Text className="m-0 text-black text-[14px] leading-6">{renderLines(shownMessage)}</Text>
+        <Text className="m-0 text-[14px] leading-6 text-black">{renderLines(shownMessage)}</Text>
         {truncated && (
-          <Text className="m-0 mt-3 text-gray-500 text-[12px] leading-5">
+          <Text className="m-0 mt-3 text-[12px] leading-5 text-gray-500">
             Dit bericht is ingekort.{" "}
             <Link href={ticketUrl} className="text-primary underline">
               Open het ticket
@@ -109,7 +109,7 @@ export function HelpdeskNewMessageEmail({
       <Section className="mt-8 mb-2 text-center">
         <Button
           href={ticketUrl}
-          className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
+          className="bg-primary border-primary mx-6 min-w-37.5 rounded border-2 border-solid px-5 py-3 text-[14px] font-semibold text-white no-underline"
         >
           Bekijk en reageer op ticket
         </Button>

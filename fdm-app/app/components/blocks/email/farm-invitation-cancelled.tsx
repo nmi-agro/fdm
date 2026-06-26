@@ -31,15 +31,15 @@ export const FarmInvitationCancelledEmail = ({
       reasonText={`Je ontvangt deze e-mail omdat ${inviterName} je uitnodiging voor bedrijf ${farmName} heeft ingetrokken.`}
       preview={previewText}
     >
-      <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
+      <Heading className="mx-0 my-7.5 p-0 text-center text-[24px] font-normal text-black">
         Uitnodiging voor <b>{farmName}</b> ingetrokken
       </Heading>
-      <Text className="text-black text-[14px] leading-6">Hallo {targetEmail},</Text>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">Hallo {targetEmail},</Text>
+      <Text className="text-[14px] leading-6 text-black">
         {inviterName} heeft je uitnodiging voor toegang tot het bedrijf <b>{farmName}</b> in{" "}
         {appName} ingetrokken.
       </Text>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">
         Als je denkt dat dit een vergissing is, neem dan contact op met {inviterName}.
       </Text>
     </BaseEmailLayout>

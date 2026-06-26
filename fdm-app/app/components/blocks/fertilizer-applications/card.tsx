@@ -1,9 +1,9 @@
 import type { Dose } from "@nmi-agro/fdm-calculator"
 import type { Fertilizer } from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
+import type { Navigation } from "react-router"
 import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import type { Navigation } from "react-router"
 import { useFetcher, useLocation, useNavigation, useParams } from "react-router"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { Button } from "~/components/ui/button"
@@ -18,10 +18,10 @@ import {
 } from "~/components/ui/dialog"
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
-import { FertilizerApplicationForm } from "./form"
 import type { FieldFertilizerFormValues } from "./formschema"
-import { FertilizerApplicationsList } from "./list"
 import type { FertilizerApplication, FertilizerOption } from "./types.d"
+import { FertilizerApplicationForm } from "./form"
+import { FertilizerApplicationsList } from "./list"
 
 export function FertilizerApplicationCard({
   fertilizerApplications,
@@ -171,7 +171,7 @@ export function FertilizerApplicationCard({
           </DialogTrigger>
           <DialogContent className="sm:max-w-200">
             <DialogHeader>
-              <DialogTitle className="flex flex-row items-center justify-between mr-4">
+              <DialogTitle className="mr-4 flex flex-row items-center justify-between">
                 {editedFertilizerApplication ? "Bemesting wijzigen" : "Bemesting toevoegen"}
               </DialogTitle>
               <DialogDescription>

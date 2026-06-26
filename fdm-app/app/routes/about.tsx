@@ -1,6 +1,6 @@
+import type { LoaderFunctionArgs } from "react-router"
 import posthog from "posthog-js"
 import { useEffect } from "react"
-import type { LoaderFunctionArgs } from "react-router"
 import { Outlet, redirect, useLoaderData } from "react-router"
 import { SidebarPlatform } from "~/components/blocks/sidebar/platform"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"

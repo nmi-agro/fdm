@@ -202,7 +202,7 @@ export default function MineralizationFieldDetail() {
           asChild
           variant="secondary"
           size="sm"
-          className="rounded-full px-4 h-8 bg-amber-100 text-amber-900 hover:bg-amber-200 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900"
+          className="h-8 rounded-full border-amber-200 bg-amber-100 px-4 text-amber-900 hover:bg-amber-200 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-400"
         >
           <NavLink to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}`} end>
             <Zap className="mr-1.5 h-3.5 w-3.5" />
@@ -213,7 +213,7 @@ export default function MineralizationFieldDetail() {
           asChild
           variant="ghost"
           size="sm"
-          className="rounded-full px-4 h-8 text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground h-8 rounded-full px-4"
         >
           <NavLink to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}>
             <Component className="mr-1.5 h-3.5 w-3.5" />
@@ -262,17 +262,14 @@ function MineralizationFieldContent({
       {insights.length > 0 && (
         <Card className="border-l-4 border-l-green-500 bg-green-50/50 dark:bg-green-950/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <Lightbulb className="h-4 w-4 text-yellow-500" />
               Inzichten
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-1.5">
             {insights.map((insight, i) => (
-              <p
-                key={i}
-                className="text-sm"
-              >
+              <p key={i} className="text-sm">
                 {insight}
               </p>
             ))}

@@ -1,3 +1,4 @@
+import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addOrganicCertification,
@@ -19,7 +20,6 @@ import {
 } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithSuccess } from "remix-toast"
-import type { z } from "zod"
 import { formSchema } from "~/components/blocks/organic-certification/schema"
 import { DatePicker } from "~/components/custom/date-picker"
 import { Button } from "~/components/ui/button"
@@ -179,17 +179,17 @@ export default function OrganicCertificationSettings() {
   const formId = useId()
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto max-w-2xl">
       {organicCertification ? (
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-2">
-              <ScrollText className="h-6 w-6 text-muted-foreground" />
+              <ScrollText className="text-muted-foreground h-6 w-6" />
               <CardTitle>Bio-certificaat</CardTitle>
             </div>
             <CardDescription>Details van het bio-certificaat voor dit bedrijf.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+          <CardContent className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
             <div className="flex flex-col">
               <span className="text-muted-foreground text-sm">TRACES-nummer</span>
               <span className="font-medium">

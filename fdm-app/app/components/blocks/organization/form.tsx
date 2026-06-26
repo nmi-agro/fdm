@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import { Controller } from "react-hook-form"
 import { Form, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import type { ParsedOrganization } from "~/lib/organization-helpers"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -16,7 +17,6 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
-import type { ParsedOrganization } from "~/lib/organization-helpers"
 import { FormSchema } from "./schema"
 
 export function OrganizationSettingsForm({
@@ -71,7 +71,7 @@ export function OrganizationSettingsForm({
 
   const disabled = !canModify || form.formState.isSubmitting
   return (
-    <Card className="max-w-3xl mx-auto">
+    <Card className="mx-auto max-w-3xl">
       <RemixFormProvider {...form}>
         <Form action={action} method={method} onSubmit={form.handleSubmit}>
           <CardHeader>

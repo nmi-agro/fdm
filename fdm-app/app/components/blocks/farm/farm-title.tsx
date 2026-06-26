@@ -25,11 +25,11 @@ export function FarmTitle({
   action,
 }: FarmTitleProps) {
   return (
-    <div className="space-y-6 p-4 md:px-8 md:py-8 pb-0">
-      <div className="flex flex-col xl:flex-row xl:items-start gap-4">
-        <div className="space-y-0.5 min-w-0 flex-1">
+    <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-2xl font-bold tracking-tight truncate xl:whitespace-normal">
+            <h2 className="truncate text-2xl font-bold tracking-tight xl:whitespace-normal">
               {title}
             </h2>
           </div>
@@ -37,7 +37,7 @@ export function FarmTitle({
             <p className="text-muted-foreground wrap-break-word">{description}</p>
           )}
         </div>
-        <div className="flex items-center gap-3 ml-auto shrink-0 mt-4 xl:mt-0">
+        <div className="mt-4 ml-auto flex shrink-0 items-center gap-3 xl:mt-0">
           {rightNode && <div className="flex-shrink-0">{rightNode}</div>}
           {action && (
             <Button asChild>
@@ -53,9 +53,9 @@ export function FarmTitle({
 
 export function FarmTitleSkeleton() {
   return (
-    <div className="space-y-6 p-4 md:px-8 md:py-8 pb-0">
-      <div className="flex flex-col xl:flex-row xl:items-center gap-4">
-        <div className="space-y-0.5 min-w-0 flex-1">
+    <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <Skeleton className="h-8 w-50 md:w-64" />
           <Skeleton className="h-5 w-62.5 md:w-96" />
         </div>

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
+import type { FdmServerType } from "./fdm-server.types"
 import { grantRole } from "./authorization"
 import {
   disableFertilizerCatalogue,
@@ -10,7 +11,6 @@ import { applicationMethodOptions, fertilizersCatalogue } from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.types"
 import {
   addFertilizer,
   addFertilizerApplication,

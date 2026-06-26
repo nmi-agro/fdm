@@ -5,9 +5,9 @@ import type {
   HelpdeskPrincipalId,
   HelpdeskResource,
 } from "./authorization.types"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
-import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 
 export const helpdeskRoles: ApplicationRole[] = ["agent", "admin"]
 export const helpdeskActions = ["read", "write", "share"] as const

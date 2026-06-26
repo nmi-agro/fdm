@@ -1,3 +1,4 @@
+import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useRef } from "react"
 import {
@@ -11,7 +12,6 @@ import {
   useNavigation,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"

@@ -20,7 +20,7 @@ export function NewFieldsBlock({
 }: NewFieldsBlockProps) {
   return (
     <div className="space-y-6">
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid gap-6 lg:grid-cols-4">
         <div className="col-span-2">
           <NewFieldsForm
             b_id={b_id}

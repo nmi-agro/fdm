@@ -1,4 +1,5 @@
-import fs from "node:fs/promises"
+import type { RvoImportReviewItem, UserChoiceMap } from "@nmi-agro/fdm-rvo/types"
+import type { MetaFunction } from "react-router"
 import {
   addSoilAnalysis,
   determineIfFieldIsBuffer,
@@ -10,13 +11,12 @@ import {
   getFields,
   updateField,
 } from "@nmi-agro/fdm-core"
-import type { RvoImportReviewItem, UserChoiceMap } from "@nmi-agro/fdm-rvo/types"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import area from "@turf/area"
 import { lineString } from "@turf/helpers"
 import { length } from "@turf/length"
-import type { MetaFunction } from "react-router"
+import fs from "node:fs/promises"
 import { data } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"

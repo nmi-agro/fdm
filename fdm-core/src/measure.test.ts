@@ -1,11 +1,11 @@
 import { eq, inArray } from "drizzle-orm"
 import { afterAll, beforeEach, describe, expect, inject, it } from "vitest"
+import type { FdmServerType } from "./fdm-server.types"
+import type { FdmType } from "./fdm.types"
 import { enableMeasureCatalogue, syncMeasuresCatalogueArray } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm, removeFarm } from "./farm"
-import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.types"
 import { addField, removeField } from "./field"
 import { createId } from "./id"
 import {

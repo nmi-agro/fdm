@@ -167,7 +167,7 @@ function OrganicMatterBalance({
               <div className="text-muted-foreground">
                 <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
                 <br />
-                <ul className="list-disc list-inside">
+                <ul className="list-inside list-disc">
                   {fieldResult.errorMessage.match(/a_som_loi|a_density_sa/) ? (
                     <li>Organische stofgehalte of bulkdichtheid</li>
                   ) : null}
@@ -180,7 +180,7 @@ function OrganicMatterBalance({
                   en deel de volgende foutmelding:
                 </p>
                 <div className="mt-8 w-full max-w-2xl">
-                  <pre className="bg-gray-200 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
+                  <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                     {JSON.stringify(
                       {
                         errorId: fieldResult.errorId,
@@ -233,40 +233,40 @@ function OrganicMatterBalance({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Balans (Perceel)</CardTitle>
-            <ArrowRightLeft className="text-xs text-muted-foreground" />
+            <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
                 <p>{result.balance}</p>
                 {result.balance > 0 ? (
-                  <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full " />
+                  <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
-                  <CircleAlert className="text-red-500 bg-red-100 rounded-full " />
+                  <CircleAlert className="rounded-full bg-red-100 text-red-500 " />
                 )}
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">kg OS / ha</p>
+            <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDownToLine className="text-xs text-muted-foreground" />
+            <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{result.supply.total}</div>
-            <p className="text-xs text-muted-foreground">kg EOS / ha</p>
+            <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Afbraak</CardTitle>
-            <ArrowUpFromLine className="text-xs text-muted-foreground" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{result.degradation.total}</div>
-            <p className="text-xs text-muted-foreground">kg OS / ha</p>
+            <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
       </div>

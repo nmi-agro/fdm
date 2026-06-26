@@ -48,7 +48,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
         >
           <ChevronRight
             className={cn(
-              "transition-transform duration-300 text-muted-foreground",
+              "text-muted-foreground transition-transform duration-300",
               row.getIsExpanded() ? "rotate-90" : "transform-none",
             )}
           />
@@ -77,7 +77,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
           users={row.original.owners}
           fallback={
             <>
-              <div className="h-6 w-6 invisible" />
+              <div className="invisible h-6 w-6" />
               Onbekend
             </>
           }
@@ -103,7 +103,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
       )
 
       return (
-        <div className="flex items-start flex-col space-y-2">
+        <div className="flex flex-col items-start space-y-2">
           {cultivationsSorted.map((cultivation, idx) => (
             <Badge
               key={`${cultivation.b_lu_name}-${idx}`}
@@ -136,18 +136,18 @@ export const columns: ColumnDef<FarmExtended>[] = [
       const fertilizers = row.original.fertilizers
 
       return (
-        <div className="flex items-start flex-col space-y-2">
+        <div className="flex flex-col items-start space-y-2">
           {fertilizers.map((fertilizer) => (
             <Badge key={fertilizer.p_id} variant="outline" className="text-muted-foreground gap-1">
               <span>
                 {fertilizer.p_type === "manure" ? (
-                  <Square className="size-3 text-yellow-600 fill-yellow-600" />
+                  <Square className="size-3 fill-yellow-600 text-yellow-600" />
                 ) : fertilizer.p_type === "mineral" ? (
-                  <Circle className="size-3 text-sky-600 fill-sky-600" />
+                  <Circle className="size-3 fill-sky-600 text-sky-600" />
                 ) : fertilizer.p_type === "compost" ? (
-                  <Triangle className="size-3 text-green-600 fill-green-600" />
+                  <Triangle className="size-3 fill-green-600 text-green-600" />
                 ) : (
-                  <Diamond className="size-3 text-gray-600 fill-gray-600" />
+                  <Diamond className="size-3 fill-gray-600 text-gray-600" />
                 )}
               </span>
               {fertilizer.p_name_nl}
@@ -183,10 +183,10 @@ function FarmNameCell({ row }: CellContext<FarmExtended, unknown>) {
           ? `/farm/${row.getParentRow()?.original.b_id_farm}/${params.calendar}/field/${row.original.b_id_farm}`
           : `/farm/${farm.b_id_farm}`
       }
-      className="group flex items-center hover:underline w-fit"
+      className="group flex w-fit items-center hover:underline"
     >
       {farm.b_name_farm ?? "Onbekend"}
-      <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 transition-opacity group-hover:opacity-100" />
     </NavLink>
   )
 }

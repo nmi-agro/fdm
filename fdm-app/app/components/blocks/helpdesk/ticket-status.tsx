@@ -142,7 +142,7 @@ export function TicketStatusSelector({
             <StatusIcon className="size-4 shrink-0" style={{ color: statusColor }} />
             {statusLabel}
             {allowedStatusTransitions.length > 0 && (
-              <ChevronDown className="size-3 opacity-50 ms-1" />
+              <ChevronDown className="ms-1 size-3 opacity-50" />
             )}
           </Button>
         </DropdownMenuTrigger>

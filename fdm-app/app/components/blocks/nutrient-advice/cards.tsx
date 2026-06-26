@@ -57,13 +57,13 @@ export function NutrientCard({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-muted rounded-md">{description.symbol}</div>
+            <div className="bg-muted rounded-md p-2">{description.symbol}</div>
             <CardTitle className="text-lg">{description.name}</CardTitle>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-center space-y-1">
+        <div className="space-y-1 text-center">
           <div className="text-4xl font-bold">
             {advice > 1
               ? Math.round(advice).toLocaleString()
@@ -71,10 +71,10 @@ export function NutrientCard({
                 ? advice.toPrecision(2).toLocaleString()
                 : 0}
           </div>
-          <div className="text-sm text-muted-foreground">{description.unit}</div>
+          <div className="text-muted-foreground text-sm">{description.unit}</div>
         </div>
 
-        <div className="space-y-2 w-full">
+        <div className="w-full space-y-2">
           <div className="flex justify-between text-sm">
             <span>Bemestingsniveau</span>
             <span>{advice > 0 ? `${Math.round(percentage)}%` : null}</span>
@@ -95,7 +95,7 @@ export function NutrientCard({
         {fertilizerApplications.length > 0 && numberOfApplicationsForNutrient > 0 ? (
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+              <Button variant="ghost" className="h-auto w-full justify-between p-0">
                 <span className="text-sm font-medium">Bemestingen</span>
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4" />
@@ -104,7 +104,7 @@ export function NutrientCard({
                 )}
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-2 mt-3">
+            <CollapsibleContent className="mt-3 space-y-2">
               <Separator />
               <div className="space-y-3">
                 {doses.applications.map((app) => {
@@ -126,13 +126,13 @@ export function NutrientCard({
                   return (
                     <div
                       key={app.p_app_id}
-                      className="flex justify-between items-center p-2 bg-muted/50 rounded"
+                      className="bg-muted/50 flex items-center justify-between rounded p-2"
                     >
                       <div className="space-y-1">
                         <p className="text-sm font-medium">
                           <NavLink to={to}>{fertilizer.p_name_nl}</NavLink>
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {fertilizerApplication?.p_app_date
                             ? format(fertilizerApplication?.p_app_date, "PP", { locale: nl })
                             : null}
@@ -147,7 +147,7 @@ export function NutrientCard({
                               : 0}{" "}
                           {description.unit}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {fertilizerApplication?.p_app_amount}
                           {" kg/ha"}
                         </p>
@@ -159,13 +159,13 @@ export function NutrientCard({
             </CollapsibleContent>
           </Collapsible>
         ) : (
-          <p className="text-sm text-muted-foreground">{`Geen bemestingen met ${description.name.toLocaleLowerCase()}`}</p>
+          <p className="text-muted-foreground text-sm">{`Geen bemestingen met ${description.name.toLocaleLowerCase()}`}</p>
         )}
       </CardContent>
       {description.symbol === "N" || description.symbol === "P" ? (
         <CardFooter>
-          <p className="text-xs text-muted-foreground">
-            <span className="flex gap-2 items-center">
+          <p className="text-muted-foreground text-xs">
+            <span className="flex items-center gap-2">
               <TriangleAlert className="h-4 w-4" />
               Advies kan hoger zijn dan gebruiksnorm
             </span>

@@ -1,9 +1,9 @@
+import type { ControlPosition, Map as MapLibreMap } from "maplibre-gl"
+import "@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css"
 import MaplibreGeocoder, {
   type CarmenGeojsonFeature,
   type MaplibreGeocoderApiConfig,
 } from "@maplibre/maplibre-gl-geocoder"
-import "@maplibre/maplibre-gl-geocoder/dist/maplibre-gl-geocoder.css"
-import type { ControlPosition, Map as MapLibreMap } from "maplibre-gl"
 import maplibregl from "maplibre-gl"
 import { type IControl, useControl } from "react-map-gl/maplibre"
 import { clientConfig } from "~/lib/config"

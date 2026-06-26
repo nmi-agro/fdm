@@ -110,14 +110,14 @@ export function FieldSummaryTable({
   return (
     <div className="space-y-3">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         <Input
           placeholder="Zoek perceel of maatregel…"
           value={searchTerms ?? ""}
           onChange={(e) => setSearchTerms(e.target.value)}
-          className="w-full sm:w-auto sm:flex-grow max-w-sm"
+          className="w-full max-w-sm sm:w-auto sm:flex-grow"
         />
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <FieldFilterToggle />
           {canModify && (
             <TooltipProvider>
@@ -151,7 +151,7 @@ export function FieldSummaryTable({
                   <TableHead
                     key={header.id}
                     className={cn({
-                      "sticky left-0 bg-background w-[40px]": header.column.id === "select",
+                      "bg-background sticky left-0 w-[40px]": header.column.id === "select",
                     })}
                   >
                     {header.isPlaceholder
@@ -170,7 +170,7 @@ export function FieldSummaryTable({
                     <TableCell
                       key={cell.id}
                       className={cn({
-                        "sticky left-0 bg-background": cell.column.id === "select",
+                        "bg-background sticky left-0": cell.column.id === "select",
                       })}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -182,7 +182,7 @@ export function FieldSummaryTable({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-20 text-center text-muted-foreground text-sm"
+                  className="text-muted-foreground h-20 text-center text-sm"
                 >
                   {searchTerms || showProductiveOnly
                     ? "Geen percelen gevonden."

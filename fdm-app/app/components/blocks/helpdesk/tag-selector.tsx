@@ -1,6 +1,6 @@
 import type { TagSummary } from "@nmi-agro/fdm-helpdesk"
-import { BrushCleaning, CirclePlus, X } from "lucide-react"
 import type { MouseEventHandler } from "react"
+import { BrushCleaning, CirclePlus, X } from "lucide-react"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
@@ -34,11 +34,11 @@ export function TagSelector({
 }) {
   return (
     <div>
-      <div className="flex flex-row flex-wrap items-center gap-2 min-h-7">
+      <div className="flex min-h-7 flex-row flex-wrap items-center gap-2">
         {value.map((tag_id) => {
           const tag = availableTags.find((item) => item.tag_id === tag_id)
           return (
-            <Badge key={tag_id} variant="outline" className="text-xs gap-1 px-1 py-1">
+            <Badge key={tag_id} variant="outline" className="gap-1 px-1 py-1 text-xs">
               <div
                 className="size-2 rounded-full"
                 style={{
@@ -52,7 +52,7 @@ export function TagSelector({
                   size="sm"
                   title="Verwijderen"
                   disabled={disabled}
-                  className="has-[>svg]:p-1 h-auto"
+                  className="h-auto has-[>svg]:p-1"
                   onClick={() => {
                     setValue?.(value.filter((other_tag_id) => other_tag_id !== tag_id))
                   }}
@@ -104,7 +104,7 @@ export function TagSelector({
             title="Alle tags wissen"
             variant="ghost"
             size="icon"
-            className="text-xs m-1 has-[>svg]:p-0 size-auto text-muted-foreground hover:text-destructive"
+            className="text-muted-foreground hover:text-destructive m-1 size-auto text-xs has-[>svg]:p-0"
             onClick={() => setValue?.([])}
           >
             <BrushCleaning />

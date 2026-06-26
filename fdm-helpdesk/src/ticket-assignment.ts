@@ -1,12 +1,12 @@
 import { and, asc, eq, inArray, isNull, not, sql } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
-import { checkHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
+import type { TicketFilters } from "./filter.types"
+import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
-import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getTicketWhereClause } from "./filter"
-import type { TicketFilters } from "./filter.types"
 import { createId } from "./id"
 
 /** Summary of a single ticket assignment, joining the agent's display name. */

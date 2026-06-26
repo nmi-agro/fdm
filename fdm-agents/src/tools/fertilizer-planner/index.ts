@@ -1,7 +1,5 @@
-import { existsSync, readFileSync } from "node:fs"
-import { dirname, join } from "node:path"
-import { fileURLToPath } from "node:url"
 import type { RunnableConfig } from "@langchain/core/runnables"
+import type { FdmType, Fertilizer, FertilizerApplication, PrincipalId } from "@nmi-agro/fdm-core"
 import { tool } from "@langchain/core/tools"
 import {
   aggregateNormFillingsToFarmLevel,
@@ -16,7 +14,6 @@ import {
   createUncachedFunctionsForFertilizerApplicationFilling,
   getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
-import type { FdmType, Fertilizer, FertilizerApplication, PrincipalId } from "@nmi-agro/fdm-core"
 import {
   getCultivations,
   getCurrentSoilData,
@@ -24,6 +21,9 @@ import {
   getField,
   getFields,
 } from "@nmi-agro/fdm-core"
+import { existsSync, readFileSync } from "node:fs"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 import { z } from "zod"
 
 interface AdviceArgs {

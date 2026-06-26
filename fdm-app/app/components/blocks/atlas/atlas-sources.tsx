@@ -1,7 +1,7 @@
 import type { Field } from "@nmi-agro/fdm-core"
+import type { Feature, FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
 import { type CatalogueCultivationItem, getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import centroid from "@turf/centroid"
-import type { Feature, FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
 import throttle from "lodash.throttle"
 import {
   type Dispatch,

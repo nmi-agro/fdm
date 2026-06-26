@@ -35,7 +35,7 @@ export default function AddOrganizationPage() {
           "Start een organisatie om met anderen samen te werken, gebruikers uit te nodigen en gegevens te delen."
         }
       />
-      <div className="max-w-3xl mx-auto px-4">
+      <div className="mx-auto max-w-3xl px-4">
         <OrganizationSettingsForm method="post" canModify={true} />
       </div>
     </main>

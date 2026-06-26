@@ -18,10 +18,10 @@ import {
   getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import type { FieldInput, NitrogenBalanceInput } from "./types"
 import { getFdmPublicDataUrl } from "../../shared/public-data-url"
 import { handleInputCollectionError } from "../shared/errors"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
-import type { FieldInput, NitrogenBalanceInput } from "./types"
 
 type FieldInputWithoutDeposition = Omit<FieldInput, "depositionSupply">
 

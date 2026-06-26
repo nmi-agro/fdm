@@ -27,15 +27,15 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
 
   return (
     <Card className="shadow-sm">
-      <CardHeader className="border-b shrink-0">
+      <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <Bot className="w-5 h-5 text-primary animate-pulse" />
+          <Bot className="text-primary h-5 w-5 animate-pulse" />
           Gerrit bekijkt het bedrijf…
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 space-y-4">
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Spinner className="h-4 w-4 text-primary shrink-0" />
+      <CardContent className="space-y-4 p-6">
+        <div className="text-muted-foreground flex items-center gap-3 text-sm">
+          <Spinner className="text-primary h-4 w-4 shrink-0" />
           <span>
             Gerrit analyseert de gewassen, normen en beschikbare meststoffen om te bepalen of er
             gerichte vragen nodig zijn.
@@ -43,10 +43,10 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
         </div>
         {preview && (
           <div
-            className={cn("flex items-start gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm")}
+            className={cn("bg-muted/30 flex items-start gap-2 rounded-md border px-3 py-2 text-sm")}
           >
-            <Sparkles className="h-4 w-4 shrink-0 text-primary mt-0.5 animate-pulse" />
-            <span className="italic text-muted-foreground line-clamp-2">{preview}</span>
+            <Sparkles className="text-primary mt-0.5 h-4 w-4 shrink-0 animate-pulse" />
+            <span className="text-muted-foreground line-clamp-2 italic">{preview}</span>
           </div>
         )}
       </CardContent>

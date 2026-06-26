@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm"
 import { describe, expect } from "vitest"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { addAdminAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
-import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import {
   addMessage,

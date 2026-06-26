@@ -1,13 +1,6 @@
 import { type Field, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import { NormNotApplicableError } from "../../../../error"
-import pkg from "../../../../package"
-import { getGeoTiffValue } from "../../../../shared/geotiff"
-import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
-import { nonBouwlandCodes } from "../../constant"
 import type { GebruiksnormResult } from "../../types"
-import { determineNLHoofdteelt } from "./hoofdteelt"
-import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 import type {
   NitrogenStandard,
   NL2025NormsInput,
@@ -15,6 +8,13 @@ import type {
   NormsByRegion,
   RegionKey,
 } from "./types"
+import { NormNotApplicableError } from "../../../../error"
+import pkg from "../../../../package"
+import { getGeoTiffValue } from "../../../../shared/geotiff"
+import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
+import { nonBouwlandCodes } from "../../constant"
+import { determineNLHoofdteelt } from "./hoofdteelt"
+import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 
 /**
  * Determines if a field is located within a met nutriënten verontreinigde gebied (NV-gebied) in the Netherlands.

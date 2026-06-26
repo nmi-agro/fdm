@@ -88,7 +88,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
         >
           <ChevronRight
             className={cn(
-              "transition-transform duration-300 text-muted-foreground",
+              "text-muted-foreground transition-transform duration-300",
               row.getIsExpanded() ? "rotate-90" : "transform-none",
             )}
           />
@@ -284,7 +284,7 @@ export const columns: ColumnDef<RotationExtended>[] = [
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <ScrollArea
-                  className={fieldsSorted.length >= 8 ? "h-72 overflow-y-auto w-48" : "w-48"}
+                  className={fieldsSorted.length >= 8 ? "h-72 w-48 overflow-y-auto" : "w-48"}
                 >
                   <div className="grid grid-cols-1 gap-2">
                     {fieldsSorted.map((field) => (

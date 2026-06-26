@@ -10,11 +10,11 @@ import type {
 } from "@nmi-agro/fdm-core"
 import * as fdmCore from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { FieldInput, OrganicMatterBalanceInput } from "./types"
 import {
   collectInputForOrganicMatterBalance,
   collectInputForOrganicMatterBalanceForFarms,
 } from "./input"
-import type { FieldInput, OrganicMatterBalanceInput } from "./types"
 
 // Mock the @nmi-agro/fdm-core module
 vi.mock("@nmi-agro/fdm-core", async () => {

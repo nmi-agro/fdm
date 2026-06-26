@@ -1,6 +1,6 @@
+import type { MetaFunction } from "react-router"
 import { ArrowLeft } from "lucide-react"
 import ReactMarkdown from "react-markdown"
-import type { MetaFunction } from "react-router"
 import { Link, useLoaderData } from "react-router"
 import remarkGfm from "remark-gfm"
 import { Button } from "~/components/ui/button"
@@ -48,15 +48,15 @@ export default function PrivacyPage() {
   const { content } = useLoaderData<typeof loader>()
 
   return (
-    <div className="min-h-screen bg-muted/20 flex flex-col">
+    <div className="bg-muted/20 flex min-h-screen flex-col">
       {/* Top navigation bar — matches signin sticky header style */}
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-md px-4 py-3 shadow-xs">
+      <header className="bg-background/80 sticky top-0 z-10 border-b px-4 py-3 shadow-xs backdrop-blur-md">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex size-8 items-center justify-center rounded-lg bg-[#122023]">
               <img className="size-6" src={clientConfig.logomark} alt={clientConfig.name} />
             </div>
-            <span className="font-semibold text-sm">{clientConfig.name}</span>
+            <span className="text-sm font-semibold">{clientConfig.name}</span>
           </div>
           <Button variant="ghost" size="sm" asChild>
             <Link to="/signin">
@@ -68,41 +68,41 @@ export default function PrivacyPage() {
       </header>
 
       {/* Page content */}
-      <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
-        <div className="rounded-xl border border-border/40 bg-background shadow-sm px-6 py-10 sm:px-10">
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6">
+        <div className="border-border/40 bg-background rounded-xl border px-6 py-10 shadow-sm sm:px-10">
           {content ? (
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">
+                  <h1 className="text-foreground mb-2 text-3xl font-bold tracking-tight">
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="text-xl font-semibold mb-3 mt-10 text-foreground border-b border-border pb-2">
+                  <h2 className="text-foreground border-border mt-10 mb-3 border-b pb-2 text-xl font-semibold">
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 className="text-base font-semibold mb-2 mt-6 text-foreground">{children}</h3>
+                  <h3 className="text-foreground mt-6 mb-2 text-base font-semibold">{children}</h3>
                 ),
                 p: ({ children }) => (
-                  <p className="mb-4 text-sm text-muted-foreground leading-7">{children}</p>
+                  <p className="text-muted-foreground mb-4 text-sm leading-7">{children}</p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="list-disc list-outside pl-5 mb-4 space-y-1.5">{children}</ul>
+                  <ul className="mb-4 list-outside list-disc space-y-1.5 pl-5">{children}</ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="list-decimal list-outside pl-5 mb-4 space-y-1.5">{children}</ol>
+                  <ol className="mb-4 list-outside list-decimal space-y-1.5 pl-5">{children}</ol>
                 ),
                 li: ({ children }) => (
-                  <li className="text-sm text-muted-foreground leading-7">{children}</li>
+                  <li className="text-muted-foreground text-sm leading-7">{children}</li>
                 ),
                 a: ({ href, children }) => (
                   <a
                     href={href}
-                    className="text-primary underline decoration-primary/30 underline-offset-4 hover:decoration-primary transition-colors"
+                    className="text-primary decoration-primary/30 hover:decoration-primary underline underline-offset-4 transition-colors"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -110,32 +110,32 @@ export default function PrivacyPage() {
                   </a>
                 ),
                 strong: ({ children }) => (
-                  <strong className="font-semibold text-foreground">{children}</strong>
+                  <strong className="text-foreground font-semibold">{children}</strong>
                 ),
-                em: ({ children }) => <em className="italic text-muted-foreground">{children}</em>,
+                em: ({ children }) => <em className="text-muted-foreground italic">{children}</em>,
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-primary/30 pl-4 italic text-muted-foreground mb-4 bg-muted/30 py-2 pr-2 rounded-r-md">
+                  <blockquote className="border-primary/30 text-muted-foreground bg-muted/30 mb-4 rounded-r-md border-l-4 py-2 pr-2 pl-4 italic">
                     {children}
                   </blockquote>
                 ),
-                hr: () => <hr className="my-8 border-border" />,
+                hr: () => <hr className="border-border my-8" />,
                 table: ({ children }) => (
-                  <div className="overflow-x-auto mb-6 rounded-lg border border-border">
-                    <table className="w-full text-sm border-collapse">{children}</table>
+                  <div className="border-border mb-6 overflow-x-auto rounded-lg border">
+                    <table className="w-full border-collapse text-sm">{children}</table>
                   </div>
                 ),
                 th: ({ children }) => (
-                  <th className="border-b border-border px-4 py-2.5 text-left font-medium text-xs uppercase tracking-wide bg-muted text-muted-foreground">
+                  <th className="border-border bg-muted text-muted-foreground border-b px-4 py-2.5 text-left text-xs font-medium tracking-wide uppercase">
                     {children}
                   </th>
                 ),
                 td: ({ children }) => (
-                  <td className="border-b border-border/50 px-4 py-2.5 text-sm text-muted-foreground last:border-b-0">
+                  <td className="border-border/50 text-muted-foreground border-b px-4 py-2.5 text-sm last:border-b-0">
                     {children}
                   </td>
                 ),
                 code: ({ children }) => (
-                  <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono text-foreground">
+                  <code className="bg-muted text-foreground rounded px-1.5 py-0.5 font-mono text-xs">
                     {children}
                   </code>
                 ),
@@ -144,13 +144,13 @@ export default function PrivacyPage() {
               {content}
             </ReactMarkdown>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <p className="text-muted-foreground text-sm">
                 Het privacybeleid is niet geconfigureerd.
               </p>
-              <p className="text-xs text-muted-foreground/60">
+              <p className="text-muted-foreground/60 text-xs">
                 Stel{" "}
-                <code className="bg-muted px-1.5 py-0.5 rounded font-mono">FDM_PRIVACY_URL</code> in
+                <code className="bg-muted rounded px-1.5 py-0.5 font-mono">FDM_PRIVACY_URL</code> in
                 om het privacybeleid te tonen.
               </p>
             </div>
@@ -158,7 +158,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* Footer attribution */}
-        <p className="text-center text-xs text-muted-foreground/60 mt-6">{clientConfig.name}</p>
+        <p className="text-muted-foreground/60 mt-6 text-center text-xs">{clientConfig.name}</p>
       </main>
     </div>
   )

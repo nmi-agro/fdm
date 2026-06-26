@@ -1,3 +1,4 @@
+import type { FeatureCollection, Geometry } from "geojson"
 import { type CultivationForHoofdteelt, findHoofdteelt } from "@nmi-agro/fdm-calculator"
 import {
   getCultivations,
@@ -9,7 +10,6 @@ import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import {
   data,
@@ -504,37 +504,37 @@ export default function IndicatorsFieldDetail() {
         description={currentCultivationName ?? "Geen teelt geregistreerd"}
         descriptionNode={
           currentCultivationName ? (
-            <span className="flex items-center gap-1.5 mt-0.5">
+            <span className="mt-0.5 flex items-center gap-1.5">
               <Badge
                 style={{
                   backgroundColor: getCultivationColor(currentCultivationCropRotation ?? undefined),
                 }}
-                className="text-white gap-1"
+                className="gap-1 text-white"
                 variant="default"
               >
                 {currentCultivationName}
               </Badge>
             </span>
           ) : (
-            <p className="text-sm text-muted-foreground">Geen teelt geregistreerd</p>
+            <p className="text-muted-foreground text-sm">Geen teelt geregistreerd</p>
           )
         }
         rightNode={<Bln3BetaBanner />}
       />
 
-      <div className="px-4 sm:px-6 lg:px-8 pb-16">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <div className="px-4 pb-16 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-6 lg:flex-row">
           {/* ── Main content column ──────────────────────────── */}
-          <div className="flex-1 min-w-0 space-y-4">
+          <div className="min-w-0 flex-1 space-y-4">
             {/* Aggregations tree + input dialog */}
             <div className="flex flex-col gap-4">
               {fieldScore && (
-                <Card className="shadow-sm border-border">
+                <Card className="border-border shadow-sm">
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
-                        <CardDescription className="text-xs mt-1.5">
+                        <CardDescription className="mt-1.5 text-xs">
                           Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie voor dit
                           perceel. Klik op de knoppen om in te zoomen.
                         </CardDescription>
@@ -569,7 +569,7 @@ export default function IndicatorsFieldDetail() {
 
             {/* No score state */}
             {!fieldScore && (
-              <div className="rounded-lg border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+              <div className="bg-muted/30 text-muted-foreground rounded-lg border p-8 text-center text-sm">
                 <p className="font-medium">Geen indicatoren beschikbaar</p>
                 <p className="mt-1">
                   Er is geen bodemanalyse beschikbaar voor dit perceel, of de berekening is mislukt.
@@ -598,11 +598,11 @@ export default function IndicatorsFieldDetail() {
               <>
                 <Separator />
                 <div>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="mb-3 flex items-center justify-between">
                     <p className="text-sm font-semibold">Maatregelen</p>
                     <Link
                       to={measuresHref}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      className="text-muted-foreground hover:text-foreground text-xs transition-colors"
                     >
                       Beheren
                     </Link>
@@ -611,15 +611,15 @@ export default function IndicatorsFieldDetail() {
                     {fieldMeasures.map((m) => (
                       <div
                         key={m.b_id_measure}
-                        className="flex items-center gap-3 rounded-md border bg-card px-3 py-2"
+                        className="bg-card flex items-center gap-3 rounded-md border px-3 py-2"
                       >
-                        <span className="shrink-0 font-mono text-xs text-muted-foreground w-16 truncate">
+                        <span className="text-muted-foreground w-16 shrink-0 truncate font-mono text-xs">
                           {m.m_id.replace("bln_", "")}
                         </span>
-                        <span className="flex-1 min-w-0 text-sm font-medium truncate">
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">
                           {m.m_name}
                         </span>
-                        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                           {m.m_end === null
                             ? "Doorlopend"
                             : `t/m ${format(new Date(m.m_end), "d MMM yyyy", { locale: nl })}`}
@@ -633,12 +633,12 @@ export default function IndicatorsFieldDetail() {
           </div>
 
           {/* ── Map — right on desktop, below on mobile ──────── */}
-          <aside className="w-full lg:w-72 xl:w-80 shrink-0">
-            <div className="relative h-64 sm:h-80 lg:h-[560px] lg:sticky lg:top-4 rounded-lg overflow-hidden border">
+          <aside className="w-full shrink-0 lg:w-72 xl:w-80">
+            <div className="relative h-64 overflow-hidden rounded-lg border sm:h-80 lg:sticky lg:top-4 lg:h-[560px]">
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
                 <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
-                  <SelectTrigger className="w-48 text-xs h-7 bg-background/90 backdrop-blur-sm shadow-sm">
+                  <SelectTrigger className="bg-background/90 h-7 w-48 text-xs shadow-sm backdrop-blur-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>
                   <SelectContent align="end">
@@ -656,7 +656,7 @@ export default function IndicatorsFieldDetail() {
                 </Select>
               </div>
 
-              <Suspense fallback={<div className="h-full bg-muted animate-pulse" />}>
+              <Suspense fallback={<div className="bg-muted h-full animate-pulse" />}>
                 <FieldMap
                   fieldsGeoJSON={fieldsGeoJSON as FeatureCollection}
                   selectedFieldGeoJSON={selectedFieldGeoJSON as FeatureCollection}
@@ -668,7 +668,7 @@ export default function IndicatorsFieldDetail() {
                 />
               </Suspense>
             </div>
-            <p className="mt-2 px-1 text-[11px] text-muted-foreground">
+            <p className="text-muted-foreground mt-2 px-1 text-[11px]">
               Percelen gekleurd op gekozen score. Klik om te wisselen van perceel.
             </p>
           </aside>

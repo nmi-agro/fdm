@@ -1,8 +1,8 @@
 import type { Field } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { describe, expect, it } from "vitest"
-import { getFdmPublicDataUrl } from "../../../shared/public-data-url"
 import type { FieldInput, NitrogenBalanceInput } from "../types"
+import { getFdmPublicDataUrl } from "../../../shared/public-data-url"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./deposition"
 
 describe("calculateAllFieldsNitrogenSupplyByDeposition", () => {

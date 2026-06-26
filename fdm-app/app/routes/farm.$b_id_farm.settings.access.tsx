@@ -89,7 +89,7 @@ export default function FarmSettingsAccessBlock() {
   const { principals, hasSharePermission } = useLoaderData<typeof loader>()
 
   return (
-    <div className="grid md:grid-cols-3 gap-4">
+    <div className="grid gap-4 md:grid-cols-3">
       <AccessManagementCard principals={principals} hasSharePermission={hasSharePermission} />
       <AccessInfoCard />
     </div>

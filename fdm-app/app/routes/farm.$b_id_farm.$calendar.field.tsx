@@ -302,13 +302,13 @@ export default function FarmFieldIndex() {
               title={`Percelen van ${currentFarmName}`}
               description="Dit bedrijf heeft nog geen percelen"
             />
-            <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
+            <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
               <div className="flex flex-col space-y-2 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Het lijkt erop dat je nog geen perceel hebt :(
                 </h1>
               </div>
-              <div className="flex flex-col items-center relative">
+              <div className="relative flex flex-col items-center">
                 <Button asChild className={cn(!loaderData.farmWritePermission ? "invisible" : "")}>
                   <NavLink to="./new">Maak een perceel</NavLink>
                 </Button>
@@ -326,7 +326,7 @@ export default function FarmFieldIndex() {
               />
             </div>
             <FarmContent>
-              <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
+              <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-y-0 lg:space-x-12">
                 <DataTable
                   columns={columns}
                   data={filteredFields as FieldExtended[]}

@@ -31,7 +31,7 @@ export function HeaderFertilizer({
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 max-w-30 sm:max-w-50 md:max-w-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+              <DropdownMenuTrigger className="focus-visible:ring-ring flex max-w-30 items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:max-w-50 md:max-w-none">
                 <span className="truncate">
                   {p_id && fertilizerOptions
                     ? (fertilizerOptions.find((option) => option.p_id === p_id)?.p_name_nl ??

@@ -1,7 +1,7 @@
 import { CalendarCheck, Leaf } from "lucide-react"
+import type { DynaFertilizerAdvice } from "~/integrations/mineralization.server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import type { DynaFertilizerAdvice } from "~/integrations/mineralization.server"
 
 interface DynaAdviceCardProps {
   fertilizingRecommendations: DynaFertilizerAdvice | null
@@ -39,7 +39,7 @@ export function DynaAdviceCard({
         {/* Fertilizer advice */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <CalendarCheck className="h-4 w-4 text-muted-foreground" />
+            <CalendarCheck className="text-muted-foreground h-4 w-4" />
             Bemestingsadvies
           </div>
           {fertilizingRecommendations ? (
@@ -64,7 +64,7 @@ export function DynaAdviceCard({
               </div>
             </dl>
           ) : (
-            <p className="text-sm text-muted-foreground">Geen bemestingsadvies beschikbaar.</p>
+            <p className="text-muted-foreground text-sm">Geen bemestingsadvies beschikbaar.</p>
           )}
         </div>
 
@@ -73,7 +73,7 @@ export function DynaAdviceCard({
         {/* Harvest advice */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Leaf className="h-4 w-4 text-muted-foreground" />
+            <Leaf className="text-muted-foreground h-4 w-4" />
             Oogstadvies
           </div>
           {harvestingRecommendation ? (
@@ -86,7 +86,7 @@ export function DynaAdviceCard({
               </div>
             </dl>
           ) : (
-            <p className="text-sm text-muted-foreground">Geen oogstadvies beschikbaar.</p>
+            <p className="text-muted-foreground text-sm">Geen oogstadvies beschikbaar.</p>
           )}
         </div>
       </CardContent>

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
+import type { NL2025NormsInput } from "./types"
 import {
   calculateNL2025DierlijkeMestGebruiksNorm,
   isFieldInDerogatieVrijeZone,
 } from "./dierlijke-mest-gebruiksnorm"
-import type { NL2025NormsInput } from "./types"
 
 describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
   it("should return the default norm value", async () => {

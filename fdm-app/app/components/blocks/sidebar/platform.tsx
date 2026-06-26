@@ -54,9 +54,9 @@ export function SidebarPlatform() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
-                className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                className="hover:text-muted-foreground active:text-muted-foreground hover:bg-transparent active:bg-transparent"
               >
-                <span className="flex items-center gap-2 cursor-default text-muted-foreground">
+                <span className="text-muted-foreground flex cursor-default items-center gap-2">
                   <Languages />
                   <span>Taal</span>
                 </span>

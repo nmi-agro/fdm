@@ -60,7 +60,7 @@ export function ExpandableTrigger(props: ExpandableTriggerProps) {
     <Button
       variant="link"
       className={cn(
-        "-ms-4 transition-opacity duration-300 text-muted-foreground",
+        "text-muted-foreground -ms-4 transition-opacity duration-300",
         !isOverflowing && "opacity-0",
       )}
       onClick={() => setExpanded((prev) => !prev)}
@@ -105,7 +105,7 @@ export function ExpandableContent(props: ExpandableContentProps) {
 
   const ellipsis = !expanded && !isAnimating
   const computedClassName = cn(
-    ellipsis ? "overflow-ellipsis line-clamp-3" : "overflow-clip",
+    ellipsis ? "line-clamp-3 overflow-ellipsis" : "overflow-clip",
     className,
     expanded ? expandedClassName : collapsedClassName,
   )

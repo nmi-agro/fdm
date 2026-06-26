@@ -85,10 +85,10 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
           Beantwoord de vragen die voor jou van toepassing zijn. Je kunt de vragen ook overslaan.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-6 space-y-8">
+      <CardContent className="space-y-8 p-6">
         {questions.map((q, qi) => (
           <div key={q.id} className="space-y-3">
-            <p id={`question-${q.id}`} className="text-sm font-medium text-foreground">
+            <p id={`question-${q.id}`} className="text-foreground text-sm font-medium">
               {qi + 1}. {q.question}
             </p>
             <div className="space-y-2 pl-1">
@@ -118,7 +118,7 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
                       <RadioGroupItem value={opt.id} id={`${q.id}-${opt.id}`} />
                       <Label
                         htmlFor={`${q.id}-${opt.id}`}
-                        className="text-sm font-normal cursor-pointer"
+                        className="cursor-pointer text-sm font-normal"
                       >
                         {opt.label}
                       </Label>
@@ -130,7 +130,7 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
                       <RadioGroupItem value="__other__" id={`${q.id}-other`} />
                       <Label
                         htmlFor={`${q.id}-other`}
-                        className="text-sm font-normal cursor-pointer"
+                        className="cursor-pointer text-sm font-normal"
                       >
                         Anders, namelijk…
                       </Label>
@@ -157,7 +157,7 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
                       />
                       <Label
                         htmlFor={`${q.id}-${opt.id}`}
-                        className="text-sm font-normal cursor-pointer"
+                        className="cursor-pointer text-sm font-normal"
                       >
                         {opt.label}
                       </Label>
@@ -195,7 +195,7 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
                       />
                       <Label
                         htmlFor={`${q.id}-other`}
-                        className="text-sm font-normal cursor-pointer"
+                        className="cursor-pointer text-sm font-normal"
                       >
                         Anders, namelijk…
                       </Label>
@@ -221,7 +221,7 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
             <ChevronRight className="mr-2 h-4 w-4" />
             Doorgaan met deze antwoorden
           </Button>
-          <Button variant="ghost" onClick={onSkip} className="w-full text-sm text-muted-foreground">
+          <Button variant="ghost" onClick={onSkip} className="text-muted-foreground w-full text-sm">
             <SkipForward className="mr-2 h-4 w-4" />
             Vragen overslaan
           </Button>

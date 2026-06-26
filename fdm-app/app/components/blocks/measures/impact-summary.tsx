@@ -35,7 +35,7 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
 
   if (improvedIndicators.length === 0) {
     return (
-      <div className="rounded-lg border bg-muted/20 p-4 text-center text-xs text-muted-foreground">
+      <div className="bg-muted/20 text-muted-foreground rounded-lg border p-4 text-center text-xs">
         De geselecteerde maatregelen hebben op dit moment geen directe invloed op de BLN3
         bodemkwaliteitsindicatoren van dit perceel.
       </div>
@@ -43,10 +43,10 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
   }
 
   return (
-    <Card className="shadow-sm border-border">
-      <CardHeader className="pb-3 border-b">
+    <Card className="border-border shadow-sm">
+      <CardHeader className="border-b pb-3">
         <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <TrendingUp className="text-muted-foreground h-4 w-4" />
           <CardTitle className="text-base font-bold">Invloed op bodemindicatoren</CardTitle>
         </div>
         <CardDescription className="text-xs">
@@ -60,20 +60,20 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
             {improvedIndicators.map((ind) => (
               <div
                 key={ind.id}
-                className="flex items-center justify-between gap-3 p-2 rounded-md bg-muted/30 border border-border text-xs"
+                className="bg-muted/30 border-border flex items-center justify-between gap-3 rounded-md border p-2 text-xs"
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Badge variant="secondary" className="font-mono text-[10px] px-1.5 py-0 h-5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Badge variant="secondary" className="h-5 px-1.5 py-0 font-mono text-[10px]">
                     {ind.id}
                   </Badge>
-                  <span className="font-medium truncate text-foreground">{ind.name}</span>
+                  <span className="text-foreground truncate font-medium">{ind.name}</span>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10px] text-muted-foreground">
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-muted-foreground text-[10px]">
                     {ind.index} → {ind.score}
                   </span>
-                  <Badge variant="default" className="font-bold text-[10px] px-1.5 py-0 h-5">
-                    <Plus className="w-3 h-3 mr-0.5" />
+                  <Badge variant="default" className="h-5 px-1.5 py-0 text-[10px] font-bold">
+                    <Plus className="mr-0.5 h-3 w-3" />
                     {ind.impact}
                   </Badge>
                 </div>

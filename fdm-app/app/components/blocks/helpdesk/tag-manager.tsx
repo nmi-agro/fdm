@@ -126,7 +126,7 @@ export function TagRow({ tag, canModify, activeTableCell, setActiveTableCell }: 
               void fetcher.submit(formData, { method: "post" })
             }}
           >
-            <SelectTrigger className="text-start gap-2" title="Kleur">
+            <SelectTrigger className="gap-2 text-start" title="Kleur">
               <div
                 className="size-4 rounded-sm"
                 style={{
@@ -248,7 +248,7 @@ function TagNameCell({ tag, canModify, activeTableCell, setActiveTableCell }: Ta
             void fetcher.submit(formData, { method: "POST" })
           }}
         />
-        {isSubmitting && <Spinner className="absolute right-2 top-1/2 -translate-y-1/2" />}
+        {isSubmitting && <Spinner className="absolute top-1/2 right-2 -translate-y-1/2" />}
       </div>
     ) : (
       <Button

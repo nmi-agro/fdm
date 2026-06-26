@@ -197,18 +197,18 @@ export default function FarmDashboardIndex() {
           description={"Een overzicht van de bedrijfsgegevens en applicaties."}
         />
         <FarmContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {/* Left Column */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="space-y-8 lg:col-span-2">
               {/* Quick Actions */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzichten</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <NavLink to={`${calendar}/field`}>
                     <Card className="transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-primary text-primary-foreground p-3">
+                          <div className="bg-primary text-primary-foreground rounded-lg p-3">
                             <Square className="h-6 w-6" />
                           </div>
                           <div>
@@ -226,7 +226,7 @@ export default function FarmDashboardIndex() {
                     <Card className="transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-primary text-primary-foreground p-3">
+                          <div className="bg-primary text-primary-foreground rounded-lg p-3">
                             <Sprout className="h-6 w-6" />
                           </div>
                           <div>
@@ -246,13 +246,13 @@ export default function FarmDashboardIndex() {
               {/* Apps */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Apps</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <NavLink to={`${calendar}/atlas`}>
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <MapIcon className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <MapIcon className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>Atlas</CardTitle>
@@ -263,11 +263,11 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <NavLink to={`${calendar}/balance/nitrogen`}>
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <ArrowRightLeft className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <ArrowRightLeft className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>Stikstofbalans</CardTitle>
@@ -280,11 +280,11 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <NavLink to={`${calendar}/balance/organic-matter`}>
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <ArrowRightLeft className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <ArrowRightLeft className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>OS Balans</CardTitle>
@@ -298,11 +298,11 @@ export default function FarmDashboardIndex() {
                   </NavLink>
 
                   <NavLink to={`${calendar}/nutrient_advice`}>
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <BookOpenText className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <BookOpenText className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>Bemestingsadvies</CardTitle>
@@ -315,11 +315,11 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <NavLink to={`${calendar}/norms`}>
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <Landmark className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <Landmark className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>Gebruiksruimte</CardTitle>
@@ -332,16 +332,16 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <Card
-                    className="transition-all hover:shadow-md h-full cursor-pointer"
+                    className="h-full cursor-pointer transition-all hover:shadow-md"
                     onClick={handleDownloadPdf}
                   >
                     <CardHeader>
                       <div className="flex items-center gap-4">
-                        <div className="rounded-lg bg-muted p-3">
+                        <div className="bg-muted rounded-lg p-3">
                           {isGeneratingPdf ? (
-                            <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                            <Loader2 className="text-primary h-6 w-6 animate-spin" />
                           ) : (
-                            <DownloadIcon className="h-6 w-6 text-primary" />
+                            <DownloadIcon className="text-primary h-6 w-6" />
                           )}
                         </div>
                         <div>
@@ -360,13 +360,13 @@ export default function FarmDashboardIndex() {
               {/* Actions */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Acties</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <NavLink to={"soil-analysis/bulk"}>
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <FileStack className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <FileStack className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>Upload bodemanalyses</CardTitle>
@@ -387,11 +387,11 @@ export default function FarmDashboardIndex() {
                       aria-disabled={!loaderData.farmWritePermission || undefined}
                       tabIndex={!loaderData.farmWritePermission ? -1 : undefined}
                     >
-                      <Card className="transition-all hover:shadow-md h-full">
+                      <Card className="h-full transition-all hover:shadow-md">
                         <CardHeader>
                           <div className="flex items-center gap-4">
-                            <div className="rounded-lg bg-muted p-3">
-                              <CloudDownload className="h-6 w-6 text-primary" />
+                            <div className="bg-muted rounded-lg p-3">
+                              <CloudDownload className="text-primary h-6 w-6" />
                             </div>
                             <div>
                               <CardTitle>Ophalen bij RVO</CardTitle>
@@ -410,11 +410,11 @@ export default function FarmDashboardIndex() {
                     aria-disabled={!loaderData.farmWritePermission || undefined}
                     tabIndex={!loaderData.farmWritePermission ? -1 : undefined}
                   >
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <CloudUpload className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <CloudUpload className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>RVO Shapefile uploaden</CardTitle>
@@ -428,11 +428,11 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <NavLink to={`${calendar}/field/new`}>
-                    <Card className="transition-all hover:shadow-md h-full">
+                    <Card className="h-full transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-muted p-3">
-                            <PlusIcon className="h-6 w-6 text-primary" />
+                          <div className="bg-muted rounded-lg p-3">
+                            <PlusIcon className="text-primary h-6 w-6" />
                           </div>
                           <div>
                             <CardTitle>Nieuwe percelen</CardTitle>
@@ -454,25 +454,25 @@ export default function FarmDashboardIndex() {
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
                 <Card>
-                  <CardContent className="pt-6 space-y-4">
+                  <CardContent className="space-y-4 pt-6">
                     {/* tiles */}
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-                        <p className="text-xs text-muted-foreground">Percelen</p>
+                      <div className="bg-muted/50 space-y-1 rounded-lg p-3">
+                        <p className="text-muted-foreground text-xs">Percelen</p>
                         <p className="text-2xl font-bold">{loaderData.fieldsNumber}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-                        <p className="text-xs text-muted-foreground">Oppervlakte</p>
+                      <div className="bg-muted/50 space-y-1 rounded-lg p-3">
+                        <p className="text-muted-foreground text-xs">Oppervlakte</p>
                         <p className="text-2xl font-bold">
                           {loaderData.farmArea}
-                          <span className="text-sm font-normal text-muted-foreground ml-1">ha</span>
+                          <span className="text-muted-foreground ml-1 text-sm font-normal">ha</span>
                         </p>
                       </div>
                     </div>
                     <Separator />
                     {/* Role + Year */}
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">Rol</p>
+                      <p className="text-muted-foreground text-sm">Rol</p>
                       <p className="text-sm font-medium">
                         {loaderData.roles.includes("owner")
                           ? "Eigenaar"
@@ -484,7 +484,7 @@ export default function FarmDashboardIndex() {
                       </p>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">Jaar</p>
+                      <p className="text-muted-foreground text-sm">Jaar</p>
                       <Select value={calendar} onValueChange={(value) => setCalendar(value)}>
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Selecteer een jaar" />

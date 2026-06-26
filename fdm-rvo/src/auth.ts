@@ -1,5 +1,5 @@
-import fs from "node:fs"
 import { RvoClient } from "@nmi-agro/rvo-connector"
+import fs from "node:fs"
 
 /**
  * Creates and configures an instance of the RVO Client.

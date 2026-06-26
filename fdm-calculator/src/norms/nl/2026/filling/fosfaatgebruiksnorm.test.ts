@@ -1,7 +1,7 @@
 import type { BaseFertilizerApplication, Fertilizer } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
-import { calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
 import type { NL2026NormsFillingInput } from "./types"
+import { calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
 
 // Mock data for fertilizers
 const mockFertilizers = [

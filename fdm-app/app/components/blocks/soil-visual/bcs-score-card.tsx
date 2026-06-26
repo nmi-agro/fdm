@@ -85,12 +85,12 @@ export function BcsScoreCard({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{indicator.name}</span>
                   {indicator.source === "lab" ? (
-                    <span className="text-xs text-muted-foreground">(afgeleid)</span>
+                    <span className="text-muted-foreground text-xs">(afgeleid)</span>
                   ) : null}
                 </div>
-                <div className="text-sm text-muted-foreground">Weging x{indicator.weight}</div>
+                <div className="text-muted-foreground text-sm">Weging x{indicator.weight}</div>
               </div>
-              <div className="text-sm font-medium text-muted-foreground">
+              <div className="text-muted-foreground text-sm font-medium">
                 {score == null ? "Onbekend" : `Score ${score}`}
               </div>
               <div className="flex items-center justify-end gap-2">

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { getBln3Score, requestBln3Score } from "./index"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
+import { getBln3Score, requestBln3Score } from "./index"
 
 const mockBln3ScoreResponse: Bln3ScoreResponse = {
   request_id: "test-uuid",

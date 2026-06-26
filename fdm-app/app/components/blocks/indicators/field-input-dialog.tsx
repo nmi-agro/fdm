@@ -1,4 +1,5 @@
 import { Database } from "lucide-react"
+import type { FieldMeasure } from "~/lib/indicators"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -9,7 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
-import type { FieldMeasure } from "~/lib/indicators"
 
 type CultivationSummary = {
   name: string
@@ -62,12 +62,12 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground">
+        <Button variant="outline" size="sm" className="text-muted-foreground gap-1.5">
           <Database className="h-3.5 w-3.5" />
           Invoergegevens
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-md overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Invoergegevens BLN3</DialogTitle>
         </DialogHeader>
@@ -82,7 +82,7 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
                 {soilData.soilType && <Row label="Bodemtype" value={soilData.soilType} />}
                 {soilData.gwlClass && <Row label="Grondwaterklasse" value={soilData.gwlClass} />}
                 {soilData.measurements.length > 0 && (
-                  <div className="mt-1.5 border-t pt-1.5 space-y-0.5">
+                  <div className="mt-1.5 space-y-0.5 border-t pt-1.5">
                     {soilData.measurements.map(({ key, label, unit, value }) => (
                       <Row
                         key={key}
@@ -104,8 +104,8 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
               <div className="space-y-0.5">
                 {soilData.bcsScores.map(({ key, name, value, direction }) => (
                   <div key={key} className="flex items-baseline justify-between gap-2">
-                    <span className="text-muted-foreground text-xs shrink-0">{name}</span>
-                    <span className="text-foreground text-xs tabular-nums font-mono text-right">
+                    <span className="text-muted-foreground shrink-0 text-xs">{name}</span>
+                    <span className="text-foreground text-right font-mono text-xs tabular-nums">
                       {value}
                       <span className="text-muted-foreground ml-1 font-sans">
                         {direction === "negative"
@@ -151,7 +151,7 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
               <ul className="space-y-1">
                 {bln3Measures.map((m) => (
                   <li key={m.b_id_measure} className="flex items-start gap-2">
-                    <span className="shrink-0 font-mono text-xs text-muted-foreground pt-px">
+                    <span className="text-muted-foreground shrink-0 pt-px font-mono text-xs">
                       {m.m_id.replace("bln_", "")}
                     </span>
                     <span className="text-foreground">{m.m_name}</span>
@@ -161,7 +161,7 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
             )}
           </Section>
 
-          <p className="text-xs text-muted-foreground pt-2 border-t">
+          <p className="text-muted-foreground border-t pt-2 text-xs">
             Dit zijn de gegevens die worden gebruikt als invoer voor de NMI BLN3-berekening.
           </p>
         </div>
@@ -173,7 +173,7 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1.5">
+      <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
         {label}
       </p>
       {children}
@@ -194,9 +194,9 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-2">
-      <span className="text-muted-foreground text-xs shrink-0">{label}</span>
+      <span className="text-muted-foreground shrink-0 text-xs">{label}</span>
       <span
-        className={`text-foreground text-xs text-right ${mono ? "tabular-nums font-mono" : ""}`}
+        className={`text-foreground text-right text-xs ${mono ? "font-mono tabular-nums" : ""}`}
       >
         {value}
         {unit && <span className="text-muted-foreground ml-1">{unit}</span>}

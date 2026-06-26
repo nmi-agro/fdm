@@ -76,7 +76,7 @@ export function SoilAnalysisUploadForm() {
 
   return (
     <div className="flex justify-center">
-      <Card className="w-full max-w-lg mx-auto">
+      <Card className="mx-auto w-full max-w-lg">
         <CardHeader>
           <CardTitle>Upload bodemanalyse</CardTitle>
           <CardDescription>
@@ -109,16 +109,16 @@ export function SoilAnalysisUploadForm() {
                             onBlur={onBlur}
                             onFilesChange={handleFilesChange}
                           >
-                            <div className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
+                            <div className="flex h-full w-full cursor-pointer flex-col items-center justify-center">
                               {uploadStatus === "idle" && (
                                 <>
-                                  <FileUp className="w-8 h-8 mb-2 text-muted-foreground" />
-                                  <div className="text-sm text-muted-foreground">
+                                  <FileUp className="text-muted-foreground mb-2 h-8 w-8" />
+                                  <div className="text-muted-foreground text-sm">
                                     {selectedFile
                                       ? selectedFile.name
                                       : "Klik om te uploaden of sleep een PDF bestand naar hier"}
                                   </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
+                                  <div className="text-muted-foreground mt-1 text-xs">
                                     PDF tot 5MB
                                   </div>
                                 </>
@@ -126,25 +126,25 @@ export function SoilAnalysisUploadForm() {
 
                               {uploadStatus === "uploading" && (
                                 <>
-                                  <Upload className="w-8 h-8 mb-2 text-primary animate-pulse" />
+                                  <Upload className="text-primary mb-2 h-8 w-8 animate-pulse" />
                                   <div className="text-sm">
                                     Uploading {selectedFile?.name}
                                     ...
                                   </div>
-                                  <Progress value={uploadProgress} className="w-full mt-2 h-2" />
+                                  <Progress value={uploadProgress} className="mt-2 h-2 w-full" />
                                 </>
                               )}
 
                               {uploadStatus === "success" && (
                                 <>
-                                  <CheckCircle className="w-8 h-8 mb-2 text-green-500" />
+                                  <CheckCircle className="mb-2 h-8 w-8 text-green-500" />
                                   <div className="text-sm text-green-600">Uploaden succesvol!</div>
                                 </>
                               )}
 
                               {uploadStatus === "error" && (
                                 <>
-                                  <AlertCircle className="w-8 h-8 mb-2 text-red-500" />
+                                  <AlertCircle className="mb-2 h-8 w-8 text-red-500" />
                                   <div className="text-sm text-red-600">
                                     Uploaden mislukt. Probeer het opnieuw.
                                   </div>
@@ -178,10 +178,10 @@ export function SoilAnalysisUploadForm() {
           </RemixFormProvider>
         </CardContent>
         <CardFooter className="flex flex-col items-start">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             De volgende labs worden op dit moment ondersteunt:
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+          <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
             {[
               "Eurofins Agro",
               "HLB",
@@ -194,7 +194,7 @@ export function SoilAnalysisUploadForm() {
               "SoilTech",
               "Laboratorium Zeeuws-Vlaanderen",
             ].map((lab) => (
-              <div key={lab} className="border rounded-md p-2 text-center text-sm">
+              <div key={lab} className="rounded-md border p-2 text-center text-sm">
                 {lab}
               </div>
             ))}

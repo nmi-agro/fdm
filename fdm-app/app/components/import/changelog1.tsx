@@ -36,7 +36,7 @@ const Changelog1 = ({
       <div className="container">
         <div className="mx-auto max-w-3xl">
           <h1 className="mb-4 text-3xl font-bold tracking-tight md:text-5xl">{title}</h1>
-          <p className="mb-6 text-base text-muted-foreground md:text-lg">{description}</p>
+          <p className="text-muted-foreground mb-6 text-base md:text-lg">{description}</p>
         </div>
         <div className="mx-auto mt-16 max-w-3xl space-y-16 md:mt-24 md:space-y-24">
           {entries.map((entry) => (
@@ -48,15 +48,15 @@ const Changelog1 = ({
                 <Badge variant="secondary" className="text-xs">
                   {entry.version}
                 </Badge>
-                <span className="text-xs font-medium text-muted-foreground">{entry.date}</span>
+                <span className="text-muted-foreground text-xs font-medium">{entry.date}</span>
               </div>
               <div className="flex flex-col">
-                <h2 className="mb-3 text-lg leading-tight font-bold text-foreground/90 md:text-2xl">
+                <h2 className="text-foreground/90 mb-3 text-lg leading-tight font-bold md:text-2xl">
                   {entry.title}
                 </h2>
-                <p className="text-sm text-muted-foreground md:text-base">{entry.description}</p>
+                <p className="text-muted-foreground text-sm md:text-base">{entry.description}</p>
                 {entry.items && entry.items.length > 0 && (
-                  <ul className="mt-4 ml-4 space-y-1.5 text-sm text-muted-foreground md:text-base">
+                  <ul className="text-muted-foreground mt-4 ml-4 space-y-1.5 text-sm md:text-base">
                     {entry.items.map((item, itemIndex) => (
                       <li key={`${entry.version}-item-${itemIndex}`} className="list-disc">
                         {item}

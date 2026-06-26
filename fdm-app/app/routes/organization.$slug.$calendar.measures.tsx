@@ -1,3 +1,4 @@
+import type { FeatureCollection, MultiPolygon } from "geojson"
 import {
   getCultivationsForFarm,
   getFarms,
@@ -5,7 +6,6 @@ import {
   getMeasuresForFarm,
   type Measure,
 } from "@nmi-agro/fdm-core"
-import type { FeatureCollection, MultiPolygon } from "geojson"
 import { ClipboardList } from "lucide-react"
 import { lazy, Suspense, useMemo } from "react"
 import { data, type MetaFunction, useLoaderData, useNavigate, useParams } from "react-router"
@@ -369,33 +369,33 @@ export default function MeasuresOrganizationIndex() {
         description="Overzicht van bodembeheersmaatregelen per bedrijf met toegang door deze organisatie."
       />
 
-      <div className="md:px-8 md:pb-8 space-y-6">
+      <div className="space-y-6 md:px-8 md:pb-8">
         {/* Summary stats banner */}
         {stats.totalFields > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="rounded-lg border bg-card px-4 py-3">
-              <p className="text-xs text-muted-foreground">Actieve maatregelen</p>
-              <p className="text-2xl font-bold tabular-nums mt-0.5">{stats.totalMeasures}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="bg-card rounded-lg border px-4 py-3">
+              <p className="text-muted-foreground text-xs">Actieve maatregelen</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.totalMeasures}</p>
             </div>
-            <div className="rounded-lg border bg-card px-4 py-3">
-              <p className="text-xs text-muted-foreground">Bedrijven met maatregel</p>
-              <p className="text-2xl font-bold tabular-nums mt-0.5">{stats.fieldsWithMeasures}</p>
+            <div className="bg-card rounded-lg border px-4 py-3">
+              <p className="text-muted-foreground text-xs">Bedrijven met maatregel</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.fieldsWithMeasures}</p>
             </div>
 
             <div className="rounded-lg border px-4 py-3">
-              <p className="text-xs text-muted-foreground">Bedrijven zonder maatregel</p>
-              <p className="text-2xl font-bold tabular-nums mt-0.5">
+              <p className="text-muted-foreground text-xs">Bedrijven zonder maatregel</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums">
                 {stats.fieldsWithoutMeasures}
               </p>
             </div>
           </div>
         )}
 
-        <div className="flex flex-col xl:flex-row gap-6 items-start">
-          <div className="flex-1 min-w-0">{tableOrEmpty}</div>
+        <div className="flex flex-col items-start gap-6 xl:flex-row">
+          <div className="min-w-0 flex-1">{tableOrEmpty}</div>
 
-          <div className="xl:w-96 xl:shrink-0 w-full rounded-lg overflow-hidden border">
-            <Suspense fallback={<div className="h-80 bg-muted animate-pulse rounded-lg" />}>
+          <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
+            <Suspense fallback={<div className="bg-muted h-80 animate-pulse rounded-lg" />}>
               <MeasuresMap
                 fieldsGeoJSON={fieldsGeoJSON}
                 selectedFieldGeoJSON={emptyGeoJSON}
@@ -412,7 +412,7 @@ export default function MeasuresOrganizationIndex() {
           <>
             <Separator />
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
                 Bedrijven
               </h3>
               <FieldSummaryTable

@@ -59,12 +59,12 @@ export function FieldCultivationsBadge({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1 cursor-pointer"
+          className="flex cursor-pointer items-center gap-1"
           aria-label={`Bekijk teelten voor ${fieldName}`}
         >
           <Badge
             variant="default"
-            className="text-white text-xs font-normal shrink-0"
+            className="shrink-0 text-xs font-normal text-white"
             style={{
               backgroundColor: color,
             }}
@@ -72,7 +72,7 @@ export function FieldCultivationsBadge({
             {mainCultivation.b_lu_name ?? "Onbekend"}
           </Badge>
           {extraCount > 0 && (
-            <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
+            <span className="text-muted-foreground text-xs font-medium whitespace-nowrap">
               +{extraCount}
             </span>
           )}
@@ -84,7 +84,7 @@ export function FieldCultivationsBadge({
         </DialogHeader>
         <div className="mt-2 space-y-3">
           {/* Header row */}
-          <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b pb-2">
+          <div className="text-muted-foreground grid grid-cols-4 gap-2 border-b pb-2 text-xs font-semibold">
             <span>Gewas</span>
             <span>Start</span>
             <span>Einde</span>
@@ -92,8 +92,8 @@ export function FieldCultivationsBadge({
           </div>
           {/* Cultivation rows */}
           {sortedCultivations.map((cultivation) => (
-            <div key={cultivation.b_lu} className="grid grid-cols-4 gap-2 text-sm items-start">
-              <span className="font-medium truncate">
+            <div key={cultivation.b_lu} className="grid grid-cols-4 items-start gap-2 text-sm">
+              <span className="truncate font-medium">
                 {cultivation.b_lu_name ?? "Onbekend gewas"}
               </span>
               <span className="text-muted-foreground">{formatDate(cultivation.b_lu_start)}</span>

@@ -1,7 +1,7 @@
+import type { FeatureCollection, Geometry } from "geojson"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import DOMPurify from "dompurify"
-import type { FeatureCollection, Geometry } from "geojson"
 import maplibregl from "maplibre-gl"
 import proj4 from "proj4"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -458,7 +458,7 @@ export default function FarmAtlasSoilBlock() {
           >
             <div className="p-3">
               <div className="flex items-start justify-between gap-3">
-                <h3 className="font-semibold text-sm leading-snug">
+                <h3 className="text-sm leading-snug font-semibold">
                   {popupInfo.properties.first_soilname ||
                     popupInfo.properties.normal_soilprofile_name ||
                     "Onbekende bodem"}
@@ -483,7 +483,7 @@ export default function FarmAtlasSoilBlock() {
         )}
 
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-4">
-          <div className="grid gap-4 w-87.5">
+          <div className="grid w-87.5 gap-4">
             <FieldsPanelHover zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
           </div>
         </div>

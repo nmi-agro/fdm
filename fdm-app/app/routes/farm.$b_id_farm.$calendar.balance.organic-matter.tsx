@@ -148,13 +148,13 @@ export default function FarmBalanceOrganicMatterBlock() {
         />
       </Header>
       <main>
-        <div className="space-y-6 py-5 px-10 pb-0">
+        <div className="space-y-6 px-10 py-5 pb-0">
           <div className="flex items-center gap-4">
             <div className="space-y-0.5 ">
               <h2 className="text-2xl font-bold tracking-tight">Organische stof</h2>
             </div>
           </div>
-          <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
+          <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
             <div className="flex-1">{<Outlet />}</div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { determineNLHoofdteelt } from "./hoofdteelt"
 import type { NL2025NormsInputForCultivation } from "./types"
+import { determineNLHoofdteelt } from "./hoofdteelt"
 
 describe("determineNLHoofdteelt", () => {
   it("should return the cultivation with the longest duration in the period", async () => {

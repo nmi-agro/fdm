@@ -119,7 +119,7 @@ export default function FarmFieldSoilOverviewBlock() {
                 ? "Bodemanalyse voor derogatie"
                 : "Bodemanalyse"}
           </h3>
-          <p className="text-sm text-muted-foreground">Voeg een nieuwe bodemanalyse toe</p>
+          <p className="text-muted-foreground text-sm">Voeg een nieuwe bodemanalyse toe</p>
         </div>
         <Button asChild>
           <NavLink to="../soil/analysis/new">

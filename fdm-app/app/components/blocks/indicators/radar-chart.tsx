@@ -63,13 +63,13 @@ function CustomTooltip({
   if (!active || !payload?.length) return null
   const d = payload[0].payload
   return (
-    <div className="bg-background/95 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-md text-xs">
-      <p className="font-semibold mb-1">{d.name}</p>
+    <div className="bg-background/95 rounded-lg border px-3 py-2 text-xs shadow-md backdrop-blur-sm">
+      <p className="mb-1 font-semibold">{d.name}</p>
       <p className="text-muted-foreground">
-        Perceel <span className="font-medium text-foreground">{d.index}</span>
+        Perceel <span className="text-foreground font-medium">{d.index}</span>
       </p>
       <p className="text-muted-foreground">
-        Met maatregelen <span className="font-medium text-foreground">{d.score}</span>
+        Met maatregelen <span className="text-foreground font-medium">{d.score}</span>
       </p>
     </div>
   )
@@ -126,7 +126,7 @@ export function IndicatorRadarChart({ indicators, indicatorInfos }: IndicatorRad
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-52 text-sm text-muted-foreground">
+      <div className="text-muted-foreground flex h-52 items-center justify-center text-sm">
         Geen indicatoren beschikbaar.
       </div>
     )

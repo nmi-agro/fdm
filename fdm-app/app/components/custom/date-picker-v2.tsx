@@ -1,12 +1,12 @@
 "use client"
 
+import type { ControllerFieldState, ControllerRenderProps, FieldValues } from "react-hook-form"
 import { nl as calenderLocale } from "@daypicker/react/locale"
 import * as chrono from "chrono-node"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { type ChangeEvent, useEffect, useState } from "react"
-import type { ControllerFieldState, ControllerRenderProps, FieldValues } from "react-hook-form"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
@@ -96,7 +96,7 @@ export function DatePicker({
   return (
     <Field data-invalid={fieldState.invalid} className={cn("gap-1", className)}>
       {typeof label === "string" && <FieldLabel>{label}</FieldLabel>}
-      <div className="flex relative gap-2">
+      <div className="relative flex gap-2">
         <Input
           {...field}
           value={inputValue}

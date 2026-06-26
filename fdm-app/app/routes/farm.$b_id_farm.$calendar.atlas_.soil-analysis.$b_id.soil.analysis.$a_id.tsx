@@ -109,11 +109,11 @@ export default function FarmFieldSoilOverviewBlock() {
   const field = loaderData.field
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-6">
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-medium">Bodem</h3>
-          <p className="text-sm text-muted-foreground">Bekijk de gegevens van deze bodemanalyse</p>
+          <p className="text-muted-foreground text-sm">Bekijk de gegevens van deze bodemanalyse</p>
         </div>
         <Button asChild>
           <NavLink

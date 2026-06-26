@@ -211,26 +211,26 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
     .pop()
 
   return (
-    <Card className="shadow-sm flex flex-col">
-      <CardHeader className="border-b shrink-0">
+    <Card className="flex flex-col shadow-sm">
+      <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center justify-between text-base font-semibold">
           <span className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-primary animate-pulse" />
+            <Bot className="text-primary h-5 w-5 animate-pulse" />
             Gerrit is aan het werk…
           </span>
-          <span className="text-sm font-normal tabular-nums text-muted-foreground">
+          <span className="text-muted-foreground text-sm font-normal tabular-nums">
             {elapsedStr}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="space-y-6 p-6">
         {/* Overall progress */}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-foreground">
+            <span className="text-foreground font-medium">
               {derived.statusMessage ?? "Voorbereiden…"}
             </span>
-            <span className="tabular-nums text-muted-foreground">
+            <span className="text-muted-foreground tabular-nums">
               {doneCount}/{phases.length}
             </span>
           </div>
@@ -253,23 +253,23 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
                     <Check className="h-3.5 w-3.5 text-green-600" />
                   </span>
                 ) : phase.status === "active" ? (
-                  <Spinner className="h-5 w-5 text-primary" />
+                  <Spinner className="text-primary h-5 w-5" />
                 ) : (
-                  <Circle className="h-5 w-5 text-muted-foreground/30" />
+                  <Circle className="text-muted-foreground/30 h-5 w-5" />
                 )}
               </span>
               <span
                 className={cn(
                   "flex-1",
                   phase.status === "done" && "text-muted-foreground",
-                  phase.status === "active" && "font-medium text-foreground",
+                  phase.status === "active" && "text-foreground font-medium",
                   phase.status === "pending" && "text-muted-foreground/60",
                 )}
               >
                 {phase.label}
               </span>
               {phase.count > 1 && (
-                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+                <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
                   ×{phase.count}
                 </span>
               )}
@@ -286,23 +286,23 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
             open={reasoningOpen}
             onOpenChange={setReasoningOpen}
             className={cn(
-              "rounded-md border bg-muted/30",
+              "bg-muted/30 rounded-md border",
               isThinking && "border-primary/40 bg-primary/5",
             )}
           >
-            <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted/50 transition-colors rounded-md">
+            <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors">
               <Sparkles
-                className={cn("h-4 w-4 shrink-0 text-primary", isThinking && "animate-pulse")}
+                className={cn("text-primary h-4 w-4 shrink-0", isThinking && "animate-pulse")}
               />
-              <span className="font-medium text-foreground shrink-0">
+              <span className="text-foreground shrink-0 font-medium">
                 {isThinking ? "Gerrit denkt na over de resultaten…" : "Gerrit's overwegingen"}
               </span>
               {!reasoningOpen && reasoningPreview && (
-                <span className="flex-1 truncate text-muted-foreground/80 italic">
+                <span className="text-muted-foreground/80 flex-1 truncate italic">
                   {reasoningPreview}
                 </span>
               )}
-              <span className="ml-auto flex shrink-0 items-center gap-1 text-xs text-primary">
+              <span className="text-primary ml-auto flex shrink-0 items-center gap-1 text-xs">
                 {reasoningOpen ? "Verbergen" : "Bekijken"}
                 <ChevronDown
                   className={cn("h-4 w-4 transition-transform", reasoningOpen && "rotate-180")}
@@ -312,7 +312,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
             <CollapsibleContent>
               <div
                 ref={reasoningRef}
-                className="max-h-48 overflow-y-auto whitespace-pre-wrap border-t px-3 py-2 text-sm leading-relaxed text-muted-foreground"
+                className="text-muted-foreground max-h-48 overflow-y-auto border-t px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
               >
                 {derived.reasoning.trim()}
               </div>

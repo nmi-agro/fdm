@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { calculateTargetForNitrogenBalance } from "./target"
 import type {
   CultivationDetail,
   FieldInput,
   NitrogenBalanceInput,
   SoilAnalysisPicked,
 } from "./types"
+import { calculateTargetForNitrogenBalance } from "./target"
 
 describe("calculateTargetForNitrogenBalance", () => {
   const defaultTimeFrame: NitrogenBalanceInput["timeFrame"] = {

@@ -32,7 +32,7 @@ export function FarmNorms({
               Voor één of meerdere percelen konden de gebruiksnormen niet volledig worden berekend.
               De totalen op bedrijfsniveau kunnen hierdoor afwijken.
             </p>
-            <ul className="list-disc pl-5 mt-2 text-xs">
+            <ul className="mt-2 list-disc pl-5 text-xs">
               {fieldErrorMessages.map((msg) => (
                 <li key={msg}>{msg}</li>
               ))}
@@ -50,7 +50,7 @@ export function FarmNorms({
               bedrijfsniveau zijn wel berekend, maar kunnen afwijken van de werkelijkheid omdat er
               geen gebruiksnorm is toegepast op deze percelen.
             </p>
-            <ul className="list-disc pl-5 mt-2 text-xs">
+            <ul className="mt-2 list-disc pl-5 text-xs">
               {fieldWarningMessages.map((msg) => (
                 <li key={msg}>{msg}</li>
               ))}

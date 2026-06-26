@@ -1,9 +1,8 @@
 import type { Field } from "@nmi-agro/fdm-core"
 import { describe, expect, it, vi } from "vitest"
-import { calculateNL2026StikstofGebruiksNorm } from "./stikstofgebruiksnorm"
-
-import * as StikstofData from "./stikstofgebruiksnorm-data"
 import type { NitrogenStandard, NL2026NormsInput, NL2026NormsInputForCultivation } from "./types"
+import { calculateNL2026StikstofGebruiksNorm } from "./stikstofgebruiksnorm"
+import * as StikstofData from "./stikstofgebruiksnorm-data"
 
 describe("calculateNL2026StikstofGebruiksNorm", () => {
   it("should return the correct norm for grasland (beweiden)", async () => {

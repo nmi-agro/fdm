@@ -461,7 +461,7 @@ export function ImageGallery({
 
   if (images.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <div className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
         Nog geen foto&apos;s toegevoegd.
       </div>
     )
@@ -474,17 +474,17 @@ export function ImageGallery({
           <button
             key={image.id}
             type="button"
-            className="group overflow-hidden rounded-xl border bg-card text-left"
+            className="group bg-card overflow-hidden rounded-xl border text-left"
             onClick={() => setSelectedImageId(image.id)}
           >
-            <div className="relative aspect-video overflow-hidden bg-muted">
+            <div className="bg-muted relative aspect-video overflow-hidden">
               <img
                 src={image.url}
                 alt={image.caption ?? "BCS foto"}
                 className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
               />
               {image.annotations.length > 0 ? (
-                <div className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
+                <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
                   {image.annotations.length}
                 </div>
               ) : null}
@@ -524,7 +524,7 @@ export function ImageGallery({
                   {/* Tool selector */}
                   {editMode && onAddAnnotation ? (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Gereedschap:</span>
+                      <span className="text-muted-foreground text-xs">Gereedschap:</span>
                       {(
                         [
                           {
@@ -558,11 +558,11 @@ export function ImageGallery({
                         </Tooltip>
                       ))}
                       {activeTool === "freehand" ? (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           Houd ingedrukt en sleep om te tekenen
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-muted-foreground text-xs">
                           Klik op de afbeelding om een pin te plaatsen
                         </span>
                       )}
@@ -706,7 +706,7 @@ export function ImageGallery({
                       <div className="mb-2 text-sm font-medium">
                         notities ({selectedImage.annotations.length})
                       </div>
-                      <ol className="space-y-1 text-sm text-muted-foreground">
+                      <ol className="text-muted-foreground space-y-1 text-sm">
                         {selectedImage.annotations.map((annotation, index) => {
                           const indicatorLabel = annotation.bcsIndicator
                             ? BCS_VISUAL_INDICATOR_MAP[annotation.bcsIndicator as BcsVisualKey]
@@ -733,8 +733,8 @@ export function ImageGallery({
                               >
                                 {index + 1}
                               </span>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-xs text-muted-foreground/70">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-muted-foreground/70 text-xs">
                                   {getAnnotationTypeLabel(annotation.type)}
                                   {indicatorLabel ? ` · ${indicatorLabel}` : ""}
                                 </div>
@@ -747,7 +747,7 @@ export function ImageGallery({
                                   type="button"
                                   variant="ghost"
                                   size="icon"
-                                  className="size-6 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                                  className="text-muted-foreground hover:text-destructive size-6 flex-shrink-0"
                                   onClick={() =>
                                     handleDeleteAnnotationClick(selectedImage.id, index)
                                   }
@@ -853,7 +853,7 @@ export function ImageGallery({
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-white hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 text-white"
               onClick={confirmDeleteAnnotation}
             >
               Verwijderen

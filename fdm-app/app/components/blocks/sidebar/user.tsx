@@ -98,9 +98,9 @@ export function SidebarUser({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   asChild
-                  className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                  className="hover:text-muted-foreground active:text-muted-foreground hover:bg-transparent active:bg-transparent"
                 >
-                  <span className="flex items-center gap-2 cursor-default text-muted-foreground">
+                  <span className="text-muted-foreground flex cursor-default items-center gap-2">
                     <Languages className="mr-2 h-4 w-4" />
                     <span>Taal</span>
                   </span>
@@ -117,9 +117,9 @@ export function SidebarUser({
               <DropdownMenuGroup>
                 <DropdownMenuItem
                   asChild
-                  className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground"
+                  className="hover:text-muted-foreground active:text-muted-foreground hover:bg-transparent active:bg-transparent"
                 >
-                  <span className="flex items-center gap-2 cursor-default text-muted-foreground">
+                  <span className="text-muted-foreground flex cursor-default items-center gap-2">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Instellingen</span>
                   </span>

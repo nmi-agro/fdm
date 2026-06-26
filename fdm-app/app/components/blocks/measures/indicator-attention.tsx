@@ -59,21 +59,21 @@ export function IndicatorAttention({
   // All green — show a compliment with a link to the indicators page
   if (needsAttention.length === 0) {
     return (
-      <div className="rounded-lg border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/20 px-4 py-3 flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 dark:border-green-900/40 dark:bg-green-950/20">
         <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
           <div>
             <p className="text-sm font-medium text-green-900 dark:text-green-200">
               Alle indicatoren scoren voldoende
             </p>
-            <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+            <p className="mt-0.5 text-xs text-green-700 dark:text-green-400">
               Goed bezig! De bodemkwaliteit van dit perceel ziet er goed uit.
             </p>
           </div>
         </div>
         <Link
           to={indicatorsHref}
-          className="inline-flex items-center gap-1.5 text-sm text-green-700 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200 transition-colors shrink-0"
+          className="inline-flex shrink-0 items-center gap-1.5 text-sm text-green-700 transition-colors hover:text-green-900 dark:text-green-400 dark:hover:text-green-200"
         >
           <BarChart2 className="h-4 w-4" />
           <span className="hidden sm:inline">Alle indicatoren</span>
@@ -85,10 +85,10 @@ export function IndicatorAttention({
   const redCount = needsAttention.filter((x) => getScoreTier(x.display) === "red").length
 
   return (
-    <div className="rounded-lg border border-orange-200 dark:border-orange-900/40 overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-orange-200 dark:border-orange-900/40">
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-3 bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/30 transition-colors text-left"
+        className="flex w-full items-center justify-between bg-orange-50 px-4 py-3 text-left transition-colors hover:bg-orange-100 dark:bg-orange-950/20 dark:hover:bg-orange-950/30"
         onClick={() => setExpanded((prev) => !prev)}
         aria-expanded={expanded}
       >
@@ -97,25 +97,25 @@ export function IndicatorAttention({
             {needsAttention.length}{" "}
             {needsAttention.length === 1 ? "indicator vraagt" : "indicatoren vragen"} aandacht
           </p>
-          <p className="text-xs text-orange-700 dark:text-orange-400 mt-0.5">
+          <p className="mt-0.5 text-xs text-orange-700 dark:text-orange-400">
             {redCount > 0
               ? `${redCount} met onvoldoende score — overweeg een maatregel`
               : "Matige scores — overweeg een maatregel"}
           </p>
         </div>
         {expanded ? (
-          <ChevronUp className="h-4 w-4 text-orange-600 shrink-0" />
+          <ChevronUp className="h-4 w-4 shrink-0 text-orange-600" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-orange-600 shrink-0" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-orange-600" />
         )}
       </button>
 
       {expanded && (
-        <div className="px-4 py-3 space-y-2.5 bg-background">
+        <div className="bg-background space-y-2.5 px-4 py-3">
           {needsAttention.map(({ result, info, display }) => (
             <div key={result.indicator_id} className="flex items-center gap-3">
               <div
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
                 style={{
                   backgroundColor: getScoreColor(display),
                 }}
@@ -123,9 +123,9 @@ export function IndicatorAttention({
                 {display}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{info.name}</p>
+                <p className="truncate text-sm font-medium">{info.name}</p>
                 <span
-                  className={`text-[10px] rounded-full px-1.5 py-0.5 font-medium ${CATEGORY_COLORS[info.ecosysteemdienst] ?? "bg-muted text-muted-foreground"}`}
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[info.ecosysteemdienst] ?? "bg-muted text-muted-foreground"}`}
                 >
                   {info.ecosysteemdienst}
                 </span>
@@ -134,7 +134,7 @@ export function IndicatorAttention({
             </div>
           ))}
 
-          <div className="pt-2 border-t flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 border-t pt-2">
             <Button
               size="sm"
               variant="outline"
@@ -142,12 +142,12 @@ export function IndicatorAttention({
               className={cn(!canAddMeasure && "invisible")}
               disabled={!canAddMeasure}
             >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Maatregel toevoegen
             </Button>
             <Link
               to={indicatorsHref}
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
             >
               <BarChart2 className="h-4 w-4" />
               <span className="hidden sm:inline">Alle indicatoren</span>

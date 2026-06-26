@@ -1,6 +1,6 @@
+import type { Feature, GeoJsonProperties, Geometry } from "geojson"
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon"
 import { point } from "@turf/helpers"
-import type { Feature, GeoJsonProperties, Geometry } from "geojson"
 import { deserializeFgb } from "~/components/blocks/atlas/atlas-fgb"
 import { getAvailableFieldsUrl } from "~/components/blocks/atlas/atlas-url"
 

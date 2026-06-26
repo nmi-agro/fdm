@@ -38,7 +38,7 @@ export function HelpdeskUserAvatar({
   const agentIcon = <Headset className="size-3/4" />
   const customerIcon = <User />
   return (
-    <Avatar className={cn("size-6 text-muted-foreground", className)}>
+    <Avatar className={cn("text-muted-foreground size-6", className)}>
       <AvatarImage
         src={user?.image ?? undefined}
         alt={

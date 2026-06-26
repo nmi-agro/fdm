@@ -47,7 +47,7 @@ export default function UserSettingsProfile() {
   return (
     <>
       <FarmTitle title="Profiel" description="Jouw accountgegevens." />
-      <div className="space-y-6 px-4 md:px-8 pb-8">
+      <div className="space-y-6 px-4 pb-8 md:px-8">
         <Card>
           <CardHeader>
             <CardTitle>Jouw gegevens</CardTitle>
@@ -61,18 +61,18 @@ export default function UserSettingsProfile() {
               </Avatar>
               <div>
                 <p className="font-medium">{user.name}</p>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <p className="text-muted-foreground text-sm">{user.email}</p>
               </div>
             </div>
             <Separator />
             <div className="space-y-2">
               <p className="text-sm font-medium">
                 Voornaam:{" "}
-                <span className="font-normal text-muted-foreground">{user.firstname}</span>
+                <span className="text-muted-foreground font-normal">{user.firstname}</span>
               </p>
               <p className="text-sm font-medium">
                 Achternaam:{" "}
-                <span className="font-normal text-muted-foreground">{user.surname}</span>
+                <span className="text-muted-foreground font-normal">{user.surname}</span>
               </p>
             </div>
           </CardContent>

@@ -32,7 +32,7 @@ export function NutrientKPICardForTotalApplications({
   const numberOfFertilizerApplications = fertilizerApplications.length
   const numberOfNutrientsApplied = Object.values(doses.dose).filter((value) => value > 0).length
   return (
-    <Card className="border-l-4 border-l-primary">
+    <Card className="border-l-primary border-l-4">
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -43,15 +43,15 @@ export function NutrientKPICardForTotalApplications({
               {navigation.state !== "loading" ? numberOfFertilizerApplications : <Spinner />}
             </p>
             {navigation.state !== "loading" ? (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {numberOfNutrientsApplied === 1
                   ? `Voor ${numberOfNutrientsApplied} nutriënt`
                   : `Voor ${numberOfNutrientsApplied} nutriënten`}
               </p>
             ) : null}
           </div>
-          <div className="p-3 bg-primary/10 rounded-full">
-            <ArrowDownToLine className="h-6 w-6 text-primary" />
+          <div className="bg-primary/10 rounded-full p-3">
+            <ArrowDownToLine className="text-primary h-6 w-6" />
           </div>
         </div>
       </CardContent>
@@ -116,13 +116,13 @@ export function NutrientKPICardForNutrientDeficit({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Gauge className="h-4 w-4 text-muted-foreground" />
+              <Gauge className="text-muted-foreground h-4 w-4" />
               <span className="text-sm font-medium">Risico voor opbrengst</span>
             </div>
             <p className="text-2xl font-bold">
               {navigation.state !== "loading" ? deficitNutrients.length : <Spinner />}
             </p>
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="mt-1 flex flex-wrap gap-1">
               {navigation.state !== "loading"
                 ? deficitNutrients.map((symbol) => (
                     <Badge key={symbol} variant="outline" className="text-xs">
@@ -135,10 +135,10 @@ export function NutrientKPICardForNutrientDeficit({
           <div
             className={
               navigation.state === "loading"
-                ? "p-3 bg-black/10 rounded-full"
+                ? "rounded-full bg-black/10 p-3"
                 : deficitNutrients.length > 0
-                  ? "p-3 bg-red-500/10 rounded-full"
-                  : "p-3 bg-green-500/10 rounded-full"
+                  ? "rounded-full bg-red-500/10 p-3"
+                  : "rounded-full bg-green-500/10 p-3"
             }
           >
             <Sprout
@@ -153,7 +153,7 @@ export function NutrientKPICardForNutrientDeficit({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="text-sm text-muted-foreground">
+      <CardFooter className="text-muted-foreground text-sm">
         {deficitNutrients.length > 0
           ? "Minder geven dan geadviseerd kan leiden tot opbrengstverlies"
           : ""}
@@ -220,13 +220,13 @@ export function NutrientKPICardForNutrientExcess({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <Gauge className="h-4 w-4 text-muted-foreground" />
+              <Gauge className="text-muted-foreground h-4 w-4" />
               <span className="text-sm font-medium">Risico voor milieu</span>
             </div>
             <p className="text-2xl font-bold">
               {navigation.state !== "loading" ? excessNutrients.length : <Spinner />}
             </p>
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="mt-1 flex flex-wrap gap-1">
               {navigation.state !== "loading"
                 ? excessNutrients.map((symbol) => (
                     <Badge key={symbol} variant="outline" className="text-xs">
@@ -239,8 +239,8 @@ export function NutrientKPICardForNutrientExcess({
           <div
             className={
               excessNutrients.length > 0
-                ? "p-3 bg-orange-500/10 rounded-full"
-                : "p-3 bg-green-500/10 rounded-full"
+                ? "rounded-full bg-orange-500/10 p-3"
+                : "rounded-full bg-green-500/10 p-3"
             }
           >
             <Leaf
@@ -255,7 +255,7 @@ export function NutrientKPICardForNutrientExcess({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="text-sm text-muted-foreground">
+      <CardFooter className="text-muted-foreground text-sm">
         {excessNutrients.length > 0
           ? "Meer geven dan geadviseerd kan leiden tot verlies naar milieu"
           : ""}

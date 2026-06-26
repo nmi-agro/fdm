@@ -102,15 +102,15 @@ export function DataTable<TData extends FarmExtended, TValue>({
   })
 
   return (
-    <div className="w-full flex flex-col h-full">
-      <div className="sticky top-0 z-10 bg-background py-4 flex flex-col sm:flex-row gap-2 items-center">
+    <div className="flex h-full w-full flex-col">
+      <div className="bg-background sticky top-0 z-10 flex flex-col items-center gap-2 py-4 sm:flex-row">
         <Input
           placeholder="Zoek op naam, gewas of meststof"
           value={globalFilter ?? ""}
           onChange={(event) => setGlobalFilter(event.target.value)}
           className="w-full sm:w-auto sm:flex-grow"
         />
-        <div className="flex w-full items-center justify-start sm:justify-end gap-2 sm:w-auto flex-wrap">
+        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -145,9 +145,9 @@ export function DataTable<TData extends FarmExtended, TValue>({
           </DropdownMenu>
         </div>
       </div>
-      <div className="rounded-md border grow relative overflow-x-auto">
+      <div className="relative grow overflow-x-auto rounded-md border">
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-background">
+          <TableHeader className="bg-background sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -155,8 +155,8 @@ export function DataTable<TData extends FarmExtended, TValue>({
                     <TableHead
                       key={header.id}
                       className={cn({
-                        "sticky left-0 bg-background": header.column.id === "select",
-                        "sticky right-0 bg-background": header.column.id === "actions",
+                        "bg-background sticky left-0": header.column.id === "select",
+                        "bg-background sticky right-0": header.column.id === "actions",
                       })}
                     >
                       {header.isPlaceholder
@@ -189,8 +189,8 @@ export function DataTable<TData extends FarmExtended, TValue>({
                     <TableCell
                       key={cell.id}
                       className={cn({
-                        "sticky left-0 bg-background": cell.column.id === "select",
-                        "sticky right-0 bg-background": cell.column.id === "actions",
+                        "bg-background sticky left-0": cell.column.id === "select",
+                        "bg-background sticky right-0": cell.column.id === "actions",
                       })}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

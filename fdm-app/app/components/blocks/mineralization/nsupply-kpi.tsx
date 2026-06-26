@@ -1,6 +1,6 @@
+import type { NSupplyMethod, NSupplyResult } from "~/integrations/mineralization.server"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import type { NSupplyMethod, NSupplyResult } from "~/integrations/mineralization.server"
 import { getCurrentDoy } from "./mineralization-chart"
 
 const METHOD_LABELS: Record<NSupplyMethod, string> = {
@@ -44,7 +44,7 @@ export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{Math.round(avgN)} kg N/ha</div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Gemiddeld over {validResults.length} percelen
           </p>
         </CardContent>
@@ -58,7 +58,7 @@ export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
           <div className="text-2xl font-bold">
             {maxResult ? Math.round(maxResult.totalAnnualN) : "—"} {maxResult ? "kg N/ha" : ""}
           </div>
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="text-muted-foreground truncate text-xs">
             {maxResult?.b_name ?? "Geen gegevens"}
           </p>
         </CardContent>
@@ -72,7 +72,7 @@ export function FarmNSupplyKpi({ results }: FarmNSupplyKpiProps) {
           <div className="text-2xl font-bold">
             {minResult ? Math.round(minResult.totalAnnualN) : "—"} {minResult ? "kg N/ha" : ""}
           </div>
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="text-muted-foreground truncate text-xs">
             {minResult?.b_name ?? "Geen gegevens"}
           </p>
         </CardContent>
@@ -117,7 +117,7 @@ export function FieldNSupplyDetailsCard({ results }: FieldNSupplyDetailsCardProp
       : undefined
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="flex h-full flex-col">
       <CardHeader className="pb-2">
         <CardTitle className="text-base">Berekeningsresultaten</CardTitle>
       </CardHeader>
@@ -129,10 +129,10 @@ export function FieldNSupplyDetailsCard({ results }: FieldNSupplyDetailsCardProp
               {bestResult && !bestResult.error ? Math.round(bestResult.totalAnnualN) : "—"}
             </span>
             {bestResult && !bestResult.error && (
-              <span className="text-xs font-medium text-muted-foreground">kg N/ha/jaar</span>
+              <span className="text-muted-foreground text-xs font-medium">kg N/ha/jaar</span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {bestResult
               ? `${METHOD_LABELS[bestResult.method]}-methode`
               : "Geen berekening beschikbaar"}
@@ -165,16 +165,16 @@ export function FieldNSupplyDetailsCard({ results }: FieldNSupplyDetailsCardProp
             <div key={r.method} className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{METHOD_LABELS[r.method]}</span>
               {r.error ? (
-                <span className="text-xs text-destructive">Niet beschikbaar</span>
+                <span className="text-destructive text-xs">Niet beschikbaar</span>
               ) : (
                 <span className="font-mono font-medium">{Math.round(r.totalAnnualN)} kg N/ha</span>
               )}
             </div>
           ))}
           {spread != null && (
-            <div className="flex items-center justify-between text-sm pt-1">
+            <div className="flex items-center justify-between pt-1 text-sm">
               <span className="text-muted-foreground">Spreiding methoden</span>
-              <span className="font-mono text-xs text-muted-foreground">
+              <span className="text-muted-foreground font-mono text-xs">
                 ±{Math.round(spread / 2)} kg N/ha
               </span>
             </div>
@@ -211,7 +211,7 @@ export function FieldNSupplyKpi({ results, soilType, organicMatter }: FieldNSupp
               ? `${Math.round(bestResult.totalAnnualN)} kg N/ha`
               : "—"}
           </div>
-          <p className="text-xs text-muted-foreground">Jaarlijks cumulatief</p>
+          <p className="text-muted-foreground text-xs">Jaarlijks cumulatief</p>
         </CardContent>
       </Card>
 
@@ -223,7 +223,7 @@ export function FieldNSupplyKpi({ results, soilType, organicMatter }: FieldNSupp
           <div className="text-2xl font-bold">
             {successfulCount} / {results.length}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {results
               .filter((r) => !r.error)
               .map((r) => METHOD_LABELS[r.method])
@@ -238,7 +238,7 @@ export function FieldNSupplyKpi({ results, soilType, organicMatter }: FieldNSupp
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{soilType ?? "—"}</div>
-          <p className="text-xs text-muted-foreground">Bodembeschrijving</p>
+          <p className="text-muted-foreground text-xs">Bodembeschrijving</p>
         </CardContent>
       </Card>
 
@@ -250,7 +250,7 @@ export function FieldNSupplyKpi({ results, soilType, organicMatter }: FieldNSupp
           <div className="text-2xl font-bold">
             {organicMatter != null ? `${Math.round(organicMatter)}%` : "—"}
           </div>
-          <p className="text-xs text-muted-foreground">a_som_loi</p>
+          <p className="text-muted-foreground text-xs">a_som_loi</p>
         </CardContent>
       </Card>
     </>

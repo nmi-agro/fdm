@@ -117,14 +117,14 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className="flex items-center py-4 gap-4">
+      <div className="flex items-center gap-4 py-4">
         <Input
           placeholder="Filter meststoffen..."
           value={(table.getColumn("p_name_nl")?.getFilterValue() as string) ?? ""}
           onChange={(event) => table.getColumn("p_name_nl")?.setFilterValue(event.target.value)}
           className="flex-1"
         />
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">Kolommen</Button>
@@ -196,7 +196,7 @@ export function DataTable<TData, TValue>({
                         {cell.column.id === "p_name_nl" && p_id ? (
                           <NavLink
                             to={`./${p_id}`}
-                            className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm block"
+                            className="focus-visible:ring-ring block rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
                             aria-label={`Bekijk details van ${p_name}`}
                           >
                             {flexRender(cell.column.columnDef.cell, cell.getContext())}

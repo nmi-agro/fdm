@@ -77,7 +77,7 @@ export function TicketSubjectEditor({
       />
       <Spinner
         className={cn(
-          "absolute right-2 top-1/2 -translate-y-1/2",
+          "absolute top-1/2 right-2 -translate-y-1/2",
           fetcher.state === "idle" && "invisible",
         )}
       />

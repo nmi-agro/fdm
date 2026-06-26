@@ -16,13 +16,13 @@ export function Bln3BetaBanner() {
         <TooltipTrigger asChild>
           <Badge
             variant="secondary"
-            className="cursor-help font-medium gap-1 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20"
+            className="cursor-help gap-1 border-amber-500/20 bg-amber-500/10 font-medium text-amber-600 hover:bg-amber-500/20"
           >
             <Info className="h-3 w-3" />
             In ontwikkeling
           </Badge>
         </TooltipTrigger>
-        <TooltipContent className="max-w-[300px] text-sm p-3">
+        <TooltipContent className="max-w-[300px] p-3 text-sm">
           De BLN3-scores en de lijst van maatregelen zijn nog in ontwikkeling en kunnen worden
           gewijzigd. De getoonde scores zijn niet definitief en de lijst van maatregelen is niet
           volledig.

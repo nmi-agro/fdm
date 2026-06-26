@@ -1,3 +1,4 @@
+import type { NormFilling } from "./nl/types"
 import { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./farm"
 import {
   calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
@@ -45,7 +46,6 @@ import {
   collectNL2026InputForNormsForFarm,
 } from "./nl/2026/value/input"
 import { getNL2026StikstofGebruiksNorm } from "./nl/2026/value/stikstofgebruiksnorm"
-import type { NormFilling } from "./nl/types"
 
 type Years = "2025" | "2026"
 type Regions = "NL"

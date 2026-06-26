@@ -1,7 +1,7 @@
+import type { LoaderFunctionArgs } from "react-router"
 import { type Fertilizer, getFertilizers } from "@nmi-agro/fdm-core"
 import { Pencil, Plus } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
-import type { LoaderFunctionArgs } from "react-router"
 import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
@@ -86,18 +86,18 @@ export default function NewFertilizerIndexPage() {
           "Kies hoe u een nieuwe meststof wilt toevoegen: start met een leeg formulier of gebruik een bestaand product uit de catalogus als basis."
         }
       />
-      <div className="p-4 md:p-8 pt-0 md:pt-0">
-        <div className="mx-auto max-w-6xl w-full">
+      <div className="p-4 pt-0 md:p-8 md:pt-0">
+        <div className="mx-auto w-full max-w-6xl">
           <div className="relative">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32 items-start">
+            <div className="grid grid-cols-1 items-start gap-16 lg:grid-cols-2 lg:gap-32">
               {/* Choice 1: Manual Creation */}
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    <div className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
                       1
                     </div>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-foreground text-2xl font-bold tracking-tight">
                       Zelf samenstellen
                     </h2>
                   </div>
@@ -107,9 +107,9 @@ export default function NewFertilizerIndexPage() {
                   </p>
                 </div>
 
-                <Card className="flex flex-col items-center justify-center p-10 bg-muted/20 border-2 border-dashed hover:bg-muted/30 transition-colors group">
-                  <div className="h-16 w-16 rounded-full bg-background flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform">
-                    <Plus className="h-8 w-8 text-primary" />
+                <Card className="bg-muted/20 hover:bg-muted/30 group flex flex-col items-center justify-center border-2 border-dashed p-10 transition-colors">
+                  <div className="bg-background mb-6 flex h-16 w-16 items-center justify-center rounded-full shadow-sm transition-transform group-hover:scale-110">
+                    <Plus className="text-primary h-8 w-8" />
                   </div>
                   <Button asChild size="lg" className="w-full font-bold shadow-sm">
                     <Link
@@ -129,10 +129,10 @@ export default function NewFertilizerIndexPage() {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                    <div className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
                       2
                     </div>
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-foreground text-2xl font-bold tracking-tight">
                       Kies uit lijst
                     </h2>
                   </div>
@@ -149,10 +149,10 @@ export default function NewFertilizerIndexPage() {
                       placeholder="Zoek product of categorie..."
                       value={searchQuery}
                       onValueChange={setSearchQuery}
-                      className="text-base py-6"
+                      className="py-6 text-base"
                     />
-                    <CommandList className="max-h-112.5 overflow-y-auto p-2 border-t">
-                      <CommandEmpty className="py-10 text-center text-sm text-muted-foreground leading-relaxed px-4">
+                    <CommandList className="max-h-112.5 overflow-y-auto border-t p-2">
+                      <CommandEmpty className="text-muted-foreground px-4 py-10 text-center text-sm leading-relaxed">
                         Geen meststoffen gevonden voor "{searchQuery}"<br />
                         <span className="text-xs">
                           Probeer een andere zoekterm of gebruik handmatige invoer.
@@ -169,25 +169,25 @@ export default function NewFertilizerIndexPage() {
                               key={fertilizer.p_id}
                               value={fertilizer.p_id}
                               onSelect={() => handleSelect(fertilizer.p_id)}
-                              className="flex items-center justify-between p-3 cursor-pointer rounded-md mb-1"
+                              className="mb-1 flex cursor-pointer items-center justify-between rounded-md p-3"
                             >
-                              <div className="flex flex-col gap-1 min-w-0 flex-1">
+                              <div className="flex min-w-0 flex-1 flex-col gap-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium text-base truncate text-foreground">
+                                  <span className="text-foreground truncate text-base font-medium">
                                     {fertilizer.p_name_nl || "Onbekend"}
                                   </span>
                                   {fertilizer.isCustom && (
                                     <Badge
                                       variant="secondary"
-                                      className="px-1.5 py-0 h-4 text-[10px] font-normal bg-amber-100 text-amber-800 border-amber-200 shrink-0"
+                                      className="h-4 shrink-0 border-amber-200 bg-amber-100 px-1.5 py-0 text-[10px] font-normal text-amber-800"
                                     >
-                                      <Pencil className="h-2.5 w-2.5 mr-1" />
+                                      <Pencil className="mr-1 h-2.5 w-2.5" />
                                       Eigen
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                  <span className="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                                <div className="text-muted-foreground flex items-center gap-3 text-xs">
+                                  <span className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap">
                                     <span>
                                       N:{" "}
                                       <strong className="text-foreground font-medium">
@@ -216,7 +216,7 @@ export default function NewFertilizerIndexPage() {
                                 <Badge
                                   variant="outline"
                                   className={cn(
-                                    "shrink-0 ml-4 hidden sm:flex border-transparent font-medium",
+                                    "ml-4 hidden shrink-0 border-transparent font-medium sm:flex",
                                     fertilizer.p_type === "manure"
                                       ? "bg-amber-600 text-white hover:bg-amber-700"
                                       : fertilizer.p_type === "compost"
@@ -238,9 +238,9 @@ export default function NewFertilizerIndexPage() {
               </div>
 
               {/* Vertical Separator for desktop */}
-              <div className="hidden lg:flex absolute inset-y-0 left-1/2 -translate-x-1/2 items-center justify-center pointer-events-none px-4">
-                <div className="h-full w-px bg-border relative">
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 py-1.5 border rounded-full text-[10px] font-bold text-muted-foreground uppercase tracking-widest shadow-sm">
+              <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden -translate-x-1/2 items-center justify-center px-4 lg:flex">
+                <div className="bg-border relative h-full w-px">
+                  <div className="bg-background text-muted-foreground absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase shadow-sm">
                     OF
                   </div>
                 </div>

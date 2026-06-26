@@ -54,7 +54,7 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({ row }) => 
         ? [row.original.b_id]
         : row.subRows.map((fieldRow) => (fieldRow.original as FieldRow).b_id)
     return (
-      <div className="flex items-start flex-col space-y-2">
+      <div className="flex flex-col items-start space-y-2">
         {uniqueFertilizers.map((fertilizer) => {
           const isFertilizerUsedOnAllFieldsForThisCultivation =
             row.original.type === "field" ||
@@ -70,7 +70,7 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({ row }) => 
               key={fertilizer.p_id}
               to={`./modify_fertilizer/${fertilizer.p_id}?fieldIds=${fieldIds.map(encodeURIComponent).join(",")}`}
             >
-              <Badge variant="outline" className="gap-1 text-muted-foreground">
+              <Badge variant="outline" className="text-muted-foreground gap-1">
                 <span>
                   {fertilizer.p_type === "manure" ? (
                     <Square

@@ -13,9 +13,9 @@ import {
   type SQL,
   sql,
 } from "drizzle-orm"
-import * as schema from "./db/schema-helpdesk"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import type { AgentFilters, MessageFilters, TicketFilters } from "./filter.types"
+import * as schema from "./db/schema-helpdesk"
 
 /**
  * Gets the WHERE clause to filter a database agent selection

@@ -1,6 +1,6 @@
+import type { FeatureCollection, Geometry } from "geojson"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { featureCollection } from "@turf/helpers"
-import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { data, type MetaFunction, useLoaderData } from "react-router"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
@@ -269,7 +269,7 @@ export default function OrgAtlasIndicatorsMap() {
 
       <div className="absolute right-4 bottom-12 z-10 flex flex-col items-end gap-2">
         {numDone < numTotal && (
-          <Badge variant="outline" className="bg-orange-200 border-orange-400">
+          <Badge variant="outline" className="border-orange-400 bg-orange-200">
             Even geduld... {numDone}/{numTotal} bedrijven
           </Badge>
         )}
@@ -281,7 +281,7 @@ export default function OrgAtlasIndicatorsMap() {
         )}
       </div>
 
-      <Suspense fallback={<div className="absolute inset-0 bg-muted animate-pulse" />}>
+      <Suspense fallback={<div className="bg-muted absolute inset-0 animate-pulse" />}>
         <IndicatorsMap
           fieldsGeoJSON={displayedFieldsGeoJSON}
           mapStyle={mapStyle}

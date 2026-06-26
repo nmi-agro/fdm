@@ -1,5 +1,5 @@
-import postgres from "postgres"
 import type { TestProject } from "vitest/node"
+import postgres from "postgres"
 import { runHelpdeskMigration } from "./migrate"
 
 let client: ReturnType<typeof postgres>

@@ -5,10 +5,10 @@ import {
   withCalculationCache,
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import pkg from "../../../../package"
 import type { NormFilling } from "../../types"
-import { table11Mestcodes } from "./table-11-mestcodes"
 import type { NL2025NormsFillingInput } from "./types"
+import pkg from "../../../../package"
+import { table11Mestcodes } from "./table-11-mestcodes"
 
 const rvoMestcodesOrganicRich25Percent = ["111", "112"] // Compost, Zeer schone compost
 const rvoMestcodesOrganicRich75Percent = ["110", "10", "61", "25", "56"] // Champost, Rundvee - Vaste mest, Geiten - Vaste mest, Paarden - Vaste mest, Schapen - Mest, alle systemen

@@ -150,7 +150,7 @@ export default function FarmFieldSoilOverviewBlock() {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-medium">Bodem</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             In de gegevens hieronder vind je de meest recente waarde gemeten voor elke
             bodemparameter
           </p>
@@ -172,12 +172,12 @@ export default function FarmFieldSoilOverviewBlock() {
       <div className="">
         <TabsContent value="parameters">
           {loaderData.soilAnalyses.length === 0 ? (
-            <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
+            <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
               <div className="flex flex-col space-y-2 text-center">
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Dit perceel heeft nog geen bodemanalyse
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Voeg een analyse toe om gegevens over de bodem bij te houden
                 </p>
               </div>

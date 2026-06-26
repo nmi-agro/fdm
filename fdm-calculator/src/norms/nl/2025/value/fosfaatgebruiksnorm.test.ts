@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { calculateNL2025FosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
 import type { NL2025NormsInput, NL2025NormsInputForCultivation } from "./types"
+import { calculateNL2025FosfaatGebruiksNorm } from "./fosfaatgebruiksnorm"
 
 describe("calculateNL2025FosfaatGebruiksNorm", () => {
   it("should return the correct norm for grasland", async () => {

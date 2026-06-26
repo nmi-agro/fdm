@@ -117,7 +117,7 @@ export default function FieldBcsOverviewRoute() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className="text-lg font-medium">BodemConditieScore</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Visuele bodemconditiebeoordelingen voor {loaderData.field.b_name}.
           </p>
         </div>
@@ -167,7 +167,7 @@ export default function FieldBcsOverviewRoute() {
                               })
                             : "Onbekende datum"}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-muted-foreground text-sm">
                           BodemConditieScore {computed.d_bcs.toFixed(0)} · Indicator{" "}
                           {(computed.i_bcs * 100).toFixed(0)}%
                         </div>

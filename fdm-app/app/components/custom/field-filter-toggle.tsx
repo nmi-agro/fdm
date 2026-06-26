@@ -18,12 +18,12 @@ export function FieldFilterToggle() {
             variant="outline"
             size="icon"
             onClick={toggleShowProductiveOnly}
-            className="border hover:bg-accent hover:text-accent-foreground"
+            className="hover:bg-accent hover:text-accent-foreground border"
             aria-label={tooltipContent}
             aria-pressed={showProductiveOnly}
           >
             {showProductiveOnly ? (
-              <Square className="h-4 w-4 text-primary" />
+              <Square className="text-primary h-4 w-4" />
             ) : (
               <PanelsRightBottom className="h-4 w-4" />
             )}

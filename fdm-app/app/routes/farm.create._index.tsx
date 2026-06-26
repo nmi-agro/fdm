@@ -1,3 +1,4 @@
+import type { ActionFunctionArgs, MetaFunction } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addDerogation,
@@ -17,7 +18,6 @@ import {
   type FieldValues,
   type Resolver,
 } from "react-hook-form"
-import type { ActionFunctionArgs, MetaFunction } from "react-router"
 import { Form, useLoaderData } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
@@ -186,7 +186,7 @@ export default function AddFarmPage() {
       <Header action={undefined}>
         <HeaderFarmCreate b_name_farm={undefined} />
       </Header>
-      <main className="flex-1 overflow-y-auto bg-muted/20">
+      <main className="bg-muted/20 flex-1 overflow-y-auto">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 p-4 lg:grid-cols-3 lg:p-8">
           {/* Left Column: Form */}
           <div className="lg:col-span-2">
@@ -261,7 +261,7 @@ export default function AddFarmPage() {
 
                       <div className="space-y-6">
                         <div className="border-t pt-4">
-                          <h3 className="font-medium mb-4 text-base">Instellingen</h3>
+                          <h3 className="mb-4 text-base font-medium">Instellingen</h3>
                           <div className="grid gap-4 sm:grid-cols-2">
                             {/* Derogation Section */}
                             {isDerogationPossible && (
@@ -273,7 +273,7 @@ export default function AddFarmPage() {
                                     render={({ field, fieldState }) => (
                                       <Field
                                         orientation="horizontal"
-                                        className="justify-between items-center"
+                                        className="items-center justify-between"
                                         data-invalid={fieldState.invalid}
                                       >
                                         <FieldLabel className="text-base font-normal">
@@ -332,7 +332,7 @@ export default function AddFarmPage() {
                                 render={({ field, fieldState }) => (
                                   <Field
                                     orientation="horizontal"
-                                    className="justify-between items-center"
+                                    className="items-center justify-between"
                                     data-invalid={fieldState.invalid}
                                   >
                                     <FieldLabel className="text-base font-normal">
@@ -356,7 +356,7 @@ export default function AddFarmPage() {
                                   render={({ field, fieldState }) => (
                                     <Field
                                       orientation="horizontal"
-                                      className="justify-between items-center"
+                                      className="items-center justify-between"
                                       data-invalid={fieldState.invalid}
                                     >
                                       <FieldLabel className="text-base font-normal">
@@ -449,24 +449,24 @@ export default function AddFarmPage() {
 
           {/* Right Column: Help & Info */}
           <div className="space-y-6">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="bg-card text-card-foreground rounded-lg border shadow-sm">
               <div className="flex flex-col space-y-1.5 p-6">
-                <h3 className="font-semibold leading-none tracking-tight">
+                <h3 className="leading-none font-semibold tracking-tight">
                   Maak een nieuw bedrijf aan.
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Welkom! Je kan nu een nieuw bedrijf aanmaken. In dit stappenplan leggen we uit
                   welke data je kan invullen, zodat we je bedrijf goed hebben ingesteld voor de
                   rekenregels.
                 </p>
               </div>
-              <div className="p-6 pt-0 text-sm space-y-4">
-                <ol className="list-decimal pl-4 space-y-3 text-muted-foreground">
+              <div className="space-y-4 p-6 pt-0 text-sm">
+                <ol className="text-muted-foreground list-decimal space-y-3 pl-4">
                   <li>
                     <strong className="text-foreground">Bedrijfsgegevens (Nu):</strong> Vul hier je
                     bedrijfsgegevens in. Dit helpt bijvoorbeeld bij het bepalen van de
                     gebruiksruimte.
-                    <p className="text-xs text-muted-foreground italic pt-1">
+                    <p className="text-muted-foreground pt-1 text-xs italic">
                       Tip: Vul alvast het KvK-nummer zodat we binnenkort eenvoudig gegevens kunnen
                       importeren.
                     </p>
@@ -479,7 +479,7 @@ export default function AddFarmPage() {
                     <strong className="text-foreground">Perceelseigenschappen:</strong> Check het
                     hoofdgewas van de percelen, markeer bufferstroken en bekijk de geschatte
                     bodemeigenschappen.
-                    <p className="text-xs text-muted-foreground italic pt-1">
+                    <p className="text-muted-foreground pt-1 text-xs italic">
                       Tip: Je kunt de pdf's van je bodemanalyses uploaden om direct je gemeten
                       bodemeigenschappen te gebruiken.
                     </p>
@@ -487,7 +487,7 @@ export default function AddFarmPage() {
                   <li>
                     <strong className="text-foreground">Bouwplan:</strong> Hier kun je op
                     gewasniveau de bemestingen, oogsten en andere gegevens van je gewassen invullen.
-                    <p className="text-xs text-muted-foreground italic pt-1">
+                    <p className="text-muted-foreground pt-1 text-xs italic">
                       Tip: Je kunt ook de gewassen uitklappen in de tabel als je op perceelsniveau
                       gegevens wilt invullen.
                     </p>
@@ -498,8 +498,8 @@ export default function AddFarmPage() {
                   </li>
                 </ol>
 
-                <div className="space-y-2 pt-2 border-t">
-                  <h4 className="font-medium text-foreground">
+                <div className="space-y-2 border-t pt-2">
+                  <h4 className="text-foreground font-medium">
                     Kan ik ook later gegevens invullen?
                   </h4>
                   <p className="text-muted-foreground">

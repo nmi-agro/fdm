@@ -1,3 +1,4 @@
+import type { MetaFunction } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   checkPermission,
@@ -12,7 +13,6 @@ import {
   type FieldValues,
   type Resolver,
 } from "react-hook-form"
-import type { MetaFunction } from "react-router"
 import {
   type ActionFunctionArgs,
   data,
@@ -151,7 +151,7 @@ export default function FarmFieldsOverviewBlock() {
         <RemixFormProvider {...form}>
           <Form id="formFieldOverview" onSubmit={form.handleSubmit} method="post">
             <fieldset disabled={form.formState.isSubmitting}>
-              <div className="grid grid-cols-1 xl:grid-cols-2 w-full gap-6">
+              <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-2">
                 <Controller
                   control={form.control}
                   name="b_name"
@@ -189,12 +189,12 @@ export default function FarmFieldsOverviewBlock() {
                   control={form.control}
                   name="b_bufferstrip"
                   render={({ field }) => (
-                    <div className="col-span-1 flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm gap-4">
-                      <div className="space-y-0.5 min-w-0">
-                        <FieldLabel className="text-base cursor-pointer" htmlFor="b_bufferstrip">
+                    <div className="col-span-1 flex flex-row items-center justify-between gap-4 rounded-lg border p-4 shadow-sm">
+                      <div className="min-w-0 space-y-0.5">
+                        <FieldLabel className="cursor-pointer text-base" htmlFor="b_bufferstrip">
                           Bufferstrook
                         </FieldLabel>
-                        <p className="text-sm text-muted-foreground break-words">
+                        <p className="text-muted-foreground text-sm break-words">
                           Is dit perceel een bufferstrook?{" "}
                         </p>
                       </div>

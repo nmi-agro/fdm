@@ -34,15 +34,15 @@ export const InvitationEmail = ({
       reasonText={`Je ontvangt deze e-mail omdat ${inviterName} je heeft uitgenodigd voor ${organizationName}.`}
       preview={previewText}
     >
-      <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
+      <Heading className="mx-0 my-7.5 p-0 text-center text-[24px] font-normal text-black">
         Je bent uitgenodigd!
       </Heading>
-      <Text className="text-black text-[14px] leading-6">Hallo {inviteeEmail},</Text>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">Hallo {inviteeEmail},</Text>
+      <Text className="text-[14px] leading-6 text-black">
         {inviterName} heeft je uitgenodigd om lid te worden van de organisatie{" "}
         <b>{organizationName}</b> in {appName}.
       </Text>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">
         {appName} biedt inzicht in uw bodem- en bemestingsdata. Bereken eenvoudig de stikstof- en
         organische stofbalans, bekijk welke meststoffen geschikt zijn en raadpleeg percelen in de
         Atlas. Werk samen met adviseurs en collega's in één omgeving.
@@ -60,7 +60,7 @@ export const InvitationEmail = ({
             <td align="center" style={{ padding: "0 12px" }}>
               <Button
                 href={`${baseUrl}/organization/invitations/${invitationId}/respond?intent=accept`}
-                className="bg-primary text-white border-solid border-primary border-2 rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
+                className="bg-primary border-primary min-w-37.5 rounded border-2 border-solid px-5 py-3 text-[14px] font-semibold text-white no-underline"
               >
                 Accepteren
               </Button>
@@ -68,7 +68,7 @@ export const InvitationEmail = ({
             <td align="center" style={{ padding: "0 12px" }}>
               <Button
                 href={`${baseUrl}/organization/invitations/${invitationId}/respond?intent=reject`}
-                className="bg-[#f5f5f5] text-[#171717] border-solid border-[#171717] border-2 rounded px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
+                className="min-w-37.5 rounded border-2 border-solid border-[#171717] bg-[#f5f5f5] px-5 py-3 text-[14px] font-semibold text-[#171717] no-underline"
               >
                 Afwijzen
               </Button>
@@ -79,7 +79,7 @@ export const InvitationEmail = ({
       <Section className="mt-8 mb-8 text-center">
         <Link href={`${baseUrl}/organization`}>of bekijk je organisaties</Link>
       </Section>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">
         Als je deze uitnodiging niet wilt accepteren, kun je deze e-mail negeren, of op bovenstaande
         knop klikken om de uitnodiging te weigeren.
       </Text>

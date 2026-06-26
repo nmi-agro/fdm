@@ -141,7 +141,7 @@ export function SidebarApps() {
                     <TooltipTrigger asChild>
                       <SidebarMenuButton
                         isActive={false}
-                        className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
                       >
                         <MapIcon className="text-muted-foreground" />
                         <span className="text-muted-foreground">Atlas</span>
@@ -219,7 +219,7 @@ export function SidebarApps() {
                     <TooltipTrigger asChild>
                       <SidebarMenuButton
                         isActive={false}
-                        className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                        className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
                       >
                         <ArrowRightLeft className="text-muted-foreground" />
                         <span className="text-muted-foreground">Balans</span>
@@ -276,7 +276,7 @@ export function SidebarApps() {
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       isActive={false}
-                      className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
                     >
                       <BookOpenText className="text-muted-foreground" />
                       <span className="text-muted-foreground">Bemestingsadvies</span>
@@ -301,7 +301,7 @@ export function SidebarApps() {
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       isActive={false}
-                      className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
                     >
                       <Landmark className="text-muted-foreground" />
                       <span className="text-muted-foreground">Gebruiksruimte</span>
@@ -332,7 +332,7 @@ export function SidebarApps() {
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       isActive={false}
-                      className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
                     >
                       <Gauge className="text-muted-foreground" />
                       <span className="text-muted-foreground">Indicatoren</span>

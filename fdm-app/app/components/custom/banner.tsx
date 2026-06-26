@@ -105,12 +105,12 @@ export function Banner() {
   return (
     <div>
       {isVisible && (
-        <div className="fixed z-200 bottom-0 left-0 right-0 sm:left-4 sm:bottom-4 w-full sm:max-w-md duration-700 transition-[opacity,transform] translate-y-0 opacity-100">
-          <div className="dark:bg-card bg-background rounded-md m-3 border border-border shadow-lg">
+        <div className="fixed right-0 bottom-0 left-0 z-200 w-full translate-y-0 opacity-100 transition-[opacity,transform] duration-700 sm:bottom-4 sm:left-4 sm:max-w-md">
+          <div className="dark:bg-card bg-background border-border m-3 rounded-md border shadow-lg">
             <div className="grid gap-2">
-              <div className="border-b border-border h-14 flex items-center justify-between p-4">
+              <div className="border-border flex h-14 items-center justify-between border-b p-4">
                 <h1 className="text-lg font-medium">{`Cookies op ${clientConfig.name}`}</h1>
-                <div className="flex gap-2 items-center">
+                <div className="flex items-center gap-2">
                   <Cookie className="h-5 w-5" />
                   {(consentGiven === "yes" || consentGiven === "no") && (
                     <Button
@@ -126,7 +126,7 @@ export function Banner() {
                 </div>
               </div>
               <div className="p-4">
-                <p className="text-sm font-normal text-start">
+                <p className="text-start text-sm font-normal">
                   {`Wij gebruiken cookies enkel om ${clientConfig.name} te
                                     verbeteren, zodat we weten wat er goed en
                                     fout gaat.`}
@@ -151,7 +151,7 @@ export function Banner() {
                   </a>
                 </p>
               </div>
-              <div className="flex gap-2 p-4 py-5 border-t border-border dark:bg-background/20">
+              <div className="border-border dark:bg-background/20 flex gap-2 border-t p-4 py-5">
                 {consentGiven === "yes" ? (
                   <Button onClick={handleResetCookies} className="w-full" variant="outline">
                     Reset keuze: Geaccepteerd

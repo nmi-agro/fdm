@@ -169,10 +169,10 @@ export function AggregationPainpoints({
       : `Top 5 ${domain === "organization" ? "bedrijven" : "percelen"} met hoogste negatieve impact voor ${activeIndName}`
 
   return (
-    <Card className="border border-border shadow-sm">
+    <Card className="border-border border shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-muted-foreground" />
+          <AlertCircle className="text-muted-foreground h-5 w-5" />
           <CardTitle className="text-base font-bold">Knelpunten</CardTitle>
         </div>
         <CardDescription className="text-xs">
@@ -185,24 +185,24 @@ export function AggregationPainpoints({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary banner */}
-        <div className="flex items-center gap-2 p-2.5 rounded-md bg-muted/40 border text-xs">
+        <div className="bg-muted/40 flex items-center gap-2 rounded-md border p-2.5 text-xs">
           {criticalCount > 0 ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-              <span className="font-semibold text-foreground">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+              <span className="text-foreground font-semibold">
                 {criticalCount} kritieke en {warningCount} matige thema's gedetecteerd.
               </span>
             </>
           ) : warningCount > 0 ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-yellow-500 shrink-0" />
-              <span className="font-semibold text-foreground">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-yellow-500" />
+              <span className="text-foreground font-semibold">
                 {warningCount} matige thema's gedetecteerd. Geen kritieke knelpunten.
               </span>
             </>
           ) : (
             <>
-              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
               <span className="font-semibold text-green-600 dark:text-green-400">
                 Alle thema's {domain === "organization" ? "voor uw organisatie" : "op uw bedrijf"}{" "}
                 scoren goed (70+).
@@ -211,11 +211,11 @@ export function AggregationPainpoints({
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Left: ranked list with toggle */}
           <div className="space-y-1.5">
             {/* Toggle */}
-            <div className="flex items-center gap-1 p-0.5 rounded-md bg-muted w-fit">
+            <div className="bg-muted flex w-fit items-center gap-1 rounded-md p-0.5">
               <button
                 type="button"
                 onClick={() => {
@@ -223,9 +223,9 @@ export function AggregationPainpoints({
                   setSelectedIndId(null)
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
+                  "rounded px-2.5 py-1 text-[11px] font-medium transition-colors",
                   leftMode === "themes"
-                    ? "bg-background shadow-sm text-foreground"
+                    ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -238,9 +238,9 @@ export function AggregationPainpoints({
                   setSelectedAggId(null)
                 }}
                 className={cn(
-                  "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
+                  "rounded px-2.5 py-1 text-[11px] font-medium transition-colors",
                   leftMode === "indicators"
-                    ? "bg-background shadow-sm text-foreground"
+                    ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
@@ -250,14 +250,14 @@ export function AggregationPainpoints({
 
             {leftMode === "themes" ? (
               <>
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                <h4 className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
                   Zwakste thema's (
                   {domain === "organization"
                     ? "gemiddelde van de organisatie"
                     : "bedrijfsgemiddelde"}
                   )
                 </h4>
-                <ScrollArea className="h-[280px] w-full rounded-md border p-1 bg-card">
+                <ScrollArea className="bg-card h-[280px] w-full rounded-md border p-1">
                   <div className="space-y-1 p-1">
                     {rankedLeaves.map((leaf) => {
                       const info = getAggregationInfo(leaf.id)
@@ -270,23 +270,23 @@ export function AggregationPainpoints({
                           variant={isSelected ? "secondary" : "ghost"}
                           onClick={() => setSelectedAggId(leaf.id)}
                           className={cn(
-                            "w-full h-auto py-2 px-3 justify-between text-left font-normal border border-transparent transition-all",
-                            isSelected && "border-border shadow-sm font-semibold",
+                            "h-auto w-full justify-between border border-transparent px-3 py-2 text-left font-normal transition-all",
+                            isSelected && "border-border font-semibold shadow-sm",
                           )}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex min-w-0 items-center gap-2">
                             <span
                               className={cn(
-                                "w-1.5 h-6 rounded-full shrink-0",
+                                "h-6 w-1.5 shrink-0 rounded-full",
                                 getScoreDotClass(score),
                               )}
                             />
-                            <span className="truncate text-foreground text-xs">{info.name}</span>
+                            <span className="text-foreground truncate text-xs">{info.name}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                          <div className="flex shrink-0 items-center gap-1.5 pl-2">
                             <span
                               className={cn(
-                                "font-bold tabular-nums text-xs",
+                                "text-xs font-bold tabular-nums",
                                 getScoreTextClass(score),
                               )}
                             >
@@ -294,7 +294,7 @@ export function AggregationPainpoints({
                             </span>
                             <ArrowRight
                               className={cn(
-                                "h-3.5 w-3.5 text-muted-foreground transition-transform",
+                                "text-muted-foreground h-3.5 w-3.5 transition-transform",
                                 isSelected ? "translate-x-0.5" : "opacity-30",
                               )}
                             />
@@ -307,14 +307,14 @@ export function AggregationPainpoints({
               </>
             ) : (
               <>
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                <h4 className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
                   Zwakste indicatoren (
                   {domain === "organization"
                     ? "gemiddelde van de organisatie"
                     : "bedrijfsgemiddelde"}
                   )
                 </h4>
-                <ScrollArea className="h-[280px] w-full rounded-md border p-1 bg-card">
+                <ScrollArea className="bg-card h-[280px] w-full rounded-md border p-1">
                   <div className="space-y-1 p-1">
                     {rankedIndicators.map((ind) => {
                       const isSelected = ind.id === activeIndId
@@ -326,23 +326,23 @@ export function AggregationPainpoints({
                           variant={isSelected ? "secondary" : "ghost"}
                           onClick={() => setSelectedIndId(ind.id)}
                           className={cn(
-                            "w-full h-auto py-2 px-3 justify-between text-left font-normal border border-transparent transition-all",
-                            isSelected && "border-border shadow-sm font-semibold",
+                            "h-auto w-full justify-between border border-transparent px-3 py-2 text-left font-normal transition-all",
+                            isSelected && "border-border font-semibold shadow-sm",
                           )}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex min-w-0 items-center gap-2">
                             <span
                               className={cn(
-                                "w-1.5 h-6 rounded-full shrink-0",
+                                "h-6 w-1.5 shrink-0 rounded-full",
                                 getScoreDotClass(score),
                               )}
                             />
-                            <span className="truncate text-foreground text-xs">{ind.name}</span>
+                            <span className="text-foreground truncate text-xs">{ind.name}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                          <div className="flex shrink-0 items-center gap-1.5 pl-2">
                             <span
                               className={cn(
-                                "font-bold tabular-nums text-xs",
+                                "text-xs font-bold tabular-nums",
                                 getScoreTextClass(score),
                               )}
                             >
@@ -350,7 +350,7 @@ export function AggregationPainpoints({
                             </span>
                             <ArrowRight
                               className={cn(
-                                "h-3.5 w-3.5 text-muted-foreground transition-transform",
+                                "text-muted-foreground h-3.5 w-3.5 transition-transform",
                                 isSelected ? "translate-x-0.5" : "opacity-30",
                               )}
                             />
@@ -366,13 +366,13 @@ export function AggregationPainpoints({
 
           {/* Right: Worst fields for the active selection */}
           <div className="space-y-1.5">
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+            <h4 className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
               {rightHeading}
             </h4>
-            <ScrollArea className="h-[280px] w-full rounded-md border bg-muted/10 p-2">
+            <ScrollArea className="bg-muted/10 h-[280px] w-full rounded-md border p-2">
               <div className="space-y-1.5 pr-3">
                 {worstFields.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic p-4 text-center">
+                  <p className="text-muted-foreground p-4 text-center text-xs italic">
                     Geen perceelsdata beschikbaar.
                   </p>
                 ) : (
@@ -381,36 +381,36 @@ export function AggregationPainpoints({
                     return (
                       <div
                         key={field.b_id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 p-2 rounded-md bg-card border border-border shadow-sm text-xs min-w-0"
+                        className="bg-card border-border flex min-w-0 flex-col justify-between gap-1 rounded-md border p-2 text-xs shadow-sm sm:flex-row sm:items-center sm:gap-2"
                       >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <CornerDownRight className="h-3.5 w-3.5 text-muted-foreground shrink-0 hidden sm:block" />
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <CornerDownRight className="text-muted-foreground hidden h-3.5 w-3.5 shrink-0 sm:block" />
                           <Link
                             to={
                               basePathFormatter
                                 ? basePathFormatter(field.b_id)
                                 : `${basePath}/${field.b_id}`
                             }
-                            className="font-medium text-foreground hover:underline hover:text-primary transition-colors truncate min-w-0"
+                            className="text-foreground hover:text-primary min-w-0 truncate font-medium transition-colors hover:underline"
                             title={field.b_name || undefined}
                           >
                             {field.b_name}
                           </Link>
                           {field.b_area !== null && (
-                            <span className="text-[10px] text-muted-foreground shrink-0">
+                            <span className="text-muted-foreground shrink-0 text-[10px]">
                               ({field.b_area.toFixed(1)} ha)
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-end gap-2 shrink-0 sm:pl-2">
+                        <div className="flex shrink-0 items-center justify-end gap-2 sm:pl-2">
                           <span className={cn("font-bold tabular-nums", getScoreTextClass(score))}>
                             {score}
                           </span>
                           <Badge
                             variant="outline"
                             className={cn(
-                              "shrink-0 whitespace-nowrap text-[9px] px-1.5 py-0 h-5 uppercase tracking-wider",
+                              "h-5 shrink-0 px-1.5 py-0 text-[9px] tracking-wider whitespace-nowrap uppercase",
                               getScoreBadgeClass(score),
                             )}
                           >

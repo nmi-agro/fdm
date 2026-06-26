@@ -298,7 +298,7 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
   const location = useLocation()
 
   return (
-    <main className="p-8 space-y-4">
+    <main className="space-y-4 p-8">
       <h2 className="text-2xl font-bold tracking-tight">Organische stof</h2>
       <Suspense
         key={`${loaderData.organization.id},${location.search}`}
@@ -363,37 +363,37 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
     const deltaClass =
       delta === undefined ? "text-orange-500" : delta < 0 ? "text-red-600" : "text-green-600"
     return (
-      <div className="flex items-center grow" key={farmResult.farm.b_id_farm}>
+      <div className="flex grow items-center" key={farmResult.farm.b_id_farm}>
         {Number.isFinite(balanceResult.balance) ? (
           balanceResult.balance > 0 ? (
-            <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full w-6 h-6" />
+            <CircleCheck className="h-6 w-6 rounded-full bg-green-100 p-0 text-green-500" />
           ) : (
-            <CircleX className="text-red-500 bg-red-100 p-0 rounded-full w-6 h-6" />
+            <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
           )
         ) : (
-          <CircleAlert className="text-orange-500 bg-orange-100 p-0 rounded-full w-6 h-6" />
+          <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
         )}
 
         <div className="ml-4 space-y-1">
           <NavLink
             to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/organic-matter`}
           >
-            <p className="text-sm font-medium leading-none hover:underline">
+            <p className="text-sm leading-none font-medium hover:underline">
               {farmResult.farm.b_name_farm ?? "Onbekende bedrijf"}
             </p>
           </NavLink>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {Math.round(farmResult.totalArea * 10) / 10} ha
           </p>
         </div>
-        <div className="ml-auto font-medium text-right">
+        <div className="ml-auto text-right font-medium">
           {!balanceResult.hasErrors ? (
             <>
               <span>{balanceResult.balance}</span>
               {deltaFormatted !== undefined && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className={`block text-xs cursor-default ${deltaClass}`}>
+                    <span className={`block cursor-default text-xs ${deltaClass}`}>
                       {deltaFormatted}
                     </span>
                   </TooltipTrigger>
@@ -407,7 +407,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
             <NavLink
               to={`/farm/${farmResult.farm.b_id_farm}/${params.calendar}/balance/organic-matter`}
             >
-              <p className="text-sm text-end text-orange-500 hover:underline">
+              <p className="text-end text-sm text-orange-500 hover:underline">
                 {balanceResult.errorMessage === "No fields in input"
                   ? "Geen percelen"
                   : "Bekijk foutmelding"}
@@ -424,7 +424,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Balans (Bedrijven)</CardTitle>
-            <ArrowRightLeft className="text-xs text-muted-foreground" />
+            <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -433,40 +433,40 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
                 {hasErrors ? (
                   <Tooltip>
                     <TooltipTrigger>
-                      <CircleAlert className="text-orange-500 bg-orange-100 rounded-full" />
+                      <CircleAlert className="rounded-full bg-orange-100 text-orange-500" />
                     </TooltipTrigger>
                     <TooltipContent>Niet alle bedrijven konden worden berekend</TooltipContent>
                   </Tooltip>
                 ) : resolvedOrganicMatterBalanceResult.balance > 0 ? (
-                  <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full " />
+                  <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
-                  <CircleX className="text-red-500 bg-red-100 rounded-full " />
+                  <CircleX className="rounded-full bg-red-100 text-red-500 " />
                 )}
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">kg OS / ha</p>
+            <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDownToLine className="text-xs text-muted-foreground" />
+            <ArrowDownToLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{resolvedOrganicMatterBalanceResult.supply}</div>
-            <p className="text-xs text-muted-foreground">kg EOS / ha</p>
+            <p className="text-muted-foreground text-xs">kg EOS / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Afbraak</CardTitle>
-            <ArrowUpFromLine className="text-xs text-muted-foreground" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {resolvedOrganicMatterBalanceResult.degradation}
             </div>
-            <p className="text-xs text-muted-foreground">kg OS / ha</p>
+            <p className="text-muted-foreground text-xs">kg OS / ha</p>
           </CardContent>
         </Card>
       </div>

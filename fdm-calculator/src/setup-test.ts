@@ -1,6 +1,6 @@
+import type { TestProject } from "vitest/node"
 import { runMigration } from "@nmi-agro/fdm-core"
 import postgres from "postgres"
-import type { TestProject } from "vitest/node"
 
 let migrationsRun = false
 let client: ReturnType<typeof postgres>

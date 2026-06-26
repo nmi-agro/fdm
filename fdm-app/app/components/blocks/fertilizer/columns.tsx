@@ -69,8 +69,8 @@ export const columns: ColumnDef<Fertilizer>[] = [
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="outline" className="px-1 py-0 h-5">
-                    <Pencil className="h-3 w-3 text-muted-foreground" />
+                  <Badge variant="outline" className="h-5 px-1 py-0">
+                    <Pencil className="text-muted-foreground h-3 w-3" />
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent>

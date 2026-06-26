@@ -9,9 +9,9 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
+import type { FarmTotals } from "./types"
 import { GerritFeedback } from "./feedback"
 import { NormBar } from "./norm-bar"
-import type { FarmTotals } from "./types"
 
 interface SummaryCardsProps {
   farmTotals?: FarmTotals
@@ -57,25 +57,25 @@ export function SummaryCards({
             />
             {/* N-balance: agronomic balance vs target */}
             {farmTotals.nBalance && (
-              <div className="pt-2 border-t space-y-1.5">
-                <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              <div className="space-y-1.5 border-t pt-2">
+                <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
                   Stikstofbalans
                 </span>
-                <div className="flex justify-between items-baseline gap-2">
-                  <span className="text-xs text-muted-foreground">Balans op bedrijfsniveau</span>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-muted-foreground text-xs">Balans op bedrijfsniveau</span>
                   <span
                     className={`text-xs font-semibold tabular-nums ${farmTotals.nBalance.balance <= farmTotals.nBalance.target ? "text-green-600" : "text-red-600"}`}
                   >
                     {Math.round(farmTotals.nBalance.balance)} kg N/ha
                   </span>
                 </div>
-                <div className="flex justify-between items-baseline gap-2">
-                  <span className="text-xs text-muted-foreground">Doel</span>
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-muted-foreground text-xs">Doel</span>
                   <span className="text-xs font-semibold tabular-nums">
                     {Math.round(farmTotals.nBalance.target)} kg N/ha
                   </span>
                 </div>
-                <div className="flex justify-between items-baseline gap-2 pt-0.5 border-t">
+                <div className="flex items-baseline justify-between gap-2 border-t pt-0.5">
                   <span className="text-xs font-medium">Status</span>
                   <span
                     className={`text-xs font-bold tabular-nums ${farmTotals.nBalance.balance <= farmTotals.nBalance.target ? "text-green-600" : "text-red-600"}`}
@@ -86,19 +86,19 @@ export function SummaryCards({
                   </span>
                 </div>
                 {farmTotals.nBalance.emission && (
-                  <div className="pt-2 space-y-1.5 border-t">
-                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                  <div className="space-y-1.5 border-t pt-2">
+                    <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
                       Emissies
                     </span>
-                    <div className="flex justify-between items-baseline gap-2">
-                      <span className="text-xs text-muted-foreground">Ammoniakemissie</span>
-                      <span className="text-xs tabular-nums text-muted-foreground">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-muted-foreground text-xs">Ammoniakemissie</span>
+                      <span className="text-muted-foreground text-xs tabular-nums">
                         {Math.round(Math.abs(farmTotals.nBalance.emission.ammonia.total))} kg N/ha
                       </span>
                     </div>
-                    <div className="flex justify-between items-baseline gap-2">
-                      <span className="text-xs text-muted-foreground">Nitraatuitspoeling</span>
-                      <span className="text-xs tabular-nums text-muted-foreground">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-muted-foreground text-xs">Nitraatuitspoeling</span>
+                      <span className="text-muted-foreground text-xs tabular-nums">
                         {Math.round(Math.abs(farmTotals.nBalance.emission.nitrate))} kg N/ha
                       </span>
                     </div>
@@ -114,17 +114,17 @@ export function SummaryCards({
       {planSummary && (
         <Card className="bg-primary/5 border-primary/20 flex flex-col">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-semibold text-primary">
-              <Info className="w-4 h-4" />
+            <CardTitle className="text-primary flex items-center gap-2 text-sm font-semibold">
+              <Info className="h-4 w-4" />
               Toelichting van Gerrit
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
-            <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground italic mb-6">
+          <CardContent className="flex flex-1 flex-col">
+            <p className="text-muted-foreground mb-6 text-sm leading-relaxed whitespace-pre-wrap italic">
               "{planSummary}"
             </p>
             {traceId && (
-              <div className="mt-auto pt-4 border-t border-primary/10">
+              <div className="border-primary/10 mt-auto border-t pt-4">
                 <GerritFeedback traceId={traceId} />
               </div>
             )}
@@ -136,7 +136,7 @@ export function SummaryCards({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Bot className="w-5 h-5 text-primary" />
+            <Bot className="text-primary h-5 w-5" />
             Gehanteerde strategie
           </CardTitle>
         </CardHeader>
@@ -150,7 +150,7 @@ export function SummaryCards({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Geen specifieke strategie geselecteerd.</p>
+            <p className="text-muted-foreground text-sm">Geen specifieke strategie geselecteerd.</p>
           )}
         </CardContent>
         <CardFooter className="border-t pt-4">

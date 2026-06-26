@@ -191,7 +191,7 @@ export default function OrganizationFarmsPage() {
       />
       <FarmContent>
         {data.length > 0 ? (
-          <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
+          <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-y-0 lg:space-x-12">
             <DataTable columns={columns} data={data} />
           </div>
         ) : (

@@ -7,11 +7,11 @@ import type {
   Field,
 } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { NL2026NormsFillingInput } from "./types"
 import {
   collectNL2026InputForFertilizerApplicationFilling,
   collectNL2026InputForFertilizerApplicationFillingForFarm,
 } from "./input"
-import type { NL2026NormsFillingInput } from "./types"
 
 // Mock the entire @nmi-agro/fdm-core module
 vi.mock("@nmi-agro/fdm-core", () => ({

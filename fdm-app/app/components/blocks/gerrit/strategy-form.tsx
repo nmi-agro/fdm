@@ -93,11 +93,11 @@ export function StrategyForm({
   }, [fertError])
 
   return (
-    <Card className="h-fit sticky top-6">
+    <Card className="sticky top-6 h-fit">
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-            <Bot className="w-6 h-6 text-primary" />
+            <Bot className="text-primary h-6 w-6" />
             Bedrijfsstrategie & voorkeuren
           </CardTitle>
         </div>
@@ -127,7 +127,7 @@ export function StrategyForm({
                       <Label htmlFor={name} className="text-base">
                         {STRATEGY_LABELS[name]}
                       </Label>
-                      <p className="text-sm text-muted-foreground leading-snug">
+                      <p className="text-muted-foreground text-sm leading-snug">
                         {name === "isOrganic" && "Geen gebruik van kunstmest."}
                         {name === "fillManureSpace" &&
                           "Volledig opvullen van de gebruiksruimte voor dierlijke mest."}
@@ -162,7 +162,7 @@ export function StrategyForm({
             </div>
             {/* Fertilizer picker */}
             {fertilizerOptions.length > 0 && (
-              <div className="pt-2 border-t">
+              <div className="border-t pt-2">
                 <Collapsible open={fertOpen} onOpenChange={setFertOpen}>
                   <CollapsibleTrigger
                     className="flex w-full items-center justify-between py-2 text-left"
@@ -173,7 +173,7 @@ export function StrategyForm({
                       {fertError ? (
                         <p className="text-sm text-red-500">{fertError}</p>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                           {isRestricted
                             ? `${selectedCount} van ${totalCount} meststoffen geselecteerd`
                             : "Alle meststoffen geselecteerd"}
@@ -182,7 +182,7 @@ export function StrategyForm({
                     </div>
                     <ChevronDown
                       className={cn(
-                        "h-4 w-4 text-muted-foreground transition-transform shrink-0 ml-2",
+                        "text-muted-foreground ml-2 h-4 w-4 shrink-0 transition-transform",
                         fertOpen && "rotate-180",
                       )}
                     />
@@ -195,19 +195,19 @@ export function StrategyForm({
                       value={JSON.stringify([...selectedSet])}
                     />
                     {/* Search + global toggle */}
-                    <div className="flex gap-2 items-center">
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
                         placeholder="Zoeken…"
                         value={fertSearch}
                         onChange={(e) => setFertSearch(e.target.value)}
                         disabled={isGenerating}
-                        className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                        className="border-input bg-background placeholder:text-muted-foreground focus:ring-ring h-8 flex-1 rounded-md border px-3 text-sm focus:ring-1 focus:outline-none disabled:opacity-50"
                       />
                       <button
                         type="button"
                         disabled={isGenerating}
-                        className="text-xs text-primary hover:underline disabled:opacity-50 shrink-0"
+                        className="text-primary shrink-0 text-xs hover:underline disabled:opacity-50"
                         onClick={() => {
                           if (selectedCount === totalCount) {
                             // Deselect all
@@ -225,7 +225,7 @@ export function StrategyForm({
                       </button>
                     </div>
                     {/* Scrollable list — grouped, each group collapsible */}
-                    <div className="max-h-56 overflow-y-auto rounded-md border bg-muted/20 px-2 py-2 space-y-1">
+                    <div className="bg-muted/20 max-h-56 space-y-1 overflow-y-auto rounded-md border px-2 py-2">
                       {Object.entries(groupedByType).map(([type, ferts]) => {
                         const filtered = fertSearch.trim()
                           ? ferts.filter((f) =>
@@ -238,17 +238,17 @@ export function StrategyForm({
                         const allGroupSelected = selectedInGroup === groupIds.length
                         return (
                           <div key={type}>
-                            <div className="flex items-center justify-between gap-2 px-1 py-1 sticky top-0 z-10 bg-background border-b rounded-t">
-                              <span className="text-xs font-semibold text-muted-foreground min-w-0 truncate">
+                            <div className="bg-background sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t border-b px-1 py-1">
+                              <span className="text-muted-foreground min-w-0 truncate text-xs font-semibold">
                                 {TYPE_LABELS[type] ?? type}{" "}
-                                <span className="font-normal text-muted-foreground/70">
+                                <span className="text-muted-foreground/70 font-normal">
                                   ({selectedInGroup}/{filtered.length})
                                 </span>
                               </span>
                               <button
                                 type="button"
                                 disabled={isGenerating}
-                                className="text-xs text-primary hover:underline disabled:opacity-50 shrink-0"
+                                className="text-primary shrink-0 text-xs hover:underline disabled:opacity-50"
                                 onClick={() =>
                                   toggleGroup(
                                     type,
@@ -260,11 +260,11 @@ export function StrategyForm({
                                 {allGroupSelected ? "Geen" : "Alle"}
                               </button>
                             </div>
-                            <div className="space-y-0.5 mt-1 mb-2">
+                            <div className="mt-1 mb-2 space-y-0.5">
                               {filtered.map((f) => (
                                 <div
                                   key={f.p_id_catalogue}
-                                  className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-muted/60"
+                                  className="hover:bg-muted/60 flex items-center gap-2 rounded px-1 py-0.5"
                                 >
                                   <Checkbox
                                     id={`fert-${f.p_id_catalogue}`}
@@ -276,7 +276,7 @@ export function StrategyForm({
                                   />
                                   <Label
                                     htmlFor={`fert-${f.p_id_catalogue}`}
-                                    className="text-sm font-normal cursor-pointer leading-tight"
+                                    className="cursor-pointer text-sm leading-tight font-normal"
                                   >
                                     {f.p_name_nl}
                                   </Label>
@@ -293,12 +293,12 @@ export function StrategyForm({
             )}
 
             <div className="space-y-3 pt-2">
-              <div className="flex justify-between items-end">
+              <div className="flex items-end justify-between">
                 <Label htmlFor="additionalContext" className="text-base">
                   Aanvullende opmerkingen of wensen
                 </Label>
                 <span
-                  className={`text-xs ${additionalContextLength > 1000 ? "text-red-500 font-medium" : "text-muted-foreground"}`}
+                  className={`text-xs ${additionalContextLength > 1000 ? "font-medium text-red-500" : "text-muted-foreground"}`}
                 >
                   {additionalContextLength} / 1000
                 </span>

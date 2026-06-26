@@ -1,10 +1,10 @@
+import type { ComponentProps } from "react"
+import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { User, Users } from "lucide-react"
-import type { ComponentProps } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type z from "zod"
 import { cn } from "@/app/lib/utils"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
@@ -19,9 +19,9 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
+import type { HelpdeskUser } from "./types"
 import { AddAgentSchema } from "./agent-schema"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
-import type { HelpdeskUser } from "./types"
 
 export type HelpdeskUserExtended = HelpdeskUser & {
   role: string
@@ -185,7 +185,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
                 disabled={isSubmitting}
               />
             ) : (
-              <i className="italic text-muted-foreground">niet actief</i>
+              <i className="text-muted-foreground italic">niet actief</i>
             )}
           </TableCell>
           <TableCell className="text-end align-middle">

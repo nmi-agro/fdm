@@ -1,9 +1,9 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { Feature, Polygon } from "geojson"
+import type { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
 import { Combobox } from "~/components/custom/combobox"
 import { Button } from "~/components/ui/button"
 import {

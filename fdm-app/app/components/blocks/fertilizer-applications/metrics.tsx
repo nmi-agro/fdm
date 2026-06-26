@@ -126,14 +126,14 @@ export function FertilizerApplicationMetricsCard({
             <ItemGroup className="min-w-0">
               <ItemSeparator />
               <Item className="flex-col items-stretch px-0 py-4">
-                <ItemContent className="flex-none mb-4">
-                  <ItemTitle className="hover:underline text-base font-semibold">
+                <ItemContent className="mb-4 flex-none">
+                  <ItemTitle className="text-base font-semibold hover:underline">
                     <NavLink to={`/farm/${b_id_farm}/${calendar}/norms/${b_id}`}>
                       Gebruiksnormen
                     </NavLink>
                   </ItemTitle>
                 </ItemContent>
-                <ItemDescription className="line-clamp-none min-w-0 w-full">
+                <ItemDescription className="line-clamp-none w-full min-w-0">
                   {isSubmitting ? (
                     <NormsSkeleton />
                   ) : (
@@ -153,12 +153,12 @@ export function FertilizerApplicationMetricsCard({
                             )
                           }
                           return (
-                            <div className="flex flex-col space-y-4 min-w-0">
-                              <div className="space-y-1.5 min-w-0">
-                                <div className="flex justify-between items-center gap-2">
+                            <div className="flex min-w-0 flex-col space-y-4">
+                              <div className="min-w-0 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <p className="truncate text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                      <p className="text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase">
                                         Stikstof
                                       </p>
                                     </TooltipTrigger>
@@ -166,7 +166,7 @@ export function FertilizerApplicationMetricsCard({
                                       <p>Werkzame stikstof volgens forfaitaire gehalten</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                  <span className="text-right text-xs font-bold whitespace-nowrap shrink-0">
+                                  <span className="shrink-0 text-right text-xs font-bold whitespace-nowrap">
                                     {Math.round(resolvedNorms.filling.nitrogen.normFilling)} /{" "}
                                     {Math.round(resolvedNorms.value.nitrogen.normValue)} kg N
                                   </span>
@@ -187,11 +187,11 @@ export function FertilizerApplicationMetricsCard({
                                 />
                               </div>
 
-                              <div className="space-y-1.5 min-w-0">
-                                <div className="flex justify-between items-center gap-2">
+                              <div className="min-w-0 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <p className="truncate text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                      <p className="text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase">
                                         Fosfaat
                                       </p>
                                     </TooltipTrigger>
@@ -199,7 +199,7 @@ export function FertilizerApplicationMetricsCard({
                                       <p>Fosfaataanvoer incl. mogelijke stimuleringsregeling</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                  <span className="text-right text-xs font-bold whitespace-nowrap shrink-0">
+                                  <span className="shrink-0 text-right text-xs font-bold whitespace-nowrap">
                                     {Math.round(resolvedNorms.filling.phosphate.normFilling)} /{" "}
                                     {Math.round(resolvedNorms.value.phosphate.normValue)} kg P₂O₅
                                   </span>
@@ -220,11 +220,11 @@ export function FertilizerApplicationMetricsCard({
                                 />
                               </div>
 
-                              <div className="space-y-1.5 min-w-0">
-                                <div className="flex justify-between items-center gap-2">
+                              <div className="min-w-0 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <p className="truncate text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                      <p className="text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase">
                                         Dierlijk
                                       </p>
                                     </TooltipTrigger>
@@ -232,7 +232,7 @@ export function FertilizerApplicationMetricsCard({
                                       <p>Totaal stikstof via dierlijke mest</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                  <span className="text-right text-xs font-bold whitespace-nowrap shrink-0">
+                                  <span className="shrink-0 text-right text-xs font-bold whitespace-nowrap">
                                     {Math.round(resolvedNorms.filling.manure.normFilling)} /{" "}
                                     {Math.round(resolvedNorms.value.manure.normValue)} kg N
                                   </span>
@@ -264,14 +264,14 @@ export function FertilizerApplicationMetricsCard({
             <ItemGroup className="min-w-0">
               <ItemSeparator />
               <Item className="flex-col items-stretch px-0 py-4">
-                <ItemContent className="flex-none mb-4">
-                  <ItemTitle className="hover:underline text-base font-semibold">
+                <ItemContent className="mb-4 flex-none">
+                  <ItemTitle className="text-base font-semibold hover:underline">
                     <NavLink to={`/farm/${b_id_farm}/${calendar}/balance/nitrogen/${b_id}`}>
                       Stikstofbalans
                     </NavLink>
                   </ItemTitle>
                 </ItemContent>
-                <ItemDescription className="line-clamp-none min-w-0 w-full">
+                <ItemDescription className="line-clamp-none w-full min-w-0">
                   {isSubmitting ? (
                     <NitrogenBalanceSkeleton />
                   ) : (
@@ -285,7 +285,7 @@ export function FertilizerApplicationMetricsCard({
                         {(resolvedNitrogenBalance) => {
                           if (b_bufferstrip) {
                             return (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-muted-foreground text-xs">
                                 Geen stikstofbalans beschikbaar voor bufferstrook.
                               </span>
                             )
@@ -302,46 +302,46 @@ export function FertilizerApplicationMetricsCard({
 
                           const balance = resolvedNitrogenBalance.balance
                           return (
-                            <div className="flex flex-col space-y-1.5 min-w-0">
-                              <div className="flex justify-between items-center gap-2 min-w-0">
-                                <p className="truncate text-xs text-muted-foreground">Aanvoer</p>
-                                <span className="text-right text-xs font-medium whitespace-nowrap shrink-0">
+                            <div className="flex min-w-0 flex-col space-y-1.5">
+                              <div className="flex min-w-0 items-center justify-between gap-2">
+                                <p className="text-muted-foreground truncate text-xs">Aanvoer</p>
+                                <span className="shrink-0 text-right text-xs font-medium whitespace-nowrap">
                                   {Math.round(balance.supply?.total ?? 0)} kg N
                                 </span>
                               </div>
-                              <div className="flex justify-between items-center gap-2 min-w-0">
-                                <p className="truncate text-xs text-muted-foreground">Afvoer</p>
-                                <span className="text-right text-xs font-medium whitespace-nowrap shrink-0">
+                              <div className="flex min-w-0 items-center justify-between gap-2">
+                                <p className="text-muted-foreground truncate text-xs">Afvoer</p>
+                                <span className="shrink-0 text-right text-xs font-medium whitespace-nowrap">
                                   {Math.round(balance.removal?.total ?? 0)} kg N
                                 </span>
                               </div>
-                              <div className="flex justify-between items-center gap-2 min-w-0">
-                                <p className="truncate text-xs text-muted-foreground">Emissie</p>
-                                <span className="text-right text-xs font-medium whitespace-nowrap shrink-0">
+                              <div className="flex min-w-0 items-center justify-between gap-2">
+                                <p className="text-muted-foreground truncate text-xs">Emissie</p>
+                                <span className="shrink-0 text-right text-xs font-medium whitespace-nowrap">
                                   {Math.round(balance.emission?.total ?? 0)} kg N
                                 </span>
                               </div>
                               <ItemSeparator className="my-1 opacity-50" />
-                              <div className="flex justify-between items-center gap-2 min-w-0">
-                                <p className="text-sm font-bold truncate text-muted-foreground uppercase tracking-tight">
+                              <div className="flex min-w-0 items-center justify-between gap-2">
+                                <p className="text-muted-foreground truncate text-sm font-bold tracking-tight uppercase">
                                   Balans
                                 </p>
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-base font-black text-right whitespace-nowrap shrink-0">
+                                  <span className="shrink-0 text-right text-base font-black whitespace-nowrap">
                                     {Math.round(balance.balance)} kg N
                                   </span>
                                   {balance.balance <= balance.target ? (
-                                    <CircleCheck className="text-green-500 size-4 shrink-0" />
+                                    <CircleCheck className="size-4 shrink-0 text-green-500" />
                                   ) : (
-                                    <CircleX className="text-red-500 size-4 shrink-0" />
+                                    <CircleX className="size-4 shrink-0 text-red-500" />
                                   )}
                                 </div>
                               </div>
-                              <div className="flex justify-between items-center gap-2 min-w-0">
-                                <p className="truncate text-[10px] text-muted-foreground">
+                              <div className="flex min-w-0 items-center justify-between gap-2">
+                                <p className="text-muted-foreground truncate text-[10px]">
                                   Streefwaarde
                                 </p>
-                                <span className="text-right text-[10px] font-medium whitespace-nowrap shrink-0">
+                                <span className="shrink-0 text-right text-[10px] font-medium whitespace-nowrap">
                                   {Math.round(balance.target)} kg N
                                 </span>
                               </div>
@@ -357,9 +357,9 @@ export function FertilizerApplicationMetricsCard({
             <ItemGroup className="min-w-0">
               <ItemSeparator />
               <Item className="flex-col items-stretch px-0 py-4">
-                <ItemContent className="flex-none mb-4">
-                  <div className="flex items-center justify-between w-full gap-2">
-                    <ItemTitle className="hover:underline text-base font-semibold">
+                <ItemContent className="mb-4 flex-none">
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <ItemTitle className="text-base font-semibold hover:underline">
                       <NavLink to={`/farm/${b_id_farm}/${calendar}/nutrient_advice/${b_id}`}>
                         Bemestingsadvies
                       </NavLink>
@@ -375,7 +375,7 @@ export function FertilizerApplicationMetricsCard({
                     )}
                   </div>
                 </ItemContent>
-                <ItemDescription className="line-clamp-none min-w-0 w-full">
+                <ItemDescription className="line-clamp-none w-full min-w-0">
                   {isSubmitting ? (
                     <NutrientAdviceSkeleton />
                   ) : (
@@ -391,12 +391,12 @@ export function FertilizerApplicationMetricsCard({
                             return <span className="text-xs">Geen advies beschikbaar</span>
                           }
                           return (
-                            <div className="flex flex-col space-y-4 min-w-0">
-                              <div className="space-y-1.5 min-w-0">
-                                <div className="flex justify-between items-center gap-2">
+                            <div className="flex min-w-0 flex-col space-y-4">
+                              <div className="min-w-0 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <p className="truncate text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                                      <p className="text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase">
                                         Stikstof
                                       </p>
                                     </TooltipTrigger>
@@ -404,7 +404,7 @@ export function FertilizerApplicationMetricsCard({
                                       <p>Werkzame stikstof</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                  <span className="text-right text-xs font-bold whitespace-nowrap shrink-0">
+                                  <span className="shrink-0 text-right text-xs font-bold whitespace-nowrap">
                                     {Math.round(dose.p_dose_n)} /{" "}
                                     {Math.round(resolvedNutrientAdvice.d_n_req)} kg N
                                   </span>
@@ -424,12 +424,12 @@ export function FertilizerApplicationMetricsCard({
                                 />
                               </div>
 
-                              <div className="space-y-1.5 min-w-0">
-                                <div className="flex justify-between items-center gap-2">
-                                  <p className="truncate text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                              <div className="min-w-0 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase">
                                     Fosfaat
                                   </p>
-                                  <span className="text-right text-xs font-bold whitespace-nowrap shrink-0">
+                                  <span className="shrink-0 text-right text-xs font-bold whitespace-nowrap">
                                     {Math.round(dose.p_dose_p)} /{" "}
                                     {Math.round(resolvedNutrientAdvice.d_p_req)} kg P₂O₅
                                   </span>
@@ -449,12 +449,12 @@ export function FertilizerApplicationMetricsCard({
                                 />
                               </div>
 
-                              <div className="space-y-1.5 min-w-0">
-                                <div className="flex justify-between items-center gap-2">
-                                  <p className="truncate text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+                              <div className="min-w-0 space-y-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase">
                                     Kalium
                                   </p>
-                                  <span className="text-right text-xs font-bold whitespace-nowrap shrink-0">
+                                  <span className="shrink-0 text-right text-xs font-bold whitespace-nowrap">
                                     {Math.round(dose.p_dose_k)} /{" "}
                                     {Math.round(resolvedNutrientAdvice.d_k_req)} kg K₂O
                                   </span>
@@ -492,8 +492,8 @@ export function FertilizerApplicationMetricsCard({
 const NormsSkeleton = () => (
   <div className="flex flex-col space-y-4">
     <div className="space-y-1.5">
-      <div className="flex justify-between items-center gap-2">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           Stikstof
         </p>
         <span className="text-right text-xs font-bold whitespace-nowrap">
@@ -504,8 +504,8 @@ const NormsSkeleton = () => (
     </div>
 
     <div className="space-y-1.5">
-      <div className="flex justify-between items-center gap-2">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           Fosfaat
         </p>
         <span className="text-right text-xs font-bold whitespace-nowrap">
@@ -516,8 +516,8 @@ const NormsSkeleton = () => (
     </div>
 
     <div className="space-y-1.5">
-      <div className="flex justify-between items-center gap-2">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           Dierlijk
         </p>
         <span className="text-right text-xs font-bold whitespace-nowrap">
@@ -529,35 +529,35 @@ const NormsSkeleton = () => (
   </div>
 )
 const NitrogenBalanceSkeleton = () => (
-  <div className="flex flex-col space-y-1.5 min-w-0">
-    <div className="flex justify-between items-center gap-2 min-w-0">
-      <p className="truncate text-xs text-muted-foreground">Aanvoer</p>
-      <span className="text-right text-xs font-medium whitespace-nowrap shrink-0">
+  <div className="flex min-w-0 flex-col space-y-1.5">
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <p className="text-muted-foreground truncate text-xs">Aanvoer</p>
+      <span className="shrink-0 text-right text-xs font-medium whitespace-nowrap">
         <Spinner className="h-3" /> kg N
       </span>
     </div>
-    <div className="flex justify-between items-center gap-2 min-w-0">
-      <p className="truncate text-xs text-muted-foreground">Afvoer</p>
-      <span className="text-right text-xs font-medium whitespace-nowrap shrink-0">
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <p className="text-muted-foreground truncate text-xs">Afvoer</p>
+      <span className="shrink-0 text-right text-xs font-medium whitespace-nowrap">
         <Spinner className="h-3" /> kg N
       </span>
     </div>
-    <div className="flex justify-between items-center gap-2 min-w-0">
-      <p className="truncate text-xs text-muted-foreground">Emissie</p>
-      <span className="text-right text-xs font-medium whitespace-nowrap shrink-0">
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <p className="text-muted-foreground truncate text-xs">Emissie</p>
+      <span className="shrink-0 text-right text-xs font-medium whitespace-nowrap">
         <Spinner className="h-3" /> kg N
       </span>
     </div>
     <ItemSeparator className="my-1 opacity-50" />
-    <div className="flex justify-between items-center gap-2 min-w-0">
-      <p className="text-sm font-bold truncate text-primary uppercase tracking-tight">Balans</p>
-      <span className="text-base font-black text-right whitespace-nowrap shrink-0">
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <p className="text-primary truncate text-sm font-bold tracking-tight uppercase">Balans</p>
+      <span className="shrink-0 text-right text-base font-black whitespace-nowrap">
         <Spinner className="h-4" /> kg N
       </span>
     </div>
-    <div className="flex justify-between items-center gap-2 min-w-0">
-      <p className="truncate text-[10px] text-muted-foreground">Streefwaarde</p>
-      <span className="text-right text-[10px] font-medium whitespace-nowrap shrink-0">
+    <div className="flex min-w-0 items-center justify-between gap-2">
+      <p className="text-muted-foreground truncate text-[10px]">Streefwaarde</p>
+      <span className="shrink-0 text-right text-[10px] font-medium whitespace-nowrap">
         <Spinner className="h-3" /> kg N
       </span>
     </div>
@@ -567,8 +567,8 @@ const NitrogenBalanceSkeleton = () => (
 const NutrientAdviceSkeleton = () => (
   <div className="flex flex-col space-y-4">
     <div className="space-y-1.5">
-      <div className="flex justify-between items-center gap-2">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           Stikstof
         </p>
         <span className="text-right text-xs font-bold whitespace-nowrap">
@@ -578,8 +578,8 @@ const NutrientAdviceSkeleton = () => (
       <Skeleton className="h-2 w-full" />
     </div>
     <div className="space-y-1.5">
-      <div className="flex justify-between items-center gap-2">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           Fosfaat
         </p>
         <span className="text-right text-xs font-bold whitespace-nowrap">
@@ -590,8 +590,8 @@ const NutrientAdviceSkeleton = () => (
     </div>
 
     <div className="space-y-1.5">
-      <div className="flex justify-between items-center gap-2">
-        <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           Kalium
         </p>
         <span className="text-right text-xs font-bold whitespace-nowrap">

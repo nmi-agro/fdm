@@ -1,7 +1,7 @@
+import type * as GeoJSON from "geojson"
 /* eslint-disable typescript/restrict-template-expressions -- Custom type structures and union parameters are intentionally stringified inside schema templates. */
 import { sql } from "drizzle-orm"
 import { type CustomTypeValues, customType } from "drizzle-orm/pg-core"
-import type * as GeoJSON from "geojson"
 
 // Workaround for that `numeric` column type returns string instead of a number
 // https://github.com/drizzle-team/drizzle-orm/issues/1042#issuecomment-2224689025

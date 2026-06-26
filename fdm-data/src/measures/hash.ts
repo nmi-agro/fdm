@@ -1,5 +1,5 @@
-import { ensureInitialized, h32ToString } from "../hash"
 import type { CatalogueMeasureItem } from "./d"
+import { ensureInitialized, h32ToString } from "../hash"
 
 export async function hashMeasure(measure: CatalogueMeasureItem) {
   await ensureInitialized()

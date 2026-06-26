@@ -5,6 +5,7 @@ import {
 } from "@nmi-agro/fdm-data"
 import { eq, isNotNull } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
+import type { FdmType } from "./fdm.types"
 import {
   disableCultivationCatalogue,
   disableFertilizerCatalogue,
@@ -23,7 +24,6 @@ import {
 } from "./catalogues"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
-import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
 
 vi.mock("@nmi-agro/fdm-data", async (importOriginal) => {

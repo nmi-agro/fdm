@@ -6,10 +6,10 @@ import { cn } from "@/app/lib/utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
-import { DatePicker } from "../../custom/date-picker-v2"
 import type { CropRow, FieldRow, RotationExtended } from "./columns"
-import { DateRangeDisplay } from "./date-range-display"
 import type { RotationTableFormSchemaType } from "./schema"
+import { DatePicker } from "../../custom/date-picker-v2"
+import { DateRangeDisplay } from "./date-range-display"
 
 type AllowedFormSchemaType = Pick<RotationTableFormSchemaType, "b_lu_start" | "b_lu_end">
 function TableDateSelectorForm({
@@ -33,7 +33,7 @@ function TableDateSelectorForm({
     },
   })
   return (
-    <div className="absolute w-50 flex flex-row items-center">
+    <div className="absolute flex w-50 flex-row items-center">
       <RemixFormProvider {...form}>
         <Controller
           name={name as string}

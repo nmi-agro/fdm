@@ -1,9 +1,9 @@
-import { nl } from "@daypicker/react/locale"
 import type {
   FieldInput as FdmFieldInput,
   NitrogenBalanceFieldNumeric,
   NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
+import { nl } from "@daypicker/react/locale"
 import { format } from "date-fns/format"
 import { useId, useMemo, useState } from "react"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
@@ -504,7 +504,7 @@ export function NitrogenBalanceChart(
                 <CardHeader className="p-4 pb-0">
                   <div>
                     <div
-                      className="inline-block me-2 h-2 w-2 rounded-[2px]"
+                      className="me-2 inline-block h-2 w-2 rounded-[2px]"
                       style={{
                         backgroundColor: itemConfig.styleId
                           ? chartConfig[itemConfig.styleId].color
@@ -515,14 +515,14 @@ export function NitrogenBalanceChart(
                   </div>
                   {itemConfig.detail?.map((detail, i) => (
                     <div key={i}>
-                      <div className="inline-block me-2 h-2 w-2 rounded-[2px]" />
+                      <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
                       {detail}
                     </div>
                   ))}
                 </CardHeader>
                 <CardContent className="p-4">
                   <div className="font-bold">
-                    <div className="inline-block me-2 h-2 w-2 rounded-[2px]" />
+                    <div className="me-2 inline-block h-2 w-2 rounded-[2px]" />
                     {chartData[name]} {itemConfig.unit ?? "kg N / ha"}
                   </div>
                 </CardContent>
@@ -532,13 +532,13 @@ export function NitrogenBalanceChart(
         />
         <ChartLegend
           content={
-            <div className={"flex items-center justify-center gap-4 flex-wrap"}>
+            <div className={"flex flex-wrap items-center justify-center gap-4"}>
               {Object.entries(legend).map(([dataKey, itemConfig]) => {
                 return (
                   <div
                     key={dataKey}
                     className={cn(
-                      "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground",
+                      "[&>svg]:text-muted-foreground flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3",
                     )}
                   >
                     <div

@@ -1,5 +1,5 @@
-import { ensureInitialized, h32ToString } from "../hash"
 import type { CatalogueFertilizerItem } from "./d"
+import { ensureInitialized, h32ToString } from "../hash"
 
 export async function hashFertilizer(fertilizer: CatalogueFertilizerItem) {
   await ensureInitialized()

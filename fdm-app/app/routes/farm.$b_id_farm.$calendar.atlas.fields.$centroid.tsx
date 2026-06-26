@@ -1,3 +1,4 @@
+import type { Feature, Point } from "geojson"
 import {
   calculateNlvSupplyBySom,
   calculateWaterSupplyBySom,
@@ -7,7 +8,6 @@ import {
   isFieldInNVGebied,
 } from "@nmi-agro/fdm-calculator"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
-import type { Feature, Point } from "geojson"
 import { Map as MapIcon } from "lucide-react"
 import { Suspense, use } from "react"
 import {
@@ -18,8 +18,8 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
-import { CarbonSequestrationCard } from "~/components/blocks/atlas-fields/carbon-sequestration"
 import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
+import { CarbonSequestrationCard } from "~/components/blocks/atlas-fields/carbon-sequestration"
 import { CultivationHistoryToggle } from "~/components/blocks/atlas-fields/cultivation-history-toggle"
 import { FieldDetailsCard } from "~/components/blocks/atlas-fields/field-details"
 import { GroundwaterCard } from "~/components/blocks/atlas-fields/groundwater"
@@ -318,7 +318,7 @@ function FieldDetailsAtlas({ b_id_farm, calendar, asyncData }: Awaited<ReturnTyp
         soilTexture={<SoilTextureCard soilParameterEstimates={soilParameterEstimates} />}
         groundWater={<GroundwaterCard groundwaterEstimates={groundwaterEstimates} />}
       />
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed right-6 bottom-6 z-50">
         <Button asChild size="lg" className="rounded-full shadow-lg">
           <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
             <MapIcon className="mr-2 h-4 w-4" />

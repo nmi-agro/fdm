@@ -75,11 +75,11 @@ export const BaseEmailLayout = ({
       </Head>
       <Preview>{preview}</Preview>
       <Tailwind config={defaultTheme}>
-        <Body className="bg-background my-auto mx-auto font-sans">
-          <Container className="border border-solid border-secondary rounded my-10 mx-auto p-5 w-116.25 max-w-full">
+        <Body className="bg-background mx-auto my-auto font-sans">
+          <Container className="border-secondary mx-auto my-10 w-116.25 max-w-full rounded border border-solid p-5">
             {showLogo && appBaseUrl && (
               <Section className="mt-7.5 text-center">
-                <Img src={logoPath} width="150" alt={`${appName} Logo`} className="my-0 mx-auto" />
+                <Img src={logoPath} width="150" alt={`${appName} Logo`} className="mx-auto my-0" />
               </Section>
             )}
 
@@ -95,13 +95,13 @@ export const BaseEmailLayout = ({
                     {appBaseUrl && (
                       <Link
                         href={appBaseUrl}
-                        className="text-muted text-[12px] leading-6 mt-5 block text-center"
+                        className="text-muted mt-5 block text-center text-[12px] leading-6"
                       >
                         {appName}
                       </Link>
                     )}
                     {emailTimestamp && (
-                      <Text className="text-muted text-[12px] leading-6 mt-1.5 block text-center">
+                      <Text className="text-muted mt-1.5 block text-center text-[12px] leading-6">
                         {`Deze link is aangemaakt op ${emailTimestamp}`}
                       </Text>
                     )}
@@ -111,9 +111,9 @@ export const BaseEmailLayout = ({
             )}
 
             {(reasonText || privacyUrl) && (
-              <Section className="border-t border-solid border-secondary pt-4 mt-8 text-center">
+              <Section className="border-secondary mt-8 border-t border-solid pt-4 text-center">
                 {reasonText && (
-                  <Text className="text-muted text-[10px] leading-4 mb-2">{reasonText}</Text>
+                  <Text className="text-muted mb-2 text-[10px] leading-4">{reasonText}</Text>
                 )}
                 <Text className="text-muted text-[10px] leading-4">
                   {appName}

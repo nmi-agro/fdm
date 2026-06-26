@@ -1,7 +1,7 @@
-import { createHash, randomUUID } from "node:crypto"
-import fs from "node:fs"
 import type { GenericOAuthConfig } from "better-auth/plugins"
 import { decodeJwt, importPKCS8, SignJWT } from "jose"
+import { createHash, randomUUID } from "node:crypto"
+import fs from "node:fs"
 
 const AUTHORITY = "https://login.microsoftonline.com"
 const PROFILE_PHOTO_SIZE = 48

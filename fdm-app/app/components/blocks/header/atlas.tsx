@@ -40,14 +40,14 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
       <BreadcrumbSeparator />
       <BreadcrumbItem>
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-1 max-w-30 sm:max-w-50 md:max-w-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          <DropdownMenuTrigger className="focus-visible:ring-ring flex max-w-30 items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:max-w-50 md:max-w-none">
             <span className="truncate">{currentName}</span>
             <ChevronDown className="h-4 w-4 shrink-0" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             {isFarmSelected && (
               <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                <DropdownMenuLabel className="text-muted-foreground text-xs">
                   Bedrijf
                 </DropdownMenuLabel>
                 <DropdownMenuItem asChild>
@@ -70,7 +70,7 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
             {isFarmSelected && <DropdownMenuSeparator />}
             <DropdownMenuGroup>
               {isFarmSelected && (
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                <DropdownMenuLabel className="text-muted-foreground text-xs">
                   Overig
                 </DropdownMenuLabel>
               )}

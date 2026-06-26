@@ -1,5 +1,6 @@
 import { CircleX } from "lucide-react"
 import { NavLink } from "react-router"
+import type { NSupplyResult } from "~/integrations/mineralization.server"
 import {
   Table,
   TableBody,
@@ -8,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import type { NSupplyResult } from "~/integrations/mineralization.server"
 import { getCurrentDoy } from "./mineralization-chart"
 
 interface FieldListProps {
@@ -36,7 +36,7 @@ export function FieldList({ results, b_id_farm, calendar }: FieldListProps) {
             <TableCell>
               <NavLink
                 to={`/farm/${b_id_farm}/${calendar}/mineralization/${result.b_id}`}
-                className="hover:underline font-medium"
+                className="font-medium hover:underline"
               >
                 {result.b_name}
               </NavLink>
@@ -59,7 +59,7 @@ function NMineralizedToday({ result, currentDoy }: { result: NSupplyResult; curr
     return (
       <>
         <span className="sr-only">Fout: {result.error}</span>
-        <CircleX className="h-4 w-4 text-muted-foreground inline" aria-hidden="true" />
+        <CircleX className="text-muted-foreground inline h-4 w-4" aria-hidden="true" />
       </>
     )
   }

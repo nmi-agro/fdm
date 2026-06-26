@@ -81,7 +81,7 @@ export function AggregationTree({
     // to pass to our modified Progress component.
     const colorBar = colorClass.replace("bg-", "")
     return (
-      <div className="w-24 sm:w-32 shrink-0">
+      <div className="w-24 shrink-0 sm:w-32">
         <Progress value={score100} colorBar={colorBar} />
       </div>
     )
@@ -107,9 +107,9 @@ export function AggregationTree({
     const nodeContent = (
       <div
         className={cn(
-          "flex items-center justify-between gap-3 p-2.5 rounded-lg border transition-colors",
-          depth === 0 && "bg-card border-emerald-500/30 shadow-sm font-bold text-base",
-          depth === 1 && "bg-muted/30 border-border hover:bg-muted/50 font-semibold text-sm",
+          "flex items-center justify-between gap-3 rounded-lg border p-2.5 transition-colors",
+          depth === 0 && "bg-card border-emerald-500/30 text-base font-bold shadow-sm",
+          depth === 1 && "bg-muted/30 border-border hover:bg-muted/50 text-sm font-semibold",
           depth === 2 && "bg-card hover:bg-muted/20 text-xs",
           isCollapsible && depth > 0 && "cursor-pointer",
         )}
@@ -117,13 +117,13 @@ export function AggregationTree({
           paddingLeft: `${Math.max(10, depth * 16 + 10)}px`,
         }}
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           {isCollapsible ? (
             <CollapsibleTrigger asChild>
               <button
                 type="button"
                 aria-label={isExpanded ? "Inklappen" : "Uitklappen"}
-                className="p-0.5 hover:bg-muted rounded text-muted-foreground shrink-0 focus:outline-hidden focus:ring-2 focus:ring-ring"
+                className="hover:bg-muted text-muted-foreground focus:ring-ring shrink-0 rounded p-0.5 focus:ring-2 focus:outline-hidden"
               >
                 {isExpanded ? (
                   <ChevronDown className="h-4 w-4" />
@@ -136,35 +136,35 @@ export function AggregationTree({
             <div className="w-5 shrink-0" />
           )}
 
-          <span className="truncate text-foreground" title={info.name}>
+          <span className="text-foreground truncate" title={info.name}>
             {info.name}
           </span>
 
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help shrink-0" />
+                <Info className="text-muted-foreground/60 h-3.5 w-3.5 shrink-0 cursor-help" />
               </TooltipTrigger>
               <TooltipContent
                 side="top"
-                className="max-w-[280px] p-2 text-xs bg-popover text-popover-foreground border shadow-md"
+                className="bg-popover text-popover-foreground max-w-[280px] border p-2 text-xs shadow-md"
               >
-                <p className="font-semibold text-foreground mb-1">{info.name}</p>
+                <p className="text-foreground mb-1 font-semibold">{info.name}</p>
                 <p className="text-muted-foreground">{info.description}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 text-xs">
+        <div className="flex shrink-0 items-center gap-3 text-xs">
           {displayScore !== null ? (
             <>
-              <span className="font-bold tabular-nums w-6 text-right">{displayScore}</span>
+              <span className="w-6 text-right font-bold tabular-nums">{displayScore}</span>
               {renderScoreBar(displayScore)}
               <Badge
                 variant="outline"
                 className={cn(
-                  "px-2 py-0.5 text-[10px] uppercase tracking-wider",
+                  "px-2 py-0.5 text-[10px] tracking-wider uppercase",
                   getScoreBadgeClass(displayScore),
                 )}
               >
@@ -197,7 +197,7 @@ export function AggregationTree({
           {hasChildren && children.map((childId) => renderNode(childId, depth + 1))}
 
           {hasIndicators && (
-            <div className="space-y-1 pl-4 mt-1">
+            <div className="mt-1 space-y-1 pl-4">
               {indicatorIds.map((indId) => {
                 const indInfo = getIndicatorInfo(indId)
                 if (!indInfo) return null
@@ -257,30 +257,30 @@ export function AggregationTree({
                         type="button"
                         onClick={() => onIndicatorClick?.(indId)}
                         className={cn(
-                          "w-full flex items-center justify-between gap-3 p-2 rounded-md border border-dashed bg-card hover:bg-muted/40 transition-colors text-xs text-left",
+                          "bg-card hover:bg-muted/40 flex w-full items-center justify-between gap-3 rounded-md border border-dashed p-2 text-left text-xs transition-colors",
                           hasFieldData ? "cursor-pointer" : "",
                         )}
                         style={{
                           paddingLeft: indHeaderPl,
                         }}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
                           {hasFieldData ? (
                             isIndExpanded ? (
-                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <ChevronDown className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                             ) : (
-                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <ChevronRight className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                             )
                           ) : (
                             <div className="w-3.5 shrink-0" />
                           )}
                           <Badge
                             variant="secondary"
-                            className="font-mono text-[10px] px-1.5 py-0 h-5"
+                            className="h-5 px-1.5 py-0 font-mono text-[10px]"
                           >
                             {indId}
                           </Badge>
-                          <span className="font-medium truncate text-foreground/90">
+                          <span className="text-foreground/90 truncate font-medium">
                             {indInfo.name}
                           </span>
 
@@ -290,17 +290,17 @@ export function AggregationTree({
                                 <TooltipTrigger asChild>
                                   <Badge
                                     variant="outline"
-                                    className="text-[10px] px-1.5 py-0 h-5 text-muted-foreground cursor-help font-medium"
+                                    className="text-muted-foreground h-5 cursor-help px-1.5 py-0 text-[10px] font-medium"
                                   >
                                     + {otherImpacted.length}{" "}
                                     {otherImpacted.length === 1 ? "ander thema" : "andere thema's"}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent className="bg-popover text-popover-foreground border shadow-md">
-                                  <p className="font-semibold text-xs mb-1">
+                                  <p className="mb-1 text-xs font-semibold">
                                     Heeft ook invloed op:
                                   </p>
-                                  <ul className="list-disc pl-4 text-muted-foreground">
+                                  <ul className="text-muted-foreground list-disc pl-4">
                                     {otherImpacted.map((oi) => (
                                       <li key={oi}>{oi}</li>
                                     ))}
@@ -311,19 +311,19 @@ export function AggregationTree({
                           )}
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0">
+                        <div className="flex shrink-0 items-center gap-3">
                           {indDisplay !== null ? (
                             <>
-                              <span className="font-semibold tabular-nums w-6 text-right">
+                              <span className="w-6 text-right font-semibold tabular-nums">
                                 {indDisplay}
                               </span>
                               {renderScoreBar(indDisplay)}
                               <span
-                                className={cn("w-2 h-2 rounded-full", getScoreDotClass(indDisplay))}
+                                className={cn("h-2 w-2 rounded-full", getScoreDotClass(indDisplay))}
                               />
                             </>
                           ) : (
-                            <span className="text-muted-foreground italic text-[10px]">
+                            <span className="text-muted-foreground text-[10px] italic">
                               geen data
                             </span>
                           )}
@@ -340,14 +340,14 @@ export function AggregationTree({
                           }}
                         >
                           {worstFields.length === 0 ? (
-                            <p className="text-[10px] text-muted-foreground italic py-1 px-2">
+                            <p className="text-muted-foreground px-2 py-1 text-[10px] italic">
                               {domain === "organization"
                                 ? "Geen bedrijfsdata beschikbaar."
                                 : "Geen perceelsdata beschikbaar."}
                             </p>
                           ) : (
                             <>
-                              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide pb-0.5">
+                              <p className="text-muted-foreground pb-0.5 text-[10px] font-semibold tracking-wide uppercase">
                                 Top {worstFields.length}{" "}
                                 {domain === "organization" ? "bedrijven" : "percelen"} met hoogste
                                 negatieve impact
@@ -360,23 +360,23 @@ export function AggregationTree({
                                       ? basePathFormatter(field.b_id)
                                       : `${basePath}/${field.b_id}`
                                   }
-                                  className="flex items-center justify-between gap-2 px-2 py-1 rounded border border-dashed border-border/60 bg-muted/20 hover:bg-muted/50 transition-colors text-xs group"
+                                  className="border-border/60 bg-muted/20 hover:bg-muted/50 group flex items-center justify-between gap-2 rounded border border-dashed px-2 py-1 text-xs transition-colors"
                                 >
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    <CornerDownRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                                    <span className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
+                                  <div className="flex min-w-0 items-center gap-1.5">
+                                    <CornerDownRight className="text-muted-foreground h-3 w-3 shrink-0" />
+                                    <span className="text-foreground group-hover:text-primary truncate font-medium transition-colors">
                                       {field.b_name ||
                                         `${domain === "organization" ? "Bedrijf" : "Perceel"} ${field.b_id}`}
                                     </span>
                                     {field.b_area != null && (
-                                      <span className="text-[10px] text-muted-foreground shrink-0">
+                                      <span className="text-muted-foreground shrink-0 text-[10px]">
                                         ({field.b_area.toFixed(1)} ha)
                                       </span>
                                     )}
                                   </div>
                                   <span
                                     className={cn(
-                                      "font-bold tabular-nums shrink-0",
+                                      "shrink-0 font-bold tabular-nums",
                                       getScoreTextClass(field.display),
                                     )}
                                   >
@@ -403,7 +403,7 @@ export function AggregationTree({
     <div className="space-y-4">
       <div>{renderNode("S_BLN")}</div>
       {scoreOf("S_BBWP") !== null && (
-        <div className="pt-4 border-t border-dashed space-y-2">{renderNode("S_BBWP")}</div>
+        <div className="space-y-2 border-t border-dashed pt-4">{renderNode("S_BBWP")}</div>
       )}
     </div>
   )

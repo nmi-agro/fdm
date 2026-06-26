@@ -56,7 +56,7 @@ export function NewFieldsForm({
           </CardHeader>
           <CardContent>
             <Form id="formField" method="POST" onSubmit={form.handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-4">
+              <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="b_name"
@@ -108,7 +108,7 @@ export function NewFieldsForm({
                   control={form.control}
                   name="b_bufferstrip"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row col-span-2 items-start space-x-3 space-y-0 rounded-md border p-4 shadow">
+                    <FormItem className="col-span-2 flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4 shadow">
                       <FormControl>
                         <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                       </FormControl>

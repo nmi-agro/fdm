@@ -1,10 +1,10 @@
+import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { User, Users } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Form, useNavigation, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import isEmail from "validator/lib/isEmail"
-import type { z } from "zod"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
 import {
@@ -122,7 +122,7 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
             form={form} // Pass the form instance
             name="username" // Name for remix-hook-form registration
           />
-          <div className="flex items-center space-x-2 justify-end">
+          <div className="flex items-center justify-end space-x-2">
             <Select
               defaultValue={form.getValues("role")}
               name="role"

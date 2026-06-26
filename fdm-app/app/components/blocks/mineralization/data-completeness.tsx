@@ -1,10 +1,10 @@
 import { CircleAlert, CircleX } from "lucide-react"
 import { NavLink } from "react-router"
+import type { DataCompleteness, NSupplyMethod } from "~/integrations/mineralization.server"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import type { DataCompleteness, NSupplyMethod } from "~/integrations/mineralization.server"
 
 const PARAM_LABELS: Record<string, string> = {
   a_som_loi: "Organische stof (LOI)",
@@ -102,24 +102,24 @@ export function DataCompletenessCard({
             const unit = PARAM_UNITS[item.param] ?? ""
             return (
               <li key={item.param} className="flex items-start gap-2 text-sm">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-muted-foreground">
                       {PARAM_LABELS[item.param] ?? item.param}
                     </span>
                     {isEstimate && (
-                      <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                      <Badge variant="secondary" className="h-4 px-1 py-0 text-[10px]">
                         NMI BodemSchat
                       </Badge>
                     )}
                   </div>
                   {!isEstimate && item.date && (
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-muted-foreground text-[10px]">
                       {new Date(item.date).toLocaleDateString("nl-NL")}
                     </span>
                   )}
                 </div>
-                <span className="font-mono text-xs shrink-0">
+                <span className="shrink-0 font-mono text-xs">
                   {typeof item.value === "number" ? item.value.toFixed(2) : item.value}
                   {unit && unit !== "—" ? ` ${unit}` : ""}
                 </span>
@@ -128,25 +128,25 @@ export function DataCompletenessCard({
           })}
           {missing.map((param) => (
             <li key={param} className="flex items-center gap-2 text-sm">
-              <CircleX className="h-4 w-4 text-muted-foreground shrink-0" />
+              <CircleX className="text-muted-foreground h-4 w-4 shrink-0" />
               <span className="flex-1 font-medium">{PARAM_LABELS[param] ?? param}</span>
-              <Badge variant="destructive" className="text-[10px] px-1 py-0 h-4">
+              <Badge variant="destructive" className="h-4 px-1 py-0 text-[10px]">
                 Ontbreekt
               </Badge>
             </li>
           ))}
           {estimated.map((param) => (
             <li key={param} className="flex items-center gap-2 text-sm">
-              <CircleAlert className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="flex-1 text-muted-foreground">{PARAM_LABELS[param] ?? param}</span>
-              <span className="text-[10px] text-muted-foreground">Geschat</span>
+              <CircleAlert className="text-muted-foreground h-4 w-4 shrink-0" />
+              <span className="text-muted-foreground flex-1">{PARAM_LABELS[param] ?? param}</span>
+              <span className="text-muted-foreground text-[10px]">Geschat</span>
             </li>
           ))}
         </ul>
 
         {missing.length > 0 && (
-          <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground mb-2">
+          <div className="border-t pt-2">
+            <p className="text-muted-foreground mb-2 text-xs">
               Voeg een bodemanalyse toe voor een nauwkeurigere berekening.
             </p>
             <Button asChild size="sm" variant="outline">

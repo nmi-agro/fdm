@@ -11,8 +11,8 @@ export function GerritFeedback({ traceId }: { traceId: string }) {
   })
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
-      <p className="text-sm font-medium text-foreground">
+    <div className="flex w-full flex-col justify-between gap-3 sm:flex-row sm:items-center">
+      <p className="text-foreground text-sm font-medium">
         Is dit bemestingsplan van Gerrit behulpzaam?
       </p>
       <div className="flex gap-2" ref={triggerRef}>
@@ -21,7 +21,7 @@ export function GerritFeedback({ traceId }: { traceId: string }) {
           size="sm"
           onClick={() => respond("up")}
         >
-          <ThumbsUp className="w-4 h-4 mr-2" />
+          <ThumbsUp className="mr-2 h-4 w-4" />
           Ja
         </Button>
         <Button
@@ -29,7 +29,7 @@ export function GerritFeedback({ traceId }: { traceId: string }) {
           size="sm"
           onClick={() => respond("down")}
         >
-          <ThumbsDown className="w-4 h-4 mr-2" />
+          <ThumbsDown className="mr-2 h-4 w-4" />
           Nee
         </Button>
       </div>

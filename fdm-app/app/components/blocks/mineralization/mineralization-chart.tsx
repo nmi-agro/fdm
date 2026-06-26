@@ -1,6 +1,7 @@
 "use client"
 
 import { Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis } from "recharts"
+import type { NSupplyDataPoint, NSupplyMethod } from "~/integrations/mineralization.server"
 import {
   type ChartConfig,
   ChartContainer,
@@ -9,7 +10,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "~/components/ui/chart"
-import type { NSupplyDataPoint, NSupplyMethod } from "~/integrations/mineralization.server"
 
 const MONTH_DOYS = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 const MONTH_LABELS = [

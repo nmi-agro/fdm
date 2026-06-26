@@ -1,7 +1,7 @@
+import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"
 /* eslint-disable typescript/restrict-template-expressions -- catalogueName is a union of string literals which safely interpolates in template strings. */
 import { getCatalogueBaat } from "./catalogues/baat"
 import { getCatalogueSrm } from "./catalogues/srm"
-import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"
 
 /**
  * Retrieves a fertilizer catalogue based on the specified name.

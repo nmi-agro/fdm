@@ -15,8 +15,8 @@ import {
   getSoilAnalyses,
   getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
-import { handleInputCollectionError } from "../shared/errors"
 import type { FieldInput, OrganicMatterBalanceInput } from "./types"
+import { handleInputCollectionError } from "../shared/errors"
 
 /**
  * Collects all necessary input data from an FDM instance to calculate the organic matter balance of a single farm.

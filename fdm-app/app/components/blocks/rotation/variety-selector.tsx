@@ -39,7 +39,7 @@ function TableVarietySelectorForm({
   })
 
   return (
-    <div className="absolute top-1/2 left-1/2 -translate-1/2 flex flex-row items-center">
+    <div className="absolute top-1/2 left-1/2 flex -translate-1/2 flex-row items-center">
       <RemixFormProvider {...form}>
         <Controller
           name={name as string}
@@ -154,7 +154,7 @@ export function TableVarietySelector({
       <Button
         variant="link"
         className={cn(
-          "block px-0 max-w-2xs h-auto whitespace-break-spaces",
+          "block h-auto max-w-2xs px-0 whitespace-break-spaces",
           !value?.length && "text-muted-foreground",
         )}
         onClick={(e) => {

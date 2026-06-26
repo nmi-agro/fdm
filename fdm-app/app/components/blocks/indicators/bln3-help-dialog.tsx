@@ -19,7 +19,7 @@ export function Bln3HelpDialog() {
         <Button
           variant="ghost"
           size="sm"
-          className="gap-1.5 text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground gap-1.5"
         >
           <HelpCircle className="h-4 w-4" />
           Wat is BLN3?
@@ -29,7 +29,7 @@ export function Bln3HelpDialog() {
         <DialogHeader>
           <DialogTitle>Wat is BLN3?</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 text-sm text-muted-foreground">
+        <div className="text-muted-foreground space-y-4 text-sm">
           <p>
             <strong className="text-foreground">BLN3</strong> staat voor{" "}
             <em>Bodemindicatoren voor Landbouwgronden Nederland</em> (versie 3). Het is een
@@ -38,8 +38,8 @@ export function Bln3HelpDialog() {
           </p>
 
           <div className="space-y-1.5">
-            <p className="font-medium text-foreground">De BLN3 structuur</p>
-            <ul className="space-y-2 list-none pl-0">
+            <p className="text-foreground font-medium">De BLN3 structuur</p>
+            <ul className="list-none space-y-2 pl-0">
               {[
                 [
                   "Water",
@@ -63,7 +63,7 @@ export function Bln3HelpDialog() {
                 ],
               ].map(([dienst, desc]) => (
                 <li key={dienst} className="text-xs">
-                  <strong className="text-foreground shrink-0 block">{dienst}:</strong>
+                  <strong className="text-foreground block shrink-0">{dienst}:</strong>
                   <span>{desc}</span>
                 </li>
               ))}
@@ -71,7 +71,7 @@ export function Bln3HelpDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <p className="font-medium text-foreground">Bedrijfsscore</p>
+            <p className="text-foreground font-medium">Bedrijfsscore</p>
             <p className="text-xs">
               Op de bedrijfspagina worden alle scores opgebouwd als een{" "}
               <strong>oppervlaktegewogen gemiddelde</strong> van de individuele percelen. Percelen
@@ -81,7 +81,7 @@ export function Bln3HelpDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <p className="font-medium text-foreground">Scores (0–100)</p>
+            <p className="text-foreground font-medium">Scores (0–100)</p>
             <ul className="space-y-1">
               <li>
                 <span className="font-medium text-green-600 dark:text-green-400">≥ 70</span> — Goed
@@ -99,7 +99,7 @@ export function Bln3HelpDialog() {
           </div>
 
           <div className="space-y-1.5">
-            <p className="font-medium text-foreground">Met vs. zonder maatregelen</p>
+            <p className="text-foreground font-medium">Met vs. zonder maatregelen</p>
             <p>
               <strong className="text-foreground">Met maatregelen</strong> toont de verwachte
               bodemkwaliteit wanneer aanbevolen bodemmaatregelen worden toegepast.{" "}

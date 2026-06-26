@@ -1,10 +1,5 @@
 import { type FdmType, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import pkg from "../../package"
-import { convertDecimalToNumberRecursive } from "../shared/conversion"
-import { combineSoilAnalyses } from "../shared/soil"
-import { calculateOrganicMatterDegradation } from "./degradation"
-import { calculateOrganicMatterSupply } from "./supply"
 import type {
   CultivationDetail,
   FertilizerDetail,
@@ -15,6 +10,11 @@ import type {
   OrganicMatterBalanceNumeric,
   SoilAnalysisPicked,
 } from "./types"
+import pkg from "../../package"
+import { convertDecimalToNumberRecursive } from "../shared/conversion"
+import { combineSoilAnalyses } from "../shared/soil"
+import { calculateOrganicMatterDegradation } from "./degradation"
+import { calculateOrganicMatterSupply } from "./supply"
 
 /**
  * Calculates the organic matter balance for a farm, aggregating results from all its fields.

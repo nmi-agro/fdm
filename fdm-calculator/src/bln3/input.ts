@@ -1,7 +1,7 @@
 import type { FdmType, fdmSchema, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
 import { getCultivations, getField, getMeasures, getSoilAnalyses } from "@nmi-agro/fdm-core"
-import { findHoofdteelt } from "../shared/hoofdteelt"
 import type { Bln3Cultivation, Bln3Measure, Bln3ScoreCollectedInputs } from "./types"
+import { findHoofdteelt } from "../shared/hoofdteelt"
 
 /**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.

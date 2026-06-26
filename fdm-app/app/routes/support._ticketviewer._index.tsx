@@ -11,7 +11,7 @@ export default function TicketViewerNoSelection() {
   if (isAgentView) {
     return (
       <Empty>
-        <MessageSquareDashed className="size-8 text-muted-foreground" />
+        <MessageSquareDashed className="text-muted-foreground size-8" />
         <EmptyTitle className="text-muted-foreground">
           {currentPage === "inbox" ? "Mijn inbox" : "Alle tickets"}
         </EmptyTitle>

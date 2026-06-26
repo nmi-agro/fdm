@@ -44,7 +44,7 @@ export function HeaderMineralization({
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">
+              <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
                 <span className="truncate">{selectedField?.b_name ?? "Kies een perceel"}</span>
                 <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
               </DropdownMenuTrigger>
@@ -54,7 +54,7 @@ export function HeaderMineralization({
                     key={option.b_id}
                     asChild
                     className={cn(
-                      "flex items-center justify-between gap-2 cursor-pointer",
+                      "flex cursor-pointer items-center justify-between gap-2",
                       b_id === option.b_id && "bg-accent text-accent-foreground",
                     )}
                   >

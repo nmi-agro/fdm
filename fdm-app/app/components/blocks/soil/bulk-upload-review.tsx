@@ -18,11 +18,11 @@ declare module "@tanstack/react-table" {
   }
 }
 
+import type React from "react"
 import * as chrono from "chrono-node"
 import { format, isValid, parseISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { AlertTriangle, CalendarIcon, Check, Microscope, Save, Shovel, X } from "lucide-react"
-import type React from "react"
 import { memo, useCallback, useMemo, useState } from "react"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -114,11 +114,11 @@ const DateCell = memo(function DateCell({
   }
 
   return (
-    <div className="relative flex gap-2 w-[200px]">
+    <div className="relative flex w-[200px] gap-2">
       <Input
         value={inputValue}
         placeholder="Kies een datum"
-        className="bg-background pr-10 text-xs h-8"
+        className="bg-background h-8 pr-10 text-xs"
         onChange={(e) => setInputValue(e.target.value)}
         onBlur={onInputBlur}
         onKeyDown={(e) => {
@@ -136,7 +136,7 @@ const DateCell = memo(function DateCell({
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
-            className="absolute top-1/2 right-1 size-6 -translate-y-1/2 p-0 h-6 w-6"
+            className="absolute top-1/2 right-1 size-6 h-6 w-6 -translate-y-1/2 p-0"
           >
             <CalendarIcon className="size-3" />
             <span className="sr-only">Kies een datum</span>
@@ -201,7 +201,7 @@ const MatchCell = memo(
         disabled={!isDateValid}
         onValueChange={(value) => onFieldChange(analysisId, value)}
       >
-        <SelectTrigger className="w-[250px] text-xs h-8">
+        <SelectTrigger className="h-8 w-[250px] text-xs">
           <SelectValue placeholder="Selecteer perceel..." />
         </SelectTrigger>
         <SelectContent>{fieldOptions}</SelectContent>
@@ -227,8 +227,8 @@ const StatusCell = memo(
 
     if (!isDateValid) {
       return (
-        <div className="flex items-center text-destructive">
-          <AlertTriangle className="h-4 w-4 mr-1" />
+        <div className="text-destructive flex items-center">
+          <AlertTriangle className="mr-1 h-4 w-4" />
           <span className="text-xs">Datum ontbreekt</span>
         </div>
       )
@@ -248,8 +248,8 @@ const StatusCell = memo(
       return (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="flex items-center text-green-600 cursor-help">
-              <Check className="h-4 w-4 mr-1" />
+            <div className="flex cursor-help items-center text-green-600">
+              <Check className="mr-1 h-4 w-4" />
               <span className="text-xs">Gekoppeld</span>
             </div>
           </TooltipTrigger>
@@ -262,7 +262,7 @@ const StatusCell = memo(
 
     return (
       <div className="flex items-center text-amber-600">
-        <AlertTriangle className="h-4 w-4 mr-1" />
+        <AlertTriangle className="mr-1 h-4 w-4" />
         <span className="text-xs">Niet gekoppeld</span>
       </div>
     )
@@ -361,15 +361,15 @@ export function BulkSoilAnalysisReview({
           return (
             <div className="flex flex-col">
               <span className="font-medium">{row.original.filename}</span>
-              <div className="flex flex-col gap-0.5 mt-1 text-xs text-muted-foreground">
+              <div className="text-muted-foreground mt-1 flex flex-col gap-0.5 text-xs">
                 <div className="flex items-center">
-                  <Microscope className="h-3 w-3 mr-1" />
+                  <Microscope className="mr-1 h-3 w-3" />
                   <span>{sourceLabel}</span>
                 </div>
                 {(row.original.a_depth_upper !== undefined ||
                   row.original.a_depth_lower !== undefined) && (
                   <div className="flex items-center ">
-                    <Shovel className="h-3 w-3 mr-1" />
+                    <Shovel className="mr-1 h-3 w-3" />
                     <span>
                       Diepte: {row.original.a_depth_upper ?? 0} -{" "}
                       {row.original.a_depth_lower ?? "?"} cm
@@ -481,7 +481,7 @@ export function BulkSoilAnalysisReview({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-hidden">
+          <div className="overflow-hidden rounded-md border">
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (

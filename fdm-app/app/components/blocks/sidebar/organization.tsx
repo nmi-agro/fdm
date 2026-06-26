@@ -180,7 +180,7 @@ export function SidebarOrganization({
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
                     asChild
-                    className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
                   >
                     <span className="flex items-center gap-2">
                       <Calendar />
@@ -207,7 +207,7 @@ export function SidebarOrganization({
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
                     asChild
-                    className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
                   >
                     <span className="flex items-center gap-2">
                       <House />
@@ -234,7 +234,7 @@ export function SidebarOrganization({
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
                     asChild
-                    className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
                   >
                     <span className="flex items-center gap-2">
                       <ClipboardList />
@@ -261,7 +261,7 @@ export function SidebarOrganization({
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
                     asChild
-                    className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
                   >
                     <span className="flex items-center gap-2">
                       <Users />
@@ -288,7 +288,7 @@ export function SidebarOrganization({
                 <TooltipTrigger asChild>
                   <SidebarMenuButton
                     asChild
-                    className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
                   >
                     <span className="flex items-center gap-2">
                       <Cog />

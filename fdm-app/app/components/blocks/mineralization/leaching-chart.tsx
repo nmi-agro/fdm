@@ -1,13 +1,13 @@
 "use client"
 
 import { Area, CartesianGrid, ComposedChart, ReferenceLine, XAxis, YAxis } from "recharts"
+import type { DynaDailyPoint } from "~/integrations/mineralization.server"
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "~/components/ui/chart"
-import type { DynaDailyPoint } from "~/integrations/mineralization.server"
 import { type DynaChartEvent, EVENT_COLORS, EventDot, groupEventsByDate } from "./dyna-chart"
 
 const MONTH_LABELS_NL = [

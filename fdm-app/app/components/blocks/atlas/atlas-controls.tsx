@@ -1,5 +1,5 @@
-import { Layers, Mountain, PanelsRightBottom, Scan } from "lucide-react"
 import type { ControlPosition, IControl, Map as MapLibreMap } from "maplibre-gl"
+import { Layers, Mountain, PanelsRightBottom, Scan } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { GeolocateControl, NavigationControl, useControl } from "react-map-gl/maplibre"

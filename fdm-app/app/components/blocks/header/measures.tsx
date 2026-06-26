@@ -50,7 +50,7 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
           <BreadcrumbItem>
             {fieldList.length > 1 ? (
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-1 max-w-30 sm:max-w-50 md:max-w-none outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <DropdownMenuTrigger className="focus-visible:ring-ring flex max-w-30 items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:max-w-50 md:max-w-none">
                   <span className="truncate">{fieldName ?? b_id}</span>
                   <ChevronDown className="h-4 w-4 shrink-0" />
                 </DropdownMenuTrigger>
@@ -67,7 +67,7 @@ export function HeaderMeasures({ b_id_farm }: { b_id_farm: string }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <BreadcrumbPage className="max-w-30 sm:max-w-50 md:max-w-none truncate">
+              <BreadcrumbPage className="max-w-30 truncate sm:max-w-50 md:max-w-none">
                 {fieldName ?? b_id}
               </BreadcrumbPage>
             )}

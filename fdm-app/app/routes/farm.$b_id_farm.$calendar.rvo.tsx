@@ -292,7 +292,7 @@ export default function RvoImportReviewPage() {
             />
           </div>
           <FarmContent>
-            <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
+            <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-y-0 lg:space-x-12">
               <div className="w-full">
                 <RvoErrorAlert error={error} retryPath={location.pathname} />
               </div>
@@ -343,7 +343,7 @@ export default function RvoImportReviewPage() {
         )}
 
         {rvoImportReviewData.length === 0 ? (
-          <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[600px] py-10">
+          <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 py-10 sm:w-[600px]">
             {noRvoParcelsFound && (
               <Alert>
                 <AlertTitle>Geen percelen gevonden</AlertTitle>
@@ -394,7 +394,7 @@ export default function RvoImportReviewPage() {
                         </DialogDescription>
                       </DialogHeader>
                       <div className="py-4">
-                        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                        <ul className="text-muted-foreground list-disc space-y-2 pl-6">
                           {changes.add > 0 && (
                             <li>
                               {changes.add} {changes.add === 1 ? "perceel" : "percelen"} toevoegen

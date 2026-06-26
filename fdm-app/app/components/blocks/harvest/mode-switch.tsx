@@ -12,9 +12,9 @@ export function HarvestModeSwitchAlert({
   onSwitch: React.MouseEventHandler<HTMLButtonElement>
 }) {
   return (
-    <div className="flex flex-row items-center justify-between bg-muted/40 p-4 rounded-lg border">
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <Info className="h-4 w-4 shrink-0 text-primary" />
+    <div className="bg-muted/40 flex flex-row items-center justify-between rounded-lg border p-4">
+      <div className="text-muted-foreground flex items-center gap-3 text-sm">
+        <Info className="text-primary h-4 w-4 shrink-0" />
         <p>
           {isBatchMode
             ? `Wilt u liever een enkele ${getHarvestTerm(b_lu_croprotation)} toevoegen of bijwerken?`
@@ -26,7 +26,7 @@ export function HarvestModeSwitchAlert({
         variant="outline"
         size="sm"
         onClick={onSwitch}
-        className="shrink-0 ml-4"
+        className="ml-4 shrink-0"
       >
         Overschakelen
       </Button>

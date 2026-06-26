@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router"
-import { Select, SelectContent, SelectItem, SelectTrigger } from "~/components/ui/select"
 import type { NSupplyMethod } from "~/integrations/mineralization.server"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "~/components/ui/select"
 
 const METHOD_OPTIONS: {
   value: NSupplyMethod
@@ -53,7 +53,7 @@ export function MethodSelector({ value }: MethodSelectorProps) {
           <SelectItem key={opt.value} value={opt.value}>
             <div>
               <div className="font-medium">{opt.label}</div>
-              <div className="text-xs text-muted-foreground">{opt.description}</div>
+              <div className="text-muted-foreground text-xs">{opt.description}</div>
             </div>
           </SelectItem>
         ))}

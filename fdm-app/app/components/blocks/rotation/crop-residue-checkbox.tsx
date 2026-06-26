@@ -47,7 +47,7 @@ export function CropResidueCheckbox({ cell, row }: CellContext<RotationExtended,
   return fetcher.state !== "idle" ? (
     <Spinner />
   ) : (
-    <div className="flex flex-row items-center gap-1 text-muted-foreground">
+    <div className="text-muted-foreground flex flex-row items-center gap-1">
       {row.original.canModify ? (
         <Checkbox
           id={inputId}

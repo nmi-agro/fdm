@@ -1,9 +1,9 @@
+import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useId } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type z from "zod"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import {
@@ -23,9 +23,9 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
+import type { HelpdeskUser } from "./types"
 import { Message } from "./message"
 import { MessageSchema } from "./message-schema"
-import type { HelpdeskUser } from "./types"
 
 const formDefaultValues = {
   body: "",
@@ -74,7 +74,7 @@ export function MessageComposer({
           title={
             <fieldset
               disabled={isSubmitting}
-              className="w-full flex flex-row items-center gap-2 md:gap-4"
+              className="flex w-full flex-row items-center gap-2 md:gap-4"
             >
               <span className="min-w-0 flex-1">
                 {is_internal ? (
@@ -98,7 +98,7 @@ export function MessageComposer({
                             sender_role !== "agent" && "invisible",
                           )}
                         >
-                          <FieldLabel className="whitespace-nowrap text-xs">Intern</FieldLabel>
+                          <FieldLabel className="text-xs whitespace-nowrap">Intern</FieldLabel>
                           <Switch
                             checked={field.value as boolean}
                             onCheckedChange={field.onChange}
@@ -123,7 +123,7 @@ export function MessageComposer({
                             }
                           }}
                         >
-                          <SelectTrigger className="bg-card w-auto min-w-0 text-xs px-4">
+                          <SelectTrigger className="bg-card w-auto min-w-0 px-4 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -167,7 +167,7 @@ export function MessageComposer({
               )}
             />
           </fieldset>
-          <Button type="submit" className="block ms-auto min-w-0" disabled={isSubmitting}>
+          <Button type="submit" className="ms-auto block min-w-0" disabled={isSubmitting}>
             Versturen
             {isSubmitting && <Spinner />}
           </Button>

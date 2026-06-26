@@ -36,7 +36,7 @@ export function CultivationHistoryTimeline({
             <div
               key={cultivation.year}
               className={cn(
-                "flex items-start space-x-4 pb-6 relative group",
+                "group relative flex items-start space-x-4 pb-6",
                 isHiddenOnMobile && "hidden lg:flex",
               )}
             >
@@ -44,17 +44,17 @@ export function CultivationHistoryTimeline({
               {index !== cultivationHistory.length - 1 && (
                 <div
                   className={cn(
-                    "absolute left-4.75 top-10 h-full w-0.5 bg-border transition-colors group-hover:bg-primary/30",
+                    "bg-border group-hover:bg-primary/30 absolute top-10 left-4.75 h-full w-0.5 transition-colors",
                     isHiddenOnMobile && "hidden lg:block",
                   )}
                 />
               )}
 
               {/* Dot */}
-              <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background">
+              <div className="bg-background relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
                 <div
                   className={cn(
-                    "h-8 w-8 rounded-full flex items-center justify-center transition-all",
+                    "flex h-8 w-8 items-center justify-center rounded-full transition-all",
                   )}
                   style={{
                     backgroundColor: getCultivationColor(cultivation.b_lu_croprotation),
@@ -75,7 +75,7 @@ export function CultivationHistoryTimeline({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <p className={cn("font-semibold truncate cursor-help")}>
+                        <p className={cn("cursor-help truncate font-semibold")}>
                           {cultivation.b_lu_name ?? "Onbekend gewas"}
                         </p>
                       </TooltipTrigger>
@@ -85,14 +85,14 @@ export function CultivationHistoryTimeline({
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs font-bold tabular-nums text-muted-foreground/70">
+                <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                  <span className="text-muted-foreground/70 text-xs font-bold tabular-nums">
                     {cultivation.year}
                   </span>
                   {cultivation.b_lu_rest_oravib && (
                     <>
-                      <span className="text-[10px] text-muted-foreground/50">•</span>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 dark:text-green-400">
+                      <span className="text-muted-foreground/50 text-[10px]">•</span>
+                      <span className="text-[10px] font-bold tracking-widest text-green-600 uppercase dark:text-green-400">
                         Rustgewas
                       </span>
                     </>
@@ -105,11 +105,11 @@ export function CultivationHistoryTimeline({
       </div>
 
       {hasMore && (
-        <div className="lg:hidden pt-2 border-t mt-2">
+        <div className="mt-2 border-t pt-2 lg:hidden">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full text-muted-foreground hover:text-foreground h-10"
+            className="text-muted-foreground hover:text-foreground h-10 w-full"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             {isExpanded ? (
@@ -157,7 +157,7 @@ export function CultivationHistoryCard({
   }
 
   return (
-    <Card className="col-span-1 lg:row-span-2 overflow-hidden">
+    <Card className="col-span-1 overflow-hidden lg:row-span-2">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -200,7 +200,7 @@ export function CultivationHistorySkeleton() {
   const SKELETON_KEYS = ["sk-1", "sk-2", "sk-3"] as const
 
   return (
-    <Card className="col-span-1 lg:row-span-2 overflow-hidden">
+    <Card className="col-span-1 overflow-hidden lg:row-span-2">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
         <div className="space-y-1">
           <CardTitle>Gewashistorie</CardTitle>
@@ -208,18 +208,18 @@ export function CultivationHistorySkeleton() {
             Dit zijn de gewassen zoals geregistreerd in de Basisregistratie Gewaspercelen (BRP).
           </CardDescription>
         </div>
-        <Skeleton className="h-8 w-8 rounded-md shrink-0" />
+        <Skeleton className="h-8 w-8 shrink-0 rounded-md" />
       </CardHeader>
       <Separator className="opacity-50" />
       <CardContent className="pt-6 text-sm">
         <div className="relative pl-1">
           {SKELETON_KEYS.map((key, index) => (
-            <div key={key} className="flex items-start space-x-4 pb-6 relative">
+            <div key={key} className="relative flex items-start space-x-4 pb-6">
               {index !== SKELETON_KEYS.length - 1 && (
-                <div className="absolute left-4.75 top-10 h-full w-0.5 bg-border" />
+                <div className="bg-border absolute top-10 left-4.75 h-full w-0.5" />
               )}
-              <Skeleton className="relative z-10 h-10 w-10 rounded-full shrink-0" />
-              <div className="min-w-0 flex-1 py-1 space-y-2">
+              <Skeleton className="relative z-10 h-10 w-10 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-2 py-1">
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-3 w-1/4" />
               </div>

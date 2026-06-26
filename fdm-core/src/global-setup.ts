@@ -1,5 +1,5 @@
-import postgres from "postgres"
 import type { TestProject } from "vitest/node"
+import postgres from "postgres"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { createFdmServer } from "./fdm-server"

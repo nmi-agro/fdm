@@ -30,9 +30,9 @@ import {
 } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { FieldInput, NitrogenBalanceInput } from "./types"
 import { collectInputForNitrogenBalance, collectInputForNitrogenBalanceForFarms } from "./input"
 import { calculateAllFieldsNitrogenSupplyByDeposition } from "./supply/deposition"
-import type { FieldInput, NitrogenBalanceInput } from "./types"
 
 // Mock the @nmi-agro/fdm-core module
 vi.mock("@nmi-agro/fdm-core", async () => {

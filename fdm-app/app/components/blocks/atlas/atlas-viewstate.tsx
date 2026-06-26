@@ -1,7 +1,7 @@
-import geojsonExtent from "@mapbox/geojson-extent"
 import type { FeatureCollection } from "geojson"
 import type { FitBoundsOptions, LngLatBoundsLike } from "maplibre-gl"
 import type { ViewState } from "react-map-gl/maplibre"
+import geojsonExtent from "@mapbox/geojson-extent"
 
 export type AtlasViewState = Partial<ViewState> & {
   bounds?: LngLatBoundsLike

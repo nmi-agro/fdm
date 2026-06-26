@@ -8,9 +8,9 @@
 
 import type { FeatureCollection } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
+import type { LayerProps } from "react-map-gl/maplibre"
 import maplibregl from "maplibre-gl"
 import { useCallback, useMemo, useState } from "react"
-import type { LayerProps } from "react-map-gl/maplibre"
 import {
   Layer,
   Map as MapGL,
@@ -184,7 +184,7 @@ export default function MeasuresMap({
 
       {/* Hover tooltip */}
       {hoveredFeature && (
-        <div className="absolute bottom-3 left-3 z-10 bg-background/95 backdrop-blur-sm border rounded-lg px-2.5 py-1.5 shadow-md text-xs pointer-events-none">
+        <div className="bg-background/95 pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-md backdrop-blur-sm">
           <p className="font-semibold">{hoveredFeature.properties?.b_name ?? "Onbekend perceel"}</p>
           <p className="text-muted-foreground text-[10px]">
             {(hoveredFeature.properties?.measureCount as number) === 0

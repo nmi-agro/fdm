@@ -1,9 +1,10 @@
-import { TZDate } from "@date-fns/tz"
 import type { User } from "better-auth"
+import { TZDate } from "@date-fns/tz"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import postmark from "postmark"
 import { render } from "react-email"
+import type { ExtendedUser } from "~/types/extended-user"
 import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { FarmInvitationCancelledEmail } from "~/components/blocks/email/farm-invitation-cancelled"
 import { FarmInvitationRoleUpdatedEmail } from "~/components/blocks/email/farm-invitation-role-updated"
@@ -12,7 +13,6 @@ import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
 import { WelcomeEmail } from "~/components/blocks/email/welcome"
 import { serverConfig } from "~/lib/config.server"
-import type { ExtendedUser } from "~/types/extended-user"
 
 const client = new postmark.ServerClient(String(process.env.POSTMARK_API_KEY))
 

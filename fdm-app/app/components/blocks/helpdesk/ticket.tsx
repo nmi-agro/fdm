@@ -13,13 +13,13 @@ import { useNavigation, useSubmit } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Message } from "~/components/blocks/helpdesk/message"
 import { Spinner } from "~/components/ui/spinner"
+import type { HelpdeskUser } from "./types"
 import { AssignmentSelector } from "./assignee-dialog"
 import { MessageComposer } from "./message-composer"
 import { TICKET_PRIORITY, TicketPrioritySelector } from "./ticket-priority"
 import { TICKET_STATUS, TICKET_STATUS_DESCRIPTIONS, TicketStatusSelector } from "./ticket-status"
 import { TicketSubjectEditor } from "./ticket-subject"
 import { TicketTags } from "./ticket-tags"
-import type { HelpdeskUser } from "./types"
 
 export function Ticket({
   ticket,
@@ -71,10 +71,10 @@ export function Ticket({
   }, [isViewed, submit])
 
   return (
-    <main className="p-6 space-y-6">
+    <main className="space-y-6 p-6">
       <header className="space-y-4">
         {/* 1. Meta line — muted, middot-separated */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           <span className="font-mono">{ticket.ticket_ref}</span>
           <span aria-hidden="true">·</span>
           <span>Aangemaakt op {format(ticket.created, "PP", { locale: nl })}</span>
@@ -106,7 +106,7 @@ export function Ticket({
           {isAgent ? (
             <>
               <TicketStatusSelector canModify={isAgent} status={ticket.status} />
-              <label htmlFor={assigneeSelectId} className="text-sm text-muted-foreground">
+              <label htmlFor={assigneeSelectId} className="text-muted-foreground text-sm">
                 Medewerker:
               </label>
               <AssignmentSelector
@@ -117,7 +117,7 @@ export function Ticket({
                 agents={agents}
                 principalLookup={principalLookup}
               />
-              <label htmlFor={prioritySelectId} className="ms-6 text-sm text-muted-foreground">
+              <label htmlFor={prioritySelectId} className="text-muted-foreground ms-6 text-sm">
                 Prioriteit:
               </label>
               <TicketPrioritySelector
@@ -128,11 +128,11 @@ export function Ticket({
             </>
           ) : (
             <>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium border rounded-md px-2.5 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-medium">
                 <StatusIcon className="size-4 shrink-0" style={{ color: statusColor }} />
                 {statusLabel}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-sm font-medium border rounded-md px-2.5 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-medium">
                 Prioriteit:{" "}
                 {TICKET_PRIORITY.find((item) => item.value === ticket.priority)?.label ??
                   ticket.priority}
@@ -145,14 +145,14 @@ export function Ticket({
         {/* 4. Ticket Tags */}
         {isAgent || ticket.tags.length > 0 ? (
           <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-            <div className="text-muted-foreground text-sm py-1">Tags:</div>
+            <div className="text-muted-foreground py-1 text-sm">Tags:</div>
             <TicketTags tags={ticket.tags} availableTags={availableTags} isAgent={isAgent} />
           </div>
         ) : null}
 
         {/* 5. Customer status description */}
         {!isAgent && TICKET_STATUS_DESCRIPTIONS[ticket.status] && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {TICKET_STATUS_DESCRIPTIONS[ticket.status]}
           </p>
         )}
@@ -168,7 +168,7 @@ export function Ticket({
             todayDate={todayDate}
           >
             <p
-              className="whitespace-pre-wrap text-sm"
+              className="text-sm whitespace-pre-wrap"
               dangerouslySetInnerHTML={{ __html: msg.body }}
             />
           </Message>

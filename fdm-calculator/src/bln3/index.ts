@@ -1,6 +1,6 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
-import pkg from "../package"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
+import pkg from "../package"
 
 export { collectInputForBln3Score } from "./input"
 

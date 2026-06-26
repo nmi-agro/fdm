@@ -1,13 +1,5 @@
 import { type FdmType, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import pkg from "../../package"
-import { convertDecimalToNumberRecursive } from "../shared/conversion"
-import { combineSoilAnalyses } from "../shared/soil"
-import { calculateNitrogenEmission } from "./emission"
-import { calculateNitrogenEmissionViaNitrate } from "./emission/nitrate"
-import { calculateNitrogenRemoval } from "./removal"
-import { calculateNitrogenSupply } from "./supply"
-import { calculateTargetForNitrogenBalance } from "./target"
 import type {
   FertilizerDetail,
   NitrogenBalanceFieldInput,
@@ -17,6 +9,14 @@ import type {
   NitrogenBalanceNumeric,
   SoilAnalysisPicked,
 } from "./types"
+import pkg from "../../package"
+import { convertDecimalToNumberRecursive } from "../shared/conversion"
+import { combineSoilAnalyses } from "../shared/soil"
+import { calculateNitrogenEmission } from "./emission"
+import { calculateNitrogenEmissionViaNitrate } from "./emission/nitrate"
+import { calculateNitrogenRemoval } from "./removal"
+import { calculateNitrogenSupply } from "./supply"
+import { calculateTargetForNitrogenBalance } from "./target"
 
 /**
  * Calculates the nitrogen balance for an entire farm.

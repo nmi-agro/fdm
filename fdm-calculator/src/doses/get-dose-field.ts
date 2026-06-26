@@ -5,8 +5,8 @@ import {
   getField,
   type PrincipalId,
 } from "@nmi-agro/fdm-core"
-import { calculateDose } from "./calculate-dose"
 import type { Dose } from "./d"
+import { calculateDose } from "./calculate-dose"
 
 /**
  * Calculates the total NPK dose applied to a specific field.

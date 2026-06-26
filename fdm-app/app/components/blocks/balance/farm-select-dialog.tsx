@@ -50,7 +50,7 @@ export function FarmSelectDialog({
             De geselecteerde bedrijven zijn uitgesloten in de berekening.
           </DialogDescription>
         </DialogHeader>
-        <form ref={formRef} className="space-y-4 max-h-50 overflow-y-scroll">
+        <form ref={formRef} className="max-h-50 space-y-4 overflow-y-scroll">
           {farms.flatMap((farm) => {
             const b_id_farm = farm.b_id_farm
             const currentValue = defaultSelectedFarmIds.includes(farm.b_id_farm)

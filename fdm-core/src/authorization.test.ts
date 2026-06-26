@@ -1,5 +1,6 @@
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
+import type { FdmServerType } from "./fdm-server.types"
 import { type BetterAuth, createFdmAuth } from "./authentication"
 import {
   actions,
@@ -17,7 +18,6 @@ import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.types"
 import { createId } from "./id"
 
 describe("Authorization Functions", () => {
@@ -164,14 +164,7 @@ describe("Authorization Functions", () => {
     it("should throw an error for unknown resource", async () => {
       await grantRole(fdm, "farm", "owner", farm_id, principal_id)
       await expect(
-        checkPermission(
-          fdm,
-          "unknown_resource" as any,
-          "read",
-          farm_id,
-          principal_id,
-          "test",
-        ),
+        checkPermission(fdm, "unknown_resource" as any, "read", farm_id, principal_id, "test"),
       ).rejects.toThrowError("Exception for checkPermission")
     })
 
@@ -247,32 +240,18 @@ describe("Authorization Functions", () => {
 
     it("should throw an error for invalid resource", async () => {
       await expect(
-        grantRole(
-          fdm,
-          "unknown_resource" as any,
-          "owner",
-          farm_id,
-          principal_id,
-        ),
+        grantRole(fdm, "unknown_resource" as any, "owner", farm_id, principal_id),
       ).rejects.toThrowError()
     })
 
     it("should throw an error for invalid role", async () => {
       await expect(
-        grantRole(
-          fdm,
-          "farm",
-          "unknown_role" as any,
-          farm_id,
-          principal_id,
-        ),
+        grantRole(fdm, "farm", "unknown_role" as any, farm_id, principal_id),
       ).rejects.toThrowError()
     })
 
     it("should throw an error for invalid principal_id", async () => {
-      await expect(
-        grantRole(fdm, "farm", "owner", farm_id, null as any),
-      ).rejects.toThrowError()
+      await expect(grantRole(fdm, "farm", "owner", farm_id, null as any)).rejects.toThrowError()
     })
 
     it("should throw an error if the principal already has a non-deleted role", async () => {
@@ -323,12 +302,7 @@ describe("Authorization Functions", () => {
 
     it("should throw an error for invalid resource", async () => {
       await expect(
-        revokePrincipal(
-          fdm,
-          "unknown_resource" as any,
-          farm_id,
-          principal_id,
-        ),
+        revokePrincipal(fdm, "unknown_resource" as any, farm_id, principal_id),
       ).rejects.toThrowError()
     })
   })
@@ -374,25 +348,13 @@ describe("Authorization Functions", () => {
 
     it("should throw an error for invalid resource", async () => {
       await expect(
-        updateRole(
-          fdm,
-          "unknown_resource" as any,
-          "advisor",
-          farm_id,
-          principal_id,
-        ),
+        updateRole(fdm, "unknown_resource" as any, "advisor", farm_id, principal_id),
       ).rejects.toThrowError("Exception for updateRole")
     })
 
     it("should throw an error for invalid role", async () => {
       await expect(
-        updateRole(
-          fdm,
-          "farm",
-          "unknown_role" as any,
-          farm_id,
-          principal_id,
-        ),
+        updateRole(fdm, "farm", "unknown_role" as any, farm_id, principal_id),
       ).rejects.toThrowError("Exception for updateRole")
     })
 
@@ -529,22 +491,12 @@ describe("Authorization Functions", () => {
     })
     it("should handle invalid resource", async () => {
       await expect(
-        listResources(
-          fdm,
-          "unknown_resource" as any,
-          "read",
-          principal_id,
-        ),
+        listResources(fdm, "unknown_resource" as any, "read", principal_id),
       ).rejects.toThrowError()
     })
     it("should handle invalid action", async () => {
       await expect(
-        listResources(
-          fdm,
-          "farm",
-          "unknown_action" as any,
-          principal_id,
-        ),
+        listResources(fdm, "farm", "unknown_action" as any, principal_id),
       ).rejects.toThrowError()
     })
   })
@@ -722,12 +674,7 @@ describe("Authorization Functions", () => {
 
     it("should throw error with invalid resource", async () => {
       await expect(
-        getRolesOfPrincipalForResource(
-          fdm,
-          "unknown_resource" as any,
-          farm_id,
-          principal_id,
-        ),
+        getRolesOfPrincipalForResource(fdm, "unknown_resource" as any, farm_id, principal_id),
       ).rejects.toThrowError("Exception for getRolesOfPrincipalForResource")
     })
 
@@ -779,11 +726,7 @@ describe("Authorization Functions", () => {
 
     it("should throw an error for an invalid resource type", async () => {
       await expect(
-        listPrincipalsForResource(
-          fdm,
-          "invalid_resource" as any,
-          farm_id,
-        ),
+        listPrincipalsForResource(fdm, "invalid_resource" as any, farm_id),
       ).rejects.toThrowError("Exception for listPrincipalsForResource")
     })
 

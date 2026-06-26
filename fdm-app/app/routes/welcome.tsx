@@ -1,8 +1,8 @@
+import type { Resolver } from "react-hook-form"
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { Cookie } from "lucide-react"
-import type { Resolver } from "react-hook-form"
-import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { Form, redirect, useLoaderData } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
@@ -121,17 +121,17 @@ export default function Welcome() {
   })
 
   return (
-    <div className="w-full h-screen lg:grid lg:grid-cols-2 overflow-hidden">
+    <div className="h-screen w-full overflow-hidden lg:grid lg:grid-cols-2">
       <div className="flex h-full items-start justify-center overflow-y-auto py-6">
         <div className="mx-auto grid w-[350px] gap-6">
           <Card className="shadow-xl">
             <CardHeader className="text-center">
-              <div className="flex justify-center mb-2">
+              <div className="mb-2 flex justify-center">
                 <div className="flex aspect-square size-16 items-center justify-center rounded-lg bg-[#122023]">
                   <img className="size-12" src={clientConfig.logomark} alt={clientConfig.name} />
                 </div>
               </div>
-              <h2 className="text-lg font-semibold tracking-tight text-muted-foreground mb-2">
+              <h2 className="text-muted-foreground mb-2 text-lg font-semibold tracking-tight">
                 {clientConfig.name}
               </h2>
               <CardTitle className="text-xl">Profiel voltooien</CardTitle>
@@ -212,7 +212,7 @@ export default function Welcome() {
           </Card>
         </div>
       </div>
-      <div className="hidden bg-muted lg:block">
+      <div className="bg-muted hidden lg:block">
         <img
           src="https://images.unsplash.com/photo-1625565570971-e6b404974366?q=80&w=1930&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
           alt="Herd of cows on green grass field during daytime by Rickie-Tom Schünemann on Unsplash"
@@ -226,7 +226,7 @@ export default function Welcome() {
         <Button
           variant="ghost"
           size="sm"
-          className="text-xs flex items-center gap-1 opacity-70 hover:opacity-100 bg-card/80 hover:bg-card border border-border"
+          className="bg-card/80 hover:bg-card border-border flex items-center gap-1 border text-xs opacity-70 hover:opacity-100"
           onClick={onOpenCookieSettings}
         >
           <Cookie className="h-3 w-3" />

@@ -1,9 +1,9 @@
-import { getField } from "@nmi-agro/fdm-core"
 import type { FeatureCollection } from "geojson"
+import type { MetaFunction } from "react-router"
+import { getField } from "@nmi-agro/fdm-core"
 import maplibregl from "maplibre-gl"
 import { useEffect, useRef } from "react"
 import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
-import type { MetaFunction } from "react-router"
 import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
 import { ClientOnly } from "remix-utils/client-only"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
@@ -123,7 +123,7 @@ export default function FarmFieldAtlasBlock() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Kaart</h3>
-        <p className="text-sm text-muted-foreground">Bekijk het perceel op de kaart</p>
+        <p className="text-muted-foreground text-sm">Bekijk het perceel op de kaart</p>
       </div>
       <Separator />
       <div>

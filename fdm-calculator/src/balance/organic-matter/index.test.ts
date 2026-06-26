@@ -1,6 +1,12 @@
 import type { FdmType } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { describe, expect, it, vi } from "vitest"
+import type {
+  FieldInput,
+  OrganicMatterBalanceFieldNumeric,
+  OrganicMatterBalanceFieldResultNumeric,
+  OrganicMatterBalanceInput,
+} from "./types"
 import * as shared from "../shared/soil"
 import * as degradation from "./degradation"
 import {
@@ -9,12 +15,6 @@ import {
   calculateOrganicMatterBalancesFieldToFarm,
 } from "./index"
 import * as supply from "./supply"
-import type {
-  FieldInput,
-  OrganicMatterBalanceFieldNumeric,
-  OrganicMatterBalanceFieldResultNumeric,
-  OrganicMatterBalanceInput,
-} from "./types"
 
 vi.mock("./supply")
 vi.mock("./degradation")

@@ -1,3 +1,8 @@
+import type {
+  ImportReviewAction,
+  RvoImportReviewItem,
+  UserChoiceMap,
+} from "@nmi-agro/fdm-rvo/types"
 import {
   addSoilAnalysis,
   type Cultivation,
@@ -7,11 +12,6 @@ import {
   getCultivationsFromCatalogue,
   getFarm,
 } from "@nmi-agro/fdm-core"
-import type {
-  ImportReviewAction,
-  RvoImportReviewItem,
-  UserChoiceMap,
-} from "@nmi-agro/fdm-rvo/types"
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { AlertTriangle, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -243,7 +243,7 @@ export default function RvoImportCreatePage() {
             />
           </div>
           <FarmContent>
-            <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-x-12 lg:space-y-0">
+            <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-y-0 lg:space-x-12">
               <div className="w-full">
                 <RvoErrorAlert error={error} retryPath={location.pathname} />
               </div>

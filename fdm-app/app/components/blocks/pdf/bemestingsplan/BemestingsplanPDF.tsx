@@ -5,10 +5,10 @@ import {
   getApplicationAmountTotalUnitLabel,
   getApplicationAmountUnitLabel,
 } from "~/components/blocks/fertilizer-applications/utils"
+import type { BemestingsplanData } from "./types"
 import { PdfCard } from "../PdfCard"
 import { PdfTable, PdfTableCell, PdfTableHeader, PdfTableRow } from "../PdfTable"
 import { pdfStyles } from "./styles"
-import type { BemestingsplanData } from "./types"
 
 const Footer = ({
   config,
@@ -47,10 +47,7 @@ const Chemical = ({ symbol, style }: { symbol: string; style?: any }) => {
   return (
     <Text style={style}>
       {parts.map((part, i) => (
-        <Text
-          key={`${part}-${i}`}
-          style={/^\d+$/.test(part) ? { fontSize: 6 } : {}}
-        >
+        <Text key={`${part}-${i}`} style={/^\d+$/.test(part) ? { fontSize: 6 } : {}}>
           {part}
         </Text>
       ))}

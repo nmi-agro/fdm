@@ -1,6 +1,7 @@
 import { CircleCheck, Loader2, TriangleAlert } from "lucide-react"
 import { Suspense, use } from "react"
 import { NavLink } from "react-router"
+import type { FarmDynaResult } from "~/integrations/mineralization.server"
 import {
   Table,
   TableBody,
@@ -10,7 +11,6 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
-import type { FarmDynaResult } from "~/integrations/mineralization.server"
 
 interface DynaFieldListProps {
   fields: { b_id: string; b_name: string | null }[]
@@ -28,7 +28,7 @@ export function DynaFieldList({ fields, promises, b_id_farm, calendar }: DynaFie
           <TableHead className="text-right">N Aanbod (kg/ha)</TableHead>
           <TableHead className="text-right">N Opname (kg/ha)</TableHead>
           <TableHead className="text-right">Uitspoeling (kg/ha)</TableHead>
-          <TableHead className="text-center w-[80px]">Status</TableHead>
+          <TableHead className="w-[80px] text-center">Status</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -67,7 +67,7 @@ function DynaTableRow({
       <TableCell>
         <NavLink
           to={`/farm/${b_id_farm}/${calendar}/mineralization/${field.b_id}/dyna`}
-          className="hover:underline font-medium"
+          className="font-medium hover:underline"
         >
           {field.b_name}
         </NavLink>
@@ -103,7 +103,7 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
             <span className="sr-only">Succes</span>
             <Tooltip>
               <TooltipTrigger asChild>
-                <CircleCheck className="h-4 w-4 text-green-500 mx-auto" aria-hidden="true" />
+                <CircleCheck className="mx-auto h-4 w-4 text-green-500" aria-hidden="true" />
               </TooltipTrigger>
               <TooltipContent>Succes</TooltipContent>
             </Tooltip>
@@ -113,7 +113,7 @@ function DynaCells({ promise }: { promise: Promise<FarmDynaResult> }) {
             <span className="sr-only">Fout: {error || "Geen data"}</span>
             <Tooltip>
               <TooltipTrigger asChild>
-                <TriangleAlert className="h-4 w-4 text-orange-500 mx-auto" aria-hidden="true" />
+                <TriangleAlert className="mx-auto h-4 w-4 text-orange-500" aria-hidden="true" />
               </TooltipTrigger>
               <TooltipContent>{error || "Geen data"}</TooltipContent>
             </Tooltip>
@@ -128,16 +128,16 @@ function DynaCellsSkeleton() {
   return (
     <>
       <TableCell className="text-right">
-        <Loader2 className="h-3 w-3 text-muted-foreground animate-spin ml-auto" />
+        <Loader2 className="text-muted-foreground ml-auto h-3 w-3 animate-spin" />
       </TableCell>
       <TableCell className="text-right">
-        <Loader2 className="h-3 w-3 text-muted-foreground animate-spin ml-auto" />
+        <Loader2 className="text-muted-foreground ml-auto h-3 w-3 animate-spin" />
       </TableCell>
       <TableCell className="text-right">
-        <Loader2 className="h-3 w-3 text-muted-foreground animate-spin ml-auto" />
+        <Loader2 className="text-muted-foreground ml-auto h-3 w-3 animate-spin" />
       </TableCell>
       <TableCell className="text-center">
-        <Loader2 className="h-3 w-3 text-muted-foreground animate-spin mx-auto" />
+        <Loader2 className="text-muted-foreground mx-auto h-3 w-3 animate-spin" />
       </TableCell>
     </>
   )

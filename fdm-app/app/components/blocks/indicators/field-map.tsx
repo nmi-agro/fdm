@@ -155,12 +155,12 @@ export default function FieldMap({
 
       {/* Hover tooltip */}
       {hoveredFeature && (
-        <div className="absolute bottom-3 left-3 z-10 bg-background/95 backdrop-blur-sm border rounded-lg px-2.5 py-1.5 shadow-md text-xs pointer-events-none">
+        <div className="bg-background/95 pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-md backdrop-blur-sm">
           <p className="font-semibold">{hoveredFeature.properties?.b_name ?? "Onbekend perceel"}</p>
           {scoreLabel && <p className="text-muted-foreground text-[10px]">{scoreLabel}</p>}
           {hoveredScore !== null && (
             <span
-              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white mt-0.5"
+              className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
               style={{
                 backgroundColor: getScoreColor(hoveredScore),
               }}

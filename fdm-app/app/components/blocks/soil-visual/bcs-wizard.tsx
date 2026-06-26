@@ -329,7 +329,7 @@ export function BcsWizard({
 
         {/* Progress */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-between text-sm">
             <span>
               Stap {currentStep + 1} van {totalSteps}
             </span>
@@ -365,8 +365,8 @@ export function BcsWizard({
                 required
               />
 
-              <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground space-y-1">
-                <div className="font-medium text-foreground">pH en organische stof</div>
+              <div className="bg-muted/30 text-muted-foreground space-y-1 rounded-xl border p-4 text-sm">
+                <div className="text-foreground font-medium">pH en organische stof</div>
                 {phCc != null || somLoi != null ? (
                   <>
                     <p>
@@ -377,12 +377,12 @@ export function BcsWizard({
                     </p>
                     <p>
                       pH-CaCl₂:{" "}
-                      <span className="font-medium text-foreground">
+                      <span className="text-foreground font-medium">
                         {phCc != null ? phCc.toFixed(1) : "–"}
                       </span>
                       {" · "}
                       OS:{" "}
-                      <span className="font-medium text-foreground">
+                      <span className="text-foreground font-medium">
                         {somLoi != null ? `${somLoi.toFixed(1)} %` : "–"}
                       </span>
                     </p>
@@ -400,7 +400,7 @@ export function BcsWizard({
                     <Camera className="size-4" />
                     Foto&apos;s toevoegen
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Upload profiel-, oppervlakte- of detailfoto&apos;s voor notities tijdens de
                     beoordeling.
                   </p>
@@ -424,18 +424,18 @@ export function BcsWizard({
         ) : currentIndicator && currentGuide ? (
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Left: What to assess + how */}
-            <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
+            <div className="bg-muted/20 space-y-4 rounded-xl border p-4">
               <div>
                 <div className="text-sm font-medium">Wat beoordeel je?</div>
-                <p className="mt-1 text-sm text-muted-foreground">{currentGuide.description}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{currentGuide.description}</p>
               </div>
               <div>
                 <div className="text-sm font-medium">Werkwijze</div>
-                <p className="mt-1 text-sm text-muted-foreground">{currentGuide.instructions}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{currentGuide.instructions}</p>
               </div>
               <div>
                 <div className="text-sm font-medium">Fototip</div>
-                <p className="mt-1 text-sm text-muted-foreground">{currentGuide.tip}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{currentGuide.tip}</p>
               </div>
             </div>
 
@@ -458,7 +458,7 @@ export function BcsWizard({
                         }))
                       }
                       className={cn(
-                        "w-full rounded-xl border-2 p-3 text-left transition-colors hover:bg-accent",
+                        "hover:bg-accent w-full rounded-xl border-2 p-3 text-left transition-colors",
                         selected ? BCS_SELECTED_CLASSES[bcsColor] : "border-border bg-background",
                       )}
                     >
@@ -475,7 +475,7 @@ export function BcsWizard({
                           Score {criterion.score}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{criterion.description}</p>
+                      <p className="text-muted-foreground mt-1 text-sm">{criterion.description}</p>
                     </button>
                   )
                 })}
@@ -493,7 +493,7 @@ export function BcsWizard({
               </div>
               {images.length > 0 ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Koppel notities aan deze indicator door op een foto te klikken.
                   </p>
                   <ImageGallery
@@ -505,7 +505,7 @@ export function BcsWizard({
                   />
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Nog geen foto&apos;s. Voeg foto&apos;s toe om notities te plaatsen.
                 </p>
               )}
@@ -516,7 +516,7 @@ export function BcsWizard({
           <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
             <div className="space-y-4">
               {previewFetcher.state !== "idle" ? (
-                <div className="flex items-center justify-center rounded-xl border bg-muted/20 p-12 text-sm text-muted-foreground">
+                <div className="bg-muted/20 text-muted-foreground flex items-center justify-center rounded-xl border p-12 text-sm">
                   Score wordt berekend...
                 </div>
               ) : previewFetcher.data ? (
@@ -531,7 +531,7 @@ export function BcsWizard({
                 />
               ) : null}
 
-              <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+              <div className="text-muted-foreground rounded-xl border p-4 text-sm">
                 {hasAnyVisualScore ? (
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />

@@ -1,12 +1,12 @@
 import type { SoilAnalysis } from "@nmi-agro/fdm-core"
+import type { SoilAnalysisPicked as NitrogenSoilAnalysisPicked } from "../nitrogen/types"
+import type { SoilAnalysisPicked as OrganicMatterSoilAnalysisPicked } from "../organic-matter/types"
 import {
   calculateBulkDensity,
   calculateCarbonNitrogenRatio,
   calculateOrganicCarbon,
   calculateOrganicMatter,
 } from "../../conversions/soil"
-import type { SoilAnalysisPicked as NitrogenSoilAnalysisPicked } from "../nitrogen/types"
-import type { SoilAnalysisPicked as OrganicMatterSoilAnalysisPicked } from "../organic-matter/types"
 
 type SoilAnalysisPicked = NitrogenSoilAnalysisPicked | OrganicMatterSoilAnalysisPicked
 

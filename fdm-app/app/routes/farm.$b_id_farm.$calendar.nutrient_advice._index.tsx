@@ -128,9 +128,9 @@ export default function FieldNutrientAdviceIndex() {
 
   return (
     <div className="px-10">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {fields.map((field) => (
-          <Card key={field.b_id} className="relative hover:bg-muted/50 transition-colors">
+          <Card key={field.b_id} className="hover:bg-muted/50 relative transition-colors">
             <CardHeader>
               <CardTitle>
                 <NavLink
@@ -146,7 +146,7 @@ export default function FieldNutrientAdviceIndex() {
               <div className="flex flex-col gap-4">
                 {field.mainCultivation ? (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Hoofdteelt</p>
+                    <p className="text-muted-foreground mb-1 text-xs">Hoofdteelt</p>
                     <Badge
                       style={{
                         backgroundColor: getCultivationColor(
@@ -165,8 +165,8 @@ export default function FieldNutrientAdviceIndex() {
 
                 {field.cultivations.length > (field.mainCultivation ? 1 : 0) && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Overige teelten</p>
-                    <div className="flex flex-wrap gap-2 relative z-10">
+                    <p className="text-muted-foreground mb-1 text-xs">Overige teelten</p>
+                    <div className="relative z-10 flex flex-wrap gap-2">
                       {field.cultivations
                         .filter((c) => c.b_lu !== field.mainCultivation?.b_lu)
                         .map((c) => (

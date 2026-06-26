@@ -1,6 +1,6 @@
+import type { FeatureCollection, Geometry } from "geojson"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import type { FeatureCollection, Geometry } from "geojson"
 import { lazy, Suspense, useMemo, useState } from "react"
 import {
   data,
@@ -149,7 +149,7 @@ export default function AtlasIndicatorsMap() {
         setSelectedProperty={setSelectedProperty}
         detailPath={basePath}
       />
-      <Suspense fallback={<div className="absolute inset-0 bg-muted animate-pulse" />}>
+      <Suspense fallback={<div className="bg-muted absolute inset-0 animate-pulse" />}>
         <IndicatorsMap
           fieldsGeoJSON={fieldsGeoJSON}
           mapStyle={mapStyle}

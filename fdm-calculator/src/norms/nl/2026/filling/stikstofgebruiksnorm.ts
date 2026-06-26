@@ -1,13 +1,13 @@
 import { type Cultivation, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import type { NormFilling } from "../../types"
+import type { RegionKey } from "../value/types"
+import type { NL2026NormsFillingInput, WorkingCoefficientDetails } from "./types"
 import pkg from "../../../../package"
 import { getRegion } from "../../2025/value/stikstofgebruiksnorm"
 import { nonBouwlandCodes } from "../../constant"
-import type { NormFilling } from "../../types"
-import type { RegionKey } from "../value/types"
 import { table9 } from "./table-9"
 import { table11Mestcodes } from "./table-11-mestcodes"
-import type { NL2026NormsFillingInput, WorkingCoefficientDetails } from "./types"
 
 /**
  * Calculates the nitrogen utilization norm filling for a set of fertilizer applications.

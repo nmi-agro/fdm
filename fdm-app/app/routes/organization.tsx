@@ -1,3 +1,4 @@
+import type { LoaderFunctionArgs } from "react-router"
 import {
   checkHelpdeskPermission,
   getUnassignedTicketCount,
@@ -6,7 +7,6 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import posthog from "posthog-js"
 import { useEffect } from "react"
-import type { LoaderFunctionArgs } from "react-router"
 import { Outlet, redirect, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"

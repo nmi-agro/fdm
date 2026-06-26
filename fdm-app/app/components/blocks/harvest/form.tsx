@@ -1,12 +1,12 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
+import type { UseRemixFormReturn } from "remix-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
 import { type MouseEventHandler, useEffect, useMemo, useState } from "react"
 import { Controller, type Resolver } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
-import type { UseRemixFormReturn } from "remix-hook-form"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
@@ -482,12 +482,12 @@ export function HarvestFormExplainer() {
       <Collapsible className="space-y-2">
         <CollapsibleTrigger
           type="button"
-          className="flex flex-row gap-1 items-center text-xs text-muted-foreground hover:underline"
+          className="text-muted-foreground flex flex-row items-center gap-1 text-xs hover:underline"
         >
           <CircleQuestionMark className="h-4" />
           <p>Waarom zie ik deze oogstparameters?</p>
         </CollapsibleTrigger>
-        <CollapsibleContent className="flex flex-row gap-1 items-center text-xs text-muted-foreground">
+        <CollapsibleContent className="text-muted-foreground flex flex-row items-center gap-1 text-xs">
           <p>
             De getoonde oogstparameters zijn gebaseerd op de meest gangbare praktijkgegevens voor
             dit gewas. Deze waarden zijn nodig voor een nauwkeurige stikstofbalansberekening. Komen
@@ -630,10 +630,10 @@ export function HarvestForm(props: HarvestFormDialogProps) {
             <HarvestFields
               {...props}
               form={form as unknown as UseRemixFormReturn<HarvestFormValues, any, any>}
-              className="grid lg:grid-cols-2 items-center gap-y-6 gap-x-8"
+              className="grid items-center gap-x-8 gap-y-6 lg:grid-cols-2"
             />
             <HarvestFormExplainer />
-            <div className="grid grid-cols-2 items">
+            <div className="items grid grid-cols-2">
               <Button
                 type="button"
                 variant="destructive"

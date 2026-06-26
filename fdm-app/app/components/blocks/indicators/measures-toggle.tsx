@@ -16,7 +16,7 @@ export function MeasuresToggle({ withMeasures, onToggle }: MeasuresToggleProps) 
   return (
     <div className="flex items-center gap-2">
       <Switch id="measures-toggle" checked={withMeasures} onCheckedChange={onToggle} />
-      <Label htmlFor="measures-toggle" className="text-sm cursor-pointer select-none">
+      <Label htmlFor="measures-toggle" className="cursor-pointer text-sm select-none">
         {withMeasures ? "Met maatregelen" : "Zonder maatregelen"}
       </Label>
     </div>

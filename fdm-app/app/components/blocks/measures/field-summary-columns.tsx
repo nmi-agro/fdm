@@ -55,15 +55,15 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
       cell: ({ row }) => (
         <Link
           to={row.original.href}
-          className="group flex items-center gap-1.5 hover:underline font-medium w-fit"
+          className="group flex w-fit items-center gap-1.5 font-medium hover:underline"
         >
           {row.original.b_name ?? row.original.b_id}
           {row.original.b_bufferstrip && (
-            <span className="text-[10px] font-medium rounded-full px-1.5 py-0.5 bg-teal-100 text-teal-700 dark:bg-teal-950/30 dark:text-teal-400">
+            <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 dark:bg-teal-950/30 dark:text-teal-400">
               Bufferstrook
             </span>
           )}
-          <ArrowUpRightFromSquare className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ArrowUpRightFromSquare className="text-muted-foreground h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
         </Link>
       ),
     },
@@ -85,22 +85,22 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
       cell: ({ row }) => {
         const cults = row.original.mainCultivations
         if (!cults || cults.length === 0) {
-          return <span className="text-xs text-muted-foreground">—</span>
+          return <span className="text-muted-foreground text-xs">—</span>
         }
         return (
-          <div className="flex items-start flex-col space-y-2">
+          <div className="flex flex-col items-start space-y-2">
             {cults.map((cult) => (
               <div key={cult.b_lu_catalogue} className="flex flex-row items-center gap-2">
                 <Badge
                   style={{
                     backgroundColor: getCultivationColor(cult.b_lu_croprotation ?? undefined),
                   }}
-                  className="text-white text-xs"
+                  className="text-xs text-white"
                 >
                   {cult.b_lu_name}
                 </Badge>
                 {cults.length > 1 && typeof cult.b_area === "number" && (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-muted-foreground text-xs">
                     {Math.round(cult.b_area * 10) / 10} ha
                   </span>
                 )}
@@ -135,19 +135,19 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
         const measures = row.original.measures
         if (measures.length === 0) {
           return (
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400">
+            <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 dark:bg-orange-950/30 dark:text-orange-400">
               Geen
             </span>
           )
         }
         return (
           <div className="flex flex-col gap-0.5">
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 dark:bg-green-950/30 dark:text-green-400 w-fit">
+            <span className="inline-flex w-fit items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950/30 dark:text-green-400">
               {measures.length} maatregel
               {measures.length === 1 ? "" : "en"}
             </span>
             {measures.slice(0, 2).map((m, i) => (
-              <span key={i} className="text-xs text-muted-foreground">
+              <span key={i} className="text-muted-foreground text-xs">
                 · {m.m_name}{" "}
                 {typeof m.num_fields === "number" && m.num_fields > 0
                   ? `(${m.num_fields} ${m.num_fields === 1 ? "perceel" : "percelen"})`
@@ -155,7 +155,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
               </span>
             ))}
             {measures.length > 2 && (
-              <span className="text-xs text-muted-foreground">+ {measures.length - 2} meer</span>
+              <span className="text-muted-foreground text-xs">+ {measures.length - 2} meer</span>
             )}
           </div>
         )

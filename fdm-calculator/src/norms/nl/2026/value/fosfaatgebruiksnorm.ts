@@ -1,12 +1,12 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import type { FosfaatGebruiksnormResult } from "../../types"
+import type { FosfaatKlasse, NL2026NormsInput } from "./types.d"
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { isCultivationGrasland } from "../../2025/value/fosfaatgebruiksnorm"
 import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
-import type { FosfaatGebruiksnormResult } from "../../types"
 import { fosfaatNormsData } from "./fosfaatgebruiksnorm-data"
-import type { FosfaatKlasse, NL2026NormsInput } from "./types.d"
 
 /**
  * Helper function to determine the phosphate class ('Arm', 'Laag', 'Neutraal', 'Ruim', 'Hoog')

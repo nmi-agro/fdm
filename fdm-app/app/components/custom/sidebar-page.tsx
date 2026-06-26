@@ -16,7 +16,7 @@ export function SidebarPage({ className, items, children, ...props }: SidebarPag
   return (
     <nav
       className={cn(
-        "flex space-x-2 overflow-x-auto pb-2 lg:overflow-visible lg:pb-0 lg:flex-col lg:space-x-0 lg:space-y-1",
+        "flex space-x-2 overflow-x-auto pb-2 lg:flex-col lg:space-y-1 lg:space-x-0 lg:overflow-visible lg:pb-0",
         className,
       )}
       {...props}

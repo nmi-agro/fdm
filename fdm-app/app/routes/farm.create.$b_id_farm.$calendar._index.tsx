@@ -1,6 +1,6 @@
+import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { getFarm } from "@nmi-agro/fdm-core"
 import { DownloadCloud, Map as MapIcon, UploadCloud } from "lucide-react"
-import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { data, NavLink, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
@@ -65,30 +65,30 @@ export default function ChooseFieldImportMethod() {
       <Header action={undefined}>
         <HeaderFarmCreate b_name_farm={farm.b_name_farm} />
       </Header>
-      <main className="flex-1 flex flex-col items-center justify-center p-4">
+      <main className="flex flex-1 flex-col items-center justify-center p-4">
         <div className="w-full max-w-4xl">
-          <h1 className="text-2xl font-bold text-center mb-2">Percelen importeren</h1>
-          <p className="text-muted-foreground text-center mb-8">
+          <h1 className="mb-2 text-center text-2xl font-bold">Percelen importeren</h1>
+          <p className="text-muted-foreground mb-8 text-center">
             Hoe wil je de percelen van je bedrijf importeren?
           </p>
           <div className={cn("grid gap-8", showRvoOption ? "md:grid-cols-3" : "md:grid-cols-2")}>
             {showRvoOption && (
               <Card className="flex flex-col">
                 <CardHeader className="items-center text-center">
-                  <DownloadCloud className="w-12 h-12 mb-4" />
+                  <DownloadCloud className="mb-4 h-12 w-12" />
                   <CardTitle>Importeren vanuit RVO</CardTitle>
                   <CardDescription>
                     Importeer je percelen door via eHerkenning toestemming te geven.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="grow flex flex-col justify-between">
+                <CardContent className="flex grow flex-col justify-between">
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="item-1">
                       <AccordionTrigger>
                         Wat heb ik nodig om percelen te importeren vanuit RVO?
                       </AccordionTrigger>
                       <AccordionContent>
-                        <ol className="list-decimal list-inside space-y-2">
+                        <ol className="list-inside list-decimal space-y-2">
                           <li>U heeft een geldig KvK-nummer gekoppeld aan uw account.</li>
                           <li>
                             U heeft een eHerkenning account met machtiging voor dit KvK-nummer.
@@ -98,7 +98,7 @@ export default function ChooseFieldImportMethod() {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                  <NavLink to="./rvo" className="w-full mt-4">
+                  <NavLink to="./rvo" className="mt-4 w-full">
                     <Button className="w-full">Importeren vanuit RVO</Button>
                   </NavLink>
                 </CardContent>
@@ -106,20 +106,20 @@ export default function ChooseFieldImportMethod() {
             )}
             <Card className="flex flex-col">
               <CardHeader className="items-center text-center">
-                <UploadCloud className="w-12 h-12 mb-4" />
+                <UploadCloud className="mb-4 h-12 w-12" />
                 <CardTitle>Upload Shapefile</CardTitle>
                 <CardDescription>
                   Importeer je percelen door een Shapefile van RVO Mijn Percelen te uploaden.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grow flex flex-col justify-between">
+              <CardContent className="flex grow flex-col justify-between">
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="item-1">
                     <AccordionTrigger>
                       Hoe download ik een shapefile van mijn.rvo.nl?
                     </AccordionTrigger>
                     <AccordionContent>
-                      <ol className="list-decimal list-inside space-y-2">
+                      <ol className="list-inside list-decimal space-y-2">
                         <li>Log in op mijn.rvo.nl.</li>
                         <li>
                           Ga via "Registratie en meldingen doorgeven" naar "Percelen registreren".
@@ -139,18 +139,18 @@ export default function ChooseFieldImportMethod() {
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
-                <NavLink to="./upload" className="w-full mt-4">
+                <NavLink to="./upload" className="mt-4 w-full">
                   <Button className="w-full">Bestand uploaden</Button>
                 </NavLink>
               </CardContent>
             </Card>
             <Card className="flex flex-col">
               <CardHeader className="items-center text-center">
-                <MapIcon className="w-12 h-12 mb-4" />
+                <MapIcon className="mb-4 h-12 w-12" />
                 <CardTitle>Selecteer op de kaart</CardTitle>
                 <CardDescription>Selecteer je percelen direct op de kaart.</CardDescription>
               </CardHeader>
-              <CardContent className="grow flex items-end justify-center">
+              <CardContent className="flex grow items-end justify-center">
                 <NavLink to="./atlas" className="w-full">
                   <Button variant="outline" className="w-full">
                     Naar de kaart

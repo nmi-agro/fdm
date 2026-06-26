@@ -118,8 +118,8 @@ export default function BulkSoilAnalysisUploadWizardPage() {
           </div>
           <div className="pt-6">
             {isSaving ? (
-              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <Spinner className="h-8 w-8 text-primary" />
+              <div className="flex flex-col items-center justify-center space-y-4 py-12">
+                <Spinner className="text-primary h-8 w-8" />
                 <p className="text-muted-foreground">Opslaan en koppelen...</p>
               </div>
             ) : step === "upload" ? (

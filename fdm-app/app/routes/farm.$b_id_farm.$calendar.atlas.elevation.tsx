@@ -1,7 +1,7 @@
+import type { FeatureCollection, Geometry } from "geojson"
 import { cogProtocol, locationValues, proj4 } from "@geomatico/maplibre-cog-protocol"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import type { FeatureCollection, Geometry } from "geojson"
 import throttle from "lodash.throttle"
 import maplibregl from "maplibre-gl"
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -662,7 +662,7 @@ export default function FarmAtlasElevationBlock() {
             networkStatus={networkStatus}
             message={showElevation && currentZoom < 13 ? "Zoom in voor meer detail" : undefined}
           />
-          <div className="grid gap-4 w-[350px]">
+          <div className="grid w-[350px] gap-4">
             <FieldsPanelHover zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
           </div>
         </div>

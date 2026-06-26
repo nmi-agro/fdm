@@ -111,7 +111,7 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <ScrollArea className={fieldNames.length >= 8 ? "h-72 overflow-y-auto w-48" : "w-48"}>
+            <ScrollArea className={fieldNames.length >= 8 ? "h-72 w-48 overflow-y-auto" : "w-48"}>
               <div className="grid grid-cols-1 gap-2">
                 {fieldNames.map(([b_id, b_name]) => (
                   <DropdownMenuItem key={b_id}>{b_name}</DropdownMenuItem>

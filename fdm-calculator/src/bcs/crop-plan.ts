@@ -1,5 +1,5 @@
-import { findHoofdteelt } from "../shared/hoofdteelt"
 import type { OmCropCategory } from "./index"
+import { findHoofdteelt } from "../shared/hoofdteelt"
 
 /** Minimal cultivation shape required to derive crop plan fractions. */
 export interface CultivationForCropPlan {

@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it } from "vitest"
-import { createFdmServer } from "./fdm-server"
 import type { FdmServerType } from "./fdm-server.types"
+import { createFdmServer } from "./fdm-server"
 
 describe("Farm Data Model", () => {
   let fdm: FdmServerType

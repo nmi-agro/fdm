@@ -56,13 +56,13 @@ export function NewFieldsSidebar({
   }, [soilStatus])
 
   return (
-    <aside className="lg:w-1/5 gap-0">
+    <aside className="gap-0 lg:w-1/5">
       <Card>
         <CardHeader>
           <CardTitle className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="space-y-1">
               <p>Percelen</p>
-              <p className="text-xs font-normal text-muted-foreground">
+              <p className="text-muted-foreground text-xs font-normal">
                 {measuredCount} van {fields.length} met bodemanalyse
               </p>
             </div>
@@ -72,7 +72,7 @@ export function NewFieldsSidebar({
         <CardContent className="space-y-4">
           <SidebarPage items={sidebarPageItems} />
         </CardContent>
-        <CardFooter className="flex flex-col items-center space-y-2 relative">
+        <CardFooter className="relative flex flex-col items-center space-y-2">
           {/* <Separator /> */}
           <Button variant={"link"} asChild>
             <NavLink

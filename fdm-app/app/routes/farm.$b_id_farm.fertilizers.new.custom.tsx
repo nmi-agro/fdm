@@ -1,10 +1,10 @@
+import type { ComponentProps } from "react"
 import {
   addFertilizer,
   addFertilizerToCatalogue,
   getFertilizerParametersDescription,
   getFertilizers,
 } from "@nmi-agro/fdm-core"
-import type { ComponentProps } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -100,8 +100,8 @@ export default function FarmFertilizerPage() {
         title={"Nieuwe meststof"}
         description={"Voer handmatig de gehaltes en eigenschappen in voor uw nieuwe meststof."}
       />
-      <div className="p-4 md:p-8 pt-0 md:pt-0">
-        <div className="mx-auto max-w-6xl w-full">
+      <div className="p-4 pt-0 md:p-8 md:pt-0">
+        <div className="mx-auto w-full max-w-6xl">
           <FarmNewFertilizerBlock
             loaderData={loaderData as ComponentProps<typeof FarmNewFertilizerBlock>["loaderData"]}
           />

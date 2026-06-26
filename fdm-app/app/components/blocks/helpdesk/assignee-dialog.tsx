@@ -19,8 +19,8 @@ import { Field } from "~/components/ui/field"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
-import { HelpdeskUserAvatar, makeHelpdeskUser } from "./helpdesk-user"
 import type { HelpdeskUser } from "./types"
+import { HelpdeskUserAvatar, makeHelpdeskUser } from "./helpdesk-user"
 
 // How many assignees to display, before saying "en meer/and more"
 const ASSIGNEE_DISPLAY_CUTOFF = 3
@@ -135,7 +135,7 @@ export function AssignmentSelector({
               ) : null}
             </AvatarGroup>
           ) : (
-            <UserPlus className="size-4 text-muted-foreground" />
+            <UserPlus className="text-muted-foreground size-4" />
           )}
           <span>
             {assigneeNames.length > 0
@@ -162,9 +162,9 @@ export function AssignmentSelector({
           <input type="hidden" name="assignees" value={JSON.stringify(selectedAssignees)} />
           <input type="hidden" name="primary" value={JSON.stringify(primaryAssignees)} />
 
-          <Field className="overflow-auto max-h-80 space-y-1">
+          <Field className="max-h-80 space-y-1 overflow-auto">
             {agents.length === 0 && assignees.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-6 text-center text-sm text-muted-foreground">
+              <div className="text-muted-foreground flex flex-col items-center gap-2 py-6 text-center text-sm">
                 <Users className="size-8 opacity-40" />
                 <p>Geen medewerkers beschikbaar</p>
               </div>
@@ -172,7 +172,7 @@ export function AssignmentSelector({
 
             {assignees.length > 0 && (
               <>
-                <p className="px-2 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
                   Toegewezen
                 </p>
                 {assignees.map((assignee) => (
@@ -194,7 +194,7 @@ export function AssignmentSelector({
 
             {unassignedAgents.length > 0 && (
               <>
-                <p className="px-2 pb-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
                   Beschikbaar
                 </p>
                 {unassignedAgents.map((agent) => (
@@ -254,14 +254,14 @@ function AssigneeSelectItem({
   return (
     <div
       className={cn(
-        "flex flex-row gap-2 items-center rounded-md px-1 transition-colors",
+        "flex flex-row items-center gap-2 rounded-md px-1 transition-colors",
         isSelected && "bg-muted/60",
       )}
     >
       <Button
         type="button"
         variant="ghost"
-        className="group grow flex flex-row gap-2 justify-start items-center hover:bg-transparent"
+        className="group flex grow flex-row items-center justify-start gap-2 hover:bg-transparent"
         value={agent.agent_id}
         disabled={!canModify}
         onClick={onClick}
@@ -269,7 +269,7 @@ function AssigneeSelectItem({
         {/* Checkbox indicator */}
         <span
           className={cn(
-            "flex items-center justify-center size-4 rounded border shrink-0 transition-colors",
+            "flex size-4 shrink-0 items-center justify-center rounded border transition-colors",
             isSelected
               ? "bg-primary border-primary text-primary-foreground"
               : "border-muted-foreground/40",
@@ -295,15 +295,15 @@ function AssigneeSelectItem({
               <Crown
                 className={cn(
                   "size-4 transition-colors",
-                  isPrimary ? "text-amber-500 fill-amber-500" : "text-muted-foreground/30",
+                  isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/30",
                 )}
               />
             </Button>
           ) : (
             <Crown
               className={cn(
-                "size-4 me-2",
-                isPrimary ? "text-amber-500 fill-amber-500" : "text-muted-foreground/20",
+                "me-2 size-4",
+                isPrimary ? "fill-amber-500 text-amber-500" : "text-muted-foreground/20",
               )}
             />
           )}

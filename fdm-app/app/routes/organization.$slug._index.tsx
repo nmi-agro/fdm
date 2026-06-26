@@ -155,18 +155,18 @@ export default function AppIndex() {
           action={{ label: "Terug naar organisaties", to: "./.." }}
         />
         <FarmContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {/* Left Column */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="space-y-8 lg:col-span-2">
               {/* Quick Actions */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzichten</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <NavLink to={`${calendar}/farms`}>
                     <Card className="transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-primary text-primary-foreground p-3">
+                          <div className="bg-primary text-primary-foreground rounded-lg p-3">
                             <Square className="h-6 w-6" />
                           </div>
                           <div>
@@ -183,7 +183,7 @@ export default function AppIndex() {
                     <Card className="transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="rounded-lg bg-primary text-primary-foreground p-3">
+                          <div className="bg-primary text-primary-foreground rounded-lg p-3">
                             <Users className="h-6 w-6" />
                           </div>
                           <div>
@@ -202,7 +202,7 @@ export default function AppIndex() {
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Bedrijven</h2>
                 {loaderData.farms.length > 0 ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     {loaderData.farms.map((farm) => (
                       <FarmCard key={farm.b_id_farm} farm={farm} />
                     ))}
@@ -214,7 +214,7 @@ export default function AppIndex() {
               {loaderData.pendingInvitations.length > 0 && (
                 <div className="w-full space-y-4">
                   <h2 className="text-xl font-semibold">Openstaande uitnodigingen</h2>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     {loaderData.pendingInvitations.map((invitation) => (
                       <PendingInvitationCard
                         key={invitation.invitation_id}
@@ -231,7 +231,7 @@ export default function AppIndex() {
             <div className="space-y-8">
               {/* Overview */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Overzicht</h2>
                   <Button asChild variant="outline">
                     <NavLink to="./settings" className={cn(!loaderData.canModify && "invisible")}>
@@ -240,25 +240,25 @@ export default function AppIndex() {
                   </Button>
                 </div>
                 <Card>
-                  <CardContent className="pt-6 space-y-4">
+                  <CardContent className="space-y-4 pt-6">
                     {/* tiles */}
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-                        <p className="text-xs text-muted-foreground">Bedrijven</p>
+                      <div className="bg-muted/50 space-y-1 rounded-lg p-3">
+                        <p className="text-muted-foreground text-xs">Bedrijven</p>
                         <p className="text-2xl font-bold">{loaderData.farms.length}</p>
                       </div>
-                      <div className="rounded-lg bg-muted/50 p-3 space-y-1">
-                        <p className="text-xs text-muted-foreground">Oppervlakte</p>
+                      <div className="bg-muted/50 space-y-1 rounded-lg p-3">
+                        <p className="text-muted-foreground text-xs">Oppervlakte</p>
                         <p className="text-2xl font-bold">
                           {Math.round(loaderData.totalArea * 10) / 10}
-                          <span className="text-sm font-normal text-muted-foreground ml-1">ha</span>
+                          <span className="text-muted-foreground ml-1 text-sm font-normal">ha</span>
                         </p>
                       </div>
                     </div>
                     <Separator />
                     {/* Year selector */}
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">Jaar</p>
+                      <p className="text-muted-foreground text-sm">Jaar</p>
                       <Select value={calendar} onValueChange={(value) => setCalendar(value)}>
                         <SelectTrigger className="w-40">
                           <SelectValue placeholder="Selecteer een jaar" />
@@ -275,9 +275,9 @@ export default function AppIndex() {
                     <Separator />
                     {/* Description */}
                     <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">Beschrijving</p>
+                      <p className="text-muted-foreground text-sm">Beschrijving</p>
                       <Expandable>
-                        <ExpandableContent className="whitespace-pre-line text-sm">
+                        <ExpandableContent className="text-sm whitespace-pre-line">
                           {description && description.length > 0
                             ? description
                             : "Geen beschrijving"}
@@ -291,7 +291,7 @@ export default function AppIndex() {
 
               {/* Settings */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight">Leden</h2>
                   <Button asChild variant="outline">
                     <NavLink to="./members" className={cn(!loaderData.canModify && "invisible")}>
@@ -312,7 +312,7 @@ export default function AppIndex() {
                                 <AvatarFallback>{initials}</AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="text-sm font-medium leading-none">
+                                <p className="text-sm leading-none font-medium">
                                   {member.user.name}
                                 </p>
                               </div>

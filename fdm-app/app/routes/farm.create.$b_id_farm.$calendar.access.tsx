@@ -102,7 +102,7 @@ export default function CreateFarmAccessStep() {
         <div className="space-y-6 p-10 pb-0">
           <div className="flex items-center">
             <div className="space-y-0.5">
-              <h2 className="text-2xl font-bold tracking-tight mt-2">
+              <h2 className="mt-2 text-2xl font-bold tracking-tight">
                 Toegang instellen (Optioneel)
               </h2>
               <p className="text-muted-foreground">
@@ -121,7 +121,7 @@ export default function CreateFarmAccessStep() {
             </div>
           </div>
           <Separator className="my-6" />
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid gap-4 md:grid-cols-3">
             <AccessManagementCard principals={principals} hasSharePermission={hasSharePermission} />
             <AccessInfoCard />
           </div>

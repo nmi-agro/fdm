@@ -1,6 +1,6 @@
+import type { DynaNitrogenBalance } from "~/integrations/mineralization.server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import type { DynaNitrogenBalance } from "~/integrations/mineralization.server"
 
 interface DynaBalanceCardProps {
   nitrogenBalance: DynaNitrogenBalance
@@ -86,7 +86,7 @@ export function DynaBalanceCard({ nitrogenBalance, leaching }: DynaBalanceCardPr
           {/* Leaching */}
           <div className="flex justify-between">
             <dt className="font-semibold text-amber-600 dark:text-amber-400">N-NO₃ uitspoeling</dt>
-            <dd className="font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+            <dd className="font-semibold text-amber-600 tabular-nums dark:text-amber-400">
               -{Math.round(leaching)} kg N/ha
             </dd>
           </div>

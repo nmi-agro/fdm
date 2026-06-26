@@ -323,7 +323,7 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
                 en deel de volgende foutmelding:
               </p>
               <div className="mt-8 w-full max-w-2xl">
-                <pre className="bg-gray-200 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
+                <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                   {JSON.stringify(
                     {
                       message: errorMessage,
@@ -386,7 +386,7 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
         <h1 className="text-2xl font-semibold tracking-tight">
           Helaas, nog geen gebruiksnormen beschikbaar voor {loaderData.calendar}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Op dit moment kunnen we alleen nog de gebruiksnormen voor 2025 en 2026 berekenen en
           weergeven.
         </p>

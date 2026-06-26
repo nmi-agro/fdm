@@ -19,11 +19,11 @@ export function AuthLayout({
   }
 
   return (
-    <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
+    <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
       <div className="flex items-center justify-center py-12">
         <div className="mx-auto grid w-87.5 gap-6">{children}</div>
       </div>
-      <div className="hidden bg-muted lg:block relative">
+      <div className="bg-muted relative hidden lg:block">
         <img
           src={backgroundImage}
           alt="Background"
@@ -35,7 +35,7 @@ export function AuthLayout({
           <Button
             variant="ghost"
             size="sm"
-            className="text-xs flex items-center gap-1 opacity-70 hover:opacity-100 bg-card/80 hover:bg-card border border-border"
+            className="bg-card/80 hover:bg-card border-border flex items-center gap-1 border text-xs opacity-70 hover:opacity-100"
             onClick={openCookieSettings}
           >
             <Cookie className="h-3 w-3" />

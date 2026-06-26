@@ -22,13 +22,13 @@ export function CultivationList({
       <li key={"header"}>
         <div className="grid grid-cols-3 items-center px-4">
           <div className="col-span-1">
-            <p className="text-sm font-medium leading-none hidden">Gewas</p>
+            <p className="hidden text-sm leading-none font-medium">Gewas</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Zaaidatum</p>
+            <p className="text-muted-foreground text-sm">Zaaidatum</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Einddatum</p>
+            <p className="text-muted-foreground text-sm">Einddatum</p>
           </div>
         </div>
       </li>
@@ -45,7 +45,7 @@ export function CultivationList({
             <NavLink
               to={`./${cultivation.b_lu}`}
               className={({ isActive }) =>
-                `block p-4 rounded-lg ${
+                `block rounded-lg p-4 ${
                   isActive
                     ? "bg-gray-100 dark:bg-gray-800"
                     : "hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -54,18 +54,18 @@ export function CultivationList({
             >
               <div className="grid grid-cols-3 items-center gap-1">
                 <div className="col-span-1">
-                  <p className="text-sm font-medium leading-none break-all">
+                  <p className="text-sm leading-none font-medium break-all">
                     {cultivation.b_lu_name}
                   </p>
-                  <p className="text-sm text-muted-foreground">{harvestText}</p>
+                  <p className="text-muted-foreground text-sm">{harvestText}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground leading-none">
+                  <p className="text-muted-foreground text-sm leading-none">
                     {formatCultivationDate(cultivation.b_lu_start)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground leading-none">
+                  <p className="text-muted-foreground text-sm leading-none">
                     {cultivation.b_lu_end
                       ? formatCultivationDate(cultivation.b_lu_end)
                       : "Nog niet beëindigd"}

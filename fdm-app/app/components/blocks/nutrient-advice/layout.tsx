@@ -1,5 +1,5 @@
-import { Tally1, Tally2, Tally3 } from "lucide-react"
 import type { ReactNode } from "react"
+import { Tally1, Tally2, Tally3 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 
 export function FieldNutrientAdviceLayout({
@@ -33,11 +33,11 @@ export function FieldNutrientAdviceLayout({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">{primaryNutrientsSection}</div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">{primaryNutrientsSection}</div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{kpiSection}</div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">{kpiSection}</div>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -50,7 +50,7 @@ export function FieldNutrientAdviceLayout({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">{secondaryNutrientsSection}</div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">{secondaryNutrientsSection}</div>
         </CardContent>
       </Card>
       <Card>
@@ -64,7 +64,7 @@ export function FieldNutrientAdviceLayout({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">{traceNutrientsSection}</div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">{traceNutrientsSection}</div>
         </CardContent>
       </Card>
     </div>

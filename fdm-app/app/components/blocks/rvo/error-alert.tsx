@@ -58,7 +58,7 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
   return (
     <Alert variant="destructive" className="border-red-200 bg-red-50">
       <AlertTriangle className="h-4 w-4 text-red-600" />
-      <AlertTitle className="text-red-900 font-semibold flex items-center gap-2">
+      <AlertTitle className="flex items-center gap-2 font-semibold text-red-900">
         {friendlyTitle}
       </AlertTitle>
       <AlertDescription className="mt-2">
@@ -69,7 +69,7 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
               asChild
               variant="outline"
               size="sm"
-              className="w-fit border-red-200 bg-white hover:bg-red-50 hover:text-red-900 text-red-700"
+              className="w-fit border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-900"
             >
               <Link to={retryPath}>
                 <RefreshCw className="mr-2 h-3 w-3" />
@@ -82,7 +82,7 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
               onClick={onRetry}
               variant="outline"
               size="sm"
-              className="w-fit border-red-200 bg-white hover:bg-red-50 hover:text-red-900 text-red-700"
+              className="w-fit border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-900"
             >
               <RefreshCw className="mr-2 h-3 w-3" />
               Opnieuw proberen
@@ -90,7 +90,7 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
           ) : null}
         </div>
         {import.meta.env.MODE === "development" && (
-          <div className="mt-4 p-2 bg-red-100 rounded text-xs font-mono text-red-900 overflow-auto max-w-full">
+          <div className="mt-4 max-w-full overflow-auto rounded bg-red-100 p-2 font-mono text-xs text-red-900">
             <strong>DEBUG:</strong> {rawMessage}
           </div>
         )}

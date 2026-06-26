@@ -64,7 +64,7 @@ export function TicketPrioritySelector({
             disabled={!canModify || fetcher.state !== "idle"}
           >
             {priorityInfo.label}
-            <ChevronDown className="size-3 opacity-50 ms-1" />
+            <ChevronDown className="ms-1 size-3 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
         <Spinner className={cn(fetcher.state === "idle" && "invisible")} />

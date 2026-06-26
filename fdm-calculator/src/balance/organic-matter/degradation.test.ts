@@ -1,7 +1,7 @@
 import Decimal from "decimal.js"
 import { describe, expect, it } from "vitest"
-import { calculateOrganicMatterDegradation } from "./degradation"
 import type { CultivationDetail, FieldInput, SoilAnalysisPicked } from "./types"
+import { calculateOrganicMatterDegradation } from "./degradation"
 
 describe("calculateOrganicMatterDegradation", () => {
   const mockTimeFrame = {

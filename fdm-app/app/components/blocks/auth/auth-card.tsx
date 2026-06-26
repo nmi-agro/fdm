@@ -35,12 +35,12 @@ export function AuthCard({
       <CardHeader className="text-center">
         {showLogo && (
           <>
-            <div className="flex justify-center mb-4">
+            <div className="mb-4 flex justify-center">
               <div className="flex aspect-square size-16 items-center justify-center rounded-lg bg-[#122023]">
                 <img className="size-12" src={clientConfig.logomark} alt={clientConfig.name} />
               </div>
             </div>
-            <h2 className="text-lg font-semibold tracking-tight text-muted-foreground mb-2">
+            <h2 className="text-muted-foreground mb-2 text-lg font-semibold tracking-tight">
               {clientConfig.name}
             </h2>
           </>
@@ -50,7 +50,7 @@ export function AuthCard({
       </CardHeader>
       <CardContent className={cn("space-y-4", contentClassName)}>{children}</CardContent>
       <CardFooter className="flex justify-center">
-        <Button asChild variant="ghost" className="w-full text-muted-foreground">
+        <Button asChild variant="ghost" className="text-muted-foreground w-full">
           <NavLink to={backLink}>{backLabel}</NavLink>
         </Button>
       </CardFooter>

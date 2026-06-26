@@ -12,8 +12,8 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
-import { AccessFormSchema } from "../lib/schemas/access.schema"
 import type { Route } from "./+types/organization._index"
+import { AccessFormSchema } from "../lib/schemas/access.schema"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
@@ -83,10 +83,10 @@ export default function OrganizationsIndex() {
                 <OrganizationCard key={organization.id} organization={organization} />
               ))}
 
-              <Card className="flex flex-col border-dashed transition-all hover:border-primary/50 hover:bg-muted/50">
+              <Card className="hover:border-primary/50 hover:bg-muted/50 flex flex-col border-dashed transition-all">
                 <NavLink to="/organization/new" className="flex h-full flex-col">
                   <CardHeader className="grow items-center justify-center text-center">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
                       <Plus className="h-6 w-6" />
                     </div>
                     <CardTitle>Nieuwe organisatie</CardTitle>
@@ -115,14 +115,14 @@ export default function OrganizationsIndex() {
           )}
         </>
       ) : (
-        <div className="mx-auto flex items-center flex-col justify-center space-y-6 sm:w-87.5">
+        <div className="mx-auto flex flex-col items-center justify-center space-y-6 sm:w-87.5">
           <Empty>
             <EmptyHeader>Het lijkt erop dat je nog geen organisatie hebt.</EmptyHeader>
             <EmptyContent>
               <Button asChild>
                 <NavLink to="/organization/new">Maak een organisatie</NavLink>
               </Button>
-              <p className="text-center text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-center text-sm">
                 of je kunt organisaties vragen om je uit te nodigen.
               </p>
             </EmptyContent>

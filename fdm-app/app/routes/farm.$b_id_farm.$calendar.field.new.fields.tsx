@@ -156,7 +156,7 @@ export default function Index() {
           </div>
           <Separator className="my-6" />
           <div className="space-y-6 pb-0">
-            <div className="flex flex-col space-y-0 lg:flex-row lg:space-x-4 lg:space-y-0">
+            <div className="flex flex-col space-y-0 lg:flex-row lg:space-y-0 lg:space-x-4">
               <NewFieldsSidebar
                 fields={fields}
                 soilStatus={soilStatus}

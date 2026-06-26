@@ -1,8 +1,8 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { TagSummary } from "@nmi-agro/fdm-helpdesk"
+import type { FetcherWithComponents } from "react-router"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import { Controller } from "react-hook-form"
-import type { FetcherWithComponents } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
 import { Button } from "~/components/ui/button"
@@ -183,7 +183,7 @@ export function TagCreator({
                   <Field>
                     <FieldLabel>Kleur</FieldLabel>
                     <Select value={field.value} onValueChange={(value) => field.onChange(value)}>
-                      <SelectTrigger className="text-start gap-2">
+                      <SelectTrigger className="gap-2 text-start">
                         {activeOption ? (
                           <>
                             <div

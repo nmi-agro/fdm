@@ -7,7 +7,7 @@ import { SoilTextureSkeleton } from "./soil-texture"
 
 export function FieldDetailsAtlasSkeleton() {
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl">
       <FieldDetailsAtlasLayout
         cultivationHistory={<CultivationHistorySkeleton />}
         fieldDetails={<FieldDetailsSkeleton />}

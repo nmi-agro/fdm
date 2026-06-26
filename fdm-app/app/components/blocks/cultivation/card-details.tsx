@@ -1,7 +1,7 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { Cultivation } from "@nmi-agro/fdm-core"
-import { useEffect } from "react"
 import type { FieldValues, Resolver, UseFormReturn } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
@@ -102,7 +102,7 @@ export function CultivationDetailsCard({
               disabled={!editable || form.formState.isSubmitting || fetcher.state !== "idle"}
               className="space-y-4"
             >
-              <div className="grid lg:grid-cols-2 gap-4">
+              <div className="grid gap-4 lg:grid-cols-2">
                 <DatePicker
                   form={form as unknown as UseFormReturn<FieldValues>}
                   name="b_lu_start"
@@ -118,14 +118,14 @@ export function CultivationDetailsCard({
                   disabled={!editable}
                 />
               </div>
-              <div className="grid lg:grid-cols-2 gap-4 items-end">
+              <div className="grid items-end gap-4 lg:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="m_cropresidue"
                   render={({ field }) => (
                     <FormItem
                       className={cn(
-                        "flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4",
+                        "flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4",
                         /* Hide for non-cereals */ cultivation.b_lu_croprotation !== "cereal" &&
                           "invisible",
                       )}

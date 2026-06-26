@@ -32,8 +32,8 @@ import {
 import { Button } from "~/components/ui/button"
 import { deleteObject, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
-import { computeBcs } from "~/lib/bcs.server"
 import { deriveBcsScores } from "~/lib/bcs-derived.server"
+import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -185,7 +185,7 @@ export default function FieldBcsDetailRoute() {
   return (
     <div className="space-y-6">
       {loaderData.labAnalysisDate ? (
-        <div className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
+        <div className="bg-muted/30 text-muted-foreground rounded-xl border p-4 text-sm">
           pH en organische stof zijn afgeleid uit de labanalyse van{" "}
           {format(new Date(loaderData.labAnalysisDate), "PPP", {
             locale: nl,
@@ -220,7 +220,7 @@ export default function FieldBcsDetailRoute() {
             <ImageGallery images={loaderData.images} />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-8 text-center text-sm">
             <p>Geen foto&apos;s opgeslagen voor deze BodemConditieScore.</p>
           </div>
         )}

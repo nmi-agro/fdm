@@ -40,7 +40,7 @@ function YearConnector() {
         {/* Neutral single vertical line — no crop-to-crop identity implied */}
         <svg
           viewBox="0 0 100 28"
-          className="w-full h-7"
+          className="h-7 w-full"
           preserveAspectRatio="none"
           aria-hidden="true"
         >
@@ -84,7 +84,7 @@ function YearRow({
             {yearEntry.year}
           </Badge>
         ) : (
-          <span className="text-xs font-bold tabular-nums text-muted-foreground/70">
+          <span className="text-muted-foreground/70 text-xs font-bold tabular-nums">
             {yearEntry.year}
           </span>
         )}
@@ -93,8 +93,8 @@ function YearRow({
       {/* Bars */}
       <div
         className={cn(
-          "flex-1 flex h-9 rounded overflow-hidden",
-          isActive && "ring-2 ring-primary ring-offset-1",
+          "flex h-9 flex-1 overflow-hidden rounded",
+          isActive && "ring-primary ring-2 ring-offset-1",
         )}
       >
         {significantFields.map((field) => (
@@ -104,21 +104,21 @@ function YearRow({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div
-                  className="h-full flex items-center justify-center overflow-hidden cursor-help transition-opacity hover:opacity-80 shrink-0"
+                  className="flex h-full shrink-0 cursor-help items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
                   style={{
                     width: `${field.overlap_pct_of_selected * 100}%`,
                     backgroundColor: getCultivationColor(field.b_lu_croprotation),
                   }}
                 >
                   {field.overlap_pct_of_selected >= 0.12 && (
-                    <span className="text-[10px] font-semibold text-white truncate px-1.5 select-none drop-shadow-sm">
+                    <span className="truncate px-1.5 text-[10px] font-semibold text-white drop-shadow-sm select-none">
                       {field.b_lu_name}
                     </span>
                   )}
                 </div>
               </TooltipTrigger>
               <TooltipContent className="space-y-0.5">
-                <p className="font-semibold text-sm">{field.b_lu_name}</p>
+                <p className="text-sm font-semibold">{field.b_lu_name}</p>
                 <p className="text-xs">
                   {field.b_area_overlap.toFixed(2)} ha —{" "}
                   <span className="font-medium">
@@ -133,11 +133,11 @@ function YearRow({
         {/* Unregistered portion */}
         {unregisteredPct >= 0.01 && (
           <div
-            className="h-full flex items-center justify-center border border-dashed border-muted-foreground/25"
+            className="border-muted-foreground/25 flex h-full items-center justify-center border border-dashed"
             style={{ width: `${unregisteredPct * 100}%` }}
           >
             {unregisteredPct >= 0.12 && (
-              <span className="text-[10px] text-muted-foreground/50 truncate px-1 select-none">
+              <span className="text-muted-foreground/50 truncate px-1 text-[10px] select-none">
                 Niet geregistreerd
               </span>
             )}
@@ -147,7 +147,7 @@ function YearRow({
 
       {/* Total area for year */}
       <div className="w-14 shrink-0 text-left">
-        <span className="text-xs font-medium tabular-nums text-muted-foreground">
+        <span className="text-muted-foreground text-xs font-medium tabular-nums">
           {yearEntry.total_area_ha.toFixed(2)} ha
         </span>
       </div>
@@ -190,11 +190,11 @@ export function AdvancedCultivationFlow({
       </div>
 
       {hasMore && (
-        <div className="lg:hidden pt-2 border-t mt-1">
+        <div className="mt-1 border-t pt-2 lg:hidden">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full text-muted-foreground hover:text-foreground h-10"
+            className="text-muted-foreground hover:text-foreground h-10 w-full"
             onClick={() => setIsExpanded(!isExpanded)}
           >
             {isExpanded ? (

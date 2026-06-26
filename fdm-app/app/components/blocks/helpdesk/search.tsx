@@ -158,7 +158,7 @@ export function SearchFields<T extends BaseFilter>({
         if (field.type === "date") {
           return (
             <Field key={field.name as string} className="space-y-0">
-              <FieldLabel className="text-sm text-muted-foreground">{field.label}</FieldLabel>
+              <FieldLabel className="text-muted-foreground text-sm">{field.label}</FieldLabel>
               <DatePicker
                 label={undefined}
                 field={{
@@ -189,7 +189,7 @@ export function SearchFields<T extends BaseFilter>({
         if (field.type === "principal") {
           return (
             <Field key={field.name as string} className="space-y-0">
-              <FieldLabel className="text-sm text-muted-foreground">{field.label}</FieldLabel>
+              <FieldLabel className="text-muted-foreground text-sm">{field.label}</FieldLabel>
               <AutoComplete
                 lookupUrl="/api/lookup/principal?principal_id"
                 iconMap={iconMap}
@@ -212,7 +212,7 @@ export function SearchFields<T extends BaseFilter>({
         if (field.type === "agent") {
           return (
             <Field key={field.name as string} className="space-y-0">
-              <FieldLabel className="text-sm text-muted-foreground">{field.label}</FieldLabel>
+              <FieldLabel className="text-muted-foreground text-sm">{field.label}</FieldLabel>
               <AutoComplete
                 selectedValue={filters[field.name]?.length > 0 ? filters[field.name][0] : undefined}
                 onSelectedValueChange={(value) => {
@@ -235,18 +235,18 @@ export function SearchFields<T extends BaseFilter>({
           const activeOption = field.options.find((item) => item.value === filters[field.name])
           return (
             <Field key={field.name as string} className="space-y-0">
-              <FieldLabel className="text-sm text-muted-foreground">{field.label}</FieldLabel>
+              <FieldLabel className="text-muted-foreground text-sm">{field.label}</FieldLabel>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="justify-between font-medium w-full"
+                    className="w-full justify-between font-medium"
                   >
                     <span className={activeOption ? undefined : "text-muted-foreground"}>
                       {activeOption?.label ?? "Alle prioriteiten"}
                     </span>
-                    <ChevronDown className="size-3 opacity-50 ms-1" />
+                    <ChevronDown className="ms-1 size-3 opacity-50" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -289,7 +289,7 @@ export function SearchFields<T extends BaseFilter>({
         if (field.type === "custom") {
           return (
             <Field key={field.name as string}>
-              <FieldLabel className="text-sm text-muted-foreground">{field.label}</FieldLabel>
+              <FieldLabel className="text-muted-foreground text-sm">{field.label}</FieldLabel>
               {field.render({
                 filters: filters,
                 setFilters: setFilters,
@@ -300,7 +300,7 @@ export function SearchFields<T extends BaseFilter>({
 
         return (
           <Field key={field.name as string} className="space-y-0">
-            <FieldLabel className="text-sm text-muted-foreground">{field.label}</FieldLabel>
+            <FieldLabel className="text-muted-foreground text-sm">{field.label}</FieldLabel>
             <Input
               type="text"
               value={filters[field.name] ?? ""}

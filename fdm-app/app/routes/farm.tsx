@@ -1,3 +1,4 @@
+import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { getFarm } from "@nmi-agro/fdm-core"
 import {
   checkHelpdeskPermission,
@@ -7,7 +8,6 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import posthog from "posthog-js"
 import { useEffect } from "react"
-import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { Outlet, redirect, useLoaderData, useMatches } from "react-router"
 import { SidebarApps } from "~/components/blocks/sidebar/apps"
 import { SidebarFarm, SidebarLabs } from "~/components/blocks/sidebar/farm"

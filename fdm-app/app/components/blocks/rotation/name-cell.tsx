@@ -26,10 +26,10 @@ export function NameCell({ row }: CellContext<RotationExtended, unknown>) {
           ? `/farm/create/${params.b_id_farm}/${params.calendar}/fields/${original.b_id}`
           : `/farm/${params.b_id_farm}/${params.calendar}/field/${original.b_id}`
       }
-      className="group flex items-center hover:underline w-fit ps-4"
+      className="group flex w-fit items-center ps-4 hover:underline"
     >
       {original.b_name}
-      <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 transition-opacity group-hover:opacity-100" />
     </NavLink>
   )
 }

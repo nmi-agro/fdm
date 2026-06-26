@@ -13,11 +13,11 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
+import type { NutrientDescription } from "~/components/blocks/nutrient-advice/types"
 import { FieldNutrientAdviceLayout } from "~/components/blocks/nutrient-advice/layout"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
 import { KPISection, NutrientAdviceSection } from "~/components/blocks/nutrient-advice/sections"
 import { FieldNutrientAdviceSkeleton } from "~/components/blocks/nutrient-advice/skeletons"
-import type { NutrientDescription } from "~/components/blocks/nutrient-advice/types"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
 import { ErrorBlock } from "~/components/custom/error"
 import { Separator } from "~/components/ui/separator"

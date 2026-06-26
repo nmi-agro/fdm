@@ -1,10 +1,10 @@
 import type { FdmAuth } from "@nmi-agro/fdm-core"
+import type { MiddlewareHandler } from "hono"
 import { withAuditContext } from "@nmi-agro/fdm-core"
 import * as Sentry from "@sentry/node"
-import type { MiddlewareHandler } from "hono"
 import { createMiddleware } from "hono/factory"
-import { ApiError } from "./error"
 import type { ApiEnv, ApiPrincipalContext } from "./types"
+import { ApiError } from "./error"
 
 /**
  * Creates middleware that authenticates requests with a user-owned API key.

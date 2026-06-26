@@ -41,21 +41,21 @@ export const FarmInvitationRoleUpdatedEmail = ({
       preview={previewText}
       showFooter={false}
     >
-      <Heading className="text-black text-[24px] font-normal text-center p-0 my-7.5 mx-0">
+      <Heading className="mx-0 my-7.5 p-0 text-center text-[24px] font-normal text-black">
         Uitnodiging voor <b>{farmName}</b> bijgewerkt
       </Heading>
-      <Text className="text-black text-[14px] leading-6">Hallo {targetEmail},</Text>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">Hallo {targetEmail},</Text>
+      <Text className="text-[14px] leading-6 text-black">
         {inviterName} heeft je uitnodiging voor toegang tot het bedrijf <b>{farmName}</b> in{" "}
         {appName} bijgewerkt. Je nieuwe rol is <b>{roleLabel}</b>.
       </Text>
-      <Text className="text-black text-[14px] leading-6">
+      <Text className="text-[14px] leading-6 text-black">
         Log in om de uitnodiging te accepteren of te weigeren.
       </Text>
       <Section className="mt-8 mb-2 text-center">
         <Button
           href={`${appBaseUrl}/farm`}
-          className="bg-primary text-white border-solid border-primary border-2 rounded mx-6 px-5 py-3 text-[14px] font-semibold no-underline min-w-37.5"
+          className="bg-primary border-primary mx-6 min-w-37.5 rounded border-2 border-solid px-5 py-3 text-[14px] font-semibold text-white no-underline"
         >
           Bekijk uitnodiging
         </Button>

@@ -1,5 +1,5 @@
-import { type Control, Controller } from "react-hook-form"
 import type z from "zod"
+import { type Control, Controller } from "react-hook-form"
 import { AuthCodeInput } from "~/components/blocks/auth/auth-code-input"
 import { Field, FieldContent, FieldError, FieldLabel } from "~/components/ui/field"
 import type { FormSchema } from "./auth-formschema"

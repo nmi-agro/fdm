@@ -32,7 +32,7 @@ export function NewFieldSoilAnalysisBlock({
               {isEstimated && (
                 <Badge
                   variant="secondary"
-                  className="bg-orange-100 text-orange-800 hover:bg-orange-100 font-normal border-transparent"
+                  className="border-transparent bg-orange-100 font-normal text-orange-800 hover:bg-orange-100"
                 >
                   Schatting
                 </Badge>
@@ -45,7 +45,7 @@ export function NewFieldSoilAnalysisBlock({
       <CardContent>
         <div className="space-y-6">
           {isEstimated && (
-            <div className="flex items-start gap-2 text-sm text-muted-foreground leading-snug">
+            <div className="text-muted-foreground flex items-start gap-2 text-sm leading-snug">
               <Info className="h-4 w-4 shrink-0" />
               <p>
                 Voor een nauwkeuriger advies kun je al je bodemanalyses (pdf) in één keer uploaden.
@@ -55,7 +55,7 @@ export function NewFieldSoilAnalysisBlock({
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild className="flex-1 sm:flex-none">
               <NavLink to={bulkUploadLink}>
                 <FileUp className="mr-2 h-4 w-4" />

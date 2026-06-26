@@ -187,12 +187,12 @@ export default function IndicatorsFarmIndex() {
       <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
         {/* Aggregations hierarchy tree */}
         <section className="space-y-3">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-            <Card className="shadow-sm border-border">
+          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2">
+            <Card className="border-border shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
-                  <Button asChild variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+                  <Button asChild variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
                     <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}>
                       <Map className="h-3.5 w-3.5" />
                       Kaartweergave
@@ -229,30 +229,30 @@ export default function IndicatorsFarmIndex() {
         {/* Indicator table section */}
         <Card
           className={cn(
-            "transition-opacity duration-150 bg-muted/10",
-            showPending && "opacity-50 pointer-events-none",
+            "bg-muted/10 transition-opacity duration-150",
+            showPending && "pointer-events-none opacity-50",
           )}
         >
-          <CardHeader className="pb-3 border-b">
+          <CardHeader className="border-b pb-3">
             <CardTitle className="text-base font-bold">Detailweergave per perceel</CardTitle>
             <CardDescription className="text-xs">
               Alle {INDICATORS.length} indicatoren voor alle percelen, met filters en
               zoekmogelijkheden.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
+          <CardContent className="space-y-4 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <CategoryFilter
                 activeCategories={activeCategories}
                 onToggle={handleToggleCategory}
                 onClearAll={handleClearCategories}
               />
-              <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex flex-wrap items-center gap-4">
                 <Input
                   placeholder="Zoek perceel…"
                   value={fieldSearch}
                   onChange={(e) => setFieldSearch(e.target.value)}
-                  className="w-44 h-8 text-sm"
+                  className="h-8 w-44 text-sm"
                 />
                 <div className="flex items-center gap-2">
                   <Switch
@@ -262,7 +262,7 @@ export default function IndicatorsFarmIndex() {
                   />
                   <Label
                     htmlFor="bufferstrip-toggle"
-                    className="text-sm cursor-pointer select-none"
+                    className="cursor-pointer text-sm select-none"
                   >
                     {hideBufferstrips ? "Zonder bufferstroken" : "Met bufferstroken"}
                   </Label>

@@ -212,7 +212,7 @@ function NitrogenBalance({
               <div className="text-muted-foreground">
                 <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
                 <br />
-                <ul className="list-disc list-inside">
+                <ul className="list-inside list-disc">
                   {fieldResult.errorMessage.match(/a_n_rt/) ? (
                     <li>Totaal stikstofgehalte</li>
                   ) : null}
@@ -231,7 +231,7 @@ function NitrogenBalance({
                   en deel de volgende foutmelding:
                 </p>
                 <div className="mt-8 w-full max-w-2xl">
-                  <pre className="bg-gray-200 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
+                  <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                     {JSON.stringify(
                       {
                         // message:
@@ -290,60 +290,60 @@ function NitrogenBalance({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overschot / Doel (Perceel)</CardTitle>
-            <ArrowRightLeft className="text-xs text-muted-foreground" />
+            <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
                 <p>{`${result.balance} / ${result.target}`}</p>
                 {result.balance <= result.target ? (
-                  <CircleCheck className="text-green-500 bg-green-100 p-0 rounded-full " />
+                  <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
-                  <CircleAlert className="text-red-500 bg-red-100 rounded-full " />
+                  <CircleAlert className="rounded-full bg-red-100 text-red-500 " />
                 )}
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">kg N / ha</p>
+            <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
-            <ArrowDown className="text-xs text-muted-foreground" />
+            <ArrowDown className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{result.supply.total}</div>
-            <p className="text-xs text-muted-foreground">kg N / ha</p>
+            <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Afvoer</CardTitle>
-            <ArrowRight className="text-xs text-muted-foreground" />
+            <ArrowRight className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{result.removal.total}</div>
-            <p className="text-xs text-muted-foreground">kg N / ha</p>
+            <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ammoniakemissie</CardTitle>
-            <ArrowUpFromLine className="text-xs text-muted-foreground" />
+            <ArrowUpFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{result.emission.ammonia.total}</div>
-            <p className="text-xs text-muted-foreground">kg N / ha</p>
+            <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Nitraatuitspoeling</CardTitle>
-            <ArrowRightFromLine className="text-xs text-muted-foreground" />
+            <ArrowRightFromLine className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{result.emission.nitrate.total}</div>
-            <p className="text-xs text-muted-foreground">kg N / ha</p>
+            <p className="text-muted-foreground text-xs">kg N / ha</p>
           </CardContent>
         </Card>
       </div>

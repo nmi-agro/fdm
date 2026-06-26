@@ -125,7 +125,7 @@ export function MijnPercelenUploadForm({
   }
 
   const disabledForm = (
-    <Card className="w-full max-w-lg mx-auto">
+    <Card className="mx-auto w-full max-w-lg">
       <CardHeader className="space-y-6">
         <CardTitle>Shapefile uploaden</CardTitle>
         <Alert variant="default">
@@ -145,7 +145,7 @@ export function MijnPercelenUploadForm({
           <AccordionItem value="item-1">
             <AccordionTrigger>Hoe download ik een shapefile van mijn.rvo.nl?</AccordionTrigger>
             <AccordionContent>
-              <ol className="list-decimal list-inside space-y-2">
+              <ol className="list-inside list-decimal space-y-2">
                 <li>Log in op mijn.rvo.nl.</li>
                 <li>
                   Ga via ‘’Registratie en meldingen doorgeven’’ naar ‘’Percelen registreren’’.
@@ -171,16 +171,16 @@ export function MijnPercelenUploadForm({
           <div className="grid grid-cols-1 gap-4">
             <div
               className={cn(
-                "flex flex-col items-center justify-center w-full h-32 rounded-md border border-dashed border-muted-foreground/25 px-6 py-4 text-center transition-colors",
+                "border-muted-foreground/25 flex h-32 w-full flex-col items-center justify-center rounded-md border border-dashed px-6 py-4 text-center transition-colors",
               )}
             >
-              <FileUp className="w-8 h-8 mb-2 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">
+              <FileUp className="text-muted-foreground mb-2 h-8 w-8" />
+              <div className="text-muted-foreground text-sm">
                 {selectedFiles.length > 0
                   ? selectedFiles.map((file) => file.name).join(", ")
                   : "Klik om te uploaden of sleep de bestanden hierheen"}
               </div>
-              <div className="text-xs text-muted-foreground mt-1">.shp, .shx, .dbf, .prj</div>
+              <div className="text-muted-foreground mt-1 text-xs">.shp, .shx, .dbf, .prj</div>
             </div>
             <Button className="w-full" disabled>
               Uploaden
@@ -198,7 +198,7 @@ export function MijnPercelenUploadForm({
       ) : uploadState === "animating" && !ANIMATION_ENABLED ? (
         disabledForm
       ) : (
-        <Card className="w-full max-w-lg mx-auto">
+        <Card className="mx-auto w-full max-w-lg">
           <CardHeader className="space-y-6">
             <CardTitle>Shapefile uploaden</CardTitle>
             <Alert variant="default">
@@ -246,13 +246,13 @@ export function MijnPercelenUploadForm({
                                 mergeShapefileParts(oldFiles, newFiles, requiredExtensions)
                               }
                             >
-                              <FileUp className="w-8 h-8 mb-2 text-muted-foreground" />
-                              <div className="text-sm text-muted-foreground">
+                              <FileUp className="text-muted-foreground mb-2 h-8 w-8" />
+                              <div className="text-muted-foreground text-sm">
                                 {selectedFiles.length > 0
                                   ? selectedFiles.map((file) => file.name).join(", ")
                                   : "Klik om te uploaden of sleep de bestanden hierheen"}
                               </div>
-                              <div className="text-xs text-muted-foreground mt-1">
+                              <div className="text-muted-foreground mt-1 text-xs">
                                 {/* .shp,
                                                                                 .shx,
                                                                                 .dbf,
@@ -264,13 +264,13 @@ export function MijnPercelenUploadForm({
                               />
                               {uploadState === "success" && (
                                 <>
-                                  <CheckCircle className="w-8 h-8 mb-2 text-green-500" />
+                                  <CheckCircle className="mb-2 h-8 w-8 text-green-500" />
                                   <div className="text-sm text-green-600">Uploaden succesvol!</div>
                                 </>
                               )}
                               {uploadState === "error" && (
                                 <>
-                                  <AlertCircle className="w-8 h-8 mb-2 text-red-500" />
+                                  <AlertCircle className="mb-2 h-8 w-8 text-red-500" />
                                   <div className="text-sm text-red-600">
                                     Uploaden mislukt. Probeer het opnieuw.
                                   </div>
@@ -369,7 +369,7 @@ function RequiredFilesStatus({
   const uploadedExtensions = new Set(files.map((file) => getFileExtension(file.name)))
 
   return (
-    <div className="grid grid-cols-4 gap-x-4 mt-2 text-xs text-muted-foreground">
+    <div className="text-muted-foreground mt-2 grid grid-cols-4 gap-x-4 text-xs">
       {requiredExtensions.map((ext) => {
         const isUploaded = uploadedExtensions.has(ext)
         return (
@@ -378,9 +378,9 @@ function RequiredFilesStatus({
             className={`flex items-center ${isUploaded ? "text-green-500" : "text-gray-500"}`}
           >
             {isUploaded ? (
-              <CheckCircle className="w-4 h-4 mr-1" />
+              <CheckCircle className="mr-1 h-4 w-4" />
             ) : (
-              <Circle className="w-4 h-4 mr-1" />
+              <Circle className="mr-1 h-4 w-4" />
             )}
             <span>{ext}</span>
           </div>

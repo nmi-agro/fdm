@@ -10,7 +10,7 @@ export function MineralizationCardSkeleton() {
       </CardHeader>
       <CardContent>
         <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-3 w-24 mt-2" />
+        <Skeleton className="mt-2 h-3 w-24" />
       </CardContent>
     </Card>
   )
@@ -24,7 +24,7 @@ export function MineralizationChartSkeleton() {
           <Skeleton className="h-6 w-48" />
         </CardTitle>
         <CardDescription>
-          <Skeleton className="h-4 w-full mt-2" />
+          <Skeleton className="mt-2 h-4 w-full" />
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -45,10 +45,7 @@ export function MineralizationFieldsSkeleton() {
       <CardContent>
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between"
-            >
+            <div key={i} className="flex items-center justify-between">
               <Skeleton className="h-4 w-36" />
               <Skeleton className="h-4 w-16" />
               <Skeleton className="h-4 w-4 rounded-full" />

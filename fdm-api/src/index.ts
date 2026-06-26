@@ -1,5 +1,6 @@
 /** @module */
 
+import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
   // [MINERALIZATION: disabled — behind feature flag in fdm-app]
   // assessDataCompleteness,
@@ -18,7 +19,6 @@ import {
   // getNutrientAdvice,
   getOrganicMatterBalanceField,
 } from "@nmi-agro/fdm-calculator"
-import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
   addCultivation,
   addDerogation,

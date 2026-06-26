@@ -1,8 +1,8 @@
-import { createDisplayUsername, createFdmAuth, type FdmAuth } from "@nmi-agro/fdm-core"
 import type { Session } from "better-auth"
+import { createDisplayUsername, createFdmAuth, type FdmAuth } from "@nmi-agro/fdm-core"
 import { redirect } from "react-router"
-import { fdm } from "~/lib/fdm.server"
 import type { ExtendedUser } from "~/types/extended-user"
+import { fdm } from "~/lib/fdm.server"
 import { serverConfig } from "./config.server"
 import { sendMagicLinkEmailToUser, sendWelcomeEmailToUser } from "./email.server"
 

@@ -33,7 +33,7 @@ export function HeaderNorms({
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">
+              <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
                 <span className="truncate">
                   {b_id && fieldOptions
                     ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ??

@@ -1,3 +1,4 @@
+import type { FeatureCollection, Geometry } from "geojson"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addMeasure,
@@ -14,7 +15,6 @@ import {
 import { simplify } from "@turf/simplify"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import type { FeatureCollection, Geometry } from "geojson"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { lazy, Suspense, useEffect, useState } from "react"
 import { Controller } from "react-hook-form"
@@ -428,13 +428,13 @@ function MeasureEditDialog({
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="doorlopend" id="field-edit-doorlopend" />
-                      <Label htmlFor="field-edit-doorlopend" className="font-normal cursor-pointer">
+                      <Label htmlFor="field-edit-doorlopend" className="cursor-pointer font-normal">
                         Doorlopend
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="einddatum" id="field-edit-einddatum" />
-                      <Label htmlFor="field-edit-einddatum" className="font-normal cursor-pointer">
+                      <Label htmlFor="field-edit-einddatum" className="cursor-pointer font-normal">
                         Vaste einddatum
                       </Label>
                     </div>
@@ -509,9 +509,9 @@ export default function MeasuresFieldDetail() {
           </p>
         </div>
         {fieldWritePermission && (
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <Button onClick={() => setDialogOpen(true)} size="sm">
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="mr-1 h-4 w-4" />
               Toevoegen
             </Button>
           </div>
@@ -534,35 +534,35 @@ export default function MeasuresFieldDetail() {
       )}
 
       {/* List + map side-by-side on xl screens */}
-      <div className="flex flex-col xl:flex-row gap-6 items-start">
+      <div className="flex flex-col items-start gap-6 xl:flex-row">
         {/* Active measures list */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           {measures.length === 0 ? (
-            <div className="text-center text-muted-foreground py-12 border rounded-lg">
+            <div className="text-muted-foreground rounded-lg border py-12 text-center">
               <p className="text-sm font-medium">Geen maatregelen actief</p>
-              <p className="text-xs mt-1">Voeg maatregelen toe via de knop hierboven.</p>
+              <p className="mt-1 text-xs">Voeg maatregelen toe via de knop hierboven.</p>
             </div>
           ) : (
-            <div className="divide-y border rounded-lg overflow-hidden">
+            <div className="divide-y overflow-hidden rounded-lg border">
               {measures.map((m) => (
                 <div
                   key={m.b_id_measure}
-                  className="flex items-start justify-between gap-4 px-4 py-3 bg-background hover:bg-muted/30 transition-colors"
+                  className="bg-background hover:bg-muted/30 flex items-start justify-between gap-4 px-4 py-3 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-muted-foreground shrink-0">
+                      <span className="text-muted-foreground shrink-0 font-mono text-xs">
                         {m.m_id.replace("bln_", "")}
                       </span>
-                      <span className="text-sm font-medium truncate">{m.m_name}</span>
+                      <span className="truncate text-sm font-medium">{m.m_name}</span>
                     </div>
                     {m.m_summary && (
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
+                      <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs leading-relaxed">
                         {m.m_summary}
                       </p>
                     )}
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-muted-foreground text-xs">
                         {formatDateRange(m.m_start, m.m_end)}
                       </span>
                       {!m.m_end && fieldWritePermission && (
@@ -586,12 +586,12 @@ export default function MeasuresFieldDetail() {
                     </div>
                   </div>
                   {fieldWritePermission && (
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex shrink-0 items-center gap-1">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground h-8 w-8"
                         title="Bewerken / afsluiten"
                         onClick={() =>
                           setEditingMeasure({
@@ -610,7 +610,7 @@ export default function MeasuresFieldDetail() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            className="text-muted-foreground hover:text-destructive h-8 w-8"
                             title="Verwijderen"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -629,7 +629,7 @@ export default function MeasuresFieldDetail() {
                                 Wil je de maatregel alleen beëindigen?
                               </span>{" "}
                               Gebruik dan de bewerkknop (
-                              <Pencil className="inline h-3.5 w-3.5 mx-0.5" />) en stel een
+                              <Pencil className="mx-0.5 inline h-3.5 w-3.5" />) en stel een
                               einddatum in.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
@@ -658,8 +658,8 @@ export default function MeasuresFieldDetail() {
         </div>
 
         {/* Mini map */}
-        <div className="xl:w-96 xl:shrink-0 w-full rounded-lg overflow-hidden border">
-          <Suspense fallback={<div className="h-64 bg-muted animate-pulse rounded-lg" />}>
+        <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
+          <Suspense fallback={<div className="bg-muted h-64 animate-pulse rounded-lg" />}>
             <MeasuresMap
               fieldsGeoJSON={fieldsGeoJSON}
               selectedFieldGeoJSON={selectedFieldGeoJSON}

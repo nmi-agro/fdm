@@ -128,7 +128,7 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({ row })
       }
 
       return (
-        <div className="flex items-start flex-col space-y-2">
+        <div className="flex flex-col items-start space-y-2">
           {harvestsByOrder.map((record, idx) => {
             return (
               <HarvestDatesDisplayButton key={record.id} record={record}>

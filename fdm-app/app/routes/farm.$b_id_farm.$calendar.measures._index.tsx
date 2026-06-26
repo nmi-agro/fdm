@@ -1,3 +1,4 @@
+import type { FeatureCollection, Geometry } from "geojson"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addMeasure,
@@ -11,7 +12,6 @@ import {
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import type { FeatureCollection, Geometry } from "geojson"
 import { ClipboardList } from "lucide-react"
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
@@ -386,7 +386,7 @@ function MeasureEditDialog({
             <FieldGroup className="py-2">
               <p className="text-sm font-medium">{row.m_name}</p>
               {row.fields.length > 1 && (
-                <p className="text-xs text-muted-foreground -mt-3">
+                <p className="text-muted-foreground -mt-3 text-xs">
                   Geldt voor {row.fields.length} percelen. De datum wordt voor alle percelen
                   aangepast.
                 </p>
@@ -440,13 +440,13 @@ function MeasureEditDialog({
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="doorlopend" id="edit-doorlopend" />
-                      <Label htmlFor="edit-doorlopend" className="font-normal cursor-pointer">
+                      <Label htmlFor="edit-doorlopend" className="cursor-pointer font-normal">
                         Doorlopend
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="einddatum" id="edit-einddatum" />
-                      <Label htmlFor="edit-einddatum" className="font-normal cursor-pointer">
+                      <Label htmlFor="edit-einddatum" className="cursor-pointer font-normal">
                         Vaste einddatum
                       </Label>
                     </div>
@@ -582,33 +582,33 @@ export default function MeasuresFarmIndex() {
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
       />
 
-      <div className="md:px-8 md:pb-8 space-y-6">
+      <div className="space-y-6 md:px-8 md:pb-8">
         {/* Summary stats banner */}
         {stats.totalFields > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="rounded-lg border bg-card px-4 py-3">
-              <p className="text-xs text-muted-foreground">Actieve maatregelen</p>
-              <p className="text-2xl font-bold tabular-nums mt-0.5">{stats.totalMeasures}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="bg-card rounded-lg border px-4 py-3">
+              <p className="text-muted-foreground text-xs">Actieve maatregelen</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.totalMeasures}</p>
             </div>
-            <div className="rounded-lg border bg-card px-4 py-3">
-              <p className="text-xs text-muted-foreground">Percelen met maatregel</p>
-              <p className="text-2xl font-bold tabular-nums mt-0.5">{stats.fieldsWithMeasures}</p>
+            <div className="bg-card rounded-lg border px-4 py-3">
+              <p className="text-muted-foreground text-xs">Percelen met maatregel</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.fieldsWithMeasures}</p>
             </div>
 
             <div className="rounded-lg border px-4 py-3">
-              <p className="text-xs text-muted-foreground">Percelen zonder maatregel</p>
-              <p className="text-2xl font-bold tabular-nums mt-0.5">
+              <p className="text-muted-foreground text-xs">Percelen zonder maatregel</p>
+              <p className="mt-0.5 text-2xl font-bold tabular-nums">
                 {stats.fieldsWithoutMeasures}
               </p>
             </div>
           </div>
         )}
 
-        <div className="flex flex-col xl:flex-row gap-6 items-start">
-          <div className="flex-1 min-w-0">{tableOrEmpty}</div>
+        <div className="flex flex-col items-start gap-6 xl:flex-row">
+          <div className="min-w-0 flex-1">{tableOrEmpty}</div>
 
-          <div className="xl:w-96 xl:shrink-0 w-full rounded-lg overflow-hidden border">
-            <Suspense fallback={<div className="h-80 bg-muted animate-pulse rounded-lg" />}>
+          <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
+            <Suspense fallback={<div className="bg-muted h-80 animate-pulse rounded-lg" />}>
               <MeasuresMap
                 fieldsGeoJSON={fieldsGeoJSON}
                 selectedFieldGeoJSON={emptyGeoJSON}
@@ -625,7 +625,7 @@ export default function MeasuresFarmIndex() {
           <>
             <Separator />
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
                 Percelen
               </h3>
               <FieldSummaryTable

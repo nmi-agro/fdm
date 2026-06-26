@@ -1,10 +1,10 @@
 /* eslint-disable typescript/restrict-template-expressions -- Mapbox viewstates, coordinates, and layer IDs are formatted inside template literals safely. */
 import type { FeatureCollection } from "geojson"
+import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
+import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
-import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -289,23 +289,23 @@ export function FieldsPanelSelection({
           )
 
           setPanel(
-            <Card className="w-full flex-initial min-h-0 flex flex-col gap-4">
+            <Card className="flex min-h-0 w-full flex-initial flex-col gap-4">
               <CardHeader className="pb-0">
                 <CardTitle>Percelen</CardTitle>
                 <CardDescription>{fieldCountText}</CardDescription>
               </CardHeader>
               <CardContent
                 ref={scrollContainerRef}
-                className="p-0 relative flex-initial min-h-0 overflow-hidden flex items-stretch group"
+                className="group relative flex min-h-0 flex-initial items-stretch overflow-hidden p-0"
               >
                 {/* Top scroll indicator */}
-                <div className="absolute top-0 left-0 right-0 z-10 flex flex-col items-center pointer-events-none opacity-0 transition-opacity duration-200 group-data-[scroll-start]:opacity-100">
+                <div className="pointer-events-none absolute top-0 right-0 left-0 z-10 flex flex-col items-center opacity-0 transition-opacity duration-200 group-data-[scroll-start]:opacity-100">
                   <Separator />
-                  <ChevronUp className="h-4 w-4 text-muted-foreground my-1" />
+                  <ChevronUp className="text-muted-foreground my-1 h-4 w-4" />
                 </div>
 
                 <div ref={scrollRef} className="overflow-y-auto">
-                  <div className="px-6 py-4 space-y-4">
+                  <div className="space-y-4 px-6 py-4">
                     {cultivations.map((cultivation, _index) => (
                       // let cultivationCountText = `${cultivation.count + 1} percelen`
 
@@ -320,10 +320,10 @@ export function FieldsPanelSelection({
                           }}
                         />
                         <div className="space-y-1">
-                          <p className="text-sm font-medium leading-none">
+                          <p className="text-sm leading-none font-medium">
                             {cultivation.b_lu_name}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-muted-foreground text-sm">
                             {`${cultivation.count} percelen`}
                           </p>
                         </div>
@@ -333,8 +333,8 @@ export function FieldsPanelSelection({
                 </div>
 
                 {/* Bottom scroll indicator */}
-                <div className="absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center pointer-events-none opacity-0 transition-opacity duration-200 group-data-[scroll-end]:opacity-100">
-                  <ChevronDown className="h-4 w-4 text-muted-foreground my-1" />
+                <div className="pointer-events-none absolute right-0 bottom-0 left-0 z-10 flex flex-col items-center opacity-0 transition-opacity duration-200 group-data-[scroll-end]:opacity-100">
+                  <ChevronDown className="text-muted-foreground my-1 h-4 w-4" />
                   <Separator />
                 </div>
               </CardContent>

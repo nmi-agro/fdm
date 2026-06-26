@@ -271,7 +271,7 @@ export default function DynaPage() {
           asChild
           variant="ghost"
           size="sm"
-          className="rounded-full px-4 h-8 text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground h-8 rounded-full px-4"
         >
           <NavLink to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}`} end>
             <Zap className="mr-1.5 h-3.5 w-3.5" />
@@ -282,7 +282,7 @@ export default function DynaPage() {
           asChild
           variant="secondary"
           size="sm"
-          className="rounded-full px-4 h-8 bg-emerald-100 text-emerald-900 hover:bg-emerald-200 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900"
+          className="h-8 rounded-full border-emerald-200 bg-emerald-100 px-4 text-emerald-900 hover:bg-emerald-200 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400"
         >
           <NavLink to={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}>
             <Component className="mr-1.5 h-3.5 w-3.5" />
@@ -354,7 +354,7 @@ function DynaContent({
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold tabular-nums">{Math.round(currentNAvailability)}</p>
-            <p className="text-xs text-muted-foreground">kg N/ha</p>
+            <p className="text-muted-foreground text-xs">kg N/ha</p>
           </CardContent>
         </Card>
         <Card>
@@ -365,7 +365,7 @@ function DynaContent({
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold tabular-nums">{Math.round(currentUptake)}</p>
-            <p className="text-xs text-muted-foreground">kg N/ha</p>
+            <p className="text-muted-foreground text-xs">kg N/ha</p>
           </CardContent>
         </Card>
         <Card>
@@ -374,7 +374,7 @@ function DynaContent({
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold tabular-nums">{Math.round(totalLeaching)}</p>
-            <p className="text-xs text-muted-foreground">kg N-NO₃/ha (cumulatief)</p>
+            <p className="text-muted-foreground text-xs">kg N-NO₃/ha (cumulatief)</p>
           </CardContent>
         </Card>
       </div>

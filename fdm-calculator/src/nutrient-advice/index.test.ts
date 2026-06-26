@@ -1,7 +1,7 @@
 import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { requestNutrientAdvice } from "./index"
 import type { NutrientAdviceInputs, NutrientAdviceResponse } from "./types"
+import { requestNutrientAdvice } from "./index"
 
 // Mock data for CurrentSoilData
 const mockCurrentSoilData: CurrentSoilData = [

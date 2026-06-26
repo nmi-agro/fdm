@@ -1,8 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
+import type { FdmServerType } from "./fdm-server.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmServerType } from "./fdm-server.types"
 
 export function createFdmServer(
   host: string | undefined,

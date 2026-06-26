@@ -1,11 +1,12 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import { createRoute, z } from "@hono/zod-openapi"
 import type {
   FdmType,
   getGrazingIntentions,
   removeGrazingIntention,
   setGrazingIntention,
 } from "@nmi-agro/fdm-core"
+import { createRoute, z } from "@hono/zod-openapi"
+import type { ApiEnv, ApiPrincipalContext } from "../types"
 import {
   commonErrorResponses,
   PaginationQuerySchema,
@@ -13,7 +14,6 @@ import {
   paginatedSchema,
   writeErrorResponses,
 } from "../schemas"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
 
 /** Defines the grazing intention data access functions required by the grazing intention routes. */
 export interface GrazingIntentionServices {

@@ -343,7 +343,7 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
                 en deel de volgende foutmelding:
               </p>
               <div className="mt-8 w-full max-w-2xl">
-                <pre className="bg-gray-200 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
+                <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
                   {JSON.stringify(
                     {
                       message: errorMessage,
@@ -427,7 +427,7 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
             gebruiksnormen.
           </p>
         </div>
-        <div className="grid gap-6 mt-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {fertilizerApplications &&
             normsFilling &&
             fertilizerApplications.map((app) => (

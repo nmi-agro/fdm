@@ -1,12 +1,12 @@
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { describe, expect, it, vi } from "vitest"
-import { calculateOrganicMatterBalance } from "./index"
 import type {
   CultivationDetail,
   FertilizerDetail,
   FieldInput,
   OrganicMatterBalanceInput,
 } from "./types"
+import { calculateOrganicMatterBalance } from "./index"
 
 // Mock FdmType
 const mockFdm = {

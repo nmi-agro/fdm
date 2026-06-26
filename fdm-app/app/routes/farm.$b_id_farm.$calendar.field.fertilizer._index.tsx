@@ -1,3 +1,5 @@
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
+import type { Navigation } from "react-router"
 import {
   addFertilizerApplication,
   type FertilizerApplication,
@@ -8,10 +10,8 @@ import {
   getFields,
   updateFertilizerApplication,
 } from "@nmi-agro/fdm-core"
-import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { Info } from "lucide-react"
 import { useState } from "react"
-import type { Navigation } from "react-router"
 import {
   type ActionFunctionArgs,
   data,
@@ -26,6 +26,7 @@ import {
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
@@ -33,7 +34,6 @@ import {
   FormSchema,
   FormSchemaPartialModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
-import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -370,8 +370,8 @@ export default function FarmFieldFertilizerAddIndex() {
         />
         <div className="relative">
           {isSubmitting && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-              <div className="flex items-center text-sm text-muted-foreground">
+            <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+              <div className="text-muted-foreground flex items-center text-sm">
                 <Spinner className="mr-2" />
                 <span>
                   {isModification
@@ -382,8 +382,8 @@ export default function FarmFieldFertilizerAddIndex() {
             </div>
           )}
           <FarmContent>
-            <div className="flex flex-col xl:flex-row gap-6 pb-10">
-              <Card className="w-full xl:w-64 h-fit shrink-0">
+            <div className="flex flex-col gap-6 pb-10 xl:flex-row">
+              <Card className="h-fit w-full shrink-0 xl:w-64">
                 <CardHeader>
                   <CardTitle>Geselecteerde percelen</CardTitle>
                   <CardDescription>
@@ -396,9 +396,9 @@ export default function FarmFieldFertilizerAddIndex() {
                       {loaderData.selectedFields.map((field) => (
                         <div
                           key={field.b_id}
-                          className="flex items-center justify-between rounded-md border p-3 gap-2"
+                          className="flex items-center justify-between gap-2 rounded-md border p-3"
                         >
-                          <p className="text-sm font-medium truncate min-w-0">{field.b_name}</p>
+                          <p className="min-w-0 truncate text-sm font-medium">{field.b_name}</p>
                           <Badge variant="secondary" className="shrink-0">
                             {field.b_area} ha
                           </Badge>
@@ -407,9 +407,9 @@ export default function FarmFieldFertilizerAddIndex() {
                     </div>
                   ) : (
                     <div className="flex h-full min-h-[24rem] flex-col items-center justify-center rounded-md border border-dashed text-center">
-                      <Info className="h-10 w-10 text-muted-foreground/50" />
+                      <Info className="text-muted-foreground/50 h-10 w-10" />
                       <h3 className="mt-4 text-lg font-semibold">Geen percelen geselecteerd</h3>
-                      <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+                      <p className="text-muted-foreground mt-2 max-w-xs text-sm">
                         Pas uw selectie aan, of ga naar het percelenoverzicht voor meer
                         filtermogelijkheden.
                       </p>
@@ -442,7 +442,7 @@ export default function FarmFieldFertilizerAddIndex() {
                           {loaderData.fieldOptions.map((field) => (
                             <div
                               key={field.b_id}
-                              className="flex items-center space-x-2 rounded-md p-2 hover:bg-accent"
+                              className="hover:bg-accent flex items-center space-x-2 rounded-md p-2"
                             >
                               <Checkbox
                                 id={field.b_id}
@@ -496,7 +496,7 @@ export default function FarmFieldFertilizerAddIndex() {
                     />
                   ) : (
                     <div className="flex h-full min-h-60 items-center justify-center rounded-md border border-dashed">
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         Selecteer eerst percelen in de linkerkolom.
                       </p>
                     </div>

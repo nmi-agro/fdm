@@ -68,7 +68,7 @@ export function NavigationProgress() {
           {/* Backdrop blur */}
           <motion.div
             key="nav-backdrop"
-            className="fixed inset-0 z-9998 bg-background/50 backdrop-blur-sm"
+            className="bg-background/50 fixed inset-0 z-9998 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -78,7 +78,7 @@ export function NavigationProgress() {
           {/* Loading card */}
           <motion.div
             key="nav-card"
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-9999 flex flex-col items-center gap-3 rounded-xl border border-border bg-background px-8 py-6 shadow-xl"
+            className="border-border bg-background fixed top-1/2 left-1/2 z-9999 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 rounded-xl border px-8 py-6 shadow-xl"
             initial={{ opacity: 0, scale: 0.92, y: "-48%" }}
             animate={{ opacity: 1, scale: 1, y: "-50%" }}
             exit={{ opacity: 0, scale: 0.96, y: "-48%" }}
@@ -88,8 +88,8 @@ export function NavigationProgress() {
               damping: 28,
             }}
           >
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Even geduld…</p>
+            <Loader2 className="text-primary h-6 w-6 animate-spin" />
+            <p className="text-muted-foreground text-sm">Even geduld…</p>
           </motion.div>
         </>
       )}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { calculateNL2026DierlijkeMestGebruiksNorm } from "./dierlijke-mest-gebruiksnorm"
 import type { NL2026NormsInput } from "./types"
+import { calculateNL2026DierlijkeMestGebruiksNorm } from "./dierlijke-mest-gebruiksnorm"
 
 describe("calculateNL2026DierlijkeMestGebruiksNorm", () => {
   it("should return the default norm value", async () => {

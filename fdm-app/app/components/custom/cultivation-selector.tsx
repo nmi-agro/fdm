@@ -49,7 +49,7 @@ export function CultivationSelector({
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              className="w-3 h-3 rounded-full cursor-pointer"
+              className="h-3 w-3 cursor-pointer rounded-full"
               style={{
                 backgroundColor: getCultivationColor(
                   selectedCultivation?.b_lu_croprotation ?? undefined,
@@ -67,7 +67,7 @@ export function CultivationSelector({
         style={{
           backgroundColor: getCultivationColor(selectedCultivation.b_lu_croprotation ?? undefined),
         }}
-        className="text-white hover:opacity-90 px-3 py-1 text-sm"
+        className="px-3 py-1 text-sm text-white hover:opacity-90"
         variant="default"
       >
         {selectedCultivation.b_lu_name}
@@ -78,21 +78,21 @@ export function CultivationSelector({
 
   return (
     <Select value={selectedCultivationId} onValueChange={handleValueChange}>
-      <SelectTrigger className="w-auto h-auto gap-2 border-none bg-transparent p-0 hover:bg-transparent focus:ring-0 shadow-none text-foreground [&>span]:line-clamp-1 [&>svg]:hidden">
+      <SelectTrigger className="text-foreground h-auto w-auto gap-2 border-none bg-transparent p-0 shadow-none hover:bg-transparent focus:ring-0 [&>span]:line-clamp-1 [&>svg]:hidden">
         {triggerContent}
       </SelectTrigger>
       <SelectContent>
         {sortedCultivations.map((cultivation) => (
           <SelectItem key={cultivation.b_lu} value={cultivation.b_lu}>
-            <div className="flex items-center gap-3 min-w-[200px]">
+            <div className="flex min-w-[200px] items-center gap-3">
               <div
-                className="w-3 h-3 rounded-full shrink-0"
+                className="h-3 w-3 shrink-0 rounded-full"
                 style={{
                   backgroundColor: getCultivationColor(cultivation.b_lu_croprotation ?? undefined),
                 }}
               />
               <span className="font-medium">{cultivation.b_lu_name}</span>
-              <span className="text-muted-foreground text-xs ml-auto pl-2">
+              <span className="text-muted-foreground ml-auto pl-2 text-xs">
                 {formatCultivationStartDate(cultivation.b_lu_start)}
               </span>
             </div>

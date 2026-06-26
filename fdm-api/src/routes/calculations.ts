@@ -1,5 +1,4 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
-import { createRoute, z } from "@hono/zod-openapi"
 import type {
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
@@ -9,6 +8,14 @@ import type {
   getNitrogenBalanceField,
   getOrganicMatterBalanceField,
 } from "@nmi-agro/fdm-calculator"
+// [MINERALIZATION: disabled — behind feature flag in fdm-app]
+// import {
+//     getCultivationsFromCatalogue,
+//     getGrazingIntention,
+//     getHarvestsForFarm,
+// } from "@nmi-agro/fdm-core"
+import type { FdmType, getField } from "@nmi-agro/fdm-core"
+import { createRoute, z } from "@hono/zod-openapi"
 import {
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // NmiApiError,
@@ -22,17 +29,10 @@ import {
   // getNSupply,
   // getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
-// [MINERALIZATION: disabled — behind feature flag in fdm-app]
-// import {
-//     getCultivationsFromCatalogue,
-//     getGrazingIntention,
-//     getHarvestsForFarm,
-// } from "@nmi-agro/fdm-core"
-import type { FdmType, getField } from "@nmi-agro/fdm-core"
+import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import { commonErrorResponses, DateStringSchema } from "../schemas"
-import type { ApiEnv, ApiPrincipalContext } from "../types"
 
 // ---------------------------------------------------------------------------
 // Services

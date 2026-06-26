@@ -1,5 +1,5 @@
-import { findHoofdteelt } from "../../../../shared/hoofdteelt"
 import type { NL2025NormsInputForCultivation } from "./types"
+import { findHoofdteelt } from "../../../../shared/hoofdteelt"
 
 /**
  * Determines the main cultivation ('hoofdteelt') for the NL 2025 and 2026 norms.

@@ -70,7 +70,7 @@ export default function FarmFieldSoilOverviewBlock() {
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-medium">Bodem</h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Kies het type bodemanalyse voor uw formulier
           </p>
         </div>

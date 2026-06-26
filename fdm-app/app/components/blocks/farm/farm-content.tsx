@@ -9,15 +9,15 @@ interface FarmContentProps {
 
 export function FarmContent({ sidebarItems, children }: FarmContentProps) {
   return (
-    <div className="space-y-6 px-2 md:px-4 lg:px-6 pb-0">
-      <div className="flex flex-col space-y-6 lg:flex-row lg:space-x-4 xl:space-x-8 lg:space-y-0">
+    <div className="space-y-6 px-2 pb-0 md:px-4 lg:px-6">
+      <div className="flex flex-col space-y-6 lg:flex-row lg:space-y-0 lg:space-x-4 xl:space-x-8">
         {sidebarItems && (
-          <aside className="lg:w-40 xl:w-48 shrink-0">
+          <aside className="shrink-0 lg:w-40 xl:w-48">
             <SidebarPage items={sidebarItems} />
           </aside>
         )}
 
-        <div className="flex-1 min-w-0">{children || <Outlet />}</div>
+        <div className="min-w-0 flex-1">{children || <Outlet />}</div>
       </div>
     </div>
   )

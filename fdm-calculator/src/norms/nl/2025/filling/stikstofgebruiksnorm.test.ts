@@ -1,13 +1,13 @@
 import type { Cultivation, Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { getRegion } from "../value/stikstofgebruiksnorm"
 import type { RegionKey } from "../value/types"
+import type { NL2025NormsFillingInput } from "./types"
+import { getRegion } from "../value/stikstofgebruiksnorm"
 import {
   calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm,
   getWorkingCoefficient,
   isBouwland,
 } from "./stikstofgebruiksnorm"
-import type { NL2025NormsFillingInput } from "./types"
 
 // Mock getRegion
 vi.mock("../value/stikstofgebruiksnorm", () => ({

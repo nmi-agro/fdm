@@ -23,16 +23,16 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import type { ParsedPlan, PlanRow } from "./types"
 import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 import { FertilizerIcon } from "./fertilizer-icon"
-import type { ParsedPlan, PlanRow } from "./types"
 
 const columnHelper = createColumnHelper<PlanRow>()
 
 const columns = [
   columnHelper.accessor("b_name", {
     header: "Perceel",
-    cell: (info) => <span className="font-medium text-foreground">{info.getValue()}</span>,
+    cell: (info) => <span className="text-foreground font-medium">{info.getValue()}</span>,
   }),
   columnHelper.accessor("b_lu_name", {
     header: "Gewas",
@@ -43,7 +43,7 @@ const columns = [
           style={{
             backgroundColor: getCultivationColor(row.b_lu_croprotation ?? undefined),
           }}
-          className="text-white text-xs font-normal"
+          className="text-xs font-normal text-white"
         >
           {info.getValue() || row.b_lu_catalogue}
         </Badge>
@@ -55,7 +55,7 @@ const columns = [
     cell: (info) => {
       const ha = info.getValue()
       return (
-        <span className="text-muted-foreground tabular-nums text-sm">
+        <span className="text-muted-foreground text-sm tabular-nums">
           {ha === null ? "—" : ha < 0.1 ? "< 0.1 ha" : `${ha.toFixed(1)} ha`}
         </span>
       )
@@ -84,10 +84,10 @@ const columns = [
                 <TooltipTrigger asChild>
                   <Badge
                     variant="outline"
-                    className="gap-1.5 font-normal text-muted-foreground w-fit cursor-help"
+                    className="text-muted-foreground w-fit cursor-help gap-1.5 font-normal"
                   >
                     <FertilizerIcon p_type={app.p_type} />
-                    <span className="font-medium text-foreground">{app.p_name_nl}</span>
+                    <span className="text-foreground font-medium">{app.p_name_nl}</span>
                     <span className="tabular-nums">
                       {Math.round((app.p_app_amount_display ?? 0) * 100) / 100}{" "}
                       {getApplicationAmountUnitLabel(app.p_app_amount_unit ?? "kg/ha")}
@@ -188,7 +188,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                           </TableCell>
                         ))}
                         <TableCell className="py-3">
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {hasMetrics &&
                               advice &&
                               (() => {
@@ -230,7 +230,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                         <Tooltip key={key}>
                                           <TooltipTrigger asChild>
                                             <span
-                                              className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}
+                                              className={`inline-flex cursor-default items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${colorClass}`}
                                             >
                                               {key} {pct}%
                                             </span>
@@ -272,12 +272,12 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                 aria-label={
                                   isExpanded ? "Verberg perceeldetails" : "Toon perceeldetails"
                                 }
-                                className="rounded p-0.5 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ml-1"
+                                className="hover:bg-muted/40 focus-visible:ring-ring ml-1 rounded p-0.5 focus-visible:ring-2 focus-visible:outline-none"
                               >
                                 {isExpanded ? (
-                                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                  <ChevronUp className="text-muted-foreground h-4 w-4" />
                                 ) : (
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                  <ChevronDown className="text-muted-foreground h-4 w-4" />
                                 )}
                               </button>
                             )}
@@ -286,20 +286,20 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                       </TableRow>
                       {isExpanded && canExpand && (
                         <TableRow className="bg-muted/10 hover:bg-muted/10">
-                          <TableCell colSpan={columns.length + 1} className="py-4 px-6">
+                          <TableCell colSpan={columns.length + 1} className="px-6 py-4">
                             <div id={`details-${row.original.b_id}`} className="space-y-4">
                               {/* ── Toelichting per perceel ── */}
                               {hasSummary && (
-                                <div className="flex gap-2 items-start text-sm text-muted-foreground italic border-b pb-3">
-                                  <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary/60" />
+                                <div className="text-muted-foreground flex items-start gap-2 border-b pb-3 text-sm italic">
+                                  <Info className="text-primary/60 mt-0.5 h-3.5 w-3.5 shrink-0" />
                                   <span>{row.original.fieldSummary}</span>
                                 </div>
                               )}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-3">
+                              <div className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
                                 {/* ── Normen ── */}
                                 {normsFilling && norms && (
                                   <div className="space-y-2">
-                                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                    <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
                                       Gebruiksruimte (kg/ha)
                                     </p>
                                     {[
@@ -323,7 +323,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                         <div className="flex justify-between text-xs">
                                           <span className="text-muted-foreground">{label}</span>
                                           <span
-                                            className={`tabular-nums font-medium ${fill > norm ? "text-red-600" : "text-foreground"}`}
+                                            className={`font-medium tabular-nums ${fill > norm ? "text-red-600" : "text-foreground"}`}
                                           >
                                             {Math.round(fill)} / {Math.round(norm)}
                                           </span>
@@ -344,10 +344,10 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                 <div className="space-y-6">
                                   {nBalance && (
                                     <div className="space-y-2">
-                                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                      <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
                                         Stikstofbalans
                                       </p>
-                                      <div className="flex justify-between text-sm items-center">
+                                      <div className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">
                                           Balans vs. doel (kg/ha)
                                         </span>
@@ -359,22 +359,22 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                         </span>
                                       </div>
                                       {nBalance.emission && (
-                                        <div className="flex flex-col gap-1 pt-1 border-t">
-                                          <div className="flex justify-between text-sm items-center">
+                                        <div className="flex flex-col gap-1 border-t pt-1">
+                                          <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground">
                                               NH₃-emissie (kg N/ha)
                                             </span>
-                                            <span className="tabular-nums text-muted-foreground">
+                                            <span className="text-muted-foreground tabular-nums">
                                               {Math.round(
                                                 Math.abs(nBalance.emission.ammonia.total),
                                               )}
                                             </span>
                                           </div>
-                                          <div className="flex justify-between text-sm items-center">
+                                          <div className="flex items-center justify-between text-sm">
                                             <span className="text-muted-foreground">
                                               NO₃-uitspoeling (kg N/ha)
                                             </span>
-                                            <span className="tabular-nums text-muted-foreground">
+                                            <span className="text-muted-foreground tabular-nums">
                                               {Math.round(
                                                 Math.abs(nBalance.emission.nitrate.total),
                                               )}
@@ -386,10 +386,10 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                   )}
                                   {omBalance != null && (
                                     <div className="space-y-2">
-                                      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                      <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
                                         Organische stof
                                       </p>
-                                      <div className="flex justify-between items-center text-sm">
+                                      <div className="flex items-center justify-between text-sm">
                                         <span className="text-muted-foreground">
                                           OS Balans (kg/ha)
                                         </span>
@@ -480,7 +480,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
 
                                     return (
                                       <div className="space-y-2">
-                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                                        <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
                                           Nutriëntenbehoefte
                                         </p>
                                         <TooltipProvider>
@@ -504,7 +504,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                                 <Tooltip key={key}>
                                                   <TooltipTrigger asChild>
                                                     <span
-                                                      className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums cursor-default ${colorClass}`}
+                                                      className={`inline-flex cursor-default items-center rounded border px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${colorClass}`}
                                                     >
                                                       {key}{" "}
                                                       {noReq
@@ -555,7 +555,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                 <TableRow>
                   <TableCell
                     colSpan={columns.length + 1}
-                    className="h-32 text-center text-muted-foreground"
+                    className="text-muted-foreground h-32 text-center"
                   >
                     Geen percelen gevonden om te bemesten.
                   </TableCell>

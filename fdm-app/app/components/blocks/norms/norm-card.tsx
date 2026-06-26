@@ -12,7 +12,7 @@ interface ProgressBarProps {
 }
 
 const ProgressBar = ({ percentage, type }: ProgressBarProps) => (
-  <div className="h-2 w-full rounded-full bg-muted">
+  <div className="bg-muted h-2 w-full rounded-full">
     <div
       className={`h-full rounded-full ${getProgressColorClass({ percentage, type })}`}
       style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -41,7 +41,7 @@ export function NormCard({ title, type, norm, filling, unit }: NormCardProps) {
         <div className="flex items-baseline justify-between">
           {filling !== undefined && (
             <div className="text-left">
-              <p className="text-xs text-muted-foreground">Opvulling</p>
+              <p className="text-muted-foreground text-xs">Opvulling</p>
               <div className="text-3xl font-semibold">{fillingpercentage.toFixed(0)}</div>
               {/* <p className="text-sm text-muted-foreground">
                                 {unit}
@@ -49,15 +49,15 @@ export function NormCard({ title, type, norm, filling, unit }: NormCardProps) {
             </div>
           )}
           <div className="text-right">
-            <p className="text-xs text-muted-foreground">Ruimte</p>
+            <p className="text-muted-foreground text-xs">Ruimte</p>
             <div className="text-3xl font-bold">{norm.toFixed(0)}</div>
-            <p className="text-sm text-muted-foreground">{unit}</p>
+            <p className="text-muted-foreground text-sm">{unit}</p>
           </div>
         </div>
         {filling !== undefined && (
           <div className="mt-4">
             <ProgressBar percentage={percentage} type={type} />
-            <p className="mt-1 text-right text-sm text-muted-foreground">
+            <p className="text-muted-foreground mt-1 text-right text-sm">
               {percentage.toFixed(0)}%
             </p>
           </div>

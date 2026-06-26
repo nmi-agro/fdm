@@ -1,3 +1,4 @@
+import type { Measure, MeasureCatalogue } from "@nmi-agro/fdm-core"
 /**
  * Add Measure dialog for the Maatregelen field detail page.
  *
@@ -12,7 +13,6 @@
  * - Submits a POST form with intent=add
  */
 import { zodResolver } from "@hookform/resolvers/zod"
-import type { Measure, MeasureCatalogue } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import fuzzysort from "fuzzysort"
@@ -258,7 +258,7 @@ export function AddMeasureDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Maatregel toevoegen</DialogTitle>
         </DialogHeader>
@@ -268,7 +268,7 @@ export function AddMeasureDialog({
           <>
             {/* Search bar */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
                 ref={searchRef}
                 placeholder="Zoek op naam of code…"
@@ -280,7 +280,7 @@ export function AddMeasureDialog({
                 <button
                   type="button"
                   onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -288,9 +288,9 @@ export function AddMeasureDialog({
             </div>
 
             {/* Catalogue list */}
-            <div className="max-h-[55vh] overflow-y-auto border rounded-md">
+            <div className="max-h-[55vh] overflow-y-auto rounded-md border">
               {filteredCatalogue.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
+                <p className="text-muted-foreground py-8 text-center text-sm">
                   Geen maatregelen gevonden voor &ldquo;
                   {query}&rdquo;
                 </p>
@@ -312,25 +312,25 @@ export function AddMeasureDialog({
                           }
                         }}
                         className={cn(
-                          "w-full text-left px-4 py-3 transition-colors flex items-start gap-3",
+                          "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors",
                           "hover:bg-muted/50",
-                          isBlocked && "opacity-50 cursor-not-allowed",
+                          isBlocked && "cursor-not-allowed opacity-50",
                         )}
                       >
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono text-muted-foreground shrink-0">
+                            <span className="text-muted-foreground shrink-0 font-mono text-xs">
                               {item.m_id.replace("bln_", "")}
                             </span>
-                            <span className="text-sm font-medium truncate">{item.m_name}</span>
+                            <span className="truncate text-sm font-medium">{item.m_name}</span>
                           </div>
                           {isAlreadyActive && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                            <p className="text-muted-foreground mt-0.5 text-xs">
                               Al actief op dit perceel
                             </p>
                           )}
                           {conflicts && (
-                            <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
+                            <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-600">
                               <AlertTriangle className="h-3 w-3 shrink-0" />
                               Conflicteert met: {conflicts.join(", ")}
                             </p>
@@ -349,17 +349,17 @@ export function AddMeasureDialog({
         {step === "configure" && selected && (
           <>
             {/* Selected measure header with back button */}
-            <div className="border rounded-md p-4 bg-muted/30 space-y-1">
+            <div className="bg-muted/30 space-y-1 rounded-md border p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold">
-                    <span className="font-mono text-xs text-muted-foreground mr-2">
+                    <span className="text-muted-foreground mr-2 font-mono text-xs">
                       {selected.m_id.replace("bln_", "")}
                     </span>
                     {selected.m_name}
                   </p>
                   {(selected.m_summary ?? selected.m_description) && (
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
                       {selected.m_summary ?? selected.m_description}
                     </p>
                   )}
@@ -369,9 +369,9 @@ export function AddMeasureDialog({
                   variant="ghost"
                   size="sm"
                   onClick={handleBackToSelect}
-                  className="shrink-0 text-muted-foreground hover:text-foreground -mt-1 -mr-2"
+                  className="text-muted-foreground hover:text-foreground -mt-1 -mr-2 shrink-0"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  <ChevronLeft className="mr-1 h-4 w-4" />
                   Andere maatregel
                 </Button>
               </div>
@@ -387,14 +387,14 @@ export function AddMeasureDialog({
                       <FieldLabel>
                         Percelen
                         {selectedFieldIds.size > 0 && (
-                          <span className="ml-2 font-normal text-muted-foreground">
+                          <span className="text-muted-foreground ml-2 font-normal">
                             {selectedFieldIds.size} van {fields.length} geselecteerd
                           </span>
                         )}
                       </FieldLabel>
                       <button
                         type="button"
-                        className="text-xs text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground text-xs"
                         onClick={() => {
                           const visibleIds = visibleFields.map((f) => f.b_id)
                           const allVisible = visibleIds.every((id) => selectedFieldIds.has(id))
@@ -411,26 +411,26 @@ export function AddMeasureDialog({
                       </button>
                     </div>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                      <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
                       <Input
                         placeholder="Zoek perceel…"
                         value={fieldSearch}
                         onChange={(e) => setFieldSearch(e.target.value)}
-                        className="pl-8 h-8 text-sm"
+                        className="h-8 pl-8 text-sm"
                       />
                       {fieldSearch && (
                         <button
                           type="button"
                           onClick={() => setFieldSearch("")}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
-                    <div className="max-h-48 overflow-y-auto border rounded-md divide-y">
+                    <div className="max-h-48 divide-y overflow-y-auto rounded-md border">
                       {visibleFields.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">
+                        <p className="text-muted-foreground py-4 text-center text-sm">
                           Geen percelen gevonden.
                         </p>
                       ) : (
@@ -443,13 +443,13 @@ export function AddMeasureDialog({
                             <label
                               key={f.b_id}
                               className={cn(
-                                "flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors",
+                                "flex cursor-pointer items-center gap-3 px-3 py-2 transition-colors",
                                 checked ? "bg-primary/5" : "hover:bg-muted/50",
                               )}
                             >
                               <input
                                 type="checkbox"
-                                className="rounded shrink-0"
+                                className="shrink-0 rounded"
                                 checked={checked}
                                 onChange={() => {
                                   const next = new Set(selectedFieldIds)
@@ -463,16 +463,16 @@ export function AddMeasureDialog({
                               />
                               <span
                                 className={cn(
-                                  "text-sm flex-1 min-w-0 truncate",
+                                  "min-w-0 flex-1 truncate text-sm",
                                   checked && "font-medium",
                                 )}
                               >
                                 {f.b_name ?? f.b_id}
                               </span>
-                              <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex shrink-0 items-center gap-2">
                                 {f.mainCultivation?.b_lu_name && (
                                   <Badge
-                                    className="text-white text-xs px-1.5 py-0"
+                                    className="px-1.5 py-0 text-xs text-white"
                                     style={{
                                       backgroundColor: cultColor,
                                     }}
@@ -481,7 +481,7 @@ export function AddMeasureDialog({
                                   </Badge>
                                 )}
                                 {f.b_area != null && (
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className="text-muted-foreground text-xs">
                                     {f.b_area.toFixed(1)} ha
                                   </span>
                                 )}
@@ -492,7 +492,7 @@ export function AddMeasureDialog({
                       )}
                     </div>
                     {selectedFieldIds.size === 0 && (
-                      <p className="text-xs text-destructive mt-1">
+                      <p className="text-destructive mt-1 text-xs">
                         Selecteer minimaal één perceel.
                       </p>
                     )}
@@ -524,9 +524,9 @@ export function AddMeasureDialog({
                   >
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="doorlopend" id="preset-doorlopend" />
-                      <Label htmlFor="preset-doorlopend" className="font-normal cursor-pointer">
+                      <Label htmlFor="preset-doorlopend" className="cursor-pointer font-normal">
                         Doorlopend
-                        <span className="text-muted-foreground text-xs ml-1">(geen einddatum)</span>
+                        <span className="text-muted-foreground ml-1 text-xs">(geen einddatum)</span>
                       </Label>
                     </div>
                     <div className="flex items-center gap-2">
@@ -538,18 +538,18 @@ export function AddMeasureDialog({
                       <Label
                         htmlFor="preset-harvest"
                         className={cn(
-                          "font-normal cursor-pointer",
-                          !harvestDate && "opacity-50 cursor-not-allowed",
+                          "cursor-pointer font-normal",
+                          !harvestDate && "cursor-not-allowed opacity-50",
                         )}
                       >
                         Einde teeltseizoen
                         {harvestDate && (
-                          <span className="text-muted-foreground text-xs ml-1">
+                          <span className="text-muted-foreground ml-1 text-xs">
                             (≈ {format(new Date(harvestDate), "d MMM yyyy", { locale: nl })})
                           </span>
                         )}
                         {!harvestDate && (
-                          <span className="text-muted-foreground text-xs ml-1">
+                          <span className="text-muted-foreground ml-1 text-xs">
                             (geen oogstdatum beschikbaar)
                           </span>
                         )}
@@ -557,7 +557,7 @@ export function AddMeasureDialog({
                     </div>
                     <div className="flex items-center gap-2">
                       <RadioGroupItem value="vaste_einddatum" id="preset-fixed" />
-                      <Label htmlFor="preset-fixed" className="font-normal cursor-pointer">
+                      <Label htmlFor="preset-fixed" className="cursor-pointer font-normal">
                         Vaste einddatum
                       </Label>
                     </div>

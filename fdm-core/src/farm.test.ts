@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
+import type { FdmServerType } from "./fdm-server.types"
+import type { FdmType } from "./fdm.types"
 import { createFdmAuth } from "./authentication"
 import { listPrincipalsForResource } from "./authorization"
 import * as schema from "./db/schema"
@@ -23,9 +25,7 @@ import {
   updateRoleOfInvitationForFarm,
   updateRoleOfPrincipalAtFarm,
 } from "./farm"
-import type { FdmType } from "./fdm.types"
 import { createFdmServer } from "./fdm-server"
-import type { FdmServerType } from "./fdm-server.types"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
 import { createId } from "./id"

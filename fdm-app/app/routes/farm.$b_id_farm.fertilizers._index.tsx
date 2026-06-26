@@ -133,8 +133,8 @@ export default function FarmFertilizersIndexPage({ params: _params }: Route.Comp
       </Header>
       <main>
         <FarmTitle title={"Meststoffen"} description={"Beheer de meststoffen van dit bedrijf"} />
-        <div className="space-y-6 p-4 md:p-8 pb-0">
-          <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
+        <div className="space-y-6 p-4 pb-0 md:p-8">
+          <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
             <div className="flex-1">
               <DataTable
                 columns={columns}

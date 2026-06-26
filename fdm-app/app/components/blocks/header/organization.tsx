@@ -71,7 +71,7 @@ export function HeaderOrganization({
           <BreadcrumbSeparator className="hidden xl:block" />
           <BreadcrumbItem>
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">
+              <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
                 <span className="truncate">
                   {selectedOrganizationSlug && organizationOptions
                     ? (organizationOptions.find(
@@ -126,7 +126,7 @@ export function HeaderOrganization({
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center gap-1 max-w-[120px] sm:max-w-[200px] md:max-w-none outline-none">
+                  <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
                     <span className="truncate">
                       {farmBalanceRouteType === "nitrogen" ? "Stikstof" : "Organische stof"}
                     </span>

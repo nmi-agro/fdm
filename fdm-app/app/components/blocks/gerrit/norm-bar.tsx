@@ -13,12 +13,12 @@ export function NormBar({
   const pct = norm > 0 ? (filling / norm) * 100 : filling > 0 ? 100 : 0
   return (
     <div className="space-y-1.5">
-      <div className="flex justify-between items-center gap-2">
-        <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
           {label}
         </span>
         <span
-          className={`text-xs font-bold tabular-nums shrink-0 ${over ? "text-red-600" : "text-foreground"}`}
+          className={`shrink-0 text-xs font-bold tabular-nums ${over ? "text-red-600" : "text-foreground"}`}
         >
           {Math.round(filling)} / {Math.round(norm)} kg
         </span>

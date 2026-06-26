@@ -1,6 +1,7 @@
+import type { FeatureCollection, Geometry } from "geojson"
+import type { MetaFunction } from "react-router"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import type { FeatureCollection, Geometry } from "geojson"
 import maplibregl from "maplibre-gl"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
@@ -10,7 +11,6 @@ import {
   type MapRef,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import type { MetaFunction } from "react-router"
 import { type LoaderFunctionArgs, useLoaderData } from "react-router"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"

@@ -20,12 +20,12 @@ import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Sheet, SheetClose, SheetPortal } from "~/components/ui/sheet"
 import { useIsXl } from "~/hooks/use-is-xl"
+import type { HelpdeskUser } from "./types"
 import { useCurrentHelpdeskPage } from "./navigation"
 import { TicketSearch } from "./search"
 import { TicketCard } from "./ticket-card"
 import { TicketFilterSchema, TicketSortingSchema } from "./ticket-filter-schema"
 import { TICKET_PRIORITY } from "./ticket-priority"
-import type { HelpdeskUser } from "./types"
 
 export const TICKET_VIEWER_PAGE_SIZE = 20
 
@@ -120,8 +120,8 @@ function TicketList({
   }
 
   return (
-    <nav className="flex flex-col gap-2 h-full box-border">
-      <div className="flex flex-row items-center p-1 gap-1">
+    <nav className="box-border flex h-full flex-col gap-2">
+      <div className="flex flex-row items-center gap-1 p-1">
         <Input
           value={filters.text ?? ""}
           placeholder="Zoeken..."
@@ -139,7 +139,7 @@ function TicketList({
               size="icon"
               variant="ghost"
               title="Filters"
-              className="relative block ml-auto has-[>svg]:p-2 size-auto"
+              className="relative ml-auto block size-auto has-[>svg]:p-2"
             >
               <Filter className="mx-auto" />
               {countActiveFilters(filters) > 0 && (
@@ -150,7 +150,7 @@ function TicketList({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="p-2">
-            <h2 className="text-sm font-semibold mb-3">Filters wijzigen</h2>
+            <h2 className="mb-3 text-sm font-semibold">Filters wijzigen</h2>
             <TicketSearch
               filters={filters}
               setFilters={handleNewFilters}
@@ -166,13 +166,13 @@ function TicketList({
               size="icon"
               variant="ghost"
               title="Sorteren"
-              className="relative block ml-auto has-[>svg]:p-2 size-auto"
+              className="relative ml-auto block size-auto has-[>svg]:p-2"
             >
               <ArrowUpDown className="mx-auto" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="p-2">
-            <DropdownMenuLabel className="text-sm font-semibold mb-3">Sorteren</DropdownMenuLabel>
+            <DropdownMenuLabel className="mb-3 text-sm font-semibold">Sorteren</DropdownMenuLabel>
             <DropdownMenuCheckboxItem
               checked={sorting === "created"}
               onClick={() => handleNewSorting("created")}
@@ -188,7 +188,7 @@ function TicketList({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="overflow-auto grow">
+      <div className="grow overflow-auto">
         {tickets.length === 0 ? (
           <Empty className="border-none">
             <EmptyContent>
@@ -278,11 +278,11 @@ export function TicketViewer({
   return (
     <div
       ref={containerRef}
-      className="relative flex flex-row h-[calc(100vh-16*calc(var(--spacing)))]"
+      className="relative flex h-[calc(100vh-16*calc(var(--spacing)))] flex-row"
     >
       {/* Static sidebar — only rendered on xl+ screens */}
       {isXl && (
-        <aside className="flex flex-col w-100 shrink-0 border-r border-sidebar-border bg-background">
+        <aside className="border-sidebar-border bg-background flex w-100 shrink-0 flex-col border-r">
           <TicketList {...ticketListProps} />
         </aside>
       )}
@@ -296,14 +296,14 @@ export function TicketViewer({
           <SheetPortal container={container}>
             <Dialog.Content
               aria-label="Tickets"
-              className="absolute inset-y-0 left-0 top-0 z-50 flex flex-col w-full h-full bg-background border-r border-sidebar-border transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
+              className="bg-background border-sidebar-border data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left absolute inset-y-0 top-0 left-0 z-50 flex h-full w-full flex-col border-r transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500"
             >
               <SheetClose asChild>
                 <Button
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "absolute right-8 -top-8 translate-x-1/2 -translate-y-1/2",
+                    "absolute -top-8 right-8 translate-x-1/2 -translate-y-1/2",
                     !params.ticket_id && "hidden",
                   )}
                 >
@@ -311,7 +311,7 @@ export function TicketViewer({
                   <span className="sr-only">Sluit zijbalk</span>
                 </Button>
               </SheetClose>
-              <div className="flex-1 min-h-0">
+              <div className="min-h-0 flex-1">
                 <TicketList {...ticketListProps} />
               </div>
             </Dialog.Content>
@@ -319,7 +319,7 @@ export function TicketViewer({
         </Sheet>
       )}
 
-      <div className="grow min-w-0 overflow-y-auto self-stretch">
+      <div className="min-w-0 grow self-stretch overflow-y-auto">
         {/* Button to reopen the Sheet on narrow screens */}
         {!isXl && (
           <Button variant="outline" className="m-6 mb-0" onClick={() => setSidebarOpen(true)}>

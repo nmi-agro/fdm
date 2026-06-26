@@ -20,9 +20,9 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
+import type { FieldMeasure } from "~/lib/indicators"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
-import type { FieldMeasure } from "~/lib/indicators"
 
 export type { Bln3Score, Bln3ScoreCollectedInputs }
 

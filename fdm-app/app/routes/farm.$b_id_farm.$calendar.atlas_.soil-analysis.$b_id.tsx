@@ -75,7 +75,7 @@ export default function AtlasSoilAnalysisFieldDetailLayout() {
       </Header>
       <main className="p-6">
         <Outlet />
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed right-6 bottom-6 z-50">
           <Button asChild size="lg" className="rounded-full shadow-lg">
             <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}>
               <MapIcon className="mr-2 h-4 w-4" />

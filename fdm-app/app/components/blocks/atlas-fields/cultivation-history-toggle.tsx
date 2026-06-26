@@ -1,11 +1,11 @@
 import { Copy, GitBranch, List } from "lucide-react"
 import { toast } from "sonner"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
+import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
 import {
   CultivationHistoryCard,
   CultivationHistoryTimeline,
 } from "~/components/blocks/atlas-fields/cultivation-history"
-import type { AdvancedCultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
 import { AdvancedCultivationFlow } from "~/components/blocks/atlas-fields/cultivation-history-advanced"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -60,7 +60,7 @@ export function CultivationHistoryToggle({
   }
 
   return (
-    <Card className="col-span-1 lg:row-span-2 overflow-hidden">
+    <Card className="col-span-1 overflow-hidden lg:row-span-2">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-xl font-bold">Gewashistorie</CardTitle>
@@ -92,11 +92,11 @@ export function CultivationHistoryToggle({
           <Tabs value={view} onValueChange={(v) => setView(v as "simple" | "advanced")}>
             <TabsList>
               <TabsTrigger value="simple">
-                <List className="h-3.5 w-3.5 mr-1.5" />
+                <List className="mr-1.5 h-3.5 w-3.5" />
                 Eenvoudig
               </TabsTrigger>
               <TabsTrigger value="advanced">
-                <GitBranch className="h-3.5 w-3.5 mr-1.5" />
+                <GitBranch className="mr-1.5 h-3.5 w-3.5" />
                 Uitgebreid
               </TabsTrigger>
             </TabsList>

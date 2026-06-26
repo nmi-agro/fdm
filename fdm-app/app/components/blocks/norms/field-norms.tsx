@@ -41,7 +41,7 @@ interface ProgressBarProps {
 }
 
 const ProgressBar = ({ value }: ProgressBarProps) => (
-  <div className="h-2 w-full rounded-full bg-muted">
+  <div className="bg-muted h-2 w-full rounded-full">
     <div
       className={`h-full rounded-full ${getProgressColorClass(value)}`}
       style={{ width: `${Math.min(value, 100)}%` }}
@@ -64,11 +64,11 @@ function NormItem({ title, norm, filling }: NormItemProps) {
   const percentage = normValue > 0 ? (fillingValue / normValue) * 100 : 0
 
   return (
-    <div className="block rounded-lg py-3 transition-colors hover:bg-muted/50">
+    <div className="hover:bg-muted/50 block rounded-lg py-3 transition-colors">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium">{title}</p>
-          <p className="text-xs text-muted-foreground">{normSource}</p>
+          <p className="text-muted-foreground text-xs">{normSource}</p>
         </div>
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold">{normValue.toFixed(0)} kg</p>
@@ -76,7 +76,7 @@ function NormItem({ title, norm, filling }: NormItemProps) {
       </div>
       {filling !== undefined && (
         <div className="space-y-1">
-          <p className="text-right text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-right text-xs">
             {fillingValue.toFixed(0)} kg gebruikt
           </p>
           <ProgressBar value={percentage} />
@@ -99,7 +99,7 @@ export function FieldNorms({ fieldNorms, fieldOptions }: FieldNormsProps) {
       </div>
 
       {fieldNorms.length === 0 && (
-        <div className="py-12 text-center text-muted-foreground">
+        <div className="text-muted-foreground py-12 text-center">
           <p>Geen percelen gevonden die voldoen aan de criteria.</p>
         </div>
       )}

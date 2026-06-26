@@ -1,8 +1,8 @@
 import type { ActionFunctionArgs } from "react-router"
 import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getSession } from "~/lib/auth.server"
-import { computeBcs } from "~/lib/bcs.server"
 import { deriveBcsScores } from "~/lib/bcs-derived.server"
+import { computeBcs } from "~/lib/bcs.server"
 import { fdm } from "~/lib/fdm.server"
 
 export async function action({ request }: ActionFunctionArgs) {

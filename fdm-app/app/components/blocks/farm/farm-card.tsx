@@ -20,12 +20,12 @@ export interface FarmWithRoles {
 
 export function FarmCard({ farm }: { farm: FarmWithRoles }) {
   return (
-    <Card className="group relative flex flex-col transition-all hover:border-primary/50 hover:shadow-md">
+    <Card className="group hover:border-primary/50 relative flex flex-col transition-all hover:shadow-md">
       <NavLink to={`/farm/${farm.b_id_farm}`} className="flex h-full flex-col">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+              <div className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-10 w-10 items-center justify-center rounded-lg transition-colors">
                 <House className="h-5 w-5" />
               </div>
               <div>
@@ -34,7 +34,7 @@ export function FarmCard({ farm }: { farm: FarmWithRoles }) {
                   {farm.organization && (
                     <Badge
                       variant="secondary"
-                      className="text-[10px] uppercase tracking-wider gap-1"
+                      className="gap-1 text-[10px] tracking-wider uppercase"
                     >
                       <Building className="h-4 w-4" /> {farm.organization.name}
                     </Badge>
@@ -44,7 +44,7 @@ export function FarmCard({ farm }: { farm: FarmWithRoles }) {
                       <Badge
                         key={role}
                         variant="secondary"
-                        className="text-[10px] uppercase tracking-wider"
+                        className="text-[10px] tracking-wider uppercase"
                       >
                         {role === "owner"
                           ? "Eigenaar"
@@ -62,23 +62,23 @@ export function FarmCard({ farm }: { farm: FarmWithRoles }) {
           </div>
         </CardHeader>
         <CardContent className="grow py-4">
-          <dl className="grid gap-2 text-sm text-left">
+          <dl className="grid gap-2 text-left text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Adres</dt>
-              <dd className="font-medium text-right">{farm.b_address_farm || "Onbekend"}</dd>
+              <dd className="text-right font-medium">{farm.b_address_farm || "Onbekend"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Postcode</dt>
-              <dd className="font-medium text-right">{farm.b_postalcode_farm || "Onbekend"}</dd>
+              <dd className="text-right font-medium">{farm.b_postalcode_farm || "Onbekend"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">KvK</dt>
-              <dd className="font-medium text-right">{farm.b_businessid_farm || "Onbekend"}</dd>
+              <dd className="text-right font-medium">{farm.b_businessid_farm || "Onbekend"}</dd>
             </div>
           </dl>
         </CardContent>
-        <CardFooter className="border-t bg-muted/50 py-3 group-hover:bg-primary/5">
-          <span className="flex items-center text-sm font-semibold text-primary transition-transform group-hover:translate-x-1">
+        <CardFooter className="bg-muted/50 group-hover:bg-primary/5 border-t py-3">
+          <span className="text-primary flex items-center text-sm font-semibold transition-transform group-hover:translate-x-1">
             Selecteer bedrijf <ArrowRight className="ml-2 h-4 w-4" />
           </span>
         </CardFooter>

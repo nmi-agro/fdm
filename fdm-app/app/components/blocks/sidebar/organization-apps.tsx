@@ -81,7 +81,7 @@ export function SidebarOrganizationApps() {
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       isActive={false}
-                      className="hover:bg-transparent hover:text-muted-foreground active:bg-transparent active:text-muted-foreground opacity-50 cursor-not-allowed"
+                      className="hover:text-muted-foreground active:text-muted-foreground cursor-not-allowed opacity-50 hover:bg-transparent active:bg-transparent"
                     >
                       <ArrowRightLeft className="text-muted-foreground" />
                       <span className="text-muted-foreground">Balans</span>

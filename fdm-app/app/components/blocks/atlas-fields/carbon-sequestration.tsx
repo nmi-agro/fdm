@@ -55,7 +55,7 @@ export function CarbonSequestrationCard({
                   aria-label="Meer informatie over koolstofvastlegging"
                   className="cursor-help"
                 >
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                  <HelpCircle className="text-muted-foreground h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
@@ -73,47 +73,47 @@ export function CarbonSequestrationCard({
       <CardContent className="space-y-8">
         {/* Visual Progress Section */}
         <div className="space-y-3">
-          <div className="flex justify-between text-sm font-medium text-muted-foreground">
+          <div className="text-muted-foreground flex justify-between text-sm font-medium">
             <span>Huidig vs. fysieke bovengrens</span>
             <span>{Math.round(percentageOfMax)}% t.o.v. bovengrens</span>
           </div>
           <Progress value={percentageOfMax} className="h-2" />
-          <div className="flex justify-between text-xs text-muted-foreground font-medium">
+          <div className="text-muted-foreground flex justify-between text-xs font-medium">
             <span>Huidig: {currentOM}% OS</span>
             <span>Fysieke bovengrens: {maxOM}% OS</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+        <div className="grid grid-cols-1 gap-6 pt-2 md:grid-cols-3">
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
+            <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium uppercase">
               Voorraad
             </p>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold">
                 {Math.round(carbonEstimates.b_c_st03 * 10) / 10}
               </span>
-              <span className="text-xs text-muted-foreground">ton C/ha</span>
+              <span className="text-muted-foreground text-xs">ton C/ha</span>
             </div>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
+            <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium uppercase">
               Potentieel
             </p>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold">
                 {Math.round(carbonEstimates.b_c_st03_potential * 10) / 10}
               </span>
-              <span className="text-xs text-muted-foreground">ton C/ha</span>
+              <span className="text-muted-foreground text-xs">ton C/ha</span>
             </div>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase flex items-center gap-1">
+            <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium uppercase">
               CO₂-vastlegging
             </p>
             <div className="flex items-baseline gap-1">
               <span className="text-xl font-bold">+{potentialCO2eq}</span>
-              <span className="text-xs text-muted-foreground">ton CO₂eq/ha</span>
+              <span className="text-muted-foreground text-xs">ton CO₂eq/ha</span>
             </div>
           </div>
         </div>
@@ -122,37 +122,37 @@ export function CarbonSequestrationCard({
 
         {/* Relatable Impact Grid */}
         <div className="space-y-4">
-          <h4 className="text-xs font-bold text-muted-foreground">
+          <h4 className="text-muted-foreground text-xs font-bold">
             Potentiële voordelen bij maximale opslag (per hectare)
           </h4>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
             <div className="flex items-start gap-3">
-              <Car className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <Car className="text-muted-foreground mt-0.5 h-4 w-4" />
               <div className="space-y-0.5">
                 <p className="text-sm font-semibold">~{carKmEquivalent.toLocaleString()} km</p>
-                <p className="text-xs text-muted-foreground">Compensatie uitstoot personenauto</p>
+                <p className="text-muted-foreground text-xs">Compensatie uitstoot personenauto</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Droplets className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <Droplets className="text-muted-foreground mt-0.5 h-4 w-4" />
               <div className="space-y-0.5">
                 <p className="text-sm font-semibold">+{extraWaterStorage} mm water</p>
-                <p className="text-xs text-muted-foreground">Extra waterbergend vermogen</p>
+                <p className="text-muted-foreground text-xs">Extra waterbergend vermogen</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Sprout className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <Sprout className="text-muted-foreground mt-0.5 h-4 w-4" />
               <div className="space-y-0.5">
                 <p className="text-sm font-semibold">+{extraNMineralization} kg N/jaar</p>
-                <p className="text-xs text-muted-foreground">Extra stikstoflevering uit de bodem</p>
+                <p className="text-muted-foreground text-xs">Extra stikstoflevering uit de bodem</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Euro className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <Euro className="text-muted-foreground mt-0.5 h-4 w-4" />
               <div className="space-y-0.5">
                 <p className="text-sm font-semibold">~€ {euroEstimate.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Geschatte waarde koolstofcertificaten via EU ETS
                 </p>
               </div>
@@ -162,18 +162,18 @@ export function CarbonSequestrationCard({
 
         {/* Methodology Collapsible */}
         <Collapsible className="space-y-2">
-          <CollapsibleTrigger className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors group">
+          <CollapsibleTrigger className="text-muted-foreground hover:text-foreground group flex items-center gap-1 text-[11px] font-bold tracking-wider uppercase transition-colors">
             Toelichting
-            <ChevronDown className="h-3 w-3 group-data-[state=open]:rotate-180 transition-transform" />
+            <ChevronDown className="h-3 w-3 transition-transform group-data-[state=open]:rotate-180" />
           </CollapsibleTrigger>
-          <CollapsibleContent className="rounded-lg bg-muted/50 p-4 text-xs leading-relaxed text-muted-foreground space-y-2 border">
+          <CollapsibleContent className="bg-muted/50 text-muted-foreground space-y-2 rounded-lg border p-4 text-xs leading-relaxed">
             <p>
               Het huidige organische stofgehalte is geschat met{" "}
-              <span className="font-medium text-foreground/80">NMI BodemSchat</span>.
+              <span className="text-foreground/80 font-medium">NMI BodemSchat</span>.
             </p>
             <p>
               De <strong>fysieke bovengrens</strong> (maximale OS) is gebaseerd op een{" "}
-              <span className="font-medium text-foreground/80">NMI-studie</span> en geeft aan
+              <span className="text-foreground/80 font-medium">NMI-studie</span> en geeft aan
               hoeveel organische stof de bodem fysiek kan binden, rekening houdend met de textuur en
               andere bodemparameters. Het realiseren hiervan is een lange-termijn opgave.
             </p>
@@ -192,7 +192,7 @@ export function CarbonSequestrationSkeleton() {
   return (
     <Card>
       <CardHeader>
-        <Skeleton className="h-6 w-1/3 mb-2" />
+        <Skeleton className="mb-2 h-6 w-1/3" />
         <Skeleton className="h-4 w-2/3" />
       </CardHeader>
       <CardContent className="space-y-8">
@@ -201,7 +201,7 @@ export function CarbonSequestrationSkeleton() {
           <Skeleton className="h-2 w-full" />
           <Skeleton className="h-3 w-3/4" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-10 w-full" />
@@ -209,11 +209,11 @@ export function CarbonSequestrationSkeleton() {
         <Separator />
         <div className="space-y-4">
           <Skeleton className="h-4 w-1/2" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex gap-3">
                 <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="space-y-2 flex-1">
+                <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-1/2" />
                   <Skeleton className="h-3 w-3/4" />
                 </div>

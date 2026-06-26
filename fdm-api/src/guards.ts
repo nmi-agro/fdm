@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { bodyLimit } from "hono/body-limit"
 import { ApiError } from "./error"
-import type { ContentfulStatusCode } from "hono/utils/http-status"
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"])

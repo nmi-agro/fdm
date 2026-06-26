@@ -1,8 +1,8 @@
+import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Controller } from "react-hook-form"
 import { Form, NavLink } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type z from "zod"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
@@ -37,7 +37,7 @@ export function TicketComposer({
     <RemixFormProvider {...form}>
       <Form method="post" className="mx-auto max-w-5xl space-y-6" onSubmit={form.handleSubmit}>
         <Card>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="space-y-4 pt-6">
             <Controller
               name="context_farm_id"
               render={({ field, fieldState }) => (

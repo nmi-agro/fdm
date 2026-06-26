@@ -1,3 +1,4 @@
+import { importPKCS8, SignJWT } from "jose"
 /**
  * Unit tests for authentication-ms.ts
  *
@@ -12,7 +13,6 @@ import { createHash, generateKeyPairSync, randomUUID } from "node:crypto"
 import { unlinkSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { importPKCS8, SignJWT } from "jose"
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   createMicrosoftClientAssertion,

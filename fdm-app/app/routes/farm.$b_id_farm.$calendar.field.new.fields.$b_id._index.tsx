@@ -1,3 +1,4 @@
+import type { FeatureCollection } from "geojson"
 import {
   getCultivations,
   getCultivationsFromCatalogue,
@@ -8,7 +9,6 @@ import {
   updateCultivation,
   updateField,
 } from "@nmi-agro/fdm-core"
-import type { FeatureCollection } from "geojson"
 import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
 import { dataWithSuccess, redirectWithSuccess } from "remix-toast"
 import { NewFieldsBlock } from "~/components/blocks/fields-new/block"

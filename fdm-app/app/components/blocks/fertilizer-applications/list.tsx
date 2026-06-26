@@ -57,18 +57,18 @@ export function FertilizerApplicationsList({
                     <ItemTitle className="flex flex-row flex-wrap items-center gap-x-2">
                       <span>
                         {fertilizer.p_type === "manure" ? (
-                          <Square className="size-3 text-yellow-600 fill-yellow-600" />
+                          <Square className="size-3 fill-yellow-600 text-yellow-600" />
                         ) : fertilizer.p_type === "mineral" ? (
-                          <Circle className="size-3 text-sky-600 fill-sky-600" />
+                          <Circle className="size-3 fill-sky-600 text-sky-600" />
                         ) : fertilizer.p_type === "compost" ? (
-                          <Triangle className="size-3 text-green-600 fill-green-600" />
+                          <Triangle className="size-3 fill-green-600 text-green-600" />
                         ) : (
-                          <Diamond className="size-3 text-gray-600 fill-gray-600" />
+                          <Diamond className="size-3 fill-gray-600 text-gray-600" />
                         )}
                       </span>
                       <Button
                         variant="link"
-                        className="p-0 mt-0"
+                        className="mt-0 p-0"
                         disabled={!editable || isBusy}
                         onClick={handleEdit(application)}
                       >
@@ -90,7 +90,7 @@ export function FertilizerApplicationsList({
                             ? `${application.p_app_amount} kg/ha`
                             : "Onbekend hoeveelheid"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         {application.p_app_method
                           ? applicationMethodOptions.find(
                               (x) => x.value === application.p_app_method,

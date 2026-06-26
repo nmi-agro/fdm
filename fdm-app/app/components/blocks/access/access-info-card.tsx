@@ -7,11 +7,11 @@ export const AccessInfoCard = () => {
         <CardTitle id="access-roles-title">Hoe werkt toegang tot een bedrijf?</CardTitle>
       </CardHeader>
       <CardContent>
-        <p id="access-roles-description" className="text-sm text-muted-foreground">
+        <p id="access-roles-description" className="text-muted-foreground text-sm">
           Bij het beheren van de toegang tot een bedrijf, zijn er verschillende rollen die
           toegewezen kunnen worden. Hieronder een overzicht van deze rollen en hun bevoegdheden:
         </p>
-        <ul className="list-disc list-inside text-sm text-muted-foreground mt-2 space-y-1">
+        <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1 text-sm">
           <li>
             <b>Eigenaar:</b> Deze rol heeft volledige toegang tot het bedrijf. Eigenaren kunnen
             gebruikers uitnodigen, hun rol aanpassen en gebruikers verwijderen. Ze kunnen alle
@@ -27,7 +27,7 @@ export const AccessInfoCard = () => {
           </li>
         </ul>
         <br />
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           <b>Let op:</b> Een bedrijf heeft minimaal één <i>Eigenaar</i> nodig.
         </p>
       </CardContent>

@@ -45,8 +45,8 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
-import { FieldFilterToggle } from "../../custom/field-filter-toggle"
 import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import { FieldFilterToggle } from "../../custom/field-filter-toggle"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -362,15 +362,15 @@ export function DataTable<TData extends RotationExtended, TValue>({
   }
 
   return (
-    <div className="w-full flex flex-col h-full min-w-0">
-      <div className="sticky top-0 z-5 bg-background py-4 flex flex-col sm:flex-row gap-2 items-center">
+    <div className="flex h-full w-full min-w-0 flex-col">
+      <div className="bg-background sticky top-0 z-5 flex flex-col items-center gap-2 py-4 sm:flex-row">
         <Input
           placeholder="Zoek op gewas, meststof of datum"
           value={fieldFilter.searchTerms ?? ""}
           onChange={(event) => fieldFilter.setSearchTerms(event.target.value)}
           className="w-full sm:w-auto sm:grow"
         />
-        <div className="flex w-full items-center justify-start sm:justify-end gap-2 sm:w-auto flex-wrap">
+        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -474,9 +474,9 @@ export function DataTable<TData extends RotationExtended, TValue>({
           </TooltipProvider>
         </div>
       </div>
-      <div className="rounded-md border grow relative overflow-x-auto">
+      <div className="relative grow overflow-x-auto rounded-md border">
         <Table>
-          <TableHeader className="sticky top-0 z-5 bg-background">
+          <TableHeader className="bg-background sticky top-0 z-5">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {

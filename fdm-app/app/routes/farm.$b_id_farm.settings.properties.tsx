@@ -1,7 +1,7 @@
+import type { Control, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { checkPermission, getFarm, updateFarm } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
-import type { Control, Resolver } from "react-hook-form"
 import {
   type ActionFunctionArgs,
   data,
@@ -136,14 +136,14 @@ export default function FarmSettingsPropertiesBlock() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Gegevens</h3>
-        <p className="text-sm text-muted-foreground">Werk de gegevens bij van dit bedrijf</p>
+        <p className="text-muted-foreground text-sm">Werk de gegevens bij van dit bedrijf</p>
       </div>
       <Separator />
       <RemixFormProvider {...form}>
         <Form id="formFarmProperties" onSubmit={form.handleSubmit} method="post">
           <fieldset disabled={!loaderData.farmWritePermission || form.formState.isSubmitting}>
-            <div className="grid grid-cols-2 w-full items-center gap-4">
-              <div className="flex flex-col space-y-1.5 col-span-2">
+            <div className="grid w-full grid-cols-2 items-center gap-4">
+              <div className="col-span-2 flex flex-col space-y-1.5">
                 <FormField
                   control={form.control as unknown as Control<any, any, any>}
                   name="b_name_farm"
@@ -159,7 +159,7 @@ export default function FarmSettingsPropertiesBlock() {
                   )}
                 />
               </div>
-              <div className="flex flex-col space-y-1.5 col-span-1">
+              <div className="col-span-1 flex flex-col space-y-1.5">
                 <FormField
                   control={form.control as unknown as Control<any, any, any>}
                   name="b_businessid_farm"
@@ -177,7 +177,7 @@ export default function FarmSettingsPropertiesBlock() {
                   )}
                 />
               </div>
-              <div className="flex flex-col space-y-1.5 col-span-2">
+              <div className="col-span-2 flex flex-col space-y-1.5">
                 <FormField
                   control={form.control as unknown as Control<any, any, any>}
                   name="b_address_farm"
@@ -201,7 +201,7 @@ Wageningen"
                   )}
                 />
               </div>
-              <div className="flex flex-col space-y-1.5 col-span-1">
+              <div className="col-span-1 flex flex-col space-y-1.5">
                 <FormField
                   control={form.control as unknown as Control<any, any, any>}
                   name="b_postalcode_farm"

@@ -1,9 +1,9 @@
+import type { LoaderFunctionArgs, MetaFunction } from "react-router"
+import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useRef, useState } from "react"
-import type { LoaderFunctionArgs, MetaFunction } from "react-router"
 import { Form, redirect, useNavigation, useSearchParams } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
@@ -80,7 +80,7 @@ export default function SignIn() {
         description="Een aanmeldcode en link zijn naar je e-mailadres gestuurd."
         contentClassName="space-y-6"
       >
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-muted-foreground text-center text-sm">
           De code en link zijn 15 minuten geldig en kunnen maar één keer worden gebruikt.
         </p>
 
@@ -89,7 +89,7 @@ export default function SignIn() {
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Of vul de code in</span>
+            <span className="bg-background text-muted-foreground px-2">Of vul de code in</span>
           </div>
         </div>
         <Form

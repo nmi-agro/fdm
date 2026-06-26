@@ -1,12 +1,12 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
-import { useEffect } from "react"
 import type { Control, FieldValues, Path, Resolver, UseFormReturn } from "react-hook-form"
+import type { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type { z } from "zod"
-import { FormSchema } from "@/app/components/blocks/soil/formschema"
 import type { SoilAnalysis } from "@/app/components/blocks/soil/types"
+import { FormSchema } from "@/app/components/blocks/soil/formschema"
 import { DatePicker } from "~/components/custom/date-picker"
 import { Button } from "~/components/ui/button"
 import {
@@ -76,8 +76,8 @@ export function SoilAnalysisForm(props: {
       <Form id="soilAnalysisForm" onSubmit={form.handleSubmit} method="post">
         <fieldset disabled={!editable || form.formState.isSubmitting}>
           <div className="space-y-6">
-            <p className="text-sm text-muted-foreground">Vul de gegevens van de bodemanalyse in.</p>
-            <div className="grid md:grid-cols-2 gap-4">
+            <p className="text-muted-foreground text-sm">Vul de gegevens van de bodemanalyse in.</p>
+            <div className="grid gap-4 md:grid-cols-2">
               {soilParameterDescription.map((x) => {
                 if (x.parameter === "a_id") {
                   return null
@@ -104,7 +104,7 @@ export function SoilAnalysisForm(props: {
                                 placeholder=""
                               />
                               {x.unit && (
-                                <span className="absolute inset-y-0 right-8 pr-3 flex items-center pointer-events-none text-muted-foreground text-sm">
+                                <span className="text-muted-foreground pointer-events-none absolute inset-y-0 right-8 flex items-center pr-3 text-sm">
                                   {x.unit}
                                 </span>
                               )}
@@ -195,7 +195,7 @@ export function SoilAnalysisForm(props: {
                 }
               })}
             </div>
-            <div className={cn("flex justify-end mt-4", !editable ? "invisible" : "")}>
+            <div className={cn("mt-4 flex justify-end", !editable ? "invisible" : "")}>
               <Button type="submit">
                 {form.formState.isSubmitting ? (
                   <div className="flex items-center space-x-2">

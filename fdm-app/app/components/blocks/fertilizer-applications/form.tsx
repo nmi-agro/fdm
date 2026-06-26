@@ -1,12 +1,12 @@
+import type { MouseEvent } from "react"
+import type { Navigation } from "react-router"
 /* eslint-disable typescript/unbound-method -- react-hook-form registration and control references are unbound by design in standard React Hook Form usage. */
 import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
-import type { MouseEvent } from "react"
 import { useEffect, useId } from "react"
 import { Controller } from "react-hook-form"
-import type { Navigation } from "react-router"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
@@ -28,13 +28,13 @@ import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { getContextualDate } from "~/lib/calendar"
 import { useCalendarStore } from "~/store/calendar"
+import type { FertilizerOption } from "./types.d"
 import {
   type FieldFertilizerFormValues,
   FormSchema,
   FormSchemaModify,
   type FormSchemaPartial,
 } from "./formschema"
-import type { FertilizerOption } from "./types.d"
 
 /**
  * Renders a fertilizer application creation or modification form.
@@ -186,8 +186,8 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     <RemixFormProvider {...form}>
       <Form id={formId} action={action} onSubmit={form.handleSubmit} method="post">
         <fieldset disabled={isSubmitting}>
-          <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-x-8 gap-y-4">
-            <div className="flex flex-row align-top min-w-0">
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-4 md:grid-cols-2">
+            <div className="flex min-w-0 flex-row align-top">
               <div className="min-w-0 flex-1">
                 <Combobox
                   options={options}
@@ -202,7 +202,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                   defaultValue={fertilizerApplication?.p_id}
                 />
               </div>
-              <div className="space-y-2 shrink-0 grow-0">
+              <div className="shrink-0 grow-0 space-y-2">
                 <Label className="invisible">&nbsp;</Label>
                 <Tooltip>
                   <TooltipTrigger asChild>

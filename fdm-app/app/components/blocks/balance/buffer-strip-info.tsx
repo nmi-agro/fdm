@@ -10,10 +10,10 @@ export function BufferStripInfo() {
           <Button
             variant="outline"
             size="icon"
-            className="border cursor-default hover:bg-background"
+            className="hover:bg-background cursor-default border"
             aria-label="Bufferstroken info"
           >
-            <PanelsRightBottom className="h-4 w-4 text-muted-foreground" />
+            <PanelsRightBottom className="text-muted-foreground h-4 w-4" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

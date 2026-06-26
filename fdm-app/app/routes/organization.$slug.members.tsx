@@ -116,8 +116,8 @@ export default function OrganizationIndex() {
         description="Beheer de leden met toegang tot deze organisatie."
         action={{ label: "Terug naar overzicht", to: "./.." }}
       />
-      <div className="max-w-3xl mx-auto px-4">
-        <div className="grid lg:grid-cols-1 gap-4">
+      <div className="mx-auto max-w-3xl px-4">
+        <div className="grid gap-4 lg:grid-cols-1">
           <Card>
             <CardHeader>
               <CardTitle>Leden</CardTitle>
@@ -149,8 +149,8 @@ export default function OrganizationIndex() {
                 <div className="space-y-4">
                   <div className="text-sm font-medium">Openstaande uitnodigingen:</div>
                   {invitations.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      <p className="text-sm text-center text-muted-foreground">
+                    <div className="text-muted-foreground text-sm">
+                      <p className="text-muted-foreground text-center text-sm">
                         Er zijn op dit moment geen openstaande uitnodigingen.
                       </p>
                     </div>
@@ -204,9 +204,9 @@ const MemberRow = ({
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-medium leading-none">{member.user.name}</p>
+          <p className="text-sm leading-none font-medium">{member.user.name}</p>
           {!permissions.canUpdateRoleUser ? (
-            <p className="text-sm text-muted-foreground">{getOrganizationRoleLabel(member.role)}</p>
+            <p className="text-muted-foreground text-sm">{getOrganizationRoleLabel(member.role)}</p>
           ) : null}
         </div>
       </div>
@@ -281,14 +281,14 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
           <AvatarFallback>{(invitation.email || "?").charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-medium leading-none">{invitation.email}</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm leading-none font-medium">{invitation.email}</p>
+          <p className="text-muted-foreground text-sm">
             {getOrganizationRoleLabel(invitation.role)}
           </p>
         </div>
       </div>
       <div>
-        <p className="text-sm font-medium leading-none">
+        <p className="text-sm leading-none font-medium">
           Verloopt{" "}
           {formatDistanceToNow(new Date(invitation.expiresAt), {
             addSuffix: true,

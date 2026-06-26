@@ -69,16 +69,16 @@ export function CultivationListPlan({
                 to={`/farm/create/${b_id_farm}/${calendar}/${basePath}/${cultivation.b_lu_catalogue}`}
                 className={({ isActive }) =>
                   cn(
-                    "flex justify-between items-center p-3 rounded-md hover:bg-accent hover:text-accent-foreground",
+                    "hover:bg-accent hover:text-accent-foreground flex items-center justify-between rounded-md p-3",
                     isActive && "bg-accent text-accent-foreground",
                   )
                 }
               >
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none break-all">
+                  <p className="text-sm leading-none font-medium break-all">
                     {cultivation.b_lu_name}
                   </p>
-                  <p className="text-xs font-normal text-muted-foreground">{nameOfFields}</p>
+                  <p className="text-muted-foreground text-xs font-normal">{nameOfFields}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">

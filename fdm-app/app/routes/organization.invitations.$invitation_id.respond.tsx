@@ -88,14 +88,14 @@ export default function Respond() {
 
   if (intent === "accept") {
     return (
-      <h1 className="font-semibold mt-50 text-3xl text-center text-primary">
+      <h1 className="text-primary mt-50 text-center text-3xl font-semibold">
         Uitnodiging wordt geaccepteerd...
       </h1>
     )
   }
 
   return (
-    <div className="max-w-3xl mx-auto my-4 px-4">
+    <div className="mx-auto my-4 max-w-3xl px-4">
       <Card>
         <CardHeader>
           <CardTitle>Uitnodiging afwijzen</CardTitle>
@@ -210,7 +210,7 @@ export function ErrorBoundary(props: Route.ErrorBoundaryProps) {
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       return (
-        <div className="max-w-3xl mx-auto my-4 px-4">
+        <div className="mx-auto my-4 max-w-3xl px-4">
           <Card>
             <CardHeader>
               <CardTitle>Uitnodiging niet beschikbaar</CardTitle>

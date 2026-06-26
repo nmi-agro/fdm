@@ -1,12 +1,12 @@
 import type { Field } from "@nmi-agro/fdm-core"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import type { NitrogenStandard, NL2025NormsInput, NL2025NormsInputForCultivation } from "./types"
 import * as GeoTiff from "../../../../shared/geotiff"
 import {
   calculateNL2025StikstofGebruiksNorm,
   getRegion,
   isFieldInNVGebied,
 } from "./stikstofgebruiksnorm"
-import type { NitrogenStandard, NL2025NormsInput, NL2025NormsInputForCultivation } from "./types"
 
 vi.mock("../../../../shared/geotiff", async (importActual) => {
   const actual = await importActual<typeof import("../../../../shared/geotiff")>()

@@ -1,3 +1,4 @@
+import type { LoaderFunctionArgs } from "react-router"
 import {
   ClarifyingQuestionsSchema,
   createClarifyAgent,
@@ -5,7 +6,6 @@ import {
   runStreamAgent,
 } from "@nmi-agro/fdm-agents"
 import { getCultivations, getCurrentSoilData, getFertilizers, getFields } from "@nmi-agro/fdm-core"
-import type { LoaderFunctionArgs } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"

@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react"
 import {
   getFarm,
   getFarms,
@@ -5,7 +6,6 @@ import {
   getFertilizerParametersDescription,
   getFertilizers,
 } from "@nmi-agro/fdm-core"
-import type { ComponentProps } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FarmNewFertilizerBlock } from "~/components/blocks/fertilizer/new-fertilizer-page"
@@ -134,8 +134,8 @@ export default function FarmFertilizerPage() {
         title={"Nieuwe meststof"}
         description={`Gebruik de gehaltes van ${loaderData.fertilizer.p_name_nl} als basis voor uw nieuwe meststof.`}
       />
-      <div className="p-4 md:p-8 pt-0 md:pt-0">
-        <div className="mx-auto max-w-6xl w-full">
+      <div className="p-4 pt-0 md:p-8 md:pt-0">
+        <div className="mx-auto w-full max-w-6xl">
           <FarmNewFertilizerBlock
             loaderData={loaderData as ComponentProps<typeof FarmNewFertilizerBlock>["loaderData"]}
           />

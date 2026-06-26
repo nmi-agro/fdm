@@ -198,7 +198,7 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       asChild
-                      className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
                     >
                       <span className="flex items-center gap-2">
                         <Calendar />
@@ -231,7 +231,7 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       asChild
-                      className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
                     >
                       <span className="flex items-center gap-2">
                         <Square />
@@ -264,7 +264,7 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       asChild
-                      className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
                     >
                       <span className="flex items-center gap-2">
                         <Sprout />
@@ -291,7 +291,7 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       asChild
-                      className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
                     >
                       <span className="flex items-center gap-2">
                         <ClipboardList />
@@ -318,7 +318,7 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
                       asChild
-                      className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
                     >
                       <span className="flex items-center gap-2">
                         <Shapes />
@@ -376,7 +376,7 @@ export function SidebarLabs() {
                     <TooltipTrigger asChild>
                       <SidebarMenuButton
                         asChild
-                        className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                        className="cursor-not-allowed opacity-50 hover:bg-transparent"
                       >
                         <span className="flex items-center gap-2">
                           <Bubbles />
@@ -411,7 +411,7 @@ export function SidebarLabs() {
                     <TooltipTrigger asChild>
                       <SidebarMenuButton
                         asChild
-                        className="opacity-50 cursor-not-allowed hover:bg-transparent"
+                        className="cursor-not-allowed opacity-50 hover:bg-transparent"
                       >
                         <span className="flex items-center gap-2">
                           <Bot />

@@ -1,3 +1,5 @@
+import type { ComponentProps } from "react"
+import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   checkPermission,
@@ -8,7 +10,6 @@ import {
   getFertilizers,
   updateFertilizerFromCatalogue,
 } from "@nmi-agro/fdm-core"
-import type { ComponentProps } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -18,7 +19,6 @@ import {
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
-import type { z } from "zod"
 import { FertilizerForm } from "@/app/components/blocks/fertilizer/form"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
@@ -186,8 +186,8 @@ export default function FarmFertilizerBlock() {
               : "Bekijk de gehaltes en eigenschappen van dit product uit de catalogus."
           }
         />
-        <div className="space-y-6 p-4 md:p-8 pb-0">
-          <div className="mx-auto max-w-6xl w-full">
+        <div className="space-y-6 p-4 pb-0 md:p-8">
+          <div className="mx-auto w-full max-w-6xl">
             <FertilizerForm
               fertilizerParameters={
                 fertilizerParameters as ComponentProps<

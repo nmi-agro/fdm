@@ -11,12 +11,12 @@ export function Header({
   action: HeaderActionProps | undefined
 }) {
   return (
-    <header className="flex min-h-16 shrink-0 items-center gap-x-1.5 gap-y-2 border-b px-2 md:px-4 py-2 xl:py-0 flex-wrap xl:flex-nowrap">
+    <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-x-1.5 gap-y-2 border-b px-2 py-2 md:px-4 xl:flex-nowrap xl:py-0">
       <div className="flex items-center gap-1.5">
         <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-1 md:mr-2 h-4" />
+        <Separator orientation="vertical" className="mr-1 h-4 md:mr-2" />
       </div>
-      <Breadcrumb className="flex-1 min-w-0">
+      <Breadcrumb className="min-w-0 flex-1">
         <BreadcrumbList>{children}</BreadcrumbList>
       </Breadcrumb>
       {action ? (
