@@ -27,8 +27,12 @@ import {
     FormSchema,
     FormSchemaModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
-import { FertilizerApplicationMetricsCard } from "~/components/blocks/fertilizer-applications/metrics"
+import {
+    FertilizerApplicationMetricsCard,
+    type MetricsResult,
+} from "~/components/blocks/fertilizer-applications/metrics"
 import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
+import { getNitrogenBalanceForField, getNorms } from "~/integrations/calculator"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -37,10 +41,6 @@ import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import {
-    getNitrogenBalanceForField,
-    getNorms,
-} from "../integrations/calculator"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -51,6 +51,37 @@ export const meta: MetaFunction = () => {
             content: "Bekijk en bewerk de bemestinggegevens van je perceel.",
         },
     ]
+}
+
+/**
+ * Handles promise rejections of type Error by building a result object.
+ *
+ * @param fn Function that fetches the metrics.
+ * @returns `{ status: "ok", data: ... }` if the function resolves.
+ * `{ "status": "error", message: ... }` with the error message if rejection is an instance of Error.
+ * @throws any rejection other than those that are an instance of Error.
+ */
+async function promiseMetricsResult<T>(
+    fn: () => Promise<T>,
+): Promise<MetricsResult<T>> {
+    try {
+        const data = await fn()
+
+        return {
+            status: "ok",
+            data: data,
+        }
+    } catch (err) {
+        if (err instanceof Error) {
+            return {
+                status: "error",
+                message: err.message,
+            }
+        }
+
+        handleLoaderError(err)
+        throw err
+    }
 }
 
 /**
@@ -204,20 +235,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const fertilizerApplicationMetricsData = {
             norms:
                 calendar === "2025" || calendar === "2026"
-                    ? getNorms({
-                          fdm,
-                          principal_id,
-                          b_id,
-                          calendar,
-                      })
+                    ? promiseMetricsResult(() =>
+                          getNorms({
+                              fdm,
+                              principal_id,
+                              b_id,
+                              calendar,
+                          }),
+                      )
                     : Promise.resolve(null),
-            nitrogenBalance: getNitrogenBalanceForField({
-                fdm,
-                principal_id,
-                b_id_farm,
-                b_id,
-                timeframe,
-            }),
+            nitrogenBalance: promiseMetricsResult(() =>
+                getNitrogenBalanceForField({
+                    fdm,
+                    principal_id,
+                    b_id_farm,
+                    b_id,
+                    timeframe,
+                }),
+            ),
             nutrientAdvice: nutrientAdvice,
             dose: dose.dose,
             b_id: b_id,

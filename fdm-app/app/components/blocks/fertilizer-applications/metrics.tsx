@@ -43,20 +43,25 @@ import {
     TooltipTrigger,
 } from "~/components/ui/tooltip"
 
+export type MetricsResult<T> =
+    | { status: "ok"; data: T }
+    | { status: "error"; message: string }
 interface FertilizerApplicationMetricsData {
-    norms: Promise<{
-        value: {
-            manure: GebruiksnormResult
-            phosphate: GebruiksnormResult
-            nitrogen: GebruiksnormResult
-        }
-        filling: {
-            manure: NormFilling
-            phosphate: NormFilling
-            nitrogen: NormFilling
-        }
-    } | null>
-    nitrogenBalance: Promise<NitrogenBalanceFieldResultNumeric> | undefined
+    norms: Promise<
+        MetricsResult<{
+            value: {
+                manure: GebruiksnormResult
+                phosphate: GebruiksnormResult
+                nitrogen: GebruiksnormResult
+            }
+            filling: {
+                manure: NormFilling
+                phosphate: NormFilling
+                nitrogen: NormFilling
+            }
+        } | null>
+    >
+    nitrogenBalance: Promise<MetricsResult<NitrogenBalanceFieldResultNumeric>>
     nutrientAdvice: NutrientAdvice
     dose: Dose
     b_id: string
@@ -70,6 +75,40 @@ interface FertilizerApplicationMetricsData {
 interface FertilizerApplicationMetricsCardProps {
     fertilizerApplicationMetricsData: FertilizerApplicationMetricsData
     isSubmitting: boolean
+}
+
+function MissingParametersErrorDisplay<T>(
+    result: MetricsResult<T>,
+): result is { status: "error"; message: string } {
+    return result.status === "error" &&
+        result.message.match(/Missing required soil parameters/)
+        ? ((
+              <div className="text-muted-foreground">
+                  <p>
+                      Voor dit perceel zijn de benodigde bodemparameters niet
+                      bekend:
+                  </p>
+                  <br />
+                  <ul className="list-disc list-inside">
+                      {result.message.match(/a_n_rt/) ? (
+                          <li>Totaal stikstofgehalte</li>
+                      ) : null}
+                      {result.message.match(/b_soiltype_agr/) ? (
+                          <li>Agrarisch bodemtype</li>
+                      ) : null}
+                      {result.message.match(/a_c_of|a_som_loi/) ? (
+                          <li>Organische stofgehalte</li>
+                      ) : null}
+                  </ul>
+              </div>
+          ) as unknown as true)
+        : result.status === "error"
+          ? ((
+                <div className="text-destructive text-sm">
+                    Fout bij berekening
+                </div>
+            ) as unknown as true)
+          : (null as unknown as false)
 }
 
 export function FertilizerApplicationMetricsCard({
@@ -165,7 +204,19 @@ export function FertilizerApplicationMetricsCard({
                                                     </div>
                                                 }
                                             >
-                                                {(resolvedNorms) => {
+                                                {(result) => {
+                                                    const ErrorDisplay =
+                                                        MissingParametersErrorDisplay(
+                                                            result,
+                                                        )
+
+                                                    if (ErrorDisplay) {
+                                                        return ErrorDisplay
+                                                    }
+
+                                                    const resolvedNorms =
+                                                        result.data
+
                                                     if (!resolvedNorms) {
                                                         return (
                                                             <span className="text-xs">
@@ -176,6 +227,7 @@ export function FertilizerApplicationMetricsCard({
                                                             </span>
                                                         )
                                                     }
+
                                                     return (
                                                         <div className="flex flex-col space-y-4 min-w-0">
                                                             <div className="space-y-1.5 min-w-0">
@@ -421,7 +473,19 @@ export function FertilizerApplicationMetricsCard({
                                                 }
                                                 resolve={nitrogenBalance}
                                             >
-                                                {(resolvedNitrogenBalance) => {
+                                                {(result) => {
+                                                    const ErrorDisplay =
+                                                        MissingParametersErrorDisplay(
+                                                            result,
+                                                        )
+
+                                                    if (ErrorDisplay) {
+                                                        return ErrorDisplay
+                                                    }
+
+                                                    const resolvedNitrogenBalance =
+                                                        result.data
+
                                                     if (b_bufferstrip) {
                                                         return (
                                                             <span className="text-xs text-muted-foreground">
