@@ -104,7 +104,7 @@ FDM is developed by the [Nutriënten Management Instituut](https://www.nmi-agro.
 <img src="https://www.nutribudget.eu/wp-content/themes/nutribudget/images/logo-nutribudget.png" alt="NutriBudget Logo" height="250px">
 <img src="https://www.beterbodembeheer.nl/wp-content/uploads/2024/01/pps-baat-projectlogo.png" alt="PPS BAAT Logo" height="250px">
 <img src="https://ec.europa.eu/regional_policy/images/information-sources/logo-download-center/eu_funded_en.jpg" alt="EU Logo" height="300px">
-<img src="https://media.licdn.com/dms/image/C560BAQEYGcm4HjNnxA/company-logo_200_200/0?e=2159024400&v=beta&t=u40rJ7bixPWB2SAqaj3KCKzJRoKcqf0wUXCdmsTDQvw" alt="NMI Logo" height="250px">
+<img src="https://github.com/user-attachments/assets/fc56e7ac-e72a-44a3-a83a-c0b38a3001eb" alt="NMI Logo" height="250px">
 
 ## Contact
 
