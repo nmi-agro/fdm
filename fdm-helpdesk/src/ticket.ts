@@ -1,35 +1,22 @@
-import {
-    and,
-    desc,
-    eq,
-    inArray,
-    isNull,
-    max,
-    not,
-    type SQL,
-    sql,
-} from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, max, not, type SQL, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
-import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import type { HelpdeskPrincipalId } from "./authorization.types"
+import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
+import type { TicketFilters, TicketSorting } from "./filter.types"
+import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
-import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { getTicketWhereClause } from "./filter"
-import type { TicketFilters, TicketSorting } from "./filter.types"
 import { createId } from "./id"
 import { escapeHTML } from "./sanitization"
 import { getTagsForTickets, type TagSummary } from "./tag"
-import {
-    getAssigneesForTickets,
-    type TicketAssignmentSummary,
-} from "./ticket-assignment"
+import { getAssigneesForTickets, type TicketAssignmentSummary } from "./ticket-assignment"
 
 /** A ticket record enriched with its current tags and assignees. */
 export type Ticket = schema.TicketTypeSelect & {
-    viewed_at: Date | null
-    tags: TagSummary[]
-    assignees: TicketAssignmentSummary[]
+  viewed_at: Date | null
+  tags: TagSummary[]
+  assignees: TicketAssignmentSummary[]
 }
 
 const TICKET_ALPHABET = "23456789ABCDFGHJKLMNPQRSTVWXYZ" // Uppercase, no lookalikes
@@ -50,35 +37,32 @@ const generateTicketRef = () => `TK-${ticketAlphabet()}` // ~530 million combina
  * @returns A ticket reference that is unique among all helpdesk tickets.
  * @throws if a unique ticket reference cannot be obtained after `maxRetries`.
  */
-async function createTicketRefWithRetry(
-    fdm: FdmHelpdeskType,
-    maxRetries = 3,
-): Promise<string> {
-    for (let i = 0; i < maxRetries; i++) {
-        const ref = generateTicketRef()
-        const existing = await fdm
-            .select()
-            .from(schema.tickets)
-            .where(eq(schema.tickets.ticket_ref, ref))
-            .limit(1)
-        if (existing.length === 0) return ref
-    }
-    throw new Error("Failed to generate unique ticket ref after retries")
+async function createTicketRefWithRetry(fdm: FdmHelpdeskType, maxRetries = 3): Promise<string> {
+  for (let i = 0; i < maxRetries; i++) {
+    const ref = generateTicketRef()
+    const existing = await fdm
+      .select()
+      .from(schema.tickets)
+      .where(eq(schema.tickets.ticket_ref, ref))
+      .limit(1)
+    if (existing.length === 0) return ref
+  }
+  throw new Error("Failed to generate unique ticket ref after retries")
 }
 
 const ticketColumns = {
-    ticket_id: schema.tickets.ticket_id,
-    ticket_ref: schema.tickets.ticket_ref,
-    subject: schema.tickets.subject,
-    status: schema.tickets.status,
-    priority: schema.tickets.priority,
-    channel: schema.tickets.channel,
-    requester_id: schema.tickets.requester_id,
-    context_farm_id: schema.tickets.context_farm_id,
-    resolved_at: schema.tickets.resolved_at,
-    closed_at: schema.tickets.closed_at,
-    created: schema.tickets.created,
-    updated: schema.tickets.updated,
+  ticket_id: schema.tickets.ticket_id,
+  ticket_ref: schema.tickets.ticket_ref,
+  subject: schema.tickets.subject,
+  status: schema.tickets.status,
+  priority: schema.tickets.priority,
+  channel: schema.tickets.channel,
+  requester_id: schema.tickets.requester_id,
+  context_farm_id: schema.tickets.context_farm_id,
+  resolved_at: schema.tickets.resolved_at,
+  closed_at: schema.tickets.closed_at,
+  created: schema.tickets.created,
+  updated: schema.tickets.updated,
 }
 
 /**
@@ -91,56 +75,49 @@ const ticketColumns = {
  * @returns The ticket record with tags and assignees.
  */
 export async function getTicket(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
-    ticket_id: schema.TicketTypeSelect["ticket_id"],
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  ticket_id: schema.TicketTypeSelect["ticket_id"],
 ): Promise<Ticket> {
-    try {
-        await checkHelpdeskPermission(
-            fdm,
-            "ticket-user-side",
-            "read",
-            ticket_id,
-            principal_id,
-            "getTicket",
-        )
+  try {
+    await checkHelpdeskPermission(
+      fdm,
+      "ticket-user-side",
+      "read",
+      ticket_id,
+      principal_id,
+      "getTicket",
+    )
 
-        const principal_ids = Array.isArray(principal_id)
-            ? principal_id
-            : [principal_id]
+    const principal_ids = Array.isArray(principal_id) ? principal_id : [principal_id]
 
-        const found = await fdm
-            .select({
-                ...ticketColumns,
-                viewed_at: schema.ticketViews.viewed_at,
-            })
-            .from(schema.tickets)
-            .leftJoin(
-                schema.ticketViews,
-                and(
-                    eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
-                    inArray(schema.ticketViews.actor_id, principal_ids),
-                ),
-            )
-            .where(eq(schema.tickets.ticket_id, ticket_id))
-            .limit(1)
+    const found = await fdm
+      .select({
+        ...ticketColumns,
+        viewed_at: schema.ticketViews.viewed_at,
+      })
+      .from(schema.tickets)
+      .leftJoin(
+        schema.ticketViews,
+        and(
+          eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+          inArray(schema.ticketViews.actor_id, principal_ids),
+        ),
+      )
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+      .limit(1)
 
-        const tags =
-            (await getTagsForTickets(fdm, principal_id, [ticket_id])).get(
-                ticket_id,
-            ) ?? []
-        const assignees =
-            (await getAssigneesForTickets(fdm, principal_id, [ticket_id])).get(
-                ticket_id,
-            ) ?? []
+    const tags = (await getTagsForTickets(fdm, principal_id, [ticket_id])).get(ticket_id) ?? []
+    const assignees =
+      (await getAssigneesForTickets(fdm, principal_id, [ticket_id])).get(ticket_id) ?? []
 
-        return { ...found[0], tags, assignees }
-    } catch (err) {
-        throw handleError(err, "Exception for getTicket", {
-            ticket_id,
-            principal_id,
-        })
-    }
+    return { ...found[0], tags, assignees }
+  } catch (err) {
+    throw handleError(err, "Exception for getTicket", {
+      ticket_id,
+      principal_id,
+    })
+  }
 }
 
 /**
@@ -154,21 +131,21 @@ export async function getTicket(
  * @returns An array of tickets assigned to the agent that match the filters.
  */
 export async function getInbox(
-    fdm: FdmHelpdeskType,
-    agent_id: HelpdeskPrincipalId,
-    filters: TicketFilters = {},
-    sorting?: TicketSorting,
+  fdm: FdmHelpdeskType,
+  agent_id: HelpdeskPrincipalId,
+  filters: TicketFilters = {},
+  sorting?: TicketSorting,
 ) {
-    const agent_ids = Array.isArray(agent_id) ? agent_id : [agent_id]
-    return await getTickets(
-        fdm,
-        agent_id,
-        {
-            ...filters,
-            assignees: [...(filters.assignees ?? []), ...agent_ids],
-        },
-        sorting,
-    )
+  const agent_ids = Array.isArray(agent_id) ? agent_id : [agent_id]
+  return await getTickets(
+    fdm,
+    agent_id,
+    {
+      ...filters,
+      assignees: [...(filters.assignees ?? []), ...agent_ids],
+    },
+    sorting,
+  )
 }
 
 /**
@@ -184,46 +161,35 @@ export async function getInbox(
  * @returns An array of tickets matching the filters.
  */
 export async function getTickets(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
-    filters: TicketFilters = {},
-    sorting?: TicketSorting,
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  filters: TicketFilters = {},
+  sorting?: TicketSorting,
 ): Promise<Ticket[]> {
-    try {
-        const tickets = (await selectTickets(
-            fdm,
-            principal_id,
-            false,
-            filters,
-            sorting,
-        )) as Omit<Ticket, "assignees" | "tags">[]
+  try {
+    const tickets = (await selectTickets(fdm, principal_id, false, filters, sorting)) as Omit<
+      Ticket,
+      "assignees" | "tags"
+    >[]
 
-        const ticket_ids = tickets.map((ticket) => ticket.ticket_id)
+    const ticket_ids = tickets.map((ticket) => ticket.ticket_id)
 
-        const tagsByTicket = await getTagsForTickets(
-            fdm,
-            principal_id,
-            ticket_ids,
-        )
-        const assigneesByTicket = await getAssigneesForTickets(
-            fdm,
-            principal_id,
-            ticket_ids,
-        )
+    const tagsByTicket = await getTagsForTickets(fdm, principal_id, ticket_ids)
+    const assigneesByTicket = await getAssigneesForTickets(fdm, principal_id, ticket_ids)
 
-        return tickets.map((ticket) => {
-            return {
-                ...ticket,
-                tags: tagsByTicket.get(ticket.ticket_id) ?? [],
-                assignees: assigneesByTicket.get(ticket.ticket_id) ?? [],
-            }
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for getTickets", {
-            principal_id,
-            filters,
-        })
-    }
+    return tickets.map((ticket) => {
+      return {
+        ...ticket,
+        tags: tagsByTicket.get(ticket.ticket_id) ?? [],
+        assignees: assigneesByTicket.get(ticket.ticket_id) ?? [],
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for getTickets", {
+      principal_id,
+      filters,
+    })
+  }
 }
 
 /**
@@ -237,15 +203,12 @@ export async function getTickets(
  * @param principal_id The principal identifier(s) performing the query.
  */
 const ACTIVE_TICKET_STATUSES = ["open", "in_progress", "waiting_on_customer"]
-export async function getUnreadAssignedTicketCount(
-    fdm: FdmHelpdeskType,
-    principal_id: string,
-) {
-    return getTicketCount(fdm, principal_id, {
-        notViewedBy: [principal_id],
-        assignees: [principal_id],
-        statuses: ACTIVE_TICKET_STATUSES,
-    })
+export async function getUnreadAssignedTicketCount(fdm: FdmHelpdeskType, principal_id: string) {
+  return getTicketCount(fdm, principal_id, {
+    notViewedBy: [principal_id],
+    assignees: [principal_id],
+    statuses: ACTIVE_TICKET_STATUSES,
+  })
 }
 
 /**
@@ -257,15 +220,12 @@ export async function getUnreadAssignedTicketCount(
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s) performing the query.
  */
-export async function getUnreadRequestedTicketCount(
-    fdm: FdmHelpdeskType,
-    principal_id: string,
-) {
-    return getTicketCount(fdm, principal_id, {
-        notViewedBy: [principal_id],
-        requesterIds: [principal_id],
-        statuses: ACTIVE_TICKET_STATUSES,
-    })
+export async function getUnreadRequestedTicketCount(fdm: FdmHelpdeskType, principal_id: string) {
+  return getTicketCount(fdm, principal_id, {
+    notViewedBy: [principal_id],
+    requesterIds: [principal_id],
+    statuses: ACTIVE_TICKET_STATUSES,
+  })
 }
 
 /**
@@ -278,13 +238,13 @@ export async function getUnreadRequestedTicketCount(
  * @param principal_id The principal identifier(s) performing the query.
  */
 export async function getUnassignedTicketCount(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
 ) {
-    return getTicketCount(fdm, principal_id, {
-        assigned: false,
-        statuses: ACTIVE_TICKET_STATUSES,
-    })
+  return getTicketCount(fdm, principal_id, {
+    assigned: false,
+    statuses: ACTIVE_TICKET_STATUSES,
+  })
 }
 
 /**
@@ -300,22 +260,22 @@ export async function getUnassignedTicketCount(
  * @returns The number of matching tickets.
  */
 export async function getTicketCount(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
-    filters: TicketFilters = {},
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  filters: TicketFilters = {},
 ): Promise<number> {
-    try {
-        return (
-            (await selectTickets(fdm, principal_id, true, filters))[0] as {
-                count: number
-            }
-        ).count
-    } catch (err) {
-        throw handleError(err, "Exception for getTicketCount", {
-            principal_id,
-            filters,
-        })
-    }
+  try {
+    return (
+      (await selectTickets(fdm, principal_id, true, filters))[0] as {
+        count: number
+      }
+    ).count
+  } catch (err) {
+    throw handleError(err, "Exception for getTicketCount", {
+      principal_id,
+      filters,
+    })
+  }
 }
 
 /**
@@ -331,76 +291,69 @@ export async function getTicketCount(
  * @param sorting Sorting strategy to use.
  */
 async function selectTickets(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
-    selectCount: boolean,
-    filters: TicketFilters = {},
-    sorting: TicketSorting = "created",
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  selectCount: boolean,
+  filters: TicketFilters = {},
+  sorting: TicketSorting = "created",
 ) {
-    const principal_ids = Array.isArray(principal_id)
-        ? principal_id
-        : [principal_id]
+  const principal_ids = Array.isArray(principal_id) ? principal_id : [principal_id]
 
-    const helpdeskReadPermission = await getHelpdeskPermission(
-        fdm,
-        "helpdesk",
-        "read",
-        "",
-        principal_id,
-    )
+  const helpdeskReadPermission = await getHelpdeskPermission(
+    fdm,
+    "helpdesk",
+    "read",
+    "",
+    principal_id,
+  )
 
-    // Override user filter if they should only be able to see their own tickets
-    const requesterIds = !helpdeskReadPermission
-        ? principal_ids
-        : filters.requesterIds
+  // Override user filter if they should only be able to see their own tickets
+  const requesterIds = !helpdeskReadPermission ? principal_ids : filters.requesterIds
 
-    const whereClause = getTicketWhereClause(fdm, { ...filters, requesterIds })
+  const whereClause = getTicketWhereClause(fdm, { ...filters, requesterIds })
 
-    const isFilteringText =
-        typeof filters.text === "string" && filters.text.trim().length > 0
+  const isFilteringText = typeof filters.text === "string" && filters.text.trim().length > 0
 
-    if (selectCount) {
-        let query = fdm
-            .select({
-                count: sql<number>`cast(count(distinct ${schema.tickets.ticket_id}) as integer)`,
-            })
-            .from(schema.tickets)
-            .leftJoin(
-                schema.ticketViews,
-                and(
-                    eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
-                    inArray(schema.ticketViews.actor_id, principal_ids),
-                ),
-            )
+  if (selectCount) {
+    let query = fdm
+      .select({
+        count: sql<number>`cast(count(distinct ${schema.tickets.ticket_id}) as integer)`,
+      })
+      .from(schema.tickets)
+      .leftJoin(
+        schema.ticketViews,
+        and(
+          eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+          inArray(schema.ticketViews.actor_id, principal_ids),
+        ),
+      )
 
-        if (isFilteringText) {
-            query = query.leftJoin(
-                schema.messages,
-                and(
-                    eq(schema.messages.ticket_id, schema.tickets.ticket_id),
-                    helpdeskReadPermission
-                        ? undefined
-                        : not(schema.messages.is_internal),
-                ),
-            )
-        }
-
-        return await query.where(whereClause)
+    if (isFilteringText) {
+      query = query.leftJoin(
+        schema.messages,
+        and(
+          eq(schema.messages.ticket_id, schema.tickets.ticket_id),
+          helpdeskReadPermission ? undefined : not(schema.messages.is_internal),
+        ),
+      )
     }
 
-    // If actually returning tickets, ensure either priority, text relevance, or creation date ordering
-    const priorityRankQuery =
-        sorting === "priority"
-            ? sql<number>`CASE
+    return await query.where(whereClause)
+  }
+
+  // If actually returning tickets, ensure either priority, text relevance, or creation date ordering
+  const priorityRankQuery =
+    sorting === "priority"
+      ? sql<number>`CASE
     WHEN ${schema.tickets.priority} = 'low' THEN -2
     WHEN ${schema.tickets.priority} = 'normal' THEN -1
     WHEN ${schema.tickets.priority} = 'high' THEN 1
     WHEN ${schema.tickets.priority} = 'urgent' THEN 2
     ELSE 0 END`
-            : undefined
-    const textRelevanceQuery =
-        sorting === "text_relevance" && isFilteringText
-            ? sql<number>`GREATEST(
+      : undefined
+  const textRelevanceQuery =
+    sorting === "text_relevance" && isFilteringText
+      ? sql<number>`GREATEST(
                 ts_rank(
                     setweight(to_tsvector('dutch', ${schema.tickets.ticket_ref} || ' ' || coalesce(${schema.tickets.subject}, '')), 'A'),
                     websearch_to_tsquery('dutch', ${filters.text})
@@ -410,75 +363,71 @@ async function selectTickets(
                     websearch_to_tsquery('dutch', ${filters.text})
                 ))
             )`
-            : undefined
+      : undefined
 
-    let query = fdm
-        .select({
-            ...ticketColumns,
-            viewed_at: max(schema.ticketViews.viewed_at),
-            // Select columns necessary for the ordering
-            ...(priorityRankQuery ? { priority_rank: priorityRankQuery } : {}),
-            ...(textRelevanceQuery
-                ? { text_relevance: textRelevanceQuery }
-                : {}),
-        })
-        .from(schema.tickets)
-        // TODO: check if each agent has viewed, not only one of them
-        .leftJoin(
-            schema.ticketViews,
-            and(
-                eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
-                inArray(schema.ticketViews.actor_id, principal_ids),
-            ),
-        )
-
-    if (isFilteringText) {
-        query = query.leftJoin(
-            schema.messages,
-            and(
-                eq(schema.messages.ticket_id, schema.tickets.ticket_id),
-                helpdeskReadPermission
-                    ? undefined
-                    : not(schema.messages.is_internal),
-            ),
-        )
-    }
-
-    query = query
-        .where(whereClause)
-        .groupBy(schema.tickets.ticket_id)
-        .orderBy((t) => {
-            if (sorting === "priority" && t.priority_rank) {
-                return [desc(t.priority_rank), desc(t.created)]
-            }
-
-            if (sorting === "text_relevance" && t.text_relevance) {
-                return [desc(t.text_relevance as SQL<number>), desc(t.created)]
-            }
-
-            return [desc(t.created)]
-        }) as typeof query
-
-    if (filters.pageOffset) {
-        query = query.offset(filters.pageOffset) as typeof query
-    }
-
-    if (filters.pageLimit) {
-        query = query.limit(filters.pageLimit) as typeof query
-    }
-
-    const tickets = await query
-
-    // Pick the necessary fields before returning
-    return tickets.map((ticket) => {
-        const { priority_rank, text_relevance, ...baseTicket } = ticket
-        return baseTicket
+  let query = fdm
+    .select({
+      ...ticketColumns,
+      viewed_at: max(schema.ticketViews.viewed_at),
+      // Select columns necessary for the ordering
+      ...(priorityRankQuery ? { priority_rank: priorityRankQuery } : {}),
+      ...(textRelevanceQuery ? { text_relevance: textRelevanceQuery } : {}),
     })
+    .from(schema.tickets)
+    // TODO: check if each agent has viewed, not only one of them
+    .leftJoin(
+      schema.ticketViews,
+      and(
+        eq(schema.ticketViews.ticket_id, schema.tickets.ticket_id),
+        inArray(schema.ticketViews.actor_id, principal_ids),
+      ),
+    )
+
+  if (isFilteringText) {
+    query = query.leftJoin(
+      schema.messages,
+      and(
+        eq(schema.messages.ticket_id, schema.tickets.ticket_id),
+        helpdeskReadPermission ? undefined : not(schema.messages.is_internal),
+      ),
+    )
+  }
+
+  query = query
+    .where(whereClause)
+    .groupBy(schema.tickets.ticket_id)
+    .orderBy((t) => {
+      if (sorting === "priority" && t.priority_rank) {
+        return [desc(t.priority_rank), desc(t.created)]
+      }
+
+      if (sorting === "text_relevance" && t.text_relevance) {
+        return [desc(t.text_relevance as SQL<number>), desc(t.created)]
+      }
+
+      return [desc(t.created)]
+    }) as typeof query
+
+  if (filters.pageOffset) {
+    query = query.offset(filters.pageOffset) as typeof query
+  }
+
+  if (filters.pageLimit) {
+    query = query.limit(filters.pageLimit) as typeof query
+  }
+
+  const tickets = await query
+
+  // Pick the necessary fields before returning
+  return tickets.map((ticket) => {
+    const { priority_rank: _priority_rank, text_relevance: _text_relevance, ...baseTicket } = ticket
+    return baseTicket
+  })
 }
 
 type CreateTicketOptions = {
-    priority?: string
-    context?: { b_id_farm?: string | null }
+  priority?: string
+  context?: { b_id_farm?: string | null }
 }
 
 /**
@@ -490,40 +439,32 @@ type CreateTicketOptions = {
  * @returns the subject line
  */
 export function getDefaultSubjectLine(body: string) {
-    const MIN_SUBJECT_LENGTH = 20
-    const MAX_SUBJECT_LENGTH = 100
-    let subject = ""
-    let bodyCurrentIndex = 0
-    const SPACES = " \n\r\t".split("")
-    while (true) {
-        const bodyNextIndex = Math.min(
-            body.length,
-            ...SPACES.map((s) => body.indexOf(s, bodyCurrentIndex)).filter(
-                (x) => x !== -1,
-            ),
-        )
-        const word = ` ${body.slice(bodyCurrentIndex, bodyNextIndex)}`
-        if (subject.length + word.length <= MAX_SUBJECT_LENGTH + 1) {
-            subject += word
-        } else {
-            if (subject.length < MIN_SUBJECT_LENGTH) {
-                subject += word.slice(
-                    0,
-                    MIN_SUBJECT_LENGTH - subject.length + 1,
-                )
-            }
-            break
-        }
-        bodyCurrentIndex = bodyNextIndex + 1
-        while (
-            bodyCurrentIndex < body.length &&
-            SPACES.includes(body[bodyCurrentIndex])
-        ) {
-            bodyCurrentIndex++
-        }
+  const MIN_SUBJECT_LENGTH = 20
+  const MAX_SUBJECT_LENGTH = 100
+  let subject = ""
+  let bodyCurrentIndex = 0
+  const SPACES = " \n\r\t".split("")
+  while (true) {
+    const bodyNextIndex = Math.min(
+      body.length,
+      ...SPACES.map((s) => body.indexOf(s, bodyCurrentIndex)).filter((x) => x !== -1),
+    )
+    const word = ` ${body.slice(bodyCurrentIndex, bodyNextIndex)}`
+    if (subject.length + word.length <= MAX_SUBJECT_LENGTH + 1) {
+      subject += word
+    } else {
+      if (subject.length < MIN_SUBJECT_LENGTH) {
+        subject += word.slice(0, MIN_SUBJECT_LENGTH - subject.length + 1)
+      }
+      break
     }
+    bodyCurrentIndex = bodyNextIndex + 1
+    while (bodyCurrentIndex < body.length && SPACES.includes(body[bodyCurrentIndex])) {
+      bodyCurrentIndex++
+    }
+  }
 
-    return subject.trim()
+  return subject.trim()
 }
 
 /**
@@ -538,47 +479,47 @@ export function getDefaultSubjectLine(body: string) {
  * @returns The `ticket_id` of the newly created ticket.
  */
 export async function createTicket(
-    fdm: FdmHelpdeskType,
-    requester_id: schema.MessageTypeInsert["sender_id"],
-    body: schema.MessageTypeInsert["body"],
-    options?: CreateTicketOptions,
+  fdm: FdmHelpdeskType,
+  requester_id: schema.MessageTypeInsert["sender_id"],
+  body: schema.MessageTypeInsert["body"],
+  options?: CreateTicketOptions,
 ): Promise<schema.TicketTypeSelect["ticket_id"]> {
-    try {
-        const ticket_id = createId()
-        const message_id = createId()
+  try {
+    const ticket_id = createId()
+    const message_id = createId()
 
-        return await fdm.transaction(async (tx) => {
-            const ticket_ref = await createTicketRefWithRetry(tx)
-            const sanitizedBody = escapeHTML(body)
+    return await fdm.transaction(async (tx) => {
+      const ticket_ref = await createTicketRefWithRetry(tx)
+      const sanitizedBody = escapeHTML(body)
 
-            await tx.insert(schema.tickets).values([
-                {
-                    ticket_id: ticket_id,
-                    ticket_ref: ticket_ref,
-                    requester_id: requester_id,
-                    subject: getDefaultSubjectLine(sanitizedBody),
-                    channel: "web",
-                    priority: options?.priority,
-                    context_farm_id: options?.context?.b_id_farm,
-                },
-            ])
+      await tx.insert(schema.tickets).values([
+        {
+          ticket_id: ticket_id,
+          ticket_ref: ticket_ref,
+          requester_id: requester_id,
+          subject: getDefaultSubjectLine(sanitizedBody),
+          channel: "web",
+          priority: options?.priority,
+          context_farm_id: options?.context?.b_id_farm,
+        },
+      ])
 
-            await tx.insert(schema.messages).values({
-                ticket_id: ticket_id,
-                sender_id: requester_id,
-                message_id: message_id,
-                sender_type: "user",
-                body: sanitizedBody,
-            })
+      await tx.insert(schema.messages).values({
+        ticket_id: ticket_id,
+        sender_id: requester_id,
+        message_id: message_id,
+        sender_type: "user",
+        body: sanitizedBody,
+      })
 
-            return ticket_id
-        })
-    } catch (e) {
-        throw handleError(e, "Exception for createTicket", {
-            ...options,
-            requester_id,
-        })
-    }
+      return ticket_id
+    })
+  } catch (e) {
+    throw handleError(e, "Exception for createTicket", {
+      ...options,
+      requester_id,
+    })
+  }
 }
 
 /**
@@ -592,26 +533,22 @@ export async function createTicket(
  * @param priority The new priority.
  */
 export async function updateTicketSubjectAndPriorityUnchecked(
-    fdm: FdmHelpdeskType,
-    ticket_id: schema.TicketTypeSelect["ticket_id"],
-    subject?: string,
-    priority?: string,
+  fdm: FdmHelpdeskType,
+  ticket_id: schema.TicketTypeSelect["ticket_id"],
+  subject?: string,
+  priority?: string,
 ) {
-    try {
-        await fdm
-            .update(schema.tickets)
-            .set({ subject: subject, priority: priority, updated: sql`now()` })
-            .where(eq(schema.tickets.ticket_id, ticket_id))
-    } catch (e) {
-        throw handleError(
-            e,
-            "Exception for updateTicketSubjectAndPriorityUnchecked",
-            {
-                ticket_id,
-                priority,
-            },
-        )
-    }
+  try {
+    await fdm
+      .update(schema.tickets)
+      .set({ subject: subject, priority: priority, updated: sql`now()` })
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+  } catch (e) {
+    throw handleError(e, "Exception for updateTicketSubjectAndPriorityUnchecked", {
+      ticket_id,
+      priority,
+    })
+  }
 }
 
 /**
@@ -624,31 +561,31 @@ export async function updateTicketSubjectAndPriorityUnchecked(
  * @param subject The new ticket subject.
  */
 export async function updateTicketSubject(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
-    ticket_id: schema.TicketTypeSelect["ticket_id"],
-    subject?: string,
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  ticket_id: schema.TicketTypeSelect["ticket_id"],
+  subject?: string,
 ) {
-    try {
-        await checkHelpdeskPermission(
-            fdm,
-            "ticket-agent-side",
-            "write",
-            ticket_id,
-            principal_id,
-            "updateTicketPriority",
-        )
+  try {
+    await checkHelpdeskPermission(
+      fdm,
+      "ticket-agent-side",
+      "write",
+      ticket_id,
+      principal_id,
+      "updateTicketPriority",
+    )
 
-        await fdm
-            .update(schema.tickets)
-            .set({ subject: subject, updated: sql`now()` })
-            .where(eq(schema.tickets.ticket_id, ticket_id))
-    } catch (e) {
-        throw handleError(e, "Exception for updateTicketSubject", {
-            principal_id,
-            ticket_id,
-        })
-    }
+    await fdm
+      .update(schema.tickets)
+      .set({ subject: subject, updated: sql`now()` })
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+  } catch (e) {
+    throw handleError(e, "Exception for updateTicketSubject", {
+      principal_id,
+      ticket_id,
+    })
+  }
 }
 
 /**
@@ -661,47 +598,41 @@ export async function updateTicketSubject(
  * @param priority The new priority.
  */
 export async function updateTicketPriority(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
-    ticket_id: schema.TicketTypeSelect["ticket_id"],
-    priority?: string,
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  ticket_id: schema.TicketTypeSelect["ticket_id"],
+  priority?: string,
 ) {
-    try {
-        await checkHelpdeskPermission(
-            fdm,
-            "ticket-agent-side",
-            "write",
-            ticket_id,
-            principal_id,
-            "updateTicketPriority",
-        )
+  try {
+    await checkHelpdeskPermission(
+      fdm,
+      "ticket-agent-side",
+      "write",
+      ticket_id,
+      principal_id,
+      "updateTicketPriority",
+    )
 
-        await fdm
-            .update(schema.tickets)
-            .set({ priority: priority, updated: sql`now()` })
-            .where(eq(schema.tickets.ticket_id, ticket_id))
-    } catch (e) {
-        throw handleError(e, "Exception for updateTicketPriority", {
-            principal_id,
-            ticket_id,
-            priority,
-        })
-    }
+    await fdm
+      .update(schema.tickets)
+      .set({ priority: priority, updated: sql`now()` })
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+  } catch (e) {
+    throw handleError(e, "Exception for updateTicketPriority", {
+      principal_id,
+      ticket_id,
+      priority,
+    })
+  }
 }
 
 const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
-    open: [
-        "in_progress",
-        "pending",
-        "waiting_on_customer",
-        "resolved",
-        "closed",
-    ],
-    in_progress: ["pending", "waiting_on_customer", "resolved", "closed"],
-    pending: ["in_progress", "waiting_on_customer", "resolved", "closed"],
-    waiting_on_customer: ["in_progress", "resolved", "closed"],
-    resolved: ["closed", "open"], // "open" = reopen
-    closed: ["open"], // "open" = reopen
+  open: ["in_progress", "pending", "waiting_on_customer", "resolved", "closed"],
+  in_progress: ["pending", "waiting_on_customer", "resolved", "closed"],
+  pending: ["in_progress", "waiting_on_customer", "resolved", "closed"],
+  waiting_on_customer: ["in_progress", "resolved", "closed"],
+  resolved: ["closed", "open"], // "open" = reopen
+  closed: ["open"], // "open" = reopen
 }
 
 /**
@@ -712,11 +643,8 @@ const ALLOWED_TICKET_STATUS_TRANSITIONS: Record<string, string[]> = {
  * @param to Desired next ticket status.
  * @returns `true` if the transition is allowed, `false` otherwise.
  */
-export function validateTicketStatusTransition(
-    from: string,
-    to: string,
-): boolean {
-    return ALLOWED_TICKET_STATUS_TRANSITIONS[from]?.includes(to) ?? false
+export function validateTicketStatusTransition(from: string, to: string): boolean {
+  return ALLOWED_TICKET_STATUS_TRANSITIONS[from]?.includes(to) ?? false
 }
 
 /**
@@ -730,44 +658,42 @@ export function validateTicketStatusTransition(
  * @param status The new status to transition to.
  */
 export async function updateTicketStatus(
-    fdm: FdmHelpdeskType,
-    principal_id: HelpdeskPrincipalId,
-    ticket_id: schema.TicketTypeSelect["ticket_id"],
-    status: schema.TicketTypeSelect["status"],
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  ticket_id: schema.TicketTypeSelect["ticket_id"],
+  status: schema.TicketTypeSelect["status"],
 ) {
-    try {
-        await checkHelpdeskPermission(
-            fdm,
-            "ticket-agent-side",
-            "write",
-            ticket_id,
-            principal_id,
-            "updateTicketStatus",
-        )
+  try {
+    await checkHelpdeskPermission(
+      fdm,
+      "ticket-agent-side",
+      "write",
+      ticket_id,
+      principal_id,
+      "updateTicketStatus",
+    )
 
-        const ticket = await getTicket(fdm, principal_id, ticket_id)
+    const ticket = await getTicket(fdm, principal_id, ticket_id)
 
-        if (!validateTicketStatusTransition(ticket.status, status)) {
-            throw new Error(
-                `Invalid status transition: ${ticket.status} → ${status}`,
-            )
-        }
-
-        await fdm
-            .update(schema.tickets)
-            .set({
-                status: status,
-                updated: sql`now()`,
-                resolved_at: status === "resolved" ? sql`now()` : undefined,
-                closed_at:
-                    status === "closed"
-                        ? sql`CASE WHEN ${isNull(schema.tickets.closed_at)} THEN now() ELSE ${schema.tickets.closed_at} END`
-                        : null,
-            })
-            .where(eq(schema.tickets.ticket_id, ticket_id))
-    } catch (err) {
-        throw handleError(err, "Exception for updateTicketStatus")
+    if (!validateTicketStatusTransition(ticket.status, status)) {
+      throw new Error(`Invalid status transition: ${ticket.status} → ${status}`)
     }
+
+    await fdm
+      .update(schema.tickets)
+      .set({
+        status: status,
+        updated: sql`now()`,
+        resolved_at: status === "resolved" ? sql`now()` : undefined,
+        closed_at:
+          status === "closed"
+            ? sql`CASE WHEN ${isNull(schema.tickets.closed_at)} THEN now() ELSE ${schema.tickets.closed_at} END`
+            : null,
+      })
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+  } catch (err) {
+    throw handleError(err, "Exception for updateTicketStatus")
+  }
 }
 
 /**
@@ -780,37 +706,34 @@ export async function updateTicketStatus(
  * @param ticket_id ID of the ticket to mark as viewed.
  */
 export async function markTicketAsViewed(
-    fdm: FdmHelpdeskType,
-    actor_id: schema.TicketViewTypeInsert["actor_id"],
-    ticket_id: schema.TicketViewTypeInsert["ticket_id"],
+  fdm: FdmHelpdeskType,
+  actor_id: schema.TicketViewTypeInsert["actor_id"],
+  ticket_id: schema.TicketViewTypeInsert["ticket_id"],
 ) {
-    try {
-        await checkHelpdeskPermission(
-            fdm,
-            "ticket-user-side",
-            "read",
-            ticket_id,
-            actor_id,
-            "markTicketAsViewed",
-        )
+  try {
+    await checkHelpdeskPermission(
+      fdm,
+      "ticket-user-side",
+      "read",
+      ticket_id,
+      actor_id,
+      "markTicketAsViewed",
+    )
 
-        await fdm
-            .insert(schema.ticketViews)
-            .values({
-                ticket_id: ticket_id,
-                actor_id: actor_id,
-                viewed_at: sql`now()`,
-            })
-            .onConflictDoUpdate({
-                target: [
-                    schema.ticketViews.ticket_id,
-                    schema.ticketViews.actor_id,
-                ],
-                set: { viewed_at: sql`now()` },
-            })
-    } catch (err) {
-        throw handleError(err, "Exception for markTicketAsViewed")
-    }
+    await fdm
+      .insert(schema.ticketViews)
+      .values({
+        ticket_id: ticket_id,
+        actor_id: actor_id,
+        viewed_at: sql`now()`,
+      })
+      .onConflictDoUpdate({
+        target: [schema.ticketViews.ticket_id, schema.ticketViews.actor_id],
+        set: { viewed_at: sql`now()` },
+      })
+  } catch (err) {
+    throw handleError(err, "Exception for markTicketAsViewed")
+  }
 }
 
 /**
@@ -822,14 +745,12 @@ export async function markTicketAsViewed(
  * @param ticket_id ID of the ticket to mark as not viewed.
  */
 export async function markTicketAsNotViewedByAll(
-    fdm: FdmHelpdeskType,
-    ticket_id: schema.TicketViewTypeSelect["ticket_id"],
+  fdm: FdmHelpdeskType,
+  ticket_id: schema.TicketViewTypeSelect["ticket_id"],
 ) {
-    try {
-        await fdm
-            .delete(schema.ticketViews)
-            .where(eq(schema.ticketViews.ticket_id, ticket_id))
-    } catch (err) {
-        throw handleError(err, "Exception for markTicketAsNotViewedByAll")
-    }
+  try {
+    await fdm.delete(schema.ticketViews).where(eq(schema.ticketViews.ticket_id, ticket_id))
+  } catch (err) {
+    throw handleError(err, "Exception for markTicketAsNotViewedByAll")
+  }
 }

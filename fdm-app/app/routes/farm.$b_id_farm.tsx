@@ -7,13 +7,13 @@ import { fdm } from "~/lib/fdm.server"
 
 // Meta
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Bedrijf | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: "Bekijk en bewerk de gegevens van je bedrijf.",
-        },
-    ]
+  return [
+    { title: `Bedrijf | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: "Bekijk en bewerk de gegevens van je bedrijf.",
+    },
+  ]
 }
 
 /**
@@ -28,31 +28,29 @@ export const meta: MetaFunction = () => {
  * @throws {Response} If the farm ID is not provided.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        const farm =
-            b_id_farm !== "undefined"
-                ? await getFarm(fdm, session.principal_id, b_id_farm)
-                : undefined
-
-        // Return the farm ID and session info
-        return {
-            farmId: b_id_farm,
-            farm: farm,
-            session,
-        }
-    } catch (error) {
-        throw handleActionError(error)
+  try {
+    // Get the farm id
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw data("Farm ID is required", {
+        status: 400,
+        statusText: "Farm ID is required",
+      })
     }
+
+    // Get the session
+    const session = await getSession(request)
+
+    const farm =
+      b_id_farm !== "undefined" ? await getFarm(fdm, session.principal_id, b_id_farm) : undefined
+
+    // Return the farm ID and session info
+    return {
+      farmId: b_id_farm,
+      farm: farm,
+      session,
+    }
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }

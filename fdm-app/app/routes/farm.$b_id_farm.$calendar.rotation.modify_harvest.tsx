@@ -1,14 +1,14 @@
 import {
-    checkPermission,
-    getCultivation,
-    getCultivationsFromCatalogue,
-    getDefaultsForHarvestParameters,
-    getHarvest,
-    getParametersForHarvestCat,
-    type HarvestableAnalysis,
-    type HarvestParameters,
-    removeHarvest,
-    updateHarvest,
+  checkPermission,
+  getCultivation,
+  getCultivationsFromCatalogue,
+  getDefaultsForHarvestParameters,
+  getHarvest,
+  getParametersForHarvestCat,
+  type HarvestableAnalysis,
+  type HarvestParameters,
+  removeHarvest,
+  updateHarvest,
 } from "@nmi-agro/fdm-core"
 import { data, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
@@ -16,8 +16,8 @@ import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { FormSchema } from "~/components/blocks/harvest/schema"
 import {
-    getEffectiveHarvestable,
-    getHarvestCapitalizedTerm,
+  getEffectiveHarvestable,
+  getHarvestCapitalizedTerm,
 } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -28,37 +28,27 @@ import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_h
 
 // Meta
 export const meta: Route.MetaFunction = ({ loaderData }) => {
-    const term = getHarvestCapitalizedTerm(
-        loaderData?.cultivation?.b_lu_croprotation,
-    )
-    return [
-        { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: `Bekijk en bewerk de ${term?.toLowerCase()} van je gewas.`,
-        },
-    ]
+  const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+  return [
+    { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: `Bekijk en bewerk de ${term?.toLowerCase()} van je gewas.`,
+    },
+  ]
 }
 
 async function getModifiableHarvestingIds(
-    url: URL,
-    principal_id: string,
-    allHarvestingIds: string[],
+  url: URL,
+  principal_id: string,
+  allHarvestingIds: string[],
 ) {
-    const harvestingWritePermissions = await Promise.all(
-        allHarvestingIds.map((id) =>
-            checkPermission(
-                fdm,
-                "harvesting",
-                "write",
-                id,
-                principal_id,
-                url.pathname,
-                false,
-            ),
-        ),
-    )
-    return allHarvestingIds.filter((_, i) => harvestingWritePermissions[i])
+  const harvestingWritePermissions = await Promise.all(
+    allHarvestingIds.map((id) =>
+      checkPermission(fdm, "harvesting", "write", id, principal_id, url.pathname, false),
+    ),
+  )
+  return allHarvestingIds.filter((_, i) => harvestingWritePermissions[i])
 }
 
 /**
@@ -73,139 +63,120 @@ async function getModifiableHarvestingIds(
  * @throws {Response} If any required URL parameter is missing or if the specified cultivation is not found.
  */
 export async function loader({ request, params }: Route.LoaderArgs) {
-    try {
-        const url = new URL(request.url)
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
-        }
-
-        const b_id_harvesting = url.searchParams.get("harvestingIds")
-        const allHarvestingIds = b_id_harvesting
-            ?.split(",")
-            .filter((id) => id.length)
-        if (!allHarvestingIds || allHarvestingIds.length === 0) {
-            throw data("Harvesting IDs are required", {
-                status: 400,
-                statusText: "Harvesting IDs are required",
-            })
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        const modifiableHarvestingIds = await getModifiableHarvestingIds(
-            url,
-            session.principal_id,
-            allHarvestingIds,
-        )
-        const harvestingIds = modifiableHarvestingIds.length
-            ? modifiableHarvestingIds
-            : allHarvestingIds
-        // Get selected harvest
-        const harvests = await Promise.all(
-            harvestingIds.map((b_id_harvesting) =>
-                getHarvest(fdm, session.principal_id, b_id_harvesting),
-            ),
-        )
-
-        // Get details of cultivation
-        // TODO: harvests for different catalogue cultivations might be passed
-        const cultivation = await getCultivation(
-            fdm,
-            session.principal_id,
-            harvests[0].b_lu,
-        )
-        if (!cultivation) {
-            throw data("Cultivation is not found", {
-                status: 404,
-                statusText: "Cultivation is not found",
-            })
-        }
-
-        let exampleHarvestableAnalysis:
-            | Partial<HarvestableAnalysis>
-            | undefined = harvests.find(
-            (harvest) => harvest.harvestable.harvestable_analyses.length,
-        )?.harvestable.harvestable_analyses[0]
-
-        if (!exampleHarvestableAnalysis) {
-            exampleHarvestableAnalysis = getDefaultsForHarvestParameters(
-                cultivation.b_lu_catalogue,
-                await getCultivationsFromCatalogue(
-                    fdm,
-                    session.principal_id,
-                    b_id_farm,
-                ),
-            )
-        }
-
-        const harvestParameters = getParametersForHarvestCat(
-            cultivation.b_lu_harvestcat,
-        )
-
-        // Figure out the harvest date that is the same between all harvests
-        let b_lu_harvest_date = harvests[0].b_lu_harvest_date
-        if (
-            harvests.find(
-                (harvest) =>
-                    harvest?.b_lu_harvest_date?.getTime() !==
-                    b_lu_harvest_date?.getTime(),
-            )
-        ) {
-            b_lu_harvest_date = null
-        }
-
-        // Figure out harvest parameters that are the same between all these harvestings
-        let initialHarvestableAnalysis: Partial<HarvestableAnalysis> = {}
-
-        if (
-            !harvests.find(
-                (harvest) =>
-                    harvest.harvestable.harvestable_analyses.length === 0,
-            ) &&
-            Object.keys(exampleHarvestableAnalysis).length > 0
-        ) {
-            initialHarvestableAnalysis = {
-                ...exampleHarvestableAnalysis,
-            }
-
-            for (const harvesting of harvests) {
-                const analysis = harvesting.harvestable.harvestable_analyses[0]
-                for (const key of Object.keys(
-                    initialHarvestableAnalysis,
-                ) as (keyof HarvestableAnalysis)[]) {
-                    if (analysis[key] !== initialHarvestableAnalysis[key]) {
-                        delete initialHarvestableAnalysis[key]
-                    }
-                }
-            }
-        }
-
-        const effectiveHarvestable = getEffectiveHarvestable(
-            cultivation.b_lu_harvestable,
-            cultivation.b_lu_croprotation,
-        )
-
-        // Return user information from loader
-        return {
-            cultivation: cultivation,
-            b_lu_harvest_date: b_lu_harvest_date,
-            example_b_lu_harvest_date: harvests[0].b_lu_harvest_date,
-            exampleHarvestableAnalysis: exampleHarvestableAnalysis,
-            initialHarvestableAnalysis: initialHarvestableAnalysis,
-            harvestParameters: harvestParameters,
-            harvestingWritePermission: modifiableHarvestingIds.length > 0,
-            partial: modifiableHarvestingIds.length > 1,
-            effectiveHarvestable,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+  try {
+    const url = new URL(request.url)
+    // Get the farm id
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw data("Farm ID is required", {
+        status: 400,
+        statusText: "Farm ID is required",
+      })
     }
+
+    const b_id_harvesting = url.searchParams.get("harvestingIds")
+    const allHarvestingIds = b_id_harvesting?.split(",").filter((id) => id.length)
+    if (!allHarvestingIds || allHarvestingIds.length === 0) {
+      throw data("Harvesting IDs are required", {
+        status: 400,
+        statusText: "Harvesting IDs are required",
+      })
+    }
+
+    // Get the session
+    const session = await getSession(request)
+
+    const modifiableHarvestingIds = await getModifiableHarvestingIds(
+      url,
+      session.principal_id,
+      allHarvestingIds,
+    )
+    const harvestingIds = modifiableHarvestingIds.length
+      ? modifiableHarvestingIds
+      : allHarvestingIds
+    // Get selected harvest
+    const harvests = await Promise.all(
+      harvestingIds.map((b_id_harvesting) =>
+        getHarvest(fdm, session.principal_id, b_id_harvesting),
+      ),
+    )
+
+    // Get details of cultivation
+    // TODO: harvests for different catalogue cultivations might be passed
+    const cultivation = await getCultivation(fdm, session.principal_id, harvests[0].b_lu)
+    if (!cultivation) {
+      throw data("Cultivation is not found", {
+        status: 404,
+        statusText: "Cultivation is not found",
+      })
+    }
+
+    let exampleHarvestableAnalysis: Partial<HarvestableAnalysis> | undefined = harvests.find(
+      (harvest) => harvest.harvestable.harvestable_analyses.length,
+    )?.harvestable.harvestable_analyses[0]
+
+    if (!exampleHarvestableAnalysis) {
+      exampleHarvestableAnalysis = getDefaultsForHarvestParameters(
+        cultivation.b_lu_catalogue,
+        await getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
+      )
+    }
+
+    const harvestParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
+
+    // Figure out the harvest date that is the same between all harvests
+    let b_lu_harvest_date = harvests[0].b_lu_harvest_date
+    if (
+      harvests.find(
+        (harvest) => harvest?.b_lu_harvest_date?.getTime() !== b_lu_harvest_date?.getTime(),
+      )
+    ) {
+      b_lu_harvest_date = null
+    }
+
+    // Figure out harvest parameters that are the same between all these harvestings
+    let initialHarvestableAnalysis: Partial<HarvestableAnalysis> = {}
+
+    if (
+      !harvests.find((harvest) => harvest.harvestable.harvestable_analyses.length === 0) &&
+      Object.keys(exampleHarvestableAnalysis).length > 0
+    ) {
+      initialHarvestableAnalysis = {
+        ...exampleHarvestableAnalysis,
+      }
+
+      for (const harvesting of harvests) {
+        const analysis = harvesting.harvestable.harvestable_analyses[0]
+        for (const key of Object.keys(
+          initialHarvestableAnalysis,
+        ) as (keyof HarvestableAnalysis)[]) {
+          if (analysis[key] !== initialHarvestableAnalysis[key]) {
+            delete initialHarvestableAnalysis[key]
+          }
+        }
+      }
+    }
+
+    const effectiveHarvestable = getEffectiveHarvestable(
+      cultivation.b_lu_harvestable,
+      cultivation.b_lu_croprotation,
+    )
+
+    // Return user information from loader
+    return {
+      cultivation: cultivation,
+      b_lu_harvest_date: b_lu_harvest_date,
+      example_b_lu_harvest_date: harvests[0].b_lu_harvest_date,
+      exampleHarvestableAnalysis: exampleHarvestableAnalysis,
+      initialHarvestableAnalysis: initialHarvestableAnalysis,
+      harvestParameters: harvestParameters,
+      harvestingWritePermission: modifiableHarvestingIds.length > 0,
+      partial: modifiableHarvestingIds.length > 1,
+      effectiveHarvestable,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -219,46 +190,29 @@ export async function loader({ request, params }: Route.LoaderArgs) {
  * @returns The JSX element representing the harvesting editing dialog.
  */
 export default function ModifyHarvestingDialog() {
-    const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
 
-    return (
-        <HarvestFormDialog
-            harvestParameters={loaderData.harvestParameters}
-            exampleHarvestableAnalysis={loaderData.exampleHarvestableAnalysis}
-            example_b_lu_harvest_date={loaderData.example_b_lu_harvest_date}
-            b_lu_harvest_date={loaderData.b_lu_harvest_date}
-            b_lu_yield={
-                loaderData.initialHarvestableAnalysis.b_lu_yield ?? undefined
-            }
-            b_lu_yield_fresh={
-                loaderData.initialHarvestableAnalysis.b_lu_yield_fresh ??
-                undefined
-            }
-            b_lu_yield_bruto={
-                loaderData.initialHarvestableAnalysis.b_lu_yield_bruto ??
-                undefined
-            }
-            b_lu_tarra={
-                loaderData.initialHarvestableAnalysis.b_lu_tarra ?? undefined
-            }
-            b_lu_uww={
-                loaderData.initialHarvestableAnalysis.b_lu_uww ?? undefined
-            }
-            b_lu_moist={
-                loaderData.initialHarvestableAnalysis.b_lu_moist ?? undefined
-            }
-            b_lu_dm={loaderData.initialHarvestableAnalysis.b_lu_dm ?? undefined}
-            b_lu_cp={loaderData.initialHarvestableAnalysis.b_lu_cp ?? undefined}
-            b_lu_n_harvestable={
-                loaderData.initialHarvestableAnalysis.b_lu_n_harvestable ??
-                undefined
-            }
-            b_lu_harvestable={loaderData.effectiveHarvestable}
-            b_lu_start={loaderData.cultivation.b_lu_start}
-            b_lu_end={loaderData.cultivation.b_lu_end}
-            editable={loaderData.harvestingWritePermission}
-        />
-    )
+  return (
+    <HarvestFormDialog
+      harvestParameters={loaderData.harvestParameters}
+      exampleHarvestableAnalysis={loaderData.exampleHarvestableAnalysis}
+      example_b_lu_harvest_date={loaderData.example_b_lu_harvest_date}
+      b_lu_harvest_date={loaderData.b_lu_harvest_date}
+      b_lu_yield={loaderData.initialHarvestableAnalysis.b_lu_yield ?? undefined}
+      b_lu_yield_fresh={loaderData.initialHarvestableAnalysis.b_lu_yield_fresh ?? undefined}
+      b_lu_yield_bruto={loaderData.initialHarvestableAnalysis.b_lu_yield_bruto ?? undefined}
+      b_lu_tarra={loaderData.initialHarvestableAnalysis.b_lu_tarra ?? undefined}
+      b_lu_uww={loaderData.initialHarvestableAnalysis.b_lu_uww ?? undefined}
+      b_lu_moist={loaderData.initialHarvestableAnalysis.b_lu_moist ?? undefined}
+      b_lu_dm={loaderData.initialHarvestableAnalysis.b_lu_dm ?? undefined}
+      b_lu_cp={loaderData.initialHarvestableAnalysis.b_lu_cp ?? undefined}
+      b_lu_n_harvestable={loaderData.initialHarvestableAnalysis.b_lu_n_harvestable ?? undefined}
+      b_lu_harvestable={loaderData.effectiveHarvestable}
+      b_lu_start={loaderData.cultivation.b_lu_start}
+      b_lu_end={loaderData.cultivation.b_lu_end}
+      editable={loaderData.harvestingWritePermission}
+    />
+  )
 }
 
 /**
@@ -269,189 +223,144 @@ export default function ModifyHarvestingDialog() {
  * @throws {Error} When any required parameter is missing or if an error occurs during form processing.
  */
 export async function action({ request, params }: Route.ActionArgs) {
-    try {
-        const url = new URL(request.url)
-        // Get the farm ID
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw new Error("missing: b_id_farm")
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        const b_id_harvesting = url.searchParams.get("harvestingIds")
-        const allHarvestingIds = b_id_harvesting
-            ?.split(",")
-            .filter((id) => id.length)
-        if (!allHarvestingIds || allHarvestingIds.length === 0) {
-            throw data("Harvesting IDs are required", {
-                status: 400,
-                statusText: "Harvesting IDs are required",
-            })
-        }
-
-        const harvestingIds = await getModifiableHarvestingIds(
-            url,
-            session.principal_id,
-            allHarvestingIds,
-        )
-        if (harvestingIds.length === 0) {
-            throw data("Het is u niet toegestaan de oogsten te beheren.", {
-                status: 403,
-                statusText: "Het is u niet toegestaan de oogsten te beheren.",
-            })
-        }
-        // Get the action from the form
-        if (request.method === "POST") {
-            const firstHarvest = await getHarvest(
-                fdm,
-                session.principal_id,
-                harvestingIds[0],
-            )
-            // Fetch cultivation details to get b_lu_harvestcat
-            const cultivation = await getCultivation(
-                fdm,
-                session.principal_id,
-                firstHarvest.b_lu,
-            )
-            if (!cultivation) {
-                throw data("Cultivation not found", { status: 404 })
-            }
-
-            // First, validate against the full FormSchema
-            const partialFormValues = await extractFormValuesFromRequest(
-                request,
-                FormSchema,
-            )
-
-            // Get required harvest parameters for the cultivation's harvest category
-            const requiredHarvestParameters = getParametersForHarvestCat(
-                cultivation.b_lu_harvestcat,
-            )
-
-            // Filter form values to include only required parameters for updateHarvest
-            const updatedHarvestProperties: Record<string, any> = {}
-            for (const param of requiredHarvestParameters) {
-                if (partialFormValues[param] !== undefined) {
-                    updatedHarvestProperties[param] = partialFormValues[param]
-                }
-            }
-
-            await fdm.transaction((tx) =>
-                Promise.all(
-                    harvestingIds.map(async (b_id_harvesting) => {
-                        const harvest = await getHarvest(
-                            tx,
-                            session.principal_id,
-                            b_id_harvesting,
-                        )
-                        const b_lu_harvest_date =
-                            partialFormValues.b_lu_harvest_date ??
-                            harvest.b_lu_harvest_date
-                        const currentHarvestProperties: Partial<HarvestableAnalysis> =
-                            harvest.harvestable.harvestable_analyses.length
-                                ? harvest.harvestable.harvestable_analyses[0]
-                                : {}
-                        const finalHarvestProperties = {
-                            ...currentHarvestProperties,
-                            ...updatedHarvestProperties,
-                        }
-
-                        // Check if all required parameters are present
-                        const missingParameters: string[] = []
-                        for (const param of requiredHarvestParameters) {
-                            if (
-                                finalHarvestProperties[param] === undefined ||
-                                finalHarvestProperties[param] === null
-                            ) {
-                                missingParameters.push(param)
-                            }
-                        }
-
-                        if (missingParameters.length > 0) {
-                            const missingParameterLabels =
-                                missingParameters.map((param) => {
-                                    return getHarvestParameterLabel(
-                                        param as HarvestParameters[number],
-                                    )
-                                })
-                            const statusText = `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(
-                                ", ",
-                            )}`
-                            throw data(statusText, {
-                                status: 400,
-                                statusText: statusText,
-                            })
-                        }
-
-                        return updateHarvest(
-                            tx,
-                            session.principal_id,
-                            b_id_harvesting,
-                            b_lu_harvest_date,
-                            finalHarvestProperties,
-                        )
-                    }),
-                ),
-            )
-
-            const termSingular = getHarvestCapitalizedTerm(
-                cultivation.b_lu_croprotation,
-            )
-            const termPlural = getHarvestCapitalizedTerm(
-                cultivation.b_lu_croprotation,
-                true,
-            )
-            return redirectWithSuccess("..", {
-                message:
-                    harvestingIds.length > 1
-                        ? `${termPlural} zijn gewijzigd! 🎉`
-                        : `${termSingular} is gewijzigd! 🎉`,
-            })
-        }
-        if (request.method === "DELETE") {
-            const firstHarvest = await getHarvest(
-                fdm,
-                session.principal_id,
-                harvestingIds[0],
-            )
-            const cultivation = await getCultivation(
-                fdm,
-                session.principal_id,
-                firstHarvest.b_lu,
-            )
-            const termSingular = getHarvestCapitalizedTerm(
-                cultivation?.b_lu_croprotation,
-            )
-            const termPlural = getHarvestCapitalizedTerm(
-                cultivation?.b_lu_croprotation,
-                true,
-            )
-
-            await fdm.transaction((tx) =>
-                Promise.all(
-                    harvestingIds.map((b_id_harvesting) =>
-                        removeHarvest(
-                            tx,
-                            session.principal_id,
-                            b_id_harvesting,
-                        ),
-                    ),
-                ),
-            )
-            return redirectWithSuccess("..", {
-                message:
-                    harvestingIds.length > 1
-                        ? `${termPlural} zijn verwijderd! 🎉`
-                        : `${termSingular} is verwijderd! 🎉`,
-            })
-        }
-        throw data("Method not allowed", {
-            status: 405,
-            statusText: "Method Not Allowed",
-        })
-    } catch (error) {
-        throw handleActionError(error)
+  try {
+    const url = new URL(request.url)
+    // Get the farm ID
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw new Error("missing: b_id_farm")
     }
+
+    // Get the session
+    const session = await getSession(request)
+
+    const b_id_harvesting = url.searchParams.get("harvestingIds")
+    const allHarvestingIds = b_id_harvesting?.split(",").filter((id) => id.length)
+    if (!allHarvestingIds || allHarvestingIds.length === 0) {
+      throw data("Harvesting IDs are required", {
+        status: 400,
+        statusText: "Harvesting IDs are required",
+      })
+    }
+
+    const harvestingIds = await getModifiableHarvestingIds(
+      url,
+      session.principal_id,
+      allHarvestingIds,
+    )
+    if (harvestingIds.length === 0) {
+      throw data("Het is u niet toegestaan de oogsten te beheren.", {
+        status: 403,
+        statusText: "Het is u niet toegestaan de oogsten te beheren.",
+      })
+    }
+    // Get the action from the form
+    if (request.method === "POST") {
+      const firstHarvest = await getHarvest(fdm, session.principal_id, harvestingIds[0])
+      // Fetch cultivation details to get b_lu_harvestcat
+      const cultivation = await getCultivation(fdm, session.principal_id, firstHarvest.b_lu)
+      if (!cultivation) {
+        throw data("Cultivation not found", { status: 404 })
+      }
+
+      // First, validate against the full FormSchema
+      const partialFormValues = await extractFormValuesFromRequest(request, FormSchema)
+
+      // Get required harvest parameters for the cultivation's harvest category
+      const requiredHarvestParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
+
+      // Filter form values to include only required parameters for updateHarvest
+      const updatedHarvestProperties: Record<string, any> = {}
+      for (const param of requiredHarvestParameters) {
+        if (partialFormValues[param] !== undefined) {
+          updatedHarvestProperties[param] = partialFormValues[param]
+        }
+      }
+
+      await fdm.transaction((tx) =>
+        Promise.all(
+          harvestingIds.map(async (b_id_harvesting) => {
+            const harvest = await getHarvest(tx, session.principal_id, b_id_harvesting)
+            const b_lu_harvest_date =
+              partialFormValues.b_lu_harvest_date ?? harvest.b_lu_harvest_date
+            const currentHarvestProperties: Partial<HarvestableAnalysis> = harvest.harvestable
+              .harvestable_analyses.length
+              ? harvest.harvestable.harvestable_analyses[0]
+              : {}
+            const finalHarvestProperties = {
+              ...currentHarvestProperties,
+              ...updatedHarvestProperties,
+            }
+
+            // Check if all required parameters are present
+            const missingParameters: string[] = []
+            for (const param of requiredHarvestParameters) {
+              if (
+                finalHarvestProperties[param] === undefined ||
+                finalHarvestProperties[param] === null
+              ) {
+                missingParameters.push(param)
+              }
+            }
+
+            if (missingParameters.length > 0) {
+              const missingParameterLabels = missingParameters.map((param) => {
+                return getHarvestParameterLabel(param as HarvestParameters[number])
+              })
+              const statusText = `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(
+                ", ",
+              )}`
+              throw data(statusText, {
+                status: 400,
+                statusText: statusText,
+              })
+            }
+
+            return updateHarvest(
+              tx,
+              session.principal_id,
+              b_id_harvesting,
+              b_lu_harvest_date,
+              finalHarvestProperties,
+            )
+          }),
+        ),
+      )
+
+      const termSingular = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+      const termPlural = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
+      return redirectWithSuccess("..", {
+        message:
+          harvestingIds.length > 1
+            ? `${termPlural} zijn gewijzigd! 🎉`
+            : `${termSingular} is gewijzigd! 🎉`,
+      })
+    }
+    if (request.method === "DELETE") {
+      const firstHarvest = await getHarvest(fdm, session.principal_id, harvestingIds[0])
+      const cultivation = await getCultivation(fdm, session.principal_id, firstHarvest.b_lu)
+      const termSingular = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
+      const termPlural = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation, true)
+
+      await fdm.transaction((tx) =>
+        Promise.all(
+          harvestingIds.map((b_id_harvesting) =>
+            removeHarvest(tx, session.principal_id, b_id_harvesting),
+          ),
+        ),
+      )
+      return redirectWithSuccess("..", {
+        message:
+          harvestingIds.length > 1
+            ? `${termPlural} zijn verwijderd! 🎉`
+            : `${termSingular} is verwijderd! 🎉`,
+      })
+    }
+    throw data("Method not allowed", {
+      status: 405,
+      statusText: "Method Not Allowed",
+    })
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }

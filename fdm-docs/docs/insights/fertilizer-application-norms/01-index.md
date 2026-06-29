@@ -14,8 +14,8 @@ Providing these insights is relevant for farmers who need to adhere to environme
 
 The norm calculation system in `fdm-calculator` is designed to be extensible across different regions and timeframes. The internal architecture organizes logic by:
 
-* **Region:** Supporting different countries or regulatory zones (e.g., `NL` for Netherlands).
-* **Year:** Allowing for annual updates to regulations (e.g., `2025`).
+- **Region:** Supporting different countries or regulatory zones (e.g., `NL` for Netherlands).
+- **Year:** Allowing for annual updates to regulations (e.g., `2025`).
 
 This structure enables the addition of new regional rule sets or the updating of existing ones as regulations evolve, without disrupting previous implementations.
 
@@ -23,9 +23,9 @@ This structure enables the addition of new regional rule sets or the updating of
 
 The current implementation in `fdm-calculator` covers the Dutch nutrient management regulations for the year 2025. This includes the following usage norms (`gebruiksnormen`):
 
-* **[Nitrogen Usage Norm (`Stikstofgebruiksnorm`)](./nl/2025/stikstofgebruiksnorm.md):** Calculates the maximum total effective nitrogen (in kg N/ha) allowed. The calculation considers factors such as the main crop, geographical location (including `NV-gebieden`), and soil region.
-* **[Phosphate Usage Norm (`Fosfaatgebruiksnorm`)](./nl/2025/fosfaatgebruiksnorm.md):** Determines the maximum amount of phosphate (in kg P₂O₅ per hectare) allowed. This limit is based on the land use type (grassland or arable land) and the phosphate status of the soil.
-* **[Animal Manure Usage Norm (`Dierlijke Mest Gebruiksnorm`)](./nl/2025/dierlijke-mest-gebruiksnorm.md):** Specifies the maximum nitrogen from animal manure (in kg N/ha) permitted. The limit depends on the farm's derogation status and the field's location.
+- **[Nitrogen Usage Norm (`Stikstofgebruiksnorm`)](./nl/2025/stikstofgebruiksnorm.md):** Calculates the maximum total effective nitrogen (in kg N/ha) allowed. The calculation considers factors such as the main crop, geographical location (including `NV-gebieden`), and soil region.
+- **[Phosphate Usage Norm (`Fosfaatgebruiksnorm`)](./nl/2025/fosfaatgebruiksnorm.md):** Determines the maximum amount of phosphate (in kg P₂O₅ per hectare) allowed. This limit is based on the land use type (grassland or arable land) and the phosphate status of the soil.
+- **[Animal Manure Usage Norm (`Dierlijke Mest Gebruiksnorm`)](./nl/2025/dierlijke-mest-gebruiksnorm.md):** Specifies the maximum nitrogen from animal manure (in kg N/ha) permitted. The limit depends on the farm's derogation status and the field's location.
 
 For detailed logic and specific parameters of these norms, refer to their respective pages.
 

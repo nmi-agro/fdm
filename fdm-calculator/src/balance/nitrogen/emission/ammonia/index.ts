@@ -1,8 +1,8 @@
 import type {
-    CultivationDetail,
-    FertilizerDetail,
-    FieldInput,
-    NitrogenEmissionAmmonia,
+  CultivationDetail,
+  FertilizerDetail,
+  FieldInput,
+  NitrogenEmissionAmmonia,
 } from "../../types"
 import { calculateNitrogenEmissionViaAmmoniaByFertilizers } from "./fertilizers"
 import { calculateNitrogenEmissionViaAmmoniaByResidues } from "./residues"
@@ -18,33 +18,33 @@ import { calculateNitrogenEmissionViaAmmoniaByResidues } from "./residues"
  * @returns The NitrogenEmmissionAmmonia object containing the total amount of Nitrogen volatilized and the individual ammonia values.
  */
 export function calculateNitrogenEmissionViaAmmonia(
-    cultivations: FieldInput["cultivations"],
-    harvests: FieldInput["harvests"],
-    fertilizerApplications: FieldInput["fertilizerApplications"],
-    cultivationDetailsMap: Map<string, CultivationDetail>,
-    fertilizerDetailsMap: Map<string, FertilizerDetail>,
+  cultivations: FieldInput["cultivations"],
+  harvests: FieldInput["harvests"],
+  fertilizerApplications: FieldInput["fertilizerApplications"],
+  cultivationDetailsMap: Map<string, CultivationDetail>,
+  fertilizerDetailsMap: Map<string, FertilizerDetail>,
 ): NitrogenEmissionAmmonia {
-    /** Calculate the total amount of Nitrogen volatilized as Ammonia by fertilizer application */
-    const fertilizers = calculateNitrogenEmissionViaAmmoniaByFertilizers(
-        cultivations,
-        fertilizerApplications,
-        cultivationDetailsMap,
-        fertilizerDetailsMap,
-    )
+  /** Calculate the total amount of Nitrogen volatilized as Ammonia by fertilizer application */
+  const fertilizers = calculateNitrogenEmissionViaAmmoniaByFertilizers(
+    cultivations,
+    fertilizerApplications,
+    cultivationDetailsMap,
+    fertilizerDetailsMap,
+  )
 
-    /** Calculate the total amount of Nitrogen volatilized as Ammonia by crop residues */
-    const residues = calculateNitrogenEmissionViaAmmoniaByResidues(
-        cultivations,
-        harvests,
-        cultivationDetailsMap,
-    )
+  /** Calculate the total amount of Nitrogen volatilized as Ammonia by crop residues */
+  const residues = calculateNitrogenEmissionViaAmmoniaByResidues(
+    cultivations,
+    harvests,
+    cultivationDetailsMap,
+  )
 
-    const ammonia = {
-        total: fertilizers.total.add(residues.total), // Ammonia total should include fertilizers total and residues total
-        fertilizers: fertilizers,
-        residues: residues,
-        grazing: undefined, // Grazing volatilization not yet implemented
-    }
+  const ammonia = {
+    total: fertilizers.total.add(residues.total), // Ammonia total should include fertilizers total and residues total
+    fertilizers: fertilizers,
+    residues: residues,
+    grazing: undefined, // Grazing volatilization not yet implemented
+  }
 
-    return ammonia
+  return ammonia
 }

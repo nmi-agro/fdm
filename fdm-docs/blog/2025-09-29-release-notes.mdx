@@ -14,52 +14,52 @@ This post outlines the September 2025 updates of the FDM libraries: `@nmi-agro/f
 
 The FDM application receives significant updates aimed at improving usability and providing more comprehensive farm management tools.
 
-*   **New Farm Dashboard:** A new farm dashboard page offers an intuitive overview of your farm, with quick links to various applications, data pages, and essential actions.
-*   **Advanced Field Table:** A new page introduces an advanced table for farm fields, featuring robust search capabilities (by field name, cultivations, and fertilizers) and multi-selection for streamlined fertilizer application to multiple fields.
-*   **Bulk Fertilizer Application:** A dedicated new page allows users to apply fertilizer to multiple fields simultaneously, greatly enhancing efficiency.
-*   **Productive Fields Toggle:** A new toggle enables users to filter and display either all fields or only productive fields on various list pages, providing more focused views.
-*   **Improved Farm Creation Wizard:**
-    *   Cultivations in the `bouwplan` are now sorted by descending total area, offering a more logical presentation.
-*   **Enhanced Organization Invitations:** Organization invitation emails now include direct accept and reject buttons, simplifying the invitation management process for invitees.
-*   **Streamlined Custom Fertilizer Creation:** From the fertilizer application form, users can now easily navigate to a new page to add custom fertilizers. Upon successful submission, they are automatically redirected back to the application form.
-*   **Timezone-Aware Magic Links:** The timestamp in magic link emails now intelligently displays the user's local timezone, where determinable, for improved clarity.
-*   **Farm Deletion Feature:** Users can now delete a farm directly from the farm settings page, providing full control over their farm data.
-*   **Map Centering on Field Selection:** When reviewing newly created fields or viewing individual fields on the map, the map now automatically centers on the selected field, enhancing navigation and focus.
-*   **Improved Error Handling in Norms:** In norms calculations, fields with errors now display specific error messages on their respective cards, alongside a general page-level error. Successfully calculated fields continue to render, ensuring partial results are still visible.
+- **New Farm Dashboard:** A new farm dashboard page offers an intuitive overview of your farm, with quick links to various applications, data pages, and essential actions.
+- **Advanced Field Table:** A new page introduces an advanced table for farm fields, featuring robust search capabilities (by field name, cultivations, and fertilizers) and multi-selection for streamlined fertilizer application to multiple fields.
+- **Bulk Fertilizer Application:** A dedicated new page allows users to apply fertilizer to multiple fields simultaneously, greatly enhancing efficiency.
+- **Productive Fields Toggle:** A new toggle enables users to filter and display either all fields or only productive fields on various list pages, providing more focused views.
+- **Improved Farm Creation Wizard:**
+  - Cultivations in the `bouwplan` are now sorted by descending total area, offering a more logical presentation.
+- **Enhanced Organization Invitations:** Organization invitation emails now include direct accept and reject buttons, simplifying the invitation management process for invitees.
+- **Streamlined Custom Fertilizer Creation:** From the fertilizer application form, users can now easily navigate to a new page to add custom fertilizers. Upon successful submission, they are automatically redirected back to the application form.
+- **Timezone-Aware Magic Links:** The timestamp in magic link emails now intelligently displays the user's local timezone, where determinable, for improved clarity.
+- **Farm Deletion Feature:** Users can now delete a farm directly from the farm settings page, providing full control over their farm data.
+- **Map Centering on Field Selection:** When reviewing newly created fields or viewing individual fields on the map, the map now automatically centers on the selected field, enhancing navigation and focus.
+- **Improved Error Handling in Norms:** In norms calculations, fields with errors now display specific error messages on their respective cards, alongside a general page-level error. Successfully calculated fields continue to render, ensuring partial results are still visible.
 
 ### FDM Calculator Upgrades (`@nmi-agro/fdm-calculator`)
 
 The FDM calculator receives crucial updates for more accurate and efficient nitrogen management.
 
-*   **Flexible Nitrogen Usage Norms (`stikstofgebruiksnormen`):** Support has been added for cultivations with different nitrogen usage standards for the first and subsequent years, allowing for more nuanced calculations.
-*   **Improved Derogation-Free Zone Handling:** The `dierlijke mest gebruiksnorm` calculation has been enhanced to explicitly account for derogation-free zones. This ensures more accurate compliance with specific regional regulations. Previously, these zones were identified as Natura2000-zones; while the calculated norm remains the same, the description is now more precise.
-*   **Performance Enhancements:**
-    *   Vector lookups of remote datasets in norms calculations have been replaced with more efficient raster queries, significantly improving performance and reliability.
-    *   Nitrogen balance calculations for multiple fields are now organized into batches, preventing system overload and improving overall responsiveness.
-    *   Fertilizer supply calculations in the nitrogen balance have been optimized to iterate over each application only once, boosting performance.
-    *   Deposition values are now retrieved more efficiently from remote GeoTIFFs through batched requests and caching, leading to faster nitrogen balance calculations.
-    *   Ammonia emissions calculations from fertilizer applications in the nitrogen balance have been optimized to iterate over each application only once.
-*   **Bug Fixes:**
-    *   An exception when calculating `stikstofgebruiksnorm` for cultivations with `sub_types` has been fixed.
-    *   An exception at calculating `stikstofgebruiksnorm` when a potato crop has no variety provided has been fixed.
+- **Flexible Nitrogen Usage Norms (`stikstofgebruiksnormen`):** Support has been added for cultivations with different nitrogen usage standards for the first and subsequent years, allowing for more nuanced calculations.
+- **Improved Derogation-Free Zone Handling:** The `dierlijke mest gebruiksnorm` calculation has been enhanced to explicitly account for derogation-free zones. This ensures more accurate compliance with specific regional regulations. Previously, these zones were identified as Natura2000-zones; while the calculated norm remains the same, the description is now more precise.
+- **Performance Enhancements:**
+  - Vector lookups of remote datasets in norms calculations have been replaced with more efficient raster queries, significantly improving performance and reliability.
+  - Nitrogen balance calculations for multiple fields are now organized into batches, preventing system overload and improving overall responsiveness.
+  - Fertilizer supply calculations in the nitrogen balance have been optimized to iterate over each application only once, boosting performance.
+  - Deposition values are now retrieved more efficiently from remote GeoTIFFs through batched requests and caching, leading to faster nitrogen balance calculations.
+  - Ammonia emissions calculations from fertilizer applications in the nitrogen balance have been optimized to iterate over each application only once.
+- **Bug Fixes:**
+  - An exception when calculating `stikstofgebruiksnorm` for cultivations with `sub_types` has been fixed.
+  - An exception at calculating `stikstofgebruiksnorm` when a potato crop has no variety provided has been fixed.
 
 ### FDM Core Developments (`@nmi-agro/fdm-core`)
 
 Core functionalities have been expanded to provide more robust data management and authorization.
 
-*   **Farm Deletion Logic:** The `removeFarm` function has been added to facilitate the complete deletion of a farm and all its associated data.
-*   **Productivity Flag for Cultivations:** `b_isproductive` has been added to the output of `getCultivationPlan`, providing insights into field productivity.
-*   **Enhanced Field Data Exposure:** `b_perimeter` and `b_isproductive` are now exposed in the output of `getField` and `getFields`, offering more detailed field information.
-*   **Farm Deletion Authorization:** The `isAllowedToDeleteFarm` function has been added to verify if a principal has the necessary rights to delete a farm.
-*   **Magic Link Timeout:** The magic link email timeout has been set to 15 minutes for improved security and user experience.
-*   **Fertilizer Application Date Fix:** The `p_app_date` field in `FertilizerApplication` has been updated to no longer allow `null` values, ensuring data consistency.
+- **Farm Deletion Logic:** The `removeFarm` function has been added to facilitate the complete deletion of a farm and all its associated data.
+- **Productivity Flag for Cultivations:** `b_isproductive` has been added to the output of `getCultivationPlan`, providing insights into field productivity.
+- **Enhanced Field Data Exposure:** `b_perimeter` and `b_isproductive` are now exposed in the output of `getField` and `getFields`, offering more detailed field information.
+- **Farm Deletion Authorization:** The `isAllowedToDeleteFarm` function has been added to verify if a principal has the necessary rights to delete a farm.
+- **Magic Link Timeout:** The magic link email timeout has been set to 15 minutes for improved security and user experience.
+- **Fertilizer Application Date Fix:** The `p_app_date` field in `FertilizerApplication` has been updated to no longer allow `null` values, ensuring data consistency.
 
 ### FDM Data Updates (`@nmi-agro/fdm-data`)
 
 Data management receives minor but important updates for consistency and accuracy.
 
-*   **Ammonia Emission Factor (`p_ef_nh3`):** `p_ef_nh3` has been added to the synced values for the `baat` catalogue.
-*   **Ammonia Emission Factor Unit Fix:** The unit of `p_ef_nh3` has been corrected to be a fraction instead of a percentage, ensuring accurate calculations.
+- **Ammonia Emission Factor (`p_ef_nh3`):** `p_ef_nh3` has been added to the synced values for the `baat` catalogue.
+- **Ammonia Emission Factor Unit Fix:** The unit of `p_ef_nh3` has been corrected to be a fraction instead of a percentage, ensuring accurate calculations.
 
 ---
 

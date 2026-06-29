@@ -1,8 +1,7 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
-import pkg from "../../../../package"
 import type { DierlijkeMestGebruiksnormResult } from "../../types"
-
 import type { NL2026NormsInput } from "./types"
+import pkg from "../../../../package"
 
 /**
  * Determines the 'gebruiksnorm' (usage standard) for nitrogen from animal manure
@@ -20,22 +19,22 @@ import type { NL2026NormsInput } from "./types"
  * - **No Derogation**: Derogation rules do not apply for 2026.
  */
 export async function calculateNL2026DierlijkeMestGebruiksNorm(
-    input: NL2026NormsInput,
+  input: NL2026NormsInput,
 ): Promise<DierlijkeMestGebruiksnormResult> {
-    const field = input.field
+  const field = input.field
 
-    // Check for buffer strip
-    if (field.b_bufferstrip) {
-        return {
-            normValue: 0,
-            normSource: "Bufferstrook: geen plaatsingsruimte",
-        }
+  // Check for buffer strip
+  if (field.b_bufferstrip) {
+    return {
+      normValue: 0,
+      normSource: "Bufferstrook: geen plaatsingsruimte",
     }
+  }
 
-    const normValue = 170
-    const normSource = "Standaard - geen derogatie"
+  const normValue = 170
+  const normSource = "Standaard - geen derogatie"
 
-    return { normValue, normSource }
+  return { normValue, normSource }
 }
 
 /**
@@ -48,7 +47,7 @@ export async function calculateNL2026DierlijkeMestGebruiksNorm(
  *   nitrogen usage standard (`normValue`) and a `normSource` string explaining the rule applied.
  */
 export const getNL2026DierlijkeMestGebruiksNorm = withCalculationCache(
-    calculateNL2026DierlijkeMestGebruiksNorm,
-    "calculateNL2026DierlijkeMestGebruiksNorm",
-    pkg.calculatorVersion,
+  calculateNL2026DierlijkeMestGebruiksNorm,
+  "calculateNL2026DierlijkeMestGebruiksNorm",
+  pkg.calculatorVersion,
 )

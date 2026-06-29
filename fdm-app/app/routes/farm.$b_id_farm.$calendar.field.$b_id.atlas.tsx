@@ -1,15 +1,10 @@
-import { getField } from "@nmi-agro/fdm-core"
 import type { FeatureCollection } from "geojson"
+import type { MetaFunction } from "react-router"
+import { getField } from "@nmi-agro/fdm-core"
 import maplibregl from "maplibre-gl"
 import { useEffect, useRef } from "react"
 import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
-import type { MetaFunction } from "react-router"
-import {
-    type ActionFunctionArgs,
-    data,
-    type LoaderFunctionArgs,
-    useLoaderData,
-} from "react-router"
+import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
 import { ClientOnly } from "remix-utils/client-only"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
@@ -24,14 +19,14 @@ import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Kaart - Perceel | ${clientConfig.name}` },
-        {
-            name: "description",
-            content:
-                "Bekijk uw perceel op de kaart met interactieve visualisatie van de locatie, grenzen en geografische kenmerken.",
-        },
-    ]
+  return [
+    { title: `Kaart - Perceel | ${clientConfig.name}` },
+    {
+      name: "description",
+      content:
+        "Bekijk uw perceel op de kaart met interactieve visualisatie van de locatie, grenzen en geografische kenmerken.",
+    },
+  ]
 }
 
 /**
@@ -44,59 +39,59 @@ export const meta: MetaFunction = () => {
  * @throws {Response} Thrown if the field ID is missing from the parameters or if the field is not found.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the field id
-        const b_id = params.b_id
-        if (!b_id) {
-            throw data("Field ID is required", {
-                status: 400,
-                statusText: "Field ID is required",
-            })
-        }
-        // Get the session
-        const session = await getSession(request)
-
-        // Get details of field
-        const field = await getField(fdm, session.principal_id, b_id)
-        if (!field) {
-            throw data("Field is not found", {
-                status: 404,
-                statusText: "Field is not found",
-            })
-        }
-        if (!field.b_geometry) {
-            throw data("Field geometry is missing", {
-                status: 500,
-                statusText: "Field geometry is missing",
-            })
-        }
-
-        const feature = {
-            type: "Feature" as const,
-            properties: {
-                b_id: field.b_id,
-                b_name: field.b_name,
-                b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-                b_id_source: field.b_id_source,
-            },
-            geometry: field.b_geometry,
-        }
-        const featureCollection: FeatureCollection = {
-            type: "FeatureCollection",
-            features: [feature],
-        }
-
-        // Get map style
-        const mapStyle = getMapStyle("satellite")
-
-        // Return user information from loader
-        return {
-            field: featureCollection,
-            mapStyle: mapStyle,
-        }
-    } catch (error) {
-        throw handleActionError(error)
+  try {
+    // Get the field id
+    const b_id = params.b_id
+    if (!b_id) {
+      throw data("Field ID is required", {
+        status: 400,
+        statusText: "Field ID is required",
+      })
     }
+    // Get the session
+    const session = await getSession(request)
+
+    // Get details of field
+    const field = await getField(fdm, session.principal_id, b_id)
+    if (!field) {
+      throw data("Field is not found", {
+        status: 404,
+        statusText: "Field is not found",
+      })
+    }
+    if (!field.b_geometry) {
+      throw data("Field geometry is missing", {
+        status: 500,
+        statusText: "Field geometry is missing",
+      })
+    }
+
+    const feature = {
+      type: "Feature" as const,
+      properties: {
+        b_id: field.b_id,
+        b_name: field.b_name,
+        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+        b_id_source: field.b_id_source,
+      },
+      geometry: field.b_geometry,
+    }
+    const featureCollection: FeatureCollection = {
+      type: "FeatureCollection",
+      features: [feature],
+    }
+
+    // Get map style
+    const mapStyle = getMapStyle("satellite")
+
+    // Return user information from loader
+    return {
+      field: featureCollection,
+      mapStyle: mapStyle,
+    }
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }
 
 /**
@@ -107,64 +102,57 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * @returns A JSX element displaying the field map.
  */
 export default function FarmFieldAtlasBlock() {
-    const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
 
-    const id = "fieldsSaved"
-    const fields = loaderData.field
-    const viewState = getViewState(fields)
-    const fieldsSavedStyle = getFieldsStyle(id)
-    const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
+  const id = "fieldsSaved"
+  const fields = loaderData.field
+  const viewState = getViewState(fields)
+  const fieldsSavedStyle = getFieldsStyle(id)
+  const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
 
-    const mapRef = useRef<MapRef>(null)
+  const mapRef = useRef<MapRef>(null)
 
-    useEffect(() => {
-        const vs = viewState as any
-        if (vs.bounds) {
-            mapRef.current?.fitBounds(vs.bounds, vs.fitBoundsOptions)
-        }
-    }, [viewState])
+  useEffect(() => {
+    const vs = viewState as any
+    if (vs.bounds) {
+      mapRef.current?.fitBounds(vs.bounds, vs.fitBoundsOptions)
+    }
+  }, [viewState])
 
-    return (
-        <div className="space-y-6">
-            <div>
-                <h3 className="text-lg font-medium">Kaart</h3>
-                <p className="text-sm text-muted-foreground">
-                    Bekijk het perceel op de kaart
-                </p>
-            </div>
-            <Separator />
-            <div>
-                <ClientOnly
-                    fallback={<Skeleton className="h-full w-full rounded-xl" />}
-                >
-                    {() => (
-                        <MapGL
-                            {...viewState}
-                            style={{
-                                height: "60%",
-                                width: "70%",
-                                position: "absolute",
-                            }}
-                            interactive={false}
-                            mapStyle={loaderData.mapStyle}
-                            mapLib={maplibregl}
-                            interactiveLayerIds={[id]}
-                            ref={mapRef}
-                        >
-                            <MapTilerAttribution />
-                            <FieldsSourceNotClickable
-                                id={id}
-                                fieldsData={fields}
-                            >
-                                <Layer {...fieldsSavedStyle} />
-                                <Layer {...fieldsSavedOutlineStyle} />
-                            </FieldsSourceNotClickable>
-                        </MapGL>
-                    )}
-                </ClientOnly>
-            </div>
-        </div>
-    )
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium">Kaart</h3>
+        <p className="text-muted-foreground text-sm">Bekijk het perceel op de kaart</p>
+      </div>
+      <Separator />
+      <div>
+        <ClientOnly fallback={<Skeleton className="h-full w-full rounded-xl" />}>
+          {() => (
+            <MapGL
+              {...viewState}
+              style={{
+                height: "60%",
+                width: "70%",
+                position: "absolute",
+              }}
+              interactive={false}
+              mapStyle={loaderData.mapStyle}
+              mapLib={maplibregl}
+              interactiveLayerIds={[id]}
+              ref={mapRef}
+            >
+              <MapTilerAttribution />
+              <FieldsSourceNotClickable id={id} fieldsData={fields}>
+                <Layer {...fieldsSavedStyle} />
+                <Layer {...fieldsSavedOutlineStyle} />
+              </FieldsSourceNotClickable>
+            </MapGL>
+          )}
+        </ClientOnly>
+      </div>
+    </div>
+  )
 }
 
 /**
@@ -180,13 +168,13 @@ export default function FarmFieldAtlasBlock() {
  * @throws {Error} When the field identifier is missing.
  */
 export async function action({ params }: ActionFunctionArgs) {
-    try {
-        const b_id = params.b_id
+  try {
+    const b_id = params.b_id
 
-        if (!b_id) {
-            throw new Error("Missing field ID.")
-        }
-    } catch (error) {
-        throw handleActionError(error)
+    if (!b_id) {
+      throw new Error("Missing field ID.")
     }
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }

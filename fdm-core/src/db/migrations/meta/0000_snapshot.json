@@ -1,16 +1,16 @@
 {
-    "id": "a835be94-9cd8-4b1f-88c0-749e8bd36b22",
-    "prevId": "00000000-0000-0000-0000-000000000000",
-    "version": "7",
-    "dialect": "postgresql",
-    "tables": {},
-    "enums": {},
+  "id": "a835be94-9cd8-4b1f-88c0-749e8bd36b22",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {},
+  "enums": {},
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "_meta": {
+    "columns": {},
     "schemas": {},
-    "views": {},
-    "sequences": {},
-    "_meta": {
-        "columns": {},
-        "schemas": {},
-        "tables": {}
-    }
+    "tables": {}
+  }
 }

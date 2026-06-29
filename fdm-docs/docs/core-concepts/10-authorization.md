@@ -17,14 +17,14 @@ FDM's permission model is based on a combination of **resources**, **roles**, an
 
 ### Role–Action Matrix
 
-| Resource | owner | advisor | researcher |
-|---|---|---|---|
-| farm | read, write, list, **share** | read, write, list | read |
-| field | read, write, list, **share** | read, write, list | read |
-| cultivation | read, write, list, **share** | read, write, list | read |
-| harvesting | read, write, list, **share** | read, write, list | read |
-| soil\_analysis | read, write, list, **share** | read, write, list | read |
-| fertilizer\_application | read, write, list, **share** | read, write, list | read |
+| Resource               | owner                        | advisor           | researcher |
+| ---------------------- | ---------------------------- | ----------------- | ---------- |
+| farm                   | read, write, list, **share** | read, write, list | read       |
+| field                  | read, write, list, **share** | read, write, list | read       |
+| cultivation            | read, write, list, **share** | read, write, list | read       |
+| harvesting             | read, write, list, **share** | read, write, list | read       |
+| soil_analysis          | read, write, list, **share** | read, write, list | read       |
+| fertilizer_application | read, write, list, **share** | read, write, list | read       |
 
 ## How Access Control is Handled
 
@@ -72,12 +72,12 @@ The full column reference for the `invitation` table is documented in the [Datab
 
 ### Invitation API
 
-| Function | Description |
-|---|---|
+| Function                                                                           | Description                                                         |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | `createInvitation(fdm, resource, resource_id, inviter_id, target, role, expires?)` | Creates a pending invitation; `expires` defaults to 7 days from now |
-| `acceptInvitation(fdm, invitation_id, user_id)` | Accepts and activates the role |
-| `declineInvitation(fdm, invitation_id, user_id)` | Declines the invitation |
-| `listPendingInvitationsForPrincipal(fdm, user_id)` | Lists all pending invitations for a user |
-| `autoAcceptInvitationsForNewUser(fdm, email, user_id)` | Auto-accepts email-targeted invitations after email verification |
+| `acceptInvitation(fdm, invitation_id, user_id)`                                    | Accepts and activates the role                                      |
+| `declineInvitation(fdm, invitation_id, user_id)`                                   | Declines the invitation                                             |
+| `listPendingInvitationsForPrincipal(fdm, user_id)`                                 | Lists all pending invitations for a user                            |
+| `autoAcceptInvitationsForNewUser(fdm, email, user_id)`                             | Auto-accepts email-targeted invitations after email verification    |
 
 For farm-specific helpers that add permission checks, see `grantRoleToFarm`, `listPendingInvitationsForFarm`, and `listPendingInvitationsForUser` in the farm API.

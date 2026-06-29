@@ -27,18 +27,18 @@
  * - `503` — NMI API temporarily unavailable
  */
 export class NmiApiError extends Error {
-    /**
-     * The HTTP status code returned by the NMI API.
-     */
-    public readonly status: number
+  /**
+   * The HTTP status code returned by the NMI API.
+   */
+  public readonly status: number
 
-    /**
-     * @param status - HTTP status code from the NMI API response
-     * @param message - Dutch-language user-facing error description
-     */
-    constructor(status: number, message: string) {
-        super(message)
-        this.status = status
-        this.name = "NmiApiError"
-    }
+  /**
+   * @param status - HTTP status code from the NMI API response
+   * @param message - Dutch-language user-facing error description
+   */
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+    this.name = "NmiApiError"
+  }
 }

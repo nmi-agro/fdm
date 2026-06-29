@@ -11,6 +11,7 @@ levensfase van het perceel.
 ## Vestiging en jonge aanplant — nl_2711
 
 **Voorkeur:**
+
 - Goed uitgerijpte organische stof (compost, goed verteerde stalmest) **vóór planten
   diep ingewerkt** — asperges wortelen diep. Dit is de belangrijkste structurele en
   P / K-investering voor de volledige teeltcyclus.
@@ -20,7 +21,8 @@ levensfase van het perceel.
   akkerbouwgewassen; raadpleeg `advice.d_ca_req`.
 
 **Vermijden:**
-- Verse drijfmest of varkensdrijfmest: ziekterisico (*Fusarium*) en zoutbelasting in een
+
+- Verse drijfmest of varkensdrijfmest: ziekterisico (_Fusarium_) en zoutbelasting in een
   meerjarig gewas.
 - Overmaat N in jonge jaren — stimuleert het loof te sterk maar bouwt zwakke wortels op.
 
@@ -35,6 +37,7 @@ Twee bemestingsmomenten per jaar zijn standaard:
    volgende jaar.
 
 **Voorkeur:**
+
 - Deelgiften zoals hierboven, totalen volgens `advice.d_n_req`.
 - K als K₂SO₄ / patentkali — asperges zijn matig Cl-gevoelig, vooral in productieve
   jaren (sapsamenstelling, smaak, houdbaarheid).
@@ -45,12 +48,14 @@ Twee bemestingsmomenten per jaar zijn standaard:
   oppervlakkige toepassing in de herfst.
 
 **Vermijden:**
+
 - N-toepassingen tijdens het steekseizoen — geen effect op het lopende jaar, alleen
   verlies.
-- Verse drijfmest in productieve aanplant — risico op *Fusarium* en bacteriële zachtrot.
+- Verse drijfmest in productieve aanplant — risico op _Fusarium_ en bacteriële zachtrot.
 - KCl in grote hoeveelheden — chloride in het sap kan smaak en houdbaarheid verslechteren.
 
 **Extra aandacht:**
+
 - pH-beheer is meerjarig: matig zure tot neutrale grond (pH-KCl rond 5.5–6.5 op zand) is
   gebruikelijk; vermijd extreme bekalking.
 - Aspergeherinplantziekte wordt door schimmels / aaltjes gestuurd — geen

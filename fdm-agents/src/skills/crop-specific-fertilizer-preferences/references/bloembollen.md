@@ -1,6 +1,7 @@
 # Flower bulbs (bloembollen) — nl_176 + species-specific codes
 
 Dekt:
+
 - Generieke / overige bollen: nl_176, nl_1006 (overig), nl_997 (dahlia), nl_1000 (iris),
   nl_1005 (zantedeschia), nl_1007 (amaryllis), nl_1012 (sierui), nl_1015
   (blauwe druif), nl_1018 (kuifhyacint), nl_1027 (pioen), nl_6795 (liatris),
@@ -18,6 +19,7 @@ grondsoortspecifieke giften, en laat `advice.d_*_req` de giftbeslissingen dragen
 ## Overkoepelende regels (gelden voor alle bolgewassen in NL)
 
 **Vermijden:**
+
 - **Chloride is het primaire risico**. Bollen — vooral lelie en hyacint — zijn sterk
   Cl-gevoelig: KCl, kalksalpeter (CaCl₂-verontreiniging in sommige kwaliteiten),
   hoogovenslakkenmeel met hoog Cl-gehalte en drijfmest met hoog Cl-gehalte veroorzaken
@@ -30,6 +32,7 @@ grondsoortspecifieke giften, en laat `advice.d_*_req` de giftbeslissingen dragen
   natuurlijke verplaatsing van reserves naar de bol.
 
 **Voorkeur:**
+
 - Gedeelde N-gift: de meeste bollen hebben een vroege N-gift rond opkomst nodig en een
   tweede gift rond bloei. Een verdeling van ongeveer half-om-half is een gebruikelijk
   startpunt; soortspecifieke schema's uit sectoradvies gaan hier boven.
@@ -42,6 +45,7 @@ grondsoortspecifieke giften, en laat `advice.d_*_req` de giftbeslissingen dragen
   in het voorafgaande seizoen, niet vlak vóór planten.
 
 **Per soort — punten om te markeren:**
+
 - **Lelie (nl_979, nl_980, nl_1002)**: extreem Cl-gevoelig; gebruik nooit KCl; beperk ook
   drijfmest vanwege Cl- en zoutgehalte. Patentkali / K₂SO₄ + ammoniumsulfaat als basis.
 - **Hyacint (nl_970, nl_971, nl_999, nl_1018)**: sterk Cl-gevoelig; Mn op kalkrijke
@@ -57,7 +61,8 @@ grondsoortspecifieke giften, en laat `advice.d_*_req` de giftbeslissingen dragen
   (nl_1027)** etc.: sterk gespecialiseerd; vertrouw op `advice.d_*_req` en sectoradvies.
 
 **Extra aandacht:**
-- Vruchtwisseling en *Pratylenchus* / aaltjesbeheer sturen de meststofkeuze deels
+
+- Vruchtwisseling en _Pratylenchus_ / aaltjesbeheer sturen de meststofkeuze deels
   (keuze van groenbemester; vermijd nabijheid van Tagetes / peen; etc.); markeer dit
   alleen als de teler ernaar vraagt — het is geen bemestingsbeslissing.
 - Bollenpercelen liggen vaak op kalkrijke duinzandgronden of klei; de pH is meestal al

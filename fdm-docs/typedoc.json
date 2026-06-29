@@ -1,28 +1,28 @@
 {
-    "$schema": "https://typedoc.org/schema.json",
-    "entryPoints": [
-        "../fdm-core/src/index.ts",
-        "../fdm-data/src/index.ts",
-        "../fdm-calculator/src/index.ts",
-        "../fdm-rvo/src/index.ts",
-        "../fdm-agents/src/index.ts",
-        "../fdm-api/src/index.ts"
-    ],
-    "entryPointStrategy": "resolve",
-    "plugin": ["typedoc-plugin-markdown"],
-    "out": "api-reference",
-    "readme": "none",
-    "tsconfig": "../tsconfig.typedoc.json",
-    "githubPages": false,
-    "hideGenerator": true,
-    "skipErrorChecking": true,
-    "externalSymbolLinkMappings": {
-        "@nmi-agro/fdm-core": {
-            "createFdmServer": "#",
-            "Cultivation": "#",
-            "Measure": "#",
-            "SoilAnalysis": "#",
-            "syncFertilizerCatalogueArray": "#"
-        }
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "../fdm-core/src/index.ts",
+    "../fdm-data/src/index.ts",
+    "../fdm-calculator/src/index.ts",
+    "../fdm-rvo/src/index.ts",
+    "../fdm-agents/src/index.ts",
+    "../fdm-api/src/index.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "plugin": ["typedoc-plugin-markdown"],
+  "out": "api-reference",
+  "readme": "none",
+  "tsconfig": "../tsconfig.typedoc.json",
+  "githubPages": false,
+  "hideGenerator": true,
+  "skipErrorChecking": true,
+  "externalSymbolLinkMappings": {
+    "@nmi-agro/fdm-core": {
+      "createFdmServer": "#",
+      "Cultivation": "#",
+      "Measure": "#",
+      "SoilAnalysis": "#",
+      "syncFertilizerCatalogueArray": "#"
     }
+  }
 }

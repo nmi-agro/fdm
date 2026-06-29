@@ -1,3 +1,3 @@
 interface Window {
-    openCookieSettings?: () => void
+  openCookieSettings?: () => void
 }

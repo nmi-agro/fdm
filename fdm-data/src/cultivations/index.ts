@@ -1,5 +1,6 @@
-import { getCatalogueBrp } from "./catalogues/brp"
 import type { CatalogueCultivation, CatalogueCultivationName } from "./d"
+/* eslint-disable typescript/restrict-template-expressions -- Crop names and catalogue IDs are mapped and stringified safely in the domain lists. */
+import { getCatalogueBrp } from "./catalogues/brp"
 
 /**
  * Retrieves a cultivation catalogue based on the specified name.
@@ -22,12 +23,12 @@ import type { CatalogueCultivation, CatalogueCultivationName } from "./d"
  * ```
  */
 export async function getCultivationCatalogue(
-    catalogueName: CatalogueCultivationName,
+  catalogueName: CatalogueCultivationName,
 ): Promise<CatalogueCultivation> {
-    // Get the specified catalogue
-    if (catalogueName === "brp") {
-        return await getCatalogueBrp()
-    }
+  // Get the specified catalogue
+  if (catalogueName === "brp") {
+    return await getCatalogueBrp()
+  }
 
-    throw new Error(`catalogue ${catalogueName} is not recognized`)
+  throw new Error(`catalogue ${catalogueName} is not recognized`)
 }

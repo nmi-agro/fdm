@@ -14,70 +14,64 @@ import { handleActionError } from "./error"
  * @returns The parsed and validated form data.
  * @throws {Response} If the form data fails validation, includes error details.
  */
-export async function extractFormValuesFromRequest<
-    T extends z.ZodType<unknown>,
->(request: Request, schema: T): Promise<z.output<T>> {
-    try {
-        const formData = await request.formData()
-        const formObject = Object.fromEntries(formData) as Record<
-            string,
-            unknown
-        >
+export async function extractFormValuesFromRequest<T extends z.ZodType<unknown>>(
+  request: Request,
+  schema: T,
+): Promise<z.output<T>> {
+  try {
+    const formData = await request.formData()
+    const formObject = Object.fromEntries(formData) as Record<string, unknown>
 
-        // Trim all values and remove quotation marks
-        // Note: Somewhere additional quotation marks are added, preferably that is not the case, but this workaround removes them
-        for (const key in formObject) {
-            const value = formObject[key]
+    // Trim all values and remove quotation marks
+    // Note: Somewhere additional quotation marks are added, preferably that is not the case, but this workaround removes them
+    for (const key in formObject) {
+      const value = formObject[key]
 
-            if (typeof value === "string") {
-                // Check if the value is a JSON array string
-                if (
-                    value.startsWith("[") &&
-                    value.endsWith("]") &&
-                    key !== "b_geometry"
-                ) {
-                    try {
-                        formObject[key] = JSON.parse(value)
-                    } catch (_e) {
-                        // Not a valid JSON, so leave it as a string
-                    }
-                } else if (key !== "b_geometry") {
-                    formObject[key] = value.replace(/['"]+/g, "").trim()
-                }
-
-                const cleanedValue = formObject[key]
-
-                // Parse boolean values
-                if (cleanedValue === "true" || cleanedValue === "on") {
-                    formObject[key] = true
-                } else if (cleanedValue === "false") {
-                    formObject[key] = false
-                }
-
-                // Parse null values at formData
-                if (value === "null" || cleanedValue === "null") {
-                    formObject[key] = null
-                }
-
-                // Daypicker returns 01 Jan 1970 if no date is selected. This workaround removes the date if it is 01 Jan 1970
-                if (value === '"1970-01-01T00:00:00.000Z"') {
-                    delete formObject[key]
-                }
-            }
-        }
-        const parsedData = schema.safeParse(formObject)
-
-        if (!parsedData.success) {
-            const errors = parsedData.error.issues.map((err) => ({
-                path: err.path.join("."),
-                message: err.message,
-            }))
-
-            throw new Error(JSON.stringify(errors))
+      if (typeof value === "string") {
+        // Check if the value is a JSON array string
+        if (value.startsWith("[") && value.endsWith("]") && key !== "b_geometry") {
+          try {
+            formObject[key] = JSON.parse(value)
+          } catch {
+            // Not a valid JSON, so leave it as a string
+          }
+        } else if (key !== "b_geometry") {
+          formObject[key] = value.replace(/['"]+/g, "").trim()
         }
 
-        return parsedData.data
-    } catch (error) {
-        throw handleActionError(error)
+        const cleanedValue = formObject[key]
+
+        // Parse boolean values
+        if (cleanedValue === "true" || cleanedValue === "on") {
+          formObject[key] = true
+        } else if (cleanedValue === "false") {
+          formObject[key] = false
+        }
+
+        // Parse null values at formData
+        if (value === "null" || cleanedValue === "null") {
+          formObject[key] = null
+        }
+
+        // Daypicker returns 01 Jan 1970 if no date is selected. This workaround removes the date if it is 01 Jan 1970
+        if (value === '"1970-01-01T00:00:00.000Z"') {
+          delete formObject[key]
+        }
+      }
     }
+    const parsedData = schema.safeParse(formObject)
+
+    if (!parsedData.success) {
+      const errors = parsedData.error.issues.map((err) => ({
+        path: err.path.join("."),
+        message: err.message,
+      }))
+
+      throw new Error(JSON.stringify(errors))
+    }
+
+    return parsedData.data
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }

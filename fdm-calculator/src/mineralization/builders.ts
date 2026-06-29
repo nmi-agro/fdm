@@ -36,61 +36,47 @@ import type { NSupplyMethod } from "./types"
  * @internal
  */
 export function getMainCultivation<
-    T extends {
-        b_lu_catalogue?: string | null
-        b_lu_start?: Date | null
-        b_lu_end?: Date | null
-        b_lu_croprotation?: string | null
-    },
+  T extends {
+    b_lu_catalogue?: string | null
+    b_lu_start?: Date | null
+    b_lu_end?: Date | null
+    b_lu_croprotation?: string | null
+  },
 >(cultivations: T[], year: number): T | undefined {
-    // Use 12:00 noon to avoid timezone edge cases at midnight
-    const targetDate = new Date(`${year}-05-15T12:00:00`)
+  // Use 12:00 noon to avoid timezone edge cases at midnight
+  const targetDate = new Date(`${year}-05-15T12:00:00`)
 
-    // 1. First priority: a non-catchcrop that spans May 15th
-    // If multiple candidates span the date, pick the one with the most recent start date.
-    const activeMainOnMay15 = cultivations
-        .filter(
-            (c) =>
-                c.b_lu_start &&
-                c.b_lu_croprotation !== "catchcrop" &&
-                (c.b_lu_end ?? targetDate) >= targetDate &&
-                c.b_lu_start <= targetDate,
-        )
-        .reduce<T | undefined>(
-            (best, c) =>
-                !best ||
-                (c.b_lu_start?.getTime() ?? 0) >
-                    (best.b_lu_start?.getTime() ?? 0)
-                    ? c
-                    : best,
-            undefined,
-        )
-    if (activeMainOnMay15) return activeMainOnMay15
-
-    // 2. Second priority: any crop that spans May 15th (including catchcrops)
-    const activeAnyOnMay15 = cultivations
-        .filter(
-            (c) =>
-                c.b_lu_start &&
-                (c.b_lu_end ?? targetDate) >= targetDate &&
-                c.b_lu_start <= targetDate,
-        )
-        .reduce<T | undefined>(
-            (best, c) =>
-                !best ||
-                (c.b_lu_start?.getTime() ?? 0) >
-                    (best.b_lu_start?.getTime() ?? 0)
-                    ? c
-                    : best,
-            undefined,
-        )
-    if (activeAnyOnMay15) return activeAnyOnMay15
-
-    // 3. Fallback: first non-catchcrop in the year, then any crop
-    return (
-        cultivations.find((c) => c.b_lu_croprotation !== "catchcrop") ??
-        cultivations[0]
+  // 1. First priority: a non-catchcrop that spans May 15th
+  // If multiple candidates span the date, pick the one with the most recent start date.
+  const activeMainOnMay15 = cultivations
+    .filter(
+      (c) =>
+        c.b_lu_start &&
+        c.b_lu_croprotation !== "catchcrop" &&
+        (c.b_lu_end ?? targetDate) >= targetDate &&
+        c.b_lu_start <= targetDate,
     )
+    .reduce<T | undefined>(
+      (best, c) =>
+        !best || (c.b_lu_start?.getTime() ?? 0) > (best.b_lu_start?.getTime() ?? 0) ? c : best,
+      undefined,
+    )
+  if (activeMainOnMay15) return activeMainOnMay15
+
+  // 2. Second priority: any crop that spans May 15th (including catchcrops)
+  const activeAnyOnMay15 = cultivations
+    .filter(
+      (c) => c.b_lu_start && (c.b_lu_end ?? targetDate) >= targetDate && c.b_lu_start <= targetDate,
+    )
+    .reduce<T | undefined>(
+      (best, c) =>
+        !best || (c.b_lu_start?.getTime() ?? 0) > (best.b_lu_start?.getTime() ?? 0) ? c : best,
+      undefined,
+    )
+  if (activeAnyOnMay15) return activeAnyOnMay15
+
+  // 3. Fallback: first non-catchcrop in the year, then any crop
+  return cultivations.find((c) => c.b_lu_croprotation !== "catchcrop") ?? cultivations[0]
 }
 
 // ─── N-Supply request builder ─────────────────────────────────────────────────
@@ -137,76 +123,73 @@ export function getMainCultivation<
  * @returns A plain object suitable for `JSON.stringify` and sending to the API.
  */
 export function buildNSupplyRequest(
-    field: {
-        /** [longitude, latitude] in WGS84 */
-        b_centroid?: [number, number] | null
-        b_area?: number | null
-    },
-    soilData: Record<string, number | string | null | undefined>,
-    cultivations: {
-        b_lu_catalogue?: string | null
-        b_lu_start?: Date | null
-        b_lu_end?: Date | null
-        b_lu_croprotation?: string | null
-    }[],
-    method: NSupplyMethod,
-    timeframe: Timeframe,
+  field: {
+    /** [longitude, latitude] in WGS84 */
+    b_centroid?: [number, number] | null
+    b_area?: number | null
+  },
+  soilData: Record<string, number | string | null | undefined>,
+  cultivations: {
+    b_lu_catalogue?: string | null
+    b_lu_start?: Date | null
+    b_lu_end?: Date | null
+    b_lu_croprotation?: string | null
+  }[],
+  method: NSupplyMethod,
+  timeframe: Timeframe,
 ): Record<string, unknown> {
-    const centroid = field.b_centroid
-    const a_lon = centroid ? centroid[0] : undefined
-    const a_lat = centroid ? centroid[1] : undefined
+  const centroid = field.b_centroid
+  const a_lon = centroid ? centroid[0] : undefined
+  const a_lat = centroid ? centroid[1] : undefined
 
-    // Determine the main crop for the requested year to extract the BRP code.
-    const year = timeframe.start?.getFullYear() ?? new Date().getFullYear()
-    const mainCrop = getMainCultivation(cultivations, year)
+  // Determine the main crop for the requested year to extract the BRP code.
+  const year = timeframe.start?.getFullYear() ?? new Date().getFullYear()
+  const mainCrop = getMainCultivation(cultivations, year)
 
-    const b_lu_brp = (() => {
-        const code = (mainCrop?.b_lu_catalogue ?? "").replace(/^nl_/, "")
-        const parsed = Number.parseInt(code, 10)
-        return Number.isNaN(parsed) ? undefined : parsed
-    })()
+  const b_lu_brp = (() => {
+    const code = (mainCrop?.b_lu_catalogue ?? "").replace(/^nl_/, "")
+    const parsed = Number.parseInt(code, 10)
+    return Number.isNaN(parsed) ? undefined : parsed
+  })()
 
-    const body: Record<string, unknown> = {
-        d_n_supply_method: method,
+  const body: Record<string, unknown> = {
+    d_n_supply_method: method,
+  }
+
+  if (timeframe.start) {
+    body.d_start = timeframe.start.toISOString().split("T")[0]
+  }
+  if (timeframe.end) {
+    body.d_end = timeframe.end.toISOString().split("T")[0]
+  }
+
+  if (a_lat !== undefined) body.a_lat = a_lat
+  if (a_lon !== undefined) body.a_lon = a_lon
+  if (b_lu_brp !== undefined) body.b_lu_brp = b_lu_brp
+
+  const soilParams = [
+    "a_som_loi",
+    "a_clay_mi",
+    "a_silt_mi",
+    "a_sand_mi",
+    "a_c_of",
+    "a_cn_fr",
+    "a_n_rt",
+    "a_n_pmn",
+    "b_soiltype_agr",
+  ] as const
+
+  for (const param of soilParams) {
+    const value = soilData[param]
+    if (value !== null && value !== undefined) {
+      body[param] = value
     }
+  }
 
-    if (timeframe.start) {
-        body.d_start = timeframe.start.toISOString().split("T")[0]
-    }
-    if (timeframe.end) {
-        body.d_end = timeframe.end.toISOString().split("T")[0]
-    }
+  const aDepthLower = soilData.a_depth_lower
+  body.a_depth = aDepthLower !== null && aDepthLower !== undefined ? Number(aDepthLower) : 0.3
 
-    if (a_lat !== undefined) body.a_lat = a_lat
-    if (a_lon !== undefined) body.a_lon = a_lon
-    if (b_lu_brp !== undefined) body.b_lu_brp = b_lu_brp
-
-    const soilParams = [
-        "a_som_loi",
-        "a_clay_mi",
-        "a_silt_mi",
-        "a_sand_mi",
-        "a_c_of",
-        "a_cn_fr",
-        "a_n_rt",
-        "a_n_pmn",
-        "b_soiltype_agr",
-    ] as const
-
-    for (const param of soilParams) {
-        const value = soilData[param]
-        if (value !== null && value !== undefined) {
-            body[param] = value
-        }
-    }
-
-    const aDepthLower = soilData.a_depth_lower
-    body.a_depth =
-        aDepthLower !== null && aDepthLower !== undefined
-            ? Number(aDepthLower)
-            : 0.3
-
-    return body
+  return body
 }
 
 // ─── DYNA request builder ─────────────────────────────────────────────────────
@@ -266,247 +249,221 @@ export function buildNSupplyRequest(
  * @returns A plain object suitable for `JSON.stringify` and sending to the API.
  */
 export function buildDynaRequest(
-    field: {
-        b_id?: string | null
-        b_centroid?: [number, number] | null
-        b_area?: number | null
-    },
-    soilData: Record<string, number | string | null | undefined>,
-    cultivations: {
-        b_lu?: string | null
-        b_lu_catalogue?: string | null
-        b_lu_start?: Date | null
-        b_lu_end?: Date | null
-        b_lu_croprotation?: string | null
-        m_cropresidue?: boolean | null
-    }[],
-    fertilizers: {
-        p_id: string
-        /** Total N content (g N/kg) */
-        p_n_rt?: number | null
-        /** Inorganic N fraction */
-        p_n_if?: number | null
-        /** Organic N fraction */
-        p_n_of?: number | null
-        /** Water content (kg/kg) */
-        p_n_wc?: number | null
-        /** Total P content (g P2O5/kg) */
-        p_p_rt?: number | null
-        /** Total K content (g K2O/kg) */
-        p_k_rt?: number | null
-        /** Dry matter content (%) */
-        p_dm?: number | null
-        /** Organic matter content (%) */
-        p_om?: number | null
-        /** Application date */
-        p_date?: Date | null
-        /** Applied dose (kg/ha or m³/ha) */
-        p_dose?: number | null
-        /** Application method (e.g. `"broadcasting"`, `"injection"`) */
-        p_app_method?: string | null
-    }[],
-    farmSector: string,
-    timeframe: Timeframe,
-    cropProperties?: {
-        b_lu_catalogue: string
-        b_lu_yield?: number | null
-        b_lu_n_harvestable?: number | null
-        b_lu_n_residue?: number | null
-    }[],
-    harvestsByBlu?: Map<
-        string,
-        { b_lu_harvest_date?: Date | null; b_lu_yield?: number | null }[]
-    >,
+  field: {
+    b_id?: string | null
+    b_centroid?: [number, number] | null
+    b_area?: number | null
+  },
+  soilData: Record<string, number | string | null | undefined>,
+  cultivations: {
+    b_lu?: string | null
+    b_lu_catalogue?: string | null
+    b_lu_start?: Date | null
+    b_lu_end?: Date | null
+    b_lu_croprotation?: string | null
+    m_cropresidue?: boolean | null
+  }[],
+  fertilizers: {
+    p_id: string
+    /** Total N content (g N/kg) */
+    p_n_rt?: number | null
+    /** Inorganic N fraction */
+    p_n_if?: number | null
+    /** Organic N fraction */
+    p_n_of?: number | null
+    /** Water content (kg/kg) */
+    p_n_wc?: number | null
+    /** Total P content (g P2O5/kg) */
+    p_p_rt?: number | null
+    /** Total K content (g K2O/kg) */
+    p_k_rt?: number | null
+    /** Dry matter content (%) */
+    p_dm?: number | null
+    /** Organic matter content (%) */
+    p_om?: number | null
+    /** Application date */
+    p_date?: Date | null
+    /** Applied dose (kg/ha or m³/ha) */
+    p_dose?: number | null
+    /** Application method (e.g. `"broadcasting"`, `"injection"`) */
+    p_app_method?: string | null
+  }[],
+  farmSector: string,
+  timeframe: Timeframe,
+  cropProperties?: {
+    b_lu_catalogue: string
+    b_lu_yield?: number | null
+    b_lu_n_harvestable?: number | null
+    b_lu_n_residue?: number | null
+  }[],
+  harvestsByBlu?: Map<string, { b_lu_harvest_date?: Date | null; b_lu_yield?: number | null }[]>,
 ): Record<string, unknown> {
-    const centroid = field.b_centroid
-    const a_lon = centroid ? centroid[0] : undefined
-    const a_lat = centroid ? centroid[1] : undefined
-    const year = timeframe.start?.getFullYear() ?? new Date().getFullYear()
+  const centroid = field.b_centroid
+  const a_lon = centroid ? centroid[0] : undefined
+  const a_lat = centroid ? centroid[1] : undefined
+  const year = timeframe.start?.getFullYear() ?? new Date().getFullYear()
 
-    const fieldObj: Record<string, unknown> = {}
-    if (field.b_id) fieldObj.b_id = field.b_id
-    if (a_lat !== undefined) fieldObj.a_lat = a_lat
-    if (a_lon !== undefined) fieldObj.a_lon = a_lon
+  const fieldObj: Record<string, unknown> = {}
+  if (field.b_id) fieldObj.b_id = field.b_id
+  if (a_lat !== undefined) fieldObj.a_lat = a_lat
+  if (a_lon !== undefined) fieldObj.a_lon = a_lon
 
-    const soilParams = [
-        "a_som_loi",
-        "a_clay_mi",
-        "a_silt_mi",
-        "a_sand_mi",
-        "a_c_of",
-        "a_cn_fr",
-        "a_n_rt",
-        "a_n_pmn",
-        "b_soiltype_agr",
-    ] as const
+  const soilParams = [
+    "a_som_loi",
+    "a_clay_mi",
+    "a_silt_mi",
+    "a_sand_mi",
+    "a_c_of",
+    "a_cn_fr",
+    "a_n_rt",
+    "a_n_pmn",
+    "b_soiltype_agr",
+  ] as const
 
-    for (const param of soilParams) {
-        const value = soilData[param]
-        if (value !== null && value !== undefined) {
-            fieldObj[param] = value
-        }
+  for (const param of soilParams) {
+    const value = soilData[param]
+    if (value !== null && value !== undefined) {
+      fieldObj[param] = value
     }
+  }
 
-    const aDepthLower = soilData.a_depth_lower
-    fieldObj.a_depth =
-        aDepthLower !== null && aDepthLower !== undefined
-            ? Number(aDepthLower)
-            : 0.3
+  const aDepthLower = soilData.a_depth_lower
+  fieldObj.a_depth = aDepthLower !== null && aDepthLower !== undefined ? Number(aDepthLower) : 0.3
 
-    // Build amendments list — only applications from the current calculation year
-    const amendments = fertilizers
-        .filter(
-            (f) =>
-                f.p_date !== null &&
-                f.p_date !== undefined &&
-                f.p_date.getFullYear() === year,
-        )
-        .map((f) => ({
-            p_id: f.p_id,
-            p_dose: f.p_dose ?? 0,
-            p_app_method: f.p_app_method ?? "broadcasting",
-            p_date_fertilization: f.p_date?.toISOString().split("T")[0],
-        }))
+  // Build amendments list — only applications from the current calculation year
+  const amendments = fertilizers
+    .filter((f) => f.p_date !== null && f.p_date !== undefined && f.p_date.getFullYear() === year)
+    .map((f) => ({
+      p_id: f.p_id,
+      p_dose: f.p_dose ?? 0,
+      p_app_method: f.p_app_method ?? "broadcasting",
+      p_date_fertilization: f.p_date?.toISOString().split("T")[0],
+    }))
 
-    // Build rotation array — only include the current calculation year
-    // This ensures the simulation starts at 0 on January 1st of this year.
-    const rotation: Record<string, unknown>[] = [year]
-        .map((rotationYear) => {
-            const yearStart = new Date(rotationYear, 0, 1)
-            const yearEnd = new Date(rotationYear, 11, 31, 23, 59, 59, 999)
-            const yearCultivations = cultivations.filter(
-                (c) =>
-                    c.b_lu_catalogue &&
-                    c.b_lu_start != null &&
-                    c.b_lu_start <= yearEnd &&
-                    (c.b_lu_end == null || c.b_lu_end >= yearStart),
-            )
+  // Build rotation array — only include the current calculation year
+  // This ensures the simulation starts at 0 on January 1st of this year.
+  const rotation: Record<string, unknown>[] = [year]
+    .map((rotationYear) => {
+      const yearStart = new Date(rotationYear, 0, 1)
+      const yearEnd = new Date(rotationYear, 11, 31, 23, 59, 59, 999)
+      const yearCultivations = cultivations.filter(
+        (c) =>
+          c.b_lu_catalogue &&
+          c.b_lu_start != null &&
+          c.b_lu_start <= yearEnd &&
+          (c.b_lu_end == null || c.b_lu_end >= yearStart),
+      )
 
-            // Select main crop using May 15th rule
-            const mainCrop = getMainCultivation(yearCultivations, rotationYear)
+      // Select main crop using May 15th rule
+      const mainCrop = getMainCultivation(yearCultivations, rotationYear)
 
-            if (!mainCrop?.b_lu_catalogue) return null
+      if (!mainCrop?.b_lu_catalogue) return null
 
-            // Look up yield from crop_properties for the harvests array
-            const cropProp = cropProperties?.find(
-                (cp) => cp.b_lu_catalogue === mainCrop.b_lu_catalogue,
-            )
+      // Look up yield from crop_properties for the harvests array
+      const cropProp = cropProperties?.find((cp) => cp.b_lu_catalogue === mainCrop.b_lu_catalogue)
 
-            // Prefer actual harvest records; fall back to inferring a single
-            // harvest from b_lu_end when no records are available.
-            const actualHarvestRecords =
-                mainCrop.b_lu && harvestsByBlu
-                    ? (harvestsByBlu.get(mainCrop.b_lu) ?? [])
-                    : []
-            const harvests =
-                actualHarvestRecords.length > 0
-                    ? actualHarvestRecords
-                          .filter((h) => h.b_lu_harvest_date != null)
-                          .map((h) => ({
-                              b_date_harvest: h.b_lu_harvest_date
-                                  ?.toISOString()
-                                  .split("T")[0],
-                              ...(h.b_lu_yield != null
-                                  ? { b_lu_yield: h.b_lu_yield }
-                                  : cropProp?.b_lu_yield != null
-                                    ? { b_lu_yield: cropProp.b_lu_yield }
-                                    : {}),
-                          }))
-                    : mainCrop.b_lu_end
-                      ? [
-                            {
-                                b_date_harvest: mainCrop.b_lu_end
-                                    .toISOString()
-                                    .split("T")[0],
-                                ...(cropProp?.b_lu_yield != null
-                                    ? { b_lu_yield: cropProp.b_lu_yield }
-                                    : {}),
-                            },
-                        ]
-                      : []
-
-            // Catchcrop becomes green manure on the same rotation entry
-            const greenManure = yearCultivations.find(
-                (c) => c.b_lu_croprotation === "catchcrop" && c !== mainCrop,
-            )
-
-            return {
-                year: rotationYear,
-                b_lu: mainCrop.b_lu_catalogue,
-                b_lu_start: mainCrop.b_lu_start?.toISOString().split("T")[0],
-                harvests,
-                ...(mainCrop.m_cropresidue != null
-                    ? { m_cropresidue: mainCrop.m_cropresidue }
+      // Prefer actual harvest records; fall back to inferring a single
+      // harvest from b_lu_end when no records are available.
+      const actualHarvestRecords =
+        mainCrop.b_lu && harvestsByBlu ? (harvestsByBlu.get(mainCrop.b_lu) ?? []) : []
+      const harvests =
+        actualHarvestRecords.length > 0
+          ? actualHarvestRecords
+              .filter((h) => h.b_lu_harvest_date != null)
+              .map((h) => ({
+                b_date_harvest: h.b_lu_harvest_date?.toISOString().split("T")[0],
+                ...(h.b_lu_yield != null
+                  ? { b_lu_yield: h.b_lu_yield }
+                  : cropProp?.b_lu_yield != null
+                    ? { b_lu_yield: cropProp.b_lu_yield }
                     : {}),
-                ...(greenManure?.b_lu_catalogue
-                    ? {
-                          b_lu_green: greenManure.b_lu_catalogue,
-                          b_date_green_incorporation: greenManure.b_lu_end
-                              ?.toISOString()
-                              .split("T")[0],
-                      }
-                    : {}),
-                irrigation: [],
-                // Amendments only on the matching calendar year
-                amendments: rotationYear === year ? amendments : [],
+              }))
+          : mainCrop.b_lu_end
+            ? [
+                {
+                  b_date_harvest: mainCrop.b_lu_end.toISOString().split("T")[0],
+                  ...(cropProp?.b_lu_yield != null ? { b_lu_yield: cropProp.b_lu_yield } : {}),
+                },
+              ]
+            : []
+
+      // Catchcrop becomes green manure on the same rotation entry
+      const greenManure = yearCultivations.find(
+        (c) => c.b_lu_croprotation === "catchcrop" && c !== mainCrop,
+      )
+
+      return {
+        year: rotationYear,
+        b_lu: mainCrop.b_lu_catalogue,
+        b_lu_start: mainCrop.b_lu_start?.toISOString().split("T")[0],
+        harvests,
+        ...(mainCrop.m_cropresidue != null ? { m_cropresidue: mainCrop.m_cropresidue } : {}),
+        ...(greenManure?.b_lu_catalogue
+          ? {
+              b_lu_green: greenManure.b_lu_catalogue,
+              b_date_green_incorporation: greenManure.b_lu_end?.toISOString().split("T")[0],
             }
-        })
-        .filter((entry) => entry !== null)
+          : {}),
+        irrigation: [],
+        // Amendments only on the matching calendar year
+        amendments: rotationYear === year ? amendments : [],
+      }
+    })
+    .filter((entry) => entry !== null)
 
-    // Fallback: ensure at least one rotation entry so the API call can proceed
-    if (rotation.length === 0) {
-        rotation.push({
-            year,
-            b_lu: undefined,
-            b_lu_start: timeframe.start?.toISOString().split("T")[0],
-            harvests: [],
-            irrigation: [],
-            amendments,
-        })
-    }
+  // Fallback: ensure at least one rotation entry so the API call can proceed
+  if (rotation.length === 0) {
+    rotation.push({
+      year,
+      b_lu: undefined,
+      b_lu_start: timeframe.start?.toISOString().split("T")[0],
+      harvests: [],
+      irrigation: [],
+      amendments,
+    })
+  }
 
-    fieldObj.rotation = rotation
+  fieldObj.rotation = rotation
 
-    // Deduplicate fertilizers by p_id; include all available nutrient properties
-    const seenIds = new Set<string>()
-    const fertilizer_properties = fertilizers
-        .filter((f) => {
-            if (seenIds.has(f.p_id)) return false
-            seenIds.add(f.p_id)
-            return true
-        })
-        .map((f) => {
-            const props: Record<string, number | string | null> = {
-                p_id: f.p_id,
-                p_n_rt: f.p_n_rt ?? 0,
-            }
-            if (f.p_n_if != null) props.p_n_if = f.p_n_if
-            if (f.p_n_of != null) props.p_n_of = f.p_n_of
-            if (f.p_n_wc != null) props.p_n_wc = f.p_n_wc
-            if (f.p_p_rt != null) props.p_p_rt = f.p_p_rt
-            if (f.p_k_rt != null) props.p_k_rt = f.p_k_rt
-            if (f.p_dm != null) props.p_dm = f.p_dm
-            if (f.p_om != null) props.p_om = f.p_om
-            return props
-        })
+  // Deduplicate fertilizers by p_id; include all available nutrient properties
+  const seenIds = new Set<string>()
+  const fertilizer_properties = fertilizers
+    .filter((f) => {
+      if (seenIds.has(f.p_id)) return false
+      seenIds.add(f.p_id)
+      return true
+    })
+    .map((f) => {
+      const props: Record<string, number | string | null> = {
+        p_id: f.p_id,
+        p_n_rt: f.p_n_rt ?? 0,
+      }
+      if (f.p_n_if != null) props.p_n_if = f.p_n_if
+      if (f.p_n_of != null) props.p_n_of = f.p_n_of
+      if (f.p_n_wc != null) props.p_n_wc = f.p_n_wc
+      if (f.p_p_rt != null) props.p_p_rt = f.p_p_rt
+      if (f.p_k_rt != null) props.p_k_rt = f.p_k_rt
+      if (f.p_dm != null) props.p_dm = f.p_dm
+      if (f.p_om != null) props.p_om = f.p_om
+      return props
+    })
 
-    const builtCropProperties =
-        cropProperties && cropProperties.length > 0
-            ? cropProperties
-                  .filter((cp) => cp.b_lu_catalogue)
-                  .map((cp) => ({
-                      b_lu: cp.b_lu_catalogue,
-                      b_lu_yield: cp.b_lu_yield ?? null,
-                      b_lu_n_harvestable: cp.b_lu_n_harvestable ?? null,
-                      b_lu_n_residue: cp.b_lu_n_residue ?? null,
-                  }))
-            : null
+  const builtCropProperties =
+    cropProperties && cropProperties.length > 0
+      ? cropProperties
+          .filter((cp) => cp.b_lu_catalogue)
+          .map((cp) => ({
+            b_lu: cp.b_lu_catalogue,
+            b_lu_yield: cp.b_lu_yield ?? null,
+            b_lu_n_harvestable: cp.b_lu_n_harvestable ?? null,
+            b_lu_n_residue: cp.b_lu_n_residue ?? null,
+          }))
+      : null
 
-    return {
-        field: fieldObj,
-        farm: { sector: farmSector || "arable" },
-        crop_properties: builtCropProperties,
-        fertilizer_properties:
-            fertilizer_properties.length > 0 ? fertilizer_properties : null,
-    }
+  return {
+    field: fieldObj,
+    farm: { sector: farmSector || "arable" },
+    crop_properties: builtCropProperties,
+    fertilizer_properties: fertilizer_properties.length > 0 ? fertilizer_properties : null,
+  }
 }

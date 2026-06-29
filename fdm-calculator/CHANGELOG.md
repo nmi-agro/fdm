@@ -5,12 +5,10 @@
 ### Minor Changes
 
 - [#638](https://github.com/nmi-agro/fdm/pull/638) [`c07e18c`](https://github.com/nmi-agro/fdm/commit/c07e18c7bc178a7c052fcdde0db30a56d508587a) Thanks [@SvenVw](https://github.com/SvenVw)! - Document and expose official BLN3 aggregation results in calculation types.
-
   - **Expose Aggregations**: Explicitly documents and types `Bln3AggregationResult` and the `Bln3Score.aggregations` field as fully implemented and returned by the NMI API.
   - **Reduces Overhead**: Developers consuming this package can now pull pre-computed official hierarchical aggregations (such as OBI subcategories and the S_BLN root score) directly from the API response payload without needing to write or maintain approximate client-side formulas.
 
 - [#632](https://github.com/nmi-agro/fdm/pull/632) [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9) Thanks [@SvenVw](https://github.com/SvenVw)! - Add BCS (BodemConditieScore) calculation functions.
-
   - `calculateBcs(scores, labContext?)` — computes D_BCS (weighted total) and I_BCS (normalized 0–1 indicator) using exact Decimal.js arithmetic. Supports all 9 visual field indicators; when the optional `labContext` is provided, also derives and includes lab-based `a_ph_bcs` and `a_som_bcs` scores
   - `getBcsScoreColor(d_bcs)` — maps a D_BCS value to a colour band: `"red"` (< 10), `"orange"` (< 20), `"yellow"` (< 30), `"green"` (< 40), or `"emerald"` (≥ 40)
   - `getBcsScoreLabel(d_bcs)` — returns a Dutch label for a D_BCS value (Slecht / Onvoldoende / Matig / Goed / Zeer goed)

@@ -22,20 +22,19 @@ import type { RvoImportReviewItem } from "./types"
  * @returns A unique string identifier for the item.
  */
 export function getItemId(item: RvoImportReviewItem<any>): string {
-    if (item.localField?.b_id) return item.localField.b_id
-    if (item.rvoField?.properties.CropFieldID)
-        return item.rvoField.properties.CropFieldID
+  if (item.localField?.b_id) return item.localField.b_id
+  if (item.rvoField?.properties.CropFieldID) return item.rvoField.properties.CropFieldID
 
-    // Degenerate fallback: build a deterministic composite from whatever
-    // stable data is available so multiple items don't collapse to the same key.
-    return [
-        item.status,
-        item.rvoField?.properties.CropFieldVersion,
-        item.rvoField?.properties.BeginDate,
-        item.localField ? "local" : "remote",
-    ]
-        .filter(Boolean)
-        .join(":")
+  // Degenerate fallback: build a deterministic composite from whatever
+  // stable data is available so multiple items don't collapse to the same key.
+  return [
+    item.status,
+    item.rvoField?.properties.CropFieldVersion,
+    item.rvoField?.properties.BeginDate,
+    item.localField ? "local" : "remote",
+  ]
+    .filter(Boolean)
+    .join(":")
 }
 
 /**
@@ -48,29 +47,26 @@ export function getItemId(item: RvoImportReviewItem<any>): string {
  * @param geom2 - The second geometry (GeoJSON).
  * @returns A number between 0 (no overlap) and 1 (perfect match). Returns 0 on error.
  */
-export function calculateIoU(
-    geom1: FieldGeometry,
-    geom2: FieldGeometry,
-): number {
-    try {
-        const f1 = feature(geom1)
-        const f2 = feature(geom2)
+export function calculateIoU(geom1: FieldGeometry, geom2: FieldGeometry): number {
+  try {
+    const f1 = feature(geom1)
+    const f2 = feature(geom2)
 
-        const intResult = intersect(featureCollection([f1, f2]))
-        if (!intResult) return 0
+    const intResult = intersect(featureCollection([f1, f2]))
+    if (!intResult) return 0
 
-        const unionResult = union(featureCollection([f1, f2]))
-        if (!unionResult) return 0
+    const unionResult = union(featureCollection([f1, f2]))
+    if (!unionResult) return 0
 
-        const areaInt = area(intResult)
-        const areaUnion = area(unionResult)
+    const areaInt = area(intResult)
+    const areaUnion = area(unionResult)
 
-        if (areaUnion === 0) return 0
-        return areaInt / areaUnion
-    } catch (e) {
-        console.error("Error calculating IoU", e)
-        return 0
-    }
+    if (areaUnion === 0) return 0
+    return areaInt / areaUnion
+  } catch (e) {
+    console.error("Error calculating IoU", e)
+    return 0
+  }
 }
 
 /**
@@ -83,12 +79,7 @@ export function calculateIoU(
  * @returns True if boxes overlap, false otherwise.
  */
 export function bboxOverlap(bbox1: number[], bbox2: number[]): boolean {
-    return !(
-        bbox1[2] < bbox2[0] ||
-        bbox1[0] > bbox2[2] ||
-        bbox1[3] < bbox2[1] ||
-        bbox1[1] > bbox2[3]
-    )
+  return !(bbox1[2] < bbox2[0] || bbox1[0] > bbox2[2] || bbox1[3] < bbox2[1] || bbox1[1] > bbox2[3])
 }
 
 /**
@@ -98,5 +89,5 @@ export function bboxOverlap(bbox1: number[], bbox2: number[]): boolean {
  * @returns The bounding box as [minX, minY, maxX, maxY].
  */
 export function computeBbox(geometry: FieldGeometry): number[] {
-    return bbox(geometry)
+  return bbox(geometry)
 }

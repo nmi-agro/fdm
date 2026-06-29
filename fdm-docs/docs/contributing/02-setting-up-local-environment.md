@@ -9,10 +9,10 @@ This guide will walk you through the process of setting up a local development e
 
 Before you begin, you will need to have the following software installed on your machine:
 
-* **[Node.js](https://nodejs.org/en/download)**: FDM is a TypeScript and JavaScript project, so you will need to have Node.js installed.
-* **[`pnpm`](https://pnpm.io/installation)**: FDM uses `pnpm` for package management, so you will need to have it installed.
-* **[Git](https://git-scm.com/downloads)**: FDM is hosted on GitHub, so you will need to have Git installed to clone the repository.
-* **[Docker](https://docs.docker.com/get-docker/)**: FDM uses Docker to run the necessary services, such as the PostgreSQL database.
+- **[Node.js](https://nodejs.org/en/download)**: FDM is a TypeScript and JavaScript project, so you will need to have Node.js installed.
+- **[`pnpm`](https://pnpm.io/installation)**: FDM uses `pnpm` for package management, so you will need to have it installed.
+- **[Git](https://git-scm.com/downloads)**: FDM is hosted on GitHub, so you will need to have Git installed to clone the repository.
+- **[Docker](https://docs.docker.com/get-docker/)**: FDM uses Docker to run the necessary services, such as the PostgreSQL database.
 
 ## Cloning the Repository
 

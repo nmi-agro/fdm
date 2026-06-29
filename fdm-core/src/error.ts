@@ -13,49 +13,41 @@ import type { Jsonable } from "./error.types"
  * @returns A new BaseError instance encapsulating the error, its message, and any additional context.
  */
 export function handleError(err: unknown, base: string, context?: Jsonable) {
-    const error = ensureError(err)
+  const error = ensureError(err)
 
-    // Customize error in case of permission denied
-    let message = base
-    if (
-        error.message ===
-        "Principal does not have permission to perform this action"
-    ) {
-        message = "Principal does not have permission to perform this action"
-    }
+  // Customize error in case of permission denied
+  let message = base
+  if (error.message === "Principal does not have permission to perform this action") {
+    message = "Principal does not have permission to perform this action"
+  }
 
-    return new BaseError(message, {
-        cause: error,
-        context: context,
-    })
+  return new BaseError(message, {
+    cause: error,
+    context: context,
+  })
 }
 
 export function ensureError(value: unknown): Error {
-    if (value instanceof Error) return value
+  if (value instanceof Error) return value
 
-    let stringified = "[Unable to stringify the thrown value]"
-    try {
-        stringified = JSON.stringify(value)
-    } catch {}
+  let stringified = "[Unable to stringify the thrown value]"
+  try {
+    stringified = JSON.stringify(value)
+  } catch {}
 
-    const error = new Error(
-        `This value was thrown as is, not through an Error: ${stringified}`,
-    )
-    return error
+  const error = new Error(`This value was thrown as is, not through an Error: ${stringified}`)
+  return error
 }
 
 export class BaseError extends Error {
-    public readonly context?: Jsonable
+  public readonly context?: Jsonable
 
-    constructor(
-        message: string,
-        options: { cause?: Error; context?: Jsonable } = {},
-    ) {
-        const { cause, context } = options
+  constructor(message: string, options: { cause?: Error; context?: Jsonable } = {}) {
+    const { cause, context } = options
 
-        super(message, { cause })
-        this.name = this.constructor.name
+    super(message, { cause })
+    this.name = this.constructor.name
 
-        this.context = context
-    }
+    this.context = context
+  }
 }

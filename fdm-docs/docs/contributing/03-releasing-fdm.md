@@ -90,11 +90,11 @@ A hotfix is used to patch a critical bug in production. The process is similar t
 
 1. **Create the Hotfix Branch**: Create a `hotfix/*` branch from the `main` branch.
 
-    ```bash
-    git checkout main
-    git pull origin main
-    git checkout -b hotfix/fix-critical-bug
-    ```
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b hotfix/fix-critical-bug
+   ```
 
 2. **Make and Commit Changes**: Apply the necessary code changes to fix the bug. Remember to add a changeset for the patch by running `pnpm changeset`.
 
@@ -104,9 +104,9 @@ A hotfix is used to patch a critical bug in production. The process is similar t
 
 5. **Merge back to Development**: **This is a critical step.** To ensure the fix is not lost, you must also merge the `main` branch back into the `development` branch.
 
-    ```bash
-    git checkout development
-    git pull origin development
-    git merge --no-ff main
-    git push origin development
-    ```
+   ```bash
+   git checkout development
+   git pull origin development
+   git merge --no-ff main
+   git push origin development
+   ```

@@ -5,11 +5,11 @@ import imageCompression from "browser-image-compression"
 import compressionLibURL from "browser-image-compression/dist/browser-image-compression?url"
 
 const COMPRESSION_OPTIONS = {
-    maxSizeMB: 2,
-    maxWidthOrHeight: 3840, // 4K max dimension
-    useWebWorker: true,
-    fileType: "image/jpeg",
-    libURL: compressionLibURL,
+  maxSizeMB: 2,
+  maxWidthOrHeight: 3840, // 4K max dimension
+  useWebWorker: true,
+  fileType: "image/jpeg",
+  libURL: compressionLibURL,
 }
 
 /**
@@ -20,7 +20,7 @@ const COMPRESSION_OPTIONS = {
  * @returns A compressed File (JPEG)
  */
 export async function compressImage(file: File): Promise<File> {
-    return imageCompression(file, COMPRESSION_OPTIONS)
+  return imageCompression(file, COMPRESSION_OPTIONS)
 }
 
 /**
@@ -33,38 +33,34 @@ export async function compressImage(file: File): Promise<File> {
  * @returns The created image record ID
  */
 export async function uploadSoilImage(
-    file: File,
-    b_id_sampling: string,
-    options: {
-        a_image_type?: string
-        a_image_caption?: string
-        a_image_order?: number
-    } = {},
+  file: File,
+  b_id_sampling: string,
+  options: {
+    a_image_type?: string
+    a_image_caption?: string
+    a_image_order?: number
+  } = {},
 ): Promise<string> {
-    // Compress before upload
-    const compressed = await compressImage(file)
+  // Compress before upload
+  const compressed = await compressImage(file)
 
-    const formData = new FormData()
-    formData.append("file", compressed, compressed.name)
-    formData.append("b_id_sampling", b_id_sampling)
-    if (options.a_image_type)
-        formData.append("a_image_type", options.a_image_type)
-    if (options.a_image_caption)
-        formData.append("a_image_caption", options.a_image_caption)
-    formData.append("a_image_order", String(options.a_image_order ?? 0))
+  const formData = new FormData()
+  formData.append("file", compressed, compressed.name)
+  formData.append("b_id_sampling", b_id_sampling)
+  if (options.a_image_type) formData.append("a_image_type", options.a_image_type)
+  if (options.a_image_caption) formData.append("a_image_caption", options.a_image_caption)
+  formData.append("a_image_order", String(options.a_image_order ?? 0))
 
-    const response = await fetch("/api/image-upload", {
-        method: "POST",
-        body: formData,
-    })
+  const response = await fetch("/api/image-upload", {
+    method: "POST",
+    body: formData,
+  })
 
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({}))
-        throw new Error(
-            `Upload failed: ${(error as { error?: string }).error ?? response.statusText}`,
-        )
-    }
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}))
+    throw new Error(`Upload failed: ${(error as { error?: string }).error ?? response.statusText}`)
+  }
 
-    const { a_id_image } = (await response.json()) as { a_id_image: string }
-    return a_id_image
+  const { a_id_image } = (await response.json()) as { a_id_image: string }
+  return a_id_image
 }

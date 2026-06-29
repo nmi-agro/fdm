@@ -1,90 +1,90 @@
 {
-    "name": "@nmi-agro/fdm-rvo",
-    "private": false,
-    "version": "0.3.0",
-    "description": "RVO Synchronization Logic for FDM",
-    "homepage": "https://svenvw.github.io/fdm/",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/nmi-agro/fdm.git"
+  "name": "@nmi-agro/fdm-rvo",
+  "version": "0.3.0",
+  "private": false,
+  "description": "RVO Synchronization Logic for FDM",
+  "homepage": "https://svenvw.github.io/fdm/",
+  "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+  "license": "MIT",
+  "author": {
+    "name": "Sven Verweij",
+    "email": "37927107+SvenVw@users.noreply.github.com",
+    "url": "https://github.com/SvenVw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nmi-agro/fdm.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     },
-    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
-    "author": {
-        "name": "Sven Verweij",
-        "email": "37927107+SvenVw@users.noreply.github.com",
-        "url": "https://github.com/SvenVw"
+    "./types": {
+      "import": {
+        "types": "./dist/types.d.ts",
+        "default": "./dist/types.js"
+      }
     },
-    "license": "MIT",
-    "type": "module",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
-            }
-        },
-        "./types": {
-            "import": {
-                "types": "./dist/types.d.ts",
-                "default": "./dist/types.js"
-            }
-        },
-        "./utils": {
-            "import": {
-                "types": "./dist/utils.d.ts",
-                "default": "./dist/utils.js"
-            }
-        },
-        "./shapefile": {
-            "import": {
-                "types": "./dist/shapefile.d.ts",
-                "default": "./dist/shapefile.js"
-            }
-        }
+    "./utils": {
+      "import": {
+        "types": "./dist/utils.d.ts",
+        "default": "./dist/utils.js"
+      }
     },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "coverage": "vitest run --coverage",
-        "document": "typedoc",
-        "build": "tsdown",
-        "check-types": "tsc --noEmit",
-        "preinstall": "npx only-allow pnpm",
-        "test": "vitest run",
-        "test-coverage": "vitest run --coverage",
-        "watch": "vitest"
-    },
-    "dependencies": {
-        "@nmi-agro/fdm-core": "workspace:^",
-        "@nmi-agro/rvo-connector": "^2.2.3",
-        "@turf/area": "^7.3.5",
-        "@turf/bbox": "^7.3.5",
-        "@turf/helpers": "^7.3.5",
-        "@turf/intersect": "^7.3.5",
-        "@turf/union": "^7.3.5",
-        "@types/geojson": "^7946.0.16",
-        "proj4": "^2.20.9",
-        "shpjs": "^6.2.0",
-        "zod": "^4.4.3"
-    },
-    "devDependencies": {
-        "@nmi-agro/fdm-core": "workspace:*",
-        "@types/node": "catalog:",
-        "@vitest/coverage-v8": "catalog:",
-        "tsdown": "catalog:",
-        "typedoc": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
-    },
-    "engines": {
-        "node": ">=24.0.0"
-    },
-    "packageManager": "pnpm@11.7.0",
-    "publishConfig": {
-        "registry": "https://npm.pkg.github.com"
+    "./shapefile": {
+      "import": {
+        "types": "./dist/shapefile.d.ts",
+        "default": "./dist/shapefile.js"
+      }
     }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "coverage": "vitest run --coverage",
+    "document": "typedoc",
+    "build": "tsdown",
+    "check-types": "tsc --noEmit",
+    "preinstall": "npx only-allow pnpm",
+    "test": "vitest run",
+    "test-coverage": "vitest run --coverage",
+    "watch": "vitest"
+  },
+  "dependencies": {
+    "@nmi-agro/fdm-core": "workspace:^",
+    "@nmi-agro/rvo-connector": "^2.2.3",
+    "@turf/area": "^7.3.5",
+    "@turf/bbox": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
+    "@turf/intersect": "^7.3.5",
+    "@turf/union": "^7.3.5",
+    "@types/geojson": "^7946.0.16",
+    "proj4": "^2.20.9",
+    "shpjs": "^6.2.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@nmi-agro/fdm-core": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typedoc": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.7.0"
 }

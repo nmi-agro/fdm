@@ -6,22 +6,22 @@ import type { GebruiksnormResult, NormFilling } from "./nl/types"
  * It is an array of objects, where each object contains information for a single field.
  */
 export type InputAggregateNormsToFarmLevel = {
-    /**
-     * The unique identifier of the field.
-     */
-    b_id: string
-    /**
-     * The area of the field in hectares.
-     */
-    b_area: number
-    /**
-     * The calculated norm values for manure, nitrogen, and phosphate for this field.
-     */
-    norms: {
-        manure: GebruiksnormResult
-        nitrogen: GebruiksnormResult
-        phosphate: GebruiksnormResult
-    }
+  /**
+   * The unique identifier of the field.
+   */
+  b_id: string
+  /**
+   * The area of the field in hectares.
+   */
+  b_area: number
+  /**
+   * The calculated norm values for manure, nitrogen, and phosphate for this field.
+   */
+  norms: {
+    manure: GebruiksnormResult
+    nitrogen: GebruiksnormResult
+    phosphate: GebruiksnormResult
+  }
 }[]
 
 /**
@@ -29,18 +29,18 @@ export type InputAggregateNormsToFarmLevel = {
  * The results are expressed as total amounts for the farm, not per hectare.
  */
 export type AggregatedNormsToFarmLevel = {
-    /**
-     * Total manure norm in kg N for the entire farm.
-     */
-    manure: number // kg N
-    /**
-     * Total nitrogen norm in kg N for the entire farm.
-     */
-    nitrogen: number // kg N
-    /**
-     * Total phosphate norm in kg P2O5 for the entire farm.
-     */
-    phosphate: number // kg P2O5
+  /**
+   * Total manure norm in kg N for the entire farm.
+   */
+  manure: number // kg N
+  /**
+   * Total nitrogen norm in kg N for the entire farm.
+   */
+  nitrogen: number // kg N
+  /**
+   * Total phosphate norm in kg P2O5 for the entire farm.
+   */
+  phosphate: number // kg P2O5
 }
 
 /**
@@ -85,30 +85,24 @@ export type AggregatedNormsToFarmLevel = {
  * // }
  */
 export function aggregateNormsToFarmLevel(
-    input: InputAggregateNormsToFarmLevel,
+  input: InputAggregateNormsToFarmLevel,
 ): AggregatedNormsToFarmLevel {
-    let totalManure = new Decimal(0)
-    let totalNitrogen = new Decimal(0)
-    let totalPhosphate = new Decimal(0)
+  let totalManure = new Decimal(0)
+  let totalNitrogen = new Decimal(0)
+  let totalPhosphate = new Decimal(0)
 
-    for (const field of input) {
-        const area = new Decimal(field.b_area)
-        totalManure = totalManure.plus(
-            new Decimal(field.norms.manure.normValue).times(area),
-        )
-        totalNitrogen = totalNitrogen.plus(
-            new Decimal(field.norms.nitrogen.normValue).times(area),
-        )
-        totalPhosphate = totalPhosphate.plus(
-            new Decimal(field.norms.phosphate.normValue).times(area),
-        )
-    }
+  for (const field of input) {
+    const area = new Decimal(field.b_area)
+    totalManure = totalManure.plus(new Decimal(field.norms.manure.normValue).times(area))
+    totalNitrogen = totalNitrogen.plus(new Decimal(field.norms.nitrogen.normValue).times(area))
+    totalPhosphate = totalPhosphate.plus(new Decimal(field.norms.phosphate.normValue).times(area))
+  }
 
-    return {
-        manure: totalManure.toDecimalPlaces(0).toNumber(),
-        nitrogen: totalNitrogen.toDecimalPlaces(0).toNumber(),
-        phosphate: totalPhosphate.toDecimalPlaces(0).toNumber(),
-    }
+  return {
+    manure: totalManure.toDecimalPlaces(0).toNumber(),
+    nitrogen: totalNitrogen.toDecimalPlaces(0).toNumber(),
+    phosphate: totalPhosphate.toDecimalPlaces(0).toNumber(),
+  }
 }
 
 /**
@@ -116,22 +110,22 @@ export function aggregateNormsToFarmLevel(
  * It is an array of objects, where each object contains information for a single field.
  */
 export type InputAggregateNormFillingsToFarmLevel = {
-    /**
-     * The unique identifier of the field.
-     */
-    b_id: string
-    /**
-     * The area of the field in hectares.
-     */
-    b_area: number
-    /**
-     * The calculated norm fillings for manure, nitrogen, and phosphate for this field.
-     */
-    normsFilling: {
-        manure: NormFilling
-        nitrogen: NormFilling
-        phosphate: NormFilling
-    }
+  /**
+   * The unique identifier of the field.
+   */
+  b_id: string
+  /**
+   * The area of the field in hectares.
+   */
+  b_area: number
+  /**
+   * The calculated norm fillings for manure, nitrogen, and phosphate for this field.
+   */
+  normsFilling: {
+    manure: NormFilling
+    nitrogen: NormFilling
+    phosphate: NormFilling
+  }
 }[]
 
 /**
@@ -139,18 +133,18 @@ export type InputAggregateNormFillingsToFarmLevel = {
  * The results are expressed as total amounts for the farm, not per hectare.
  */
 export type AggregatedNormFillingsToFarmLevel = {
-    /**
-     * Total manure norm filling in kg N for the entire farm.
-     */
-    manure: number
-    /**
-     * Total nitrogen norm filling in kg N for the entire farm.
-     */
-    nitrogen: number
-    /**
-     * Total phosphate norm filling in kg P2O5 for the entire farm.
-     */
-    phosphate: number
+  /**
+   * Total manure norm filling in kg N for the entire farm.
+   */
+  manure: number
+  /**
+   * Total nitrogen norm filling in kg N for the entire farm.
+   */
+  nitrogen: number
+  /**
+   * Total phosphate norm filling in kg P2O5 for the entire farm.
+   */
+  phosphate: number
 }
 
 /**
@@ -166,34 +160,34 @@ export type AggregatedNormFillingsToFarmLevel = {
  * @returns An object containing the total aggregated norm fillings for manure, nitrogen, and phosphate for the farm.
  */
 export function aggregateNormFillingsToFarmLevel(
-    input: InputAggregateNormFillingsToFarmLevel,
+  input: InputAggregateNormFillingsToFarmLevel,
 ): AggregatedNormFillingsToFarmLevel {
-    let totalManureFilling = new Decimal(0)
-    let totalNitrogenFilling = new Decimal(0)
-    let totalPhosphateFilling = new Decimal(0)
+  let totalManureFilling = new Decimal(0)
+  let totalNitrogenFilling = new Decimal(0)
+  let totalPhosphateFilling = new Decimal(0)
 
-    for (const field of input) {
-        const area = new Decimal(field.b_area)
+  for (const field of input) {
+    const area = new Decimal(field.b_area)
 
-        // Aggregate manure filling
-        totalManureFilling = totalManureFilling.plus(
-            new Decimal(field.normsFilling.manure.normFilling).times(area),
-        )
+    // Aggregate manure filling
+    totalManureFilling = totalManureFilling.plus(
+      new Decimal(field.normsFilling.manure.normFilling).times(area),
+    )
 
-        // Aggregate nitrogen filling
-        totalNitrogenFilling = totalNitrogenFilling.plus(
-            new Decimal(field.normsFilling.nitrogen.normFilling).times(area),
-        )
+    // Aggregate nitrogen filling
+    totalNitrogenFilling = totalNitrogenFilling.plus(
+      new Decimal(field.normsFilling.nitrogen.normFilling).times(area),
+    )
 
-        // Aggregate phosphate filling
-        totalPhosphateFilling = totalPhosphateFilling.plus(
-            new Decimal(field.normsFilling.phosphate.normFilling).times(area),
-        )
-    }
+    // Aggregate phosphate filling
+    totalPhosphateFilling = totalPhosphateFilling.plus(
+      new Decimal(field.normsFilling.phosphate.normFilling).times(area),
+    )
+  }
 
-    return {
-        manure: totalManureFilling.toDecimalPlaces(0).toNumber(),
-        nitrogen: totalNitrogenFilling.toDecimalPlaces(0).toNumber(),
-        phosphate: totalPhosphateFilling.toDecimalPlaces(0).toNumber(),
-    }
+  return {
+    manure: totalManureFilling.toDecimalPlaces(0).toNumber(),
+    nitrogen: totalNitrogenFilling.toDecimalPlaces(0).toNumber(),
+    phosphate: totalPhosphateFilling.toDecimalPlaces(0).toNumber(),
+  }
 }
