@@ -396,15 +396,13 @@ export function FertilizerApplicationMetricsCard({
                         Bemestingsadvies
                       </NavLink>
                     </ItemTitle>
-                    {activeCultivation && (
-                      <div className="shrink-0">
-                        <CultivationSelector
-                          cultivations={cultivations}
-                          selectedCultivationId={activeCultivation.b_lu}
-                          variant="icon"
-                        />
-                      </div>
-                    )}
+                    <div className="shrink-0">
+                      <CultivationSelector
+                        cultivations={cultivations}
+                        selectedCultivationId={activeCultivation.b_lu}
+                        variant="icon"
+                      />
+                    </div>
                   </div>
                 </ItemContent>
                 <ItemDescription className="line-clamp-none w-full min-w-0">
