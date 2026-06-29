@@ -89,11 +89,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       let fieldResult: OrganicMatterFieldResultWithErrorId | undefined =
         omBalanceResult.fields.find((field: { b_id: string }) => field.b_id === b_id)
 
-      if (!fieldResult) {
-        throw new Error(`Organic matter balance data not found for field ${b_id}`)
-      }
-
-      if (fieldResult.errorMessage) {
+      if (fieldResult?.errorMessage) {
         const errorId = reportError(
           fieldResult.errorMessage,
           {
@@ -115,7 +111,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       )
 
       if (!inputForField) {
-        throw new Error(`Organic matter balance input not found for field ${b_id}`)
+        return { errorMessage: `Organic matter balance input not found for field ${b_id}` }
       }
 
       return {
@@ -149,6 +145,30 @@ export default function FarmBalanceOrganicMatterFieldBlock() {
   )
 }
 
+function MissingParametersErrorDisplay({ message }: { message: string }) {
+  const listItems = [
+    message.match(/a_n_rt/) ? <li key="a_n_rt">Totaal stikstofgehalte</li> : null,
+    message.match(/b_soiltype_agr/) ? <li key="b_soiltype_agr">Agrarisch bodemtype</li> : null,
+    message.match(/a_c_of|a_som_loi/) ? (
+      <li key="a_c_of_a_som_loi">Organische stofgehalte</li>
+    ) : null,
+  ].filter((item) => item != null)
+
+  return (
+    <div className="text-muted-foreground">
+      {listItems.length > 0 ? (
+        <>
+          <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
+          <br />
+          <ul className="list-inside list-disc">{...listItems}</ul>
+        </>
+      ) : (
+        <p>Voor dit perceel zijn enkele benodigde bodemparameters niet bekend.</p>
+      )}
+    </div>
+  )
+}
+
 function OrganicMatterBalance({
   farm,
   field,
@@ -163,6 +183,19 @@ function OrganicMatterBalance({
     return <BufferStripWarning b_id={field.b_id} />
   }
 
+  if (!fieldResult) {
+    return (
+      <div className="flex items-center justify-center">
+        <Card className="w-[350px]">
+          <CardHeader>
+            <CardTitle>Helaas is het niet mogelijk om je balans uit te rekenen</CardTitle>
+          </CardHeader>
+          <CardContent>Geen OM-balans is beschikbaar voor dit perceel.</CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (fieldResult.errorMessage) {
     return (
       <div className="flex items-center justify-center">
@@ -172,15 +205,7 @@ function OrganicMatterBalance({
           </CardHeader>
           <CardContent>
             {fieldResult.errorMessage.match(/Missing required soil parameters/) ? (
-              <div className="text-muted-foreground">
-                <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
-                <br />
-                <ul className="list-inside list-disc">
-                  {fieldResult.errorMessage.match(/a_som_loi|a_density_sa/) ? (
-                    <li>Organische stofgehalte of bulkdichtheid</li>
-                  ) : null}
-                </ul>
-              </div>
+              <MissingParametersErrorDisplay message={fieldResult.errorMessage} />
             ) : (
               <div className="text-muted-foreground">
                 <p>

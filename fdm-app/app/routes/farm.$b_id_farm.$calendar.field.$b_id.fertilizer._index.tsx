@@ -71,7 +71,10 @@ async function promiseMetricsResult<T>(fn: () => Promise<T>): Promise<MetricsRes
       data: data,
     }
   } catch (err) {
-    if (err instanceof Error && err.message.match(/Missing required soil parameters/)) {
+    if (
+      err instanceof Error &&
+      (err.message.match(/Missing required soil parameters/) || err.message.match(/bufferstrook/))
+    ) {
       return {
         status: "error",
         message: err.message,
@@ -79,7 +82,10 @@ async function promiseMetricsResult<T>(fn: () => Promise<T>): Promise<MetricsRes
     }
 
     handleLoaderError(err)
-    throw err
+    return {
+      status: "error",
+      message: "Onbekende fout.",
+    }
   }
 }
 
@@ -218,15 +224,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             })
           : null,
       ),
-      nitrogenBalance: promiseMetricsResult(() =>
-        getNitrogenBalanceForField({
+      nitrogenBalance: promiseMetricsResult(async () => {
+        if (field.b_bufferstrip)
+          throw new Error(
+            "Dit perceel is gemarkeerd als bufferstrook en wordt daarom niet meegenomen in de balansberekening.",
+          )
+        return await getNitrogenBalanceForField({
           fdm,
           principal_id,
           b_id_farm,
           b_id,
           timeframe,
-        }),
-      ),
+        })
+      }),
       nutrientAdvice: nutrientAdvice,
       dose: dose.dose,
       b_id: b_id,
