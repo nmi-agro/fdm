@@ -46,7 +46,7 @@ export function calculateNitrogenEmissionViaAmmoniaByResidues(
     let harvestCount = 0
     let b_lu_yield: Decimal
     for (const harvest of harvests.filter((h) => h.b_lu === cultivation.b_lu)) {
-      let yieldForThisHarvest: Decimal | null = null
+      let yieldForThisHarvest = new Decimal(cultivationDetail.b_lu_yield ?? 0)
       if (
         harvest.harvestable?.harvestable_analyses &&
         harvest.harvestable.harvestable_analyses.length > 0
@@ -58,11 +58,6 @@ export function calculateNitrogenEmissionViaAmmoniaByResidues(
         if (analysisWithYield) {
           yieldForThisHarvest = new Decimal(analysisWithYield.b_lu_yield ?? 0)
         }
-      }
-
-      // Fallback to default yield from cultivation_catalogue
-      if (yieldForThisHarvest === null) {
-        yieldForThisHarvest = new Decimal(cultivationDetail.b_lu_yield ?? 0)
       }
 
       totalYield = totalYield.add(yieldForThisHarvest)
