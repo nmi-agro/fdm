@@ -67,9 +67,7 @@ interface FertilizerApplicationMetricsCardProps {
 }
 
 function MetricsErrorDisplay({ message }: { message: string }) {
-  return message.match(/bufferstrook/) ? (
-    <div className="text-muted-foreground text-sm">{message}</div>
-  ) : message.match(/Missing required soil parameters/) ? (
+  return message.match(/Missing required soil parameters/) ? (
     <MissingParametersWarning message={message} />
   ) : (
     <div className="text-destructive text-sm">Fout bij berekening</div>

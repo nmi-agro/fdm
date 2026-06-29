@@ -13,7 +13,7 @@ export function MissingParametersWarning({ message }: { message: string }) {
         <>
           <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
           <br />
-          <ul className="list-inside list-disc">{...listItems}</ul>
+          <ul className="list-inside list-disc">{listItems}</ul>
         </>
       ) : (
         <p>Voor dit perceel zijn enkele benodigde bodemparameters niet bekend.</p>

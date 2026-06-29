@@ -225,10 +225,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           : null,
       ),
       nitrogenBalance: promiseMetricsResult(async () => {
-        if (field.b_bufferstrip)
-          throw new Error(
-            "Dit perceel is gemarkeerd als bufferstrook en wordt daarom niet meegenomen in de balansberekening.",
-          )
+        if (field.b_bufferstrip) {
+          return {
+            b_id,
+            b_area: field.b_area ?? 0,
+            b_bufferstrip: true,
+          }
+        }
         return await getNitrogenBalanceForField({
           fdm,
           principal_id,
