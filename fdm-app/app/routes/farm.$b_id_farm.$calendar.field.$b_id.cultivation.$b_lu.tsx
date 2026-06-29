@@ -1,31 +1,27 @@
 import {
-    type CultivationCatalogue,
-    checkPermission,
-    getCultivation,
-    getCultivationsFromCatalogue,
-    getField,
-    getHarvests,
-    getParametersForHarvestCat,
-    removeCultivation,
-    updateCultivation,
+  type CultivationCatalogue,
+  checkPermission,
+  getCultivation,
+  getCultivationsFromCatalogue,
+  getField,
+  getHarvests,
+  getParametersForHarvestCat,
+  removeCultivation,
+  updateCultivation,
 } from "@nmi-agro/fdm-core"
 import {
-    type ActionFunctionArgs,
-    data,
-    type LoaderFunctionArgs,
-    type MetaFunction,
-    Outlet,
-    useLoaderData,
+  type ActionFunctionArgs,
+  data,
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  Outlet,
+  useLoaderData,
 } from "react-router"
-import {
-    dataWithError,
-    dataWithSuccess,
-    redirectWithSuccess,
-} from "remix-toast"
+import { dataWithError, dataWithSuccess, redirectWithSuccess } from "remix-toast"
+import type { HarvestableType } from "~/components/blocks/harvest/types"
 import { CultivationDetailsCard } from "~/components/blocks/cultivation/card-details"
 import { CultivationHarvestsCard } from "~/components/blocks/cultivation/card-harvests"
 import { CultivationDetailsFormSchema } from "~/components/blocks/cultivation/schema"
-import type { HarvestableType } from "~/components/blocks/harvest/types"
 import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -36,14 +32,14 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 
 // Meta
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Gewas - Perceel | ${clientConfig.name}` },
+  return [
+    { title: `Gewas - Perceel | ${clientConfig.name}` },
 
-        {
-            name: "description",
-            content: "Bekijk en bewerk de gegevens van je gewas.",
-        },
-    ]
+    {
+      name: "description",
+      content: "Bekijk en bewerk de gegevens van je gewas.",
+    },
+  ]
 }
 
 /**
@@ -66,138 +62,124 @@ export const meta: MetaFunction = () => {
  * @throws {Response} If the farm, field, or cultivation ID is missing (status 400) or if the field or cultivation cannot be found (status 404).
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
-        }
-
-        // Get the field id
-        const b_id = params.b_id
-        if (!b_id) {
-            throw data("Field ID is required", {
-                status: 400,
-                statusText: "Field ID is required",
-            })
-        }
-
-        // Get the cultivation id
-        const b_lu = params.b_lu
-        if (!b_lu) {
-            throw data("Cultivation ID is required", {
-                status: 400,
-                statusText: "Cultivation ID is required",
-            })
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        // Get timeframe from calendar store
-        const timeframe = getTimeframe(params)
-        const calendar = getCalendar(params)
-
-        const cultivationWritePermission = checkPermission(
-            fdm,
-            "cultivation",
-            "write",
-            b_lu,
-            session.principal_id,
-            new URL(request.url).pathname,
-            false,
-        )
-
-        // Get details of field
-        const field = await getField(fdm, session.principal_id, b_id)
-        if (!field) {
-            throw data("Field is not found", {
-                status: 404,
-                statusText: "Field is not found",
-            })
-        }
-
-        // Get available cultivations for the farm
-        let b_lu_variety_options: { value: string; label: string }[] = []
-        let b_lu_harvestable: HarvestableType = "none"
-
-        const cultivationsCatalogue: CultivationCatalogue[] =
-            await getCultivationsFromCatalogue(
-                fdm,
-                session.principal_id,
-                b_id_farm,
-            )
-        // Map cultivations to options for the combobox
-        const cultivationsCatalogueOptions = cultivationsCatalogue.map(
-            (cultivation) => {
-                return {
-                    value: cultivation.b_lu_catalogue,
-                    label: cultivation.b_lu_name,
-                }
-            },
-        )
-
-        // Get cultivation
-        const cultivation = await getCultivation(
-            fdm,
-            session.principal_id,
-            b_lu,
-        )
-        if (!cultivation) {
-            throw data("Cultivation is not found", { status: 404 })
-        }
-
-        // Get harvests
-        const harvests = await getHarvests(
-            fdm,
-            session.principal_id,
-            b_lu,
-            timeframe,
-        )
-
-        const cultivationCatalogueItem: CultivationCatalogue | undefined =
-            cultivationsCatalogue.find((item) => {
-                return item.b_lu_catalogue === cultivation.b_lu_catalogue
-            })
-        if (cultivationCatalogueItem) {
-            b_lu_harvestable = getEffectiveHarvestable(
-                cultivationCatalogueItem.b_lu_harvestable,
-                cultivation.b_lu_croprotation,
-            )
-            if (cultivationCatalogueItem.b_lu_variety_options) {
-                b_lu_variety_options =
-                    cultivationCatalogueItem.b_lu_variety_options.map(
-                        (option: string) => ({
-                            value: option,
-                            label: option,
-                        }),
-                    )
-            }
-        }
-
-        const harvestParameters = getParametersForHarvestCat(
-            cultivation.b_lu_harvestcat,
-        )
-
-        // Return user information from loader
-        return {
-            field: field,
-            cultivationsCatalogueOptions: cultivationsCatalogueOptions,
-            cultivation: cultivation,
-            harvests: harvests,
-            b_lu_harvestable: b_lu_harvestable,
-            harvestParameters: harvestParameters,
-            b_lu_variety_options: b_lu_variety_options,
-            b_id_farm: b_id_farm,
-            calendar: calendar,
-            cultivationWritePermission: await cultivationWritePermission,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+  try {
+    // Get the farm id
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw data("Farm ID is required", {
+        status: 400,
+        statusText: "Farm ID is required",
+      })
     }
+
+    // Get the field id
+    const b_id = params.b_id
+    if (!b_id) {
+      throw data("Field ID is required", {
+        status: 400,
+        statusText: "Field ID is required",
+      })
+    }
+
+    // Get the cultivation id
+    const b_lu = params.b_lu
+    if (!b_lu) {
+      throw data("Cultivation ID is required", {
+        status: 400,
+        statusText: "Cultivation ID is required",
+      })
+    }
+
+    // Get the session
+    const session = await getSession(request)
+
+    // Get timeframe from calendar store
+    const timeframe = getTimeframe(params)
+    const calendar = getCalendar(params)
+
+    const cultivationWritePermission = checkPermission(
+      fdm,
+      "cultivation",
+      "write",
+      b_lu,
+      session.principal_id,
+      new URL(request.url).pathname,
+      false,
+    )
+
+    // Get details of field
+    const field = await getField(fdm, session.principal_id, b_id)
+    if (!field) {
+      throw data("Field is not found", {
+        status: 404,
+        statusText: "Field is not found",
+      })
+    }
+
+    // Get available cultivations for the farm
+    let b_lu_variety_options: { value: string; label: string }[] = []
+    let b_lu_harvestable: HarvestableType = "none"
+
+    const cultivationsCatalogue: CultivationCatalogue[] = await getCultivationsFromCatalogue(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+    )
+    // Map cultivations to options for the combobox
+    const cultivationsCatalogueOptions = cultivationsCatalogue.map((cultivation) => {
+      return {
+        value: cultivation.b_lu_catalogue,
+        label: cultivation.b_lu_name,
+      }
+    })
+
+    // Get cultivation
+    const cultivation = await getCultivation(fdm, session.principal_id, b_lu)
+    if (!cultivation) {
+      throw data("Cultivation is not found", { status: 404 })
+    }
+
+    // Get harvests
+    const harvests = await getHarvests(fdm, session.principal_id, b_lu, timeframe)
+
+    const cultivationCatalogueItem: CultivationCatalogue | undefined = cultivationsCatalogue.find(
+      (item) => {
+        return item.b_lu_catalogue === cultivation.b_lu_catalogue
+      },
+    )
+    if (cultivationCatalogueItem) {
+      b_lu_harvestable = getEffectiveHarvestable(
+        cultivationCatalogueItem.b_lu_harvestable,
+        cultivation.b_lu_croprotation,
+      )
+      if (cultivationCatalogueItem.b_lu_variety_options) {
+        b_lu_variety_options = cultivationCatalogueItem.b_lu_variety_options.map(
+          (option: string) => ({
+            value: option,
+            label: option,
+          }),
+        )
+      }
+    }
+
+    const harvestParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
+
+    // Return user information from loader
+    return {
+      field: field,
+      cultivationsCatalogueOptions: cultivationsCatalogueOptions,
+      cultivation: cultivation,
+      harvests: harvests,
+      b_lu_harvestable: b_lu_harvestable,
+      harvestParameters: harvestParameters,
+      b_lu_variety_options: b_lu_variety_options,
+      b_id_farm: b_id_farm,
+      calendar: calendar,
+      cultivationWritePermission: await cultivationWritePermission,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -206,27 +188,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * This component displays the cultivation's name along with a prompt to enter harvest data, provides a navigation button to return to the cultivation list, and incorporates a form for updating cultivation details. It also shows a list of harvest entries along with their current status, sourcing its data from the loader via React Router hooks.
  */
 export default function FarmFieldsOverviewBlock() {
-    const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
 
-    return (
-        <div className="space-y-6">
-            <CultivationDetailsCard
-                cultivation={loaderData.cultivation}
-                b_lu_variety_options={loaderData.b_lu_variety_options}
-                editable={loaderData.cultivationWritePermission}
-            />
-            <CultivationHarvestsCard
-                harvests={loaderData.harvests}
-                b_lu_harvestable={loaderData.b_lu_harvestable}
-                b_lu_croprotation={
-                    loaderData.cultivation.b_lu_croprotation ?? undefined
-                }
-                harvestParameters={loaderData.harvestParameters}
-                editable={loaderData.cultivationWritePermission}
-            />
-            <Outlet />
-        </div>
-    )
+  return (
+    <div className="space-y-6">
+      <CultivationDetailsCard
+        cultivation={loaderData.cultivation}
+        b_lu_variety_options={loaderData.b_lu_variety_options}
+        editable={loaderData.cultivationWritePermission}
+      />
+      <CultivationHarvestsCard
+        harvests={loaderData.harvests}
+        b_lu_harvestable={loaderData.b_lu_harvestable}
+        b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
+        harvestParameters={loaderData.harvestParameters}
+        editable={loaderData.cultivationWritePermission}
+      />
+      <Outlet />
+    </div>
+  )
 }
 
 /**
@@ -241,56 +221,52 @@ export default function FarmFieldsOverviewBlock() {
  * @throws {Error} When an unexpected error occurs during processing, after being handled by {@link handleActionError}.
  */
 export async function action({ request, params }: ActionFunctionArgs) {
-    try {
-        // Get the field ID
-        const b_id = params.b_id
-        if (!b_id) {
-            return dataWithError(null, "Missing field ID.")
-        }
-
-        // Get the cultivation ID
-        const b_lu = params.b_lu
-        if (!b_lu) {
-            return dataWithError(null, "Missing b_lu value.")
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        if (request.method === "POST") {
-            // Collect form entry
-            const formValues = await extractFormValuesFromRequest(
-                request,
-                CultivationDetailsFormSchema,
-            )
-            const { b_lu_start, b_lu_end, m_cropresidue, b_lu_variety } =
-                formValues
-
-            await updateCultivation(
-                fdm,
-                session.principal_id,
-                b_lu,
-                undefined,
-                b_lu_start,
-                b_lu_end,
-                m_cropresidue,
-                b_lu_variety,
-            )
-
-            return dataWithSuccess(
-                { result: "Cultivation updated successfully" },
-                { message: "Gewas is bijgewerkt! 🎉" },
-            )
-        }
-
-        if (request.method === "DELETE") {
-            await removeCultivation(fdm, session.principal_id, b_lu)
-            return redirectWithSuccess(
-                `/farm/${params.b_id_farm}/${params.calendar}/field/${b_id}/cultivation`,
-                { message: "Gewas is verwijderd" },
-            )
-        }
-    } catch (error) {
-        throw handleActionError(error)
+  try {
+    // Get the field ID
+    const b_id = params.b_id
+    if (!b_id) {
+      return dataWithError(null, "Missing field ID.")
     }
+
+    // Get the cultivation ID
+    const b_lu = params.b_lu
+    if (!b_lu) {
+      return dataWithError(null, "Missing b_lu value.")
+    }
+
+    // Get the session
+    const session = await getSession(request)
+
+    if (request.method === "POST") {
+      // Collect form entry
+      const formValues = await extractFormValuesFromRequest(request, CultivationDetailsFormSchema)
+      const { b_lu_start, b_lu_end, m_cropresidue, b_lu_variety } = formValues
+
+      await updateCultivation(
+        fdm,
+        session.principal_id,
+        b_lu,
+        undefined,
+        b_lu_start,
+        b_lu_end,
+        m_cropresidue,
+        b_lu_variety,
+      )
+
+      return dataWithSuccess(
+        { result: "Cultivation updated successfully" },
+        { message: "Gewas is bijgewerkt! 🎉" },
+      )
+    }
+
+    if (request.method === "DELETE") {
+      await removeCultivation(fdm, session.principal_id, b_lu)
+      return redirectWithSuccess(
+        `/farm/${params.b_id_farm}/${params.calendar}/field/${b_id}/cultivation`,
+        { message: "Gewas is verwijderd" },
+      )
+    }
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }

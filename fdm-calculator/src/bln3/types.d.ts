@@ -2,10 +2,10 @@
  * A single cultivation entry for the BLN3 score request.
  */
 export type Bln3Cultivation = {
-    /** Year of the land use / cultivation */
-    b_lu_year: number
-    /** Crop cultivation code according to BRP */
-    b_lu_brp: number
+  /** Year of the land use / cultivation */
+  b_lu_year: number
+  /** Crop cultivation code according to BRP */
+  b_lu_brp: number
 }
 
 /**
@@ -14,10 +14,10 @@ export type Bln3Cultivation = {
  * namespaced format used in fdm-core ("bln_BM3").
  */
 export type Bln3Measure = {
-    /** ID of the measure (e.g. "BM3", "G1") */
-    measure_id: string
-    /** Year in which the measure was taken */
-    year: number
+  /** ID of the measure (e.g. "BM3", "G1") */
+  measure_id: string
+  /** Year in which the measure was taken */
+  year: number
 }
 
 /**
@@ -26,113 +26,113 @@ export type Bln3Measure = {
  * fields are optional and improve calculation quality when provided.
  */
 export type Bln3ScoreCollectedInputs = {
-    // ── Location (required) ──────────────────────────────────────────────────
-    /** Latitude of the field centroid (WGS84; EPSG:4326) */
-    a_lat: number
-    /** Longitude of the field centroid (WGS84; EPSG:4326) */
-    a_lon: number
+  // ── Location (required) ──────────────────────────────────────────────────
+  /** Latitude of the field centroid (WGS84; EPSG:4326) */
+  a_lat: number
+  /** Longitude of the field centroid (WGS84; EPSG:4326) */
+  a_lon: number
 
-    // ── Cultivation history ──────────────────────────────────────────────────
-    /** Crop cultivations on the field (most recent first) */
-    cultivations?: Bln3Cultivation[]
+  // ── Cultivation history ──────────────────────────────────────────────────
+  /** Crop cultivations on the field (most recent first) */
+  cultivations?: Bln3Cultivation[]
 
-    // ── Field characteristics ────────────────────────────────────────────────
-    /** Dutch agricultural soil type */
-    b_soiltype_agr?:
-        | "zeeklei"
-        | "rivierklei"
-        | "maasklei"
-        | "moerige_klei"
-        | "duinzand"
-        | "dalgrond"
-        | "dekzand"
-        | "loess"
-        | "veen"
-    /** Groundwater class */
-    b_gwl_class?:
-        | "Ia"
-        | "Ic"
-        | "IIa"
-        | "IIb"
-        | "IIc"
-        | "IIIa"
-        | "IIIb"
-        | "IVu"
-        | "IVc"
-        | "Va"
-        | "Vao"
-        | "Vad"
-        | "Vb"
-        | "Vbo"
-        | "Vbd"
-        | "VIo"
-        | "VId"
-        | "VIIo"
-        | "VIId"
-        | "VIIIo"
-        | "VIIId"
+  // ── Field characteristics ────────────────────────────────────────────────
+  /** Dutch agricultural soil type */
+  b_soiltype_agr?:
+    | "zeeklei"
+    | "rivierklei"
+    | "maasklei"
+    | "moerige_klei"
+    | "duinzand"
+    | "dalgrond"
+    | "dekzand"
+    | "loess"
+    | "veen"
+  /** Groundwater class */
+  b_gwl_class?:
+    | "Ia"
+    | "Ic"
+    | "IIa"
+    | "IIb"
+    | "IIc"
+    | "IIIa"
+    | "IIIb"
+    | "IVu"
+    | "IVc"
+    | "Va"
+    | "Vao"
+    | "Vad"
+    | "Vb"
+    | "Vbo"
+    | "Vbd"
+    | "VIo"
+    | "VId"
+    | "VIIo"
+    | "VIId"
+    | "VIIIo"
+    | "VIIId"
 
-    // ── Soil analysis ────────────────────────────────────────────────────────
-    /** Calcium occupation of the CEC (%) */
-    a_ca_co_po?: number
-    /** Cation exchange capacity (mmol+ / kg) */
-    a_cec_co?: number
-    /** Clay content (%) */
-    a_clay_mi?: number
-    /** Carbon nitrogen ratio (-) */
-    a_cn_fr?: number
-    /** Potassium plant available (mg K / kg) */
-    a_k_cc?: number
-    /** Potassium occupation of CEC (%) */
-    a_k_co_po?: number
-    /** Magnesium plant available (mg Mg / kg) */
-    a_mg_cc?: number
-    /** Magnesium occupation of CEC (%) */
-    a_mg_co_po?: number
-    /** Potentially mineralizable nitrogen / microbial activity (mg N / kg) */
-    a_n_pmn?: number
-    /** Total nitrogen content (mg N / kg) */
-    a_n_rt?: number
-    /** Phosphorus plant available (PAE) (mg P / kg) */
-    a_p_cc?: number
-    /** Phosphate in ammonium lactate extraction (PAL) (mg P2O5 / 100g) */
-    a_p_al?: number
-    /** Phosphate extractable with water (Pw) (mg P2O5 / l) */
-    a_p_wa?: number
-    /** Soil acidity in CaCl2 (pH) */
-    a_ph_cc?: number
-    /** Total sulfur content (mg S / kg) */
-    a_s_rt?: number
-    /** Sand content (%) */
-    a_sand_mi?: number
-    /** Silt content (%) */
-    a_silt_mi?: number
-    /** Soil organic matter content (%) */
-    a_som_loi?: number
+  // ── Soil analysis ────────────────────────────────────────────────────────
+  /** Calcium occupation of the CEC (%) */
+  a_ca_co_po?: number
+  /** Cation exchange capacity (mmol+ / kg) */
+  a_cec_co?: number
+  /** Clay content (%) */
+  a_clay_mi?: number
+  /** Carbon nitrogen ratio (-) */
+  a_cn_fr?: number
+  /** Potassium plant available (mg K / kg) */
+  a_k_cc?: number
+  /** Potassium occupation of CEC (%) */
+  a_k_co_po?: number
+  /** Magnesium plant available (mg Mg / kg) */
+  a_mg_cc?: number
+  /** Magnesium occupation of CEC (%) */
+  a_mg_co_po?: number
+  /** Potentially mineralizable nitrogen / microbial activity (mg N / kg) */
+  a_n_pmn?: number
+  /** Total nitrogen content (mg N / kg) */
+  a_n_rt?: number
+  /** Phosphorus plant available (PAE) (mg P / kg) */
+  a_p_cc?: number
+  /** Phosphate in ammonium lactate extraction (PAL) (mg P2O5 / 100g) */
+  a_p_al?: number
+  /** Phosphate extractable with water (Pw) (mg P2O5 / l) */
+  a_p_wa?: number
+  /** Soil acidity in CaCl2 (pH) */
+  a_ph_cc?: number
+  /** Total sulfur content (mg S / kg) */
+  a_s_rt?: number
+  /** Sand content (%) */
+  a_sand_mi?: number
+  /** Silt content (%) */
+  a_silt_mi?: number
+  /** Soil organic matter content (%) */
+  a_som_loi?: number
 
-    // ── BCS visual soil assessment (BodemConditieScore) ──────────────────────
-    /** Soil structure BCS score (0–2) */
-    a_ss_bcs?: number
-    /** Subsoil compaction BCS score (0–2) */
-    a_sc_bcs?: number
-    /** Root development BCS score (0–2) */
-    a_rd_bcs?: number
-    /** Earthworm count BCS score (0–2) */
-    a_ew_bcs?: number
-    /** Crop cover BCS score (0–2) */
-    a_cc_bcs?: number
-    /** Coloured patches BCS score (0–2) */
-    a_gs_bcs?: number
-    /** Ponding BCS score, negative contribution (0–2) */
-    a_p_bcs?: number
-    /** Cracking BCS score, negative contribution (0–2) */
-    a_c_bcs?: number
-    /** Rutting/trampling BCS score, negative contribution (0–2) */
-    a_rt_bcs?: number
+  // ── BCS visual soil assessment (BodemConditieScore) ──────────────────────
+  /** Soil structure BCS score (0–2) */
+  a_ss_bcs?: number
+  /** Subsoil compaction BCS score (0–2) */
+  a_sc_bcs?: number
+  /** Root development BCS score (0–2) */
+  a_rd_bcs?: number
+  /** Earthworm count BCS score (0–2) */
+  a_ew_bcs?: number
+  /** Crop cover BCS score (0–2) */
+  a_cc_bcs?: number
+  /** Coloured patches BCS score (0–2) */
+  a_gs_bcs?: number
+  /** Ponding BCS score, negative contribution (0–2) */
+  a_p_bcs?: number
+  /** Cracking BCS score, negative contribution (0–2) */
+  a_c_bcs?: number
+  /** Rutting/trampling BCS score, negative contribution (0–2) */
+  a_rt_bcs?: number
 
-    // ── Measures ─────────────────────────────────────────────────────────────
-    /** Implemented soil management measures */
-    measures?: Bln3Measure[]
+  // ── Measures ─────────────────────────────────────────────────────────────
+  /** Implemented soil management measures */
+  measures?: Bln3Measure[]
 }
 
 /**
@@ -140,26 +140,26 @@ export type Bln3ScoreCollectedInputs = {
  * Maps to the request body of `POST /maatwerk/bln3/score/field`.
  */
 export type Bln3ScoreInputs = Bln3ScoreCollectedInputs & {
-    /** NMI API key for authentication — redacted from cache hash */
-    nmiApiKey: string | undefined
+  /** NMI API key for authentication — redacted from cache hash */
+  nmiApiKey: string | undefined
 }
 
 /**
  * A single indicator result from the BLN3 score calculation.
  */
 export type Bln3IndicatorResult = {
-    /** Indicator identifier (e.g. "B_DI", "C_N", "P_DS") */
-    indicator_id: string
-    /** Measured value in indicator unit */
-    status: number
-    /** Target value in the same unit */
-    target: number
-    /** Normalized score (0–1) comparing status to target */
-    index: number
-    /** Effect of selected measures on this indicator (0–1) */
-    impact: number
-    /** Final score: combination of index and impact (0–1) */
-    score: number
+  /** Indicator identifier (e.g. "B_DI", "C_N", "P_DS") */
+  indicator_id: string
+  /** Measured value in indicator unit */
+  status: number
+  /** Target value in the same unit */
+  target: number
+  /** Normalized score (0–1) comparing status to target */
+  index: number
+  /** Effect of selected measures on this indicator (0–1) */
+  impact: number
+  /** Final score: combination of index and impact (0–1) */
+  score: number
 }
 
 /**
@@ -167,19 +167,19 @@ export type Bln3IndicatorResult = {
  * Returned by the NMI API in the response data.
  */
 export type Bln3AggregationResult = {
-    /** Aggregation identifier (e.g. "S_BLN", "S_PROD_BIOL_BLN") */
-    aggregation_id: string
-    /** Aggregated score */
-    score: number
+  /** Aggregation identifier (e.g. "S_BLN", "S_PROD_BIOL_BLN") */
+  aggregation_id: string
+  /** Aggregated score */
+  score: number
 }
 
 /**
  * The BLN3 score result returned by `requestBln3Score` / `getBln3Score`.
  */
 export type Bln3Score = {
-    indicators: Bln3IndicatorResult[]
-    /** Aggregation scores returned by the NMI API */
-    aggregations?: Bln3AggregationResult[]
+  indicators: Bln3IndicatorResult[]
+  /** Aggregation scores returned by the NMI API */
+  aggregations?: Bln3AggregationResult[]
 }
 
 /**
@@ -188,13 +188,13 @@ export type Bln3Score = {
  * `Bln3Score.indicators` (plural) in `requestBln3Score`.
  */
 export type Bln3ScoreResponse = {
-    request_id: string
-    success: boolean
-    status: number
-    message: string | null
-    data: {
-        /** The API uses singular "indicator" — mapped to plural "indicators" in Bln3Score */
-        indicator: Bln3IndicatorResult[]
-        aggregations?: Bln3AggregationResult[]
-    }
+  request_id: string
+  success: boolean
+  status: number
+  message: string | null
+  data: {
+    /** The API uses singular "indicator" — mapped to plural "indicators" in Bln3Score */
+    indicator: Bln3IndicatorResult[]
+    aggregations?: Bln3AggregationResult[]
+  }
 }

@@ -1,53 +1,53 @@
 {
-    "name": "@nmi-agro/fdm-agents",
-    "private": false,
-    "version": "0.4.0",
-    "description": "AI Agent for Fertilizer Planning",
-    "license": "MIT",
-    "type": "module",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "import": "./dist/index.js"
-        }
-    },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "build": "tsdown",
-        "check-types": "tsc --noEmit",
-        "preinstall": "npx only-allow pnpm",
-        "test": "vitest run",
-        "test-coverage": "vitest run --coverage",
-        "watch": "vitest"
-    },
-    "dependencies": {
-        "@langchain/core": "^1.2.1",
-        "@langchain/google-genai": "^2.2.0",
-        "@langchain/langgraph": "^1.4.5",
-        "@nmi-agro/fdm-calculator": "workspace:^",
-        "@nmi-agro/fdm-core": "workspace:^",
-        "@nmi-agro/fdm-data": "workspace:^",
-        "@posthog/ai": "^8.2.1",
-        "langchain": "^1.5.1",
-        "posthog-node": "^5.38.2",
-        "zod": "^4.4.3"
-    },
-    "engines": {
-        "node": ">=24.0.0"
-    },
-    "devDependencies": {
-        "@nmi-agro/fdm-calculator": "workspace:*",
-        "@nmi-agro/fdm-core": "workspace:*",
-        "@nmi-agro/fdm-data": "workspace:*",
-        "@types/node": "catalog:",
-        "@vitest/coverage-v8": "catalog:",
-        "tsdown": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
+  "name": "@nmi-agro/fdm-agents",
+  "version": "0.4.0",
+  "private": false,
+  "description": "AI Agent for Fertilizer Planning",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check-types": "tsc --noEmit",
+    "preinstall": "npx only-allow pnpm",
+    "test": "vitest run",
+    "test-coverage": "vitest run --coverage",
+    "watch": "vitest"
+  },
+  "dependencies": {
+    "@langchain/core": "^1.2.1",
+    "@langchain/google-genai": "^2.2.0",
+    "@langchain/langgraph": "^1.4.5",
+    "@nmi-agro/fdm-calculator": "workspace:^",
+    "@nmi-agro/fdm-core": "workspace:^",
+    "@nmi-agro/fdm-data": "workspace:^",
+    "@posthog/ai": "^8.2.1",
+    "langchain": "^1.5.1",
+    "posthog-node": "^5.38.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@nmi-agro/fdm-calculator": "workspace:*",
+    "@nmi-agro/fdm-core": "workspace:*",
+    "@nmi-agro/fdm-data": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
 }

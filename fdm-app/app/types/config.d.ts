@@ -1,115 +1,115 @@
 export interface ServerConfig {
-    name: string
-    url: string
-    privacy_url: string | undefined
-    datasets_url: string
-    auth: {
-        fdm_session_secret: string
-        better_auth_secret: string
-        google?:
-            | {
-                  clientId: string
-                  clientSecret: string
-              }
-            | undefined
-        microsoft?:
-            | {
-                  clientId: string
-                  tenantId?: string
-                  privateKey: string
-                  certificate: string
-                  certThumbprint?: string
-              }
-            | {
-                  clientId: string
-                  tenantId?: string
-                  privateKey: string
-                  certificate?: string
-                  certThumbprint: string
-              }
-            | undefined
-    }
-    database: {
-        password: string
-        user: string
-        database: string
-        host: string
-        port: number
-    }
-    integrations: {
-        map: {
-            provider: "maptiler" | "osm"
-            maptilerKey?: string
+  name: string
+  url: string
+  privacy_url: string | undefined
+  datasets_url: string
+  auth: {
+    fdm_session_secret: string
+    better_auth_secret: string
+    google?:
+      | {
+          clientId: string
+          clientSecret: string
         }
-        nmi?: {
-            api_key: string
+      | undefined
+    microsoft?:
+      | {
+          clientId: string
+          tenantId?: string
+          privateKey: string
+          certificate: string
+          certThumbprint?: string
         }
-        rvo: {
-            clientId: string
-            redirectUri: string
-            clientName: string
-            pkioPrivateKey: string
+      | {
+          clientId: string
+          tenantId?: string
+          privateKey: string
+          certificate?: string
+          certThumbprint: string
         }
-        gemini?: {
-            api_key: string
-            model?: string
-        }
+      | undefined
+  }
+  database: {
+    password: string
+    user: string
+    database: string
+    host: string
+    port: number
+  }
+  integrations: {
+    map: {
+      provider: "maptiler" | "osm"
+      maptilerKey?: string
     }
-    analytics: {
-        sentry?: {
-            auth_token: string
-            dsn?: string
-        } | null
-        posthog?: {
-            key: string
-            host: string
-            projectId?: string
-            personalApiKey?: string
-        } | null
+    nmi?: {
+      api_key: string
     }
-    mail?: {
-        postmark: {
-            key: string
-            sender_address: string
-            sender_name: string
-            helpdesk_sender_address?: string
-            helpdesk_sender_name?: string
-        }
+    rvo: {
+      clientId: string
+      redirectUri: string
+      clientName: string
+      pkioPrivateKey: string
     }
-    helpdesk: {
-        enableTicketTriage: boolean
+    gemini?: {
+      api_key: string
+      model?: string
     }
+  }
+  analytics: {
+    sentry?: {
+      auth_token: string
+      dsn?: string
+    } | null
+    posthog?: {
+      key: string
+      host: string
+      projectId?: string
+      personalApiKey?: string
+    } | null
+  }
+  mail?: {
+    postmark: {
+      key: string
+      sender_address: string
+      sender_name: string
+      helpdesk_sender_address?: string
+      helpdesk_sender_name?: string
+    }
+  }
+  helpdesk: {
+    enableTicketTriage: boolean
+  }
 }
 
 // Define the structure for client-safe configuration
 export interface ClientConfig {
-    name: string
-    logo: string
-    logomark: string
-    url: string
-    /** Base URL of the fdm-api service. When set, a link to the API docs is shown in the UI. */
-    apiUrl?: string
-    datasets_url: string
-    analytics: {
-        sentry?: {
-            dsn: string
-            organization: string
-            project: string
-            trace_sample_rate: number
-            replay_sample_rate: number
-            replay_sample_rate_on_error: number
-            profile_sample_rate: number
-            security_report_uri: string
-        } | null
-        posthog?: {
-            key: string
-            host: string
-        } | null
+  name: string
+  logo: string
+  logomark: string
+  url: string
+  /** Base URL of the fdm-api service. When set, a link to the API docs is shown in the UI. */
+  apiUrl?: string
+  datasets_url: string
+  analytics: {
+    sentry?: {
+      dsn: string
+      organization: string
+      project: string
+      trace_sample_rate: number
+      replay_sample_rate: number
+      replay_sample_rate_on_error: number
+      profile_sample_rate: number
+      security_report_uri: string
+    } | null
+    posthog?: {
+      key: string
+      host: string
+    } | null
+  }
+  integrations: {
+    map: {
+      provider: "maptiler" | "osm"
+      maptilerKey?: string
     }
-    integrations: {
-        map: {
-            provider: "maptiler" | "osm"
-            maptilerKey?: string
-        }
-    }
+  }
 }

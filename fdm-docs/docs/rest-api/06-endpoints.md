@@ -10,13 +10,13 @@ All endpoints are served under `/api`. Responses use FDM-native field names that
 
 ## Farms
 
-| Method | Path | Description | `fdm-core` mapping |
-|---|---|---|---|
-| `GET` | `/api/farms` | List all farms accessible to the API key owner | `getFarms` |
-| `POST` | `/api/farms` | Create a new farm | `addFarm` |
-| `GET` | `/api/farms/{b_id_farm}` | Get a single farm | `getFarm` |
-| `PATCH` | `/api/farms/{b_id_farm}` | Update a farm | `updateFarm` |
-| `DELETE` | `/api/farms/{b_id_farm}` | Delete a farm (hard delete) | `removeFarm` |
+| Method   | Path                     | Description                                    | `fdm-core` mapping |
+| -------- | ------------------------ | ---------------------------------------------- | ------------------ |
+| `GET`    | `/api/farms`             | List all farms accessible to the API key owner | `getFarms`         |
+| `POST`   | `/api/farms`             | Create a new farm                              | `addFarm`          |
+| `GET`    | `/api/farms/{b_id_farm}` | Get a single farm                              | `getFarm`          |
+| `PATCH`  | `/api/farms/{b_id_farm}` | Update a farm                                  | `updateFarm`       |
+| `DELETE` | `/api/farms/{b_id_farm}` | Delete a farm (hard delete)                    | `removeFarm`       |
 
 ### Get farms — example
 
@@ -71,12 +71,12 @@ X-API-Key: fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 ## Fields
 
-| Method | Path | Description | `fdm-core` mapping |
-|---|---|---|---|
-| `GET` | `/api/farms/{b_id_farm}/fields` | List all fields for a farm | `getFields` |
-| `POST` | `/api/farms/{b_id_farm}/fields` | Add a field to a farm | `addField` |
-| `GET` | `/api/fields/{b_id}` | Get a single field | `getField` |
-| `DELETE` | `/api/fields/{b_id}` | Delete a field (hard delete) | `removeField` |
+| Method   | Path                            | Description                  | `fdm-core` mapping |
+| -------- | ------------------------------- | ---------------------------- | ------------------ |
+| `GET`    | `/api/farms/{b_id_farm}/fields` | List all fields for a farm   | `getFields`        |
+| `POST`   | `/api/farms/{b_id_farm}/fields` | Add a field to a farm        | `addField`         |
+| `GET`    | `/api/fields/{b_id}`            | Get a single field           | `getField`         |
+| `DELETE` | `/api/fields/{b_id}`            | Delete a field (hard delete) | `removeField`      |
 
 ### Get fields — example
 
@@ -109,24 +109,24 @@ Authorization: Bearer fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 ## Cultivations
 
-| Method | Path | Description | `fdm-core` mapping |
-|---|---|---|---|
-| `GET` | `/api/fields/{b_id}/cultivations` | List cultivations for a field | `getCultivations` |
-| `POST` | `/api/fields/{b_id}/cultivations` | Add a cultivation to a field | `addCultivation` |
-| `GET` | `/api/cultivations/{b_lu}` | Get a single cultivation | `getCultivation` |
-| `DELETE` | `/api/cultivations/{b_lu}` | Delete a cultivation (hard delete) | `removeCultivation` |
+| Method   | Path                              | Description                        | `fdm-core` mapping  |
+| -------- | --------------------------------- | ---------------------------------- | ------------------- |
+| `GET`    | `/api/fields/{b_id}/cultivations` | List cultivations for a field      | `getCultivations`   |
+| `POST`   | `/api/fields/{b_id}/cultivations` | Add a cultivation to a field       | `addCultivation`    |
+| `GET`    | `/api/cultivations/{b_lu}`        | Get a single cultivation           | `getCultivation`    |
+| `DELETE` | `/api/cultivations/{b_lu}`        | Delete a cultivation (hard delete) | `removeCultivation` |
 
 ---
 
 ## Soil analyses
 
-| Method | Path | Description | `fdm-core` mapping |
-|---|---|---|---|
-| `GET` | `/api/fields/{b_id}/soil-analyses` | List soil analyses for a field | `getSoilAnalyses` |
-| `POST` | `/api/fields/{b_id}/soil-analyses` | Add a soil analysis to a field | `addSoilAnalysis` |
-| `GET` | `/api/soil-analyses/{a_id}` | Get a single soil analysis | `getSoilAnalysis` |
-| `PATCH` | `/api/soil-analyses/{a_id}` | Update a soil analysis | `updateSoilAnalysis` |
-| `DELETE` | `/api/soil-analyses/{a_id}` | Delete a soil analysis (hard delete) | `removeSoilAnalysis` |
+| Method   | Path                               | Description                          | `fdm-core` mapping   |
+| -------- | ---------------------------------- | ------------------------------------ | -------------------- |
+| `GET`    | `/api/fields/{b_id}/soil-analyses` | List soil analyses for a field       | `getSoilAnalyses`    |
+| `POST`   | `/api/fields/{b_id}/soil-analyses` | Add a soil analysis to a field       | `addSoilAnalysis`    |
+| `GET`    | `/api/soil-analyses/{a_id}`        | Get a single soil analysis           | `getSoilAnalysis`    |
+| `PATCH`  | `/api/soil-analyses/{a_id}`        | Update a soil analysis               | `updateSoilAnalysis` |
+| `DELETE` | `/api/soil-analyses/{a_id}`        | Delete a soil analysis (hard delete) | `removeSoilAnalysis` |
 
 ---
 
@@ -136,11 +136,11 @@ Calculation endpoints operate on **stored FDM resource identifiers** — they do
 
 Calculation endpoints use `POST` because calculations may be expensive and may require option bodies. They are subject to stricter rate limits (10 requests per minute per key).
 
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/farms/{b_id_farm}/calculations/nitrogen-balance` | Nitrogen balance for a farm |
-| `POST` | `/api/fields/{b_id}/calculations/nitrogen-balance` | Nitrogen balance for a field |
-| `POST` | `/api/fields/{b_id}/calculations/dose` | Fertilizer dose recommendation for a field |
+| Method | Path                                                   | Description                                |
+| ------ | ------------------------------------------------------ | ------------------------------------------ |
+| `POST` | `/api/farms/{b_id_farm}/calculations/nitrogen-balance` | Nitrogen balance for a farm                |
+| `POST` | `/api/fields/{b_id}/calculations/nitrogen-balance`     | Nitrogen balance for a field               |
+| `POST` | `/api/fields/{b_id}/calculations/dose`                 | Fertilizer dose recommendation for a field |
 
 :::info
 
@@ -152,9 +152,9 @@ Calculation endpoint schemas are documented once the response format is stable. 
 
 ## OpenAPI documentation
 
-| Path | Description |
-|---|---|
+| Path                | Description                                         |
+| ------------------- | --------------------------------------------------- |
 | `/api/openapi.json` | OpenAPI 3.1 document generated from runtime schemas |
-| `/api/docs` | Interactive Scalar documentation |
+| `/api/docs`         | Interactive Scalar documentation                    |
 
 The OpenAPI document is generated directly from the same Zod schemas used for runtime validation. If the schema and the docs disagree, the schema wins.

@@ -4,8 +4,8 @@
  * an expected domain condition, not an infrastructure failure.
  */
 export class NormNotApplicableError extends Error {
-    constructor(message: string) {
-        super(message)
-        this.name = "NormNotApplicableError"
-    }
+  constructor(message: string) {
+    super(message)
+    this.name = "NormNotApplicableError"
+  }
 }

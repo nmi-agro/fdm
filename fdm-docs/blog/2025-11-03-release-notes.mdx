@@ -12,72 +12,72 @@ This post outlines the October 2025 updates of the FDM libraries: `@nmi-agro/fdm
 
 ### FDM Application Enhancements (`@nmi-agro/fdm-app`)
 
-*   **Fertilizer Management:**
-    *   Users can now edit previously created fertilizer applications, both for individual fields or a given cultivation type.
-    *   The fertilizer list now displays the RVO `mestcode` colored by fertilizer type for easier identification.
-    *   The design of the fertilizer application list has been improved with icons and better spacing.
-    *   The term "Meststoftype" has been replaced with "Mestcode (RVO)" in fertilizer forms.
-*   **Nutrient Management:**
-    *   The nutrient advice page now shows a progress bar for nutrients with an advice of 0.
-    *   Doses between 0 and 1 kg/ha are now displayed with a precision of 2 decimal places.
-    *   The fertilizer applications page for a field now includes metrics for norms, nitrogen balance, and nutrient advice.
-*   **Farm & Field Management:**
-    *   A new page has been added at farm details to manage organic certifications for a farm.
-    *   A new page has been added at farm details to state whether the farmer has done grazing or intends it for a year.
-    *   For cultivations, default dates based on the cultivation catalogue date are used for `b_lu_start` and `b_lu_end` if available when adding a field with a cultivation.
-*   **Nitrogen Balance:**
-    *   In case a field has an error at the nitrogen balance calculation, the balance at farm level and other fields are still shown, but an error message for the specific field is shown.
-*   **Error Reporting:**
-    *   Calculation errors at nitrogen balance calculation are now submitted to Sentry.
-    *   Other "other" errors for loaders and actions are also submitted to Sentry.
-*   **Performance:**
-    *   The app now uses cached versions of the calculator functions for `norms` and `balance`.
-*   **Bug Fix:**
-    *   The atlas no longer redirects the users to an invalid route when they don't have any farms.
-    *   Fixed link in header of fertilizers.
+- **Fertilizer Management:**
+  - Users can now edit previously created fertilizer applications, both for individual fields or a given cultivation type.
+  - The fertilizer list now displays the RVO `mestcode` colored by fertilizer type for easier identification.
+  - The design of the fertilizer application list has been improved with icons and better spacing.
+  - The term "Meststoftype" has been replaced with "Mestcode (RVO)" in fertilizer forms.
+- **Nutrient Management:**
+  - The nutrient advice page now shows a progress bar for nutrients with an advice of 0.
+  - Doses between 0 and 1 kg/ha are now displayed with a precision of 2 decimal places.
+  - The fertilizer applications page for a field now includes metrics for norms, nitrogen balance, and nutrient advice.
+- **Farm & Field Management:**
+  - A new page has been added at farm details to manage organic certifications for a farm.
+  - A new page has been added at farm details to state whether the farmer has done grazing or intends it for a year.
+  - For cultivations, default dates based on the cultivation catalogue date are used for `b_lu_start` and `b_lu_end` if available when adding a field with a cultivation.
+- **Nitrogen Balance:**
+  - In case a field has an error at the nitrogen balance calculation, the balance at farm level and other fields are still shown, but an error message for the specific field is shown.
+- **Error Reporting:**
+  - Calculation errors at nitrogen balance calculation are now submitted to Sentry.
+  - Other "other" errors for loaders and actions are also submitted to Sentry.
+- **Performance:**
+  - The app now uses cached versions of the calculator functions for `norms` and `balance`.
+- **Bug Fix:**
+  - The atlas no longer redirects the users to an invalid route when they don't have any farms.
+  - Fixed link in header of fertilizers.
 
 ### FDM Calculator Upgrades (`@nmi-agro/fdm-calculator`)
 
-*   **Nitrogen Balance:**
-    *   The nitrogen balance can now be calculated per field instead of only per farm.
-    *   The nitrogen balance calculation now gracefully handles errors for individual fields. Instead of failing the entire farm calculation, it will now return partial results for successfully calculated fields and provide specific error messages for fields that encountered issues.
-*   **Nutrient Advice:**
-    *   Added `getNutrientAdvice` and `requestNutrientAdvice` to fetch nutrient advices from the NMI API.
-*   **Norms:**
-    *   Added functions to calculate the norm filling by fertilizer application for NL 2025.
-    *   Fixes to differentiate `stikstofgebruiksnorm` for grassland based on "beweiden" or "volledig maaien".
-*   **Performance:**
-    *   Added cached versions of main calculator functions for `balance` and `norms` to enable caching.
+- **Nitrogen Balance:**
+  - The nitrogen balance can now be calculated per field instead of only per farm.
+  - The nitrogen balance calculation now gracefully handles errors for individual fields. Instead of failing the entire farm calculation, it will now return partial results for successfully calculated fields and provide specific error messages for fields that encountered issues.
+- **Nutrient Advice:**
+  - Added `getNutrientAdvice` and `requestNutrientAdvice` to fetch nutrient advices from the NMI API.
+- **Norms:**
+  - Added functions to calculate the norm filling by fertilizer application for NL 2025.
+  - Fixes to differentiate `stikstofgebruiksnorm` for grassland based on "beweiden" or "volledig maaien".
+- **Performance:**
+  - Added cached versions of main calculator functions for `balance` and `norms` to enable caching.
 
 ### FDM Core Developments (`@nmi-agro/fdm-core`)
 
-*   **Cultivation:**
-    *   Adds `b_lu_start_default` and `b_date_harvest_default` to cultivations catalogue as the default start and harvest dates of a cultivation.
-    *   Adds `getDefaultDatesOfCultivation` as helper function to determine default dates for cultivations.
-*   **Grazing:**
-    *   Add the table `intending_grazing` to store if the farm is planning to perform grazing.
-    *   Add the functions `setGrazingIntention`, `removeGrazingIntention`, `getGrazingIntention` and `getGrazingIntentions` to manage if a farm is planning to do grazing.
-*   **Organic Certification:**
-    *   Add tables `organic_certifications` and `organic_certifications_holding` to store information of farm if they have organic certificates.
-    *   Add the functions `addOrganicCertification`, `isOrganicCertificationValid`, `listOrganicCertifications`, `getOrganicCertification`, and `removeOrganicCertification` to manage organic certifications of a farm.
-*   **Fertilizers:**
-    *   Add `p_type_rvo` as new parameter to `fertilizersCatalogue`. It describes the 'Mestcode' according to RVO (Dutch government).
-*   **Fields:**
-    *   Improve check for `b_isproductive` by checking if name contains 'buffer'.
-    *   Add the missing options for `b_acquiring_method`: "In gebruik van een terreinbeherende organisatie" (nl_03), "Tijdelijk gebruik in het kader van landinrichting" (nl_04), "Pacht van geringe oppervlakten" (nl_10) and "Natuurpacht" (nl_11).
-*   **Performance:**
-    *   Add new db schema `fdm-calculator` to cache calculation results and store calculation errors. The decorator function `withCalculationCache` enables adds the functionality to add caching to calculator functions.
+- **Cultivation:**
+  - Adds `b_lu_start_default` and `b_date_harvest_default` to cultivations catalogue as the default start and harvest dates of a cultivation.
+  - Adds `getDefaultDatesOfCultivation` as helper function to determine default dates for cultivations.
+- **Grazing:**
+  - Add the table `intending_grazing` to store if the farm is planning to perform grazing.
+  - Add the functions `setGrazingIntention`, `removeGrazingIntention`, `getGrazingIntention` and `getGrazingIntentions` to manage if a farm is planning to do grazing.
+- **Organic Certification:**
+  - Add tables `organic_certifications` and `organic_certifications_holding` to store information of farm if they have organic certificates.
+  - Add the functions `addOrganicCertification`, `isOrganicCertificationValid`, `listOrganicCertifications`, `getOrganicCertification`, and `removeOrganicCertification` to manage organic certifications of a farm.
+- **Fertilizers:**
+  - Add `p_type_rvo` as new parameter to `fertilizersCatalogue`. It describes the 'Mestcode' according to RVO (Dutch government).
+- **Fields:**
+  - Improve check for `b_isproductive` by checking if name contains 'buffer'.
+  - Add the missing options for `b_acquiring_method`: "In gebruik van een terreinbeherende organisatie" (nl_03), "Tijdelijk gebruik in het kader van landinrichting" (nl_04), "Pacht van geringe oppervlakten" (nl_10) and "Natuurpacht" (nl_11).
+- **Performance:**
+  - Add new db schema `fdm-calculator` to cache calculation results and store calculation errors. The decorator function `withCalculationCache` enables adds the functionality to add caching to calculator functions.
 
 ### FDM Data Updates (`@nmi-agro/fdm-data`)
 
-*   **Cultivation Catalogue:**
-    *   Adds `b_lu_start_default` and `b_date_harvest_default` to BRP catalogue.
-*   **Fertilizer Catalogue:**
-    *   Add `p_type_rvo` to `baat` catalogue.
+- **Cultivation Catalogue:**
+  - Adds `b_lu_start_default` and `b_date_harvest_default` to BRP catalogue.
+- **Fertilizer Catalogue:**
+  - Add `p_type_rvo` to `baat` catalogue.
 
 ### FDM Docs (`@nmi-agro/fdm-docs`)
 
-*   Update and extend the documentation for 2025 Dutch Fertilizer Application Norms, e.g. explaining how filling is calculated.
+- Update and extend the documentation for 2025 Dutch Fertilizer Application Norms, e.g. explaining how filling is calculated.
 
 ---
 

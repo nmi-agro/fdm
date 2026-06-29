@@ -1,24 +1,12 @@
-import {
-    and,
-    asc,
-    desc,
-    eq,
-    gte,
-    isNotNull,
-    isNull,
-    lte,
-    ne,
-    or,
-    type SQL,
-} from "drizzle-orm"
-import { checkPermission } from "./authorization"
+import { and, asc, desc, eq, gte, isNotNull, isNull, lte, ne, or, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
-import * as schema from "./db/schema"
-import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
-import { createId } from "./id"
 import type { Measure, MeasureCatalogue } from "./measure.types"
 import type { Timeframe } from "./timeframe"
+import { checkPermission } from "./authorization"
+import * as schema from "./db/schema"
+import { handleError } from "./error"
+import { createId } from "./id"
 
 /**
  * Throws if adding/updating a measure for `(b_id, m_id)` would create an
@@ -33,56 +21,49 @@ import type { Timeframe } from "./timeframe"
  *   measure is not compared against itself).
  */
 async function assertNoMeasureOverlap(
-    fdm: FdmType,
-    b_id: schema.fieldsTypeSelect["b_id"],
-    m_id: schema.measuresCatalogueTypeSelect["m_id"],
-    m_start: Date,
-    m_end: Date | null | undefined,
-    excludeId?: schema.measuresTypeSelect["b_id_measure"],
+  fdm: FdmType,
+  b_id: schema.fieldsTypeSelect["b_id"],
+  m_id: schema.measuresCatalogueTypeSelect["m_id"],
+  m_start: Date,
+  m_end: Date | null | undefined,
+  excludeId?: schema.measuresTypeSelect["b_id_measure"],
 ): Promise<void> {
-    const existing = await fdm
-        .select({
-            b_id_measure: schema.measures.b_id_measure,
-            m_start: schema.measureAdopting.m_start,
-            m_end: schema.measureAdopting.m_end,
-        })
-        .from(schema.measures)
-        .innerJoin(
-            schema.measureAdopting,
-            eq(
-                schema.measureAdopting.b_id_measure,
-                schema.measures.b_id_measure,
-            ),
-        )
-        .where(
-            and(
-                eq(schema.measureAdopting.b_id, b_id),
-                eq(schema.measures.m_id, m_id),
-                excludeId
-                    ? ne(schema.measures.b_id_measure, excludeId)
-                    : undefined,
-            ),
-        )
+  const existing = await fdm
+    .select({
+      b_id_measure: schema.measures.b_id_measure,
+      m_start: schema.measureAdopting.m_start,
+      m_end: schema.measureAdopting.m_end,
+    })
+    .from(schema.measures)
+    .innerJoin(
+      schema.measureAdopting,
+      eq(schema.measureAdopting.b_id_measure, schema.measures.b_id_measure),
+    )
+    .where(
+      and(
+        eq(schema.measureAdopting.b_id, b_id),
+        eq(schema.measures.m_id, m_id),
+        excludeId ? ne(schema.measures.b_id_measure, excludeId) : undefined,
+      ),
+    )
 
-    for (const row of existing) {
-        const existStart = row.m_start
-        const existEnd = row.m_end // null = doorlopend (∞)
+  for (const row of existing) {
+    const existStart = row.m_start
+    const existEnd = row.m_end // null = doorlopend (∞)
 
-        if (!existStart) continue
+    if (!existStart) continue
 
-        // A_start ≤ B_end  (null B_end = ∞, so condition is always true)
-        const newStartBeforeExistEnd =
-            existEnd === null || m_start.getTime() <= existEnd.getTime()
-        // A_end ≥ B_start  (null A_end = ∞, so condition is always true)
-        const newEndAfterExistStart =
-            m_end == null || m_end.getTime() >= existStart.getTime()
+    // A_start ≤ B_end  (null B_end = ∞, so condition is always true)
+    const newStartBeforeExistEnd = existEnd === null || m_start.getTime() <= existEnd.getTime()
+    // A_end ≥ B_start  (null A_end = ∞, so condition is always true)
+    const newEndAfterExistStart = m_end == null || m_end.getTime() >= existStart.getTime()
 
-        if (newStartBeforeExistEnd && newEndAfterExistStart) {
-            throw new Error(
-                `Measure "${m_id}" already exists for this field with an overlapping time window`,
-            )
-        }
+    if (newStartBeforeExistEnd && newEndAfterExistStart) {
+      throw new Error(
+        `Measure "${m_id}" already exists for this field with an overlapping time window`,
+      )
     }
+  }
 }
 
 /**
@@ -97,84 +78,71 @@ async function assertNoMeasureOverlap(
  * @returns A Promise resolving to the new `b_id_measure`.
  */
 export async function addMeasure(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id: schema.fieldsTypeSelect["b_id"],
-    m_id: schema.measuresCatalogueTypeSelect["m_id"],
-    m_start: Date,
-    m_end?: Date,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: schema.fieldsTypeSelect["b_id"],
+  m_id: schema.measuresCatalogueTypeSelect["m_id"],
+  m_start: Date,
+  m_end?: Date,
 ): Promise<string> {
-    if (m_end !== undefined && m_end.getTime() < m_start.getTime()) {
-        throw new Error("m_end cannot be earlier than m_start")
+  if (m_end !== undefined && m_end.getTime() < m_start.getTime()) {
+    throw new Error("m_end cannot be earlier than m_start")
+  }
+  try {
+    await checkPermission(fdm, "field", "write", b_id, principal_id, "addMeasure")
+
+    // Verify the catalogue is enabled for the farm this field belongs to
+    const fieldFarm = await fdm
+      .select({ b_id_farm: schema.fieldAcquiring.b_id_farm })
+      .from(schema.fieldAcquiring)
+      .where(eq(schema.fieldAcquiring.b_id, b_id))
+      .limit(1)
+    const catalogueSource = await fdm
+      .select({ m_source: schema.measuresCatalogue.m_source })
+      .from(schema.measuresCatalogue)
+      .where(eq(schema.measuresCatalogue.m_id, m_id))
+      .limit(1)
+    if (catalogueSource.length === 0) {
+      throw new Error(`Measure catalogue item not found: ${m_id}`)
     }
-    try {
-        await checkPermission(
-            fdm,
-            "field",
-            "write",
-            b_id,
-            principal_id,
-            "addMeasure",
+    if (fieldFarm.length > 0) {
+      const enabled = await fdm
+        .select()
+        .from(schema.measureCatalogueEnabling)
+        .where(
+          and(
+            eq(schema.measureCatalogueEnabling.b_id_farm, fieldFarm[0].b_id_farm),
+            eq(schema.measureCatalogueEnabling.m_source, catalogueSource[0].m_source),
+          ),
         )
-
-        // Verify the catalogue is enabled for the farm this field belongs to
-        const fieldFarm = await fdm
-            .select({ b_id_farm: schema.fieldAcquiring.b_id_farm })
-            .from(schema.fieldAcquiring)
-            .where(eq(schema.fieldAcquiring.b_id, b_id))
-            .limit(1)
-        const catalogueSource = await fdm
-            .select({ m_source: schema.measuresCatalogue.m_source })
-            .from(schema.measuresCatalogue)
-            .where(eq(schema.measuresCatalogue.m_id, m_id))
-            .limit(1)
-        if (catalogueSource.length === 0) {
-            throw new Error(`Measure catalogue item not found: ${m_id}`)
-        }
-        if (fieldFarm.length > 0) {
-            const enabled = await fdm
-                .select()
-                .from(schema.measureCatalogueEnabling)
-                .where(
-                    and(
-                        eq(
-                            schema.measureCatalogueEnabling.b_id_farm,
-                            fieldFarm[0].b_id_farm,
-                        ),
-                        eq(
-                            schema.measureCatalogueEnabling.m_source,
-                            catalogueSource[0].m_source,
-                        ),
-                    ),
-                )
-                .limit(1)
-            if (enabled.length === 0) {
-                throw new Error(
-                    `Measure catalogue "${catalogueSource[0].m_source}" is not enabled for this farm`,
-                )
-            }
-        }
-
-        const b_id_measure = createId()
-        await assertNoMeasureOverlap(fdm, b_id, m_id, m_start, m_end ?? null)
-        await fdm.transaction(async (tx) => {
-            await tx.insert(schema.measures).values({ b_id_measure, m_id })
-            await tx.insert(schema.measureAdopting).values({
-                b_id,
-                b_id_measure,
-                m_start,
-                m_end: m_end ?? null,
-            })
-        })
-        return b_id_measure
-    } catch (err) {
-        throw handleError(err, "Exception for addMeasure", {
-            b_id,
-            m_id,
-            m_start,
-            m_end,
-        })
+        .limit(1)
+      if (enabled.length === 0) {
+        throw new Error(
+          `Measure catalogue "${catalogueSource[0].m_source}" is not enabled for this farm`,
+        )
+      }
     }
+
+    const b_id_measure = createId()
+    await assertNoMeasureOverlap(fdm, b_id, m_id, m_start, m_end ?? null)
+    await fdm.transaction(async (tx) => {
+      await tx.insert(schema.measures).values({ b_id_measure, m_id })
+      await tx.insert(schema.measureAdopting).values({
+        b_id,
+        b_id_measure,
+        m_start,
+        m_end: m_end ?? null,
+      })
+    })
+    return b_id_measure
+  } catch (err) {
+    throw handleError(err, "Exception for addMeasure", {
+      b_id,
+      m_id,
+      m_start,
+      m_end,
+    })
+  }
 }
 
 /**
@@ -186,65 +154,52 @@ export async function addMeasure(
  * @returns A Promise resolving to the {@link Measure}.
  */
 export async function getMeasure(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_measure: schema.measuresTypeSelect["b_id_measure"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_measure: schema.measuresTypeSelect["b_id_measure"],
 ): Promise<Measure> {
-    try {
-        // Resolve b_id for permission check
-        const applying = await fdm
-            .select({ b_id: schema.measureAdopting.b_id })
-            .from(schema.measureAdopting)
-            .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
-            .limit(1)
+  try {
+    // Resolve b_id for permission check
+    const applying = await fdm
+      .select({ b_id: schema.measureAdopting.b_id })
+      .from(schema.measureAdopting)
+      .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
+      .limit(1)
 
-        if (applying.length === 0) {
-            throw new Error("Measure does not exist")
-        }
-
-        await checkPermission(
-            fdm,
-            "field",
-            "read",
-            applying[0].b_id,
-            principal_id,
-            "getMeasure",
-        )
-
-        const rows = await fdm
-            .select({
-                b_id_measure: schema.measures.b_id_measure,
-                m_id: schema.measuresCatalogue.m_id,
-                b_id: schema.measureAdopting.b_id,
-                m_start: schema.measureAdopting.m_start,
-                m_end: schema.measureAdopting.m_end,
-                m_name: schema.measuresCatalogue.m_name,
-                m_summary: schema.measuresCatalogue.m_summary,
-                m_conflicts: schema.measuresCatalogue.m_conflicts,
-            })
-            .from(schema.measures)
-            .innerJoin(
-                schema.measureAdopting,
-                eq(
-                    schema.measureAdopting.b_id_measure,
-                    schema.measures.b_id_measure,
-                ),
-            )
-            .innerJoin(
-                schema.measuresCatalogue,
-                eq(schema.measures.m_id, schema.measuresCatalogue.m_id),
-            )
-            .where(eq(schema.measures.b_id_measure, b_id_measure))
-            .limit(1)
-
-        if (rows.length === 0) {
-            throw new Error("Measure does not exist")
-        }
-
-        return rows[0] as Measure
-    } catch (err) {
-        throw handleError(err, "Exception for getMeasure", { b_id_measure })
+    if (applying.length === 0) {
+      throw new Error("Measure does not exist")
     }
+
+    await checkPermission(fdm, "field", "read", applying[0].b_id, principal_id, "getMeasure")
+
+    const rows = await fdm
+      .select({
+        b_id_measure: schema.measures.b_id_measure,
+        m_id: schema.measuresCatalogue.m_id,
+        b_id: schema.measureAdopting.b_id,
+        m_start: schema.measureAdopting.m_start,
+        m_end: schema.measureAdopting.m_end,
+        m_name: schema.measuresCatalogue.m_name,
+        m_summary: schema.measuresCatalogue.m_summary,
+        m_conflicts: schema.measuresCatalogue.m_conflicts,
+      })
+      .from(schema.measures)
+      .innerJoin(
+        schema.measureAdopting,
+        eq(schema.measureAdopting.b_id_measure, schema.measures.b_id_measure),
+      )
+      .innerJoin(schema.measuresCatalogue, eq(schema.measures.m_id, schema.measuresCatalogue.m_id))
+      .where(eq(schema.measures.b_id_measure, b_id_measure))
+      .limit(1)
+
+    if (rows.length === 0) {
+      throw new Error("Measure does not exist")
+    }
+
+    return rows[0] as Measure
+  } catch (err) {
+    throw handleError(err, "Exception for getMeasure", { b_id_measure })
+  }
 }
 
 /**
@@ -257,63 +212,44 @@ export async function getMeasure(
  * @returns A Promise resolving to an array of {@link Measure}.
  */
 export async function getMeasures(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id: schema.fieldsTypeSelect["b_id"],
-    timeframe?: Timeframe,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: schema.fieldsTypeSelect["b_id"],
+  timeframe?: Timeframe,
 ): Promise<Measure[]> {
-    try {
-        await checkPermission(
-            fdm,
-            "field",
-            "read",
-            b_id,
-            principal_id,
-            "getMeasures",
-        )
+  try {
+    await checkPermission(fdm, "field", "read", b_id, principal_id, "getMeasures")
 
-        const timeframeCondition = buildMeasureTimeframeCondition(timeframe)
+    const timeframeCondition = buildMeasureTimeframeCondition(timeframe)
 
-        const rows = await fdm
-            .select({
-                b_id_measure: schema.measures.b_id_measure,
-                m_id: schema.measuresCatalogue.m_id,
-                b_id: schema.measureAdopting.b_id,
-                m_start: schema.measureAdopting.m_start,
-                m_end: schema.measureAdopting.m_end,
-                m_name: schema.measuresCatalogue.m_name,
-                m_summary: schema.measuresCatalogue.m_summary,
-                m_conflicts: schema.measuresCatalogue.m_conflicts,
-            })
-            .from(schema.measures)
-            .innerJoin(
-                schema.measureAdopting,
-                eq(
-                    schema.measureAdopting.b_id_measure,
-                    schema.measures.b_id_measure,
-                ),
-            )
-            .innerJoin(
-                schema.measuresCatalogue,
-                eq(schema.measures.m_id, schema.measuresCatalogue.m_id),
-            )
-            .where(
-                timeframeCondition
-                    ? and(
-                          eq(schema.measureAdopting.b_id, b_id),
-                          timeframeCondition,
-                      )
-                    : eq(schema.measureAdopting.b_id, b_id),
-            )
-            .orderBy(
-                desc(schema.measureAdopting.m_start),
-                asc(schema.measuresCatalogue.m_name),
-            )
+    const rows = await fdm
+      .select({
+        b_id_measure: schema.measures.b_id_measure,
+        m_id: schema.measuresCatalogue.m_id,
+        b_id: schema.measureAdopting.b_id,
+        m_start: schema.measureAdopting.m_start,
+        m_end: schema.measureAdopting.m_end,
+        m_name: schema.measuresCatalogue.m_name,
+        m_summary: schema.measuresCatalogue.m_summary,
+        m_conflicts: schema.measuresCatalogue.m_conflicts,
+      })
+      .from(schema.measures)
+      .innerJoin(
+        schema.measureAdopting,
+        eq(schema.measureAdopting.b_id_measure, schema.measures.b_id_measure),
+      )
+      .innerJoin(schema.measuresCatalogue, eq(schema.measures.m_id, schema.measuresCatalogue.m_id))
+      .where(
+        timeframeCondition
+          ? and(eq(schema.measureAdopting.b_id, b_id), timeframeCondition)
+          : eq(schema.measureAdopting.b_id, b_id),
+      )
+      .orderBy(desc(schema.measureAdopting.m_start), asc(schema.measuresCatalogue.m_name))
 
-        return rows as Measure[]
-    } catch (err) {
-        throw handleError(err, "Exception for getMeasures", { b_id })
-    }
+    return rows as Measure[]
+  } catch (err) {
+    throw handleError(err, "Exception for getMeasures", { b_id })
+  }
 }
 
 /**
@@ -326,79 +262,57 @@ export async function getMeasures(
  * @returns A Promise resolving to a `Map<b_id, Measure[]>`.
  */
 export async function getMeasuresForFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-    timeframe?: Timeframe,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  timeframe?: Timeframe,
 ): Promise<Map<string, Measure[]>> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "read",
-            b_id_farm,
-            principal_id,
-            "getMeasuresForFarm",
-        )
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getMeasuresForFarm")
 
-        const timeframeCondition = buildMeasureTimeframeCondition(timeframe)
+    const timeframeCondition = buildMeasureTimeframeCondition(timeframe)
 
-        const rows = await fdm
-            .select({
-                b_id_measure: schema.measures.b_id_measure,
-                m_id: schema.measuresCatalogue.m_id,
-                b_id: schema.measureAdopting.b_id,
-                m_start: schema.measureAdopting.m_start,
-                m_end: schema.measureAdopting.m_end,
-                m_name: schema.measuresCatalogue.m_name,
-                m_summary: schema.measuresCatalogue.m_summary,
-                m_conflicts: schema.measuresCatalogue.m_conflicts,
-            })
-            .from(schema.measures)
-            .innerJoin(
-                schema.measureAdopting,
-                eq(
-                    schema.measureAdopting.b_id_measure,
-                    schema.measures.b_id_measure,
-                ),
-            )
-            .innerJoin(
-                schema.measuresCatalogue,
-                eq(schema.measures.m_id, schema.measuresCatalogue.m_id),
-            )
-            .innerJoin(
-                schema.fieldAcquiring,
-                eq(schema.fieldAcquiring.b_id, schema.measureAdopting.b_id),
-            )
-            .where(
-                timeframeCondition
-                    ? and(
-                          eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-                          timeframeCondition,
-                      )
-                    : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
-            )
-            .orderBy(
-                desc(schema.measureAdopting.m_start),
-                asc(schema.measuresCatalogue.m_name),
-            )
+    const rows = await fdm
+      .select({
+        b_id_measure: schema.measures.b_id_measure,
+        m_id: schema.measuresCatalogue.m_id,
+        b_id: schema.measureAdopting.b_id,
+        m_start: schema.measureAdopting.m_start,
+        m_end: schema.measureAdopting.m_end,
+        m_name: schema.measuresCatalogue.m_name,
+        m_summary: schema.measuresCatalogue.m_summary,
+        m_conflicts: schema.measuresCatalogue.m_conflicts,
+      })
+      .from(schema.measures)
+      .innerJoin(
+        schema.measureAdopting,
+        eq(schema.measureAdopting.b_id_measure, schema.measures.b_id_measure),
+      )
+      .innerJoin(schema.measuresCatalogue, eq(schema.measures.m_id, schema.measuresCatalogue.m_id))
+      .innerJoin(schema.fieldAcquiring, eq(schema.fieldAcquiring.b_id, schema.measureAdopting.b_id))
+      .where(
+        timeframeCondition
+          ? and(eq(schema.fieldAcquiring.b_id_farm, b_id_farm), timeframeCondition)
+          : eq(schema.fieldAcquiring.b_id_farm, b_id_farm),
+      )
+      .orderBy(desc(schema.measureAdopting.m_start), asc(schema.measuresCatalogue.m_name))
 
-        const result = new Map<string, Measure[]>()
-        for (const row of rows) {
-            if (!row.b_id) continue
-            const existing = result.get(row.b_id)
-            if (existing) {
-                existing.push(row as Measure)
-            } else {
-                result.set(row.b_id, [row as Measure])
-            }
-        }
-        return result
-    } catch (err) {
-        throw handleError(err, "Exception for getMeasuresForFarm", {
-            b_id_farm,
-        })
+    const result = new Map<string, Measure[]>()
+    for (const row of rows) {
+      if (!row.b_id) continue
+      const existing = result.get(row.b_id)
+      if (existing) {
+        existing.push(row as Measure)
+      } else {
+        result.set(row.b_id, [row as Measure])
+      }
     }
+    return result
+  } catch (err) {
+    throw handleError(err, "Exception for getMeasuresForFarm", {
+      b_id_farm,
+    })
+  }
 }
 
 /**
@@ -409,28 +323,23 @@ export async function getMeasuresForFarm(
  * @param fdm The FDM instance providing the connection to the database.
  * @returns A Promise resolving to an array of {@link MeasureCatalogue}.
  */
-export async function getMeasuresFromCatalogue(
-    fdm: FdmType,
-): Promise<MeasureCatalogue[]> {
-    try {
-        return fdm
-            .select({
-                m_id: schema.measuresCatalogue.m_id,
-                m_source: schema.measuresCatalogue.m_source,
-                m_name: schema.measuresCatalogue.m_name,
-                m_description: schema.measuresCatalogue.m_description,
-                m_summary: schema.measuresCatalogue.m_summary,
-                m_source_url: schema.measuresCatalogue.m_source_url,
-                m_conflicts: schema.measuresCatalogue.m_conflicts,
-            })
-            .from(schema.measuresCatalogue)
-            .orderBy(
-                asc(schema.measuresCatalogue.m_source),
-                asc(schema.measuresCatalogue.m_name),
-            )
-    } catch (err) {
-        throw handleError(err, "Exception for getMeasuresFromCatalogue", {})
-    }
+export async function getMeasuresFromCatalogue(fdm: FdmType): Promise<MeasureCatalogue[]> {
+  try {
+    return fdm
+      .select({
+        m_id: schema.measuresCatalogue.m_id,
+        m_source: schema.measuresCatalogue.m_source,
+        m_name: schema.measuresCatalogue.m_name,
+        m_description: schema.measuresCatalogue.m_description,
+        m_summary: schema.measuresCatalogue.m_summary,
+        m_source_url: schema.measuresCatalogue.m_source_url,
+        m_conflicts: schema.measuresCatalogue.m_conflicts,
+      })
+      .from(schema.measuresCatalogue)
+      .orderBy(asc(schema.measuresCatalogue.m_source), asc(schema.measuresCatalogue.m_name))
+  } catch (err) {
+    throw handleError(err, "Exception for getMeasuresFromCatalogue", {})
+  }
 }
 
 /**
@@ -444,80 +353,73 @@ export async function getMeasuresFromCatalogue(
  * @param m_end Optional new end date. Pass `null` to clear it (doorlopend).
  */
 export async function updateMeasure(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_measure: schema.measuresTypeSelect["b_id_measure"],
-    m_start?: Date,
-    m_end?: Date | null,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_measure: schema.measuresTypeSelect["b_id_measure"],
+  m_start?: Date,
+  m_end?: Date | null,
 ): Promise<void> {
-    try {
-        const applying = await fdm
-            .select({
-                b_id: schema.measureAdopting.b_id,
-                m_start: schema.measureAdopting.m_start,
-                m_end: schema.measureAdopting.m_end,
-            })
-            .from(schema.measureAdopting)
-            .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
-            .limit(1)
+  try {
+    const applying = await fdm
+      .select({
+        b_id: schema.measureAdopting.b_id,
+        m_start: schema.measureAdopting.m_start,
+        m_end: schema.measureAdopting.m_end,
+      })
+      .from(schema.measureAdopting)
+      .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
+      .limit(1)
 
-        if (applying.length === 0) {
-            throw new Error("Measure does not exist")
-        }
-
-        await checkPermission(
-            fdm,
-            "field",
-            "write",
-            applying[0].b_id,
-            principal_id,
-            "updateMeasure",
-        )
-
-        const effectiveStart = m_start ?? applying[0].m_start ?? undefined
-        const effectiveEnd = m_end !== undefined ? m_end : applying[0].m_end
-        if (
-            effectiveStart &&
-            effectiveEnd instanceof Date &&
-            effectiveEnd.getTime() < effectiveStart.getTime()
-        ) {
-            throw new Error("m_end cannot be earlier than m_start")
-        }
-
-        // Fetch m_id for the overlap check
-        const measureRow = await fdm
-            .select({ m_id: schema.measures.m_id })
-            .from(schema.measures)
-            .where(eq(schema.measures.b_id_measure, b_id_measure))
-            .limit(1)
-        if (measureRow.length > 0) {
-            await assertNoMeasureOverlap(
-                fdm,
-                applying[0].b_id,
-                measureRow[0].m_id,
-                effectiveStart ?? new Date(0),
-                effectiveEnd instanceof Date ? effectiveEnd : null,
-                b_id_measure,
-            )
-        }
-
-        const updates: Partial<schema.measureAdoptingTypeInsert> = {
-            updated: new Date(),
-        }
-        if (m_start !== undefined) updates.m_start = m_start
-        if (m_end !== undefined) updates.m_end = m_end
-
-        await fdm
-            .update(schema.measureAdopting)
-            .set(updates)
-            .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
-    } catch (err) {
-        throw handleError(err, "Exception for updateMeasure", {
-            b_id_measure,
-            m_start,
-            m_end,
-        })
+    if (applying.length === 0) {
+      throw new Error("Measure does not exist")
     }
+
+    await checkPermission(fdm, "field", "write", applying[0].b_id, principal_id, "updateMeasure")
+
+    const effectiveStart = m_start ?? applying[0].m_start ?? undefined
+    const effectiveEnd = m_end !== undefined ? m_end : applying[0].m_end
+    if (
+      effectiveStart &&
+      effectiveEnd instanceof Date &&
+      effectiveEnd.getTime() < effectiveStart.getTime()
+    ) {
+      throw new Error("m_end cannot be earlier than m_start")
+    }
+
+    // Fetch m_id for the overlap check
+    const measureRow = await fdm
+      .select({ m_id: schema.measures.m_id })
+      .from(schema.measures)
+      .where(eq(schema.measures.b_id_measure, b_id_measure))
+      .limit(1)
+    if (measureRow.length > 0) {
+      await assertNoMeasureOverlap(
+        fdm,
+        applying[0].b_id,
+        measureRow[0].m_id,
+        effectiveStart ?? new Date(0),
+        effectiveEnd instanceof Date ? effectiveEnd : null,
+        b_id_measure,
+      )
+    }
+
+    const updates: Partial<schema.measureAdoptingTypeInsert> = {
+      updated: new Date(),
+    }
+    if (m_start !== undefined) updates.m_start = m_start
+    if (m_end !== undefined) updates.m_end = m_end
+
+    await fdm
+      .update(schema.measureAdopting)
+      .set(updates)
+      .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
+  } catch (err) {
+    throw handleError(err, "Exception for updateMeasure", {
+      b_id_measure,
+      m_start,
+      m_end,
+    })
+  }
 }
 
 /**
@@ -528,41 +430,32 @@ export async function updateMeasure(
  * @param b_id_measure The instance ID of the measure to remove.
  */
 export async function removeMeasure(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_measure: schema.measuresTypeSelect["b_id_measure"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_measure: schema.measuresTypeSelect["b_id_measure"],
 ): Promise<void> {
-    try {
-        const applying = await fdm
-            .select({ b_id: schema.measureAdopting.b_id })
-            .from(schema.measureAdopting)
-            .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
-            .limit(1)
+  try {
+    const applying = await fdm
+      .select({ b_id: schema.measureAdopting.b_id })
+      .from(schema.measureAdopting)
+      .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
+      .limit(1)
 
-        if (applying.length === 0) {
-            throw new Error("Measure does not exist")
-        }
-
-        await checkPermission(
-            fdm,
-            "field",
-            "write",
-            applying[0].b_id,
-            principal_id,
-            "removeMeasure",
-        )
-
-        await fdm.transaction(async (tx) => {
-            await tx
-                .delete(schema.measureAdopting)
-                .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
-            await tx
-                .delete(schema.measures)
-                .where(eq(schema.measures.b_id_measure, b_id_measure))
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for removeMeasure", { b_id_measure })
+    if (applying.length === 0) {
+      throw new Error("Measure does not exist")
     }
+
+    await checkPermission(fdm, "field", "write", applying[0].b_id, principal_id, "removeMeasure")
+
+    await fdm.transaction(async (tx) => {
+      await tx
+        .delete(schema.measureAdopting)
+        .where(eq(schema.measureAdopting.b_id_measure, b_id_measure))
+      await tx.delete(schema.measures).where(eq(schema.measures.b_id_measure, b_id_measure))
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for removeMeasure", { b_id_measure })
+  }
 }
 
 /**
@@ -576,38 +469,35 @@ export async function removeMeasure(
  * @returns A Drizzle-ORM SQL condition, or `undefined` if the timeframe is not provided.
  */
 export const buildMeasureTimeframeCondition = (
-    timeframe: Timeframe | undefined,
+  timeframe: Timeframe | undefined,
 ): SQL | undefined => {
-    if (!timeframe?.start || !timeframe?.end) {
-        return undefined
-    }
+  if (!timeframe?.start || !timeframe?.end) {
+    return undefined
+  }
 
-    return or(
-        // Case 1: Measure has an end date and overlaps with the timeframe
+  return or(
+    // Case 1: Measure has an end date and overlaps with the timeframe
+    and(
+      isNotNull(schema.measureAdopting.m_end),
+      or(
+        // Measure starts within the timeframe
         and(
-            isNotNull(schema.measureAdopting.m_end),
-            or(
-                // Measure starts within the timeframe
-                and(
-                    gte(schema.measureAdopting.m_start, timeframe.start),
-                    lte(schema.measureAdopting.m_start, timeframe.end),
-                ),
-                // Measure ends within the timeframe
-                and(
-                    gte(schema.measureAdopting.m_end, timeframe.start),
-                    lte(schema.measureAdopting.m_end, timeframe.end),
-                ),
-                // Measure spans the entire timeframe
-                and(
-                    lte(schema.measureAdopting.m_start, timeframe.start),
-                    gte(schema.measureAdopting.m_end, timeframe.end),
-                ),
-            ),
+          gte(schema.measureAdopting.m_start, timeframe.start),
+          lte(schema.measureAdopting.m_start, timeframe.end),
         ),
-        // Case 2: Measure has no end date and its start is on or before the timeframe's end
+        // Measure ends within the timeframe
         and(
-            isNull(schema.measureAdopting.m_end),
-            lte(schema.measureAdopting.m_start, timeframe.end),
+          gte(schema.measureAdopting.m_end, timeframe.start),
+          lte(schema.measureAdopting.m_end, timeframe.end),
         ),
-    )
+        // Measure spans the entire timeframe
+        and(
+          lte(schema.measureAdopting.m_start, timeframe.start),
+          gte(schema.measureAdopting.m_end, timeframe.end),
+        ),
+      ),
+    ),
+    // Case 2: Measure has no end date and its start is on or before the timeframe's end
+    and(isNull(schema.measureAdopting.m_end), lte(schema.measureAdopting.m_start, timeframe.end)),
+  )
 }

@@ -1,22 +1,22 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_cultivation_terminating.json",
-    "title": "Terminating event in Farm Data Model",
-    "description": "The data model to describe terminating event of a cultivation",
-    "type": "object",
-    "properties": {
-        "b_id_terminating": {
-            "description": "ID of the terminating event",
-            "type": "string"
-        },
-        "b_id_cultivation": {
-            "description": "ID of the cultivation",
-            "type": "string"
-        },
-        "b_lu_end": {
-            "description": "Date of end of cultivation",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_cultivation_terminating.json",
+  "title": "Terminating event in Farm Data Model",
+  "description": "The data model to describe terminating event of a cultivation",
+  "type": "object",
+  "properties": {
+    "b_id_terminating": {
+      "description": "ID of the terminating event",
+      "type": "string"
     },
-    "required": ["b_id_terminating", "b_id_cultivation"]
+    "b_id_cultivation": {
+      "description": "ID of the cultivation",
+      "type": "string"
+    },
+    "b_lu_end": {
+      "description": "Date of end of cultivation",
+      "type": "string"
+    }
+  },
+  "required": ["b_id_terminating", "b_id_cultivation"]
 }

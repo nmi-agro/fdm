@@ -1,18 +1,18 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_reconfigure.json",
-    "title": "Field asset in Farm Data Model",
-    "description": "The data model to describe the event of reconfiguring a field",
-    "type": "object",
-    "properties": {
-        "b_id_primary": {
-            "description": "ID of the field that is reconfigured",
-            "type": "string"
-        },
-        "b_id_secondary": {
-            "description": "Name of the field that has been reconfigured",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_reconfigure.json",
+  "title": "Field asset in Farm Data Model",
+  "description": "The data model to describe the event of reconfiguring a field",
+  "type": "object",
+  "properties": {
+    "b_id_primary": {
+      "description": "ID of the field that is reconfigured",
+      "type": "string"
     },
-    "required": ["b_id_primary", "b_id_secondary"]
+    "b_id_secondary": {
+      "description": "Name of the field that has been reconfigured",
+      "type": "string"
+    }
+  },
+  "required": ["b_id_primary", "b_id_secondary"]
 }

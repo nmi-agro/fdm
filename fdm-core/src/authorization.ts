@@ -1,159 +1,159 @@
-import { AsyncLocalStorage } from "node:async_hooks"
 import { and, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm"
+import { AsyncLocalStorage } from "node:async_hooks"
 import type {
-    Action,
-    AuditContext,
-    Permission,
-    PrincipalId,
-    PrincipalWithRoles,
-    Resource,
-    ResourceBead,
-    ResourceChain,
-    ResourceId,
-    Role,
+  Action,
+  AuditContext,
+  Permission,
+  PrincipalId,
+  PrincipalWithRoles,
+  Resource,
+  ResourceBead,
+  ResourceChain,
+  ResourceId,
+  Role,
 } from "./authorization.types"
+import type { FdmType } from "./fdm.types"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm.types"
 import { createId } from "./id"
 
 export const resources: Resource[] = [
-    "user",
-    "organization",
-    "farm",
-    "field",
-    "cultivation",
-    "fertilizer_application",
-    "soil_analysis",
-    "soil_image",
-    "harvesting",
+  "user",
+  "organization",
+  "farm",
+  "field",
+  "cultivation",
+  "fertilizer_application",
+  "soil_analysis",
+  "soil_image",
+  "harvesting",
 ] as const
 export const roles: Role[] = ["owner", "advisor", "researcher"] as const
 export const actions: Action[] = ["read", "write", "list", "share"] as const
 
 export const permissions: Permission[] = [
-    {
-        resource: "farm",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "farm",
-        role: "advisor",
-        action: ["read", "write", "list"],
-    },
-    {
-        resource: "farm",
-        role: "researcher",
-        action: ["read"],
-    },
-    {
-        resource: "field",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "field",
-        role: "advisor",
-        action: ["read", "write", "list"],
-    },
-    {
-        resource: "field",
-        role: "researcher",
-        action: ["read"],
-    },
-    {
-        resource: "cultivation",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "cultivation",
-        role: "advisor",
-        action: ["read", "write", "list"],
-    },
-    {
-        resource: "cultivation",
-        role: "researcher",
-        action: ["read"],
-    },
-    {
-        resource: "harvesting",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "harvesting",
-        role: "advisor",
-        action: ["read", "write", "list"],
-    },
-    {
-        resource: "harvesting",
-        role: "researcher",
-        action: ["read"],
-    },
-    {
-        resource: "soil_analysis",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "soil_analysis",
-        role: "advisor",
-        action: ["read", "write", "list"],
-    },
-    {
-        resource: "soil_analysis",
-        role: "researcher",
-        action: ["read"],
-    },
-    {
-        resource: "soil_image",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "soil_image",
-        role: "advisor",
-        action: ["read", "list"],
-    },
-    {
-        resource: "soil_image",
-        role: "researcher",
-        action: ["read"],
-    },
-    {
-        resource: "fertilizer_application",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "fertilizer_application",
-        role: "advisor",
-        action: ["read", "write", "list"],
-    },
-    {
-        resource: "fertilizer_application",
-        role: "researcher",
-        action: ["read"],
-    },
-    {
-        resource: "user",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "organization",
-        role: "owner",
-        action: ["read", "write", "list", "share"],
-    },
-    {
-        resource: "organization",
-        role: "advisor",
-        action: ["read"],
-    },
+  {
+    resource: "farm",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "farm",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "farm",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "field",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "field",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "field",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "cultivation",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "cultivation",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "cultivation",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "harvesting",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "harvesting",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "harvesting",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "soil_analysis",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "soil_analysis",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "soil_analysis",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "soil_image",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "soil_image",
+    role: "advisor",
+    action: ["read", "list"],
+  },
+  {
+    resource: "soil_image",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "fertilizer_application",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "fertilizer_application",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "fertilizer_application",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "user",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "organization",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "organization",
+    role: "advisor",
+    action: ["read"],
+  },
 ]
 
 /**
@@ -176,68 +176,61 @@ export const permissions: Permission[] = [
  * @throws {Error} When the principal does not have the required permission.
  */
 export async function checkPermission(
-    fdm: FdmType,
-    resource: Resource,
-    action: Action,
-    resource_id: string,
-    principal_id: PrincipalId,
-    origin: string,
-    strict = true,
+  fdm: FdmType,
+  resource: Resource,
+  action: Action,
+  resource_id: string,
+  principal_id: PrincipalId,
+  origin: string,
+  strict = true,
 ) {
-    const start = performance.now()
-    const { channel, credential_id } = getAuditContext()
-    try {
-        const permission = await getPermission(
-            fdm,
-            resource,
-            action,
-            resource_id,
-            principal_id,
-        )
+  const start = performance.now()
+  const { channel, credential_id } = getAuditContext()
+  try {
+    const permission = await getPermission(fdm, resource, action, resource_id, principal_id)
 
-        const granting_resource = permission?.granting_resource ?? ""
-        const granting_resource_id = permission?.granting_resource_id ?? ""
+    const granting_resource = permission?.granting_resource ?? ""
+    const granting_resource_id = permission?.granting_resource_id ?? ""
 
-        // Store check in audit
-        if (strict) {
-            await fdm.insert(authZSchema.audit).values({
-                audit_id: createId(),
-                audit_origin: origin,
-                audit_channel: channel,
-                credential_id: credential_id ?? null,
-                principal_id:
-                    permission?.matched_principal_id ||
-                    (Array.isArray(principal_id)
-                        ? principal_id.join(",") || "unknown"
-                        : principal_id || "unknown"),
-                target_resource: resource,
-                target_resource_id: resource_id,
-                granting_resource: granting_resource,
-                granting_resource_id: granting_resource_id,
-                action: action,
-                allowed: !!permission,
-                duration: Math.round(performance.now() - start),
-            })
+    // Store check in audit
+    if (strict) {
+      await fdm.insert(authZSchema.audit).values({
+        audit_id: createId(),
+        audit_origin: origin,
+        audit_channel: channel,
+        credential_id: credential_id ?? null,
+        principal_id:
+          permission?.matched_principal_id ||
+          (Array.isArray(principal_id)
+            ? principal_id.join(",") || "unknown"
+            : principal_id || "unknown"),
+        target_resource: resource,
+        target_resource_id: resource_id,
+        granting_resource: granting_resource,
+        granting_resource_id: granting_resource_id,
+        action: action,
+        allowed: !!permission,
+        duration: Math.round(performance.now() - start),
+      })
 
-            if (!permission) {
-                throw new Error("Permission denied")
-            }
-        }
-
-        return !!permission
-    } catch (err) {
-        let message = "Exception for checkPermission"
-        if (err instanceof Error && err.message === "Permission denied") {
-            message =
-                "Principal does not have permission to perform this action"
-        }
-        throw handleError(err, message, {
-            resource: resource,
-            action: action,
-            resource_id: resource_id,
-            principal_id: principal_id,
-        })
+      if (!permission) {
+        throw new Error("Permission denied")
+      }
     }
+
+    return !!permission
+  } catch (err) {
+    let message = "Exception for checkPermission"
+    if (err instanceof Error && err.message === "Permission denied") {
+      message = "Principal does not have permission to perform this action"
+    }
+    throw handleError(err, message, {
+      resource: resource,
+      action: action,
+      resource_id: resource_id,
+      principal_id: principal_id,
+    })
+  }
 }
 
 /**
@@ -255,33 +248,33 @@ export async function checkPermission(
  * @param duration - Time taken in milliseconds.
  */
 export async function writeAuditEntry(
-    fdm: FdmType,
-    origin: string,
-    resource: Resource,
-    action: Action,
-    principal_id: PrincipalId,
-    granting_resource: string,
-    granting_resource_id: string,
-    duration: number,
+  fdm: FdmType,
+  origin: string,
+  resource: Resource,
+  action: Action,
+  principal_id: PrincipalId,
+  granting_resource: string,
+  granting_resource_id: string,
+  duration: number,
 ): Promise<void> {
-    const { channel, credential_id } = getAuditContext()
-    const resolvedPrincipalId = Array.isArray(principal_id)
-        ? principal_id[0] || "unknown"
-        : principal_id || "unknown"
-    await fdm.insert(authZSchema.audit).values({
-        audit_id: createId(),
-        audit_origin: origin,
-        audit_channel: channel,
-        credential_id: credential_id ?? null,
-        principal_id: resolvedPrincipalId,
-        target_resource: resource,
-        target_resource_id: granting_resource_id,
-        granting_resource: granting_resource,
-        granting_resource_id: granting_resource_id,
-        action: action,
-        allowed: true,
-        duration: Math.round(duration),
-    })
+  const { channel, credential_id } = getAuditContext()
+  const resolvedPrincipalId = Array.isArray(principal_id)
+    ? principal_id[0] || "unknown"
+    : principal_id || "unknown"
+  await fdm.insert(authZSchema.audit).values({
+    audit_id: createId(),
+    audit_origin: origin,
+    audit_channel: channel,
+    credential_id: credential_id ?? null,
+    principal_id: resolvedPrincipalId,
+    target_resource: resource,
+    target_resource_id: granting_resource_id,
+    granting_resource: granting_resource,
+    granting_resource_id: granting_resource_id,
+    action: action,
+    allowed: true,
+    duration: Math.round(duration),
+  })
 }
 
 /**
@@ -296,93 +289,79 @@ export async function writeAuditEntry(
  * `null` is returned if the principal does not have the permission.
  */
 async function getPermission(
-    fdm: FdmType,
-    resource: Resource,
-    action: Action,
-    resource_id: string,
-    principal_id: PrincipalId,
+  fdm: FdmType,
+  resource: Resource,
+  action: Action,
+  resource_id: string,
+  principal_id: PrincipalId,
 ): Promise<{
-    granting_resource: string
-    granting_resource_id: string
-    matched_principal_id: string
+  granting_resource: string
+  granting_resource_id: string
+  matched_principal_id: string
 } | null> {
-    let isAllowed = false
-    let granting_resource = ""
-    let granting_resource_id = ""
-    let matched_principal_id = ""
-    const roles = getRolesForAction(action, resource)
-    const chain = await getResourceChain(fdm, resource, resource_id)
+  let isAllowed = false
+  let granting_resource = ""
+  let granting_resource_id = ""
+  let matched_principal_id = ""
+  const roles = getRolesForAction(action, resource)
+  const chain = await getResourceChain(fdm, resource, resource_id)
 
-    // Convert principal_id to array
-    const principal_ids = Array.isArray(principal_id)
-        ? principal_id
-        : [principal_id]
+  // Convert principal_id to array
+  const principal_ids = Array.isArray(principal_id) ? principal_id : [principal_id]
 
-    await fdm.transaction(async (tx) => {
-        for (const bead of chain) {
-            const check = await tx
-                .select({
-                    resource_id: authZSchema.role.resource_id,
-                    role_principal_id: authZSchema.role.principal_id,
-                    member_user_id: authNSchema.member.userId,
-                })
-                .from(authZSchema.role)
-                .leftJoin(
-                    authNSchema.member,
-                    eq(
-                        authZSchema.role.principal_id,
-                        authNSchema.member.organizationId,
-                    ),
-                )
-                .where(
-                    and(
-                        eq(authZSchema.role.resource, bead.resource),
-                        eq(authZSchema.role.resource_id, bead.resource_id),
-                        or(
-                            inArray(
-                                authZSchema.role.principal_id,
-                                principal_ids,
-                            ),
-                            and(
-                                isNotNull(authNSchema.member.userId),
-                                inArray(
-                                    authNSchema.member.userId,
-                                    principal_ids,
-                                ),
-                            ),
-                        ),
-                        inArray(authZSchema.role.role, roles),
-                        isNull(authZSchema.role.deleted),
-                    ),
-                )
-                .limit(1)
+  await fdm.transaction(async (tx) => {
+    for (const bead of chain) {
+      const check = await tx
+        .select({
+          resource_id: authZSchema.role.resource_id,
+          role_principal_id: authZSchema.role.principal_id,
+          member_user_id: authNSchema.member.userId,
+        })
+        .from(authZSchema.role)
+        .leftJoin(
+          authNSchema.member,
+          eq(authZSchema.role.principal_id, authNSchema.member.organizationId),
+        )
+        .where(
+          and(
+            eq(authZSchema.role.resource, bead.resource),
+            eq(authZSchema.role.resource_id, bead.resource_id),
+            or(
+              inArray(authZSchema.role.principal_id, principal_ids),
+              and(
+                isNotNull(authNSchema.member.userId),
+                inArray(authNSchema.member.userId, principal_ids),
+              ),
+            ),
+            inArray(authZSchema.role.role, roles),
+            isNull(authZSchema.role.deleted),
+          ),
+        )
+        .limit(1)
 
-            if (check.length > 0) {
-                isAllowed = true
-                granting_resource = bead.resource
-                granting_resource_id = bead.resource_id
-                // Prefer the user ID when access was granted via org membership;
-                // otherwise use the role's principal_id (a direct match).
-                matched_principal_id =
-                    check[0].member_user_id ?? check[0].role_principal_id
-                break
-            }
-        }
-    })
+      if (check.length > 0) {
+        isAllowed = true
+        granting_resource = bead.resource
+        granting_resource_id = bead.resource_id
+        // Prefer the user ID when access was granted via org membership;
+        // otherwise use the role's principal_id (a direct match).
+        matched_principal_id = check[0].member_user_id ?? check[0].role_principal_id
+        break
+      }
+    }
+  })
 
-    return isAllowed
-        ? { granting_resource, granting_resource_id, matched_principal_id }
-        : null
+  return isAllowed ? { granting_resource, granting_resource_id, matched_principal_id } : null
 }
 
 /**
  * Interface describing the expected shape of a row returned by the role query.
  */
 interface RoleQueryRow {
-    principal_id: string
-    role: Role
-    as_organization_member: boolean
-    as_organization: boolean
+  principal_id: string
+  role: Role
+  as_organization_member: boolean
+  as_organization: boolean
 }
 
 /**
@@ -392,12 +371,12 @@ interface RoleQueryRow {
  * @returns True if the row matches the RoleQueryRow interface.
  */
 function isRoleQueryRow(row: any): row is RoleQueryRow {
-    return (
-        typeof row.principal_id === "string" &&
-        (roles as readonly string[]).includes(row.role) &&
-        typeof row.as_organization_member === "boolean" &&
-        typeof row.as_organization === "boolean"
-    )
+  return (
+    typeof row.principal_id === "string" &&
+    (roles as readonly string[]).includes(row.role) &&
+    typeof row.as_organization_member === "boolean" &&
+    typeof row.as_organization === "boolean"
+  )
 }
 
 /**
@@ -423,111 +402,91 @@ function isRoleQueryRow(row: any): row is RoleQueryRow {
  * @throws {Error} If the resource type is invalid or if the database operation fails.
  */
 export async function getRolesOfPrincipalForResource(
-    fdm: FdmType,
-    resource: Resource,
-    resource_id: ResourceId,
-    principal_id: PrincipalId,
+  fdm: FdmType,
+  resource: Resource,
+  resource_id: ResourceId,
+  principal_id: PrincipalId,
 ): Promise<PrincipalWithRoles[]> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            // Validate input
-            if (!resources.includes(resource)) {
-                throw new Error("Invalid resource")
-            }
+  try {
+    return await fdm.transaction(async (tx) => {
+      // Validate input
+      if (!resources.includes(resource)) {
+        throw new Error("Invalid resource")
+      }
 
-            // Convert principal_id to array
-            const principal_ids = Array.isArray(principal_id)
-                ? principal_id
-                : [principal_id]
+      // Convert principal_id to array
+      const principal_ids = Array.isArray(principal_id) ? principal_id : [principal_id]
 
-            const rows = await tx
-                .select({
-                    role: authZSchema.role.role,
-                    principal_id: authZSchema.role.principal_id,
-                    as_organization_member: isNotNull(
-                        authNSchema.member.userId,
-                    ),
-                    as_organization: sql<boolean>`${and(
-                        isNotNull(authNSchema.organization.id),
-                        inArray(authZSchema.role.principal_id, principal_ids),
-                    )}`,
-                })
-                .from(authZSchema.role)
-                .leftJoin(
-                    authNSchema.member,
-                    eq(
-                        authZSchema.role.principal_id,
-                        authNSchema.member.organizationId,
-                    ),
-                )
-                .leftJoin(
-                    authNSchema.organization,
-                    eq(
-                        authZSchema.role.principal_id,
-                        authNSchema.organization.id,
-                    ),
-                )
-                .where(
-                    and(
-                        eq(authZSchema.role.resource, resource),
-                        eq(authZSchema.role.resource_id, resource_id),
-                        or(
-                            inArray(
-                                authZSchema.role.principal_id,
-                                principal_ids,
-                            ),
-                            and(
-                                isNotNull(authNSchema.member.userId),
-                                inArray(
-                                    authNSchema.member.userId,
-                                    principal_ids,
-                                ),
-                            ),
-                        ),
-                        isNull(authZSchema.role.deleted),
-                    ),
-                )
-
-            const result: RoleQueryRow[] = rows.map((row) => {
-                if (!isRoleQueryRow(row)) {
-                    throw new Error(
-                        "Unexpected row shape in getRolesOfPrincipalForResource",
-                    )
-                }
-                return row
-            })
-
-            const deduped = new Map<
-                string,
-                {
-                    principal_id: string
-                    role: Role
-                    principal_type: "user" | "organization"
-                }
-            >()
-            for (const item of result) {
-                const principal_type =
-                    item.as_organization || item.as_organization_member
-                        ? "organization"
-                        : "user"
-                const key = `${principal_type}:${item.principal_id}:${item.role}`
-                if (!deduped.has(key)) {
-                    deduped.set(key, {
-                        principal_id: item.principal_id,
-                        role: item.role,
-                        principal_type,
-                    })
-                }
-            }
-            return [...deduped.values()]
+      const rows = await tx
+        .select({
+          role: authZSchema.role.role,
+          principal_id: authZSchema.role.principal_id,
+          as_organization_member: isNotNull(authNSchema.member.userId),
+          as_organization: sql<boolean>`${and(
+            isNotNull(authNSchema.organization.id),
+            inArray(authZSchema.role.principal_id, principal_ids),
+          )}`,
         })
-    } catch (err) {
-        throw handleError(err, "Exception for getRolesOfPrincipalForResource", {
-            resource: resource,
-            resource_id: resource_id,
-            principal_id: principal_id,
-        })
-    }
+        .from(authZSchema.role)
+        .leftJoin(
+          authNSchema.member,
+          eq(authZSchema.role.principal_id, authNSchema.member.organizationId),
+        )
+        .leftJoin(
+          authNSchema.organization,
+          eq(authZSchema.role.principal_id, authNSchema.organization.id),
+        )
+        .where(
+          and(
+            eq(authZSchema.role.resource, resource),
+            eq(authZSchema.role.resource_id, resource_id),
+            or(
+              inArray(authZSchema.role.principal_id, principal_ids),
+              and(
+                isNotNull(authNSchema.member.userId),
+                inArray(authNSchema.member.userId, principal_ids),
+              ),
+            ),
+            isNull(authZSchema.role.deleted),
+          ),
+        )
+
+      const result: RoleQueryRow[] = rows.map((row) => {
+        if (!isRoleQueryRow(row)) {
+          throw new Error("Unexpected row shape in getRolesOfPrincipalForResource")
+        }
+        return row
+      })
+
+      const deduped = new Map<
+        string,
+        {
+          principal_id: string
+          role: Role
+          principal_type: "user" | "organization"
+        }
+      >()
+      for (const item of result) {
+        const principal_type =
+          item.as_organization || item.as_organization_member ? "organization" : "user"
+        const key = `${principal_type}:${item.principal_id}:${item.role}`
+        if (!deduped.has(key)) {
+          deduped.set(key, {
+            principal_id: item.principal_id,
+            role: item.role,
+            principal_type,
+          })
+        }
+      }
+      return [...deduped.values()]
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for getRolesOfPrincipalForResource", {
+      resource: resource,
+      resource_id: resource_id,
+      principal_id: principal_id,
+    })
+  }
 }
 
 /**
@@ -546,60 +505,60 @@ export async function getRolesOfPrincipalForResource(
  * @throws {Error} If the specified resource or role is invalid or if the database transaction fails.
  */
 export async function grantRole(
-    fdm: FdmType,
-    resource: Resource,
-    role: Role,
-    resource_id: ResourceId,
-    target_id: string,
+  fdm: FdmType,
+  resource: Resource,
+  role: Role,
+  resource_id: ResourceId,
+  target_id: string,
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            // Validate input
-            if (!resources.includes(resource)) {
-                throw new Error("Invalid resource")
-            }
-            if (!roles.includes(role)) {
-                throw new Error("Invalid role")
-            }
+  try {
+    return await fdm.transaction(async (tx) => {
+      // Validate input
+      if (!resources.includes(resource)) {
+        throw new Error("Invalid resource")
+      }
+      if (!roles.includes(role)) {
+        throw new Error("Invalid role")
+      }
 
-            // Check if principal has already a role on this resource
-            const existingRole = await tx
-                .select({
-                    role_id: authZSchema.role.role_id,
-                })
-                .from(authZSchema.role)
-                .where(
-                    and(
-                        eq(authZSchema.role.resource, resource),
-                        eq(authZSchema.role.resource_id, resource_id),
-                        eq(authZSchema.role.principal_id, target_id),
-                        isNull(authZSchema.role.deleted),
-                    ),
-                )
-                .limit(1)
-
-            if (existingRole.length > 0) {
-                throw new Error("Principal already has a role on this resource")
-            }
-
-            const role_id = createId()
-            const roleData = {
-                role_id: role_id,
-                resource: resource,
-                resource_id: resource_id,
-                principal_id: target_id,
-                role: role,
-            }
-            await tx.insert(authZSchema.role).values(roleData)
+      // Check if principal has already a role on this resource
+      const existingRole = await tx
+        .select({
+          role_id: authZSchema.role.role_id,
         })
-    } catch (err) {
-        throw handleError(err, "Exception for grantRole", {
-            resource: resource,
-            role: role,
-            resource_id: resource_id,
-            target_id: target_id,
-        })
-    }
+        .from(authZSchema.role)
+        .where(
+          and(
+            eq(authZSchema.role.resource, resource),
+            eq(authZSchema.role.resource_id, resource_id),
+            eq(authZSchema.role.principal_id, target_id),
+            isNull(authZSchema.role.deleted),
+          ),
+        )
+        .limit(1)
+
+      if (existingRole.length > 0) {
+        throw new Error("Principal already has a role on this resource")
+      }
+
+      const role_id = createId()
+      const roleData = {
+        role_id: role_id,
+        resource: resource,
+        resource_id: resource_id,
+        principal_id: target_id,
+        role: role,
+      }
+      await tx.insert(authZSchema.role).values(roleData)
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for grantRole", {
+      resource: resource,
+      role: role,
+      resource_id: resource_id,
+      target_id: target_id,
+    })
+  }
 }
 
 /**
@@ -617,38 +576,38 @@ export async function grantRole(
  * @throws {Error} If the resource is invalid, or if the revocation operation fails.
  */
 export async function revokePrincipal(
-    fdm: FdmType,
-    resource: Resource,
-    resource_id: ResourceId,
-    target_id: string,
+  fdm: FdmType,
+  resource: Resource,
+  resource_id: ResourceId,
+  target_id: string,
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            // Validate input
-            if (!resources.includes(resource)) {
-                throw new Error("Invalid resource")
-            }
+  try {
+    return await fdm.transaction(async (tx) => {
+      // Validate input
+      if (!resources.includes(resource)) {
+        throw new Error("Invalid resource")
+      }
 
-            // Revoke the role
-            await tx
-                .update(authZSchema.role)
-                .set({ deleted: new Date() })
-                .where(
-                    and(
-                        eq(authZSchema.role.resource, resource),
-                        eq(authZSchema.role.resource_id, resource_id),
-                        eq(authZSchema.role.principal_id, target_id),
-                        isNull(authZSchema.role.deleted),
-                    ),
-                )
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for revokePrincipal", {
-            resource: resource,
-            resource_id: resource_id,
-            principal_id: target_id,
-        })
-    }
+      // Revoke the role
+      await tx
+        .update(authZSchema.role)
+        .set({ deleted: new Date() })
+        .where(
+          and(
+            eq(authZSchema.role.resource, resource),
+            eq(authZSchema.role.resource_id, resource_id),
+            eq(authZSchema.role.principal_id, target_id),
+            isNull(authZSchema.role.deleted),
+          ),
+        )
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for revokePrincipal", {
+      resource: resource,
+      resource_id: resource_id,
+      principal_id: target_id,
+    })
+  }
 }
 
 /**
@@ -673,54 +632,54 @@ export async function revokePrincipal(
  * ```
  */
 export async function updateRole(
-    fdm: FdmType,
-    resource: Resource,
-    role: Role,
-    resource_id: ResourceId,
-    target_id: string,
+  fdm: FdmType,
+  resource: Resource,
+  role: Role,
+  resource_id: ResourceId,
+  target_id: string,
 ): Promise<void> {
-    try {
-        await fdm.transaction(async (tx) => {
-            // Validate input
-            if (!resources.includes(resource)) {
-                throw new Error("Invalid resource")
-            }
-            if (!roles.includes(role)) {
-                throw new Error("Invalid role")
-            }
+  try {
+    await fdm.transaction(async (tx) => {
+      // Validate input
+      if (!resources.includes(resource)) {
+        throw new Error("Invalid resource")
+      }
+      if (!roles.includes(role)) {
+        throw new Error("Invalid role")
+      }
 
-            // Revoke the current role
-            await tx
-                .update(authZSchema.role)
-                .set({ deleted: new Date() })
-                .where(
-                    and(
-                        eq(authZSchema.role.resource, resource),
-                        eq(authZSchema.role.resource_id, resource_id),
-                        eq(authZSchema.role.principal_id, target_id),
-                        isNull(authZSchema.role.deleted),
-                    ),
-                )
+      // Revoke the current role
+      await tx
+        .update(authZSchema.role)
+        .set({ deleted: new Date() })
+        .where(
+          and(
+            eq(authZSchema.role.resource, resource),
+            eq(authZSchema.role.resource_id, resource_id),
+            eq(authZSchema.role.principal_id, target_id),
+            isNull(authZSchema.role.deleted),
+          ),
+        )
 
-            // Grant the new role
-            const role_id = createId()
-            const roleData = {
-                role_id: role_id,
-                resource: resource,
-                resource_id: resource_id,
-                principal_id: target_id,
-                role: role,
-            }
-            await tx.insert(authZSchema.role).values(roleData)
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for updateRole", {
-            resource: resource,
-            role: role,
-            resource_id: resource_id,
-            target_id: target_id,
-        })
-    }
+      // Grant the new role
+      const role_id = createId()
+      const roleData = {
+        role_id: role_id,
+        resource: resource,
+        resource_id: resource_id,
+        principal_id: target_id,
+        role: role,
+      }
+      await tx.insert(authZSchema.role).values(roleData)
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateRole", {
+      resource: resource,
+      role: role,
+      resource_id: resource_id,
+      target_id: target_id,
+    })
+  }
 }
 
 /**
@@ -739,73 +698,60 @@ export async function updateRole(
  * @throws {Error} If the resource or action is invalid or if the database query fails.
  */
 export async function listResources(
-    fdm: FdmType,
-    resource: Resource,
-    action: Action,
-    principal_id: PrincipalId,
+  fdm: FdmType,
+  resource: Resource,
+  action: Action,
+  principal_id: PrincipalId,
 ): Promise<string[]> {
-    try {
-        // Get the roles for the action
-        const roles = getRolesForAction(action, resource)
+  try {
+    // Get the roles for the action
+    const roles = getRolesForAction(action, resource)
 
-        // Convert principal_id to array
-        const principal_ids = Array.isArray(principal_id)
-            ? principal_id
-            : [principal_id]
+    // Convert principal_id to array
+    const principal_ids = Array.isArray(principal_id) ? principal_id : [principal_id]
 
-        // Query the resources available
-        const result = await fdm.transaction(async (tx) => {
-            // Validate input
-            if (!resources.includes(resource)) {
-                throw new Error("Invalid resource")
-            }
-            if (!actions.includes(action)) {
-                throw new Error("Invalid action")
-            }
+    // Query the resources available
+    const result = await fdm.transaction(async (tx) => {
+      // Validate input
+      if (!resources.includes(resource)) {
+        throw new Error("Invalid resource")
+      }
+      if (!actions.includes(action)) {
+        throw new Error("Invalid action")
+      }
 
-            return await tx
-                .selectDistinct({
-                    resource_id: authZSchema.role.resource_id,
-                })
-                .from(authZSchema.role)
-                .leftJoin(
-                    authNSchema.member,
-                    eq(
-                        authZSchema.role.principal_id,
-                        authNSchema.member.organizationId,
-                    ),
-                )
-                .where(
-                    and(
-                        eq(authZSchema.role.resource, resource),
-                        or(
-                            inArray(
-                                authZSchema.role.principal_id,
-                                principal_ids,
-                            ),
-                            and(
-                                isNotNull(authNSchema.member.userId),
-                                inArray(
-                                    authNSchema.member.userId,
-                                    principal_ids,
-                                ),
-                            ),
-                        ),
-                        inArray(authZSchema.role.role, roles),
-                        isNull(authZSchema.role.deleted),
-                    ),
-                )
+      return await tx
+        .selectDistinct({
+          resource_id: authZSchema.role.resource_id,
         })
-        return result.map(
-            (resource: { resource_id: string }) => resource.resource_id,
+        .from(authZSchema.role)
+        .leftJoin(
+          authNSchema.member,
+          eq(authZSchema.role.principal_id, authNSchema.member.organizationId),
         )
-    } catch (err) {
-        throw handleError(err, "Exception for listing resources", {
-            resource: resource,
-            action: action,
-            principal_id: principal_id,
-        })
-    }
+        .where(
+          and(
+            eq(authZSchema.role.resource, resource),
+            or(
+              inArray(authZSchema.role.principal_id, principal_ids),
+              and(
+                isNotNull(authNSchema.member.userId),
+                inArray(authNSchema.member.userId, principal_ids),
+              ),
+            ),
+            inArray(authZSchema.role.role, roles),
+            isNull(authZSchema.role.deleted),
+          ),
+        )
+    })
+    return result.map((resource: { resource_id: string }) => resource.resource_id)
+  } catch (err) {
+    throw handleError(err, "Exception for listing resources", {
+      resource: resource,
+      action: action,
+      principal_id: principal_id,
+    })
+  }
 }
 
 /**
@@ -838,54 +784,52 @@ export async function listResources(
  * ```
  */
 export async function listPrincipalsForResource(
-    fdm: FdmType,
-    resource: Resource,
-    resource_id: ResourceId,
+  fdm: FdmType,
+  resource: Resource,
+  resource_id: ResourceId,
 ): Promise<
-    {
-        principal_id: string
-        role: Role
-    }[]
+  {
+    principal_id: string
+    role: Role
+  }[]
 > {
-    try {
-        return await fdm.transaction(async (tx) => {
-            // Validate input
-            if (!resources.includes(resource)) {
-                throw new Error("Invalid resource")
-            }
+  try {
+    return await fdm.transaction(async (tx) => {
+      // Validate input
+      if (!resources.includes(resource)) {
+        throw new Error("Invalid resource")
+      }
 
-            const rows = await tx
-                .select({
-                    principal_id: authZSchema.role.principal_id,
-                    role: authZSchema.role.role,
-                })
-                .from(authZSchema.role)
-                .where(
-                    and(
-                        eq(authZSchema.role.resource, resource),
-                        eq(authZSchema.role.resource_id, resource_id),
-                        isNull(authZSchema.role.deleted),
-                    ),
-                )
+      const rows = await tx
+        .select({
+          principal_id: authZSchema.role.principal_id,
+          role: authZSchema.role.role,
+        })
+        .from(authZSchema.role)
+        .where(
+          and(
+            eq(authZSchema.role.resource, resource),
+            eq(authZSchema.role.resource_id, resource_id),
+            isNull(authZSchema.role.deleted),
+          ),
+        )
 
-            return rows.map((row) => {
-                if (
-                    typeof row.principal_id !== "string" ||
-                    !(roles as readonly string[]).includes(row.role)
-                ) {
-                    throw new Error(
-                        "Unexpected row shape in listPrincipalsForResource",
-                    )
-                }
-                return row as { principal_id: string; role: Role }
-            })
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for listPrincipalsForResource", {
-            resource: resource,
-            resource_id: resource_id,
-        })
-    }
+      return rows.map((row) => {
+        if (
+          typeof row.principal_id !== "string" ||
+          !(roles as readonly string[]).includes(row.role)
+        ) {
+          throw new Error("Unexpected row shape in listPrincipalsForResource")
+        }
+        return row as { principal_id: string; role: Role }
+      })
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for listPrincipalsForResource", {
+      resource: resource,
+      resource_id: resource_id,
+    })
+  }
 }
 
 /**
@@ -900,18 +844,15 @@ export async function listPrincipalsForResource(
  * @returns An array of roles permitted to perform the specified action on the resource.
  */
 function getRolesForAction(action: Action, resource: Resource): Role[] {
-    const roles = permissions.filter((permission) => {
-        return (
-            permission.resource === resource &&
-            permission.action.includes(action)
-        )
-    })
+  const roles = permissions.filter((permission) => {
+    return permission.resource === resource && permission.action.includes(action)
+  })
 
-    const rolesFlat = roles.flatMap((role) => {
-        return role.role
-    })
+  const rolesFlat = roles.flatMap((role) => {
+    return role.role
+  })
 
-    return rolesFlat
+  return rolesFlat
 }
 
 /**
@@ -924,14 +865,14 @@ function getRolesForAction(action: Action, resource: Resource): Role[] {
  * @returns An array of resource beads (resource name and ID).
  */
 function buildBeadsFromRow(
-    row: Record<string, unknown>,
+  row: Record<string, unknown>,
 ): Array<{ resource: Resource; resource_id: string }> {
-    return Object.keys(row)
-        .filter((k) => row[k] !== null && row[k] !== undefined)
-        .map((k) => ({
-            resource: k as Resource,
-            resource_id: row[k] as string,
-        }))
+  return Object.keys(row)
+    .filter((k) => row[k] !== null && row[k] !== undefined)
+    .map((k) => ({
+      resource: k as Resource,
+      resource_id: row[k] as string,
+    }))
 }
 
 /**
@@ -950,212 +891,161 @@ function buildBeadsFromRow(
  * @throws {Error} If the resource type is not recognized or if a database error occurs.
  */
 async function getResourceChain(
-    fdm: FdmType,
-    resource: Resource,
-    resource_id: ResourceId,
+  fdm: FdmType,
+  resource: Resource,
+  resource_id: ResourceId,
 ): Promise<ResourceChain> {
-    try {
-        const chainOrder = [
-            "farm",
-            "field",
-            "cultivation",
-            "harvesting",
-            "fertilizer_application",
-            "soil_analysis",
-            "soil_image",
-        ]
-        const chain: ResourceBead[] = []
-        if (resource === "farm") {
-            const bead: ResourceBead = {
-                resource: "farm",
-                resource_id: resource_id,
-            }
-            chain.push(bead)
-        } else if (resource === "field") {
-            const result = await fdm
-                .select({
-                    farm: schema.fieldAcquiring.b_id_farm,
-                    field: schema.fieldAcquiring.b_id,
-                })
-                .from(schema.fieldAcquiring)
-                .where(eq(schema.fieldAcquiring.b_id, resource_id))
-                .limit(1)
-            if (result.length === 0) {
-                // Resource not found, return empty chain
-                return []
-            }
-            chain.push(...buildBeadsFromRow(result[0]))
-        } else if (resource === "cultivation") {
-            const result = await fdm
-                .select({
-                    farm: schema.fieldAcquiring.b_id_farm,
-                    field: schema.cultivationStarting.b_id,
-                    cultivation: schema.cultivations.b_lu,
-                })
-                .from(schema.cultivations)
-                .leftJoin(
-                    schema.cultivationStarting,
-                    eq(
-                        schema.cultivations.b_lu,
-                        schema.cultivationStarting.b_lu,
-                    ),
-                )
-                .leftJoin(
-                    schema.fields,
-                    eq(schema.cultivationStarting.b_id, schema.fields.b_id),
-                )
-                .leftJoin(
-                    schema.fieldAcquiring,
-                    eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
-                )
-                .where(eq(schema.cultivations.b_lu, resource_id))
-                .limit(1)
-            if (result.length === 0) {
-                // Resource not found, return empty chain
-                return []
-            }
-            chain.push(...buildBeadsFromRow(result[0]))
-        } else if (resource === "harvesting") {
-            const result = await fdm
-                .select({
-                    farm: schema.fieldAcquiring.b_id_farm,
-                    field: schema.cultivationStarting.b_id,
-                    cultivation: schema.cultivationHarvesting.b_lu,
-                    harvesting: schema.cultivationHarvesting.b_id_harvesting,
-                })
-                .from(schema.cultivationHarvesting)
-                .leftJoin(
-                    schema.cultivations,
-                    eq(
-                        schema.cultivationHarvesting.b_lu,
-                        schema.cultivations.b_lu,
-                    ),
-                )
-                .leftJoin(
-                    schema.cultivationStarting,
-                    eq(
-                        schema.cultivations.b_lu,
-                        schema.cultivationStarting.b_lu,
-                    ),
-                )
-                .leftJoin(
-                    schema.fields,
-                    eq(schema.cultivationStarting.b_id, schema.fields.b_id),
-                )
-                .leftJoin(
-                    schema.fieldAcquiring,
-                    eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
-                )
-                .where(
-                    eq(
-                        schema.cultivationHarvesting.b_id_harvesting,
-                        resource_id,
-                    ),
-                )
-                .limit(1)
-            if (result.length === 0) {
-                // Resource not found, return empty chain
-                return []
-            }
-            chain.push(...buildBeadsFromRow(result[0]))
-        } else if (resource === "fertilizer_application") {
-            const result = await fdm
-                .select({
-                    farm: schema.fieldAcquiring.b_id_farm,
-                    field: schema.fertilizerApplication.b_id,
-                    fertilizer_application:
-                        schema.fertilizerApplication.p_app_id,
-                })
-                .from(schema.fertilizerApplication)
-                .leftJoin(
-                    schema.fields,
-                    eq(schema.fertilizerApplication.b_id, schema.fields.b_id),
-                )
-                .leftJoin(
-                    schema.fieldAcquiring,
-                    eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
-                )
-                .where(eq(schema.fertilizerApplication.p_app_id, resource_id))
-                .limit(1)
-            if (result.length === 0) {
-                // Resource not found, return empty chain
-                return []
-            }
-            chain.push(...buildBeadsFromRow(result[0]))
-        } else if (resource === "soil_analysis") {
-            const result = await fdm
-                .select({
-                    farm: schema.fieldAcquiring.b_id_farm,
-                    field: schema.soilSampling.b_id,
-                    soil_analysis: schema.soilAnalysis.a_id,
-                })
-                .from(schema.soilAnalysis)
-                .leftJoin(
-                    schema.soilSampling,
-                    eq(schema.soilAnalysis.a_id, schema.soilSampling.a_id),
-                )
-                .leftJoin(
-                    schema.fields,
-                    eq(schema.soilSampling.b_id, schema.fields.b_id),
-                )
-                .leftJoin(
-                    schema.fieldAcquiring,
-                    eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
-                )
-                .where(eq(schema.soilAnalysis.a_id, resource_id))
-                .limit(1)
-            if (result.length === 0) {
-                // Resource not found, return empty chain
-                return []
-            }
-            chain.push(...buildBeadsFromRow(result[0]))
-        } else if (resource === "soil_image") {
-            const result = await fdm
-                .select({
-                    farm: schema.fieldAcquiring.b_id_farm,
-                    field: schema.soilSampling.b_id,
-                    soil_image: schema.soilImage.a_id_image,
-                })
-                .from(schema.soilImage)
-                .leftJoin(
-                    schema.soilSampling,
-                    eq(
-                        schema.soilImage.b_id_sampling,
-                        schema.soilSampling.b_id_sampling,
-                    ),
-                )
-                .leftJoin(
-                    schema.fields,
-                    eq(schema.soilSampling.b_id, schema.fields.b_id),
-                )
-                .leftJoin(
-                    schema.fieldAcquiring,
-                    eq(schema.fields.b_id, schema.fieldAcquiring.b_id),
-                )
-                .where(eq(schema.soilImage.a_id_image, resource_id))
-                .limit(1)
-            if (result.length === 0) {
-                return []
-            }
-            chain.push(...buildBeadsFromRow(result[0]))
-        } else {
-            throw new Error("Resource is not known")
-        }
-
-        // Order the chain by the chainOrder
-        chain.sort((a, b) => {
-            const indexA = chainOrder.indexOf(a.resource)
-            const indexB = chainOrder.indexOf(b.resource)
-            return indexA - indexB
+  try {
+    const chainOrder = [
+      "farm",
+      "field",
+      "cultivation",
+      "harvesting",
+      "fertilizer_application",
+      "soil_analysis",
+      "soil_image",
+    ]
+    const chain: ResourceBead[] = []
+    if (resource === "farm") {
+      const bead: ResourceBead = {
+        resource: "farm",
+        resource_id: resource_id,
+      }
+      chain.push(bead)
+    } else if (resource === "field") {
+      const result = await fdm
+        .select({
+          farm: schema.fieldAcquiring.b_id_farm,
+          field: schema.fieldAcquiring.b_id,
         })
-
-        return chain
-    } catch (err) {
-        throw handleError(err, "Exception for getting resource chain", {
-            resource: resource,
-            resource_id: resource_id,
+        .from(schema.fieldAcquiring)
+        .where(eq(schema.fieldAcquiring.b_id, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        // Resource not found, return empty chain
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "cultivation") {
+      const result = await fdm
+        .select({
+          farm: schema.fieldAcquiring.b_id_farm,
+          field: schema.cultivationStarting.b_id,
+          cultivation: schema.cultivations.b_lu,
         })
+        .from(schema.cultivations)
+        .leftJoin(
+          schema.cultivationStarting,
+          eq(schema.cultivations.b_lu, schema.cultivationStarting.b_lu),
+        )
+        .leftJoin(schema.fields, eq(schema.cultivationStarting.b_id, schema.fields.b_id))
+        .leftJoin(schema.fieldAcquiring, eq(schema.fields.b_id, schema.fieldAcquiring.b_id))
+        .where(eq(schema.cultivations.b_lu, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        // Resource not found, return empty chain
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "harvesting") {
+      const result = await fdm
+        .select({
+          farm: schema.fieldAcquiring.b_id_farm,
+          field: schema.cultivationStarting.b_id,
+          cultivation: schema.cultivationHarvesting.b_lu,
+          harvesting: schema.cultivationHarvesting.b_id_harvesting,
+        })
+        .from(schema.cultivationHarvesting)
+        .leftJoin(
+          schema.cultivations,
+          eq(schema.cultivationHarvesting.b_lu, schema.cultivations.b_lu),
+        )
+        .leftJoin(
+          schema.cultivationStarting,
+          eq(schema.cultivations.b_lu, schema.cultivationStarting.b_lu),
+        )
+        .leftJoin(schema.fields, eq(schema.cultivationStarting.b_id, schema.fields.b_id))
+        .leftJoin(schema.fieldAcquiring, eq(schema.fields.b_id, schema.fieldAcquiring.b_id))
+        .where(eq(schema.cultivationHarvesting.b_id_harvesting, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        // Resource not found, return empty chain
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "fertilizer_application") {
+      const result = await fdm
+        .select({
+          farm: schema.fieldAcquiring.b_id_farm,
+          field: schema.fertilizerApplication.b_id,
+          fertilizer_application: schema.fertilizerApplication.p_app_id,
+        })
+        .from(schema.fertilizerApplication)
+        .leftJoin(schema.fields, eq(schema.fertilizerApplication.b_id, schema.fields.b_id))
+        .leftJoin(schema.fieldAcquiring, eq(schema.fields.b_id, schema.fieldAcquiring.b_id))
+        .where(eq(schema.fertilizerApplication.p_app_id, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        // Resource not found, return empty chain
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "soil_analysis") {
+      const result = await fdm
+        .select({
+          farm: schema.fieldAcquiring.b_id_farm,
+          field: schema.soilSampling.b_id,
+          soil_analysis: schema.soilAnalysis.a_id,
+        })
+        .from(schema.soilAnalysis)
+        .leftJoin(schema.soilSampling, eq(schema.soilAnalysis.a_id, schema.soilSampling.a_id))
+        .leftJoin(schema.fields, eq(schema.soilSampling.b_id, schema.fields.b_id))
+        .leftJoin(schema.fieldAcquiring, eq(schema.fields.b_id, schema.fieldAcquiring.b_id))
+        .where(eq(schema.soilAnalysis.a_id, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        // Resource not found, return empty chain
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "soil_image") {
+      const result = await fdm
+        .select({
+          farm: schema.fieldAcquiring.b_id_farm,
+          field: schema.soilSampling.b_id,
+          soil_image: schema.soilImage.a_id_image,
+        })
+        .from(schema.soilImage)
+        .leftJoin(
+          schema.soilSampling,
+          eq(schema.soilImage.b_id_sampling, schema.soilSampling.b_id_sampling),
+        )
+        .leftJoin(schema.fields, eq(schema.soilSampling.b_id, schema.fields.b_id))
+        .leftJoin(schema.fieldAcquiring, eq(schema.fields.b_id, schema.fieldAcquiring.b_id))
+        .where(eq(schema.soilImage.a_id_image, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else {
+      throw new Error("Resource is not known")
     }
+
+    // Order the chain by the chainOrder
+    chain.sort((a, b) => {
+      const indexA = chainOrder.indexOf(a.resource)
+      const indexB = chainOrder.indexOf(b.resource)
+      return indexA - indexB
+    })
+
+    return chain
+  } catch (err) {
+    throw handleError(err, "Exception for getting resource chain", {
+      resource: resource,
+      resource_id: resource_id,
+    })
+  }
 }
 
 const auditStorage = new AsyncLocalStorage<AuditContext>()
@@ -1171,11 +1061,8 @@ const auditStorage = new AsyncLocalStorage<AuditContext>()
  * })
  * ```
  */
-export function withAuditContext<T>(
-    context: AuditContext,
-    fn: () => T | Promise<T>,
-): Promise<T> {
-    return auditStorage.run(context, () => Promise.resolve(fn()))
+export function withAuditContext<T>(context: AuditContext, fn: () => T | Promise<T>): Promise<T> {
+  return auditStorage.run(context, () => Promise.resolve(fn()))
 }
 
 /**
@@ -1183,5 +1070,5 @@ export function withAuditContext<T>(
  * outside of a `withAuditContext` scope (e.g. scripts, migrations, tests).
  */
 export function getAuditContext(): AuditContext {
-    return auditStorage.getStore() ?? { channel: "app" }
+  return auditStorage.getStore() ?? { channel: "app" }
 }

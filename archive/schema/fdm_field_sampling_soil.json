@@ -1,35 +1,35 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_sampling_soil.json",
-    "title": "Sampling of soil of a field in Farm Data Model",
-    "description": "The data model to describe sampling of soil",
-    "type": "object",
-    "properties": {
-        "a_id_sampling_soil": {
-            "description": "ID of the sampling of soil",
-            "type": "string"
-        },
-        "b_id": {
-            "description": "ID of field",
-            "type": "string"
-        },
-        "a_date_sampling": {
-            "description": "Date of soil sampling",
-            "type": "string"
-        },
-        "a_depth": {
-            "description": "Depth of soil sampling",
-            "type": "number"
-        },
-        "a_geometry_sampling": {
-            "description": "Geometry of soil sampling",
-            "type": "string",
-            "pattern": "^POINT|^MULTIPOINT"
-        },
-        "b_id_samplingdesign": {
-            "description": "ID of sampling design",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_sampling_soil.json",
+  "title": "Sampling of soil of a field in Farm Data Model",
+  "description": "The data model to describe sampling of soil",
+  "type": "object",
+  "properties": {
+    "a_id_sampling_soil": {
+      "description": "ID of the sampling of soil",
+      "type": "string"
     },
-    "required": ["a_id_sampling", "b_id"]
+    "b_id": {
+      "description": "ID of field",
+      "type": "string"
+    },
+    "a_date_sampling": {
+      "description": "Date of soil sampling",
+      "type": "string"
+    },
+    "a_depth": {
+      "description": "Depth of soil sampling",
+      "type": "number"
+    },
+    "a_geometry_sampling": {
+      "description": "Geometry of soil sampling",
+      "type": "string",
+      "pattern": "^POINT|^MULTIPOINT"
+    },
+    "b_id_samplingdesign": {
+      "description": "ID of sampling design",
+      "type": "string"
+    }
+  },
+  "required": ["a_id_sampling", "b_id"]
 }

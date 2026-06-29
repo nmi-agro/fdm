@@ -1,26 +1,26 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_cultivation_harvesting.json",
-    "title": "harvesting event in Farm Data Model",
-    "description": "The data model to describe harvesting event of a cultivation",
-    "type": "object",
-    "properties": {
-        "b_id_harvesting": {
-            "description": "ID of the harvesting event",
-            "type": "string"
-        },
-        "b_id_cultivation": {
-            "description": "ID of the cultivation",
-            "type": "string"
-        },
-        "b_lu_end": {
-            "description": "Date of end of cultivation",
-            "type": "string"
-        },
-        "m_cropresidue": {
-            "description": "Are crop residue left on the field",
-            "type": "boolean"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_cultivation_harvesting.json",
+  "title": "harvesting event in Farm Data Model",
+  "description": "The data model to describe harvesting event of a cultivation",
+  "type": "object",
+  "properties": {
+    "b_id_harvesting": {
+      "description": "ID of the harvesting event",
+      "type": "string"
     },
-    "required": ["b_id_harvesting", "b_id_cultivation"]
+    "b_id_cultivation": {
+      "description": "ID of the cultivation",
+      "type": "string"
+    },
+    "b_lu_end": {
+      "description": "Date of end of cultivation",
+      "type": "string"
+    },
+    "m_cropresidue": {
+      "description": "Are crop residue left on the field",
+      "type": "boolean"
+    }
+  },
+  "required": ["b_id_harvesting", "b_id_cultivation"]
 }

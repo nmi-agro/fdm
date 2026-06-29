@@ -11,12 +11,9 @@
  * @returns array of objects
  */
 export function parseAppIds(value: string) {
-    return value
-        .split(",")
-        .map((pairStr) => pairStr.split(":"))
-        .filter(
-            (pair) =>
-                pair.length === 2 && pair[0].length > 0 && pair[1].length > 0,
-        )
-        .map(([b_id, p_app_id]) => ({ b_id, p_app_id }))
+  return value
+    .split(",")
+    .map((pairStr) => pairStr.split(":"))
+    .filter((pair) => pair.length === 2 && pair[0].length > 0 && pair[1].length > 0)
+    .map(([b_id, p_app_id]) => ({ b_id, p_app_id }))
 }
