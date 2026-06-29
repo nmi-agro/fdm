@@ -85,7 +85,7 @@ export function calculateTargetForNitrogenBalance(
   }
 
   // Determine targetValue based on Ros et al. 2023
-  let targetValue: Decimal = new Decimal(0)
+  let targetValue: Decimal
   if (cultivationType === "grassland" && soilType === "sand" && groundwaterClass === "dry") {
     targetValue = new Decimal(80)
   } else if (cultivationType === "grassland") {

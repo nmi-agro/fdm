@@ -525,8 +525,8 @@ function calculateKorting(
   const october15 = new Date(previousYear, 9, 15) // October 15th
   const november1 = new Date(previousYear, 10, 1) // November 1st
 
-  let kortingAmount = new Decimal(20) // Default korting
-  let kortingDescription = ". Korting: 20kg N/ha, geen vanggewas of te laat gezaaid"
+  let kortingAmount: Decimal
+  let kortingDescription: string
 
   if (sowDate <= october1) {
     kortingAmount = new Decimal(0)

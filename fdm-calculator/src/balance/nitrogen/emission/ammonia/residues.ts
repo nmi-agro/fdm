@@ -65,10 +65,8 @@ export function calculateNitrogenEmissionViaAmmoniaByResidues(
         yieldForThisHarvest = new Decimal(cultivationDetail.b_lu_yield ?? 0)
       }
 
-      if (yieldForThisHarvest !== null) {
-        totalYield = totalYield.add(yieldForThisHarvest)
-        harvestCount++
-      }
+      totalYield = totalYield.add(yieldForThisHarvest)
+      harvestCount++
     }
 
     // Get the average yield for the cultivation

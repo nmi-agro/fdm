@@ -105,7 +105,7 @@ export function calculateBulkDensity(
     return null
   }
 
-  let a_density_sa = new Decimal(0)
+  let a_density_sa: Decimal
   if (["dekzand", "dalgrond", "duinzand", "loess"].includes(b_soiltype_agr)) {
     a_density_sa = new Decimal(1).dividedBy(new Decimal(a_som_loi).times(0.02525).plus(0.6541))
   } else {
