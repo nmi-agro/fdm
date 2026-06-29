@@ -15,6 +15,13 @@
             "when": 1782300615327,
             "tag": "0001_v0-1-0-2",
             "breakpoints": true
+        },
+        {
+            "idx": 2,
+            "version": "7",
+            "when": 1782485942505,
+            "tag": "0002_melodic_maginty",
+            "breakpoints": true
         }
     ]
 }

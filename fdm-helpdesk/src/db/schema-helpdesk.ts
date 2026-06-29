@@ -264,14 +264,23 @@ export const savedReplies = fdmHelpdeskSchema.table(
 export type SavedReplyTypeSelect = typeof savedReplies.$inferSelect
 export type SavedReplyTypeInsert = typeof savedReplies.$inferInsert
 
-export const agentAbsences = fdmHelpdeskSchema.table("agent_absences", {
-    absence_id: text().primaryKey(),
-    agent_id: text().notNull(),
-    start_date: timestamp({ withTimezone: true }).notNull(),
-    end_date: timestamp({ withTimezone: true }).notNull(),
-    reason: text().notNull().default("holiday"), // 'holiday', 'day_off', 'sick', 'other'
-    note: text(),
-    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
-})
+export const agentAbsences = fdmHelpdeskSchema.table(
+    "agent_absences",
+    {
+        absence_id: text().primaryKey(),
+        agent_id: text()
+            .notNull()
+            .references(() => agents.agent_id),
+        start_date: timestamp({ withTimezone: true }).notNull(),
+        end_date: timestamp({ withTimezone: true }).notNull(),
+        reason: text().notNull().default("holiday"), // 'holiday', 'day_off', 'sick', 'other'
+        note: text(),
+        created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    },
+    (table) => [
+        index("agent_absences_start_date_idx").on(table.start_date),
+        index("agent_absences_end_date_idx").on(table.end_date),
+    ],
+)
 export type AgentAbsenceTypeSelect = typeof agentAbsences.$inferSelect
 export type AgentAbsenceTypeInsert = typeof agentAbsences.$inferInsert

@@ -17,11 +17,15 @@ import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
-import { ACTIVE_TICKET_STATUSES, getTickets } from "./ticket"
+import { ACTIVE_TICKET_STATUSES, getTickets, type Ticket } from "./ticket"
 import {
     assignTicketUnchecked,
     type TicketAssignmentSummary,
 } from "./ticket-assignment"
+
+export type TicketReassignment = TicketAssignmentSummary & {
+    ticket: Ticket
+}
 
 const agentSummaryColumns = {
     agent_id: schema.agents.agent_id,
@@ -48,30 +52,28 @@ export async function getAvailableAgents(
     date: Date,
 ): Promise<AgentSummary[]> {
     try {
-        return fdm
+        return await fdm
             .select({
                 ...agentSummaryColumns,
                 // Total "weight" of all active tickets that this agent is assigned to
-                total_assigned_weight: sql`WITH priority_weights (priority, weight) AS (
-   SELECT priority, weight AS total_sales
-   FROM (values ('low', 1), ('normal', 2), ('high', 4), ('urgent', 8)) as priority_weights (priority, weight)
-) select sum(coalesce(weight, 3))
-    from ${schema.ticketAssignments}
-	join ${schema.tickets} on ${schema.ticketAssignments.ticket_id} = ${schema.tickets.ticket_id}
-	left join priority_weights pw on ${schema.tickets.priority} = pw.priority
-	where ${schema.ticketAssignments.agent_id} = ${schema.agents.agent_id}
-    and ${inArray(schema.tickets.status, ACTIVE_TICKET_STATUSES)}
-`,
-                num_assigned_tickets: fdm.$count(
-                    schema.ticketAssignments.assignment_id,
-                    and(
-                        eq(
-                            schema.ticketAssignments.agent_id,
-                            schema.agents.agent_id,
-                        ),
-                        inArray(schema.tickets.status, ACTIVE_TICKET_STATUSES),
-                    ),
-                ),
+                total_assigned_weight: sql`(select sum(CASE tickets.priority
+        WHEN 'low' THEN 1
+        WHEN 'normal' THEN 2
+        WHEN 'high' THEN 4
+        WHEN 'urgent' THEN 8
+        ELSE 3
+    END) FROM ${schema.ticketAssignments}
+    JOIN ${schema.tickets}
+      ON ${schema.ticketAssignments.ticket_id} = ${schema.tickets.ticket_id}
+    WHERE
+        ${schema.ticketAssignments.agent_id} = ${schema.agents.agent_id}
+      AND ${inArray(schema.tickets.status, ACTIVE_TICKET_STATUSES)})`,
+                // Number of active tickets that this agent is assigned to
+                num_assigned_tickets: sql`(select count(*)
+from ${schema.ticketAssignments}
+inner join ${schema.tickets} on ${schema.ticketAssignments.ticket_id} = ${schema.tickets.ticket_id}
+where ${schema.ticketAssignments.agent_id} = ${schema.agents.agent_id}
+and ${inArray(schema.tickets.status, ACTIVE_TICKET_STATUSES)})`,
             })
             .from(schema.agents)
             .where((t) =>
@@ -81,7 +83,7 @@ export async function getAvailableAgents(
                     // Is the agent online?
                     eq(schema.agents.availability_status, "online"),
                     // Is the agent free on this day of the week?
-                    sql`${schema.agents.work_days} @> array[${date.getDay()}]`,
+                    sql`${schema.agents.work_days} @> ${date.getDay().toString()}::jsonb`,
                     // Is the agent absent on this day?
                     notExists(
                         fdm
@@ -197,8 +199,7 @@ export async function reassignAgentTickets(
             },
             "priority",
         )
-        const reassigned: (TicketAssignmentSummary & { ticket_id: string })[] =
-            []
+        const reassigned: TicketReassignment[] = []
         const unassigned: string[] = []
         for (const ticket of ticketsToReassign) {
             // No need to reassign if there is already another primary assignee
@@ -224,7 +225,7 @@ export async function reassignAgentTickets(
             )
             if (result.assigned) {
                 reassigned.push({
-                    ticket_id: ticket.ticket_id,
+                    ticket: ticket,
                     agent_id: result.agent_id,
                     display_name:
                         ticket.assignees.find(
@@ -248,14 +249,11 @@ export async function reassignAgentTickets(
 /**
  * Sets the agent status.
  *
- * If the agent will be out-of-office, this will also reassign all of their currently active tickets.
- *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
  * @param agent_id ID of the agent whose status is being set.
- * @param status The new status of the agent. Setting this to "out-of-office" will reassign all of the agent's
- * currently active tickets.
+ * @param status The new status of the agent.
  */
 export async function setAgentStatus(
     fdm: FdmHelpdeskType,
@@ -273,19 +271,13 @@ export async function setAgentStatus(
             "setAgentStatus",
         )
 
-        await fdm.transaction(async (tx) => {
-            if (status === "out_of_office") {
-                await reassignAgentTickets(tx, agent_id, agent_id)
-            }
-
-            await tx
-                .update(schema.agents)
-                .set({
-                    availability_status: status,
-                    updated: sql`now()`,
-                })
-                .where(eq(schema.agents.agent_id, agent_id))
-        })
+        await fdm
+            .update(schema.agents)
+            .set({
+                availability_status: status,
+                updated: sql`now()`,
+            })
+            .where(eq(schema.agents.agent_id, agent_id))
     } catch (err) {
         throw handleError(err, "Exception for setAgentStatus", {
             agent_id,

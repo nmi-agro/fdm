@@ -1,8 +1,12 @@
+import { getPrincipals } from "@nmi-agro/fdm-core"
 import {
     getAgent,
+    getMessagesForTicket,
+    reassignAgentTickets,
     setAgentStatus,
     setMaxTickets,
     setWorkDays,
+    type TicketReassignment,
     updateAgent,
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
@@ -11,6 +15,7 @@ import { AgentForm } from "~/components/blocks/helpdesk/agent-form"
 import { UpdateAgentSchema } from "~/components/blocks/helpdesk/agent-schema"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
+import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -56,7 +61,27 @@ export async function action({ request }: Route.ActionArgs) {
             UpdateAgentSchema,
         )
 
+        let newAssignments: TicketReassignment[] = []
+
         await fdm.transaction(async (tx) => {
+            const agent = await getAgent(
+                fdm,
+                session.principal_id,
+                session.principal_id,
+            )
+
+            if (
+                agentUpdate.availability_status !== agent.availability_status &&
+                agentUpdate.availability_status === "out-of-office"
+            ) {
+                const reassignment = await reassignAgentTickets(
+                    fdm,
+                    session.principal_id,
+                    session.principal_id,
+                )
+                newAssignments = reassignment.reassigned
+            }
+
             await updateAgent(
                 tx,
                 session.principal_id,
@@ -85,6 +110,60 @@ export async function action({ request }: Route.ActionArgs) {
                 agentUpdate.max_tickets ?? null,
             )
         })
+
+        if (newAssignments.length > 0) {
+            const principals = await getPrincipals(fdm, [
+                ...newAssignments.map((assignment) => assignment.agent_id),
+                ...newAssignments
+                    .map((assignment) => assignment.ticket.requester_id)
+                    .filter((id) => typeof id === "string"),
+            ])
+
+            const sentCounts = new Map<string, number>()
+
+            for (const assignment of newAssignments) {
+                // Limit email sending to a maximum number per agent
+                if ((sentCounts.get(assignment.agent_id) ?? 0) >= 3) continue
+
+                try {
+                    const email = principals.get(assignment.agent_id)?.email
+                    const requester_name =
+                        (assignment.ticket.requester_id
+                            ? principals.get(assignment.ticket.requester_id)
+                                  ?.displayUserName
+                            : undefined) ??
+                        assignment.ticket.requester_id ??
+                        "Onbekend"
+
+                    if (!email) continue
+
+                    const subject = assignment.ticket.subject ?? "Onbekend"
+                    const messages = await getMessagesForTicket(
+                        fdm,
+                        session.principal_id,
+                        assignment.ticket.ticket_id,
+                        { pageLimit: 1 },
+                    )
+
+                    await sendHelpdeskNewMessageEmail(
+                        email,
+                        assignment.display_name,
+                        requester_name,
+                        assignment.ticket.ticket_ref,
+                        subject,
+                        assignment.ticket.ticket_id,
+                        messages.length > 0 ? messages[0].body : subject,
+                    )
+
+                    sentCounts.set(
+                        assignment.agent_id,
+                        (sentCounts.get(assignment.agent_id) ?? 0) + 1,
+                    )
+                } catch (err) {
+                    handleLoaderError(err)
+                }
+            }
+        }
     } catch (err) {
         throw handleLoaderError(err)
     }
