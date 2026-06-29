@@ -9,6 +9,7 @@ import type { Cultivation } from "@nmi-agro/fdm-core"
 import { CircleAlert, CircleCheck, CircleX, Sprout } from "lucide-react"
 import { Suspense } from "react"
 import { Await, NavLink } from "react-router"
+import { MissingParametersWarning } from "~/balance/missing-parameters-warning"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -65,40 +66,14 @@ interface FertilizerApplicationMetricsCardProps {
   isSubmitting: boolean
 }
 
-function MissingParametersErrorDisplay<T>(result: MetricsResult<T>) {
-  if (result.status === "error" && result.message.match(/bufferstrook/)) {
-    return <div className="text-muted-foreground">{result.message}</div>
-  }
-
-  if (result.status === "error" && result.message.match(/Missing required soil parameters/)) {
-    const listItems = [
-      result.message.match(/a_n_rt/) ? <li key="a_n_rt">Totaal stikstofgehalte</li> : null,
-      result.message.match(/b_soiltype_agr/) ? (
-        <li key="b_soiltype_agr">Agrarisch bodemtype</li>
-      ) : null,
-      result.message.match(/a_c_of|a_som_loi/) ? (
-        <li key="a_c_of_a_som_loi">Organische stofgehalte</li>
-      ) : null,
-    ].filter((item) => item != null)
-
-    return (
-      <div className="text-muted-foreground">
-        {listItems.length > 0 ? (
-          <>
-            <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
-            <br />
-            <ul className="list-inside list-disc">{...listItems}</ul>
-          </>
-        ) : (
-          <p>Voor dit perceel zijn enkele benodigde bodemparameters niet bekend.</p>
-        )}
-      </div>
-    )
-  }
-
-  return result.status === "error" ? (
+function MetricsErrorDisplay({ message }: { message: string }) {
+  return message.match(/bufferstrook/) ? (
+    <div className="text-muted-foreground text-sm">{message}</div>
+  ) : message.match(/Missing required soil parameters/) ? (
+    <MissingParametersWarning message={message} />
+  ) : (
     <div className="text-destructive text-sm">Fout bij berekening</div>
-  ) : null
+  )
 }
 
 export function FertilizerApplicationMetricsCard({
@@ -185,7 +160,7 @@ export function FertilizerApplicationMetricsCard({
                       >
                         {(result) => {
                           if (result.status === "error") {
-                            return MissingParametersErrorDisplay(result)
+                            return <MetricsErrorDisplay message={result.message} />
                           }
 
                           const resolvedNorms = result.data
@@ -330,7 +305,7 @@ export function FertilizerApplicationMetricsCard({
                       >
                         {(result) => {
                           if (result.status === "error") {
-                            return MissingParametersErrorDisplay(result)
+                            return <MetricsErrorDisplay message={result.message} />
                           }
 
                           const resolvedNitrogenBalance = result.data
