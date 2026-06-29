@@ -1,6 +1,7 @@
 import {
   calculateOrganicMatterBalance,
   collectInputForOrganicMatterBalance,
+  type OrganicMatterBalanceFieldResultNumeric,
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
@@ -19,7 +20,6 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
-import type { getOrganicMatterBalanceForField } from "~/integrations/calculator"
 import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import OrganicMatterBalanceDetails from "~/components/blocks/balance/organic-matter-details"
@@ -40,9 +40,7 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
-type OrganicMatterFieldResultWithErrorId = Awaited<
-  ReturnType<typeof getOrganicMatterBalanceForField>
->["fieldResult"] & {
+type OrganicMatterFieldResultWithErrorId = OrganicMatterBalanceFieldResultNumeric & {
   errorId?: string
 }
 

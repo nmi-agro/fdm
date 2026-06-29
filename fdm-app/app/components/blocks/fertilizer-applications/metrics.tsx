@@ -33,20 +33,23 @@ import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 
+export type MetricsResult<T> = { status: "ok"; data: T } | { status: "error"; message: string }
 interface FertilizerApplicationMetricsData {
-  norms: Promise<{
-    value: {
-      manure: GebruiksnormResult
-      phosphate: GebruiksnormResult
-      nitrogen: GebruiksnormResult
-    }
-    filling: {
-      manure: NormFilling
-      phosphate: NormFilling
-      nitrogen: NormFilling
-    }
-  } | null>
-  nitrogenBalance: Promise<NitrogenBalanceFieldResultNumeric> | undefined
+  norms: Promise<
+    MetricsResult<{
+      value: {
+        manure: GebruiksnormResult
+        phosphate: GebruiksnormResult
+        nitrogen: GebruiksnormResult
+      }
+      filling: {
+        manure: NormFilling
+        phosphate: NormFilling
+        nitrogen: NormFilling
+      }
+    } | null>
+  >
+  nitrogenBalance: Promise<MetricsResult<NitrogenBalanceFieldResultNumeric>>
   nutrientAdvice: NutrientAdvice
   dose: Dose
   b_id: string
@@ -60,6 +63,22 @@ interface FertilizerApplicationMetricsData {
 interface FertilizerApplicationMetricsCardProps {
   fertilizerApplicationMetricsData: FertilizerApplicationMetricsData
   isSubmitting: boolean
+}
+
+function MissingParametersErrorDisplay<T>(result: MetricsResult<T>) {
+  return result.status === "error" && result.message.match(/Missing required soil parameters/) ? (
+    <div className="text-muted-foreground">
+      <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
+      <br />
+      <ul className="list-inside list-disc">
+        {result.message.match(/a_n_rt/) ? <li>Totaal stikstofgehalte</li> : null}
+        {result.message.match(/b_soiltype_agr/) ? <li>Agrarisch bodemtype</li> : null}
+        {result.message.match(/a_c_of|a_som_loi/) ? <li>Organische stofgehalte</li> : null}
+      </ul>
+    </div>
+  ) : result.status === "error" ? (
+    <div className="text-destructive text-sm">Fout bij berekening</div>
+  ) : null
 }
 
 export function FertilizerApplicationMetricsCard({
@@ -144,7 +163,13 @@ export function FertilizerApplicationMetricsCard({
                           <div className="text-destructive text-sm">Fout bij berekening</div>
                         }
                       >
-                        {(resolvedNorms) => {
+                        {(result) => {
+                          if (result.status === "error") {
+                            return MissingParametersErrorDisplay(result)
+                          }
+
+                          const resolvedNorms = result.data
+
                           if (!resolvedNorms) {
                             return (
                               <span className="text-xs">
@@ -152,6 +177,7 @@ export function FertilizerApplicationMetricsCard({
                               </span>
                             )
                           }
+
                           return (
                             <div className="flex min-w-0 flex-col space-y-4">
                               <div className="min-w-0 space-y-1.5">
@@ -282,7 +308,13 @@ export function FertilizerApplicationMetricsCard({
                         }
                         resolve={nitrogenBalance}
                       >
-                        {(resolvedNitrogenBalance) => {
+                        {(result) => {
+                          if (result.status === "error") {
+                            return MissingParametersErrorDisplay(result)
+                          }
+
+                          const resolvedNitrogenBalance = result.data
+
                           if (b_bufferstrip) {
                             return (
                               <span className="text-muted-foreground text-xs">
@@ -364,13 +396,15 @@ export function FertilizerApplicationMetricsCard({
                         Bemestingsadvies
                       </NavLink>
                     </ItemTitle>
-                    <div className="shrink-0">
-                      <CultivationSelector
-                        cultivations={cultivations}
-                        selectedCultivationId={activeCultivation.b_lu}
-                        variant="icon"
-                      />
-                    </div>
+                    {activeCultivation && (
+                      <div className="shrink-0">
+                        <CultivationSelector
+                          cultivations={cultivations}
+                          selectedCultivationId={activeCultivation.b_lu}
+                          variant="icon"
+                        />
+                      </div>
+                    )}
                   </div>
                 </ItemContent>
                 <ItemDescription className="line-clamp-none w-full min-w-0">
