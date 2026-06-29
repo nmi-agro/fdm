@@ -4,6 +4,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import postmark from "postmark"
 import { render } from "react-email"
+import z from "zod"
 import type { ExtendedUser } from "~/types/extended-user"
 import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { FarmInvitationCancelledEmail } from "~/components/blocks/email/farm-invitation-cancelled"
@@ -23,6 +24,47 @@ interface Email {
   HtmlBody: string
   Tag: string
 }
+
+export const PostmarkContactWithNameSchema = z.object({
+  Email: z.string(),
+  Name: z.string(),
+  MailboxHash: z.string().optional(),
+})
+
+export const PostmarkEmailSchema = z.object({
+  FromName: z.string().optional(),
+  MessageStream: z.string().optional(),
+  FromFull: PostmarkContactWithNameSchema,
+  ToFull: PostmarkContactWithNameSchema.array().optional(),
+  CcFull: PostmarkContactWithNameSchema.array().optional(),
+  BccFull: PostmarkContactWithNameSchema.array().optional(),
+  OriginalRecipient: z.string().optional(),
+  Subject: z.string().optional(),
+  MessageID: z.string().optional(),
+  ReplyTo: z.string().optional(),
+  MailboxHash: z.string().optional(),
+  Date: z
+    .string()
+    .transform((str) => new Date(str))
+    .refine((date) => !Number.isNaN(date.getTime()), "Invalid date")
+    .optional(),
+  TextBody: z.string().optional(),
+  HtmlBody: z.string().optional(),
+  StrippedTextReply: z.string().optional(),
+  Tag: z.string().optional(),
+  Headers: z.object({ Name: z.string(), Value: z.string().optional() }).array().optional(),
+  Attachments: z
+    .object({
+      Name: z.string(),
+      Content: z.string(),
+      ContentType: z.string(),
+      ContentLength: z.number(),
+    })
+    .array()
+    .optional(),
+})
+
+export type PostmarkEmail = z.infer<typeof PostmarkEmailSchema>
 
 export async function renderWelcomeEmail(user: User): Promise<Email> {
   const emailHtml = await render(

@@ -122,6 +122,15 @@ export const serverConfig: ServerConfig = {
             helpdesk_sender_name: process.env.POSTMARK_HELPDESK_SENDER_NAME,
           }
         : {}),
+      ...(process.env.POSTMARK_INBOUND_EMAIL_AUTH_USERNAME &&
+      process.env.POSTMARK_INBOUND_EMAIL_AUTH_PASSWORD_HASH
+        ? {
+            inbound_email_auth_username: String(process.env.POSTMARK_INBOUND_EMAIL_AUTH_USERNAME),
+            inbound_email_auth_password_hash: String(
+              process.env.POSTMARK_INBOUND_EMAIL_AUTH_PASSWORD_HASH,
+            ),
+          }
+        : {}),
     },
   },
 

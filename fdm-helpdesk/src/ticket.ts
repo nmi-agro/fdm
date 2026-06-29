@@ -58,6 +58,7 @@ const ticketColumns = {
   priority: schema.tickets.priority,
   channel: schema.tickets.channel,
   requester_id: schema.tickets.requester_id,
+  requester_email: schema.tickets.requester_email,
   context_farm_id: schema.tickets.context_farm_id,
   resolved_at: schema.tickets.resolved_at,
   closed_at: schema.tickets.closed_at,
@@ -518,6 +519,65 @@ export async function createTicket(
     throw handleError(e, "Exception for createTicket", {
       ...options,
       requester_id,
+    })
+  }
+}
+
+/**
+ * Creates a new ticket and its first message in a single transaction.
+ * The body is HTML-escaped and a subject line is derived from the first few words.
+ *
+ * `requester_id` is set to "", which should be handled by the mechanism that collects the requester's
+ * information.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param requester_id ID of the user who is opening the ticket.
+ * @param body The opening message body.
+ * @param options Optional priority and farm context to associate with the ticket.
+ * @returns The `ticket_id` of the newly created ticket.
+ */
+export async function createTicketFromInboundEmail(
+  fdm: FdmHelpdeskType,
+  requester_email: string,
+  body: string,
+  options?: CreateTicketOptions,
+) {
+  try {
+    const ticket_id = createId()
+    const message_id = createId()
+
+    return await fdm.transaction(async (tx) => {
+      const ticket_ref = await createTicketRefWithRetry(tx)
+      const sanitizedBody = escapeHTML(body)
+
+      await tx.insert(schema.tickets).values([
+        {
+          ticket_id: ticket_id,
+          ticket_ref: ticket_ref,
+          requester_id: "",
+          requester_email: requester_email,
+          subject: getDefaultSubjectLine(sanitizedBody),
+          channel: "email",
+          priority: options?.priority,
+          context_farm_id: options?.context?.b_id_farm,
+        },
+      ])
+
+      await tx.insert(schema.messages).values({
+        ticket_id: ticket_id,
+        sender_id: "",
+        message_id: message_id,
+        sender_type: "user",
+        body: sanitizedBody,
+      })
+
+      return ticket_id
+    })
+  } catch (e) {
+    throw handleError(e, "Exception for createTicket", {
+      ...options,
+      requester_email,
     })
   }
 }
