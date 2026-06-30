@@ -167,22 +167,27 @@ export default function App() {
     }
   }, [initialCalendar, setCalendar])
 
-  const { setSelectedField, syncContext } = useSelectedFieldStore()
+  const { b_id: storedFieldId, setSelectedField, syncContext } = useSelectedFieldStore()
 
   // Expire stale fields across farm or calendar change
   useEffect(() => {
     syncContext(initialFarmId, initialCalendar)
   }, [initialFarmId, initialCalendar, syncContext])
 
-  // Find active field from any route that has a b_id param (field pages, indicators, etc.)
-  const fieldMatch = matches.find((match) => match.params.b_id)
-  const activeFieldId = fieldMatch?.params.b_id as string | undefined
+  // Sync store only from field-specific routes to avoid leaking indicator/measure IDs
+  const fieldMatch = matches.find(
+    (match) => match.pathname.includes("/field/") && match.params.b_id,
+  )
+  const urlFieldId = fieldMatch?.params.b_id as string | undefined
 
   useEffect(() => {
-    if (activeFieldId) {
-      setSelectedField(activeFieldId, null)
+    if (urlFieldId) {
+      setSelectedField(urlFieldId, null)
     }
-  }, [activeFieldId, setSelectedField])
+  }, [urlFieldId, setSelectedField])
+
+  // On non-field pages fall back to the last-selected field from the store
+  const activeFieldId = urlFieldId ?? storedFieldId ?? undefined
 
   // Identify user if PostHog is configured
   useEffect(() => {
@@ -203,7 +208,6 @@ export default function App() {
           <SidebarFarm
             farm={loaderData.farm}
             fields={loaderData.fieldOptions}
-            farmWritePermission={loaderData.farmWritePermission}
             activeFieldId={activeFieldId}
           />
           <SidebarApps />

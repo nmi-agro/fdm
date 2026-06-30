@@ -1,4 +1,4 @@
-import { checkPermission, getFarms, getField, getFields } from "@nmi-agro/fdm-core"
+import { getFarms, getField, getFields } from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
@@ -15,11 +15,10 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getSession } from "~/lib/auth.server"
-import { getCalendar, getTimeframe } from "~/lib/calendar"
+import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getFieldNavigationItems } from "~/lib/field-navigation"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
@@ -38,15 +37,13 @@ export const meta: MetaFunction = () => {
  *
  * This function verifies that both a farm ID and a field ID are provided in the route parameters, retrieving the user session before fetching farms and fields associated with the user's principal ID.
  * It constructs selectable options for farms and fields (with field areas rounded to one decimal place), ensures field options are sorted alphabetically, and retrieves detailed information about the specified field.
- * Additionally, it builds sidebar navigation items for the page.
- *
+ * Additionally, it builds sidebar navigation items for the page. *
  * @returns An object containing:
  *  - b_id_farm: The farm identifier.
  *  - farmOptions: An array of valid farm options.
  *  - fieldOptions: A sorted array of valid field options, each including an identifier, name, and area.
  *  - field: Detailed information about the field.
  *  - b_id: The field identifier.
- *  - sidebarPageItems: An array of navigation items for the sidebar.
  *  - user: Data of the authenticated user.
  *
  * @throws {Response} If either the farm ID or field ID is missing, with a status of 400.
@@ -77,7 +74,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
 
     // Get timeframe from calendar store
-    const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
     // Get a list of possible farms of the user
@@ -124,23 +120,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
-    const fieldWritePermission = await checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      new URL(request.url).pathname,
-      false,
-    )
-
-    const sidebarPageItems = getFieldNavigationItems(
-      b_id_farm,
-      calendar,
-      b_id,
-      !!fieldWritePermission,
-    )
-
     // Return user information from loader
     return {
       b_id_farm: b_id_farm,
@@ -148,7 +127,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldOptions: fieldOptions,
       field: field,
       b_id: b_id,
-      sidebarPageItems: sidebarPageItems,
       user: session.user,
     }
   } catch (error) {

@@ -39,13 +39,15 @@ export function HeaderField({
     const targetUrl = currentPath.includes("/cultivation")
       ? `/farm/${b_id_farm}/${calendar}/field/${optionId}/cultivation`
       : b_id
-        ? currentPath.replace(b_id, optionId)
+        ? currentPath.replace(`/field/${b_id}`, `/field/${optionId}`)
         : `/farm/${b_id_farm}/${calendar}/field/${optionId}/overview`
     void navigate(targetUrl)
   }
 
-  // Get recently visited fields
-  const recentFields = fieldOptions.filter((f) => recentFieldIds.includes(f.b_id))
+  // LRU order: iterate recentFieldIds so most-recent-first is preserved
+  const recentFields = recentFieldIds
+    .map((id) => fieldOptions.find((f) => f.b_id === id))
+    .filter((f): f is NonNullable<typeof f> => f !== undefined)
   const regularFields = fieldOptions.filter((f) => !recentFieldIds.includes(f.b_id))
 
   return (

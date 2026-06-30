@@ -8,7 +8,7 @@ import {
   updateField,
 } from "@nmi-agro/fdm-core"
 import maplibregl from "maplibre-gl"
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import {
   Controller,
   type ControllerRenderProps,
@@ -175,7 +175,7 @@ export default function FarmFieldsOverviewBlock() {
 
   const fieldGeo = loaderData.fieldGeo
   const mapId = "fieldsSaved"
-  const viewState = fieldGeo ? getViewState(fieldGeo) : null
+  const viewState = useMemo(() => (fieldGeo ? getViewState(fieldGeo) : null), [fieldGeo])
   const fieldsSavedStyle = getFieldsStyle(mapId)
   const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
   const mapRef = useRef<MapRef>(null)

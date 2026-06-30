@@ -48,12 +48,10 @@ import { getFieldNavigationItems } from "~/lib/field-navigation"
 export function SidebarFarm({
   farm,
   fields = [],
-  farmWritePermission = false,
   activeFieldId,
 }: {
   farm: Awaited<ReturnType<typeof getFarm>> | undefined
   fields?: { b_id: string; b_name: string; b_area: number }[]
-  farmWritePermission?: boolean
   activeFieldId?: string | null
 }) {
   function getSuperiorRole(allRoles: { role: "owner" | "advisor" | "researcher" }[]) {
@@ -108,7 +106,6 @@ export function SidebarFarm({
     if (location.pathname.includes("/fertilizer")) return "fertilizer"
     if (location.pathname.includes("/soil")) return "soil"
     if (location.pathname.includes("/bcs")) return "bcs"
-    if (location.pathname.includes("/atlas")) return "atlas"
     if (location.pathname.includes("/delete")) return "delete"
     return "overview"
   }
@@ -131,18 +128,16 @@ export function SidebarFarm({
     void navigate(`/farm/${farmId}/${selectedCalendar}/field/${b_id}/${segment}`)
   }
 
-  const toggleCollapsible = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    setIsPerceelOpen(!isPerceelOpen)
-  }
-
-  const recentFields = fields.filter((f) => recentFieldIds.includes(f.b_id))
+  // LRU order: iterate recentFieldIds so most-recent-first is preserved
+  const recentFields = recentFieldIds
+    .map((id) => fields.find((f) => f.b_id === id))
+    .filter((f): f is NonNullable<typeof f> => f !== undefined)
   const regularFields = fields.filter((f) => !recentFieldIds.includes(f.b_id))
 
+  // Never show delete from the sidebar — field-level permission is not available here
   const navigationItems = activeFieldId
-    ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, farmWritePermission)
-    : getFieldNavigationItems(farmId ?? "", selectedCalendar ?? "", "", farmWritePermission)
+    ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, false)
+    : getFieldNavigationItems(farmId ?? "", selectedCalendar ?? "", "", false)
 
   let rotationLink: string | undefined
   if (isCreateFarmWizard) {
@@ -395,43 +390,48 @@ export function SidebarFarm({
                 onOpenChange={setIsPerceelOpen}
               >
                 <SidebarMenuItem>
-                  <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
-                    <PopoverTrigger asChild>
-                      <SidebarMenuButton
-                        tooltip={"Perceel"}
-                        className="flex w-full items-center justify-between"
-                      >
-                        <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                  <div className="flex w-full items-center">
+                    <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <SidebarMenuButton
+                          tooltip={"Perceel"}
+                          className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+                        >
                           <LandPlot className="size-4 shrink-0" />
                           <span className="truncate font-medium">
                             {activeFieldName ?? "Kies een perceel"}
                           </span>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={toggleCollapsible}
-                          className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200"
-                          style={{
-                            transform: isPerceelOpen ? "rotate(90deg)" : "none",
-                          }}
-                        >
-                          <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
-                        </button>
-                      </SidebarMenuButton>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[280px] p-0" align="start" side="right">
-                      <Command>
-                        <CommandInput
-                          placeholder="Zoek perceel..."
-                          className="border-none focus:ring-0 focus-visible:ring-0"
-                        />
-                        <CommandList className="max-h-[300px] overflow-y-auto">
-                          <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
-                          {recentFields.length > 0 && (
-                            <CommandGroup heading="Onlangs bezocht">
-                              {recentFields.map((field) => (
+                        </SidebarMenuButton>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[280px] p-0" align="start" side="right">
+                        <Command>
+                          <CommandInput
+                            placeholder="Zoek perceel..."
+                            className="border-none focus:ring-0 focus-visible:ring-0"
+                          />
+                          <CommandList className="max-h-[300px] overflow-y-auto">
+                            <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
+                            {recentFields.length > 0 && (
+                              <CommandGroup heading="Onlangs bezocht">
+                                {recentFields.map((field) => (
+                                  <CommandItem
+                                    key={`recent-${field.b_id}`}
+                                    value={field.b_name}
+                                    onSelect={() => handleSelectField(field.b_id, field.b_name)}
+                                    className="flex cursor-pointer items-center justify-between"
+                                  >
+                                    <span>{field.b_name}</span>
+                                    <span className="text-muted-foreground text-xs">
+                                      {field.b_area} ha
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
+                            <CommandGroup heading="Alle percelen">
+                              {regularFields.map((field) => (
                                 <CommandItem
-                                  key={`recent-${field.b_id}`}
+                                  key={field.b_id}
                                   value={field.b_name}
                                   onSelect={() => handleSelectField(field.b_id, field.b_name)}
                                   className="flex cursor-pointer items-center justify-between"
@@ -443,26 +443,19 @@ export function SidebarFarm({
                                 </CommandItem>
                               ))}
                             </CommandGroup>
-                          )}
-                          <CommandGroup heading="Alle percelen">
-                            {regularFields.map((field) => (
-                              <CommandItem
-                                key={field.b_id}
-                                value={field.b_name}
-                                onSelect={() => handleSelectField(field.b_id, field.b_name)}
-                                className="flex cursor-pointer items-center justify-between"
-                              >
-                                <span>{field.b_name}</span>
-                                <span className="text-muted-foreground text-xs">
-                                  {field.b_area} ha
-                                </span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
+                      >
+                        <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+                      </button>
+                    </CollapsibleTrigger>
+                  </div>
 
                   <CollapsibleContent>
                     <SidebarMenuSub>
