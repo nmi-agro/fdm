@@ -9,6 +9,7 @@ import type { Cultivation } from "@nmi-agro/fdm-core"
 import { CircleAlert, CircleCheck, CircleX, Sprout } from "lucide-react"
 import { Suspense } from "react"
 import { Await, NavLink } from "react-router"
+import { MissingParametersWarning } from "~/components/blocks/balance/missing-parameters-warning"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -33,20 +34,23 @@ import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 
+export type MetricsResult<T> = { status: "ok"; data: T } | { status: "error"; message: string }
 interface FertilizerApplicationMetricsData {
-  norms: Promise<{
-    value: {
-      manure: GebruiksnormResult
-      phosphate: GebruiksnormResult
-      nitrogen: GebruiksnormResult
-    }
-    filling: {
-      manure: NormFilling
-      phosphate: NormFilling
-      nitrogen: NormFilling
-    }
-  } | null>
-  nitrogenBalance: Promise<NitrogenBalanceFieldResultNumeric> | undefined
+  norms: Promise<
+    MetricsResult<{
+      value: {
+        manure: GebruiksnormResult
+        phosphate: GebruiksnormResult
+        nitrogen: GebruiksnormResult
+      }
+      filling: {
+        manure: NormFilling
+        phosphate: NormFilling
+        nitrogen: NormFilling
+      }
+    } | null>
+  >
+  nitrogenBalance: Promise<MetricsResult<NitrogenBalanceFieldResultNumeric>>
   nutrientAdvice: NutrientAdvice
   dose: Dose
   b_id: string
@@ -60,6 +64,14 @@ interface FertilizerApplicationMetricsData {
 interface FertilizerApplicationMetricsCardProps {
   fertilizerApplicationMetricsData: FertilizerApplicationMetricsData
   isSubmitting: boolean
+}
+
+function MetricsErrorDisplay({ message }: { message: string }) {
+  return message.match(/Missing required soil parameters/) ? (
+    <MissingParametersWarning message={message} />
+  ) : (
+    <div className="text-destructive text-sm">Fout bij berekening</div>
+  )
 }
 
 export function FertilizerApplicationMetricsCard({
@@ -144,7 +156,13 @@ export function FertilizerApplicationMetricsCard({
                           <div className="text-destructive text-sm">Fout bij berekening</div>
                         }
                       >
-                        {(resolvedNorms) => {
+                        {(result) => {
+                          if (result.status === "error") {
+                            return <MetricsErrorDisplay message={result.message} />
+                          }
+
+                          const resolvedNorms = result.data
+
                           if (!resolvedNorms) {
                             return (
                               <span className="text-xs">
@@ -152,6 +170,7 @@ export function FertilizerApplicationMetricsCard({
                               </span>
                             )
                           }
+
                           return (
                             <div className="flex min-w-0 flex-col space-y-4">
                               <div className="min-w-0 space-y-1.5">
@@ -282,7 +301,13 @@ export function FertilizerApplicationMetricsCard({
                         }
                         resolve={nitrogenBalance}
                       >
-                        {(resolvedNitrogenBalance) => {
+                        {(result) => {
+                          if (result.status === "error") {
+                            return <MetricsErrorDisplay message={result.message} />
+                          }
+
+                          const resolvedNitrogenBalance = result.data
+
                           if (b_bufferstrip) {
                             return (
                               <span className="text-muted-foreground text-xs">
