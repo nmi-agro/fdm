@@ -179,6 +179,9 @@ export default function App() {
     (match) => match.pathname.includes("/field/") && match.params.b_id,
   )
   const urlFieldId = fieldMatch?.params.b_id as string | undefined
+  const fieldWritePermission =
+    (fieldMatch?.loaderData as { fieldWritePermission?: boolean } | undefined)
+      ?.fieldWritePermission ?? false
 
   useEffect(() => {
     if (urlFieldId) {
@@ -209,6 +212,7 @@ export default function App() {
             farm={loaderData.farm}
             fields={loaderData.fieldOptions}
             activeFieldId={activeFieldId}
+            fieldWritePermission={fieldWritePermission}
           />
           <SidebarApps />
           <SidebarLabs />

@@ -1,4 +1,4 @@
-import { getFarms, getField, getFields } from "@nmi-agro/fdm-core"
+import { checkPermission, getFarms, getField, getFields } from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
@@ -127,6 +127,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldOptions: fieldOptions,
       field: field,
       b_id: b_id,
+      fieldWritePermission: !!(await checkPermission(
+        fdm,
+        "field",
+        "write",
+        b_id,
+        session.principal_id,
+        new URL(request.url).pathname,
+        false,
+      )),
       user: session.user,
     }
   } catch (error) {

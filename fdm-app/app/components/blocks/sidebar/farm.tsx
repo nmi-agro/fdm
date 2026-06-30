@@ -49,10 +49,12 @@ export function SidebarFarm({
   farm,
   fields = [],
   activeFieldId,
+  fieldWritePermission = false,
 }: {
   farm: Awaited<ReturnType<typeof getFarm>> | undefined
   fields?: { b_id: string; b_name: string; b_area: number }[]
   activeFieldId?: string | null
+  fieldWritePermission?: boolean
 }) {
   function getSuperiorRole(allRoles: { role: "owner" | "advisor" | "researcher" }[]) {
     if (allRoles.length > 0) {
@@ -134,9 +136,8 @@ export function SidebarFarm({
     .filter((f): f is NonNullable<typeof f> => f !== undefined)
   const regularFields = fields.filter((f) => !recentFieldIds.includes(f.b_id))
 
-  // Never show delete from the sidebar — field-level permission is not available here
   const navigationItems = activeFieldId
-    ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, false)
+    ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, fieldWritePermission)
     : getFieldNavigationItems(farmId ?? "", selectedCalendar ?? "", "", false)
 
   let rotationLink: string | undefined
@@ -450,6 +451,7 @@ export function SidebarFarm({
                     <CollapsibleTrigger asChild>
                       <button
                         type="button"
+                        aria-label="Perceel sectie in- of uitklappen"
                         className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90"
                       >
                         <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
