@@ -6,20 +6,31 @@ import {
   Check,
   ChevronRight,
   ClipboardList,
+  Grid2x2,
   House,
+  LandPlot,
   LayoutGrid,
   Shapes,
   Sprout,
-  Square,
 } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
-import { useState } from "react"
-import { NavLink, useLocation, useSearchParams } from "react-router"
+import { useState, useEffect } from "react"
+import { NavLink, useLocation, useSearchParams, useNavigate } from "react-router"
 import { getCalendarSelection } from "@/app/lib/calendar"
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
+import { useSelectedFieldStore } from "@/app/store/selected-field"
 import { Badge } from "~/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "~/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -32,8 +43,19 @@ import {
   SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { getFieldNavigationItems } from "~/lib/field-navigation"
 
-export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>> | undefined }) {
+export function SidebarFarm({
+  farm,
+  fields = [],
+  farmWritePermission = false,
+  activeFieldId,
+}: {
+  farm: Awaited<ReturnType<typeof getFarm>> | undefined
+  fields?: { b_id: string; b_name: string; b_area: number }[]
+  farmWritePermission?: boolean
+  activeFieldId?: string | null
+}) {
   function getSuperiorRole(allRoles: { role: "owner" | "advisor" | "researcher" }[]) {
     if (allRoles.length > 0) {
       const ordering = ["owner", "advisor", "researcher"] as const
@@ -53,6 +75,7 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
   const calendarSelection = getCalendarSelection()
 
   const location = useLocation()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   // Check if the page or its return page contains `farm/create` in url
   const isCreateFarmWizard =
@@ -64,14 +87,62 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
 
   const isFarmSelected = farmId && farmId !== "undefined" && !isCreateFarmWizard
 
-  let fieldsLink: string | undefined
-  if (isCreateFarmWizard) {
-    fieldsLink = undefined
-  } else if (farmId && farmId !== "undefined") {
-    fieldsLink = `/farm/${farmId}/${selectedCalendar}/field`
-  } else {
-    fieldsLink = undefined
+  const { recentFieldIds, addRecentFieldId } = useSelectedFieldStore()
+
+  const activeFieldName = activeFieldId
+    ? (fields.find((f) => f.b_id === activeFieldId)?.b_name ?? null)
+    : null
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isPerceelOpen, setIsPerceelOpen] = useState(false)
+  const [targetSegment, setTargetSegment] = useState("overview")
+
+  // Auto-expand whenever a field is active
+  useEffect(() => {
+    if (activeFieldId) {
+      setIsPerceelOpen(true)
+    }
+  }, [activeFieldId])
+
+  const getActiveSegment = () => {
+    if (location.pathname.includes("/cultivation")) return "cultivation"
+    if (location.pathname.includes("/fertilizer")) return "fertilizer"
+    if (location.pathname.includes("/soil")) return "soil"
+    if (location.pathname.includes("/bcs")) return "bcs"
+    if (location.pathname.includes("/atlas")) return "atlas"
+    if (location.pathname.includes("/delete")) return "delete"
+    return "overview"
   }
+
+  const handleSubSectionClick = (e: React.MouseEvent, segment: string) => {
+    if (!activeFieldId) {
+      e.preventDefault()
+      setTargetSegment(segment)
+      setIsPickerOpen(true)
+    }
+  }
+
+  const handleSelectField = (b_id: string, _b_name: string) => {
+    setIsPickerOpen(false)
+    addRecentFieldId(b_id)
+
+    const activeSegment = getActiveSegment()
+    const segment = activeFieldId ? activeSegment : targetSegment
+
+    navigate(`/farm/${farmId}/${selectedCalendar}/field/${b_id}/${segment}`)
+  }
+
+  const toggleCollapsible = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setIsPerceelOpen(!isPerceelOpen)
+  }
+
+  const recentFields = fields.filter((f) => recentFieldIds.includes(f.b_id))
+  const regularFields = fields.filter((f) => !recentFieldIds.includes(f.b_id))
+
+  const navigationItems = activeFieldId
+    ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, farmWritePermission)
+    : getFieldNavigationItems(farmId ?? "", selectedCalendar ?? "", "", farmWritePermission)
 
   let rotationLink: string | undefined
   if (isCreateFarmWizard) {
@@ -212,39 +283,22 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
                 </Tooltip>
               </SidebarMenuItem>
             )}
-            <SidebarMenuItem>
-              {fieldsLink ? (
+            {isFarmSelected && (
+              <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
                   isActive={
-                    location.pathname.includes(`/farm/${farmId}/`) &&
-                    location.pathname.includes("/field")
+                    location.pathname === `/farm/${farmId}/${selectedCalendar}/field` ||
+                    location.pathname === `/farm/${farmId}/${selectedCalendar}/field/`
                   }
                 >
-                  <NavLink to={fieldsLink}>
-                    <Square />
+                  <NavLink to={`/farm/${farmId}/${selectedCalendar}/field`}>
+                    <Grid2x2 />
                     <span>Percelen</span>
                   </NavLink>
                 </SidebarMenuButton>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <SidebarMenuButton
-                      asChild
-                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
-                    >
-                      <span className="flex items-center gap-2">
-                        <Square />
-                        <span>Percelen</span>
-                      </span>
-                    </SidebarMenuButton>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    Selecteer een bedrijf om uw percelen te beheren
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </SidebarMenuItem>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem>
               {rotationLink ? (
                 <SidebarMenuButton
@@ -332,6 +386,125 @@ export function SidebarFarm({ farm }: { farm: Awaited<ReturnType<typeof getFarm>
                 </Tooltip>
               )}
             </SidebarMenuItem>
+            {/* Context-aware Perceel group */}
+            {isFarmSelected ? (
+              <Collapsible
+                asChild
+                open={isPerceelOpen}
+                className="group/collapsible"
+                onOpenChange={setIsPerceelOpen}
+              >
+                <SidebarMenuItem>
+                  <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={"Perceel"}
+                        className="flex w-full items-center justify-between"
+                      >
+                        <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                          <LandPlot className="size-4 shrink-0" />
+                          <span className="truncate font-medium">
+                            {activeFieldName ?? "Kies een perceel"}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={toggleCollapsible}
+                          className="hover:bg-sidebar-accent/50 rounded-sm p-1 transition-transform duration-200"
+                          style={{
+                            transform: isPerceelOpen ? "rotate(90deg)" : "none",
+                          }}
+                        >
+                          <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+                        </button>
+                      </SidebarMenuButton>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0" align="start" side="right">
+                      <Command>
+                        <CommandInput
+                          placeholder="Zoek perceel..."
+                          className="border-none focus:ring-0 focus-visible:ring-0"
+                        />
+                        <CommandList className="max-h-[300px] overflow-y-auto">
+                          <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
+                          {recentFields.length > 0 && (
+                            <CommandGroup heading="Onlangs bezocht">
+                              {recentFields.map((field) => (
+                                <CommandItem
+                                  key={`recent-${field.b_id}`}
+                                  value={field.b_name}
+                                  onSelect={() => handleSelectField(field.b_id, field.b_name)}
+                                  className="flex cursor-pointer items-center justify-between"
+                                >
+                                  <span>{field.b_name}</span>
+                                  <span className="text-muted-foreground text-xs">
+                                    {field.b_area} ha
+                                  </span>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
+                          <CommandGroup heading="Alle percelen">
+                            {regularFields.map((field) => (
+                              <CommandItem
+                                key={field.b_id}
+                                value={field.b_name}
+                                onSelect={() => handleSelectField(field.b_id, field.b_name)}
+                                className="flex cursor-pointer items-center justify-between"
+                              >
+                                <span>{field.b_name}</span>
+                                <span className="text-muted-foreground text-xs">
+                                  {field.b_area} ha
+                                </span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {navigationItems.map((item) => (
+                        <SidebarMenuSubItem key={item.segment}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location.pathname.startsWith(item.to)}
+                          >
+                            <NavLink
+                              to={activeFieldId ? item.to : "#"}
+                              onClick={(e) => handleSubSectionClick(e, item.segment)}
+                            >
+                              <span>{item.title}</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+            ) : (
+              <SidebarMenuItem>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      asChild
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
+                      <span className="flex items-center gap-2">
+                        <LandPlot />
+                        <span>Percelen</span>
+                      </span>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    Selecteer een bedrijf om uw percelen te beheren
+                  </TooltipContent>
+                </Tooltip>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
