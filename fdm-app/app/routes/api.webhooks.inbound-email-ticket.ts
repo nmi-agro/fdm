@@ -15,20 +15,28 @@ import { Route } from "./+types/api.webhooks.inbound-email-ticket"
 
 export function checkUsernameAndPassword(request: Request) {
   const authHeader = request.headers.get("Authorization")
-  if (!authHeader || !authHeader.startsWith("Basic")) {
+  if (!authHeader) {
     return false
   }
-  const spaceIndex = authHeader.indexOf(" ")
-  const parts = authHeader.substring(spaceIndex + 1).split(":")
-  if (parts.length !== 2) {
+
+  const basicAuthMatch = authHeader.match(/^Basic\s+(.+)$/i)
+  if (!basicAuthMatch) {
     return false
   }
-  const username = parts[0]
-  const password = parts[1]
+
+  const decodedCredentials = Buffer.from(basicAuthMatch[1], "base64").toString("utf8")
+  const separatorIndex = decodedCredentials.indexOf(":")
+  if (separatorIndex < 0) {
+    return false
+  }
+
+  const username = decodedCredentials.substring(0, separatorIndex)
+  const password = decodedCredentials.substring(separatorIndex + 1)
+
+  const hashedPw = crypto.createHash("md5").update(password).digest("hex")
   return (
     username === serverConfig.mail?.postmark.inbound_email_auth_username &&
-    crypto.createHash("md5").update(password).digest("hex") ===
-      serverConfig.mail.postmark.inbound_email_auth_password_hash
+    hashedPw === serverConfig.mail.postmark.inbound_email_auth_password_hash
   )
 }
 
@@ -64,7 +72,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
     let email = emailParsingResult.data
 
-    const ticketBody = email.HtmlBody ?? email.TextBody ?? "Ticket"
+    const ticketBody = email.TextBody ?? "Ticket"
 
     const ticket_id = await createTicketFromInboundEmail(fdm, email.FromFull.Email, ticketBody)
     if (email.Subject) {
@@ -97,6 +105,7 @@ export async function action({ request }: Route.ActionArgs) {
     } catch (err) {
       handleLoaderError(err)
     }
+    return new Response("OK", { status: 200 })
   } catch (err) {
     handleLoaderError(err)
     return new Response("Internal Server Error", { status: 500 })
