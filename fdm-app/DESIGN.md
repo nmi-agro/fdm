@@ -113,6 +113,7 @@ The personality is calm, trustworthy, and modern. Density is honest — tables, 
 The system explicitly rejects: clutter that buries insight, hype and unsubstantiated "we save your farm" flourishes, and enterprise-corporate coldness. Substance over spectacle, every screen.
 
 **Key Characteristics:**
+
 - Near-monochrome slate surface; hue reserved for data and state.
 - One typeface (Inter) across headings, labels, body, and data.
 - Flat by default; subtle shadows only as a response to state.
@@ -124,9 +125,11 @@ The system explicitly rejects: clutter that buries insight, hype and unsubstanti
 A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, a near-black primary, and a small set of saturated chart colors that carry all the data-visualization meaning.
 
 ### Primary
+
 - **Slate Ink** (`#0f172a`, `hsl(222 47% 11%)`): Primary actions, the active/selected state, and high-emphasis text. In dark mode this inverts to near-white (`#f8fafc`) on a slate-950 surface. It is the closest thing to a brand color and stays deliberately neutral.
 
 ### Neutral
+
 - **Paper** (`#ffffff`): Content background and card surface.
 - **Sidebar Mist** (`#fafafa`, `hsl(0 0% 98%)`): The second neutral layer for the app-shell sidebar — a hair cooler/lighter than content so navigation reads as a distinct plane.
 - **Slate Muted** (`#f1f5f9`, `hsl(210 40% 96%)`): Secondary buttons, hover fills, muted/accent surfaces.
@@ -134,12 +137,15 @@ A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, 
 - **Hairline** (`#e2e8f0`, `hsl(214 32% 91%)`): Borders, inputs, dividers.
 
 ### Tertiary (data only)
+
 - **Chart series** (`#e8743b` terracotta, `#19a3a3` teal, `#2d5b8a` deep blue, `#e9c44a` ochre, `#e0962f` amber): The recharts/data-viz palette (`--chart-1..5`, authored in OKLCH). These are the only saturated colors on a normal screen. A separate, darker, more saturated set is used in dark mode.
 
 ### Status
+
 - **Destructive Red** (`#ef4444`): Errors, destructive actions, invalid fields. Muted to a darker red in dark mode.
 
 ### Named Rules
+
 **The Earned-Color Rule.** The surface is neutral by design. Saturated color appears only where it carries meaning — a chart series, a status, the current selection — never as decoration. If a color isn't encoding data or state, it shouldn't be on the screen.
 
 ## 3. Typography
@@ -149,6 +155,7 @@ A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, 
 **Character:** One humanist-leaning grotesque doing all the work. No display/body pairing — product UI is better served by a single, well-hinted sans that stays legible from a 30px heading down to an 11px table label. Headings lean on weight and slightly negative tracking, not on a second family.
 
 ### Hierarchy
+
 - **Display** (600, 1.875rem/30px, line-height 1.2, tracking -0.02em): Page titles and primary section headers. Fixed rem scale, never fluid clamp — a sidebar-embedded heading must not shrink.
 - **Headline** (600, 1.5rem/24px, line-height 1.25): Card and panel headers.
 - **Title** (600, 1.125rem/18px): Sub-section and dialog titles.
@@ -156,6 +163,7 @@ A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, 
 - **Label** (500, 0.875rem/14px): Buttons, form labels, table headers, badges.
 
 ### Named Rules
+
 **The One-Voice Rule.** Inter carries everything. No display serif, no second sans, no mono in UI labels. Hierarchy comes from weight (400/500/600) and size on a tight ~1.2 ratio, not from font changes.
 
 ## 4. Elevation
@@ -163,11 +171,13 @@ A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, 
 Mostly flat. Surfaces sit at rest with hairline borders doing the separation; depth is conveyed by the second neutral layer (sidebar vs. content) and by borders, not by a shadow stack. Shadows are reserved for state and true overlays.
 
 ### Shadow Vocabulary
+
 - **Resting** (`shadow-xs` ≈ `0 1px 2px rgb(0 0 0 / 0.05)`): Buttons, inputs, and cards — a barely-there lift that reads as "interactive surface," not "floating."
 - **Card** (`shadow` ≈ `0 1px 3px rgb(0 0 0 / 0.1)`): Default card containers.
 - **Overlay** (popover/dialog/dropdown shadow): Genuinely floating layers (menus, dialogs, tooltips) that must detach from the page.
 
 ### Named Rules
+
 **The Flat-By-Default Rule.** Surfaces are flat and bordered at rest. A shadow is a signal — hover, focus, or a layer that genuinely floats above the page — never decoration. Don't stack shadows to fake hierarchy that a border or the sidebar layer already provides.
 
 ## 5. Components
@@ -175,6 +185,7 @@ Mostly flat. Surfaces sit at rest with hairline borders doing the separation; de
 Built on shadcn/ui ("new-york" style) over Radix primitives, styled with Tailwind v4 tokens. Refined and restrained: standard affordances, consistent shape, every interactive state defined.
 
 ### Buttons
+
 - **Shape:** `rounded-md` (0.375rem); heights `sm` 2rem / default 2.25rem / `lg` 2.5rem.
 - **Primary:** `bg-primary` slate ink + `text-primary-foreground`, `shadow-xs`, `px-4 py-2`. Hover: `bg-primary/90`.
 - **Secondary:** `bg-secondary` slate-muted + dark text; hover `bg-secondary/80`.
@@ -184,6 +195,7 @@ Built on shadcn/ui ("new-york" style) over Radix primitives, styled with Tailwin
 - **Focus:** `focus-visible:ring-[3px]` ring/50 + border shift; `disabled:opacity-50 pointer-events-none`. Icons auto-size to 1rem.
 
 ### Cards / Containers
+
 - **Corner Style:** `rounded-xl` (0.75rem).
 - **Background:** `bg-card` (white / slate-950 in dark) + `text-card-foreground`.
 - **Shadow Strategy:** resting `shadow` only (see Elevation). Never nest cards.
@@ -191,20 +203,47 @@ Built on shadcn/ui ("new-york" style) over Radix primitives, styled with Tailwin
 - **Internal Padding:** `p-6` (1.5rem); header uses `space-y-1.5`.
 
 ### Inputs / Fields
+
 - **Style:** 1px `border-input`, transparent background, `rounded-md`, `h-9`, `px-3 py-1`, `shadow-xs`, 14px text.
 - **Placeholder:** `text-muted-foreground` — still AA-legible, never the faint gray default.
 - **Focus:** `focus-visible:ring-1 ring-ring`, outline removed.
 - **Error / Disabled:** `aria-invalid` → destructive ring/border; `disabled:opacity-50 cursor-not-allowed`.
 
 ### Navigation
+
 - **App shell:** persistent left sidebar on its own neutral layer (`--sidebar-*` tokens), collapsible. Active item uses `sidebar-accent` fill + accent-foreground text; hover is a quiet tint. Responsive behavior is structural (the sidebar collapses), not fluid type.
 
 ### Data Visualization (signature)
+
 - Charts (recharts) draw from the five `--chart-*` tokens in series order; status and balance/indicator views must not rely on hue alone — pair color with label, icon, or value so they stay readable for color-vision deficiencies.
 
-## 6. Do's and Don'ts
+## 6. Surface-Specific Rules
+
+The default rules above describe the authenticated interior. Some surfaces warrant a different visual weight because their job is different.
+
+### Unauthenticated pages
+
+Unauthenticated pages (sign-in, welcome, error pages, and any future public-facing routes) are the product's first impression. They bridge the **brand** and **product** registers. The authenticated interior should feel like a focused workbench; unauthenticated pages should feel modern, advanced, and trustworthy — advanced enough that a farmer or advisor immediately senses this is serious, well-built software with a scientific foundation
+
+**What is permitted beyond the interior defaults:**
+
+- **Richer motion.** Entrance animations and scroll-triggered reveals are appropriate. The interior ships with no page-load sequences; unauthenticated pages earn them. All animations must still respect `MotionConfig reducedMotion="user"`.
+- **Stronger headline scale.** CTA headings may go to `4xl–5xl` where the interior is capped at `display` (1.875rem). Still capped at 6rem / 96px max.
+- **Committed color on hero surfaces.** The brand dark (`#122023`) as a panel or column background is intentional identity, not decoration.
+- **Product-evidence marketing.** Screenshot showcases, feature cards, partner logos, FAQ, and full-page CTA sections are appropriate here. They must not appear inside authenticated screens.
+- **Staggered scroll reveals.** Marketing sections may use `whileInView` stagger on feature rows; the interior must not introduce unsolicited scroll choreography.
+
+**Constraints that still apply:**
+
+- All absolute bans (side-stripe borders, gradient text, glassmorphism, identical card grids, hero-metric template, etc.) apply without exception.
+- Any functional form or action component (auth card, error recovery) is **interior-register**: flat-by-default, `shadow-sm`, no oversized type, calm and focused. The marketing _around_ it can be advanced; the action itself must remain calm.
+- The 14-inch laptop constraint is not relaxed — unauthenticated pages are often the first screens seen on a work machine.
+- Dutch formal address (`u/uw`), WCAG AA contrast, and full keyboard/screen-reader accessibility apply in full.
+
+## 7. Do's and Don'ts
 
 ### Do:
+
 - **Do** keep the surface neutral slate and spend saturated color only on data, status, and the current selection (the Earned-Color Rule).
 - **Do** set every interactive component's default, hover, focus-visible, active, disabled, and error states before shipping it.
 - **Do** keep body and placeholder text at AA contrast (≥4.5:1); bump muted gray toward the ink end rather than fading it for "elegance."
@@ -213,6 +252,7 @@ Built on shadcn/ui ("new-york" style) over Radix primitives, styled with Tailwin
 - **Do** pair every status/indicator color with a label, icon, or value so meaning survives color blindness and dark mode.
 
 ### Don't:
+
 - **Don't** add clutter that buries the insight — this is "not another cluttered tool for farmers that is barely used."
 - **Don't** oversell: no hype gradients, glow, or "we save your farm" flourishes; trust comes from transparent, auditable numbers.
 - **Don't** make it feel enterprise-corporate or gated to big companies — keep it approachable for an individual advisor or farmer.
