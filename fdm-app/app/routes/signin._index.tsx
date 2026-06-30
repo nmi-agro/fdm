@@ -7,7 +7,7 @@ import type {
 } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { SiGithub } from "@icons-pack/react-simple-icons"
-import { AnimatePresence, motion, useScroll } from "framer-motion"
+import { AnimatePresence, motion, MotionConfig, useScroll } from "framer-motion"
 import {
   ArrowDown,
   ArrowRight,
@@ -58,7 +58,6 @@ import {
 } from "~/components/ui/card"
 import {
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -176,6 +175,11 @@ function getSafeRedirect(address: string | null) {
   return address?.startsWith("/") && !address.startsWith("//") ? address : "/farm"
 }
 
+function scrollToTop() {
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+  window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" })
+}
+
 const StickyHeader = () => {
   const { scrollY } = useScroll()
   const [isVisible, setIsVisible] = useState(false)
@@ -203,7 +207,7 @@ const StickyHeader = () => {
               </div>
               <span className="font-semibold">{clientConfig.name}</span>
             </div>
-            <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+            <Button onClick={scrollToTop}>
               Aanmelden
             </Button>
           </div>
@@ -290,7 +294,13 @@ export default function SignIn() {
     form.setValue("timeZone", timeZone)
   }, [form.setValue])
 
+  const emailValue = form.watch("email") ?? ""
+  const emailHasError = !!form.formState.errors.email
+  const emailIsTouched = form.getFieldState("email").isTouched
+  const emailIsValid = emailValue.length > 0 && emailIsTouched && !emailHasError
+
   return (
+    <MotionConfig reducedMotion="user">
     <div className="relative">
       <StickyHeader />
       <div className="relative w-full lg:grid lg:min-h-[600px] lg:grid-cols-2 xl:min-h-[800px]">
@@ -309,8 +319,13 @@ export default function SignIn() {
 
         <div className="lg:bg-muted/20 relative z-10 flex min-h-screen flex-col bg-transparent">
           <div className="flex flex-1 flex-col items-center justify-center px-4 py-12">
-            <div className="mx-auto grid w-full max-w-sm gap-6">
-              <Card className="border-border/40 lg:border-border shadow-xl">
+            <motion.div
+              className="mx-auto grid w-full max-w-sm gap-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Card className="border-border/40 lg:border-border shadow-sm">
                 <CardHeader className="text-center">
                   <div className="mb-4 flex justify-center">
                     <div className="flex aspect-square size-16 items-center justify-center rounded-lg bg-[#122023]">
@@ -323,7 +338,7 @@ export default function SignIn() {
                   </div>
                   <h1 className="text-2xl font-semibold tracking-tight">{clientConfig.name}</h1>
                   <CardDescription>
-                    Meld je aan om toegang te krijgen tot je dashboard.
+                    Meld u aan om toegang te krijgen tot uw dashboard.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -331,7 +346,7 @@ export default function SignIn() {
                     <div className="flex flex-col space-y-1.5">
                       <Button
                         variant={"outline"}
-                        className={cn("w-full gap-2")}
+                        className={cn("group w-full gap-2 transition-transform active:scale-[0.98]")}
                         disabled={loadingProvider !== null}
                         onClick={async () => {
                           setLoadingProvider("microsoft")
@@ -356,6 +371,7 @@ export default function SignIn() {
                             <svg
                               role="img"
                               aria-label="Microsoft logo"
+                              className="transition-transform duration-200 group-hover:scale-110"
                               width="1024"
                               height="1024"
                               viewBox="0 0 1024 1024"
@@ -387,7 +403,7 @@ export default function SignIn() {
                     <div className="flex flex-col space-y-1.5">
                       <Button
                         variant={"outline"}
-                        className={cn("w-full gap-2")}
+                        className={cn("group w-full gap-2 transition-transform active:scale-[0.98]")}
                         disabled={loadingProvider !== null}
                         onClick={async () => {
                           try {
@@ -413,6 +429,7 @@ export default function SignIn() {
                             <svg
                               role="img"
                               aria-label="Google logo"
+                              className="transition-transform duration-200 group-hover:scale-110"
                               xmlns="http://www.w3.org/2000/svg"
                               width="0.98em"
                               height="1em"
@@ -480,20 +497,35 @@ export default function SignIn() {
                                 <FormItem>
                                   <FormLabel>E-mailadres</FormLabel>
                                   <FormControl>
-                                    <Input
-                                      type="email"
-                                      autoComplete="email"
-                                      placeholder="naam@bedrijf.nl"
-                                      {...field}
-                                    />
+                                    <div className="relative">
+                                      <Input
+                                        type="email"
+                                        autoComplete="email"
+                                        placeholder="naam@bedrijf.nl"
+                                        className={cn(emailIsValid && "pr-9")}
+                                        {...field}
+                                      />
+                                      <AnimatePresence>
+                                        {emailIsValid && (
+                                          <motion.span
+                                            initial={{ opacity: 0, scale: 0.5 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.5 }}
+                                            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                                            className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2"
+                                          >
+                                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                          </motion.span>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
                                   </FormControl>
-                                  <FormDescription />
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                           </div>
-                          <Button type="submit" className="w-full">
+                          <Button type="submit" className="w-full transition-transform active:scale-[0.98]">
                             {form.formState.isSubmitting ? (
                               <div className="flex items-center space-x-2">
                                 <Spinner />
@@ -523,13 +555,27 @@ export default function SignIn() {
                   </p>
                 </CardFooter>
               </Card>
-              <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-muted-foreground/70">
+              <div className="text-muted-foreground/70 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs">
                 <span className="flex items-center gap-1">
-                  <ShieldCheck className="h-3 w-3" />
-                  Ontwikkeld door het Nutriënten Management Instituut (NMI)
+                  <span>Ontwikkeld door het</span>
+                  <a
+                    href="https://www.nmi-agro.nl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-foreground/80 underline underline-offset-2 transition-colors"
+                  >
+                    Nutriënten Management Instituut
+                  </a>
                 </span>
                 <span aria-hidden="true">·</span>
-                <span>Open source</span>
+                <a
+                  href="https://github.com/nmi-agro/fdm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-foreground/80 underline underline-offset-2 transition-colors"
+                >
+                  Open source
+                </a>
                 <span aria-hidden="true">·</span>
                 <span>Gratis tijdens pilot</span>
                 <span aria-hidden="true">·</span>
@@ -545,7 +591,7 @@ export default function SignIn() {
                   <MoveDown className="animate-up-and-down-down ml-2 h-4 w-4" />
                 </Button>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
         <div className="bg-muted relative hidden lg:block">
@@ -567,7 +613,7 @@ export default function SignIn() {
                   <span className="mr-2 flex h-2 w-2 rounded-full bg-green-500" />
                   Innovatie in de praktijk
                 </div>
-                <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                   Samen leren en innoveren
                 </h2>
                 <div className="text-muted-foreground mb-8 space-y-4 text-lg leading-relaxed">
@@ -604,7 +650,7 @@ export default function SignIn() {
                         twee veelgebruikte methoden helpen boeren en adviseurs nu al in het
                         effectief nemen van maatregelen en het inzicht krijgen in de
                         bodemgezondheid. In 2026 komen OBI en BBWP ook beschikbaar in{" "}
-                        {clientConfig.name}                         en maken we ze nog toegankelijker.
+                        {clientConfig.name} en maken we ze nog toegankelijker.
                       </span>
                     </li>
                   </ul>
@@ -620,10 +666,8 @@ export default function SignIn() {
                 </div>
               </div>
 
-              <div className="relative">
-                <div className="from-primary/20 absolute -inset-4 -z-10 rounded-3xl bg-linear-to-tr to-blue-500/20 opacity-70 blur-2xl" />
-
-                <Card className="border-muted/40 bg-background shadow-xl">
+              <div>
+                <Card className="border-border bg-background">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-xl">
                       <Target className="text-primary h-5 w-5" />
@@ -676,7 +720,7 @@ export default function SignIn() {
         <div className="bg-background py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                 Doelsturing: Kansen en uitdagingen
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -784,7 +828,7 @@ export default function SignIn() {
         <div className="bg-muted/10 py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                 Atlas: Alles in kaart gebracht
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -897,7 +941,7 @@ export default function SignIn() {
         <div className="bg-background py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                 Bemestingsadviezen: Kennis binnen handbereik
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -923,8 +967,7 @@ export default function SignIn() {
                         <strong className="text-foreground">CBGV (Bemestingsadvies)</strong> en{" "}
                         <strong className="text-foreground">
                           CBAV (Handboek Bodem en Bemesting)
-                        </strong>{" "}
-                        .
+                        </strong>.
                       </p>
                     </div>
                   </div>
@@ -952,7 +995,7 @@ export default function SignIn() {
               </div>
 
               {/* Right: Emphasize Importance */}
-              <Card className="border-primary/20 bg-background h-full shadow-lg">
+              <Card className="border-primary/20 bg-background h-full shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FlaskConical className="text-primary h-6 w-6" />
@@ -989,16 +1032,13 @@ export default function SignIn() {
             </div>
 
             {/* Full width screenshot */}
-            <div className="bg-background ring-border/50 overflow-hidden rounded-xl border shadow-2xl ring-1">
+            <div className="bg-background ring-border/50 overflow-hidden rounded-xl border shadow-lg ring-1">
               <div className="bg-muted/40 flex items-center gap-2 border-b p-3">
                 <div className="ml-1 flex gap-1.5">
                   <div className="h-3 w-3 rounded-full border border-red-500/20 bg-red-400/80" />
                   <div className="h-3 w-3 rounded-full border border-yellow-500/20 bg-yellow-400/80" />
                   <div className="h-3 w-3 rounded-full border border-green-500/20 bg-green-400/80" />
                 </div>
-                {/* <div className="ml-4 h-6 bg-background rounded-md border w-64 flex items-center px-2">
-                                    <span className="text-[10px] text-muted-foreground">fdm.app/advies</span>
-                                </div> */}
               </div>
               <div className="bg-muted/5 relative w-full">
                 <img
@@ -1014,7 +1054,7 @@ export default function SignIn() {
         <div className="bg-muted/10 py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                 Gebruiksruimte: Binnen de kaders, met inzicht
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -1065,8 +1105,8 @@ export default function SignIn() {
                   getallen zijn indicatief en bedoeld ter ondersteuning.
                 </p>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Voor de juridische werkelijkheid en definitieve opgaven verwijzen we u naar de
-                  RVO en uw adviseur.
+                  Voor de juridische werkelijkheid en definitieve opgaven verwijzen we u naar de RVO
+                  en uw adviseur.
                 </p>
               </div>
             </div>
@@ -1076,70 +1116,114 @@ export default function SignIn() {
         <div className="bg-background py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                 Handige functies
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
-                Van slimme imports tot samenwerken met uw adviseur. Met handige functies proberen we
-                het zo makkelijk mogelijk te maken om eenvoudig gegevens in te vullen, zodat u snel
-                toegang heeft tot
+                Van slimme imports tot samenwerken met uw adviseur — alles om uw agrarische data
+                eenvoudig in te voeren en direct te benutten.
               </p>
             </div>
 
-            <div className="grid gap-12 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-2">
               {/* Feature 1: Import */}
-              <div className="flex flex-col items-center space-y-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-                  <FileUp className="h-8 w-8" />
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.45, delay: 0, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="group bg-card h-full rounded-2xl border p-6 transition-all hover:shadow-md">
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                      <FileUp className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="mb-1.5 text-lg font-semibold">Percelen ophalen bij RVO</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        Start direct door uw percelen in te lezen via een RVO shapefile of direct te
+                        importeren vanuit RVO met behulp van eHerkenning. Uw percelen staan daarmee
+                        direct goed in de applicatie, inclusief het gewas.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold">Percelen ophalen bij RVO</h3>
-                <p className="text-muted-foreground">
-                  Start direct door uw percelen in te lezen via een RVO shapefile of direct te
-                  importeren vanuit RVO met behulp van eHerkenning. Uw percelen staan daarmee direct
-                  goed in de applicatie, inclusief het gewas.
-                </p>
-              </div>
+              </motion.div>
 
               {/* Feature 2: PDF Parsing */}
-              <div className="flex flex-col items-center space-y-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
-                  <ScanText className="h-8 w-8" />
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.45, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="group bg-card h-full rounded-2xl border p-6 transition-all hover:shadow-md">
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+                      <ScanText className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="mb-1.5 text-lg font-semibold">Bodemanalyses</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        Upload de PDF van uw bodemanalyse en {clientConfig.name} leest automatisch
+                        de juiste waarden uit. Heeft u geen bodemanalyse? Dan kunt u gebruikmaken
+                        van geschatte bodemwaardes door het NMI.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold">Bodemanalyses</h3>
-                <p className="text-muted-foreground">
-                  Upload de PDF van uw bodemanalyse en {clientConfig.name} leest automatisch de
-                  juiste waarden uit. Heeft u geen bodemanalyse voor een perceel? Dan kunt u
-                  gebruiken maken van geschatte bodemwaardes door het NMI.
-                </p>
-              </div>
+              </motion.div>
 
               {/* Feature 3: Bulk Actions */}
-              <div className="flex flex-col items-center space-y-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100 text-green-700">
-                  <Table2 className="h-8 w-8" />
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.45, delay: 0.16, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="group bg-card h-full rounded-2xl border p-6 transition-all hover:shadow-md">
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-green-100 text-green-700">
+                      <Table2 className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="mb-1.5 text-lg font-semibold">Slimme tabellen</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        Beheer uw bouwplan, bemesting en oogst in overzichtelijke tabellen. Voer
+                        acties uit voor meerdere percelen of gewassen tegelijk.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold">Slimme tabellen</h3>
-                <p className="text-muted-foreground">
-                  Beheer uw bouwplan, bemesting en oogst in overzichtelijke tabellen. Voer acties
-                  uit voor meerdere percelen of gewassen tegelijk.
-                </p>
-              </div>
+              </motion.div>
 
               {/* Feature 4: BodemConditieScore */}
-              <div className="flex flex-col items-center space-y-4 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-100 text-purple-700">
-                  <Camera className="h-8 w-8" />
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.45, delay: 0.24, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div className="group bg-card h-full rounded-2xl border p-6 transition-all hover:shadow-md">
+                  <div className="flex gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+                      <Camera className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="mb-1.5 text-lg font-semibold">BodemConditieScore</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        Voer visuele bodemanalyses uit en bereken uw BodemConditieScore. Maak
+                        foto's van uw bodemkuil en voeg notities toe om bodemkenmerken vast te
+                        leggen.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold">BodemConditieScore</h3>
-                <p className="text-muted-foreground">
-                  Voer visuele bodemanalyses uit en bereken uw BodemConditieScore. Maak foto's van
-                  uw bodemkuil en voeg notities toe om interessante bodemkenmerken vast te leggen.
-                </p>
-              </div>
+              </motion.div>
             </div>
 
             {/* Collaboration Section */}
-            <div className="bg-muted/30 mt-20 rounded-3xl p-8 lg:p-12">
+            <div className="border-border mt-20 border-t pt-12">
               <div className="flex flex-col items-center gap-12 lg:flex-row">
                 <div className="space-y-6 lg:w-1/2">
                   <div className="bg-background text-foreground inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium shadow-sm">
@@ -1148,8 +1232,8 @@ export default function SignIn() {
                   </div>
                   <h3 className="text-2xl font-bold lg:text-3xl">Deel kennis, behoud controle</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    {clientConfig.name} is gebouwd voor samenwerking. Geef uw adviseur of organisatie
-                    toegang om mee te kijken of advies te geven.
+                    {clientConfig.name} is gebouwd voor samenwerking. Geef uw adviseur of
+                    organisatie toegang om mee te kijken of advies te geven.
                   </p>
                   <ul className="space-y-3">
                     <li className="flex items-center gap-3">
@@ -1167,18 +1251,14 @@ export default function SignIn() {
                   </ul>
                 </div>
                 <div className="flex justify-center lg:w-1/2">
-                  <Card className="border-primary/10 bg-background w-full max-w-sm shadow-xl">
-                    <CardContent className="space-y-6 p-8 text-center">
-                      <ShieldCheck className="text-primary mx-auto h-16 w-16" />
-                      <div>
-                        <h4 className="mb-2 text-lg font-bold">Veilig & vertrouwd</h4>
-                        <p className="text-muted-foreground text-sm">
-                          U blijft eigenaar van uw data. Delen gebeurt alleen met uw expliciete
-                          toestemming en kan op elk moment worden ingetrokken.
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div className="border-border bg-muted/30 w-full max-w-sm rounded-2xl border p-8 text-center">
+                    <ShieldCheck className="text-primary mx-auto mb-4 h-12 w-12" />
+                    <h4 className="mb-2 text-lg font-bold">Veilig & vertrouwd</h4>
+                    <p className="text-muted-foreground text-sm">
+                      U blijft eigenaar van uw data. Delen gebeurt alleen met uw expliciete
+                      toestemming en kan op elk moment worden ingetrokken.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1186,19 +1266,19 @@ export default function SignIn() {
         </div>
         <div className="bg-primary text-primary-foreground py-24">
           <div className="container mx-auto max-w-4xl px-4 text-center lg:px-8">
-            <h2 className="mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="mb-4 text-balance text-4xl font-bold tracking-tight sm:text-5xl">
               Nieuwsgierig naar de mogelijkheden?
             </h2>
-            <p className="text-primary-foreground/80 mx-auto mb-10 max-w-2xl text-lg">
-              Probeer {clientConfig.name} uit. We horen graag wat uw mening is en of u tips heeft.
+            <p className="text-primary-foreground/70 mx-auto mb-10 max-w-xl text-lg">
+              Gratis tijdens de pilot. Geen installatie. Direct aan de slag.
             </p>
             <Button
               size="lg"
               variant="secondary"
               className="text-primary font-semibold"
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              onClick={scrollToTop}
             >
-              Probeer het uit
+              Aanmelden en starten
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -1352,7 +1432,7 @@ export default function SignIn() {
                     <button
                       type="button"
                       onClick={onOpenCookieSettings}
-                      className="hover:text-primary focus-visible:ring-ring rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 text-left"
+                      className="hover:text-primary focus-visible:ring-ring rounded text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                     >
                       Cookie instellingen
                     </button>
@@ -1361,13 +1441,22 @@ export default function SignIn() {
               </div>
             </div>
             <div className="text-muted-foreground border-t pt-8 text-center text-sm">
-              Ontwikkeld door het Nutriënten Management Instituut. Gelicentieerd onder de
-              MIT-licentie.
+              Ontwikkeld door{" "}
+              <a
+                href="https://www.nmi-agro.nl"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground underline underline-offset-2 transition-colors"
+              >
+                het Nutriënten Management Instituut
+              </a>
+              . Gelicentieerd onder de MIT-licentie.
             </div>
           </div>
         </div>
       </div>
     </div>
+    </MotionConfig>
   )
 }
 
