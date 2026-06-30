@@ -128,7 +128,7 @@ export function SidebarFarm({
     const activeSegment = getActiveSegment()
     const segment = activeFieldId ? activeSegment : targetSegment
 
-    navigate(`/farm/${farmId}/${selectedCalendar}/field/${b_id}/${segment}`)
+    void navigate(`/farm/${farmId}/${selectedCalendar}/field/${b_id}/${segment}`)
   }
 
   const toggleCollapsible = (e: React.MouseEvent) => {

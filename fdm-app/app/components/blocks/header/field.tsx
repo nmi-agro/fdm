@@ -41,7 +41,7 @@ export function HeaderField({
       : b_id
         ? currentPath.replace(b_id, optionId)
         : `/farm/${b_id_farm}/${calendar}/field/${optionId}/overview`
-    navigate(targetUrl)
+    void navigate(targetUrl)
   }
 
   // Get recently visited fields
