@@ -61,6 +61,7 @@ import {
   FormDescription,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
@@ -297,7 +298,8 @@ export default function SignIn() {
         <div className="absolute inset-0 z-0 bg-[#122023] lg:hidden">
           <img
             src="https://images.unsplash.com/photo-1717702576954-c07131c54169?q=80&w=1200&auto=format&fit=crop"
-            alt="Background"
+            alt=""
+            aria-hidden="true"
             className="h-full w-full object-cover"
             loading="eager"
             fetchPriority="high"
@@ -476,10 +478,12 @@ export default function SignIn() {
                               name="email"
                               render={({ field }) => (
                                 <FormItem>
+                                  <FormLabel>E-mailadres</FormLabel>
                                   <FormControl>
                                     <Input
-                                      placeholder="E-mailadres"
-                                      aria-required="true"
+                                      type="email"
+                                      autoComplete="email"
+                                      placeholder="naam@bedrijf.nl"
                                       {...field}
                                     />
                                   </FormControl>
@@ -519,6 +523,18 @@ export default function SignIn() {
                   </p>
                 </CardFooter>
               </Card>
+              <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-muted-foreground/70">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  Ontwikkeld door het Nutriënten Management Instituut (NMI)
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>Open source</span>
+                <span aria-hidden="true">·</span>
+                <span>Gratis tijdens pilot</span>
+                <span aria-hidden="true">·</span>
+                <span>U blijft eigenaar van uw data</span>
+              </div>
               <div className="text-center">
                 <Button
                   variant="ghost"
@@ -551,7 +567,7 @@ export default function SignIn() {
                   <span className="mr-2 flex h-2 w-2 rounded-full bg-green-500" />
                   Innovatie in de praktijk
                 </div>
-                <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
+                <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                   Samen leren en innoveren
                 </h2>
                 <div className="text-muted-foreground mb-8 space-y-4 text-lg leading-relaxed">
@@ -588,7 +604,7 @@ export default function SignIn() {
                         twee veelgebruikte methoden helpen boeren en adviseurs nu al in het
                         effectief nemen van maatregelen en het inzicht krijgen in de
                         bodemgezondheid. In 2026 komen OBI en BBWP ook beschikbaar in{" "}
-                        {clientConfig.name} en maken we ze nog toegangelijker.
+                        {clientConfig.name}                         en maken we ze nog toegankelijker.
                       </span>
                     </li>
                   </ul>
@@ -633,8 +649,8 @@ export default function SignIn() {
                       <div>
                         <h4 className="font-semibold">Transparant & deelbaar</h4>
                         <p className="text-muted-foreground mt-1 text-sm">
-                          Als open-source inititiaf zijn de rekenregels en methodes beschikbaar en
-                          kan iedereen deze lezen en verbeteringn ops voorstellen.
+                          Als open-source initiatief zijn de rekenregels en methodes beschikbaar en
+                          kan iedereen deze lezen en verbeteringen op voorstellen.
                         </p>
                       </div>
                     </div>
@@ -660,7 +676,7 @@ export default function SignIn() {
         <div className="bg-background py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                 Doelsturing: Kansen en uitdagingen
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -708,7 +724,7 @@ export default function SignIn() {
                 </svg>
               </div>
 
-              <div className="relative z-10 grid gap-8 lg:grid-cols-4">
+              <div className="relative z-10 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
                 {/* Step 1: Supply */}
                 <div className="group bg-card rounded-xl border p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-700">
@@ -768,7 +784,7 @@ export default function SignIn() {
         <div className="bg-muted/10 py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                 Atlas: Alles in kaart gebracht
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -881,7 +897,7 @@ export default function SignIn() {
         <div className="bg-background py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                 Bemestingsadviezen: Kennis binnen handbereik
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -947,7 +963,7 @@ export default function SignIn() {
                   <p className="text-muted-foreground leading-relaxed">
                     Bemestingsadviezen gaan verder dan enkel de wettelijke
                     <strong className="text-foreground"> gebruiksnormen</strong>. Ze zijn cruciaal
-                    for:
+                    voor:
                   </p>
                   <ul className="text-muted-foreground space-y-2">
                     <li className="flex items-start gap-2">
@@ -998,7 +1014,7 @@ export default function SignIn() {
         <div className="bg-muted/10 py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                 Gebruiksruimte: Binnen de kaders, met inzicht
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -1018,7 +1034,7 @@ export default function SignIn() {
                   <div>
                     <h3 className="mb-2 text-xl font-semibold">Blijf binnen de normen</h3>
                     <p className="text-muted-foreground leading-relaxed">
-                      We berekenen de gebruiksruimte for stikstof (N), fosfaat (P2O5) en dierlijke
+                      We berekenen de gebruiksruimte voor stikstof (N), fosfaat (P2O5) en dierlijke
                       mest op basis van uw percelen en gewassen en tellen die op naar
                       bedrijfsniveau. Zo ziet u direct of uw bemestingsplan voldoet.
                     </p>
@@ -1045,12 +1061,12 @@ export default function SignIn() {
                   <h3 className="text-foreground text-lg font-semibold">Hulp bij berekenen</h3>
                 </div>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
-                  {clientConfig.name} helpt je bij het berekenen van de gebruiksnormen. De getoonde
+                  {clientConfig.name} helpt u bij het berekenen van de gebruiksnormen. De getoonde
                   getallen zijn indicatief en bedoeld ter ondersteuning.
                 </p>
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                  Voor de juridische werkelijkheid en definitieve opgaven verwijzen we je naar de
-                  RVO en je adviseur.
+                  Voor de juridische werkelijkheid en definitieve opgaven verwijzen we u naar de
+                  RVO en uw adviseur.
                 </p>
               </div>
             </div>
@@ -1060,7 +1076,7 @@ export default function SignIn() {
         <div className="bg-background py-24">
           <div className="container mx-auto max-w-6xl px-4 lg:px-8">
             <div className="mx-auto mb-20 max-w-3xl text-center">
-              <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
+              <h2 className="text-foreground mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
                 Handige functies
               </h2>
               <p className="text-muted-foreground text-lg leading-relaxed">
@@ -1132,7 +1148,7 @@ export default function SignIn() {
                   </div>
                   <h3 className="text-2xl font-bold lg:text-3xl">Deel kennis, behoud controle</h3>
                   <p className="text-muted-foreground leading-relaxed">
-                    {clientConfig.name} is gebouwd for samenwerking. Geef uw adviseur of organisatie
+                    {clientConfig.name} is gebouwd voor samenwerking. Geef uw adviseur of organisatie
                     toegang om mee te kijken of advies te geven.
                   </p>
                   <ul className="space-y-3">
@@ -1170,7 +1186,7 @@ export default function SignIn() {
         </div>
         <div className="bg-primary text-primary-foreground py-24">
           <div className="container mx-auto max-w-4xl px-4 text-center lg:px-8">
-            <h2 className="mb-6 text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="mb-6 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
               Nieuwsgierig naar de mogelijkheden?
             </h2>
             <p className="text-primary-foreground/80 mx-auto mb-10 max-w-2xl text-lg">
@@ -1336,7 +1352,7 @@ export default function SignIn() {
                     <button
                       type="button"
                       onClick={onOpenCookieSettings}
-                      className="hover:text-primary text-left"
+                      className="hover:text-primary focus-visible:ring-ring rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 text-left"
                     >
                       Cookie instellingen
                     </button>
