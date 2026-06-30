@@ -46,3 +46,7 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 ## Releases / changesets
 
 Versioning is via Changesets on a `development` → `release/*` → `main` flow. Any PR that should bump a published package must include a changeset: run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
+
+## Design context (fdm-app)
+
+`fdm-app` is a **product**-register surface (design serves the task); its public sign-in/privacy/about pages double as marketing. Strategic context lives in `fdm-app/PRODUCT.md` and the visual system in `fdm-app/DESIGN.md` (when present) — read them before non-trivial UI work. Core design principles: raw data in / connected insight out (never ask users for derived values); lower the data-entry barrier relentlessly; make insight discoverable; earn trust through substance (transparent, auditable numbers); work on laptops/desktops while never breaking on 14-inch laptops, with graceful mobile degradation. Target WCAG AA; UI is Dutch-only today (keep copy i18n-ready). UI stack: React Router v8, Tailwind v4, shadcn/ui (new-york, slate base, CSS variables), radix-ui, next-themes (light/dark), Inter, lucide-react, recharts, maplibre-gl.
