@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
-import { getFarm } from "@nmi-agro/fdm-core"
+import { getFarm, getFields, checkPermission } from "@nmi-agro/fdm-core"
 import {
   checkHelpdeskPermission,
   getUnassignedTicketCount,
@@ -16,11 +16,13 @@ import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { checkSession, getSession } from "~/lib/auth.server"
+import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 import { useFarmStore } from "~/store/farm"
+import { useSelectedFieldStore } from "~/store/selected-field"
 
 export const meta: MetaFunction = () => {
   return [
@@ -59,6 +61,40 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         ? await getFarm(fdm, session.principal_id, params.b_id_farm)
         : undefined
 
+    const farmWritePermission =
+      params.b_id_farm && params.b_id_farm !== "undefined"
+        ? await checkPermission(
+            fdm,
+            "farm",
+            "write",
+            params.b_id_farm,
+            session.principal_id,
+            new URL(request.url).pathname,
+            false,
+          )
+        : false
+
+    const timeframe = getTimeframe(params)
+
+    const fields =
+      params.b_id_farm && params.b_id_farm !== "undefined"
+        ? await getFields(fdm, session.principal_id, params.b_id_farm, timeframe)
+        : []
+
+    const fieldOptions = fields.map((field) => {
+      if (!field?.b_id || !field?.b_name) {
+        throw new Error("Invalid field data structure")
+      }
+      return {
+        b_id: field.b_id,
+        b_name: field.b_name,
+        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+      }
+    })
+
+    // Sort fields by name alphabetically
+    fieldOptions.sort((a, b) => a.b_name.localeCompare(b.b_name))
+
     const helpdeskReadPermission = await checkHelpdeskPermission(
       fdm,
       "helpdesk",
@@ -83,6 +119,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       userName: session.userName,
       initials: session.initials,
       hasNotification: hasNotification,
+      farmWritePermission: farmWritePermission,
+      fieldOptions: fieldOptions,
     }
   } catch (error) {
     // If getSession throws (e.g., invalid token), it might result in a 401
@@ -129,6 +167,31 @@ export default function App() {
     }
   }, [initialCalendar, setCalendar])
 
+  const { b_id: storedFieldId, setSelectedField, syncContext } = useSelectedFieldStore()
+
+  // Expire stale fields across farm or calendar change
+  useEffect(() => {
+    syncContext(initialFarmId, initialCalendar)
+  }, [initialFarmId, initialCalendar, syncContext])
+
+  // Sync store only from field-specific routes to avoid leaking indicator/measure IDs
+  const fieldMatch = matches.find(
+    (match) => match.pathname.includes("/field/") && match.params.b_id,
+  )
+  const urlFieldId = fieldMatch?.params.b_id as string | undefined
+  const fieldWritePermission =
+    (fieldMatch?.loaderData as { fieldWritePermission?: boolean } | undefined)
+      ?.fieldWritePermission ?? false
+
+  useEffect(() => {
+    if (urlFieldId) {
+      setSelectedField(urlFieldId, null)
+    }
+  }, [urlFieldId, setSelectedField])
+
+  // On non-field pages fall back to the last-selected field from the store
+  const activeFieldId = urlFieldId ?? storedFieldId ?? undefined
+
   // Identify user if PostHog is configured
   useEffect(() => {
     if (clientConfig.analytics.posthog && loaderData.user) {
@@ -145,7 +208,12 @@ export default function App() {
       <Sidebar>
         <SidebarTitle />
         <SidebarContent>
-          <SidebarFarm farm={loaderData.farm} />
+          <SidebarFarm
+            farm={loaderData.farm}
+            fields={loaderData.fieldOptions}
+            activeFieldId={activeFieldId}
+            fieldWritePermission={fieldWritePermission}
+          />
           <SidebarApps />
           <SidebarLabs />
         </SidebarContent>
