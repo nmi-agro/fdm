@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-30T00:00:00.000Z",
+  "title": "Design System: fdm-app",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Slate Ink",
+        "canonical": "hsl(222.2 47.4% 11.2%)",
+        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "hsl(215.4 16.3% 46.9%)",
+        "tonalRamp": ["#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "hsl(0 0% 100%)",
+        "tonalRamp": ["#020617", "#0f172a", "#334155", "#64748b", "#cbd5e1", "#e2e8f0", "#f8fafc", "#ffffff"]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Sidebar Mist",
+        "canonical": "hsl(0 0% 98%)",
+        "tonalRamp": ["#18181b", "#27272a", "#3f3f46", "#52525b", "#a1a1aa", "#d4d4d8", "#f4f4f5", "#fafafa"]
+      },
+      "chart-1": { "role": "tertiary", "displayName": "Terracotta", "canonical": "oklch(0.646 0.222 41.116)", "tonalRamp": ["#3a1a0e", "#5e2c16", "#8a4220", "#b8582b", "#e8743b", "#ef9466", "#f5b896", "#fbddc9"] },
+      "chart-2": { "role": "tertiary", "displayName": "Teal", "canonical": "oklch(0.6 0.118 184.704)", "tonalRamp": ["#06302f", "#0a4a48", "#0f6b68", "#148a87", "#19a3a3", "#4dbdbd", "#86d4d4", "#c2e9e9"] },
+      "chart-3": { "role": "tertiary", "displayName": "Deep Blue", "canonical": "oklch(0.398 0.07 227.392)", "tonalRamp": ["#0d1c2b", "#143047", "#1d4468", "#265688", "#2d5b8a", "#5b81a8", "#8aa6c5", "#c0d2e2"] },
+      "chart-4": { "role": "tertiary", "displayName": "Ochre", "canonical": "oklch(0.828 0.189 84.429)", "tonalRamp": ["#3a3009", "#5e4e10", "#8a721a", "#b89725", "#e9c44a", "#efd277", "#f4e0a4", "#faefd1"] },
+      "chart-5": { "role": "tertiary", "displayName": "Amber", "canonical": "oklch(0.769 0.188 70.08)", "tonalRamp": ["#3a2509", "#5e3c10", "#8a591a", "#b87725", "#e0962f", "#e8b061", "#f0ca93", "#f7e4c5"] },
+      "destructive": {
+        "role": "status",
+        "displayName": "Destructive Red",
+        "canonical": "hsl(0 84.2% 60.2%)",
+        "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fee2e2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles and primary section headers. Fixed rem, never fluid." },
+      "headline": { "displayName": "Headline", "purpose": "Card and panel headers." },
+      "title": { "displayName": "Title", "purpose": "Sub-section and dialog titles." },
+      "body": { "displayName": "Body", "purpose": "Default UI and prose text; prose capped at 65-75ch." },
+      "label": { "displayName": "Label", "purpose": "Buttons, form labels, table headers, badges." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "purpose": "Buttons, inputs, cards at rest (shadow-xs). Barely-there interactive lift." },
+      { "name": "card", "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)", "purpose": "Default card container." },
+      { "name": "overlay", "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)", "purpose": "Genuinely floating layers: dialogs, popovers, dropdowns, tooltips." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for state transitions (hover, focus, open/close)." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Most UI state transitions; users are in flow." },
+      { "name": "duration-base", "value": "200ms", "purpose": "Color/background transitions on interactive surfaces." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "High-emphasis action; one per view. Slate ink fill.",
+      "html": "<button class=\"ds-btn-primary\">Save changes</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.25rem; padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: #0f172a; color: #f8fafc; font: 500 0.875rem/1 Inter, ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); cursor: pointer; transition: background 200ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #0f172ae6; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(2 8 23 / 0.5); } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Medium-emphasis action; slate-muted fill.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.25rem; padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: #f1f5f9; color: #0f172a; font: 500 0.875rem/1 Inter, ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); cursor: pointer; transition: background 200ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-secondary:hover { background: #f1f5f9cc; } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(2 8 23 / 0.5); }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Low-emphasis action on a bordered transparent surface.",
+      "html": "<button class=\"ds-btn-outline\">Export</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.25rem; padding: 0.5rem 1rem; border: 1px solid #e2e8f0; border-radius: 0.375rem; background: #ffffff; color: #020817; font: 500 0.875rem/1 Inter, ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); cursor: pointer; transition: background 200ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-outline:hover { background: #f1f5f9; } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(2 8 23 / 0.5); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Standard text field; hairline border, transparent fill, ring on focus.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Field name\" />",
+      "css": ".ds-input { display: flex; height: 2.25rem; width: 100%; border: 1px solid #e2e8f0; border-radius: 0.375rem; background: transparent; padding: 0.25rem 0.75rem; color: #020817; font: 400 0.875rem/1.5 Inter, ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); transition: border-color 200ms, box-shadow 200ms; } .ds-input::placeholder { color: #64748b; } .ds-input:focus-visible { outline: none; box-shadow: 0 0 0 1px #020817; } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card-default",
+      "description": "Default content container; flat with a hairline border and resting shadow. Never nested.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">Nitrogen balance</div><div class=\"ds-card-body\">Connected insight from the raw data you entered.</div></div>",
+      "css": ".ds-card { border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #ffffff; color: #020817; padding: 1.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1); } .ds-card-title { font: 600 1.5rem/1.25 Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; } .ds-card-body { margin-top: 0.375rem; font: 400 0.875rem/1.5 Inter, ui-sans-serif, system-ui, sans-serif; color: #64748b; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "sidebar",
+      "description": "App-shell navigation item on the second neutral layer; quiet hover, filled active state.",
+      "html": "<nav class=\"ds-sidebar\"><a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6\"/></svg><span>Overview</span></a><a class=\"ds-nav-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0 0 21 18.382V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7\"/></svg><span>Atlas</span></a></nav>",
+      "css": ".ds-sidebar { display: flex; flex-direction: column; gap: 0.25rem; width: 16rem; padding: 0.75rem; background: #fafafa; border-right: 1px solid #e4e4e7; } .ds-nav-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.375rem; color: #3f3f46; font: 500 0.875rem/1 Inter, ui-sans-serif, system-ui, sans-serif; text-decoration: none; transition: background 150ms cubic-bezier(0.4,0,0.2,1); } .ds-nav-item:hover { background: #f4f4f5; } .ds-nav-item--active { background: #f4f4f5; color: #18181b; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Agronomist's Workbench",
+    "overview": "fdm-app is a quiet, expert tool that disappears into the task. Users bring raw farm data they already know and leave with connected agronomic insight. A calm near-monochrome slate surface, a single Inter voice, and consistent shadcn/Radix components keep attention on the data and the decision, never on the chrome. The personality is calm, trustworthy, and modern; density is honest but never cluttered, and color is earned, never sprayed.",
+    "keyCharacteristics": [
+      "Near-monochrome slate surface; hue reserved for data and state.",
+      "One typeface (Inter) across headings, labels, body, and data.",
+      "Flat by default; subtle shadows only as a response to state.",
+      "Full light/dark parity via CSS custom properties.",
+      "Standard, consistent component vocabulary (shadcn new-york + Radix)."
+    ],
+    "rules": [
+      { "name": "The Earned-Color Rule", "body": "Saturated color appears only where it encodes meaning (chart series, status, current selection), never as decoration.", "section": "colors" },
+      { "name": "The One-Voice Rule", "body": "Inter carries everything; hierarchy comes from weight and size on a tight ~1.2 ratio, not from a second family.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat and bordered at rest; a shadow is a signal (hover, focus, true overlay), never decoration.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the surface neutral slate and spend saturated color only on data, status, and the current selection.",
+      "Do define default, hover, focus-visible, active, disabled, and error states for every interactive component.",
+      "Do keep body and placeholder text at AA contrast (>=4.5:1).",
+      "Do use one Inter voice with weight/size for hierarchy and fixed rem sizes for headings.",
+      "Do keep layouts working down to a 14-inch laptop and degrade advanced/spatial features gracefully on phones.",
+      "Do pair every status/indicator color with a label, icon, or value so meaning survives color blindness and dark mode."
+    ],
+    "donts": [
+      "Don't add clutter that buries the insight.",
+      "Don't oversell with hype gradients, glow, or unsubstantiated claims; trust comes from transparent, auditable numbers.",
+      "Don't make it feel enterprise-corporate or gated to big companies.",
+      "Don't ask the user to enter derived values; capture only raw data they know and derive the rest.",
+      "Don't use side-stripe borders, gradient text, decorative glassmorphism, or display fonts in UI labels.",
+      "Don't introduce a second typeface or reinvent standard affordances; reach for a modal only after inline options are exhausted."
+    ]
+  }
+}
