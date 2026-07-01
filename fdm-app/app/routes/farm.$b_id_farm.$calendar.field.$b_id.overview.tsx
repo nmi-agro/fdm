@@ -1,3 +1,4 @@
+import type { FeatureCollection } from "geojson"
 import type { MetaFunction } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -6,13 +7,15 @@ import {
   listAvailableAcquiringMethods,
   updateField,
 } from "@nmi-agro/fdm-core"
-import { useEffect } from "react"
+import maplibregl from "maplibre-gl"
+import { useEffect, useMemo, useRef } from "react"
 import {
   Controller,
   type ControllerRenderProps,
   type FieldValues,
   type Resolver,
 } from "react-hook-form"
+import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
 import {
   type ActionFunctionArgs,
   data,
@@ -22,7 +25,12 @@ import {
 } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithSuccess } from "remix-toast"
+import { ClientOnly } from "remix-utils/client-only"
 import { z } from "zod"
+import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
+import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -35,8 +43,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
+import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -46,7 +56,7 @@ import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [
-    { title: `Overzicht - Perceel | ${clientConfig.name}` },
+    { title: `Gegevens - Perceel | ${clientConfig.name}` },
     {
       name: "description",
       content:
@@ -98,11 +108,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       false,
     )
 
+    // Build a GeoJSON feature collection for the field map (if geometry exists)
+    let fieldGeo: FeatureCollection | null = null
+    if (field.b_geometry) {
+      fieldGeo = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {
+              b_id: field.b_id,
+              b_name: field.b_name,
+              b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+              b_id_source: field.b_id_source,
+            },
+            geometry: field.b_geometry,
+          },
+        ],
+      }
+    }
+
     // Return user information from loader
     return {
       field: field,
       fieldWritePermission,
       acquiringMethodOptions: listAvailableAcquiringMethods(),
+      fieldGeo,
+      mapStyle: getMapStyle("satellite"),
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -141,115 +173,163 @@ export default function FarmFieldsOverviewBlock() {
     })
   }, [loaderData, form.reset])
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Overzicht</CardTitle>
-        <CardDescription>Beheer de algemene gegevens van dit perceel</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <RemixFormProvider {...form}>
-          <Form id="formFieldOverview" onSubmit={form.handleSubmit} method="post">
-            <fieldset disabled={form.formState.isSubmitting}>
-              <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-2">
-                <Controller
-                  control={form.control}
-                  name="b_name"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid} className="col-span-1 xl:col-span-2">
-                      <FieldLabel>Perceelsnaam</FieldLabel>
-                      <Input placeholder="bv. Achter het erf" {...field} required />
-                      <FieldError errors={[fieldState.error]} />
-                    </Field>
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name="b_acquiring_method"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={fieldState.invalid} className="col-span-1">
-                      <FieldLabel>Eigendom of pacht?</FieldLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Maak een keuze..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {loaderData.acquiringMethodOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FieldError errors={[fieldState.error]} />
-                    </Field>
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name="b_bufferstrip"
-                  render={({ field }) => (
-                    <div className="col-span-1 flex flex-row items-center justify-between gap-4 rounded-lg border p-4 shadow-sm">
-                      <div className="min-w-0 space-y-0.5">
-                        <FieldLabel className="cursor-pointer text-base" htmlFor="b_bufferstrip">
-                          Bufferstrook
-                        </FieldLabel>
-                        <p className="text-muted-foreground text-sm break-words">
-                          Is dit perceel een bufferstrook?{" "}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0">
-                        <Switch
-                          id="b_bufferstrip"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </div>
-                    </div>
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name="b_start"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Vanaf wanneer in gebruik?"
-                      field={field as unknown as ControllerRenderProps<FieldValues, string>}
-                      fieldState={fieldState}
-                      className="col-span-1"
-                    />
-                  )}
-                />
-                <Controller
-                  control={form.control}
-                  name="b_end"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Tot wanneer in gebruik?"
-                      description="Optioneel"
-                      field={field as unknown as ControllerRenderProps<FieldValues, string>}
-                      fieldState={fieldState}
-                      className="col-span-1"
-                    />
-                  )}
-                />
-              </div>
-            </fieldset>
+  const fieldGeo = loaderData.fieldGeo
+  const mapId = "fieldsSaved"
+  const viewState = useMemo(() => (fieldGeo ? getViewState(fieldGeo) : null), [fieldGeo])
+  const fieldsSavedStyle = getFieldsStyle(mapId)
+  const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
+  const mapRef = useRef<MapRef>(null)
 
-            <div className="flex justify-end pt-6">
-              <Button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className={cn(!loaderData.fieldWritePermission && "invisible")}
-              >
-                {form.formState.isSubmitting && <Spinner />}
-                Bijwerken
-              </Button>
+  useEffect(() => {
+    if (!viewState) return
+    const vs = viewState as { bounds?: unknown; fitBoundsOptions?: unknown }
+    if (vs.bounds) {
+      mapRef.current?.fitBounds(vs.bounds as never, vs.fitBoundsOptions as never)
+    }
+  }, [viewState])
+
+  return (
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start">
+      <Card>
+        <CardHeader>
+          <CardTitle>Gegevens</CardTitle>
+          <CardDescription>Beheer de algemene gegevens van dit perceel</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RemixFormProvider {...form}>
+            <Form id="formFieldOverview" onSubmit={form.handleSubmit} method="post">
+              <fieldset disabled={form.formState.isSubmitting}>
+                <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-2">
+                  <Controller
+                    control={form.control}
+                    name="b_name"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid} className="col-span-1 xl:col-span-2">
+                        <FieldLabel>Perceelsnaam</FieldLabel>
+                        <Input placeholder="bv. Achter het erf" {...field} required />
+                        <FieldError errors={[fieldState.error]} />
+                      </Field>
+                    )}
+                  />
+                  <Controller
+                    control={form.control}
+                    name="b_acquiring_method"
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid} className="col-span-1">
+                        <FieldLabel>Eigendom of pacht?</FieldLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Maak een keuze..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {loaderData.acquiringMethodOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FieldError errors={[fieldState.error]} />
+                      </Field>
+                    )}
+                  />
+                  <Controller
+                    control={form.control}
+                    name="b_bufferstrip"
+                    render={({ field }) => (
+                      <div className="col-span-1 flex flex-row items-center justify-between gap-4 rounded-lg border p-4 shadow-sm">
+                        <div className="min-w-0 space-y-0.5">
+                          <FieldLabel className="cursor-pointer text-base" htmlFor="b_bufferstrip">
+                            Bufferstrook
+                          </FieldLabel>
+                          <p className="text-muted-foreground text-sm break-words">
+                            Is dit perceel een bufferstrook?{" "}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Switch
+                            id="b_bufferstrip"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  />
+                  <Controller
+                    control={form.control}
+                    name="b_start"
+                    render={({ field, fieldState }) => (
+                      <DatePicker
+                        label="Vanaf wanneer in gebruik?"
+                        field={field as unknown as ControllerRenderProps<FieldValues, string>}
+                        fieldState={fieldState}
+                        className="col-span-1"
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={form.control}
+                    name="b_end"
+                    render={({ field, fieldState }) => (
+                      <DatePicker
+                        label="Tot wanneer in gebruik?"
+                        description="Optioneel"
+                        field={field as unknown as ControllerRenderProps<FieldValues, string>}
+                        fieldState={fieldState}
+                        className="col-span-1"
+                      />
+                    )}
+                  />
+                </div>
+              </fieldset>
+
+              <div className="flex justify-end pt-6">
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className={cn(!loaderData.fieldWritePermission && "invisible")}
+                >
+                  {form.formState.isSubmitting && <Spinner />}
+                  Bijwerken
+                </Button>
+              </div>
+            </Form>
+          </RemixFormProvider>
+        </CardContent>
+      </Card>
+      {fieldGeo && (
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle>Kaart</CardTitle>
+            <CardDescription>De ligging van dit perceel</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full overflow-hidden rounded-xl md:h-[400px]">
+              <ClientOnly fallback={<Skeleton className="h-full w-full rounded-xl" />}>
+                {() => (
+                  <MapGL
+                    {...(viewState as object)}
+                    style={{ height: "100%", width: "100%" }}
+                    interactive={false}
+                    mapStyle={loaderData.mapStyle}
+                    mapLib={maplibregl}
+                    interactiveLayerIds={[mapId]}
+                    ref={mapRef}
+                  >
+                    <MapTilerAttribution />
+                    <FieldsSourceNotClickable id={mapId} fieldsData={fieldGeo}>
+                      <Layer {...fieldsSavedStyle} />
+                      <Layer {...fieldsSavedOutlineStyle} />
+                    </FieldsSourceNotClickable>
+                  </MapGL>
+                )}
+              </ClientOnly>
             </div>
-          </Form>
-        </RemixFormProvider>
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   )
 }
 
