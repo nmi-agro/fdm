@@ -56,10 +56,19 @@ export function Ticket({
   const StatusIcon = statusEntry?.icon ?? CircleDot
 
   const requesterName = ticket.requester_id
-    ? (principalLookup.get(ticket.requester_id)?.displayUserName ?? null)
-    : null
+    ? (principalLookup.get(ticket.requester_id)?.displayUserName ?? ticket.requester_email)
+    : ticket.requester_email
 
   const isViewed = !!ticket.viewed_at
+
+  const emailPrincipal = ticket.requester_email
+    ? {
+        principal_id: ticket.ticket_id,
+        displayUserName: ticket.requester_email,
+        image: null,
+        initials: null,
+      }
+    : null
 
   // Mark ticket as viewed if it wasn't viewed yet
   useEffect(() => {
@@ -161,7 +170,11 @@ export function Ticket({
         {messages.map((msg) => (
           <Message
             key={msg.message_id}
-            principal={principalLookup.get(msg.sender_id) ?? null}
+            principal={
+              principalLookup.get(msg.sender_id) ??
+              (msg.sender_id === ticket.ticket_id ? emailPrincipal : null) ??
+              null
+            }
             senderType={msg.sender_type}
             isInternal={msg.is_internal}
             date={msg.created}

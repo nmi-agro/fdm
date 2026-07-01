@@ -626,7 +626,7 @@ export async function createTicketFromInboundEmail(
 
       await tx.insert(schema.messages).values({
         ticket_id: ticket_id,
-        sender_id: "",
+        sender_id: ticket_id,
         message_id: message_id,
         sender_type: "user",
         body: sanitizedBody,
