@@ -429,6 +429,7 @@ export function SidebarFarm({
                                 ))}
                               </CommandGroup>
                             )}
+                            {regularFields.length > 0 && (
                             <CommandGroup heading="Alle percelen">
                               {regularFields.map((field) => (
                                 <CommandItem
@@ -444,6 +445,7 @@ export function SidebarFarm({
                                 </CommandItem>
                               ))}
                             </CommandGroup>
+                            )}
                           </CommandList>
                         </Command>
                       </PopoverContent>

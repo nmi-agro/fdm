@@ -95,6 +95,7 @@ export function HeaderField({
                         ))}
                       </CommandGroup>
                     )}
+                    {regularFields.length > 0 && (
                     <CommandGroup heading="Alle percelen">
                       {regularFields.map((option) => (
                         <CommandItem
@@ -110,6 +111,7 @@ export function HeaderField({
                         </CommandItem>
                       ))}
                     </CommandGroup>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
