@@ -317,7 +317,7 @@ export async function action({ params, request }: Args) {
               const recipient = principals.get(ticket.requester_id)
               if (recipient) foundRecipient = recipient
             }
-            if (ticket.requester_email) {
+            if (!foundRecipient && ticket.requester_email) {
               foundRecipient = { displayUserName: null, email: ticket.requester_email }
             }
 

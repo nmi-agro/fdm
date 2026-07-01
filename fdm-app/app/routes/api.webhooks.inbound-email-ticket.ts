@@ -45,6 +45,56 @@ export function checkUsernameAndPassword(request: Request) {
   )
 }
 
+const MAX_INBOUND_EMAIL_BODY_BYTES = 30 * 1024 * 1024
+
+async function parseJsonBodyWithLimit(request: Request, maxBytes: number): Promise<unknown> {
+  const contentLength = request.headers.get("content-length")
+  if (contentLength) {
+    const contentLengthN = Number.parseInt(contentLength, 10)
+    if (Number.isNaN(contentLengthN)) {
+      throw new Response("Bad Request", { status: 400 })
+    }
+    if (contentLengthN > maxBytes) {
+      throw new Response("Payload too large", { status: 413 })
+    }
+  }
+
+  if (!request.body) {
+    throw new Response("Bad Request", { status: 400, statusText: "Invalid JSON" })
+  }
+
+  const reader = request.body.getReader()
+  const chunks: Uint8Array[] = []
+  let totalBytes = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (!value) continue
+
+      totalBytes += value.byteLength
+      if (totalBytes > maxBytes) {
+        throw new Response("Payload too large", { status: 413 })
+      }
+
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const bodyText = new TextDecoder().decode(
+    chunks.length === 1 ? chunks[0] : Buffer.concat(chunks, totalBytes),
+  )
+
+  try {
+    return JSON.parse(bodyText)
+  } catch {
+    throw new Response("Bad Request", { status: 400, statusText: "Invalid JSON" })
+  }
+}
+
 export async function action({ request }: Route.ActionArgs) {
   try {
     if (
@@ -63,16 +113,14 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    const contentLength = parseInt(request.headers.get("content-length") ?? "0")
-    if (contentLength > 30 * 1024 * 1024) {
-      return new Response("Payload too large", { status: 413 })
-    }
-
     let rawEmail: unknown
     try {
-      rawEmail = await request.json()
-      // oxlint-disable-next-line no-unused-vars handling json error
-    } catch (_ignored) {
+      rawEmail = await parseJsonBodyWithLimit(request, MAX_INBOUND_EMAIL_BODY_BYTES)
+    } catch (error) {
+      if (error instanceof Response) {
+        return error
+      }
+
       return new Response("Bad Request", { status: 400, statusText: "Invalid JSON" })
     }
 
@@ -82,21 +130,13 @@ export async function action({ request }: Route.ActionArgs) {
     }
     let email = emailParsingResult.data
 
-    // Normalize the email address by removing any "+" tags before the "@" symbol
-    const emailParts = email.FromFull.Email.split("@")
-    if (emailParts.length !== 2) {
-      throw new Error(`Invalid email address: ${email.FromFull.Email}`)
-    }
-    const plusIndex = emailParts[0].indexOf("+")
-    if (plusIndex !== -1) {
-      emailParts[0] = emailParts[0].substring(0, plusIndex)
-    }
-    const normalizedEmail = emailParts.join("@")
+    // Normalize the email if needed
+    const normalizedEmail = email.FromFull.Email
 
     // Try to find the ticket that the user is replying to, either from the ticket subject or the In-Reply-To header.
-    const principals = await lookupPrincipal(fdm, email.FromFull.Email)
+    const principals = await lookupPrincipal(fdm, normalizedEmail)
     const senderPrincipal = principals.find(
-      (u) => u.email?.toLowerCase() === email.FromFull.Email.toLowerCase(),
+      (u) => u.email?.toLowerCase() === normalizedEmail.toLowerCase(),
     )
     const messageSubject = email.Subject ?? "Subject"
     const messageBody = email.TextBody ?? "Ticket"
@@ -113,7 +153,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (
       ticket &&
       ((senderPrincipal && senderPrincipal.id === ticket.requester_id) ||
-        ticket.requester_email === email.FromFull.Email)
+        ticket.requester_email === normalizedEmail)
     ) {
       const ticket_id = await addMessageFromInboundEmailUnchecked(
         fdm,

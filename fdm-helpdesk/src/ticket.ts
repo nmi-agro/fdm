@@ -138,7 +138,6 @@ export async function tryToGetTicketUnchecked(
     const found = await fdm
       .select({
         ...ticketColumns,
-        viewed_at: schema.ticketViews.viewed_at,
       })
       .from(schema.tickets)
       .where(eq(schema.tickets.ticket_id, ticket_id))
@@ -615,7 +614,7 @@ export async function createTicketFromInboundEmail(
         {
           ticket_id: ticket_id,
           ticket_ref: ticket_ref,
-          requester_id: ticket_id,
+          requester_id: null,
           requester_email: requester_email,
           subject: getDefaultSubjectLine(sanitizedBody),
           channel: "email",
