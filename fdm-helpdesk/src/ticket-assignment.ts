@@ -36,20 +36,37 @@ export async function getAssigneesForTickets(
   principal_id: HelpdeskPrincipalId,
   ticket_ids: string[],
 ): Promise<Map<schema.TicketTypeSelect["ticket_id"], TicketAssignmentSummary[]>> {
-  try {
-    await Promise.all(
-      ticket_ids.map((ticket_id) =>
-        checkHelpdeskPermission(
-          fdm,
-          "ticket-user-side",
-          "read",
-          ticket_id,
-          principal_id,
-          "getAssigneesForTickets",
-        ),
+  await Promise.all(
+    ticket_ids.map((ticket_id) =>
+      checkHelpdeskPermission(
+        fdm,
+        "ticket-user-side",
+        "read",
+        ticket_id,
+        principal_id,
+        "getAssigneesForTickets",
       ),
-    )
+    ),
+  )
 
+  return await getAssigneesForTicketsUnchecked(fdm, ticket_ids)
+}
+
+/**
+ * Retrieves the current (non-unassigned) assignees for a batch of tickets, grouped by ticket ID.
+ *
+ * No permission checks are performed.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_ids IDs of the tickets whose assignees to fetch.
+ * @returns A Map from ticket ID to an array of {@link TicketAssignmentSummary} objects.
+ */
+export async function getAssigneesForTicketsUnchecked(
+  fdm: FdmHelpdeskType,
+  ticket_ids: string[],
+): Promise<Map<schema.TicketTypeSelect["ticket_id"], TicketAssignmentSummary[]>> {
+  try {
     const allAssignees = await fdm
       .select({
         ticket_id: schema.ticketAssignments.ticket_id,
@@ -79,8 +96,7 @@ export async function getAssigneesForTickets(
 
     return result
   } catch (err) {
-    throw handleError(err, "Exception for getAssigneesForTickets", {
-      principal_id,
+    throw handleError(err, "Exception for getAssigneesForTicketsUnchecked", {
       ticket_ids,
     })
   }

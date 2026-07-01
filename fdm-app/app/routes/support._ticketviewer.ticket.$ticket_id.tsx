@@ -294,7 +294,7 @@ export async function action({ params, request }: Args) {
     }
 
     if (formValues.intent === "add_message") {
-      await addMessage(
+      const message_id = await addMessage(
         fdm,
         params.ticket_id,
         session.principal_id,
@@ -308,24 +308,31 @@ export async function action({ params, request }: Args) {
         if (!formValues.is_internal) {
           const senderRole = formValues.sender_role ?? "customer"
           const ticket = await getTicket(fdm, session.principal_id, params.ticket_id)
-
           if (senderRole === "agent") {
             // Notify the customer (ticket requester)
+            let foundRecipient: { displayUserName: string | null; email: string | null } | null =
+              null
             if (ticket.requester_id) {
               const principals = await getPrincipals(fdm, [ticket.requester_id])
               const recipient = principals.get(ticket.requester_id)
-              if (recipient?.email) {
-                await sendHelpdeskNewMessageEmail(
-                  recipient.email,
-                  recipient.displayUserName ?? recipient.email,
-                  ticket.assignees.find((assignee) => assignee.agent_id === session.principal_id)
-                    ?.display_name ?? "Een medewerker",
-                  ticket.ticket_ref,
-                  ticket.subject ?? null,
-                  params.ticket_id,
-                  formValues.body,
-                )
-              }
+              if (recipient) foundRecipient = recipient
+            }
+            if (ticket.requester_email) {
+              foundRecipient = { displayUserName: null, email: ticket.requester_email }
+            }
+
+            if (foundRecipient?.email) {
+              await sendHelpdeskNewMessageEmail(
+                foundRecipient.email,
+                foundRecipient.displayUserName ?? foundRecipient.email,
+                ticket.assignees.find((assignee) => assignee.agent_id === session.principal_id)
+                  ?.display_name ?? "Een medewerker",
+                ticket.ticket_ref,
+                ticket.subject ?? null,
+                params.ticket_id,
+                message_id,
+                formValues.body,
+              )
             }
           } else {
             // Notify the assigned agents when a customer sends a message
@@ -344,6 +351,7 @@ export async function action({ params, request }: Args) {
                       ticket.ticket_ref,
                       ticket.subject ?? null,
                       params.ticket_id,
+                      message_id,
                       formValues.body,
                     )
                   }

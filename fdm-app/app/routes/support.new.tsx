@@ -1,5 +1,10 @@
 import { getFarms, getPrincipal } from "@nmi-agro/fdm-core"
-import { assignTicketToAnAdmin, createTicket, getTicket } from "@nmi-agro/fdm-helpdesk"
+import {
+  assignTicketToAnAdmin,
+  createTicket,
+  getMessagesForTicket,
+  getTicket,
+} from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
@@ -74,8 +79,9 @@ export async function action({ request }: Route.ActionArgs) {
 
       if (assigned_agent_id) {
         const ticket = await getTicket(fdm, assigned_agent_id, ticket_id)
+        const messages = await getMessagesForTicket(fdm, assigned_agent_id, ticket_id)
         const agentPrincipal = await getPrincipal(fdm, assigned_agent_id)
-        if (agentPrincipal?.email) {
+        if (messages.length >= 1 && agentPrincipal?.email) {
           await sendHelpdeskNewMessageEmail(
             agentPrincipal.email,
             agentPrincipal.displayUserName ?? agentPrincipal.email,
@@ -83,7 +89,8 @@ export async function action({ request }: Route.ActionArgs) {
             ticket.ticket_ref,
             ticket.subject,
             ticket_id,
-            ticketCreateInfo.body,
+            messages[0].message_id,
+            messages[0].body,
           )
         }
       }

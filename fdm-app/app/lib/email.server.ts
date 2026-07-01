@@ -20,9 +20,11 @@ const client = new postmark.ServerClient(String(process.env.POSTMARK_API_KEY))
 interface Email {
   From: string
   To: string
+  ReplyTo?: string
   Subject: string
   HtmlBody: string
   Tag: string
+  Headers?: { Name: string; Value: string }[]
 }
 
 export const PostmarkContactWithNameSchema = z.object({
@@ -300,6 +302,7 @@ export async function renderHelpdeskNewMessageEmail(
   ticketRef: string,
   ticketSubject: string | null,
   ticketId: string,
+  messageId: string,
   messageBody: string,
 ): Promise<Email> {
   const ticketUrl = `${serverConfig.url}/support/ticket/${ticketId}`
@@ -309,6 +312,8 @@ export async function renderHelpdeskNewMessageEmail(
   const helpdeskSenderAddress =
     serverConfig.mail?.postmark.helpdesk_sender_address ??
     serverConfig.mail?.postmark.sender_address
+  const helpdeskInboundAddress =
+    serverConfig.mail?.postmark.helpdesk_inbound_address ?? helpdeskSenderAddress
 
   const emailHtml = await render(
     HelpdeskNewMessageEmail({
@@ -325,12 +330,29 @@ export async function renderHelpdeskNewMessageEmail(
     { pretty: true },
   )
 
+  let replyTo = helpdeskInboundAddress
+  if (replyTo) {
+    const replyToParts = replyTo.split("@")
+    if (replyToParts.length === 2) {
+      replyTo = `${replyToParts[0]}+${ticketId}@${replyToParts[1]}`
+    }
+  }
+
+  const threadId = `<${replyTo}>`
+  const emailMessageId = `<support-ticket-${ticketId}-msg-${messageId}@${serverConfig.url.replace(/^https?:\/\//, "")}>`
+
   const email: Email = {
     From: `"${helpdeskSenderName}" <${helpdeskSenderAddress}>`,
+    ReplyTo: `"${helpdeskSenderName}" <${replyTo}>`,
     To: recipientEmail,
-    Subject: `Nieuw bericht op ticket: ${ticketSubject ? ticketSubject : ticketRef}`,
+    Subject: `Nieuw bericht op ticket [${ticketRef}]: ${ticketSubject ? ticketSubject : ticketRef}`,
     HtmlBody: emailHtml,
     Tag: "helpdesk-new-message",
+    Headers: [
+      { Name: "References", Value: threadId },
+      { Name: "In-Reply-To", Value: threadId },
+      { Name: "Message-ID", Value: emailMessageId },
+    ],
   }
 
   return email
@@ -370,6 +392,7 @@ export async function sendHelpdeskNewMessageEmail(
   ticketRef: string,
   ticketSubject: string | null,
   ticketId: string,
+  messageId: string,
   messageBody: string,
 ): Promise<void> {
   try {
@@ -380,6 +403,7 @@ export async function sendHelpdeskNewMessageEmail(
       ticketRef,
       ticketSubject,
       ticketId,
+      messageId,
       messageBody,
     )
     await sendEmail(email)

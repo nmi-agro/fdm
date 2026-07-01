@@ -122,6 +122,66 @@ export async function getTicket(
 }
 
 /**
+ * Retrieves a single ticket by ID. Returns null if no ticket is found. No permission checks are performed.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); must have read access to the ticket.
+ * @param ticket_id ID of the ticket to retrieve.
+ * @returns The ticket record. Null if not found.
+ */
+export async function tryToGetTicketUnchecked(
+  fdm: FdmHelpdeskType,
+  ticket_id: schema.TicketTypeSelect["ticket_id"],
+): Promise<schema.TicketTypeSelect | null> {
+  try {
+    const found = await fdm
+      .select({
+        ...ticketColumns,
+        viewed_at: schema.ticketViews.viewed_at,
+      })
+      .from(schema.tickets)
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+      .limit(1)
+
+    return found.length > 0 ? found[0] : null
+  } catch (err) {
+    throw handleError(err, "Exception for tryToGetTicketUnchecked", {
+      ticket_id,
+    })
+  }
+}
+
+/**
+ * Retrieves a single ticket with the given reference. If no such ticket is found, returns null.
+ *
+ * This function does not perform any permission checks.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_ref Ticket ref to look for.
+ * @returns A Ticket object without the tags and assignees filled in. null if no ticket was found.
+ */
+export async function tryToGetTicketByRefUnchecked(
+  fdm: FdmHelpdeskType,
+  ticket_ref: string,
+): Promise<schema.TicketTypeSelect | null> {
+  try {
+    const found = await fdm
+      .select({
+        ...ticketColumns,
+      })
+      .from(schema.tickets)
+      .where(eq(schema.tickets.ticket_ref, ticket_ref))
+      .limit(1)
+
+    return found.length > 0 ? found[0] : null
+  } catch (err) {
+    throw handleError(err, "Exception for tryToGetTicketByRefUnchecked", { ticket_ref })
+  }
+}
+
+/**
  * Returns the agent's personal inbox: the subset of tickets that are assigned to the given agent.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
@@ -555,7 +615,7 @@ export async function createTicketFromInboundEmail(
         {
           ticket_id: ticket_id,
           ticket_ref: ticket_ref,
-          requester_id: "",
+          requester_id: ticket_id,
           requester_email: requester_email,
           subject: getDefaultSubjectLine(sanitizedBody),
           channel: "email",

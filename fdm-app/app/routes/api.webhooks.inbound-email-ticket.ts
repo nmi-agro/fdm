@@ -1,8 +1,13 @@
-import { getPrincipal } from "@nmi-agro/fdm-core"
+import { getPrincipal, lookupPrincipal } from "@nmi-agro/fdm-core"
 import {
+  addMessageFromInboundEmailUnchecked,
   assignTicketToAnAdmin,
   createTicketFromInboundEmail,
+  getAssigneesForTicketsUnchecked,
+  getMessagesForTicket,
   getTicket,
+  tryToGetTicketByRefUnchecked,
+  tryToGetTicketUnchecked,
   updateTicketSubjectAndPriorityUnchecked,
 } from "@nmi-agro/fdm-helpdesk"
 import crypto from "crypto"
@@ -58,6 +63,11 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
+    const contentLength = parseInt(request.headers.get("content-length") ?? "0")
+    if (contentLength > 30 * 1024 * 1024) {
+      return new Response("Payload too large", { status: 413 })
+    }
+
     let rawEmail: unknown
     try {
       rawEmail = await request.json()
@@ -72,39 +82,115 @@ export async function action({ request }: Route.ActionArgs) {
     }
     let email = emailParsingResult.data
 
-    const ticketBody = email.TextBody ?? "Ticket"
+    // Normalize the email address by removing any "+" tags before the "@" symbol
+    const emailParts = email.FromFull.Email.split("@")
+    if (emailParts.length !== 2) {
+      throw new Error(`Invalid email address: ${email.FromFull.Email}`)
+    }
+    const plusIndex = emailParts[0].indexOf("+")
+    if (plusIndex !== -1) {
+      emailParts[0] = emailParts[0].substring(0, plusIndex)
+    }
+    const normalizedEmail = emailParts.join("@")
 
-    const ticket_id = await createTicketFromInboundEmail(fdm, email.FromFull.Email, ticketBody)
+    // Try to find the ticket that the user is replying to, either from the ticket subject or the In-Reply-To header.
+    const principals = await lookupPrincipal(fdm, email.FromFull.Email)
+    const senderPrincipal = principals.find(
+      (u) => u.email?.toLowerCase() === email.FromFull.Email.toLowerCase(),
+    )
+    const messageSubject = email.Subject ?? "Subject"
+    const messageBody = email.TextBody ?? "Ticket"
+    const MailboxHash =
+      email.ToFull && email.ToFull.length > 0 ? (email.ToFull[0].MailboxHash ?? null) : null
+    const ticketRef = /\[?(TK-[A-Z0-9]{6})\]?/.exec(messageSubject)?.[1]
+    const ticket = ticketRef
+      ? await tryToGetTicketByRefUnchecked(fdm, ticketRef)
+      : MailboxHash
+        ? await tryToGetTicketUnchecked(fdm, MailboxHash)
+        : null
+
+    // If the ticket is found and some of the information matches the sender, post a message instead.
+    if (
+      ticket &&
+      ((senderPrincipal && senderPrincipal.id === ticket.requester_id) ||
+        ticket.requester_email === email.FromFull.Email)
+    ) {
+      const ticket_id = await addMessageFromInboundEmailUnchecked(
+        fdm,
+        ticket.ticket_id,
+        messageBody,
+        senderPrincipal?.id,
+      )
+
+      try {
+        const assignees =
+          (await getAssigneesForTicketsUnchecked(fdm, [ticket.ticket_id])).get(ticket.ticket_id) ??
+          []
+        const primaryAssignee = assignees.find((a) => a.is_primary)
+        if (primaryAssignee) {
+          const assigneePrincipal = await getPrincipal(fdm, primaryAssignee.agent_id)
+          const messages = await getMessagesForTicket(
+            fdm,
+            primaryAssignee.agent_id,
+            ticket.ticket_id,
+          )
+          if (messages.length >= 1 && assigneePrincipal?.email) {
+            await sendHelpdeskNewMessageEmail(
+              assigneePrincipal.email,
+              assigneePrincipal.displayUserName ?? assigneePrincipal.email,
+              senderPrincipal?.displayUserName ?? normalizedEmail ?? "Een gebruiker",
+              ticket.ticket_ref,
+              ticket.subject ?? null,
+              ticket_id,
+              messages[0].message_id,
+              messages[0].body,
+            )
+          }
+        }
+      } catch (err) {
+        handleLoaderError(err)
+      }
+      return new Response("OK", { status: 200 })
+    }
+
+    // Create a new ticket
+    const ticket_id = await createTicketFromInboundEmail(fdm, normalizedEmail, messageBody)
     if (email.Subject) {
       await updateTicketSubjectAndPriorityUnchecked(fdm, ticket_id, email.Subject)
     }
+
+    // Perform ticket triage before notifying the agent
+    try {
+      if (serverConfig.helpdesk.enableTicketTriage && serverConfig.integrations.gemini) {
+        await performTicketTriage(serverConfig.integrations.gemini.api_key, ticket_id, messageBody)
+      }
+    } catch (err) {
+      handleLoaderError(err)
+    }
+
     try {
       const assigned_agent_id = await assignTicketToAnAdmin(fdm, ticket_id)
       if (assigned_agent_id) {
         const ticket = await getTicket(fdm, assigned_agent_id, ticket_id)
+        const messages = await getMessagesForTicket(fdm, assigned_agent_id, ticket_id)
         const agentPrincipal = await getPrincipal(fdm, assigned_agent_id)
-        if (agentPrincipal?.email) {
+        if (messages.length >= 1 && agentPrincipal?.email) {
           await sendHelpdeskNewMessageEmail(
             agentPrincipal.email,
             agentPrincipal.displayUserName ?? agentPrincipal.email,
-            email.FromFull.Name ?? "Een gebruiker",
+            senderPrincipal?.displayUserName ?? normalizedEmail ?? "Een gebruiker",
             ticket.ticket_ref,
             ticket.subject,
             ticket_id,
-            email.TextBody ?? "",
+            messages[0].message_id,
+            messages[0].body,
           )
         }
       }
     } catch (err) {
       handleLoaderError(err)
     }
-    try {
-      if (serverConfig.helpdesk.enableTicketTriage && serverConfig.integrations.gemini) {
-        await performTicketTriage(serverConfig.integrations.gemini.api_key, ticket_id, ticketBody)
-      }
-    } catch (err) {
-      handleLoaderError(err)
-    }
+
     return new Response("OK", { status: 200 })
   } catch (err) {
     handleLoaderError(err)
