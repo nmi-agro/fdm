@@ -218,7 +218,12 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     // Create a new ticket
-    const ticket_id = await createTicketFromInboundEmail(fdm, normalizedEmail, messageBody)
+    const ticket_id = await createTicketFromInboundEmail(
+      fdm,
+      normalizedEmail,
+      messageBody,
+      senderPrincipal?.id,
+    )
     if (email.Subject) {
       await updateTicketSubjectAndPriorityUnchecked(fdm, ticket_id, email.Subject)
     }

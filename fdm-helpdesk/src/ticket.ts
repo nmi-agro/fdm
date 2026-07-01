@@ -598,8 +598,9 @@ export async function createTicket(
  */
 export async function createTicketFromInboundEmail(
   fdm: FdmHelpdeskType,
-  requester_email: string,
-  body: string,
+  requester_email: schema.TicketTypeInsert["requester_email"],
+  body: schema.MessageTypeInsert["body"],
+  requester_id?: schema.MessageTypeInsert["sender_id"],
   options?: CreateTicketOptions,
 ) {
   try {
@@ -614,7 +615,7 @@ export async function createTicketFromInboundEmail(
         {
           ticket_id: ticket_id,
           ticket_ref: ticket_ref,
-          requester_id: null,
+          requester_id: requester_id ?? null,
           requester_email: requester_email,
           subject: getDefaultSubjectLine(sanitizedBody),
           channel: "email",
@@ -625,7 +626,7 @@ export async function createTicketFromInboundEmail(
 
       await tx.insert(schema.messages).values({
         ticket_id: ticket_id,
-        sender_id: ticket_id,
+        sender_id: requester_id ?? ticket_id,
         message_id: message_id,
         sender_type: "user",
         body: sanitizedBody,
