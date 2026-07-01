@@ -15,8 +15,15 @@ import { serverConfig } from "~/lib/config.server"
 import { PostmarkEmailSchema, sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { checkRateLimit } from "~/lib/rate-limit.server"
 import { performTicketTriage } from "~/lib/support.server"
 import { Route } from "./+types/api.webhooks.inbound-email-ticket"
+
+// Per-sender-email rate limit for the inbound email webhook, so a single
+// mailbox (compromised, misconfigured autoresponder, or malicious) can't
+// spam ticket creation / triage / outbound notification emails.
+const INBOUND_EMAIL_RATE_LIMIT_WINDOW_MS = 1000
+const INBOUND_EMAIL_RATE_LIMIT_MAX = 10
 
 export function checkUsernameAndPassword(request: Request) {
   const authHeader = request.headers.get("Authorization")
@@ -132,6 +139,23 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Normalize the email if needed
     const normalizedEmail = email.FromFull.Email
+
+    const rateLimitResult = await checkRateLimit(
+      `inbound-email-ticket:${normalizedEmail.toLowerCase()}`,
+      INBOUND_EMAIL_RATE_LIMIT_WINDOW_MS,
+      INBOUND_EMAIL_RATE_LIMIT_MAX,
+    )
+    if (!rateLimitResult.allowed) {
+      return new Response("Too Many Requests", {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.max(rateLimitResult.resetIn, 1)),
+          "RateLimit-Limit": String(INBOUND_EMAIL_RATE_LIMIT_MAX),
+          "RateLimit-Remaining": "0",
+          "RateLimit-Reset": String(Math.max(rateLimitResult.resetIn, 1)),
+        },
+      })
+    }
 
     // Try to find the ticket that the user is replying to, either from the ticket subject or the In-Reply-To header.
     const principals = await lookupPrincipal(fdm, normalizedEmail)
