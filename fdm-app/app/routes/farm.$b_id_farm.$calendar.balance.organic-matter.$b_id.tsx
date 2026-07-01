@@ -1,3 +1,8 @@
+import {
+  calculateOrganicMatterBalance,
+  collectInputForOrganicMatterBalance,
+  type OrganicMatterBalanceFieldResultNumeric,
+} from "@nmi-agro/fdm-calculator"
 import { getFarm, getField } from "@nmi-agro/fdm-core"
 import {
   ArrowDownToLine,
@@ -16,6 +21,7 @@ import {
   useLocation,
 } from "react-router"
 import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
+import { MissingParametersWarning } from "~/components/blocks/balance/missing-parameters-warning"
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import OrganicMatterBalanceDetails from "~/components/blocks/balance/organic-matter-details"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
@@ -28,7 +34,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
-import { getOrganicMatterBalanceForField } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -36,9 +41,7 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
-type OrganicMatterFieldResultWithErrorId = Awaited<
-  ReturnType<typeof getOrganicMatterBalanceForField>
->["fieldResult"] & {
+type OrganicMatterFieldResultWithErrorId = OrganicMatterBalanceFieldResultNumeric & {
   errorId?: string
 }
 
@@ -73,26 +76,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
     const field = await getField(fdm, session.principal_id, b_id)
 
-    const organicMatterBalancePromise = (async () => {
-      const result = await getOrganicMatterBalanceForField({
-        fdm,
-        principal_id: session.principal_id,
-        b_id_farm,
-        b_id,
-        timeframe,
-      })
-      let {
-        fieldResult,
-        fieldInput,
-      }: {
-        fieldResult: OrganicMatterFieldResultWithErrorId
-        fieldInput: typeof result.fieldInput
-      } = result
-
-      if (!fieldResult) {
-        throw new Error(`Organic matter balance data not found for field ${b_id}`)
+    const organicMatterBalancePromise = collectInputForOrganicMatterBalance(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+      b_id,
+    ).then(async (input) => {
+      type InputType = Omit<typeof input, "timeFrame"> & {
+        timeFrame: { start: Date; end: Date }
       }
-      if (fieldResult.errorMessage) {
+      const omBalanceResult = await calculateOrganicMatterBalance(fdm, input as InputType)
+      let fieldResult: OrganicMatterFieldResultWithErrorId | undefined =
+        omBalanceResult.fields.find((field: { b_id: string }) => field.b_id === b_id)
+
+      if (fieldResult?.errorMessage) {
         const errorId = reportError(
           fieldResult.errorMessage,
           {
@@ -109,12 +107,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
         fieldResult = { ...fieldResult, errorId }
       }
+      const inputForField = input.fields.find(
+        (field: { field: { b_id: string } }) => field.field.b_id === b_id,
+      )
+
+      if (!inputForField) {
+        return { errorMessage: `Organic matter balance input not found for field ${b_id}` }
+      }
 
       return {
         fieldResult: fieldResult,
-        fieldInput: fieldInput,
+        fieldInput: inputForField,
       }
-    })()
+    })
 
     return {
       organicMatterBalanceResult: organicMatterBalancePromise,
@@ -155,6 +160,19 @@ function OrganicMatterBalance({
     return <BufferStripWarning b_id={field.b_id} />
   }
 
+  if (!fieldResult) {
+    return (
+      <div className="flex items-center justify-center">
+        <Card className="w-[350px]">
+          <CardHeader>
+            <CardTitle>Helaas is het niet mogelijk om je balans uit te rekenen</CardTitle>
+          </CardHeader>
+          <CardContent>Geen OM-balans is beschikbaar voor dit perceel.</CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   if (fieldResult.errorMessage) {
     return (
       <div className="flex items-center justify-center">
@@ -164,15 +182,7 @@ function OrganicMatterBalance({
           </CardHeader>
           <CardContent>
             {fieldResult.errorMessage.match(/Missing required soil parameters/) ? (
-              <div className="text-muted-foreground">
-                <p>Voor dit perceel zijn de benodigde bodemparameters niet bekend:</p>
-                <br />
-                <ul className="list-inside list-disc">
-                  {fieldResult.errorMessage.match(/a_som_loi|a_density_sa/) ? (
-                    <li>Organische stofgehalte of bulkdichtheid</li>
-                  ) : null}
-                </ul>
-              </div>
+              <MissingParametersWarning message={fieldResult.errorMessage} />
             ) : (
               <div className="text-muted-foreground">
                 <p>
