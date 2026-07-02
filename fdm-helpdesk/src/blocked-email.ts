@@ -7,7 +7,7 @@ import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { PaginationFilter, TextFilter } from "./filter.types"
 import { getPageOffsetAndLimit } from "./pagination"
 
-type EmailBlock = schema.BlockedEmailTypeSelect
+export type EmailBlock = schema.BlockedEmailTypeSelect
 
 /**
  * Retrieves the email block information for an email address. If the email was not blocked, it returns null.

@@ -4,6 +4,7 @@ import {
   assignTicketToAnAdmin,
   createTicketFromInboundEmail,
   getAssigneesForTicketsUnchecked,
+  getEmailBlock,
   getMessagesForTicket,
   getTicket,
   tryToGetTicketByRefUnchecked,
@@ -155,6 +156,14 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Normalize the email if needed
     const normalizedEmail = email.FromFull.Email
+
+    const emailBlock = await getEmailBlock(fdm, normalizedEmail)
+
+    if (emailBlock) {
+      return new Response("Forbidden", {
+        status: 403,
+      })
+    }
 
     const rateLimitResult = await checkRateLimit(
       `inbound-email-ticket:${normalizedEmail.toLowerCase()}`,
