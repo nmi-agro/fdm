@@ -8,6 +8,7 @@ import { addTagToTicket, createTag } from "./tag"
 import { test, truncateAllTables } from "./test-util"
 import {
   createTicket,
+  createTicketFromInboundEmail,
   getDefaultSubjectLine,
   getInbox,
   getTicket,
@@ -18,6 +19,8 @@ import {
   getUnreadRequestedTicketCount,
   markTicketAsNotViewedByAll,
   markTicketAsViewed,
+  tryToGetTicketByRefUnchecked,
+  tryToGetTicketUnchecked,
   updateTicketPriority,
   updateTicketStatus,
   updateTicketSubject,
@@ -737,6 +740,145 @@ describe("createTicket", () => {
     const escaped = "&quot;test&quot;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
     expect(ticket.subject).toBe(escaped.slice(0, 100))
     expect(messages[0].body).toBe(escaped)
+  })
+})
+
+describe("tryToGetTicketUnchecked", () => {
+  let requester_id: string
+  let ticket_id: string
+
+  test.beforeEach(async ({ fdm }) => {
+    requester_id = createId()
+    ticket_id = await createTicket(fdm, requester_id, "Unchecked lookup ticket")
+  })
+
+  test("should return the ticket record for an existing ticket_id, without a principal_id", async ({
+    fdm,
+  }) => {
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.ticket_id).toBe(ticket_id)
+    expect(ticket?.requester_id).toBe(requester_id)
+  })
+
+  test("should return null for a non-existent ticket_id", async ({ fdm }) => {
+    const ticket = await tryToGetTicketUnchecked(fdm, createId())
+
+    expect(ticket).toBeNull()
+  })
+})
+
+describe("tryToGetTicketByRefUnchecked", () => {
+  let requester_id: string
+  let ticket_id: string
+  let ticket_ref: string
+
+  test.beforeEach(async ({ fdm }) => {
+    requester_id = createId()
+    ticket_id = await createTicket(fdm, requester_id, "Unchecked ref lookup ticket")
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+    ticket_ref = ticket?.ticket_ref as string
+  })
+
+  test("should return the ticket record for an existing ticket_ref", async ({ fdm }) => {
+    const ticket = await tryToGetTicketByRefUnchecked(fdm, ticket_ref)
+
+    expect(ticket?.ticket_id).toBe(ticket_id)
+    expect(ticket?.ticket_ref).toBe(ticket_ref)
+  })
+
+  test("should return null for a non-existent ticket_ref", async ({ fdm }) => {
+    const ticket = await tryToGetTicketByRefUnchecked(fdm, "TK-000000")
+
+    expect(ticket).toBeNull()
+  })
+})
+
+describe("createTicketFromInboundEmail", () => {
+  let requester_email: string
+
+  test.beforeEach(() => {
+    requester_email = `unmatched-${createId(8)}@example.com`
+  })
+
+  test("should create an email-channel ticket with requester_id null when unmatched", async ({
+    fdm,
+  }) => {
+    const ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Inbound email body")
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.channel).toBe("email")
+    expect(ticket?.requester_email).toBe(requester_email)
+    expect(ticket?.requester_id).toBeNull()
+  })
+
+  test("should set requester_id when explicitly provided", async ({ fdm }) => {
+    const requester_id = createId()
+
+    const ticket_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      "Inbound email body",
+      requester_id,
+    )
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.requester_id).toBe(requester_id)
+  })
+
+  test("should set priority and context_farm_id from options", async ({ fdm }) => {
+    const ticket_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      "Inbound email body",
+      undefined,
+      { priority: "urgent", context: { b_id_farm: "my-farm-id" } },
+    )
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.priority).toBe("urgent")
+    expect(ticket?.context_farm_id).toBe("my-farm-id")
+  })
+
+  test("should create the first message as an escaped customer message", async ({ fdm }) => {
+    const ticket_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      `"test"<script>alert('xss')</script>`,
+    )
+
+    const messages = await fdm
+      .select()
+      .from(schema.messages)
+      .where(eq(schema.messages.ticket_id, ticket_id))
+
+    const escaped = "&quot;test&quot;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
+    expect(messages[0].body).toBe(escaped)
+    expect(messages[0].sender_type).toBe("customer")
+  })
+
+  test("should fall back to ticket_id as sender_id when no requester_id is given", async ({
+    fdm,
+  }) => {
+    const ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Inbound email body")
+
+    const messages = await fdm
+      .select()
+      .from(schema.messages)
+      .where(eq(schema.messages.ticket_id, ticket_id))
+
+    expect(messages[0].sender_id).toBe(ticket_id)
+  })
+
+  test("should derive the subject line from the body", async ({ fdm }) => {
+    const ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Short inbound body")
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.subject).toBe(getDefaultSubjectLine("Short inbound body"))
   })
 })
 

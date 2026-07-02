@@ -126,7 +126,6 @@ export async function getTicket(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
- * @param principal_id The principal identifier(s); must have read access to the ticket.
  * @param ticket_id ID of the ticket to retrieve.
  * @returns The ticket record. Null if not found.
  */
@@ -568,7 +567,7 @@ export async function createTicket(
         ticket_id: ticket_id,
         sender_id: requester_id,
         message_id: message_id,
-        sender_type: "user",
+        sender_type: "customer",
         body: sanitizedBody,
       })
 
@@ -583,16 +582,21 @@ export async function createTicket(
 }
 
 /**
- * Creates a new ticket and its first message in a single transaction.
+ * Creates a new ticket (channel `"email"`) and its first message in a single transaction, for an inbound
+ * email that could not be matched to an existing ticket.
  * The body is HTML-escaped and a subject line is derived from the first few words.
  *
- * `requester_id` is set to "", which should be handled by the mechanism that collects the requester's
- * information.
+ * `requester_id` is optional: when the sender's email address cannot be matched to a known
+ * fdm-authn user, pass `undefined`/omit it and the ticket is stored with `requester_id: null` and
+ * `requester_email` set instead. In that case, the first message's `sender_id` falls back to the
+ * generated `ticket_id` as a placeholder value (see {@link addMessageFromInboundEmailUnchecked} for the
+ * same convention).
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
- * @param requester_id ID of the user who is opening the ticket.
+ * @param requester_email Email address the inbound email was sent from.
  * @param body The opening message body.
+ * @param requester_id Optional ID of the matched fdm-authn user who sent the email, if known.
  * @param options Optional priority and farm context to associate with the ticket.
  * @returns The `ticket_id` of the newly created ticket.
  */
@@ -628,14 +632,14 @@ export async function createTicketFromInboundEmail(
         ticket_id: ticket_id,
         sender_id: requester_id ?? ticket_id,
         message_id: message_id,
-        sender_type: "user",
+        sender_type: "customer",
         body: sanitizedBody,
       })
 
       return ticket_id
     })
   } catch (e) {
-    throw handleError(e, "Exception for createTicket", {
+    throw handleError(e, "Exception for createTicketFromInboundEmail", {
       ...options,
       requester_email,
     })

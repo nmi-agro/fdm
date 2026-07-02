@@ -203,12 +203,15 @@ export async function addMessage(
  * No permission checks are performed, therefore the caller needs to follow a strategy to not let arbitrary
  * people add messages.
  *
+ * `sender_id` is optional: when the inbound email's sender could not be matched to a known fdm-authn user,
+ * pass `undefined`/omit it and `sender_id` falls back to the ticket's own `ticket_id` as a placeholder
+ * value (matching the convention used by {@link createTicketFromInboundEmail}).
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param ticket_id ID of the ticket the message belongs to.
  * @param body The message text to store.
- * @param email_message_id The email Message-ID header value of the inbound email.
- * @param sender_id Optional ID of the user or agent sending the message.
+ * @param sender_id Optional ID of the matched fdm-authn user sending the message, if known.
  * @returns The `message_id` of the newly created message.
  */
 export async function addMessageFromInboundEmailUnchecked(
@@ -219,7 +222,7 @@ export async function addMessageFromInboundEmailUnchecked(
 ) {
   try {
     const ticket = await fdm
-      .select({ requester_email: schema.tickets.requester_email })
+      .select({ ticket_id: schema.tickets.ticket_id })
       .from(schema.tickets)
       .where(eq(schema.tickets.ticket_id, ticket_id))
       .limit(1)
