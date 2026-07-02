@@ -11,6 +11,7 @@ import {
   updateTicketSubjectAndPriorityUnchecked,
 } from "@nmi-agro/fdm-helpdesk"
 import crypto from "crypto"
+import { promisify } from "util"
 import { serverConfig } from "~/lib/config.server"
 import { PostmarkEmailSchema, sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleLoaderError } from "~/lib/error"
@@ -25,7 +26,15 @@ import { Route } from "./+types/api.webhooks.inbound-email-ticket"
 const INBOUND_EMAIL_RATE_LIMIT_WINDOW_MS = 1000
 const INBOUND_EMAIL_RATE_LIMIT_MAX = 10
 
-export function checkUsernameAndPassword(request: Request) {
+export async function checkUsernameAndPassword(request: Request) {
+  if (
+    serverConfig.mail?.postmark.inbound_email_auth_username === undefined ||
+    serverConfig.mail?.postmark.inbound_email_auth_password_hash === undefined ||
+    serverConfig.mail?.postmark.inbound_email_auth_password_salt === undefined
+  ) {
+    return false
+  }
+
   const authHeader = request.headers.get("Authorization")
   if (!authHeader) {
     return false
@@ -45,7 +54,14 @@ export function checkUsernameAndPassword(request: Request) {
   const username = decodedCredentials.substring(0, separatorIndex)
   const password = decodedCredentials.substring(separatorIndex + 1)
 
-  const hashedPw = crypto.createHash("md5").update(password).digest("hex")
+  const hashedPw = (
+    (await promisify(crypto.scrypt)(
+      password,
+      serverConfig.mail.postmark.inbound_email_auth_password_salt,
+      64,
+    )) as Buffer
+  ).toString("hex")
+
   return (
     username === serverConfig.mail?.postmark.inbound_email_auth_username &&
     hashedPw === serverConfig.mail.postmark.inbound_email_auth_password_hash

@@ -124,11 +124,15 @@ export const serverConfig: ServerConfig = {
           }
         : {}),
       ...(process.env.POSTMARK_INBOUND_EMAIL_AUTH_USERNAME &&
-      process.env.POSTMARK_INBOUND_EMAIL_AUTH_PASSWORD_HASH
+      process.env.POSTMARK_INBOUND_EMAIL_AUTH_PASSWORD_HASH &&
+      process.env.POSTMARK_INBOUND_EMAIL_AUTH_PASSWORD_SALT
         ? {
             inbound_email_auth_username: String(process.env.POSTMARK_INBOUND_EMAIL_AUTH_USERNAME),
             inbound_email_auth_password_hash: String(
               process.env.POSTMARK_INBOUND_EMAIL_AUTH_PASSWORD_HASH,
+            ),
+            inbound_email_auth_password_salt: String(
+              process.env.POSTMARK_INBOUND_EMAIL_AUTH_PASSWORD_SALT,
             ),
           }
         : {}),
