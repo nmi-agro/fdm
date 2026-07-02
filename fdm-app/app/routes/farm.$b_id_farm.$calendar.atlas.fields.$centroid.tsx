@@ -166,7 +166,7 @@ async function loadAsyncData(
     longitude: number,
 ) {
     try {
-        const latestStatusYear = "2025"
+        const latestStatusYear = "2026"
         const fieldPromise = getFieldByCentroid(
             longitude,
             latitude,
