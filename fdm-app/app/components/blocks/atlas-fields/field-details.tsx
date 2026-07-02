@@ -33,7 +33,7 @@ export function FieldDetailsCard({
                 <CardTitle>Perceeldetails</CardTitle>
                 <CardDescription className="flex items-center justify-start space-x-2 text-sm text-muted-foreground">
                     <Info className="h-4 w-4" />
-                    <p>Status voor 2025</p>
+                    <p>Status voor 2026</p>
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
