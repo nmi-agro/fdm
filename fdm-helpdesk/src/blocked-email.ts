@@ -59,7 +59,7 @@ export async function getEmailBlocks(
         and(
           sql`TRUE`,
           typeof filters.text === "string" && filters.text.length > 0
-            ? sql`(${schema.blockedEmails.email} || ' ' || ${schema.blockedEmails.reason}) ilike ${`%${filters.text.replaceAll("%", "\\%")}%`}`
+            ? sql`(${schema.blockedEmails.email} || ' ' || coalesce(${schema.blockedEmails.reason}, '')) ilike ${`%${filters.text.replaceAll("%", "\\%")}%`}`
             : undefined,
         ),
       )

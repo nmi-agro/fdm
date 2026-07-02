@@ -60,7 +60,7 @@ describe("getEmailBlocks", () => {
     email1 = `${createId()}@example.com`
     await addEmailBlock(fdm, admin_id, email1, "Violating the contract")
     email2 = `${createId()}@example.com`
-    await addEmailBlock(fdm, admin_id, email2, "Spamming")
+    await addEmailBlock(fdm, admin_id, email2)
     email3 = `${createId()}@example.com`
     await addEmailBlock(fdm, admin_id, email3, "Because I wanted to")
   })
@@ -88,6 +88,13 @@ describe("getEmailBlocks", () => {
 
     expect(blocks).toHaveLength(1)
     expect(blocks.map((block) => block.email)).toEqual([email1])
+  })
+
+  test("should search by email even if reason is null", async ({ fdm }) => {
+    const blocks = await getEmailBlocks(fdm, admin_id, { text: email2 })
+
+    expect(blocks).toHaveLength(1)
+    expect(blocks.map((block) => block.email)).toEqual([email2])
   })
 
   test("should search by reason", async ({ fdm }) => {

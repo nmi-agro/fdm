@@ -23,7 +23,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import type { Route } from "./+types/support.settings.agents"
+import type { Route } from "./+types/support.settings.blocked-emails"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
@@ -44,15 +44,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const blockedEmails = await getEmailBlocks(fdm, session.principal_id)
 
-    const helpdeskWritePermission = await checkHelpdeskPermission(
-      fdm,
-      "helpdesk",
-      "write",
-      "",
-      session.principal_id,
-      "routes/admin.support.settings.agents",
-      false,
-    )
+    // What is above would only succeed if the principal was an admin
+    const helpdeskWritePermission = true
 
     let blockedEmailsExtended: EmailBlockExtended[] = []
     if (blockedEmails.length > 0) {
@@ -85,6 +78,15 @@ export async function action({ request }: Route.ActionArgs) {
     const formValues = await extractFormValuesFromRequest(request, ActionSchema)
 
     if (formValues.intent === "add_email_block") {
+      await checkHelpdeskPermission(
+        fdm,
+        "helpdesk",
+        "write",
+        "",
+        session.principal_id,
+        "routes/support.settings.blocked-emails",
+      )
+
       if (await getEmailBlock(fdm, formValues.email)) {
         return dataWithError("Dit emailadres is al geblokkeerd.", {
           message: "Dit emailadres is al geblokkeerd.",

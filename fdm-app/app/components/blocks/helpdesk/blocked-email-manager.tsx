@@ -50,10 +50,13 @@ export interface HelpdeskAgentManagerProps {
 export function BlockedEmailsManager({ blockedEmails, canModify }: HelpdeskAgentManagerProps) {
   const [searchTerms, setSearchTerms] = useState("")
 
+  const searchTargets = useMemo(
+    () => blockedEmails.map((item, i) => `[${i}] ${item.email} ${item.reason}`.toLowerCase()),
+    [blockedEmails],
+  )
   const searchResults = useMemo(() => {
     if (searchTerms.trim().length === 0) return blockedEmails
-    const targets = blockedEmails.map((item, i) => `[${i}] ${item.email} ${item.reason}`)
-    const results = fuzzysort.go(searchTerms, targets, { threshold: -10000 })
+    const results = fuzzysort.go(searchTerms.toLowerCase(), searchTargets, { threshold: -10000 })
     return results
       .map((r) => {
         const match = r.target.match(/^\[(\d+)\]/)
@@ -61,7 +64,7 @@ export function BlockedEmailsManager({ blockedEmails, canModify }: HelpdeskAgent
         return blockedEmails[Number(match[1])] ?? null
       })
       .filter((item): item is EmailBlockExtended => item !== null)
-  }, [blockedEmails, searchTerms])
+  }, [blockedEmails, searchTargets, searchTerms])
 
   return (
     <Card className="mx-auto max-w-5xl">
@@ -93,7 +96,7 @@ export function BlockedEmailsManager({ blockedEmails, canModify }: HelpdeskAgent
               </TableRow>
             </TableHeader>
             <TableBody>
-              {blockedEmails.map((block) => (
+              {searchResults.map((block) => (
                 <BlockedEmailRow key={block.email} emailBlock={block} canModify={canModify} />
               ))}
             </TableBody>
