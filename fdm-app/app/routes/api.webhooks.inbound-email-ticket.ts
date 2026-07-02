@@ -26,7 +26,7 @@ import { Route } from "./+types/api.webhooks.inbound-email-ticket"
 const INBOUND_EMAIL_RATE_LIMIT_WINDOW_MS = 1000
 const INBOUND_EMAIL_RATE_LIMIT_MAX = 10
 
-export async function checkUsernameAndPassword(request: Request) {
+async function checkUsernameAndPassword(request: Request) {
   if (
     serverConfig.mail?.postmark.inbound_email_auth_username === undefined ||
     serverConfig.mail?.postmark.inbound_email_auth_password_hash === undefined ||
@@ -129,7 +129,7 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    if (!checkUsernameAndPassword(request)) {
+    if (!(await checkUsernameAndPassword(request))) {
       return new Response("Unauthorized", {
         status: 401,
         headers: { "WWW-Authenticate": 'Basic realm="Inbound Email Webhook"' },
