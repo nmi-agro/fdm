@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm"
 import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
+import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { addMessage, getMessagesForTicket } from "./message"
 import { addTagToTicket, createTag } from "./tag"
@@ -766,6 +767,18 @@ describe("tryToGetTicketUnchecked", () => {
 
     expect(ticket).toBeNull()
   })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(tryToGetTicketUnchecked(fdm, ticket_id)).rejects.toThrow(
+      "Exception for tryToGetTicketUnchecked",
+    )
+  })
 })
 
 describe("tryToGetTicketByRefUnchecked", () => {
@@ -791,6 +804,18 @@ describe("tryToGetTicketByRefUnchecked", () => {
     const ticket = await tryToGetTicketByRefUnchecked(fdm, "TK-000000")
 
     expect(ticket).toBeNull()
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(tryToGetTicketByRefUnchecked(fdm, ticket_ref)).rejects.toThrow(
+      "Exception for tryToGetTicketByRefUnchecked",
+    )
   })
 })
 
@@ -879,6 +904,18 @@ describe("createTicketFromInboundEmail", () => {
     const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
 
     expect(ticket?.subject).toBe(getDefaultSubjectLine("Short inbound body"))
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      insert() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(
+      createTicketFromInboundEmail(fdm, requester_email, "Inbound email body"),
+    ).rejects.toThrow("Exception for createTicketFromInboundEmail")
   })
 })
 

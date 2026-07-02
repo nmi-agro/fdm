@@ -1,5 +1,6 @@
 import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent, updateAgentRole } from "./agent"
+import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { addTagToTicket, createTag } from "./tag"
 import { test, truncateAllTables } from "./test-util"
@@ -111,6 +112,18 @@ describe("getAssigneesForTicketsUnchecked", () => {
     const assigneesMap = await getAssigneesForTicketsUnchecked(fdm, [])
 
     expect(assigneesMap.size).toBe(0)
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(getAssigneesForTicketsUnchecked(fdm, ["some_ticket_id"])).rejects.toThrow(
+      "Exception for getAssigneesForTicketsUnchecked",
+    )
   })
 })
 
