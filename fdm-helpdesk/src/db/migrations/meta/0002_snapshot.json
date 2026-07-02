@@ -1,5 +1,5 @@
 {
-  "id": "10f9671d-f739-49d0-965f-6e42ab1c4186",
+  "id": "3d58a8a1-6057-4524-88c0-2657447be473",
   "prevId": "cb881026-9e17-49e6-9464-7aedaafa8b44",
   "version": "7",
   "dialect": "postgresql",
@@ -123,6 +123,44 @@
           "with": {}
         }
       },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm-helpdesk.blocked_emails": {
+      "name": "blocked_emails",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blocked_by": {
+          "name": "blocked_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

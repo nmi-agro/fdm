@@ -262,3 +262,16 @@ export const savedReplies = fdmHelpdeskSchema.table(
 )
 export type SavedReplyTypeSelect = typeof savedReplies.$inferSelect
 export type SavedReplyTypeInsert = typeof savedReplies.$inferInsert
+
+/* BLOCKED EMAILS */
+/**
+ * Blocked email addresses to prevent spam or abuse.
+ */
+export const blockedEmails = fdmHelpdeskSchema.table("blocked_emails", {
+  email: text().primaryKey(),
+  reason: text(),
+  blocked_by: text().notNull(),
+  created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+export type BlockedEmailTypeSelect = typeof blockedEmails.$inferSelect
+export type BlockedEmailTypeInsert = typeof blockedEmails.$inferInsert
