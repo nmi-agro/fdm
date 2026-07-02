@@ -65,6 +65,14 @@ export function HeaderHelpdesk() {
           <BreadcrumbItem>Tags</BreadcrumbItem>
         </>
       )}
+      {currentHelpdeskPage === "blocked_emails" && (
+        <>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Instellingen</BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Geblokkeerde e-mailadressen</BreadcrumbItem>
+        </>
+      )}
     </>
   )
 }

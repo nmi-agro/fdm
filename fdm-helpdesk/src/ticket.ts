@@ -58,6 +58,7 @@ const ticketColumns = {
   priority: schema.tickets.priority,
   channel: schema.tickets.channel,
   requester_id: schema.tickets.requester_id,
+  requester_email: schema.tickets.requester_email,
   context_farm_id: schema.tickets.context_farm_id,
   resolved_at: schema.tickets.resolved_at,
   closed_at: schema.tickets.closed_at,
@@ -117,6 +118,64 @@ export async function getTicket(
       ticket_id,
       principal_id,
     })
+  }
+}
+
+/**
+ * Retrieves a single ticket by ID. Returns null if no ticket is found. No permission checks are performed.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket to retrieve.
+ * @returns The ticket record. Null if not found.
+ */
+export async function tryToGetTicketUnchecked(
+  fdm: FdmHelpdeskType,
+  ticket_id: schema.TicketTypeSelect["ticket_id"],
+): Promise<schema.TicketTypeSelect | null> {
+  try {
+    const found = await fdm
+      .select({
+        ...ticketColumns,
+      })
+      .from(schema.tickets)
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+      .limit(1)
+
+    return found.length > 0 ? found[0] : null
+  } catch (err) {
+    throw handleError(err, "Exception for tryToGetTicketUnchecked", {
+      ticket_id,
+    })
+  }
+}
+
+/**
+ * Retrieves a single ticket with the given reference. If no such ticket is found, returns null.
+ *
+ * This function does not perform any permission checks.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_ref Ticket ref to look for.
+ * @returns A Ticket object without the tags and assignees filled in. null if no ticket was found.
+ */
+export async function tryToGetTicketByRefUnchecked(
+  fdm: FdmHelpdeskType,
+  ticket_ref: string,
+): Promise<schema.TicketTypeSelect | null> {
+  try {
+    const found = await fdm
+      .select({
+        ...ticketColumns,
+      })
+      .from(schema.tickets)
+      .where(eq(schema.tickets.ticket_ref, ticket_ref))
+      .limit(1)
+
+    return found.length > 0 ? found[0] : null
+  } catch (err) {
+    throw handleError(err, "Exception for tryToGetTicketByRefUnchecked", { ticket_ref })
   }
 }
 
@@ -508,7 +567,7 @@ export async function createTicket(
         ticket_id: ticket_id,
         sender_id: requester_id,
         message_id: message_id,
-        sender_type: "user",
+        sender_type: "customer",
         body: sanitizedBody,
       })
 
@@ -518,6 +577,71 @@ export async function createTicket(
     throw handleError(e, "Exception for createTicket", {
       ...options,
       requester_id,
+    })
+  }
+}
+
+/**
+ * Creates a new ticket (channel `"email"`) and its first message in a single transaction, for an inbound
+ * email that could not be matched to an existing ticket.
+ * The body is HTML-escaped and a subject line is derived from the first few words.
+ *
+ * `requester_id` is optional: when the sender's email address cannot be matched to a known
+ * fdm-authn user, pass `undefined`/omit it and the ticket is stored with `requester_id: null` and
+ * `requester_email` set instead. In that case, the first message's `sender_id` falls back to the
+ * generated `ticket_id` as a placeholder value (see {@link addMessageFromInboundEmailUnchecked} for the
+ * same convention).
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param requester_email Email address the inbound email was sent from.
+ * @param body The opening message body.
+ * @param requester_id Optional ID of the matched fdm-authn user who sent the email, if known.
+ * @param options Optional priority and farm context to associate with the ticket.
+ * @returns The `ticket_id` of the newly created ticket.
+ */
+export async function createTicketFromInboundEmail(
+  fdm: FdmHelpdeskType,
+  requester_email: schema.TicketTypeInsert["requester_email"],
+  body: schema.MessageTypeInsert["body"],
+  requester_id?: schema.MessageTypeInsert["sender_id"],
+  options?: CreateTicketOptions,
+) {
+  try {
+    const ticket_id = createId()
+    const message_id = createId()
+
+    return await fdm.transaction(async (tx) => {
+      const ticket_ref = await createTicketRefWithRetry(tx)
+      const sanitizedBody = escapeHTML(body)
+
+      await tx.insert(schema.tickets).values([
+        {
+          ticket_id: ticket_id,
+          ticket_ref: ticket_ref,
+          requester_id: requester_id ?? null,
+          requester_email: requester_email,
+          subject: getDefaultSubjectLine(sanitizedBody),
+          channel: "email",
+          priority: options?.priority,
+          context_farm_id: options?.context?.b_id_farm,
+        },
+      ])
+
+      await tx.insert(schema.messages).values({
+        ticket_id: ticket_id,
+        sender_id: requester_id ?? ticket_id,
+        message_id: message_id,
+        sender_type: "customer",
+        body: sanitizedBody,
+      })
+
+      return ticket_id
+    })
+  } catch (e) {
+    throw handleError(e, "Exception for createTicketFromInboundEmail", {
+      ...options,
+      requester_email,
     })
   }
 }

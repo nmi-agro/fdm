@@ -4,6 +4,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import postmark from "postmark"
 import { render } from "react-email"
+import z from "zod"
 import type { ExtendedUser } from "~/types/extended-user"
 import { FarmInvitationEmail } from "~/components/blocks/email/farm-invitation"
 import { FarmInvitationCancelledEmail } from "~/components/blocks/email/farm-invitation-cancelled"
@@ -19,10 +20,53 @@ const client = new postmark.ServerClient(String(process.env.POSTMARK_API_KEY))
 interface Email {
   From: string
   To: string
+  ReplyTo?: string
   Subject: string
   HtmlBody: string
   Tag: string
+  Headers?: { Name: string; Value: string }[]
 }
+
+export const PostmarkContactWithNameSchema = z.object({
+  Email: z.string(),
+  Name: z.string(),
+  MailboxHash: z.string().optional(),
+})
+
+export const PostmarkEmailSchema = z.object({
+  FromName: z.string().optional(),
+  MessageStream: z.string().optional(),
+  FromFull: PostmarkContactWithNameSchema,
+  ToFull: PostmarkContactWithNameSchema.array().optional(),
+  CcFull: PostmarkContactWithNameSchema.array().optional(),
+  BccFull: PostmarkContactWithNameSchema.array().optional(),
+  OriginalRecipient: z.string().optional(),
+  Subject: z.string().optional(),
+  MessageID: z.string().optional(),
+  ReplyTo: z.string().optional(),
+  MailboxHash: z.string().optional(),
+  Date: z
+    .string()
+    .transform((str) => new Date(str))
+    .refine((date) => !Number.isNaN(date.getTime()), "Invalid date")
+    .optional(),
+  TextBody: z.string().optional(),
+  HtmlBody: z.string().optional(),
+  StrippedTextReply: z.string().optional(),
+  Tag: z.string().optional(),
+  Headers: z.object({ Name: z.string(), Value: z.string().optional() }).array().optional(),
+  Attachments: z
+    .object({
+      Name: z.string(),
+      Content: z.string(),
+      ContentType: z.string(),
+      ContentLength: z.number(),
+    })
+    .array()
+    .optional(),
+})
+
+export type PostmarkEmail = z.infer<typeof PostmarkEmailSchema>
 
 export async function renderWelcomeEmail(user: User): Promise<Email> {
   const emailHtml = await render(
@@ -258,6 +302,7 @@ export async function renderHelpdeskNewMessageEmail(
   ticketRef: string,
   ticketSubject: string | null,
   ticketId: string,
+  messageId: string,
   messageBody: string,
 ): Promise<Email> {
   const ticketUrl = `${serverConfig.url}/support/ticket/${ticketId}`
@@ -267,6 +312,8 @@ export async function renderHelpdeskNewMessageEmail(
   const helpdeskSenderAddress =
     serverConfig.mail?.postmark.helpdesk_sender_address ??
     serverConfig.mail?.postmark.sender_address
+  const helpdeskInboundAddress =
+    serverConfig.mail?.postmark.helpdesk_inbound_address ?? helpdeskSenderAddress
 
   const emailHtml = await render(
     HelpdeskNewMessageEmail({
@@ -283,12 +330,29 @@ export async function renderHelpdeskNewMessageEmail(
     { pretty: true },
   )
 
+  let replyTo = helpdeskInboundAddress
+  if (replyTo) {
+    const replyToParts = replyTo.split("@")
+    if (replyToParts.length === 2) {
+      replyTo = `${replyToParts[0]}+${ticketId}@${replyToParts[1]}`
+    }
+  }
+
+  const threadId = `<${replyTo}>`
+  const emailMessageId = `<support-ticket-${ticketId}-msg-${messageId}@${serverConfig.url.replace(/^https?:\/\//, "")}>`
+
   const email: Email = {
     From: `"${helpdeskSenderName}" <${helpdeskSenderAddress}>`,
+    ReplyTo: `"${helpdeskSenderName}" <${replyTo}>`,
     To: recipientEmail,
-    Subject: `Nieuw bericht op ticket: ${ticketSubject ? ticketSubject : ticketRef}`,
+    Subject: `Nieuw bericht op ticket [${ticketRef}]: ${ticketSubject ? ticketSubject : ticketRef}`,
     HtmlBody: emailHtml,
     Tag: "helpdesk-new-message",
+    Headers: [
+      { Name: "References", Value: threadId },
+      { Name: "In-Reply-To", Value: threadId },
+      { Name: "Message-ID", Value: emailMessageId },
+    ],
   }
 
   return email
@@ -328,6 +392,7 @@ export async function sendHelpdeskNewMessageEmail(
   ticketRef: string,
   ticketSubject: string | null,
   ticketId: string,
+  messageId: string,
   messageBody: string,
 ): Promise<void> {
   try {
@@ -338,6 +403,7 @@ export async function sendHelpdeskNewMessageEmail(
       ticketRef,
       ticketSubject,
       ticketId,
+      messageId,
       messageBody,
     )
     await sendEmail(email)

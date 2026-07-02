@@ -32,6 +32,7 @@ export const tickets = fdmHelpdeskSchema.table(
     priority: text().notNull().default("normal"), // 'low', 'normal', 'high', 'urgent'
     channel: text().notNull().default("web"), // 'web', 'email'
     requester_id: text(), // References fdm-authn user.id (null for unmatched email senders)
+    requester_email: text(), // Email address of the requester (for unmatched email senders)
     context_farm_id: text(), // Optional: link to fdm.farms.b_id_farm
     resolved_at: timestamp({ withTimezone: true }),
     closed_at: timestamp({ withTimezone: true }),
@@ -42,6 +43,7 @@ export const tickets = fdmHelpdeskSchema.table(
     uniqueIndex("ticket_ref_idx").on(table.ticket_ref),
     index("ticket_status_idx").on(table.status),
     index("ticket_requester_idx").on(table.requester_id),
+    index("ticket_requester_email_idx").on(table.requester_email),
     index("ticket_priority_idx").on(table.priority),
     index("ticket_created_idx").on(table.created),
     index("ticket_farm_idx").on(table.context_farm_id),
@@ -260,3 +262,16 @@ export const savedReplies = fdmHelpdeskSchema.table(
 )
 export type SavedReplyTypeSelect = typeof savedReplies.$inferSelect
 export type SavedReplyTypeInsert = typeof savedReplies.$inferInsert
+
+/* BLOCKED EMAILS */
+/**
+ * Blocked email addresses to prevent spam or abuse.
+ */
+export const blockedEmails = fdmHelpdeskSchema.table("blocked_emails", {
+  email: text().primaryKey(),
+  reason: text(),
+  blocked_by: text().notNull(),
+  created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+})
+export type BlockedEmailTypeSelect = typeof blockedEmails.$inferSelect
+export type BlockedEmailTypeInsert = typeof blockedEmails.$inferInsert
