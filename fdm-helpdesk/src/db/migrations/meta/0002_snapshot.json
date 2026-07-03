@@ -1,5 +1,5 @@
 {
-  "id": "3d58a8a1-6057-4524-88c0-2657447be473",
+  "id": "01036a46-499b-4a35-bed2-99c2f1b78f3b",
   "prevId": "cb881026-9e17-49e6-9464-7aedaafa8b44",
   "version": "7",
   "dialect": "postgresql",
@@ -1029,9 +1029,9 @@
           "name": "ticket_requester_email_idx",
           "columns": [
             {
-              "expression": "requester_email",
-              "isExpression": false,
+              "expression": "lower(\"requester_email\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],

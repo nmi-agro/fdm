@@ -202,7 +202,7 @@ export async function action({ request }: Route.ActionArgs) {
     if (
       ticket &&
       ((senderPrincipal && senderPrincipal.id === ticket.requester_id) ||
-        ticket.requester_email === normalizedEmail)
+        ticket.requester_email?.toLowerCase() === normalizedEmail.toLowerCase())
     ) {
       const messageBody =
         typeof email.StrippedTextReply === "string" && email.StrippedTextReply.length > 0

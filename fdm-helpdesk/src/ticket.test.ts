@@ -20,6 +20,7 @@ import {
   getUnreadRequestedTicketCount,
   markTicketAsNotViewedByAll,
   markTicketAsViewed,
+  moveInboundEmailTicketsToPrincipalUnchecked,
   tryToGetTicketByRefUnchecked,
   tryToGetTicketUnchecked,
   updateTicketPriority,
@@ -1121,5 +1122,52 @@ describe("markTicketAsNotViewedByAll", () => {
 
     const ticket = await getTicket(fdm, requester_id, ticket_id)
     expect(ticket.viewed_at, "Ticket viewed date must be null after un-viewing").toBeNull()
+  })
+})
+
+describe("moveInboundEmailTicketsToPrincipalUnchecked", () => {
+  test("should only move tickets with a null requester id and an email set", async ({ fdm }) => {
+    const requester_id = createId()
+    const requester_email = `${createId()}@example.com`
+    const other_requester_id = createId()
+    const other_requester_email = `${createId()}@example.com`
+    const ticket1_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      "Test Email Question",
+    )
+    await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      "Test Email Question By Old User",
+      other_requester_id,
+    )
+    await createTicketFromInboundEmail(
+      fdm,
+      other_requester_email,
+      "Test Email Question By Other User",
+    )
+    await createTicket(fdm, other_requester_id, "Test Web Question By Other User")
+
+    await moveInboundEmailTicketsToPrincipalUnchecked(fdm, requester_id, requester_email)
+
+    const tickets = await getTickets(fdm, requester_id)
+    expect(
+      tickets,
+      "Only ticket 1 has requester_email defined and requester_id unset",
+    ).toHaveLength(1)
+    expect(tickets.some((ticket) => ticket.ticket_id === ticket1_id)).toBe(true)
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      update() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(
+      moveInboundEmailTicketsToPrincipalUnchecked(fdm, "test", "test@example.com"),
+    ).rejects.toThrow("Exception for moveInboundEmailTicketsToPrincipalUnchecked")
   })
 })

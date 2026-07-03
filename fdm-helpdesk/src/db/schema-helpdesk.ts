@@ -43,7 +43,7 @@ export const tickets = fdmHelpdeskSchema.table(
     uniqueIndex("ticket_ref_idx").on(table.ticket_ref),
     index("ticket_status_idx").on(table.status),
     index("ticket_requester_idx").on(table.requester_id),
-    index("ticket_requester_email_idx").on(table.requester_email),
+    index("ticket_requester_email_idx").on(sql`lower(${table.requester_email})`),
     index("ticket_priority_idx").on(table.priority),
     index("ticket_created_idx").on(table.created),
     index("ticket_farm_idx").on(table.context_farm_id),

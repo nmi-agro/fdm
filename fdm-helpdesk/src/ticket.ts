@@ -878,3 +878,25 @@ export async function markTicketAsNotViewedByAll(
     throw handleError(err, "Exception for markTicketAsNotViewedByAll")
   }
 }
+
+export async function moveInboundEmailTicketsToPrincipalUnchecked(
+  fdm: FdmHelpdeskType,
+  requester_id: string,
+  requester_email: string,
+) {
+  try {
+    await fdm
+      .update(schema.tickets)
+      .set({ requester_id: requester_id })
+      .where(
+        and(
+          isNull(schema.tickets.requester_id),
+          eq(sql`lower(${schema.tickets.requester_email})`, requester_email.trim().toLowerCase()),
+        ),
+      )
+  } catch (err) {
+    throw handleError(err, "Exception for moveInboundEmailTicketsToPrincipalUnchecked", {
+      requester_id,
+    })
+  }
+}
