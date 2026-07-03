@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-core",
-  "version": "0.34.0",
+  "version": "0.34.1",
   "private": false,
   "description": "Interface for the Farm Data Model",
   "homepage": "https://svenvw.github.io/fdm/",

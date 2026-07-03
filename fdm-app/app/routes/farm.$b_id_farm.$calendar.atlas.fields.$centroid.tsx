@@ -146,7 +146,7 @@ function buildAdvancedCultivationHistory(
 
 async function loadAsyncData(_calendar: string, latitude: number, longitude: number) {
   try {
-    const latestStatusYear = "2025"
+    const latestStatusYear = "2026"
     const fieldPromise = getFieldByCentroid(longitude, latitude, latestStatusYear)
     const field = {
       type: "Feature",

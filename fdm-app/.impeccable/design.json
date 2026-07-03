@@ -8,54 +8,199 @@
         "role": "primary",
         "displayName": "Slate Ink",
         "canonical": "hsl(222.2 47.4% 11.2%)",
-        "tonalRamp": ["#020617", "#0f172a", "#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#e2e8f0"]
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0"
+        ]
       },
       "muted-foreground": {
         "role": "neutral",
         "displayName": "Muted Ink",
         "canonical": "hsl(215.4 16.3% 46.9%)",
-        "tonalRamp": ["#1e293b", "#334155", "#475569", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9"]
+        "tonalRamp": [
+          "#1e293b",
+          "#334155",
+          "#475569",
+          "#64748b",
+          "#94a3b8",
+          "#cbd5e1",
+          "#e2e8f0",
+          "#f1f5f9"
+        ]
       },
       "background": {
         "role": "neutral",
         "displayName": "Paper",
         "canonical": "hsl(0 0% 100%)",
-        "tonalRamp": ["#020617", "#0f172a", "#334155", "#64748b", "#cbd5e1", "#e2e8f0", "#f8fafc", "#ffffff"]
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#334155",
+          "#64748b",
+          "#cbd5e1",
+          "#e2e8f0",
+          "#f8fafc",
+          "#ffffff"
+        ]
       },
       "sidebar": {
         "role": "neutral",
         "displayName": "Sidebar Mist",
         "canonical": "hsl(0 0% 98%)",
-        "tonalRamp": ["#18181b", "#27272a", "#3f3f46", "#52525b", "#a1a1aa", "#d4d4d8", "#f4f4f5", "#fafafa"]
+        "tonalRamp": [
+          "#18181b",
+          "#27272a",
+          "#3f3f46",
+          "#52525b",
+          "#a1a1aa",
+          "#d4d4d8",
+          "#f4f4f5",
+          "#fafafa"
+        ]
       },
-      "chart-1": { "role": "tertiary", "displayName": "Terracotta", "canonical": "oklch(0.646 0.222 41.116)", "tonalRamp": ["#3a1a0e", "#5e2c16", "#8a4220", "#b8582b", "#e8743b", "#ef9466", "#f5b896", "#fbddc9"] },
-      "chart-2": { "role": "tertiary", "displayName": "Teal", "canonical": "oklch(0.6 0.118 184.704)", "tonalRamp": ["#06302f", "#0a4a48", "#0f6b68", "#148a87", "#19a3a3", "#4dbdbd", "#86d4d4", "#c2e9e9"] },
-      "chart-3": { "role": "tertiary", "displayName": "Deep Blue", "canonical": "oklch(0.398 0.07 227.392)", "tonalRamp": ["#0d1c2b", "#143047", "#1d4468", "#265688", "#2d5b8a", "#5b81a8", "#8aa6c5", "#c0d2e2"] },
-      "chart-4": { "role": "tertiary", "displayName": "Ochre", "canonical": "oklch(0.828 0.189 84.429)", "tonalRamp": ["#3a3009", "#5e4e10", "#8a721a", "#b89725", "#e9c44a", "#efd277", "#f4e0a4", "#faefd1"] },
-      "chart-5": { "role": "tertiary", "displayName": "Amber", "canonical": "oklch(0.769 0.188 70.08)", "tonalRamp": ["#3a2509", "#5e3c10", "#8a591a", "#b87725", "#e0962f", "#e8b061", "#f0ca93", "#f7e4c5"] },
+      "chart-1": {
+        "role": "tertiary",
+        "displayName": "Terracotta",
+        "canonical": "oklch(0.646 0.222 41.116)",
+        "tonalRamp": [
+          "#3a1a0e",
+          "#5e2c16",
+          "#8a4220",
+          "#b8582b",
+          "#e8743b",
+          "#ef9466",
+          "#f5b896",
+          "#fbddc9"
+        ]
+      },
+      "chart-2": {
+        "role": "tertiary",
+        "displayName": "Teal",
+        "canonical": "oklch(0.6 0.118 184.704)",
+        "tonalRamp": [
+          "#06302f",
+          "#0a4a48",
+          "#0f6b68",
+          "#148a87",
+          "#19a3a3",
+          "#4dbdbd",
+          "#86d4d4",
+          "#c2e9e9"
+        ]
+      },
+      "chart-3": {
+        "role": "tertiary",
+        "displayName": "Deep Blue",
+        "canonical": "oklch(0.398 0.07 227.392)",
+        "tonalRamp": [
+          "#0d1c2b",
+          "#143047",
+          "#1d4468",
+          "#265688",
+          "#2d5b8a",
+          "#5b81a8",
+          "#8aa6c5",
+          "#c0d2e2"
+        ]
+      },
+      "chart-4": {
+        "role": "tertiary",
+        "displayName": "Ochre",
+        "canonical": "oklch(0.828 0.189 84.429)",
+        "tonalRamp": [
+          "#3a3009",
+          "#5e4e10",
+          "#8a721a",
+          "#b89725",
+          "#e9c44a",
+          "#efd277",
+          "#f4e0a4",
+          "#faefd1"
+        ]
+      },
+      "chart-5": {
+        "role": "tertiary",
+        "displayName": "Amber",
+        "canonical": "oklch(0.769 0.188 70.08)",
+        "tonalRamp": [
+          "#3a2509",
+          "#5e3c10",
+          "#8a591a",
+          "#b87725",
+          "#e0962f",
+          "#e8b061",
+          "#f0ca93",
+          "#f7e4c5"
+        ]
+      },
       "destructive": {
         "role": "status",
         "displayName": "Destructive Red",
         "canonical": "hsl(0 84.2% 60.2%)",
-        "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fee2e2"]
+        "tonalRamp": [
+          "#450a0a",
+          "#7f1d1d",
+          "#b91c1c",
+          "#dc2626",
+          "#ef4444",
+          "#f87171",
+          "#fca5a5",
+          "#fee2e2"
+        ]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Page titles and primary section headers. Fixed rem, never fluid." },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Page titles and primary section headers. Fixed rem, never fluid."
+      },
       "headline": { "displayName": "Headline", "purpose": "Card and panel headers." },
       "title": { "displayName": "Title", "purpose": "Sub-section and dialog titles." },
-      "body": { "displayName": "Body", "purpose": "Default UI and prose text; prose capped at 65-75ch." },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default UI and prose text; prose capped at 65-75ch."
+      },
       "label": { "displayName": "Label", "purpose": "Buttons, form labels, table headers, badges." }
     },
     "shadows": [
-      { "name": "resting", "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "purpose": "Buttons, inputs, cards at rest (shadow-xs). Barely-there interactive lift." },
-      { "name": "card", "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)", "purpose": "Default card container." },
-      { "name": "overlay", "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)", "purpose": "Genuinely floating layers: dialogs, popovers, dropdowns, tooltips." }
+      {
+        "name": "resting",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Buttons, inputs, cards at rest (shadow-xs). Barely-there interactive lift."
+      },
+      {
+        "name": "card",
+        "value": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
+        "purpose": "Default card container."
+      },
+      {
+        "name": "overlay",
+        "value": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        "purpose": "Genuinely floating layers: dialogs, popovers, dropdowns, tooltips."
+      }
     ],
     "motion": [
-      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for state transitions (hover, focus, open/close)." },
-      { "name": "duration-fast", "value": "150ms", "purpose": "Most UI state transitions; users are in flow." },
-      { "name": "duration-base", "value": "200ms", "purpose": "Color/background transitions on interactive surfaces." }
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing for state transitions (hover, focus, open/close)."
+      },
+      {
+        "name": "duration-fast",
+        "value": "150ms",
+        "purpose": "Most UI state transitions; users are in flow."
+      },
+      {
+        "name": "duration-base",
+        "value": "200ms",
+        "purpose": "Color/background transitions on interactive surfaces."
+      }
     ],
     "breakpoints": [
       { "name": "sm", "value": "640px" },
@@ -126,9 +271,21 @@
       "Standard, consistent component vocabulary (shadcn new-york + Radix)."
     ],
     "rules": [
-      { "name": "The Earned-Color Rule", "body": "Saturated color appears only where it encodes meaning (chart series, status, current selection), never as decoration.", "section": "colors" },
-      { "name": "The One-Voice Rule", "body": "Inter carries everything; hierarchy comes from weight and size on a tight ~1.2 ratio, not from a second family.", "section": "typography" },
-      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat and bordered at rest; a shadow is a signal (hover, focus, true overlay), never decoration.", "section": "elevation" }
+      {
+        "name": "The Earned-Color Rule",
+        "body": "Saturated color appears only where it encodes meaning (chart series, status, current selection), never as decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The One-Voice Rule",
+        "body": "Inter carries everything; hierarchy comes from weight and size on a tight ~1.2 ratio, not from a second family.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat-By-Default Rule",
+        "body": "Surfaces are flat and bordered at rest; a shadow is a signal (hover, focus, true overlay), never decoration.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "Do keep the surface neutral slate and spend saturated color only on data, status, and the current selection.",

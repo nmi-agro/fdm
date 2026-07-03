@@ -13,25 +13,15 @@
  *   node <scripts_path>/live-server.mjs --help
  */
 
-import http from 'node:http';
-import { randomUUID } from 'node:crypto';
-import { spawn, execFileSync } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
-import net from 'node:net';
-import { fileURLToPath } from 'node:url';
-import { parseDesignMd } from './lib/design-parser.mjs';
-import { loadContext } from './context.mjs';
-import {
-  assembleLiveBrowserScript,
-  assertLiveBrowserScriptParts,
-  readLiveBrowserScriptParts,
-  resolveLiveBrowserScriptParts,
-} from './live/browser-script-parts.mjs';
-import { createLiveSessionStore } from './live/session-store.mjs';
-import { validateEvent } from './live/event-validation.mjs';
-import { createManualEditRoutes } from './live/manual-edit-routes.mjs';
-import { LIVE_COMMANDS } from './live/vocabulary.mjs';
+import { spawn, execFileSync } from "node:child_process"
+import { randomUUID } from "node:crypto"
+import fs from "node:fs"
+import http from "node:http"
+import net from "node:net"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+import { loadContext } from "./context.mjs"
+import { parseDesignMd } from "./lib/design-parser.mjs"
 import {
   getDesignSidecarPath,
   getLiveDir,
@@ -40,28 +30,35 @@ import {
   removeLiveServerInfo,
   resolveDesignSidecarPath,
   writeLiveServerInfo,
-} from './lib/impeccable-paths.mjs';
-import { countByPage as countPendingByPage } from './live/manual-edits-buffer.mjs';
+} from "./lib/impeccable-paths.mjs"
 import {
-  createManualApplyController,
-  summarizeManualApplyFailures,
-} from './live/manual-apply.mjs';
+  assembleLiveBrowserScript,
+  assertLiveBrowserScriptParts,
+  readLiveBrowserScriptParts,
+  resolveLiveBrowserScriptParts,
+} from "./live/browser-script-parts.mjs"
+import { validateEvent } from "./live/event-validation.mjs"
+import { createManualApplyController, summarizeManualApplyFailures } from "./live/manual-apply.mjs"
+import { createManualEditRoutes } from "./live/manual-edit-routes.mjs"
+import { countByPage as countPendingByPage } from "./live/manual-edits-buffer.mjs"
+import { createLiveSessionStore } from "./live/session-store.mjs"
 import {
   applyDeferredSvelteComponentAccepts,
   removeAllSvelteComponentSessions,
-} from './live/svelte-component.mjs';
+} from "./live/svelte-component.mjs"
+import { LIVE_COMMANDS } from "./live/vocabulary.mjs"
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // PRODUCT.md / DESIGN.md live wherever context.mjs resolves. The generated
 // DESIGN sidecar is project-local at .impeccable/design.json, with legacy
 // DESIGN.json fallback for existing projects.
-const PROJECT_CONTEXT = loadContext(process.cwd());
-const CONTEXT_DIR = PROJECT_CONTEXT.contextDir;
+const PROJECT_CONTEXT = loadContext(process.cwd())
+const CONTEXT_DIR = PROJECT_CONTEXT.contextDir
 const DESIGN_MD_PATH = PROJECT_CONTEXT.designPath
   ? path.resolve(process.cwd(), PROJECT_CONTEXT.designPath)
-  : null;
-const DEFAULT_POLL_TIMEOUT = 600_000;   // 10 min — agent re-polls on timeout anyway
-const SSE_HEARTBEAT_INTERVAL = 30_000;  // keepalive ping every 30s
+  : null
+const DEFAULT_POLL_TIMEOUT = 600_000 // 10 min — agent re-polls on timeout anyway
+const SSE_HEARTBEAT_INTERVAL = 30_000 // keepalive ping every 30s
 
 // ---------------------------------------------------------------------------
 // Port detection
@@ -69,13 +66,13 @@ const SSE_HEARTBEAT_INTERVAL = 30_000;  // keepalive ping every 30s
 
 async function findOpenPort(start = 8400) {
   return new Promise((resolve) => {
-    const srv = net.createServer();
-    srv.listen(start, '127.0.0.1', () => {
-      const port = srv.address().port;
-      srv.close(() => resolve(port));
-    });
-    srv.on('error', () => resolve(findOpenPort(start + 1)));
-  });
+    const srv = net.createServer()
+    srv.listen(start, "127.0.0.1", () => {
+      const port = srv.address().port
+      srv.close(() => resolve(port))
+    })
+    srv.on("error", () => resolve(findOpenPort(start + 1)))
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -85,13 +82,13 @@ async function findOpenPort(start = 8400) {
 const state = {
   token: null,
   port: null,
-  sseClients: new Set(),   // SSE response objects (server→browser push)
-  pendingEvents: [],        // browser events waiting for agent ack ({ event, leaseUntil })
-  pendingPolls: [],         // agent poll callbacks waiting for browser events
+  sseClients: new Set(), // SSE response objects (server→browser push)
+  pendingEvents: [], // browser events waiting for agent ack ({ event, leaseUntil })
+  pendingPolls: [], // agent poll callbacks waiting for browser events
   nextEventSeq: 1,
   lastAgentPollingBroadcast: null,
   exitTimer: null,
-  sessionDir: null,         // per-session tmp dir for annotation screenshots
+  sessionDir: null, // per-session tmp dir for annotation screenshots
   sessionStore: null,
   leaseTimer: null,
   manualEditActivity: null,
@@ -105,11 +102,13 @@ const state = {
   // a poll to be parked at the exact moment we dispatch.
   lastPollAt: 0,
   timedOutApplyIds: new Map(),
-};
+}
 
-const CHAT_POLL_FRESHNESS_MS = 60_000;
-const POLL_LEASE_EXPIRY_TIMER_GRACE_MS = 2;
-const DEBUG_MANUAL_EDIT_EVENTS = /^(1|true|yes)$/i.test(process.env.IMPECCABLE_LIVE_DEBUG_EVENTS || '');
+const CHAT_POLL_FRESHNESS_MS = 60_000
+const POLL_LEASE_EXPIRY_TIMER_GRACE_MS = 2
+const DEBUG_MANUAL_EDIT_EVENTS = /^(1|true|yes)$/i.test(
+  process.env.IMPECCABLE_LIVE_DEBUG_EVENTS || "",
+)
 
 const manualApply = createManualApplyController({
   pendingEvents: state.pendingEvents,
@@ -120,7 +119,7 @@ const manualApply = createManualApplyController({
   flushPendingPolls,
   recordManualEditActivity,
   cwd: () => process.cwd(),
-});
+})
 
 const manualEditRoutes = createManualEditRoutes({
   getToken: () => state.token,
@@ -130,85 +129,95 @@ const manualEditRoutes = createManualEditRoutes({
   chatAgentLikelyActive,
   cwd: () => process.cwd(),
   env: () => process.env,
-});
+})
 
 function chatAgentLikelyActive() {
-  if (state.pendingPolls.length > 0) return true;
-  if (!state.lastPollAt) return false;
-  return Date.now() - state.lastPollAt < CHAT_POLL_FRESHNESS_MS;
+  if (state.pendingPolls.length > 0) return true
+  if (!state.lastPollAt) return false
+  return Date.now() - state.lastPollAt < CHAT_POLL_FRESHNESS_MS
 }
 
 // Cap per-annotation upload size. A full 1920×1080 PNG is typically <1 MB;
 // cap at 10 MB to guard against runaway writes from a misbehaving client.
-const MAX_ANNOTATION_BYTES = 10 * 1024 * 1024;
+const MAX_ANNOTATION_BYTES = 10 * 1024 * 1024
 
 function enqueueEvent(event) {
-  if (!event || (event.id && state.pendingEvents.some((entry) => entry.event?.id === event.id && entry.event?.type === event.type))) return;
-  state.pendingEvents.push({ event, leaseUntil: 0, seq: state.nextEventSeq++ });
-  flushPendingPolls();
+  if (
+    !event ||
+    (event.id &&
+      state.pendingEvents.some(
+        (entry) => entry.event?.id === event.id && entry.event?.type === event.type,
+      ))
+  )
+    return
+  state.pendingEvents.push({ event, leaseUntil: 0, seq: state.nextEventSeq++ })
+  flushPendingPolls()
 }
 
 function restorePendingEventsFromStore() {
-  if (!state.sessionStore) return;
+  if (!state.sessionStore) return
   for (const snapshot of state.sessionStore.listActiveSessions()) {
-    if (snapshot.pendingEvent) enqueueEvent(snapshot.pendingEvent);
+    if (snapshot.pendingEvent) enqueueEvent(snapshot.pendingEvent)
   }
 }
 
 function findAvailablePendingEvent(now = Date.now()) {
   for (const entry of state.pendingEvents) {
-    if (entry.leaseUntil && entry.leaseUntil > now) continue;
-    return entry;
+    if (entry.leaseUntil && entry.leaseUntil > now) continue
+    return entry
   }
-  return null;
+  return null
 }
 
 function leaseEvent(entry, leaseMs) {
   if (!entry.event?.id) {
-    const idx = state.pendingEvents.indexOf(entry);
-    if (idx !== -1) state.pendingEvents.splice(idx, 1);
-    return entry.event;
+    const idx = state.pendingEvents.indexOf(entry)
+    if (idx !== -1) state.pendingEvents.splice(idx, 1)
+    return entry.event
   }
-  entry.leaseUntil = Date.now() + leaseMs;
-  scheduleLeaseFlush();
-  broadcastAgentPollingIfChanged();
-  return entry.event;
+  entry.leaseUntil = Date.now() + leaseMs
+  scheduleLeaseFlush()
+  broadcastAgentPollingIfChanged()
+  return entry.event
 }
 
 function acknowledgePendingEvent(id) {
-  if (!id) return false;
-  const idx = state.pendingEvents.findIndex((entry) => entry.event?.id === id);
-  if (idx === -1) return false;
-  const acknowledged = state.pendingEvents[idx].event;
-  state.pendingEvents.splice(idx, 1);
-  scheduleLeaseFlush();
-  broadcastAgentPollingIfChanged();
-  return acknowledged;
+  if (!id) return false
+  const idx = state.pendingEvents.findIndex((entry) => entry.event?.id === id)
+  if (idx === -1) return false
+  const acknowledged = state.pendingEvents[idx].event
+  state.pendingEvents.splice(idx, 1)
+  scheduleLeaseFlush()
+  broadcastAgentPollingIfChanged()
+  return acknowledged
 }
 
 function findPendingEventById(id) {
-  if (!id) return null;
-  const entry = state.pendingEvents.find((item) => item.event?.id === id);
-  return entry?.event || null;
+  if (!id) return null
+  const entry = state.pendingEvents.find((item) => item.event?.id === id)
+  return entry?.event || null
 }
 
 function summarizePendingEventForStatus(entry) {
-  const event = entry.event || {};
+  const event = entry.event || {}
   const summary = {
     id: event.id,
     type: event.type,
     leased: !!(entry.leaseUntil && entry.leaseUntil > Date.now()),
     leaseUntil: entry.leaseUntil || null,
-  };
-  if (event.type === 'manual_edit_apply') {
-    summary.pageUrl = event.pageUrl || null;
-    summary.chunk = event.chunk || null;
-    summary.repair = event.repair || null;
-    summary.evidencePath = event.evidencePath || null;
-    summary.agentAction = event.agentAction || manualApply.buildAgentAction(event);
-    summary.manualApplySummary = manualApply.summarizeEvent(event, manualApply.getDeferred(event.id)?.batch || event.batch);
   }
-  return summary;
+  if (event.type === "manual_edit_apply") {
+    summary.pageUrl = event.pageUrl || null
+    summary.chunk = event.chunk || null
+    summary.repair = event.repair || null
+    summary.evidencePath = event.evidencePath || null
+    summary.agentAction = event.agentAction || manualApply.buildAgentAction(event)
+    summary.manualApplySummary = manualApply.summarizeEvent(
+      event,
+      manualApply.getDeferred(event.id)?.batch || event.batch,
+    )
+  }
+  return summary
 }
 
 function summarizeActiveSessionForClient(snapshot = {}) {
@@ -224,82 +233,93 @@ function summarizeActiveSessionForClient(snapshot = {}) {
     visibleVariant: snapshot.visibleVariant ?? null,
     checkpointRevision: snapshot.checkpointRevision ?? 0,
     paramValues: snapshot.paramValues || {},
-  };
+  }
 }
 
 function activeSessionSummaries() {
-  if (!state.sessionStore) return [];
-  return state.sessionStore.listActiveSessions().map((snapshot) => summarizeActiveSessionForClient(snapshot));
+  if (!state.sessionStore) return []
+  return state.sessionStore
+    .listActiveSessions()
+    .map((snapshot) => summarizeActiveSessionForClient(snapshot))
 }
 
 function cancelQueuedAnonymousExitEvents() {
-  let removed = 0;
+  let removed = 0
   for (let i = state.pendingEvents.length - 1; i >= 0; i -= 1) {
-    const event = state.pendingEvents[i]?.event;
-    if (event?.type !== 'exit' || event.id) continue;
-    state.pendingEvents.splice(i, 1);
-    removed += 1;
+    const event = state.pendingEvents[i]?.event
+    if (event?.type !== "exit" || event.id) continue
+    state.pendingEvents.splice(i, 1)
+    removed += 1
   }
   if (removed > 0) {
-    scheduleLeaseFlush();
-    broadcastAgentPollingIfChanged();
+    scheduleLeaseFlush()
+    broadcastAgentPollingIfChanged()
   }
-  return removed;
+  return removed
 }
 
 function scheduleLeaseFlush() {
   if (state.leaseTimer) {
-    clearTimeout(state.leaseTimer);
-    state.leaseTimer = null;
+    clearTimeout(state.leaseTimer)
+    state.leaseTimer = null
   }
-  const now = Date.now();
+  const now = Date.now()
   const nextLeaseUntil = state.pendingEvents
     .map((entry) => entry.leaseUntil || 0)
     .filter((leaseUntil) => leaseUntil > now)
-    .sort((a, b) => a - b)[0];
-  if (!nextLeaseUntil) return;
-  state.leaseTimer = setTimeout(() => {
-    state.leaseTimer = null;
-    flushPendingPolls();
-    broadcastAgentPollingIfChanged();
-  }, Math.max(0, nextLeaseUntil - now + POLL_LEASE_EXPIRY_TIMER_GRACE_MS));
+    .sort((a, b) => a - b)[0]
+  if (!nextLeaseUntil) return
+  state.leaseTimer = setTimeout(
+    () => {
+      state.leaseTimer = null
+      flushPendingPolls()
+      broadcastAgentPollingIfChanged()
+    },
+    Math.max(0, nextLeaseUntil - now + POLL_LEASE_EXPIRY_TIMER_GRACE_MS),
+  )
 }
 
 function flushPendingPolls() {
-  let changed = false;
+  let changed = false
   while (state.pendingPolls.length > 0) {
-    const entry = findAvailablePendingEvent();
+    const entry = findAvailablePendingEvent()
     if (!entry) {
-      scheduleLeaseFlush();
-      broadcastAgentPollingIfChanged();
-      return;
+      scheduleLeaseFlush()
+      broadcastAgentPollingIfChanged()
+      return
     }
-    const poll = state.pendingPolls.shift();
-    poll.resolve(leaseEvent(entry, poll.leaseMs));
-    changed = true;
+    const poll = state.pendingPolls.shift()
+    poll.resolve(leaseEvent(entry, poll.leaseMs))
+    changed = true
   }
-  scheduleLeaseFlush();
-  if (changed) broadcastAgentPollingIfChanged();
+  scheduleLeaseFlush()
+  if (changed) broadcastAgentPollingIfChanged()
 }
 
 function agentPollingConnected() {
-  const now = Date.now();
-  return state.pendingPolls.length > 0
-    || state.pendingEvents.some((entry) => entry.leaseUntil && entry.leaseUntil > now);
+  const now = Date.now()
+  return (
+    state.pendingPolls.length > 0 ||
+    state.pendingEvents.some((entry) => entry.leaseUntil && entry.leaseUntil > now)
+  )
 }
 
 function broadcastAgentPollingIfChanged() {
-  const connected = agentPollingConnected();
-  if (state.lastAgentPollingBroadcast === connected) return;
-  state.lastAgentPollingBroadcast = connected;
-  broadcast({ type: 'agent_polling', connected });
+  const connected = agentPollingConnected()
+  if (state.lastAgentPollingBroadcast === connected) return
+  state.lastAgentPollingBroadcast = connected
+  broadcast({ type: "agent_polling", connected })
 }
 
 /** Push a message to all connected SSE clients. */
 function broadcast(msg) {
-  const data = 'data: ' + JSON.stringify(msg) + '\n\n';
+  const data = "data: " + JSON.stringify(msg) + "\n\n"
   for (const res of state.sseClients) {
-    try { res.write(data); } catch { /* client gone */ }
+    try {
+      res.write(data)
+    } catch {
+      /* client gone */
+    }
   }
 }
 
@@ -309,32 +329,32 @@ function recordManualEditActivity(type, details = {}) {
     type,
     ts: new Date().toISOString(),
     ...details,
-  };
-  state.manualEditActivity = entry;
+  }
+  state.manualEditActivity = entry
   if (DEBUG_MANUAL_EDIT_EVENTS) {
     try {
-      const filePath = path.join(getLiveDir(process.cwd()), 'manual-edit-events.jsonl');
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.appendFileSync(filePath, JSON.stringify(entry) + '\n');
+      const filePath = path.join(getLiveDir(process.cwd()), "manual-edit-events.jsonl")
+      fs.mkdirSync(path.dirname(filePath), { recursive: true })
+      fs.appendFileSync(filePath, JSON.stringify(entry) + "\n")
     } catch {
       /* diagnostics are best-effort; never block live mode on observability */
     }
   }
-  broadcast(entry);
-  return entry;
+  broadcast(entry)
+  return entry
 }
 
 function getManualEditStatus() {
   try {
-    const { totalCount, perPage } = countPendingByPage(process.cwd());
-    return { totalCount, perPage, lastActivity: state.manualEditActivity };
+    const { totalCount, perPage } = countPendingByPage(process.cwd())
+    return { totalCount, perPage, lastActivity: state.manualEditActivity }
   } catch (err) {
     return {
       totalCount: null,
       perPage: {},
       lastActivity: state.manualEditActivity,
       error: err.message,
-    };
+    }
   }
 }
 
@@ -347,39 +367,55 @@ function loadBrowserScripts() {
   // source/npm package locations for local development and older installs.
   // This one IS cached — detect.js rarely changes during a session.
   const detectPaths = [
-    path.join(__dirname, 'detector', 'detect-antipatterns-browser.js'),
-    path.join(__dirname, '..', '..', 'cli', 'engine', 'detect-antipatterns-browser.js'),
-    path.join(__dirname, '..', '..', '..', '..', 'cli', 'engine', 'detect-antipatterns-browser.js'),
-    path.join(process.cwd(), 'node_modules', 'impeccable', 'cli', 'engine', 'detect-antipatterns-browser.js'),
-  ];
-  let detectScript = '';
+    path.join(__dirname, "detector", "detect-antipatterns-browser.js"),
+    path.join(__dirname, "..", "..", "cli", "engine", "detect-antipatterns-browser.js"),
+    path.join(__dirname, "..", "..", "..", "..", "cli", "engine", "detect-antipatterns-browser.js"),
+    path.join(
+      process.cwd(),
+      "node_modules",
+      "impeccable",
+      "cli",
+      "engine",
+      "detect-antipatterns-browser.js",
+    ),
+  ]
+  let detectScript = ""
   for (const p of detectPaths) {
-    try { detectScript = fs.readFileSync(p, 'utf-8'); break; } catch { /* try next */ }
+    try {
+      detectScript = fs.readFileSync(p, "utf-8")
+      break
+    } catch {
+      /* try next */
+    }
   }
 
   // Browser script parts: DO NOT cache. Return paths so the /live.js handler
   // can re-read every part on each request. Editing browser code during
   // iteration should land on the next tab reload, not require a server restart.
-  const liveScriptParts = resolveLiveBrowserScriptParts(__dirname);
+  const liveScriptParts = resolveLiveBrowserScriptParts(__dirname)
   try {
-    assertLiveBrowserScriptParts(liveScriptParts);
+    assertLiveBrowserScriptParts(liveScriptParts)
   } catch (err) {
-    process.stderr.write('Error: ' + err.message + '\n');
-    process.exit(1);
+    process.stderr.write("Error: " + err.message + "\n")
+    process.exit(1)
   }
 
-  return { detectScript, liveScriptParts };
+  return { detectScript, liveScriptParts }
 }
 
 function hasProjectContext() {
   // PRODUCT.md carries brand voice / anti-references — that's what determines
   // whether variants are brand-aware. DESIGN.md (visual tokens) is a separate
   // concern, surfaced by the design panel's own empty state.
-  return !!PROJECT_CONTEXT.hasProduct;
+  return !!PROJECT_CONTEXT.hasProduct
 }
 
 function statOrNull(filePath) {
-  try { return fs.statSync(filePath); } catch { return null; }
+  try {
+    return fs.statSync(filePath)
+  } catch {
+    return null
+  }
 }
 
 // HTTP request handler
@@ -387,152 +423,175 @@ function statOrNull(filePath) {
 
 function createRequestHandler({ detectScript, liveScriptParts }) {
   return (req, res) => {
-    const url = new URL(req.url, `http://localhost:${state.port}`);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+    const url = new URL(req.url, `http://localhost:${state.port}`)
+    res.setHeader("Access-Control-Allow-Origin", "*")
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type")
+    if (req.method === "OPTIONS") {
+      res.writeHead(204)
+      res.end()
+      return
+    }
 
-    const p = url.pathname;
+    const p = url.pathname
 
     // --- Scripts ---
-    if (p === '/live.js') {
+    if (p === "/live.js") {
       // Re-read from disk each request so edits to live-browser.js land on
       // the next tab reload. No-store headers prevent browser caching across
       // sessions — during iteration, a cached old script silently breaks
       // every subsequent session.
-      let parts;
+      let parts
       try {
-        parts = readLiveBrowserScriptParts(liveScriptParts);
+        parts = readLiveBrowserScriptParts(liveScriptParts)
       } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'text/plain' });
-        res.end('Error reading live browser scripts: ' + err.message);
-        return;
+        res.writeHead(500, { "Content-Type": "text/plain" })
+        res.end("Error reading live browser scripts: " + err.message)
+        return
       }
       const body = assembleLiveBrowserScript({
         token: state.token,
         port: state.port,
         vocabulary: LIVE_COMMANDS,
         parts,
-      });
+      })
       res.writeHead(200, {
-        'Content-Type': 'application/javascript',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-      });
-      res.end(body);
-      return;
+        "Content-Type": "application/javascript",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        Pragma: "no-cache",
+      })
+      res.end(body)
+      return
     }
-    if (p === '/detect.js' || p === '/') {
-      if (!detectScript) { res.writeHead(404); res.end('Not available'); return; }
-      res.writeHead(200, { 'Content-Type': 'application/javascript' });
-      res.end(detectScript);
-      return;
+    if (p === "/detect.js" || p === "/") {
+      if (!detectScript) {
+        res.writeHead(404)
+        res.end("Not available")
+        return
+      }
+      res.writeHead(200, { "Content-Type": "application/javascript" })
+      res.end(detectScript)
+      return
     }
 
     // --- Vendored modern-screenshot (UMD build) ---
     // Lazy-loaded by live.js when the user clicks Go; exposes
     // window.modernScreenshot.domToBlob(...) for capture.
-    if (p === '/modern-screenshot.js') {
-      const vendorPath = path.join(__dirname, 'modern-screenshot.umd.js');
+    if (p === "/modern-screenshot.js") {
+      const vendorPath = path.join(__dirname, "modern-screenshot.umd.js")
       try {
         res.writeHead(200, {
-          'Content-Type': 'application/javascript',
-          'Cache-Control': 'public, max-age=31536000, immutable',
-        });
-        res.end(fs.readFileSync(vendorPath));
+          "Content-Type": "application/javascript",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        })
+        res.end(fs.readFileSync(vendorPath))
       } catch {
-        res.writeHead(404); res.end('Vendor script not found');
+        res.writeHead(404)
+        res.end("Vendor script not found")
       }
-      return;
+      return
     }
 
     // --- Annotation upload (browser → server, raw PNG body) ---
     // Client generates the eventId, POSTs the PNG, then POSTs the generate
     // event with screenshotPath already set. Keeps bytes out of the SSE/poll
     // bridge and preserves the "one shot from the user's POV" UX.
-    if (p === '/annotation' && req.method === 'POST') {
-      const token = url.searchParams.get('token');
-      if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
-      const eventId = url.searchParams.get('eventId');
-      if (!eventId || !/^[A-Za-z0-9_-]{1,64}$/.test(eventId)) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid eventId' }));
-        return;
+    if (p === "/annotation" && req.method === "POST") {
+      const token = url.searchParams.get("token")
+      if (token !== state.token) {
+        res.writeHead(401)
+        res.end("Unauthorized")
+        return
       }
-      if ((req.headers['content-type'] || '').toLowerCase() !== 'image/png') {
-        res.writeHead(415, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Content-Type must be image/png' }));
-        return;
+      const eventId = url.searchParams.get("eventId")
+      if (!eventId || !/^[A-Za-z0-9_-]{1,64}$/.test(eventId)) {
+        res.writeHead(400, { "Content-Type": "application/json" })
+        res.end(JSON.stringify({ error: "Invalid eventId" }))
+        return
+      }
+      if ((req.headers["content-type"] || "").toLowerCase() !== "image/png") {
+        res.writeHead(415, { "Content-Type": "application/json" })
+        res.end(JSON.stringify({ error: "Content-Type must be image/png" }))
+        return
       }
       if (!state.sessionDir) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session dir unavailable' }));
-        return;
+        res.writeHead(500, { "Content-Type": "application/json" })
+        res.end(JSON.stringify({ error: "Session dir unavailable" }))
+        return
       }
-      const chunks = [];
-      let total = 0;
-      let aborted = false;
-      req.on('data', (c) => {
-        if (aborted) return;
-        total += c.length;
+      const chunks = []
+      let total = 0
+      let aborted = false
+      req.on("data", (c) => {
+        if (aborted) return
+        total += c.length
         if (total > MAX_ANNOTATION_BYTES) {
-          aborted = true;
-          res.writeHead(413, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Payload too large' }));
-          req.destroy();
-          return;
+          aborted = true
+          res.writeHead(413, { "Content-Type": "application/json" })
+          res.end(JSON.stringify({ error: "Payload too large" }))
+          req.destroy()
+          return
         }
-        chunks.push(c);
-      });
-      req.on('end', () => {
-        if (aborted) return;
-        const absPath = path.join(state.sessionDir, eventId + '.png');
+        chunks.push(c)
+      })
+      req.on("end", () => {
+        if (aborted) return
+        const absPath = path.join(state.sessionDir, eventId + ".png")
         try {
-          fs.writeFileSync(absPath, Buffer.concat(chunks));
+          fs.writeFileSync(absPath, Buffer.concat(chunks))
         } catch (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Write failed: ' + err.message }));
-          return;
+          res.writeHead(500, { "Content-Type": "application/json" })
+          res.end(JSON.stringify({ error: "Write failed: " + err.message }))
+          return
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true, path: absPath }));
-      });
-      req.on('error', () => {
+        res.writeHead(200, { "Content-Type": "application/json" })
+        res.end(JSON.stringify({ ok: true, path: absPath }))
+      })
+      req.on("error", () => {
         if (!aborted) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Upload failed' }));
+          res.writeHead(500, { "Content-Type": "application/json" })
+          res.end(JSON.stringify({ error: "Upload failed" }))
         }
-      });
-      return;
+      })
+      return
     }
 
     // --- Health ---
-    if (p === '/status') {
-      const token = url.searchParams.get('token');
-      if (token !== state.token) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Unauthorized' })); return; }
-      const sessions = activeSessionSummaries();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'ok',
-        port: state.port,
-        connectedClients: state.sseClients.size,
-        pendingEvents: state.pendingEvents.map((entry) => summarizePendingEventForStatus(entry)),
-        agentPolling: agentPollingConnected(),
-        activeSessions: sessions,
-        manualEdits: getManualEditStatus(),
-      }));
-      return;
+    if (p === "/status") {
+      const token = url.searchParams.get("token")
+      if (token !== state.token) {
+        res.writeHead(401, { "Content-Type": "application/json" })
+        res.end(JSON.stringify({ error: "Unauthorized" }))
+        return
+      }
+      const sessions = activeSessionSummaries()
+      res.writeHead(200, { "Content-Type": "application/json" })
+      res.end(
+        JSON.stringify({
+          status: "ok",
+          port: state.port,
+          connectedClients: state.sseClients.size,
+          pendingEvents: state.pendingEvents.map((entry) => summarizePendingEventForStatus(entry)),
+          agentPolling: agentPollingConnected(),
+          activeSessions: sessions,
+          manualEdits: getManualEditStatus(),
+        }),
+      )
+      return
     }
 
-    if (p === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'ok', port: state.port, mode: 'variant',
-        hasProjectContext: hasProjectContext(),
-        connectedClients: state.sseClients.size,
-      }));
-      return;
+    if (p === "/health") {
+      res.writeHead(200, { "Content-Type": "application/json" })
+      res.end(
+        JSON.stringify({
+          status: "ok",
+          port: state.port,
+          mode: "variant",
+          hasProjectContext: hasProjectContext(),
+          connectedClients: state.sseClients.size,
+        }),
+      )
+      return
     }
 
     // --- Design system (unified v2 response) + raw ---
@@ -546,26 +605,36 @@ function createRequestHandler({ detectScript, liveScriptParts }) {
     //                            Expected shape: schemaVersion 2, carrying
     //                            extensions + components + narrative.
     //   /design-system/raw     returns DESIGN.md markdown verbatim
-    if (p === '/design-system.json' || p === '/design-system/raw') {
-      const token = url.searchParams.get('token');
-      if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
+    if (p === "/design-system.json" || p === "/design-system/raw") {
+      const token = url.searchParams.get("token")
+      if (token !== state.token) {
+        res.writeHead(401)
+        res.end("Unauthorized")
+        return
+      }
 
-      const mdPath = DESIGN_MD_PATH;
-      const jsonPath = resolveDesignSidecarPath(process.cwd(), PROJECT_CONTEXT.designContextDir || CONTEXT_DIR) || getDesignSidecarPath(process.cwd());
-      const mdStat = statOrNull(mdPath);
-      const jsonStat = statOrNull(jsonPath);
+      const mdPath = DESIGN_MD_PATH
+      const jsonPath =
+        resolveDesignSidecarPath(process.cwd(), PROJECT_CONTEXT.designContextDir || CONTEXT_DIR) ||
+        getDesignSidecarPath(process.cwd())
+      const mdStat = statOrNull(mdPath)
+      const jsonStat = statOrNull(jsonPath)
 
-      if (p === '/design-system/raw') {
-        if (!mdStat) { res.writeHead(404); res.end('Not found'); return; }
-        res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
-        res.end(fs.readFileSync(mdPath, 'utf-8'));
-        return;
+      if (p === "/design-system/raw") {
+        if (!mdStat) {
+          res.writeHead(404)
+          res.end("Not found")
+          return
+        }
+        res.writeHead(200, { "Content-Type": "text/markdown; charset=utf-8" })
+        res.end(fs.readFileSync(mdPath, "utf-8"))
+        return
       }
 
       if (!mdStat && !jsonStat) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ present: false }));
-        return;
+        res.writeHead(404, { "Content-Type": "application/json" })
+        res.end(JSON.stringify({ present: false }))
+        return
       }
 
       const response = {
@@ -573,163 +642,208 @@ function createRequestHandler({ detectScript, liveScriptParts }) {
         hasMd: !!mdStat,
         hasSidecar: !!jsonStat,
         mdNewerThanJson: !!(mdStat && jsonStat && mdStat.mtimeMs > jsonStat.mtimeMs + 1000),
-      };
+      }
 
       if (mdStat) {
         try {
-          response.parsed = parseDesignMd(fs.readFileSync(mdPath, 'utf-8'));
+          response.parsed = parseDesignMd(fs.readFileSync(mdPath, "utf-8"))
         } catch (err) {
-          response.parseError = err.message;
+          response.parseError = err.message
         }
       }
 
       if (jsonStat) {
         try {
-          response.sidecar = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+          response.sidecar = JSON.parse(fs.readFileSync(jsonPath, "utf-8"))
         } catch (err) {
-          response.sidecarError = 'Failed to parse .impeccable/design.json: ' + err.message;
+          response.sidecarError = "Failed to parse .impeccable/design.json: " + err.message
         }
       }
 
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(response));
-      return;
+      res.writeHead(200, { "Content-Type": "application/json" })
+      res.end(JSON.stringify(response))
+      return
     }
 
     // --- Source file (no-HMR fallback) ---
-    if (p === '/source') {
-      const token = url.searchParams.get('token');
-      if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
-      const filePath = url.searchParams.get('path');
-      if (!filePath || filePath.includes('..')) { res.writeHead(400); res.end('Bad path'); return; }
-      const absPath = path.resolve(process.cwd(), filePath);
-      if (!absPath.startsWith(process.cwd())) { res.writeHead(403); res.end('Forbidden'); return; }
-      let content;
-      try { content = fs.readFileSync(absPath, 'utf-8'); }
-      catch { res.writeHead(404); res.end('File not found'); return; }
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(content);
-      return;
+    if (p === "/source") {
+      const token = url.searchParams.get("token")
+      if (token !== state.token) {
+        res.writeHead(401)
+        res.end("Unauthorized")
+        return
+      }
+      const filePath = url.searchParams.get("path")
+      if (!filePath || filePath.includes("..")) {
+        res.writeHead(400)
+        res.end("Bad path")
+        return
+      }
+      const absPath = path.resolve(process.cwd(), filePath)
+      if (!absPath.startsWith(process.cwd())) {
+        res.writeHead(403)
+        res.end("Forbidden")
+        return
+      }
+      let content
+      try {
+        content = fs.readFileSync(absPath, "utf-8")
+      } catch {
+        res.writeHead(404)
+        res.end("File not found")
+        return
+      }
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
+      res.end(content)
+      return
     }
 
     // --- SSE: server→browser push (replaces WebSocket) ---
-    if (p === '/events' && req.method === 'GET') {
-      const token = url.searchParams.get('token');
-      if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
-      clearTimeout(state.exitTimer);
-      state.exitTimer = null;
-      cancelQueuedAnonymousExitEvents();
+    if (p === "/events" && req.method === "GET") {
+      const token = url.searchParams.get("token")
+      if (token !== state.token) {
+        res.writeHead(401)
+        res.end("Unauthorized")
+        return
+      }
+      clearTimeout(state.exitTimer)
+      state.exitTimer = null
+      cancelQueuedAnonymousExitEvents()
       res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      });
-      res.write('data: ' + JSON.stringify({
-        type: 'connected',
-        hasProjectContext: hasProjectContext(),
-        agentPolling: agentPollingConnected(),
-        activeSessions: activeSessionSummaries(),
-      }) + '\n\n');
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      })
+      res.write(
+        "data: " +
+          JSON.stringify({
+            type: "connected",
+            hasProjectContext: hasProjectContext(),
+            agentPolling: agentPollingConnected(),
+            activeSessions: activeSessionSummaries(),
+          }) +
+          "\n\n",
+      )
 
-      state.sseClients.add(res);
+      state.sseClients.add(res)
 
       // Keepalive: SSE comment every 30s prevents silent connection drops.
       const heartbeat = setInterval(() => {
-        try { res.write(': keepalive\n\n'); } catch { clearInterval(heartbeat); }
-      }, SSE_HEARTBEAT_INTERVAL);
-
-      req.on('close', () => {
-        clearInterval(heartbeat);
-        state.sseClients.delete(res);
-        if (state.sseClients.size === 0) {
-          clearTimeout(state.exitTimer);
-          state.exitTimer = setTimeout(() => {
-            if (state.sseClients.size === 0) enqueueEvent({ type: 'exit' });
-          }, 8000);
+        try {
+          res.write(": keepalive\n\n")
+        } catch {
+          clearInterval(heartbeat)
         }
-      });
-      return;
+      }, SSE_HEARTBEAT_INTERVAL)
+
+      req.on("close", () => {
+        clearInterval(heartbeat)
+        state.sseClients.delete(res)
+        if (state.sseClients.size === 0) {
+          clearTimeout(state.exitTimer)
+          state.exitTimer = setTimeout(() => {
+            if (state.sseClients.size === 0) enqueueEvent({ type: "exit" })
+          }, 8000)
+        }
+      })
+      return
     }
 
-    if (manualEditRoutes(req, res, url)) return;
+    if (manualEditRoutes(req, res, url)) return
 
     // --- Browser→server events (replaces WebSocket messages) ---
-    if (p === '/events' && req.method === 'POST') {
-      let body = '';
-      req.on('data', (c) => { body += c; });
-      req.on('end', () => {
-        let msg;
-        try { msg = JSON.parse(body); } catch {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid JSON' }));
-          return;
+    if (p === "/events" && req.method === "POST") {
+      let body = ""
+      req.on("data", (c) => {
+        body += c
+      })
+      req.on("end", () => {
+        let msg
+        try {
+          msg = JSON.parse(body)
+        } catch {
+          res.writeHead(400, { "Content-Type": "application/json" })
+          res.end(JSON.stringify({ error: "Invalid JSON" }))
+          return
         }
         if (msg.token !== state.token) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Unauthorized' }));
-          return;
+          res.writeHead(401, { "Content-Type": "application/json" })
+          res.end(JSON.stringify({ error: "Unauthorized" }))
+          return
         }
         // Defense in depth: manual copy edits must use the staged stash/apply
         // endpoints. The direct Save event path is disabled in the browser.
-        if (msg.type === 'manual_edits') {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'manual_edits must POST to /manual-edit-stash, not /events' }));
-          return;
+        if (msg.type === "manual_edits") {
+          res.writeHead(400, { "Content-Type": "application/json" })
+          res.end(
+            JSON.stringify({ error: "manual_edits must POST to /manual-edit-stash, not /events" }),
+          )
+          return
         }
-        if (msg.type === 'manual_edit_apply') {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'manual_edit_apply is disabled; use /manual-edit-stash then /manual-edit-commit' }));
-          return;
+        if (msg.type === "manual_edit_apply") {
+          res.writeHead(400, { "Content-Type": "application/json" })
+          res.end(
+            JSON.stringify({
+              error:
+                "manual_edit_apply is disabled; use /manual-edit-stash then /manual-edit-commit",
+            }),
+          )
+          return
         }
-        const error = validateEvent(msg);
+        const error = validateEvent(msg)
         if (error) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error }));
-          return;
+          res.writeHead(400, { "Content-Type": "application/json" })
+          res.end(JSON.stringify({ error }))
+          return
         }
         if (state.sessionStore && msg.id) {
           try {
-            state.sessionStore.appendEvent(msg);
+            state.sessionStore.appendEvent(msg)
           } catch (err) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'session_store_append_failed', message: err.message }));
-            return;
+            res.writeHead(500, { "Content-Type": "application/json" })
+            res.end(JSON.stringify({ error: "session_store_append_failed", message: err.message }))
+            return
           }
         }
-        if (msg.type === 'exit') {
-          cleanupSvelteComponentSessionsBeforeExit();
+        if (msg.type === "exit") {
+          cleanupSvelteComponentSessionsBeforeExit()
         }
-        if (msg.type !== 'checkpoint') {
-          enqueueEvent(msg);
+        if (msg.type !== "checkpoint") {
+          enqueueEvent(msg)
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      });
-      return;
+        res.writeHead(200, { "Content-Type": "application/json" })
+        res.end(JSON.stringify({ ok: true }))
+      })
+      return
     }
 
     // --- Stop ---
-    if (p === '/stop') {
-      const token = url.searchParams.get('token');
-      if (token !== state.token) { res.writeHead(401); res.end('Unauthorized'); return; }
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('stopping');
-      shutdown();
-      return;
+    if (p === "/stop") {
+      const token = url.searchParams.get("token")
+      if (token !== state.token) {
+        res.writeHead(401)
+        res.end("Unauthorized")
+        return
+      }
+      res.writeHead(200, { "Content-Type": "text/plain" })
+      res.end("stopping")
+      shutdown()
+      return
     }
 
     // --- Agent poll ---
-    if (p === '/poll' && req.method === 'GET') {
-      handlePollGet(req, res, url);
-      return;
+    if (p === "/poll" && req.method === "GET") {
+      handlePollGet(req, res, url)
+      return
     }
-    if (p === '/poll' && req.method === 'POST') {
-      handlePollPost(req, res);
-      return;
+    if (p === "/poll" && req.method === "POST") {
+      handlePollPost(req, res)
+      return
     }
 
-    res.writeHead(404); res.end('Not found');
-  };
+    res.writeHead(404)
+    res.end("Not found")
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -737,108 +851,117 @@ function createRequestHandler({ detectScript, liveScriptParts }) {
 // ---------------------------------------------------------------------------
 
 function handlePollGet(req, res, url) {
-  const token = url.searchParams.get('token');
+  const token = url.searchParams.get("token")
   if (token !== state.token) {
-    res.writeHead(401, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Unauthorized' }));
-    return;
+    res.writeHead(401, { "Content-Type": "application/json" })
+    res.end(JSON.stringify({ error: "Unauthorized" }))
+    return
   }
-  state.lastPollAt = Date.now();
-  const timeout = parseInt(url.searchParams.get('timeout') || DEFAULT_POLL_TIMEOUT, 10);
-  const leaseMs = parseInt(url.searchParams.get('leaseMs') || '30000', 10);
-  const available = findAvailablePendingEvent();
+  state.lastPollAt = Date.now()
+  const timeout = parseInt(url.searchParams.get("timeout") || DEFAULT_POLL_TIMEOUT, 10)
+  const leaseMs = parseInt(url.searchParams.get("leaseMs") || "30000", 10)
+  const available = findAvailablePendingEvent()
   if (available) {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(leaseEvent(available, leaseMs)));
-    return;
+    res.writeHead(200, { "Content-Type": "application/json" })
+    res.end(JSON.stringify(leaseEvent(available, leaseMs)))
+    return
   }
-  const poll = { resolve, leaseMs };
+  const poll = { resolve, leaseMs }
   const timer = setTimeout(() => {
-    const idx = state.pendingPolls.indexOf(poll);
-    if (idx !== -1) state.pendingPolls.splice(idx, 1);
-    broadcastAgentPollingIfChanged();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ type: 'timeout' }));
-  }, timeout);
+    const idx = state.pendingPolls.indexOf(poll)
+    if (idx !== -1) state.pendingPolls.splice(idx, 1)
+    broadcastAgentPollingIfChanged()
+    res.writeHead(200, { "Content-Type": "application/json" })
+    res.end(JSON.stringify({ type: "timeout" }))
+  }, timeout)
   function resolve(event) {
-    clearTimeout(timer);
-    state.lastPollAt = Date.now();
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(event));
+    clearTimeout(timer)
+    state.lastPollAt = Date.now()
+    res.writeHead(200, { "Content-Type": "application/json" })
+    res.end(JSON.stringify(event))
   }
-  state.pendingPolls.push(poll);
-  broadcastAgentPollingIfChanged();
-  scheduleLeaseFlush();
-  req.on('close', () => {
-    clearTimeout(timer);
-    const idx = state.pendingPolls.indexOf(poll);
-    if (idx !== -1) state.pendingPolls.splice(idx, 1);
-    broadcastAgentPollingIfChanged();
-  });
+  state.pendingPolls.push(poll)
+  broadcastAgentPollingIfChanged()
+  scheduleLeaseFlush()
+  req.on("close", () => {
+    clearTimeout(timer)
+    const idx = state.pendingPolls.indexOf(poll)
+    if (idx !== -1) state.pendingPolls.splice(idx, 1)
+    broadcastAgentPollingIfChanged()
+  })
 }
 
 function sessionFileMetadataFromPollReply(file) {
-  if (!file || typeof file !== 'string') return { file };
-  const normalized = file.split(path.sep).join('/');
-  const base = { file: normalized };
-  if (!normalized.endsWith('/manifest.json') && normalized !== 'manifest.json') return base;
-  if (!normalized.includes('node_modules/.impeccable-live/') && !normalized.includes('src/lib/impeccable/')) return base;
+  if (!file || typeof file !== "string") return { file }
+  const normalized = file.split(path.sep).join("/")
+  const base = { file: normalized }
+  if (!normalized.endsWith("/manifest.json") && normalized !== "manifest.json") return base
+  if (
+    !normalized.includes("node_modules/.impeccable-live/") &&
+    !normalized.includes("src/lib/impeccable/")
+  )
+    return base
 
-  let full;
+  let full
   try {
-    full = path.resolve(process.cwd(), normalized);
-    const rel = path.relative(process.cwd(), full);
-    if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return base;
+    full = path.resolve(process.cwd(), normalized)
+    const rel = path.relative(process.cwd(), full)
+    if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return base
   } catch {
-    return base;
+    return base
   }
 
   try {
-    const manifest = JSON.parse(fs.readFileSync(full, 'utf-8'));
-    if (manifest?.previewMode !== 'svelte-component' || !manifest.sourceFile) return base;
+    const manifest = JSON.parse(fs.readFileSync(full, "utf-8"))
+    if (manifest?.previewMode !== "svelte-component" || !manifest.sourceFile) return base
     return {
-      file: String(manifest.sourceFile).split(path.sep).join('/'),
-      sourceFile: String(manifest.sourceFile).split(path.sep).join('/'),
+      file: String(manifest.sourceFile).split(path.sep).join("/"),
+      sourceFile: String(manifest.sourceFile).split(path.sep).join("/"),
       previewFile: normalized,
-      previewMode: 'svelte-component',
-    };
+      previewMode: "svelte-component",
+    }
   } catch {
-    return base;
+    return base
   }
 }
 
 function handlePollPost(req, res) {
-  let body = '';
-  req.on('data', (c) => { body += c; });
-  req.on('end', () => {
-    let msg;
-    try { msg = JSON.parse(body); } catch {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid JSON' }));
-      return;
+  let body = ""
+  req.on("data", (c) => {
+    body += c
+  })
+  req.on("end", () => {
+    let msg
+    try {
+      msg = JSON.parse(body)
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ error: "Invalid JSON" }))
+      return
     }
     if (msg.token !== state.token) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
+      res.writeHead(401, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ error: "Unauthorized" }))
+      return
     }
-    const pendingApplyDeferred = manualApply.getDeferred(msg.id);
+    const pendingApplyDeferred = manualApply.getDeferred(msg.id)
     if (pendingApplyDeferred) {
-      const validation = manualApply.validateResultMessage(msg, pendingApplyDeferred);
+      const validation = manualApply.validateResultMessage(msg, pendingApplyDeferred)
       if (!validation.ok) {
-        recordManualEditActivity('manual_edit_apply_reply_invalid', {
+        recordManualEditActivity("manual_edit_apply_reply_invalid", {
           id: msg.id,
           pageUrl: pendingApplyDeferred.pageUrl,
           chunk: pendingApplyDeferred.event?.chunk || null,
           repair: pendingApplyDeferred.event?.repair || null,
-          reason: validation.body?.reason || validation.body?.error || 'invalid_manual_apply_result',
+          reason:
+            validation.body?.reason || validation.body?.error || "invalid_manual_apply_result",
           status: msg.data?.status || null,
-        });
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(validation.body));
-        return;
+        })
+        res.writeHead(400, { "Content-Type": "application/json" })
+        res.end(JSON.stringify(validation.body))
+        return
       }
-      recordManualEditActivity('manual_edit_apply_reply_received', {
+      recordManualEditActivity("manual_edit_apply_reply_received", {
         id: msg.id,
         pageUrl: pendingApplyDeferred.pageUrl,
         chunk: pendingApplyDeferred.event?.chunk || null,
@@ -848,69 +971,81 @@ function handlePollPost(req, res) {
         failed: summarizeManualApplyFailures(validation.result.failed),
         fileCount: validation.result.files.length,
         noteCount: validation.result.notes.length,
-      });
-      manualApply.resolveDeferred(msg.id, validation.result);
-      acknowledgePendingEvent(msg.id);
-      flushPendingPolls();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
-      return;
+      })
+      manualApply.resolveDeferred(msg.id, validation.result)
+      acknowledgePendingEvent(msg.id)
+      flushPendingPolls()
+      res.writeHead(200, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ ok: true }))
+      return
     }
     if (manualApply.hasTimedOutId(msg.id)) {
-      const rollback = manualApply.rollbackTimedOutReply(msg);
-      recordManualEditActivity('manual_edit_apply_stale_reply_rejected', {
+      const rollback = manualApply.rollbackTimedOutReply(msg)
+      recordManualEditActivity("manual_edit_apply_stale_reply_rejected", {
         id: msg.id,
         rolledBackFileCount: rollback.rolledBackFiles?.length || 0,
         rollbackFailureCount: rollback.rollbackFailures?.length || 0,
-      });
-      res.writeHead(409, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'stale_manual_edit_apply_reply', ...rollback }));
-      return;
+      })
+      res.writeHead(409, { "Content-Type": "application/json" })
+      res.end(JSON.stringify({ error: "stale_manual_edit_apply_reply", ...rollback }))
+      return
     }
-    const pendingEventBeforeAck = findPendingEventById(msg.id);
-    if (pendingEventBeforeAck?.type === 'steer' && msg.type === 'steer_done'
-        && !msg.file && !(typeof msg.message === 'string' && msg.message.trim())) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        error: 'steer_done_requires_file_or_message',
-        hint: 'Reply with --file after writing source, or include a message explaining an intentional no-op.',
-      }));
-      return;
+    const pendingEventBeforeAck = findPendingEventById(msg.id)
+    if (
+      pendingEventBeforeAck?.type === "steer" &&
+      msg.type === "steer_done" &&
+      !msg.file &&
+      !(typeof msg.message === "string" && msg.message.trim())
+    ) {
+      res.writeHead(400, { "Content-Type": "application/json" })
+      res.end(
+        JSON.stringify({
+          error: "steer_done_requires_file_or_message",
+          hint: "Reply with --file after writing source, or include a message explaining an intentional no-op.",
+        }),
+      )
+      return
     }
-    const acknowledgedEvent = acknowledgePendingEvent(msg.id);
-    let skipJournalReply = false;
-    let existingSession = null;
+    const acknowledgedEvent = acknowledgePendingEvent(msg.id)
+    let skipJournalReply = false
+    let existingSession = null
     if (!acknowledgedEvent && state.sessionStore && msg.id) {
       try {
-        existingSession = state.sessionStore.getSnapshot(msg.id, { includeCompleted: true });
-        if (!existingSession?.updatedAt) existingSession = null;
-        skipJournalReply = existingSession?.phase === 'completed' || existingSession?.phase === 'discarded';
-      } catch { /* fall through and record the reply normally */ }
+        existingSession = state.sessionStore.getSnapshot(msg.id, { includeCompleted: true })
+        if (!existingSession?.updatedAt) existingSession = null
+        skipJournalReply =
+          existingSession?.phase === "completed" || existingSession?.phase === "discarded"
+      } catch {
+        /* fall through and record the reply normally */
+      }
     }
     if (!acknowledgedEvent && !existingSession) {
-      recordManualEditActivity('manual_edit_poll_reply_unknown', {
+      recordManualEditActivity("manual_edit_poll_reply_unknown", {
         id: msg.id || null,
         type: msg.type || null,
-      });
-      res.writeHead(msg.id ? 404 : 400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        error: msg.id ? 'unknown_poll_reply_id' : 'missing_poll_reply_id',
-        id: msg.id,
-      }));
-      return;
+      })
+      res.writeHead(msg.id ? 404 : 400, { "Content-Type": "application/json" })
+      res.end(
+        JSON.stringify({
+          error: msg.id ? "unknown_poll_reply_id" : "missing_poll_reply_id",
+          id: msg.id,
+        }),
+      )
+      return
     }
-    const replyFileMeta = sessionFileMetadataFromPollReply(msg.file);
+    const replyFileMeta = sessionFileMetadataFromPollReply(msg.file)
     if (state.sessionStore && msg.id && !skipJournalReply) {
       try {
-        const eventType = msg.type === 'steer_done'
-          ? 'steer_done'
-          : msg.type === 'discard' || msg.type === 'discarded'
-            ? 'discarded'
-            : msg.type === 'complete'
-              ? 'complete'
-              : msg.type === 'error'
-                ? 'agent_error'
-                : 'agent_done';
+        const eventType =
+          msg.type === "steer_done"
+            ? "steer_done"
+            : msg.type === "discard" || msg.type === "discarded"
+              ? "discarded"
+              : msg.type === "complete"
+                ? "complete"
+                : msg.type === "error"
+                  ? "agent_error"
+                  : "agent_done"
         state.sessionStore.appendEvent({
           type: eventType,
           id: msg.id,
@@ -921,13 +1056,15 @@ function handlePollPost(req, res) {
           message: msg.message,
           sourceEventType: acknowledgedEvent?.type,
           carbonize: msg.data?.carbonize === true,
-        });
-      } catch { /* keep reply path best-effort; browser still needs SSE */ }
+        })
+      } catch {
+        /* keep reply path best-effort; browser still needs SSE */
+      }
     }
-    flushPendingPolls();
+    flushPendingPolls()
     // Forward the reply to the browser via SSE
     broadcast({
-      type: msg.type || 'done',
+      type: msg.type || "done",
       id: msg.id,
       message: msg.message,
       file: msg.file,
@@ -935,50 +1072,59 @@ function handlePollPost(req, res) {
       previewFile: replyFileMeta.previewFile,
       previewMode: replyFileMeta.previewMode,
       data: msg.data,
-    });
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true }));
-  });
+    })
+    res.writeHead(200, { "Content-Type": "application/json" })
+    res.end(JSON.stringify({ ok: true }))
+  })
 }
 
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
 
-let httpServer = null;
+let httpServer = null
 
 function shutdown() {
-  cleanupSvelteComponentSessionsBeforeExit();
-  removeLiveServerInfo(process.cwd());
-  if (state.leaseTimer) clearTimeout(state.leaseTimer);
-  state.leaseTimer = null;
+  cleanupSvelteComponentSessionsBeforeExit()
+  removeLiveServerInfo(process.cwd())
+  if (state.leaseTimer) clearTimeout(state.leaseTimer)
+  state.leaseTimer = null
   if (state.sessionDir) {
-    try { fs.rmSync(state.sessionDir, { recursive: true, force: true }); } catch {}
+    try {
+      fs.rmSync(state.sessionDir, { recursive: true, force: true })
+    } catch {}
   }
-  for (const res of state.sseClients) { try { res.end(); } catch {} }
-  state.sseClients.clear();
-  for (const poll of state.pendingPolls) poll.resolve({ type: 'exit' });
-  state.pendingPolls.length = 0;
-  if (httpServer) httpServer.close();
-  process.exit(0);
+  for (const res of state.sseClients) {
+    try {
+      res.end()
+    } catch {}
+  }
+  state.sseClients.clear()
+  for (const poll of state.pendingPolls) poll.resolve({ type: "exit" })
+  state.pendingPolls.length = 0
+  if (httpServer) httpServer.close()
+  process.exit(0)
 }
 
 function cleanupSvelteComponentSessionsBeforeExit() {
   try {
-    removeAllSvelteComponentSessions(process.cwd());
+    removeAllSvelteComponentSessions(process.cwd())
   } catch (err) {
-    console.warn('[impeccable] Svelte component session cleanup failed:', err.message);
+    console.warn("[impeccable] Svelte component session cleanup failed:", err.message)
   }
 }
 
 function applyLegacyDeferredAcceptsOnStartup() {
   try {
-    const result = applyDeferredSvelteComponentAccepts(process.cwd());
+    const result = applyDeferredSvelteComponentAccepts(process.cwd())
     if (result.applied > 0 || result.failed > 0) {
-      console.log('[impeccable] applied legacy deferred Svelte component accepts:', JSON.stringify(result));
+      console.log(
+        "[impeccable] applied legacy deferred Svelte component accepts:",
+        JSON.stringify(result),
+      )
     }
   } catch (err) {
-    console.warn('[impeccable] legacy deferred Svelte component accept apply failed:', err.message);
+    console.warn("[impeccable] legacy deferred Svelte component accept apply failed:", err.message)
   }
 }
 
@@ -986,9 +1132,9 @@ function applyLegacyDeferredAcceptsOnStartup() {
 // Main
 // ---------------------------------------------------------------------------
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(2)
 
-if (args.includes('--help') || args.includes('-h')) {
+if (args.includes("--help") || args.includes("-h")) {
   console.log(`Usage: node live-server.mjs [options]
 
 Start the live variant mode server (zero dependencies).
@@ -1016,120 +1162,127 @@ Endpoints:
   /manual-edit-discard Discard staged browser copy edits
   /source              Raw source file reader (no-HMR fallback)
   /status              Durable recovery status (token-protected)
-  /health              Health check`);
-  process.exit(0);
+  /health              Health check`)
+  process.exit(0)
 }
 
-if (args.includes('stop')) {
-  const keepInject = args.includes('--keep-inject');
+if (args.includes("stop")) {
+  const keepInject = args.includes("--keep-inject")
   try {
-    const { info } = readLiveServerInfo(process.cwd()) || {};
-    const res = await fetch(`http://localhost:${info.port}/stop?token=${info.token}`);
-    if (res.ok) console.log(`Stopped live server on port ${info.port}.`);
+    const { info } = readLiveServerInfo(process.cwd()) || {}
+    const res = await fetch(`http://localhost:${info.port}/stop?token=${info.token}`)
+    if (res.ok) console.log(`Stopped live server on port ${info.port}.`)
   } catch {
-    console.log('No running live server found.');
+    console.log("No running live server found.")
   }
   if (!keepInject) {
-    const injectPath = path.join(__dirname, 'live-inject.mjs');
+    const injectPath = path.join(__dirname, "live-inject.mjs")
     try {
-      const out = execFileSync(process.execPath, [injectPath, '--remove'], {
-        encoding: 'utf-8',
+      const out = execFileSync(process.execPath, [injectPath, "--remove"], {
+        encoding: "utf-8",
         cwd: process.cwd(),
-      });
-      const line = out.trim().split('\n').filter(Boolean).pop();
+      })
+      const line = out.trim().split("\n").filter(Boolean).pop()
       if (line) {
         try {
-          const j = JSON.parse(line);
+          const j = JSON.parse(line)
           if (j.removed === true) {
-            console.log(`Removed live script tag from ${j.file}.`);
+            console.log(`Removed live script tag from ${j.file}.`)
           }
         } catch {
           /* ignore non-JSON lines */
         }
       }
     } catch (err) {
-      const detail = err.stderr?.toString?.().trim?.()
-        || err.stdout?.toString?.().trim?.()
-        || err.message
-        || String(err);
-      console.warn(`Note: could not remove live script tag (${detail.split('\n')[0]})`);
+      const detail =
+        err.stderr?.toString?.().trim?.() ||
+        err.stdout?.toString?.().trim?.() ||
+        err.message ||
+        String(err)
+      console.warn(`Note: could not remove live script tag (${detail.split("\n")[0]})`)
     }
   }
-  process.exit(0);
+  process.exit(0)
 }
 
 // --background: spawn a detached child server, wait for it to be ready,
 // print the connection JSON, then exit.  This keeps the startup command
 // simple (no shell backgrounding or chained commands).
-if (args.includes('--background')) {
-  const childArgs = args.filter(a => a !== '--background');
+if (args.includes("--background")) {
+  const childArgs = args.filter((a) => a !== "--background")
   const child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...childArgs], {
     detached: true,
-    stdio: 'ignore',
+    stdio: "ignore",
     cwd: process.cwd(),
-  });
-  child.unref();
+  })
+  child.unref()
 
   // Poll for the PID file (the child writes it once the HTTP server is listening).
-  const deadline = Date.now() + 10_000;
+  const deadline = Date.now() + 10_000
   while (Date.now() < deadline) {
     try {
-      const { info } = readLiveServerInfo(process.cwd()) || {};
+      const { info } = readLiveServerInfo(process.cwd()) || {}
       if (info.pid !== process.pid) {
         // Output JSON so the agent can read port + token from stdout.
-        console.log(JSON.stringify(info));
-        process.exit(0);
+        console.log(JSON.stringify(info))
+        process.exit(0)
       }
-    } catch { /* not ready yet */ }
-    await new Promise(r => setTimeout(r, 200));
+    } catch {
+      /* not ready yet */
+    }
+    await new Promise((r) => setTimeout(r, 200))
   }
-  console.error('Timed out waiting for live server to start.');
-  process.exit(1);
+  console.error("Timed out waiting for live server to start.")
+  process.exit(1)
 }
 
 // Check for existing session
-const existingRecord = readLiveServerInfo(process.cwd());
+const existingRecord = readLiveServerInfo(process.cwd())
 if (existingRecord?.info) {
-  const existing = existingRecord.info;
+  const existing = existingRecord.info
   try {
-    process.kill(existing.pid, 0);
-    console.error(`Live server already running on port ${existing.port} (pid ${existing.pid}).`);
-    console.error('Stop it first with: node ' + path.basename(fileURLToPath(import.meta.url)) + ' stop');
-    process.exit(1);
+    process.kill(existing.pid, 0)
+    console.error(`Live server already running on port ${existing.port} (pid ${existing.pid}).`)
+    console.error(
+      "Stop it first with: node " + path.basename(fileURLToPath(import.meta.url)) + " stop",
+    )
+    process.exit(1)
   } catch {
-    try { fs.unlinkSync(existingRecord.path); } catch {}
+    try {
+      fs.unlinkSync(existingRecord.path)
+    } catch {}
   }
 }
 
-state.token = randomUUID();
-state.sessionStore = createLiveSessionStore({ cwd: process.cwd() });
+state.token = randomUUID()
+state.sessionStore = createLiveSessionStore({ cwd: process.cwd() })
 manualApply.rollbackTransaction({
-  reason: 'manual_edit_server_start_recovered_abandoned_transaction',
-});
-applyLegacyDeferredAcceptsOnStartup();
-restorePendingEventsFromStore();
-manualApply.pruneStaleEvidence();
-const portArg = args.find(a => a.startsWith('--port='));
-state.port = portArg ? parseInt(portArg.split('=')[1], 10) : await findOpenPort();
+  reason: "manual_edit_server_start_recovered_abandoned_transaction",
+})
+applyLegacyDeferredAcceptsOnStartup()
+restorePendingEventsFromStore()
+manualApply.pruneStaleEvidence()
+const portArg = args.find((a) => a.startsWith("--port="))
+state.port = portArg ? parseInt(portArg.split("=")[1], 10) : await findOpenPort()
 // Annotation screenshots live in the project root so the agent's Read tool
 // doesn't trip a per-file permission prompt. Sessioned by token so concurrent
 // projects (or quick restarts) don't collide.
-const annotRoot = getLiveAnnotationsDir(process.cwd());
-fs.mkdirSync(annotRoot, { recursive: true });
-state.sessionDir = fs.mkdtempSync(path.join(annotRoot, 'session-'));
+const annotRoot = getLiveAnnotationsDir(process.cwd())
+fs.mkdirSync(annotRoot, { recursive: true })
+state.sessionDir = fs.mkdtempSync(path.join(annotRoot, "session-"))
 
-const { detectScript, liveScriptParts } = loadBrowserScripts();
-httpServer = http.createServer(createRequestHandler({ detectScript, liveScriptParts }));
+const { detectScript, liveScriptParts } = loadBrowserScripts()
+httpServer = http.createServer(createRequestHandler({ detectScript, liveScriptParts }))
 
-httpServer.listen(state.port, '127.0.0.1', () => {
-  writeLiveServerInfo(process.cwd(), { pid: process.pid, port: state.port, token: state.token });
-  const url = `http://localhost:${state.port}`;
-  console.log(`\nImpeccable live server running on ${url}`);
-  console.log(`Token: ${state.token}\n`);
-  console.log(`Script: ${url}/live.js`);
-  console.log('Inject: managed by live-inject.mjs; Astro source tags use is:inline automatically.');
-  console.log(`Stop:   node ${path.basename(fileURLToPath(import.meta.url))} stop`);
-});
+httpServer.listen(state.port, "127.0.0.1", () => {
+  writeLiveServerInfo(process.cwd(), { pid: process.pid, port: state.port, token: state.token })
+  const url = `http://localhost:${state.port}`
+  console.log(`\nImpeccable live server running on ${url}`)
+  console.log(`Token: ${state.token}\n`)
+  console.log(`Script: ${url}/live.js`)
+  console.log("Inject: managed by live-inject.mjs; Astro source tags use is:inline automatically.")
+  console.log(`Stop:   node ${path.basename(fileURLToPath(import.meta.url))} stop`)
+})
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on("SIGINT", shutdown)
+process.on("SIGTERM", shutdown)

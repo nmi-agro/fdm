@@ -430,21 +430,21 @@ export function SidebarFarm({
                               </CommandGroup>
                             )}
                             {regularFields.length > 0 && (
-                            <CommandGroup heading="Alle percelen">
-                              {regularFields.map((field) => (
-                                <CommandItem
-                                  key={field.b_id}
-                                  value={field.b_name}
-                                  onSelect={() => handleSelectField(field.b_id, field.b_name)}
-                                  className="flex cursor-pointer items-center justify-between"
-                                >
-                                  <span>{field.b_name}</span>
-                                  <span className="text-muted-foreground text-xs">
-                                    {field.b_area} ha
-                                  </span>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                              <CommandGroup heading="Alle percelen">
+                                {regularFields.map((field) => (
+                                  <CommandItem
+                                    key={field.b_id}
+                                    value={field.b_name}
+                                    onSelect={() => handleSelectField(field.b_id, field.b_name)}
+                                    className="flex cursor-pointer items-center justify-between"
+                                  >
+                                    <span>{field.b_name}</span>
+                                    <span className="text-muted-foreground text-xs">
+                                      {field.b_area} ha
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
                             )}
                           </CommandList>
                         </Command>

@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-api",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Hono-based REST API for the Farm Data Model",
   "bin": {

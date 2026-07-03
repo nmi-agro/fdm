@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-data",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "private": false,
   "description": "Extend Farm Data Model with catalogue data",
   "homepage": "https://github.com/nmi-agro/fdm",
