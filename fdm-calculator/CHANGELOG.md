@@ -1,5 +1,16 @@
 # fdm-calculator
 
+## 0.17.0
+
+### Minor Changes
+
+- [#674](https://github.com/nmi-agro/fdm/pull/674) [`d4e5c73`](https://github.com/nmi-agro/fdm/commit/d4e5c73fad558934c30a1534972cd6118ff2886a) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the stikstofgebruiksnorms for the new 2026 cultivations
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @nmi-agro/fdm-core@0.34.1
+
 ## 0.16.0
 
 ### Minor Changes

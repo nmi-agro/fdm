@@ -932,7 +932,7 @@ export const nitrogenStandardsData = [
     },
     {
         cultivation_rvo_table2: "Akkerbouwgewassen, Ui overig",
-        b_lu_catalogue_match: ["nl_263", "nl_1934", "nl_1021"],
+        b_lu_catalogue_match: ["nl_263", "nl_1934", "nl_1021", "nl_7195", "nl_7196"],
         type: "akkerbouw",
         is_winterteelt: true,
         is_vanggewas: false,
@@ -2249,7 +2249,7 @@ export const nitrogenStandardsData = [
     },
     {
         cultivation_rvo_table2: "Fruitteeltgewassen, kers",
-        b_lu_catalogue_match: ["nl_1872", "nl_2328", "nl_1100", "nl_2645"],
+        b_lu_catalogue_match: ["nl_1872", "nl_2328", "nl_1100", "nl_2645", "nl_7139", "nl_7193", "nl_7194"],
         type: "fruitteelt",
         is_winterteelt: true,
         is_vanggewas: false,
@@ -2607,7 +2607,7 @@ export const nitrogenStandardsData = [
     {
         cultivation_rvo_table2:
             "Boomkwekerijgewassen, Snelgroeiende houtsoorten voor biomassaproductie",
-        b_lu_catalogue_match: ["nl_864"],
+        b_lu_catalogue_match: ["nl_864", "nl_7136", "nl_7197"],
         type: "bosbouw",
         is_winterteelt: true,
         is_vanggewas: false,

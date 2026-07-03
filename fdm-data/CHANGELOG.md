@@ -1,5 +1,15 @@
 # fdm-data
 
+## 0.22.0
+
+### Minor Changes
+
+- [#674](https://github.com/nmi-agro/fdm/pull/674) [`af91940`](https://github.com/nmi-agro/fdm/commit/af91940e7b683741787b6c37ed53580a815bfd2c) Thanks [@SvenVw](https://github.com/SvenVw)! - Adds the new 2026 cultivations to brp catalogue
+
+### Patch Changes
+
+- [#674](https://github.com/nmi-agro/fdm/pull/674) [`2a169b4`](https://github.com/nmi-agro/fdm/commit/2a169b467d8bd3900fae8f85bf19ff807312f1ce) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixes the value for b_lu_rest_oravib for some cultivations
+
 ## 0.21.0
 
 ### Minor Changes

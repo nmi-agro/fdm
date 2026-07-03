@@ -1,5 +1,21 @@
 # Changelog fdm-app
 
+## 0.33.0
+
+### Minor Changes
+
+- [#674](https://github.com/nmi-agro/fdm/pull/674) [`66409d1`](https://github.com/nmi-agro/fdm/commit/66409d1a77092eaee56326fb020a4d1f001e1ec8) Thanks [@SvenVw](https://github.com/SvenVw)! - At Atlas enable the draft fields for 2026 and change for 2025 from draft to definitive fields
+
+### Patch Changes
+
+- [#674](https://github.com/nmi-agro/fdm/pull/674) [`3e96753`](https://github.com/nmi-agro/fdm/commit/3e96753dc5dcdeec008ec2b548bbf4a2009ed707) Thanks [@SvenVw](https://github.com/SvenVw)! - Request at Atlas field details the data for 2026 instead of 2025
+
+- Updated dependencies [[`d4e5c73`](https://github.com/nmi-agro/fdm/commit/d4e5c73fad558934c30a1534972cd6118ff2886a), [`af91940`](https://github.com/nmi-agro/fdm/commit/af91940e7b683741787b6c37ed53580a815bfd2c), [`2a169b4`](https://github.com/nmi-agro/fdm/commit/2a169b467d8bd3900fae8f85bf19ff807312f1ce)]:
+  - @nmi-agro/fdm-calculator@0.17.0
+  - @nmi-agro/fdm-data@0.22.0
+  - @nmi-agro/fdm-agents@0.4.1
+  - @nmi-agro/fdm-core@0.34.1
+
 ## 0.32.0
 
 ### Minor Changes
