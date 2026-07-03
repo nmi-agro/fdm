@@ -19,7 +19,16 @@ describe("getEmailBlock", () => {
     await addEmailBlock(fdm, admin_id, email, "Test reason")
     const result = await getEmailBlock(fdm, email)
     expect(result).not.toBeNull()
-    expect(result?.email).toBe(email)
+    expect(result?.email).toBe(email.toLowerCase())
+    expect(result?.blocked_by).toBe(admin_id)
+    expect(result?.reason).toBe("Test reason")
+  })
+
+  test("should match email block case-insensitive", async ({ fdm }) => {
+    await addEmailBlock(fdm, admin_id, email, "Test reason")
+    const result = await getEmailBlock(fdm, `${email.split("@")[0]}@EXAMPLE.COM`)
+    expect(result).not.toBeNull()
+    expect(result?.email).toBe(email.toLowerCase())
     expect(result?.blocked_by).toBe(admin_id)
     expect(result?.reason).toBe("Test reason")
   })
@@ -87,28 +96,28 @@ describe("getEmailBlocks", () => {
     const blocks = await getEmailBlocks(fdm, admin_id, { text: email1 })
 
     expect(blocks).toHaveLength(1)
-    expect(blocks.map((block) => block.email)).toEqual([email1])
+    expect(blocks.map((block) => block.email)).toEqual([email1.toLowerCase()])
   })
 
   test("should search by email even if reason is null", async ({ fdm }) => {
     const blocks = await getEmailBlocks(fdm, admin_id, { text: email2 })
 
     expect(blocks).toHaveLength(1)
-    expect(blocks.map((block) => block.email)).toEqual([email2])
+    expect(blocks.map((block) => block.email)).toEqual([email2.toLowerCase()])
   })
 
   test("should search by reason", async ({ fdm }) => {
     const blocks = await getEmailBlocks(fdm, admin_id, { text: "Violating" })
 
     expect(blocks).toHaveLength(1)
-    expect(blocks.map((block) => block.email)).toEqual([email1])
+    expect(blocks.map((block) => block.email)).toEqual([email1.toLowerCase()])
   })
 
   test("should search by text case-insensitively", async ({ fdm }) => {
     const blocks = await getEmailBlocks(fdm, admin_id, { text: "because i wanted to" })
 
     expect(blocks).toHaveLength(1)
-    expect(blocks.map((block) => block.email)).toEqual([email3])
+    expect(blocks.map((block) => block.email)).toEqual([email3.toLowerCase()])
   })
 
   test("should not let regular agents list blocked emails", async ({ fdm }) => {
@@ -134,7 +143,7 @@ describe("addEmailBlock", () => {
     await addEmailBlock(fdm, admin_id, email, "Test reason")
     const result = await getEmailBlock(fdm, email)
     expect(result).not.toBeNull()
-    expect(result?.email).toBe(email)
+    expect(result?.email).toBe(email.toLowerCase())
     expect(result?.blocked_by).toBe(admin_id)
     expect(result?.reason).toBe("Test reason")
   })
@@ -150,7 +159,19 @@ describe("addEmailBlock", () => {
     await addEmailBlock(fdm, admin_id, email, "Test reason 2")
     const result = await getEmailBlock(fdm, email)
     expect(result).not.toBeNull()
-    expect(result?.email).toBe(email)
+    expect(result?.email).toBe(email.toLowerCase())
+    expect(result?.blocked_by).toBe(admin_id)
+    expect(result?.reason).toBe("Test reason")
+  })
+
+  test("should do nothing when adding a block on an email twice with different case", async ({
+    fdm,
+  }) => {
+    await addEmailBlock(fdm, admin_id, email, "Test reason")
+    await addEmailBlock(fdm, admin_id, `${email.split("@")[0]}@EXAMPLE.COM`, "Test reason 2")
+    const result = await getEmailBlock(fdm, email)
+    expect(result).not.toBeNull()
+    expect(result?.email).toBe(email.toLowerCase())
     expect(result?.blocked_by).toBe(admin_id)
     expect(result?.reason).toBe("Test reason")
   })
@@ -178,6 +199,12 @@ describe("removeEmailBlock", () => {
   test("should let admins remove a blocked email", async ({ fdm }) => {
     await removeEmailBlock(fdm, admin_id, email)
     const result = await getEmailBlock(fdm, email)
+    expect(result).toBeNull()
+  })
+
+  test("should let admins remove a blocked email with different case", async ({ fdm }) => {
+    await removeEmailBlock(fdm, admin_id, email)
+    const result = await getEmailBlock(fdm, `${email.split("@")[0]}@EXAMPLE.COM`)
     expect(result).toBeNull()
   })
 

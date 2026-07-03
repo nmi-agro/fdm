@@ -6,8 +6,17 @@ import { handleError } from "./error"
 import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { PaginationFilter, TextFilter } from "./filter.types"
 import { getPageOffsetAndLimit } from "./pagination"
+import { escapeHTML } from "./sanitization"
 
 export type EmailBlock = schema.BlockedEmailTypeSelect
+
+/**
+ * Converts emails into the format that is used for matching.
+ * @param email Email address to convert.
+ */
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase()
+}
 
 /**
  * Retrieves the email block information for an email address. If the email was not blocked, it returns null.
@@ -21,10 +30,11 @@ export async function getEmailBlock(
   email: schema.BlockedEmailTypeSelect["email"],
 ): Promise<EmailBlock | null> {
   try {
+    const normalizedEmail = normalizeEmail(email)
     const blockedEmail = await fdm
       .select()
       .from(schema.blockedEmails)
-      .where(eq(schema.blockedEmails.email, email))
+      .where(eq(schema.blockedEmails.email, normalizedEmail))
       .limit(1)
     return blockedEmail.length > 0 ? blockedEmail[0] : null
   } catch (err) {
@@ -97,9 +107,16 @@ export async function addEmailBlock(
   try {
     await checkHelpdeskPermission(fdm, "helpdesk", "write", "", blocked_by, "removeEmailBlock")
 
+    const normalizedEmail = normalizeEmail(email)
     await fdm
       .insert(schema.blockedEmails)
-      .values([{ email, blocked_by: blocked_by, reason }])
+      .values([
+        {
+          email: normalizedEmail,
+          blocked_by: blocked_by,
+          reason: typeof reason === "string" ? escapeHTML(reason) : null,
+        },
+      ])
       .onConflictDoNothing()
   } catch (err) {
     throw handleError(err, "Exception for addEmailBlock")
@@ -122,7 +139,8 @@ export async function removeEmailBlock(
   try {
     await checkHelpdeskPermission(fdm, "helpdesk", "write", "", principal_id, "removeEmailBlock")
 
-    await fdm.delete(schema.blockedEmails).where(eq(schema.blockedEmails.email, email))
+    const normalizedEmail = normalizeEmail(email)
+    await fdm.delete(schema.blockedEmails).where(eq(schema.blockedEmails.email, normalizedEmail))
   } catch (err) {
     throw handleError(err, "Exception for removeEmailBlock")
   }

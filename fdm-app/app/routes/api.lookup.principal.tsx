@@ -28,7 +28,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const useEmail = url.searchParams.has("email")
     const usePrincipalId = url.searchParams.has("principal_id")
 
-    if (useEmail) {
+    if (useEmail || usePrincipalId) {
       await checkHelpdeskPermission(
         fdm,
         "helpdesk",
