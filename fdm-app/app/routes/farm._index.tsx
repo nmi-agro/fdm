@@ -194,7 +194,7 @@ export async function action({ request }: ActionFunctionArgs) {
       }
       await acceptInvitation(fdm, formValues.invitation_id, session.user.id)
       return dataWithSuccess(null, {
-        message: "Uitnodiging geaccepteerd! 🎉",
+        message: "Uitnodiging geaccepteerd",
       })
     }
 
@@ -217,7 +217,7 @@ export async function action({ request }: ActionFunctionArgs) {
         body: { invitationId: formValues.invitation_id },
       })
       return dataWithSuccess(null, {
-        message: "Uitnodiging geaccepteerd! 🎉",
+        message: "Uitnodiging geaccepteerd",
       })
     }
 
@@ -244,19 +244,12 @@ export async function action({ request }: ActionFunctionArgs) {
 function SupportNote() {
   return (
     <div className="text-muted-foreground flex items-center justify-center gap-2 py-8 text-sm">
-      <LifeBuoy className="h-4 w-4" />
+      <LifeBuoy className="h-4 w-4" aria-hidden="true" />
       <span>
-        Hulp nodig of vragen? Neem contact op via{" "}
-        <button
-          type="button"
-          onClick={() => {
-            const supportEmail = `support@${window.location.hostname}`
-            window.location.href = `mailto:${supportEmail}`
-          }}
-          className="text-primary font-medium hover:underline"
-        >
-          ondersteuning
-        </button>
+        Hulp nodig of vragen?{" "}
+        <NavLink to="/support/new" className="text-primary font-medium hover:underline">
+          Neem contact op
+        </NavLink>
       </span>
     </div>
   )
@@ -285,6 +278,9 @@ export default function AppIndex() {
     return [userFarms, organizationFarms]
   }, [loaderData])
 
+  const atlasBaseFarmId =
+    userFarms[0]?.b_id_farm ?? organizationFarms[0]?.b_id_farm ?? "undefined"
+
   return (
     <SidebarInset>
       <Header action={undefined}>
@@ -295,19 +291,39 @@ export default function AppIndex() {
           <div className="flex flex-1 items-center justify-center p-6 md:p-10">
             <div className="mx-auto flex w-full max-w-212.5 flex-col items-center space-y-8 text-center">
               <div className="space-y-4">
-                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+                <h1 className="text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-6xl">
                   Welkom bij {clientConfig.name}
                 </h1>
-                <p className="text-muted-foreground mx-auto max-w-162.5 text-lg font-medium sm:text-xl">
-                  Een open-source platform voor goede landbouwpraktijk om samen te leren en
-                  innoveren.
+                <p className="mx-auto max-w-162.5 text-lg text-foreground/70 sm:text-xl">
+                  Richt uw eerste bedrijf in en ontdek direct uw stikstofbalans, bemestingsadvies,
+                  gebruiksruimte en bodemgezondheidscores.
                 </p>
               </div>
 
+              {loaderData.pendingInvitations.length > 0 && (
+                <div className="w-full space-y-4">
+                  <div className="space-y-1 text-left">
+                    <h2 className="text-xl font-semibold">Openstaande uitnodigingen</h2>
+                    <p className="text-muted-foreground text-sm">
+                      U bent uitgenodigd voor een bedrijf. Accepteer de uitnodiging om direct aan de
+                      slag te gaan.
+                    </p>
+                  </div>
+                  <div className="grid w-full gap-4 sm:grid-cols-2">
+                    {loaderData.pendingInvitations.map((invitation) => (
+                      <PendingInvitationCard
+                        key={invitation.invitation_id}
+                        invitation={invitation}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="grid w-full gap-6 sm:grid-cols-2">
-                <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border-2 transition-all hover:shadow-xl">
+                <Card className="group hover:border-primary relative flex flex-col overflow-hidden border-2 bg-primary/5 transition-all hover:shadow-xl">
                   <CardHeader className="pb-4">
-                    <div className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors">
+                    <div aria-hidden="true" className="bg-primary text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left">
                       <PlusCircle className="h-7 w-7" />
                     </div>
                     <CardTitle className="text-left text-2xl">Bedrijf aanmaken</CardTitle>
@@ -319,24 +335,24 @@ export default function AppIndex() {
                   <CardContent className="text-muted-foreground grow text-left text-sm">
                     <ul className="space-y-3">
                       <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" />
+                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>
-                          <b>Balansen:</b> Inzicht in stikstof- en organische stofbalansen voor
-                          effectieve doelsturing op bodemvruchtbaarheid en emissiereductie.
+                          <b>Balansen:</b> Uw bodemgezondheid zichtbaar via stikstof- en organische
+                          stofbalansen.
                         </span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" />
+                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>
-                          <b>Bemestingsadvies:</b> Adviezen op basis van bodemanalyse en
-                          gewasbehoefte.
+                          <b>Bemestingsadvies:</b> Adviezen afgestemd op uw bodemanalyse en
+                          gewassen.
                         </span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" />
+                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>
-                          <b>Gebruiksruimte:</b> Houd uw gebruiksruimte voor stikstof, dierlijke
-                          mest en fosfaat in de gaten.
+                          <b>Gebruiksruimte:</b> Stikstof, dierlijke mest en fosfaat altijd
+                          inzichtelijk.
                         </span>
                       </li>
                     </ul>
@@ -345,43 +361,43 @@ export default function AppIndex() {
                     <Button asChild className="w-full" size="lg">
                       <NavLink to="/farm/create">
                         Maak een bedrijf aan
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                       </NavLink>
                     </Button>
                   </CardFooter>
                 </Card>
 
-                <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border-2 transition-all hover:shadow-xl">
+                <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
                   <CardHeader className="pb-4">
-                    <div className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors">
+                    <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors">
                       <Layers className="h-7 w-7" />
                     </div>
                     <CardTitle className="text-left text-2xl">Atlas verkennen</CardTitle>
                     <CardDescription className="text-left text-base">
-                      Analyseer percelen op basis van openbare data, bodemkenmerken en historie.
+                      Verken openbare kaartdata over percelen, bodem en hoogte in Nederland — geen
+                      bedrijf nodig.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="text-muted-foreground grow text-left text-sm">
                     <ul className="space-y-3">
                       <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" />
+                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>
-                          <b>Percelen:</b> Gewashistorie (BRP) en kenmerken van alle percelen in
-                          Nederland sinds 2009.
+                          <b>Percelen:</b> Gewashistorie en ruimtelijke kenmerken van alle percelen
+                          in Nederland.
                         </span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" />
+                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>
-                          <b>Hoogtekaart:</b> Gedetailleerde AHN4-data voor inzicht in het
-                          microreliëf van percelen.
+                          <b>Hoogtekaart:</b> AHN4-data voor inzicht in het microreliëf van uw
+                          percelen.
                         </span>
                       </li>
                       <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" />
+                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>
-                          <b>Bodemkaart:</b> Bekijk de Bodemkaart van Nederland en leer meer over uw
-                          bodem.
+                          <b>Bodemkaart:</b> Bodemtype en grondwatertrappen op perceel niveau.
                         </span>
                       </li>
                     </ul>
@@ -396,27 +412,13 @@ export default function AppIndex() {
                 </Card>
               </div>
 
-              {loaderData.pendingInvitations.length > 0 && (
-                <div className="w-full space-y-4">
-                  <h2 className="text-xl font-semibold">Openstaande uitnodigingen</h2>
-                  <div className="grid w-full gap-4 sm:grid-cols-2">
-                    {loaderData.pendingInvitations.map((invitation) => (
-                      <PendingInvitationCard
-                        key={invitation.invitation_id}
-                        invitation={invitation}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <SupportNote />
             </div>
           </div>
         ) : (
           <>
             <FarmTitle
-              title={`${greeting}, ${loaderData.username}! 👋`}
+              title={`${greeting}, ${loaderData.username}`}
               description={
                 "Selecteer een bedrijf voor beheer en analyses, waaronder stikstof- en organische stofbalansen voor effectieve doelsturing."
               }
@@ -425,7 +427,7 @@ export default function AppIndex() {
                 label: "Nieuw bedrijf",
               }}
             />
-            <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-6 px-4 pb-8 md:px-8 md:pb-10 lg:grid-cols-2 xl:grid-cols-3">
               {userFarms.map((farm) => (
                 <FarmCard key={farm.b_id_farm} farm={farm} />
               ))}
@@ -448,9 +450,9 @@ export default function AppIndex() {
               <>
                 <FarmTitle
                   title="Openstaande uitnodigingen"
-                  description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende bedrijven."
+                  description="U hebt uitnodigingen ontvangen voor toegang tot de volgende bedrijven."
                 />
-                <div className="grid gap-4 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-4 px-4 pb-6 md:px-8 md:pb-8 lg:grid-cols-2 xl:grid-cols-3">
                   {loaderData.pendingInvitations.map((invitation) => (
                     <PendingInvitationCard key={invitation.invitation_id} invitation={invitation} />
                   ))}
@@ -462,10 +464,10 @@ export default function AppIndex() {
               <>
                 <FarmTitle
                   title="Bedrijven van uw organisaties"
-                  description={"Selecteer een bedrijf van je organisaties voor beheer en analyses."}
+                  description={"Selecteer een bedrijf van uw organisaties voor beheer en analyses."}
                 />
 
-                <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-6 px-4 pb-6 md:px-8 md:pb-8 lg:grid-cols-2 xl:grid-cols-3">
                   {organizationFarms.map((farm) => (
                     <FarmCard key={farm.b_id_farm} farm={farm} />
                   ))}
@@ -477,79 +479,48 @@ export default function AppIndex() {
               title="Atlas"
               description="Toegang tot landelijke kaarten met informatie over percelen, bodem en hoogte."
             />
-            <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
-              <Card className="group hover:border-primary/50 relative flex flex-col transition-all hover:shadow-md">
+            <div className="px-4 pb-6 md:px-8 md:pb-8">
+              <div className="divide-y rounded-lg border overflow-hidden">
                 <NavLink
-                  to={`/farm/undefined/${loaderData.calendar}/atlas/fields`}
-                  className="flex h-full flex-col"
+                  to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/fields`}
+                  className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-10 w-10 items-center justify-center rounded-lg transition-colors">
-                        <MapIcon className="h-5 w-5" />
-                      </div>
-                      <CardTitle className="text-xl">Percelen</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground grow text-sm">
-                    Bekijk de teelthistorie en ruimtelijke kenmerken van alle percelen in Nederland.
-                  </CardContent>
-                  <CardFooter className="bg-muted/50 group-hover:bg-primary/5 border-t py-3">
-                    <span className="text-primary flex items-center text-sm font-semibold transition-transform group-hover:translate-x-1">
-                      Naar percelen <ArrowRight className="ml-2 h-4 w-4" />
-                    </span>
-                  </CardFooter>
+                  <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                    <MapIcon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">Percelen</div>
+                    <div className="text-muted-foreground text-sm">Gewashistorie en ruimtelijke kenmerken van alle percelen in Nederland</div>
+                  </div>
+                  <ArrowRight aria-hidden="true" className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </NavLink>
-              </Card>
-
-              <Card className="group hover:border-primary/50 relative flex flex-col transition-all hover:shadow-md">
                 <NavLink
-                  to={`/farm/undefined/${loaderData.calendar}/atlas/elevation`}
-                  className="flex h-full flex-col"
+                  to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/elevation`}
+                  className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-10 w-10 items-center justify-center rounded-lg transition-colors">
-                        <Mountain className="h-5 w-5" />
-                      </div>
-                      <CardTitle className="text-xl">Hoogtekaart</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground grow text-sm">
-                    Inzage in het Actueel Hoogtebestand Nederland (AHN) voor gedetailleerde
-                    hoogte-informatie.
-                  </CardContent>
-                  <CardFooter className="bg-muted/50 group-hover:bg-primary/5 border-t py-3">
-                    <span className="text-primary flex items-center text-sm font-semibold transition-transform group-hover:translate-x-1">
-                      Naar hoogtekaart <ArrowRight className="ml-2 h-4 w-4" />
-                    </span>
-                  </CardFooter>
+                  <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                    <Mountain className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">Hoogtekaart</div>
+                    <div className="text-muted-foreground text-sm">Actueel Hoogtebestand Nederland (AHN) voor gedetailleerde hoogte-informatie</div>
+                  </div>
+                  <ArrowRight aria-hidden="true" className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </NavLink>
-              </Card>
-              <Card className="group hover:border-primary/50 relative flex flex-col transition-all hover:shadow-md">
                 <NavLink
-                  to={`/farm/undefined/${loaderData.calendar}/atlas/soil`}
-                  className="flex h-full flex-col"
+                  to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/soil`}
+                  className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-10 w-10 items-center justify-center rounded-lg transition-colors">
-                        <Layers className="h-5 w-5" />
-                      </div>
-                      <CardTitle className="text-xl">Bodemkaart</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground grow text-sm">
-                    Raadpleeg de landelijke bodemkaart voor informatie over bodemtype en
-                    grondwatertrappen.
-                  </CardContent>
-                  <CardFooter className="bg-muted/50 group-hover:bg-primary/5 border-t py-3">
-                    <span className="text-primary flex items-center text-sm font-semibold transition-transform group-hover:translate-x-1">
-                      Naar bodemkaart <ArrowRight className="ml-2 h-4 w-4" />
-                    </span>
-                  </CardFooter>
+                  <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                    <Layers className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">Bodemkaart</div>
+                    <div className="text-muted-foreground text-sm">Landelijke bodemkaart met informatie over bodemtype en grondwatertrappen</div>
+                  </div>
+                  <ArrowRight aria-hidden="true" className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </NavLink>
-              </Card>
+              </div>
             </div>
             {loaderData.organizations.length > 0 ||
             loaderData.pendingOrganizationInvitations.length > 0 ? (
@@ -563,7 +534,7 @@ export default function AppIndex() {
                   }}
                 />
                 {loaderData.organizations.length > 0 && (
-                  <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid gap-6 px-4 pb-6 md:px-8 md:pb-8 lg:grid-cols-2 xl:grid-cols-3">
                     {loaderData.organizations.map((organization) => (
                       <OrganizationCard key={organization.id} organization={organization} />
                     ))}
@@ -588,10 +559,10 @@ export default function AppIndex() {
                     {loaderData.organizations.length > 0 && (
                       <FarmTitle
                         title="Openstaande uitnodigingen naar organisaties"
-                        description="Je hebt uitnodigingen ontvangen voor toegang tot de volgende organisaties."
+                        description="U hebt uitnodigingen ontvangen voor toegang tot de volgende organisaties."
                       />
                     )}
-                    <div className="grid gap-6 p-6 md:p-10 md:pt-0 lg:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-6 px-4 pb-6 md:px-8 md:pb-8 lg:grid-cols-2 xl:grid-cols-3">
                       {loaderData.pendingOrganizationInvitations.map((invitation) => (
                         <PendingOrganizationInvitationCard
                           key={invitation.id}
@@ -612,19 +583,17 @@ export default function AppIndex() {
                     to: "/organization",
                   }}
                 />
-                <div className="mx-auto mb-6 flex flex-col items-center justify-center space-y-6 sm:w-87.5">
-                  <div className="flex flex-col space-y-2 text-center">
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                      Het lijkt erop dat je nog geen organisatie hebt.
-                    </h1>
-                  </div>
+                <div className="mx-auto mb-6 flex max-w-xs flex-col items-center justify-center space-y-6 text-center">
+                  <h2 className="text-3xl font-bold tracking-tight text-balance">
+                    U hebt nog geen organisatie.
+                  </h2>
                   <div className="relative flex flex-col items-center">
                     <Button asChild>
                       <NavLink to="/organization/new">Maak een organisatie</NavLink>
                     </Button>
                   </div>
                   <p className="text-muted-foreground text-center text-sm">
-                    of kunt u organisaties vragen om u uit te nodigen.
+                    Of vraagt u een organisatie om u uit te nodigen.
                   </p>
                 </div>
               </>
