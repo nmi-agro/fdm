@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, max, not, type SQL, sql } from "drizzle-orm"
+import { and, desc, eq, exists, inArray, isNull, max, not, type SQL, sql } from "drizzle-orm"
 import { customAlphabet } from "nanoid"
 import type { HelpdeskPrincipalId } from "./authorization.types"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
@@ -879,19 +879,46 @@ export async function markTicketAsNotViewedByAll(
   }
 }
 
+/**
+ * Updates ticket.requester_id and message.sender_ids for each ticket that was sent by the email and had no
+ * recorded requester principal ID.
+ *
+ * This is intended for when users who have been contacting support via e-mail make a proper account on the
+ * application, so that they can see their previous tickets on the integrated helpdesk app when they log in.
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param requester_id Requester ID (and also message sender_id) to set.
+ * @param requester_email Requester e-mail to match.
+ */
 export async function moveInboundEmailTicketsToPrincipalUnchecked(
   fdm: FdmHelpdeskType,
   requester_id: string,
   requester_email: string,
 ) {
   try {
+    // Subquery that updates tickets
+    const sq = fdm.$with("sq").as(
+      fdm
+        .update(schema.tickets)
+        .set({ requester_id: requester_id })
+        .where(
+          and(
+            isNull(schema.tickets.requester_id),
+            eq(sql`lower(${schema.tickets.requester_email})`, requester_email.trim().toLowerCase()),
+          ),
+        )
+        .returning({ ticket_id: schema.tickets.ticket_id }),
+    )
+
+    // Query that calls the above query and also updates the messages
     await fdm
-      .update(schema.tickets)
-      .set({ requester_id: requester_id })
+      .with(sq)
+      .update(schema.messages)
+      .set({ sender_id: requester_id })
       .where(
         and(
-          isNull(schema.tickets.requester_id),
-          eq(sql`lower(${schema.tickets.requester_email})`, requester_email.trim().toLowerCase()),
+          eq(schema.messages.ticket_id, schema.messages.sender_id),
+          exists(fdm.select().from(sq).where(eq(sq.ticket_id, schema.messages.ticket_id))),
         ),
       )
   } catch (err) {

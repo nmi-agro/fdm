@@ -1126,17 +1126,19 @@ describe("markTicketAsNotViewedByAll", () => {
 })
 
 describe("moveInboundEmailTicketsToPrincipalUnchecked", () => {
-  test("should only move tickets with a null requester id and an email set", async ({ fdm }) => {
-    const requester_id = createId()
-    const requester_email = `${createId()}@example.com`
-    const other_requester_id = createId()
-    const other_requester_email = `${createId()}@example.com`
-    const ticket1_id = await createTicketFromInboundEmail(
-      fdm,
-      requester_email,
-      "Test Email Question",
-    )
-    await createTicketFromInboundEmail(
+  let requester_id: string
+  let requester_email: string
+  let other_requester_id: string
+  let other_requester_email: string
+  let ticket1_id: string
+  let ticket2_id: string
+  test.beforeEach(async ({ fdm }) => {
+    requester_id = createId()
+    requester_email = `${createId()}@example.com`
+    other_requester_id = createId()
+    other_requester_email = `${createId()}@example.com`
+    ticket1_id = await createTicketFromInboundEmail(fdm, requester_email, "Test Email Question")
+    ticket2_id = await createTicketFromInboundEmail(
       fdm,
       requester_email,
       "Test Email Question By Old User",
@@ -1148,7 +1150,9 @@ describe("moveInboundEmailTicketsToPrincipalUnchecked", () => {
       "Test Email Question By Other User",
     )
     await createTicket(fdm, other_requester_id, "Test Web Question By Other User")
+  })
 
+  test("should only move tickets with a null requester id and an email set", async ({ fdm }) => {
     await moveInboundEmailTicketsToPrincipalUnchecked(fdm, requester_id, requester_email)
 
     const tickets = await getTickets(fdm, requester_id)
@@ -1157,6 +1161,30 @@ describe("moveInboundEmailTicketsToPrincipalUnchecked", () => {
       "Only ticket 1 has requester_email defined and requester_id unset",
     ).toHaveLength(1)
     expect(tickets.some((ticket) => ticket.ticket_id === ticket1_id)).toBe(true)
+  })
+
+  test("should move messages too", async ({ fdm }) => {
+    const admin_id = createId()
+    await addAdminAgent(fdm, admin_id, "Test Admin Agent")
+    await addMessage(fdm, ticket1_id, admin_id, "agent", "Message that should not be moved")
+
+    await moveInboundEmailTicketsToPrincipalUnchecked(fdm, requester_id, requester_email)
+
+    const messages1 = await getMessagesForTicket(fdm, requester_id, ticket1_id)
+    expect(
+      messages1.some((msg) => msg.sender_id === requester_id),
+      "Ticket's body message should have been moved",
+    ).toBe(true)
+    expect(
+      messages1.some((msg) => msg.sender_id === admin_id),
+      "The admin's message should not have been moved",
+    ).toBe(true)
+
+    const messages2 = await getMessagesForTicket(fdm, other_requester_id, ticket2_id)
+    expect(
+      messages2.some((msg) => msg.sender_id === requester_id),
+      "Ticket 2's body message should not have been moved",
+    ).toBe(false)
   })
 
   test("should throw when the database connection fails", async () => {
