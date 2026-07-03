@@ -210,7 +210,7 @@ export default function App() {
         b_name_farm: loaderData.farm.b_name_farm,
       })
     }
-  }, [loaderData.farm])
+  }, [loaderData.farm?.b_id_farm, loaderData.farm?.b_name_farm])
 
   return (
     <SidebarProvider>

@@ -353,7 +353,7 @@ export default function FarmAtlasSoilBlock() {
         }
       }
     },
-    [fetchBodemData, showSoil],
+    [fetchBodemData, showSoil, routeParams.b_id_farm, routeParams.calendar, capture],
   )
 
   const onToggleSoil = useCallback(() => {

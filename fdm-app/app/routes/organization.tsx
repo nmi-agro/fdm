@@ -141,7 +141,7 @@ export default function App() {
         name: organization.name,
       })
     }
-  }, [organization])
+  }, [loaderData.selectedOrganizationSlug, organization?.name])
 
   return (
     <SidebarProvider>

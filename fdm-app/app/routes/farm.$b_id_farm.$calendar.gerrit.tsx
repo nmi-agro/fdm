@@ -274,6 +274,7 @@ export default function GerritApp() {
   const navigation = useNavigation()
   const { capture } = useAnalytics()
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     capture("gerrit_opened", { b_id_farm: farm.b_id_farm, calendar })
   }, [])

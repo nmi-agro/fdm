@@ -535,7 +535,9 @@ export async function action({ request, params, url }: Route.ActionArgs) {
         throw new Error("Invalid review data format")
       }
 
+      let addedFieldCount = 0
       const onFieldAdded = async (tx: FdmType, b_id: string, geometry: FieldGeometry) => {
+        addedFieldCount++
         const nmiApiKey = getNmiApiKey()
         if (nmiApiKey) {
           try {
@@ -569,7 +571,7 @@ export async function action({ request, params, url }: Route.ActionArgs) {
 
       captureEvent(session.principal_id, "fields_imported_rvo", {
         b_id_farm,
-        field_count: rvoImportReviewData.length,
+        field_count: addedFieldCount,
         calendar: yearString,
       })
 
