@@ -96,21 +96,21 @@ export function HeaderField({
                       </CommandGroup>
                     )}
                     {regularFields.length > 0 && (
-                    <CommandGroup heading="Alle percelen">
-                      {regularFields.map((option) => (
-                        <CommandItem
-                          key={option.b_id}
-                          value={option.b_name ?? ""}
-                          onSelect={() => handleSelect(option.b_id, option.b_name ?? "")}
-                          className="flex cursor-pointer items-center justify-between"
-                        >
-                          <span>{option.b_name}</span>
-                          {b_id === option.b_id && (
-                            <Check className="text-primary ml-auto h-4 w-4 shrink-0" />
-                          )}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
+                      <CommandGroup heading="Alle percelen">
+                        {regularFields.map((option) => (
+                          <CommandItem
+                            key={option.b_id}
+                            value={option.b_name ?? ""}
+                            onSelect={() => handleSelect(option.b_id, option.b_name ?? "")}
+                            className="flex cursor-pointer items-center justify-between"
+                          >
+                            <span>{option.b_name}</span>
+                            {b_id === option.b_id && (
+                              <Check className="text-primary ml-auto h-4 w-4 shrink-0" />
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
                     )}
                   </CommandList>
                 </Command>

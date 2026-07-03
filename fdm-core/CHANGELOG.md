@@ -1,5 +1,12 @@
 # Changelog fdm-core
 
+## 0.34.1
+
+### Patch Changes
+
+- Updated dependencies [[`af91940`](https://github.com/nmi-agro/fdm/commit/af91940e7b683741787b6c37ed53580a815bfd2c), [`2a169b4`](https://github.com/nmi-agro/fdm/commit/2a169b467d8bd3900fae8f85bf19ff807312f1ce)]:
+  - @nmi-agro/fdm-data@0.22.0
+
 ## 0.34.0
 
 ### Minor Changes

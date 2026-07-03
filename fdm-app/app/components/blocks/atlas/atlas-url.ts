@@ -9,11 +9,11 @@ export function getAvailableFieldsUrl(calendar: string): string {
   if (Number.isNaN(parsedYear)) {
     throw new Error(`Invalid calendar year: ${calendar}`)
   }
-  const year = Math.max(2020, Math.min(2025, parsedYear))
+  const year = Math.max(2020, Math.min(2026, parsedYear))
 
   // Set version according to availability at FDM public datasets
   let version = "definitive"
-  if (year >= 2025) {
+  if (year >= 2026) {
     version = "draft"
   }
 
