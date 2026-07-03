@@ -54,7 +54,8 @@ export async function getMatchingEmailBlock(
   email: string,
 ): Promise<EmailBlock | null> {
   try {
-    if (email.trim().length === 0) {
+    const normalizedEmail = normalizeEmail(email)
+    if (normalizedEmail.length === 0 || normalizedEmail.length > 254) {
       return {
         email: email,
         blocked_by: "SYSTEM",
@@ -62,7 +63,6 @@ export async function getMatchingEmailBlock(
         created: new Date(),
       }
     }
-    const normalizedEmail = normalizeEmail(email)
     const toLookFor = [normalizedEmail]
     let domainPart = normalizedEmail
     let emailParts = normalizedEmail.split("@")

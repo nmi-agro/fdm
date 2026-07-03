@@ -99,6 +99,11 @@ describe("getMatchingEmailBlock", () => {
     expect(result).not.toBeNull()
   })
 
+  test("should return a block for an email that is too long", async ({ fdm }) => {
+    const result = await getMatchingEmailBlock(fdm, `tst@${"a.".repeat(123)}a.com`)
+    expect(result).not.toBeNull()
+  })
+
   test("should return a block if domain of only one segment matches", async ({ fdm }) => {
     const result = await getMatchingEmailBlock(fdm, `${createId()}@example..com`)
     expect(result).not.toBeNull()
