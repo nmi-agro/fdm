@@ -134,7 +134,7 @@ export function AddBlockedEmailForm() {
   const [open, setOpen] = useState(false)
 
   const form = useRemixForm<z.infer<typeof AddBlockedEmailSchema>>({
-    mode: "onSubmit",
+    mode: "onTouched",
     resolver: zodResolver(AddBlockedEmailSchema),
     defaultValues: {
       intent: "add_email_block",

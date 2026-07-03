@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm"
+import { and, asc, eq, inArray, sql } from "drizzle-orm"
 import { checkHelpdeskPermission } from "./authorization"
 import { HelpdeskPrincipalId } from "./authorization.types"
 import * as schema from "./db/schema-helpdesk"
@@ -39,6 +39,61 @@ export async function getEmailBlock(
     return blockedEmail.length > 0 ? blockedEmail[0] : null
   } catch (err) {
     throw handleError(err, "Exception for getEmailBlock")
+  }
+}
+
+/**
+ * Retrieves the first email block that matches the email address or its domain.
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param email Email address to get the block for.
+ * @returns Email block information if found, otherwise null.
+ */
+export async function getMatchingEmailBlock(
+  fdm: FdmHelpdeskType,
+  email: string,
+): Promise<EmailBlock | null> {
+  try {
+    if (email.trim().length === 0) {
+      return {
+        email: email,
+        blocked_by: "SYSTEM",
+        reason: "Invalid email address",
+        created: new Date(),
+      }
+    }
+    const normalizedEmail = normalizeEmail(email)
+    const toLookFor = [normalizedEmail]
+    let domainPart = normalizedEmail
+    let emailParts = normalizedEmail.split("@")
+    if (emailParts.length === 2) {
+      domainPart = emailParts[1]
+      toLookFor.push(domainPart)
+    }
+
+    const parts = domainPart.split(".")
+    if (parts.some((x) => x.trim().length === 0)) {
+      return {
+        email: normalizedEmail,
+        blocked_by: "SYSTEM",
+        reason: "Invalid email address",
+        created: new Date(),
+      }
+    }
+
+    while (parts.length > 0) {
+      toLookFor.push(`*.${parts.join(".")}`)
+      parts.shift()
+    }
+
+    const blockedEmail = await fdm
+      .select()
+      .from(schema.blockedEmails)
+      .where(inArray(schema.blockedEmails.email, toLookFor))
+      .limit(1)
+    return blockedEmail.length > 0 ? blockedEmail[0] : null
+  } catch (err) {
+    throw handleError(err, "Exception for getMatchingEmailBlock")
   }
 }
 

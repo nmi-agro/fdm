@@ -4,7 +4,7 @@ import {
   assignTicketToAnAdmin,
   createTicketFromInboundEmail,
   getAssigneesForTicketsUnchecked,
-  getEmailBlock,
+  getMatchingEmailBlock,
   getMessagesForTicket,
   getTicket,
   markTicketAsNotViewedByAll,
@@ -112,7 +112,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     // Normalize the email if needed
     const normalizedEmail = email.FromFull.Email
 
-    const emailBlock = await getEmailBlock(fdm, normalizedEmail)
+    const emailBlock = await getMatchingEmailBlock(fdm, normalizedEmail)
 
     if (emailBlock) {
       return new Response("Forbidden", {

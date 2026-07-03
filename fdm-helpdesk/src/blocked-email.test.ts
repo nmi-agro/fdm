@@ -1,6 +1,12 @@
 import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent } from "./agent"
-import { addEmailBlock, getEmailBlock, getEmailBlocks, removeEmailBlock } from "./blocked-email"
+import {
+  addEmailBlock,
+  getEmailBlock,
+  getEmailBlocks,
+  getMatchingEmailBlock,
+  removeEmailBlock,
+} from "./blocked-email"
 import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { test, truncateAllTables } from "./test-util"
@@ -47,6 +53,73 @@ describe("getEmailBlock", () => {
     } as unknown as FdmHelpdeskType
 
     await expect(getEmailBlock(fdm, email)).rejects.toThrow("Exception for getEmailBlock")
+  })
+})
+
+describe("getMatchingEmailBlock", () => {
+  let admin_id: string
+  let domain: string
+  let email: string
+  test.beforeEach(async ({ fdm }) => {
+    admin_id = createId()
+    await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+    domain = `${createId()}.com`
+    email = `${createId()}@${domain}`
+  })
+
+  test("should return the block if the email is specifically blocked", async ({ fdm }) => {
+    await addEmailBlock(fdm, admin_id, email, "Test reason")
+    const result = await getMatchingEmailBlock(fdm, email)
+    expect(result).not.toBeNull()
+  })
+
+  test("should return the block if the email's domain is blocked", async ({ fdm }) => {
+    await addEmailBlock(fdm, admin_id, domain, "Test reason")
+    const result = await getMatchingEmailBlock(fdm, `${createId()}@${domain}`)
+    expect(result).not.toBeNull()
+  })
+
+  test("should return the block if the email's all subdomais are blocked", async ({ fdm }) => {
+    await addEmailBlock(fdm, admin_id, `*.${domain}`, "Test reason")
+    const result = await getMatchingEmailBlock(fdm, `${createId()}@${domain}`)
+    expect(result).not.toBeNull()
+  })
+
+  test("should return the block if the email's subdomain is blocked due to all subdomais being blocked", async ({
+    fdm,
+  }) => {
+    await addEmailBlock(fdm, admin_id, `*.${domain}`, "Test reason")
+    const result = await getMatchingEmailBlock(fdm, `${createId()}@sub.${domain}`)
+    expect(result).not.toBeNull()
+  })
+
+  test("should return a block for a blank email", async ({ fdm }) => {
+    const result = await getMatchingEmailBlock(fdm, "    ")
+    expect(result).not.toBeNull()
+  })
+
+  test("should return a block if domain of only one segment matches", async ({ fdm }) => {
+    const result = await getMatchingEmailBlock(fdm, `${createId()}@example..com`)
+    expect(result).not.toBeNull()
+  })
+
+  test("should return null for an email that is not blocked", async ({ fdm }) => {
+    const email = "good@example.com"
+    const result = await getMatchingEmailBlock(fdm, email)
+    expect(result).toBeNull()
+  })
+
+  test("should throw if the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(getMatchingEmailBlock(fdm, email)).rejects.toThrow(
+      "Exception for getMatchingEmailBlock",
+    )
   })
 })
 
