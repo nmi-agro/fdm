@@ -21,13 +21,13 @@ import { ElevationLegend } from "~/components/blocks/atlas/atlas-legend"
 import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useAnalytics } from "~/hooks/use-analytics"
 
 // Register the projection for RD New (EPSG:28992)
 proj4.defs(

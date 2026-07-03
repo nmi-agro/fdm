@@ -63,12 +63,12 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
 import { getGerritUsage } from "~/lib/gerrit-limit.server"
-import { useAnalytics } from "~/hooks/use-analytics"
 import PostHogClient from "~/posthog.server"
 
 export const handle = { hideNavigationProgress: true }

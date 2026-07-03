@@ -10,6 +10,7 @@ import {
   useParams,
 } from "react-router"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { type FieldBln3Score, getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import {
@@ -26,7 +27,6 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { INDICATORS } from "~/lib/indicators"
-import { useAnalytics } from "~/hooks/use-analytics"
 
 const IndicatorsMap = lazy(() => import("@/app/components/blocks/indicators/atlas"))
 

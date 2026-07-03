@@ -29,6 +29,7 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { Progress } from "~/components/ui/progress"
 import { Separator } from "~/components/ui/separator"
+import { useAnalytics } from "~/hooks/use-analytics"
 import {
   type AnnotationCoords,
   type AnnotationType,
@@ -41,7 +42,6 @@ import {
   type WizardImage,
 } from "~/lib/bcs"
 import { uploadBcsImage } from "~/lib/bcs-image-upload.client"
-import { useAnalytics } from "~/hooks/use-analytics"
 import { cn } from "~/lib/utils"
 
 interface PhotoUploadButtonProps {

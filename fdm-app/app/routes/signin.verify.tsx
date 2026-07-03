@@ -17,11 +17,11 @@ import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { handleLoaderError } from "~/lib/error"
-import { useAnalytics } from "~/hooks/use-analytics"
 import { FormSchema } from "../components/blocks/auth/auth-formschema"
 import { extractFormValuesFromRequest } from "../lib/form"
 
@@ -76,9 +76,7 @@ export default function Verify() {
   // Capture code failure when actionData signals an error
   useEffect(() => {
     if (actionData?.errors?.code) {
-      const reason = actionData.errors.code.includes("Te veel")
-        ? "rate_limited"
-        : "invalid_code"
+      const reason = actionData.errors.code.includes("Te veel") ? "rate_limited" : "invalid_code"
       capture("signin_code_failed", { reason })
     }
   }, [actionData])
@@ -107,7 +105,7 @@ export default function Verify() {
         <Form
           onSubmit={(e) => {
             capture("signin_code_submitted")
-            form.handleSubmit(e)
+            void form.handleSubmit(e)
           }}
           method="POST"
           className="space-y-6"

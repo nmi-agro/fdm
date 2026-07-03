@@ -31,13 +31,13 @@ import {
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getNorms } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useAnalytics } from "~/hooks/use-analytics"
 
 interface FieldNormData {
   b_id: string

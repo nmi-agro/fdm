@@ -26,13 +26,13 @@ import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useAnalytics } from "~/hooks/use-analytics"
 
 // Meta
 export const meta: MetaFunction = () => {

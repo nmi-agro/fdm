@@ -9,6 +9,7 @@ import { FarmMineralizationChart } from "~/components/blocks/mineralization/mine
 import { FarmNSupplyKpi } from "~/components/blocks/mineralization/nsupply-kpi"
 import { MineralizationFallback } from "~/components/blocks/mineralization/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { useAnalytics } from "~/hooks/use-analytics"
 import {
   type FarmDynaResult,
   getDynaForFarm,
@@ -21,7 +22,6 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useAnalytics } from "~/hooks/use-analytics"
 
 export const meta: MetaFunction = () => {
   return [

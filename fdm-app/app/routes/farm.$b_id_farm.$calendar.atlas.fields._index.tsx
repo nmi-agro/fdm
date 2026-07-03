@@ -22,13 +22,13 @@ import {
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useAnalytics } from "~/hooks/use-analytics"
 
 export const meta: MetaFunction = () => {
   return [
@@ -121,7 +121,11 @@ export default function FarmAtlasFieldsBlock() {
   const { capture } = useAnalytics()
 
   useEffect(() => {
-    capture("atlas_viewed", { b_id_farm: params.b_id_farm, calendar: loaderData.calendar, layer: "fields" })
+    capture("atlas_viewed", {
+      b_id_farm: params.b_id_farm,
+      calendar: loaderData.calendar,
+      layer: "fields",
+    })
   }, [])
 
   const id = "fieldsSaved"

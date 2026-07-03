@@ -59,12 +59,12 @@ import {
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { signIn } from "~/lib/auth-client"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { useAnalytics } from "~/hooks/use-analytics"
 import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
 import { extractFormValuesFromRequest } from "../lib/form"
@@ -479,7 +479,7 @@ export default function SignIn() {
                         id="formSigninMagicLink"
                         onSubmit={(e) => {
                           capture("signin_magic_link_submitted")
-                          form.handleSubmit(e)
+                          void form.handleSubmit(e)
                         }}
                         method="post"
                       >

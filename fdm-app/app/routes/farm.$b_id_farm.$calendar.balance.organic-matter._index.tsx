@@ -23,13 +23,13 @@ import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultiv
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons" // Can be reused
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getOrganicMatterBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { useAnalytics } from "~/hooks/use-analytics"
 
 // Meta
 export const meta: MetaFunction = () => {
