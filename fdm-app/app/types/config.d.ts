@@ -75,9 +75,7 @@ export interface ServerConfig {
       helpdesk_sender_address?: string
       helpdesk_sender_name?: string
       helpdesk_inbound_address?: string
-      inbound_email_auth_username?: string
-      inbound_email_auth_password_hash?: string
-      inbound_email_auth_password_salt?: string
+      inbound_email_auth_secret?: string
     }
   }
   helpdesk: {

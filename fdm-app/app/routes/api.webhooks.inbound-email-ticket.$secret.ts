@@ -12,15 +12,13 @@ import {
   tryToGetTicketUnchecked,
   updateTicketSubjectAndPriorityUnchecked,
 } from "@nmi-agro/fdm-helpdesk"
-import crypto from "crypto"
-import { promisify } from "util"
 import { serverConfig } from "~/lib/config.server"
 import { PostmarkEmailSchema, sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { checkRateLimit } from "~/lib/rate-limit.server"
 import { performTicketTriage } from "~/lib/support.server"
-import { Route } from "./+types/api.webhooks.inbound-email-ticket"
+import { Route } from "./+types/api.webhooks.inbound-email-ticket.$secret"
 
 // Per-sender-email rate limit for the inbound email webhook, so a single
 // mailbox (compromised, misconfigured autoresponder, or malicious) can't
@@ -28,48 +26,7 @@ import { Route } from "./+types/api.webhooks.inbound-email-ticket"
 const INBOUND_EMAIL_RATE_LIMIT_WINDOW_MS = 1000
 const INBOUND_EMAIL_RATE_LIMIT_MAX = 10
 
-async function checkUsernameAndPassword(request: Request) {
-  if (
-    serverConfig.mail?.postmark.inbound_email_auth_username === undefined ||
-    serverConfig.mail?.postmark.inbound_email_auth_password_hash === undefined ||
-    serverConfig.mail?.postmark.inbound_email_auth_password_salt === undefined
-  ) {
-    return false
-  }
-
-  const authHeader = request.headers.get("Authorization")
-  if (!authHeader) {
-    return false
-  }
-
-  const basicAuthMatch = authHeader.match(/^Basic\s+(.+)$/i)
-  if (!basicAuthMatch) {
-    return false
-  }
-
-  const decodedCredentials = Buffer.from(basicAuthMatch[1], "base64").toString("utf8")
-  const separatorIndex = decodedCredentials.indexOf(":")
-  if (separatorIndex < 0) {
-    return false
-  }
-
-  const username = decodedCredentials.substring(0, separatorIndex)
-  const password = decodedCredentials.substring(separatorIndex + 1)
-
-  const hashedPw = (
-    (await promisify(crypto.scrypt)(
-      password,
-      serverConfig.mail.postmark.inbound_email_auth_password_salt,
-      64,
-    )) as Buffer
-  ).toString("hex")
-
-  return (
-    username === serverConfig.mail?.postmark.inbound_email_auth_username &&
-    hashedPw === serverConfig.mail.postmark.inbound_email_auth_password_hash
-  )
-}
-
+// Maximum HTTP request body size for inbound email webhook.
 const MAX_INBOUND_EMAIL_BODY_BYTES = 30 * 1024 * 1024
 
 async function parseJsonBodyWithLimit(request: Request, maxBytes: number): Promise<unknown> {
@@ -120,18 +77,15 @@ async function parseJsonBodyWithLimit(request: Request, maxBytes: number): Promi
   }
 }
 
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ params, request }: Route.ActionArgs) {
   try {
-    if (
-      !serverConfig.mail?.postmark.inbound_email_auth_username ||
-      !serverConfig.mail?.postmark.inbound_email_auth_password_hash
-    ) {
+    if (!serverConfig.mail?.postmark.inbound_email_auth_secret) {
       return new Response("Not Implemented", {
         status: 501,
       })
     }
 
-    if (!(await checkUsernameAndPassword(request))) {
+    if (params.secret !== serverConfig.mail.postmark.inbound_email_auth_secret) {
       return new Response("Unauthorized", {
         status: 401,
         headers: { "WWW-Authenticate": 'Basic realm="Inbound Email Webhook"' },
