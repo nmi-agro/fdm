@@ -68,6 +68,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { fdm } from "~/lib/fdm.server"
 import { getGerritUsage } from "~/lib/gerrit-limit.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 import PostHogClient from "~/posthog.server"
 
 export const handle = { hideNavigationProgress: true }
@@ -271,6 +272,11 @@ export default function GerritApp() {
   const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions, gerritUsage } =
     useLoaderData<typeof loader>()
   const navigation = useNavigation()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("gerrit_opened", { b_id_farm: farm.b_id_farm, calendar })
+  }, [])
 
   const headerAction = {
     to: `/farm/${farm.b_id_farm}`,

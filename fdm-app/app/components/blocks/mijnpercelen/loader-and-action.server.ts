@@ -19,6 +19,7 @@ import { length } from "@turf/length"
 import fs from "node:fs/promises"
 import { data } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import { captureEvent } from "~/lib/analytics.server"
 import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -324,6 +325,12 @@ export async function genericAction(
           }
         }
       }
+
+      captureEvent(session.principal_id, "fields_imported_shapefile", {
+        b_id_farm,
+        field_count: addedFields.length,
+        calendar: String(year),
+      })
 
       return redirectWithSuccess(returnUrl, "Percelen zijn succesvol geïmporteerd! 🎉")
     }

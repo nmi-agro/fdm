@@ -1,6 +1,6 @@
 import { getFarm, getFields } from "@nmi-agro/fdm-core"
 import { Component, Zap } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { DynaFieldList } from "~/components/blocks/mineralization/dyna-field-list"
 import { FieldList } from "~/components/blocks/mineralization/field-list"
@@ -21,6 +21,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 
 export const meta: MetaFunction = () => {
   return [
@@ -135,6 +136,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function MineralizationFarmOverview() {
   const loaderData = useLoaderData<typeof loader>()
   const { b_id_farm, method, calendar, asyncNSupply, asyncDynaPromises, fields } = loaderData
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("mineralization_viewed", { b_id_farm, calendar })
+  }, [])
 
   return (
     <div className="space-y-8">

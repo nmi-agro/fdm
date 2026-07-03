@@ -11,6 +11,7 @@ import {
   getHarvests,
   updateCultivation,
 } from "@nmi-agro/fdm-core"
+import { useEffect } from "react"
 import { type MetaFunction, NavLink, Outlet, redirect, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
@@ -30,6 +31,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { cn } from "~/lib/utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation"
 
@@ -383,6 +385,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
  */
 export default function FarmRotationIndex() {
   const loaderData = useLoaderData<typeof loader>()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("rotation_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
+  }, [])
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??

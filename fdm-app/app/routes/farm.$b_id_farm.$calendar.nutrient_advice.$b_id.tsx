@@ -6,7 +6,7 @@ import {
   getFertilizers,
   getField,
 } from "@nmi-agro/fdm-core"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import {
   type LoaderFunctionArgs,
   type MetaFunction,
@@ -27,6 +27,7 @@ import { clientConfig } from "~/lib/config"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getNmiApiKey } from "../integrations/nmi.server"
 
 // Meta
@@ -156,6 +157,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FieldNutrientAdviceBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const { field, nutrientsDescription } = loaderData
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("nutrient_advice_field_viewed", {
+      b_id_farm: field.b_id_farm,
+      b_id: field.b_id,
+      calendar: loaderData.calendar,
+    })
+  }, [])
 
   const primaryNutrients = nutrientsDescription.filter(
     (item: NutrientDescription) => item.type === "primary",

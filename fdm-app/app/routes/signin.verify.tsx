@@ -21,6 +21,7 @@ import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { handleLoaderError } from "~/lib/error"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { FormSchema } from "../components/blocks/auth/auth-formschema"
 import { extractFormValuesFromRequest } from "../lib/form"
 
@@ -59,6 +60,7 @@ export default function Verify() {
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
   const isSubmitting = navigation.state !== "idle"
+  const { capture } = useAnalytics()
 
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onSubmit",
@@ -70,6 +72,16 @@ export default function Verify() {
   })
 
   const hasAnimated = useRef(false)
+
+  // Capture code failure when actionData signals an error
+  useEffect(() => {
+    if (actionData?.errors?.code) {
+      const reason = actionData.errors.code.includes("Te veel")
+        ? "rate_limited"
+        : "invalid_code"
+      capture("signin_code_failed", { reason })
+    }
+  }, [actionData])
 
   // Typing animation effect
   useEffect(() => {
@@ -92,7 +104,14 @@ export default function Verify() {
         title="Verifieer je code"
         description="Vul de 8-cijferige code in die je per e-mail hebt ontvangen."
       >
-        <Form onSubmit={form.handleSubmit} method="POST" className="space-y-6">
+        <Form
+          onSubmit={(e) => {
+            capture("signin_code_submitted")
+            form.handleSubmit(e)
+          }}
+          method="POST"
+          className="space-y-6"
+        >
           <input type="hidden" {...form.register("redirectTo")} />
 
           <AuthCodeField control={form.control} serverError={actionData?.errors?.code} />

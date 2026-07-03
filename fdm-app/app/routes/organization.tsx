@@ -134,6 +134,15 @@ export default function App() {
     }
   }, [loaderData.user])
 
+  // Register organization group so org-level dashboards aggregate events
+  useEffect(() => {
+    if (clientConfig.analytics.posthog && organization) {
+      posthog.group("organization", organization.slug, {
+        name: organization.name,
+      })
+    }
+  }, [organization])
+
   return (
     <SidebarProvider>
       <Sidebar>

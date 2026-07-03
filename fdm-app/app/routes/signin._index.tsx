@@ -64,6 +64,7 @@ import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
 import { extractFormValuesFromRequest } from "../lib/form"
@@ -223,6 +224,7 @@ export default function SignIn() {
   const [searchParams, setSearchParams] = useSearchParams() // Get search params
   const moreInfoRef = useRef<HTMLDivElement>(null)
   const [socialSignInError, setSocialSignInError] = useState<string | null>(null)
+  const { capture } = useAnalytics()
 
   const rawRedirectTo = searchParams.get("redirectTo")
   const redirectTo = getSafeRedirect(rawRedirectTo) // Validate redirectTo to prevent open redirect
@@ -344,6 +346,7 @@ export default function SignIn() {
                           disabled={loadingProvider !== null}
                           onClick={async () => {
                             setLoadingProvider("microsoft")
+                            capture("signin_oauth_clicked", { provider: "microsoft" })
                             try {
                               await signIn.oauth2({
                                 providerId: "microsoft",
@@ -404,6 +407,7 @@ export default function SignIn() {
                           onClick={async () => {
                             try {
                               setLoadingProvider("google")
+                              capture("signin_oauth_clicked", { provider: "google" })
                               await signIn.social({
                                 provider: "google",
                                 callbackURL: redirectTo,
@@ -471,7 +475,14 @@ export default function SignIn() {
                       </div>
                     </div>
                     <RemixFormProvider {...form}>
-                      <Form id="formSigninMagicLink" onSubmit={form.handleSubmit} method="post">
+                      <Form
+                        id="formSigninMagicLink"
+                        onSubmit={(e) => {
+                          capture("signin_magic_link_submitted")
+                          form.handleSubmit(e)
+                        }}
+                        method="post"
+                      >
                         <fieldset disabled={form.formState.isSubmitting}>
                           <div className="grid w-full items-center gap-4">
                             <div className="flex flex-col space-y-1.5">

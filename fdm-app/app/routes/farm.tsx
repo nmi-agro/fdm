@@ -203,6 +203,15 @@ export default function App() {
     }
   }, [loaderData.user])
 
+  // Register farm group so farm-level dashboards aggregate all events from this farm
+  useEffect(() => {
+    if (clientConfig.analytics.posthog && loaderData.farm?.b_id_farm) {
+      posthog.group("farm", loaderData.farm.b_id_farm, {
+        b_name_farm: loaderData.farm.b_name_farm,
+      })
+    }
+  }, [loaderData.farm])
+
   return (
     <SidebarProvider>
       <Sidebar>

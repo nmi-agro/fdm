@@ -28,6 +28,7 @@ import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { getSession } from "~/lib/auth.server"
+import { captureEvent } from "~/lib/analytics.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -210,6 +211,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
           }
         }),
       )
+
+      const savedCount = matches.filter((m: { analysisId: string; fieldId: string }) => m.fieldId)
+        .length
+      captureEvent(session.principal_id, "soil_analysis_saved", {
+        b_id_farm,
+        method: "bulk",
+        count: savedCount,
+      })
 
       return redirectWithSuccess(`/farm/${b_id_farm}`, {
         message: "Bodemanalyses succesvol opgeslagen",

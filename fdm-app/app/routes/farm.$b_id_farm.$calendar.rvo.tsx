@@ -56,6 +56,7 @@ import {
   getRvoCredentials,
   rvoTokenCookie,
 } from "~/integrations/rvo.server"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { extractErrorMessage } from "~/lib/error"
@@ -565,6 +566,13 @@ export async function action({ request, params, url }: Route.ActionArgs) {
         year,
         onFieldAdded,
       )
+
+      captureEvent(session.principal_id, "fields_imported_rvo", {
+        b_id_farm,
+        field_count: rvoImportReviewData.length,
+        calendar: yearString,
+      })
+
       return redirect(`/farm/${b_id_farm}`)
     } catch (e: any) {
       console.error("Error with processing RVO import: ", e)

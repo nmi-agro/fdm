@@ -31,6 +31,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
@@ -92,6 +93,11 @@ export default function IndicatorsFarmIndex() {
   const { fields, fieldScores } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("indicators_viewed", { b_id_farm, calendar })
+  }, [])
 
   const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
   const [withMeasures, setWithMeasures] = useState(true)

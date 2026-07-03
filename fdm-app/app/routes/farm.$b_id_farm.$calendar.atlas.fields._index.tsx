@@ -11,7 +11,7 @@ import {
   type MapRef,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import { type LoaderFunctionArgs, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, useLoaderData, useParams } from "react-router"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -28,6 +28,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 
 export const meta: MetaFunction = () => {
   return [
@@ -116,6 +117,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmAtlasFieldsBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const params = useParams()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("atlas_viewed", { b_id_farm: params.b_id_farm, calendar: loaderData.calendar, layer: "fields" })
+  }, [])
 
   const id = "fieldsSaved"
   const fields = loaderData.savedFields

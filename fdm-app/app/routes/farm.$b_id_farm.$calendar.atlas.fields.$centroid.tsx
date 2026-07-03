@@ -9,7 +9,7 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { Map as MapIcon } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -33,6 +33,7 @@ import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.serv
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import { useAnalytics } from "~/hooks/use-analytics"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -259,6 +260,14 @@ async function loadAsyncData(_calendar: string, latitude: number, longitude: num
 
 export default function FieldDetailsAtlasBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("atlas_field_details_viewed", {
+      b_id_farm: loaderData.b_id_farm,
+      calendar: loaderData.calendar,
+    })
+  }, [])
 
   return (
     <Suspense

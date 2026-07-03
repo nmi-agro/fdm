@@ -41,6 +41,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { useSelectedAtlasSoilParameterStore } from "~/store/selected-soil-parameter"
 
 export const meta: MetaFunction = () => {
@@ -152,6 +153,11 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   const { calendar, b_id_farm, mapStyle, fieldsData, soilParametersDescriptions } =
     useLoaderData<typeof loader>()
   const navigate = useNavigate()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("atlas_viewed", { b_id_farm, calendar, layer: "soil_analysis" })
+  }, [])
 
   const heatmapLayerId = "fieldsSavedHeatmap"
   const heatmapOutlineLayerId = "fieldsSavedHeatmapOutline"

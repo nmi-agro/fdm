@@ -48,6 +48,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { Skeleton } from "~/components/ui/skeleton"
 import { getMapStyle } from "~/integrations/map"
 import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -515,6 +516,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
         },
       ),
     )
+
+    for (const b_id of fieldIds) {
+      captureEvent(session.principal_id, "field_created", {
+        b_id_farm,
+        b_id,
+        method: "map",
+        calendar: String(calendar),
+      })
+    }
 
     return redirectWithSuccess(
       `/farm/${b_id_farm}/${calendar}/field/new/fields?fieldIds=${fieldIds.map(encodeURIComponent).join(",")}`,

@@ -1,5 +1,6 @@
 import { checkPermission, getCultivations, getFields } from "@nmi-agro/fdm-core"
 import { BookOpenText } from "lucide-react"
+import { useEffect } from "react"
 import { type LoaderFunctionArgs, type MetaFunction, NavLink, useLoaderData } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
@@ -19,6 +20,7 @@ import { clientConfig } from "~/lib/config"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { cn } from "~/lib/utils"
 
 // Meta
@@ -92,6 +94,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FieldNutrientAdviceIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const { fields, b_id_farm, calendar } = loaderData
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("nutrient_advice_viewed", { b_id_farm, calendar })
+  }, [])
 
   if (fields.length === 0) {
     return (

@@ -13,7 +13,7 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { AlertTriangle } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -40,6 +40,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { useFieldFilterStore } from "~/store/field-filter"
 
 interface FieldNorm {
@@ -256,6 +257,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmNormsBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("norms_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
+  }, [])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}`,

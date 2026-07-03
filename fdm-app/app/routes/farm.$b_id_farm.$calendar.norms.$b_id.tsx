@@ -10,7 +10,7 @@ import {
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { AlertTriangle } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -37,6 +37,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 
 interface FieldNormData {
   b_id: string
@@ -201,6 +202,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FieldNormsBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("norms_field_viewed", {
+      b_id_farm: loaderData.b_id_farm,
+      b_id: loaderData.b_id,
+      calendar: loaderData.calendar,
+    })
+  }, [])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/norms`,

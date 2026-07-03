@@ -13,7 +13,7 @@ import {
   Source,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -27,6 +27,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 
 // Register the projection for RD New (EPSG:28992)
 proj4.defs(
@@ -136,6 +137,16 @@ export default function FarmAtlasElevationBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const fields = loaderData.fields
   const mapStyle = loaderData.mapStyle
+  const params = useParams()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("atlas_viewed", {
+      b_id_farm: params.b_id_farm,
+      calendar: params.calendar,
+      layer: "elevation",
+    })
+  }, [])
 
   const mapRef = useRef<MapRef>(null)
 

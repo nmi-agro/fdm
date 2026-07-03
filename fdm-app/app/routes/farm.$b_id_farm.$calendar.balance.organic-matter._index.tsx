@@ -9,13 +9,14 @@ import {
   CircleCheck,
   CircleX,
 } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import {
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
   useLoaderData,
+  useParams,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
@@ -28,6 +29,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { useAnalytics } from "~/hooks/use-analytics"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -112,6 +114,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmBalanceOrganicMatterOverviewBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const params = useParams()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("balance_viewed", {
+      b_id_farm: params.b_id_farm,
+      calendar: params.calendar,
+      balance_type: "organic_matter",
+    })
+  }, [])
 
   return (
     <div className="space-y-4">

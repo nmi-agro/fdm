@@ -140,6 +140,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
         message: "Verbinding gemaakt, gegevens ophalen...",
       })
 
+      posthog?.capture({
+        distinctId: session.principal_id,
+        event: "gerrit_plan_requested",
+        properties: { b_id_farm, calendar, strategies },
+      })
+
       // Reject if the user has reached their daily limit.
       if (dailyLimit !== Number.POSITIVE_INFINITY && usedToday >= dailyLimit) {
         sendEvent("error", {

@@ -64,6 +64,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getSession } from "~/lib/auth.server"
+import { captureEvent } from "~/lib/analytics.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -544,6 +545,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
         ),
       ),
     )
+
+    for (const fieldId of fieldIds) {
+      captureEvent(session.principal_id, "fertilizer_application_added", {
+        b_id_farm,
+        b_id: fieldId,
+        p_id: validatedData.p_id,
+        calendar: String(calendar),
+        source: "rotation_table",
+        field_count: fieldIds.length,
+      })
+    }
 
     return redirectWithSuccess(
       url.searchParams.has("create")
