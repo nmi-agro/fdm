@@ -7,6 +7,7 @@ import {
   getEmailBlock,
   getMessagesForTicket,
   getTicket,
+  markTicketAsNotViewedByAll,
   tryToGetTicketByRefUnchecked,
   tryToGetTicketUnchecked,
   updateTicketSubjectAndPriorityUnchecked,
@@ -15,7 +16,7 @@ import crypto from "crypto"
 import { promisify } from "util"
 import { serverConfig } from "~/lib/config.server"
 import { PostmarkEmailSchema, sendHelpdeskNewMessageEmail } from "~/lib/email.server"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { checkRateLimit } from "~/lib/rate-limit.server"
 import { performTicketTriage } from "~/lib/support.server"
@@ -188,7 +189,6 @@ export async function action({ request }: Route.ActionArgs) {
       (u) => u.email?.toLowerCase() === normalizedEmail.toLowerCase(),
     )
     const messageSubject = email.Subject ?? "Subject"
-    const messageBody = email.TextBody ?? "Ticket"
     const MailboxHash =
       email.ToFull && email.ToFull.length > 0 ? (email.ToFull[0].MailboxHash ?? null) : null
     const ticketRef = /\[?(TK-[A-Z0-9]{6})\]?/.exec(messageSubject)?.[1]
@@ -204,13 +204,22 @@ export async function action({ request }: Route.ActionArgs) {
       ((senderPrincipal && senderPrincipal.id === ticket.requester_id) ||
         ticket.requester_email === normalizedEmail)
     ) {
+      const messageBody =
+        typeof email.StrippedTextReply === "string" && email.StrippedTextReply.length > 0
+          ? email.StrippedTextReply
+          : (email.TextBody ?? "Ticket")
       const ticket_id = await addMessageFromInboundEmailUnchecked(
         fdm,
         ticket.ticket_id,
         messageBody,
         senderPrincipal?.id,
       )
-
+      try {
+        await markTicketAsNotViewedByAll(fdm, ticket.ticket_id)
+      } catch (unreadError) {
+        // Marking as not read failed, but continue
+        void handleActionError(unreadError)
+      }
       try {
         const assignees =
           (await getAssigneesForTicketsUnchecked(fdm, [ticket.ticket_id])).get(ticket.ticket_id) ??
@@ -237,12 +246,14 @@ export async function action({ request }: Route.ActionArgs) {
           }
         }
       } catch (err) {
-        handleLoaderError(err)
+        handleActionError(err)
       }
       return new Response("OK", { status: 200 })
     }
 
     // Create a new ticket
+    // For new tickets use the entire email body in case it contains further context in quotes
+    const messageBody = email.TextBody ?? "Ticket"
     const ticket_id = await createTicketFromInboundEmail(
       fdm,
       normalizedEmail,
@@ -259,7 +270,7 @@ export async function action({ request }: Route.ActionArgs) {
         await performTicketTriage(serverConfig.integrations.gemini.api_key, ticket_id, messageBody)
       }
     } catch (err) {
-      handleLoaderError(err)
+      handleActionError(err)
     }
 
     try {
@@ -282,12 +293,12 @@ export async function action({ request }: Route.ActionArgs) {
         }
       }
     } catch (err) {
-      handleLoaderError(err)
+      handleActionError(err)
     }
 
     return new Response("OK", { status: 200 })
   } catch (err) {
-    handleLoaderError(err)
+    handleActionError(err)
     return new Response("Internal Server Error", { status: 500 })
   }
 }

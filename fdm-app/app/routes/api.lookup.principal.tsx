@@ -44,8 +44,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     // Basic validation to prevent malicious input
-    // Only allow alphanumeric characters, at-sign, period, underscores, and hyphens
-    if (!/^[a-zA-Z0-9@._-]+$/.test(identifier)) {
+    // Only allow alphanumeric characters, at-sign, plus, period, underscores, and hyphens
+    if (!/^[a-zA-Z0-9@+._-]+$/.test(identifier)) {
       return []
     }
     if (identifier.length < 2 || identifier.length > 100) {
