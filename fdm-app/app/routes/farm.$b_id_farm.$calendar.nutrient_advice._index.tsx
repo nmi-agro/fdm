@@ -1,11 +1,21 @@
-import { checkPermission, getCultivations, getFields } from "@nmi-agro/fdm-core"
+import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
+import {
+  checkPermission,
+  getCultivationsForFarm,
+  getCurrentSoilDataForFarm,
+  getFertilizerApplicationsForFarm,
+  getFertilizers,
+  getFields,
+} from "@nmi-agro/fdm-core"
 import { BookOpenText } from "lucide-react"
-import { useEffect } from "react"
+import { Suspense, use, useEffect } from "react"
 import { type LoaderFunctionArgs, type MetaFunction, NavLink, useLoaderData } from "react-router"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
-import { Badge } from "~/components/ui/badge"
+import type { FieldNutrientRow } from "~/components/blocks/nutrient-advice/overview-types"
+import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
+import { toFriendlyAdviceError } from "~/components/blocks/nutrient-advice/overview-errors"
+import { NutrientAdviceOverviewSkeleton } from "~/components/blocks/nutrient-advice/overview-skeleton"
+import { NutrientAdviceOverviewTable } from "~/components/blocks/nutrient-advice/overview-table"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
   Empty,
   EmptyContent,
@@ -22,6 +32,7 @@ import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
+import { getNmiApiKey } from "../integrations/nmi.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -37,8 +48,9 @@ export const meta: MetaFunction = () => {
 }
 
 /**
- * Loads the user's session and associated fields for a specified farm.
- * It also fetches the main cultivation for each field to display in the overview.
+ * Loads the fields of a farm and their write permission, so the overview can render immediately.
+ * The (slower) per-field nutrient advice calculation is deferred into `asyncData` and streamed in,
+ * since it requires an external NMI API call per field.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -57,19 +69,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get the fields of the farm
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
 
-    // Fetch cultivations for each field and determine the main one
-    const fieldsWithCultivation = await Promise.all(
-      fields.map(async (field) => {
-        const cultivations = await getCultivations(fdm, session.principal_id, field.b_id, timeframe)
-        const mainCultivation = getDefaultCultivation(cultivations, calendar) || cultivations[0]
-        return {
-          ...field,
-          cultivations,
-          mainCultivation,
-        }
-      }),
-    )
-
     const farmWritePermission = await checkPermission(
       fdm,
       "farm",
@@ -80,11 +79,115 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       false,
     )
 
+    const nutrientsDescription = getNutrientsDescription()
+
+    const asyncData = (async (): Promise<{ rows: FieldNutrientRow[] }> => {
+      if (fields.length === 0) {
+        return { rows: [] }
+      }
+
+      // Fetch farm-wide data in a handful of batched queries instead of N queries per field.
+      const [cultivationsByField, fertilizerApplicationsByField, soilDataByField, fertilizers] =
+        await Promise.all([
+          getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+          getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+          getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+          getFertilizers(fdm, session.principal_id, b_id_farm),
+        ])
+
+      const nmiApiKey = getNmiApiKey()
+
+      const results = await Promise.allSettled(
+        fields.map(async (field): Promise<FieldNutrientRow> => {
+          const cultivations = cultivationsByField.get(field.b_id) ?? []
+          const b_area = field.b_area ?? 0
+
+          if (cultivations.length === 0) {
+            return {
+              b_id: field.b_id,
+              b_name: field.b_name,
+              b_area,
+              mainCultivation: null,
+              errorMessage: "Geen gewas geregistreerd voor dit perceel.",
+              values: {},
+            }
+          }
+
+          const activeCultivation = getDefaultCultivation(cultivations, calendar) ?? cultivations[0]
+          const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
+          const currentSoilData = soilDataByField.get(field.b_id) ?? []
+
+          const mainCultivation = {
+            b_lu: activeCultivation.b_lu,
+            b_lu_name: activeCultivation.b_lu_name,
+            b_lu_croprotation: activeCultivation.b_lu_croprotation ?? null,
+          }
+
+          try {
+            const doses = calculateDose({ applications: fertilizerApplications, fertilizers })
+            const nutrientAdvice = await getNutrientAdvice(fdm, {
+              b_lu_catalogue: activeCultivation.b_lu_catalogue,
+              b_centroid: field.b_centroid,
+              currentSoilData,
+              nmiApiKey,
+              b_bufferstrip: field.b_bufferstrip,
+            })
+
+            const values: FieldNutrientRow["values"] = {}
+            for (const nutrient of nutrientsDescription) {
+              values[nutrient.symbol] = {
+                filling:
+                  (doses.dose[nutrient.doseParameter as keyof typeof doses.dose] as number) ?? 0,
+                advice:
+                  nutrientAdvice[nutrient.adviceParameter as keyof typeof nutrientAdvice] ?? 0,
+              }
+            }
+
+            return {
+              b_id: field.b_id,
+              b_name: field.b_name,
+              b_area,
+              mainCultivation,
+              values,
+            }
+          } catch (error) {
+            return {
+              b_id: field.b_id,
+              b_name: field.b_name,
+              b_area,
+              mainCultivation,
+              errorMessage: toFriendlyAdviceError(error),
+              values: {},
+            }
+          }
+        }),
+      )
+
+      const rows = results.map((result, index) => {
+        if (result.status === "fulfilled") {
+          return result.value
+        }
+        const field = fields[index]
+        return {
+          b_id: field.b_id,
+          b_name: field.b_name,
+          b_area: field.b_area ?? 0,
+          mainCultivation: null,
+          errorMessage: toFriendlyAdviceError(result.reason),
+          values: {},
+        } satisfies FieldNutrientRow
+      })
+
+      return { rows }
+    })()
+
     return {
-      fields: fieldsWithCultivation,
+      hasFields: fields.length > 0,
       b_id_farm: b_id_farm,
       calendar: calendar,
       farmWritePermission,
+      nutrientsDescription,
+      asyncData,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -93,14 +196,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FieldNutrientAdviceIndex() {
   const loaderData = useLoaderData<typeof loader>()
-  const { fields, b_id_farm, calendar } = loaderData
+  const { hasFields, b_id_farm, calendar } = loaderData
   const { capture } = useAnalytics()
 
   useEffect(() => {
     capture("nutrient_advice_viewed", { b_id_farm, calendar })
   }, [])
 
-  if (fields.length === 0) {
+  if (!hasFields) {
     return (
       <Empty>
         <EmptyHeader>
@@ -134,71 +237,26 @@ export default function FieldNutrientAdviceIndex() {
   }
 
   return (
-    <div className="px-10">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {fields.map((field) => (
-          <Card key={field.b_id} className="hover:bg-muted/50 relative transition-colors">
-            <CardHeader>
-              <CardTitle>
-                <NavLink
-                  to={`./${field.b_id}${field.mainCultivation ? `?cultivation=${field.mainCultivation.b_lu}` : ""}`}
-                  className="after:absolute after:inset-0"
-                >
-                  {field.b_name}
-                </NavLink>
-              </CardTitle>
-              <CardDescription>{field.b_area} ha</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-4">
-                {field.mainCultivation ? (
-                  <div>
-                    <p className="text-muted-foreground mb-1 text-xs">Hoofdteelt</p>
-                    <Badge
-                      style={{
-                        backgroundColor: getCultivationColor(
-                          field.mainCultivation.b_lu_croprotation ?? undefined,
-                        ),
-                      }}
-                      className="text-white hover:opacity-90"
-                      variant="default"
-                    >
-                      {field.mainCultivation.b_lu_name}
-                    </Badge>
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground text-sm italic">Geen gewas</span>
-                )}
-
-                {field.cultivations.length > (field.mainCultivation ? 1 : 0) && (
-                  <div>
-                    <p className="text-muted-foreground mb-1 text-xs">Overige teelten</p>
-                    <div className="relative z-10 flex flex-wrap gap-2">
-                      {field.cultivations
-                        .filter((c) => c.b_lu !== field.mainCultivation?.b_lu)
-                        .map((c) => (
-                          <NavLink key={c.b_lu} to={`./${field.b_id}?cultivation=${c.b_lu}`}>
-                            <Badge
-                              style={{
-                                backgroundColor: getCultivationColor(
-                                  c.b_lu_croprotation ?? undefined,
-                                ),
-                              }}
-                              className="text-white hover:opacity-90"
-                              variant="default"
-                            >
-                              {c.b_lu_name}
-                            </Badge>
-                          </NavLink>
-                        ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+    <div className="min-w-0 px-10 pb-10">
+      <Suspense key={`${b_id_farm}#${calendar}`} fallback={<NutrientAdviceOverviewSkeleton />}>
+        <NutrientAdviceOverview loaderData={loaderData} />
+      </Suspense>
     </div>
   )
+}
+
+/**
+ * Renders the table once the per-field nutrient advice has resolved.
+ *
+ * This has to be extracted into a separate component because of the `use(...)` hook.
+ * React will not render the component until `asyncData` resolves, but React Router
+ * handles it nicely via the `Suspense` component and server-to-client data streaming.
+ */
+function NutrientAdviceOverview({
+  loaderData,
+}: {
+  loaderData: Awaited<ReturnType<typeof loader>>
+}) {
+  const { rows } = use(loaderData.asyncData)
+  return <NutrientAdviceOverviewTable data={rows} nutrients={loaderData.nutrientsDescription} />
 }
