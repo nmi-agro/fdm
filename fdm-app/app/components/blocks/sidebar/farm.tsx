@@ -279,7 +279,7 @@ export function SidebarFarm({
                 </Tooltip>
               </SidebarMenuItem>
             )}
-            {isFarmSelected && (
+            {isFarmSelected ? (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
@@ -293,6 +293,25 @@ export function SidebarFarm({
                     <span>Percelen</span>
                   </NavLink>
                 </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : (
+              <SidebarMenuItem>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      asChild
+                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Grid2x2 />
+                        <span>Percelen</span>
+                      </span>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    Selecteer een bedrijf om uw percelen te bekijken
+                  </TooltipContent>
+                </Tooltip>
               </SidebarMenuItem>
             )}
             <SidebarMenuItem>
@@ -492,7 +511,7 @@ export function SidebarFarm({
                     >
                       <span className="flex items-center gap-2">
                         <LandPlot />
-                        <span>Percelen</span>
+                        <span>Kies een perceel</span>
                       </span>
                     </SidebarMenuButton>
                   </TooltipTrigger>

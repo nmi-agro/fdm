@@ -104,7 +104,7 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
 
   const navigateToRow = (row: FieldNutrientRow) => {
     const to = `./${row.b_id}${row.mainCultivation ? `?cultivation=${row.mainCultivation.b_lu}` : ""}`
-    navigate(to)
+    void navigate(to)
   }
 
   const handleRowKeyDown = (
