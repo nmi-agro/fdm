@@ -6,6 +6,7 @@ import { type ActionFunctionArgs, data, type LoaderFunctionArgs } from "react-ro
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FormSchema, SoilAnalysisUploadForm } from "~/components/blocks/soil/form-upload"
 import { extractSoilAnalysis } from "~/integrations/nmi.server"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -186,6 +187,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
       soilAnalysisData as Parameters<typeof addSoilAnalysis>[7],
       Number(a_depth_upper),
     )
+
+    captureEvent(session.principal_id, "soil_analysis_saved", {
+      b_id_farm,
+      b_id,
+      analysis_type: typeof a_source === "string" ? a_source : "other",
+      method: "upload",
+      calendar: String(params.calendar),
+    })
 
     return redirectWithSuccess(`../soil/analysis/${soilAnalysisId}`, {
       message: "Bodemanalyse is toegevoegd! 🎉",

@@ -10,6 +10,7 @@ import {
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { Plus, Trash2 } from "lucide-react"
+import { useEffect } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -17,6 +18,7 @@ import {
   type LoaderFunctionArgs,
   useFetcher,
   useLoaderData,
+  useParams,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { BCS_COLOR_CLASSES, type BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
@@ -34,6 +36,7 @@ import {
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
@@ -111,6 +114,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FieldBcsOverviewRoute() {
   const loaderData = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
+  const params = useParams()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("bcs_viewed", { b_id_farm: params.b_id_farm, b_id: params.b_id })
+  }, [])
 
   return (
     <div className="space-y-6">

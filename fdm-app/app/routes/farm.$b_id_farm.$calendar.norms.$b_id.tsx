@@ -10,7 +10,7 @@ import {
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { AlertTriangle } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -31,6 +31,7 @@ import {
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getNorms } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -201,6 +202,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FieldNormsBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("norms_field_viewed", {
+      b_id_farm: loaderData.b_id_farm,
+      b_id: loaderData.b_id,
+      calendar: loaderData.calendar,
+    })
+  }, [])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/norms`,

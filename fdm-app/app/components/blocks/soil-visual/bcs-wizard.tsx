@@ -29,6 +29,7 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { Progress } from "~/components/ui/progress"
 import { Separator } from "~/components/ui/separator"
+import { useAnalytics } from "~/hooks/use-analytics"
 import {
   type AnnotationCoords,
   type AnnotationType,
@@ -136,6 +137,7 @@ function PhotoUploadButton({
 
 interface BcsWizardProps {
   b_id: string
+  b_id_farm: string | undefined
   fieldName: string
   labAnalysisDate: Date | null
   somLoi: number | null
@@ -152,6 +154,7 @@ function createTempId() {
 
 export function BcsWizard({
   b_id,
+  b_id_farm,
   fieldName,
   labAnalysisDate,
   somLoi,
@@ -160,6 +163,7 @@ export function BcsWizard({
 }: BcsWizardProps) {
   const fetcher = useFetcher()
   const previewFetcher = useFetcher<BcsPreviewResult>()
+  const { capture } = useAnalytics()
   const totalSteps = BCS_FIELD_INDICATORS.length + 2
   const [currentStep, setCurrentStep] = useState(0)
   const [samplingDate, setSamplingDate] = useState<Date>(new Date())
@@ -234,6 +238,11 @@ export function BcsWizard({
         }),
       )
       setImages((previous) => [...previous, ...uploadedImages])
+      capture("soil_image_uploaded", {
+        b_id_farm,
+        b_id,
+        image_count: uploadedImages.length,
+      })
       toast.success(
         `${uploadedImages.length} foto${uploadedImages.length === 1 ? "" : "'s"} toegevoegd`,
       )

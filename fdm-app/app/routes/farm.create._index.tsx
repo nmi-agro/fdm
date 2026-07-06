@@ -46,6 +46,7 @@ import {
 } from "~/components/ui/select"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError } from "~/lib/error"
@@ -605,6 +606,12 @@ export async function action({ request }: ActionFunctionArgs) {
         addFertilizer(fdm, session.principal_id, fertilizer.p_id_catalogue, b_id_farm, null, null),
       ),
     )
+
+    captureEvent(session.principal_id, "farm_created", {
+      b_id_farm,
+      b_name_farm: b_name_farm,
+      calendar: String(year),
+    })
 
     return redirectWithSuccess(`./${b_id_farm}/${year}`, {
       message: "Bedrijf is toegevoegd! 🎉 Selecteer nu de importmethode.",
