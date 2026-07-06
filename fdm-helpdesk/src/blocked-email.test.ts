@@ -80,35 +80,6 @@ describe("getMatchingEmailBlock", () => {
     expect(result).not.toBeNull()
   })
 
-  test("should return the block if the email's all subdomais are blocked", async ({ fdm }) => {
-    await addEmailBlock(fdm, admin_id, `*.${domain}`, "Test reason")
-    const result = await getMatchingEmailBlock(fdm, `${createId()}@${domain}`)
-    expect(result).not.toBeNull()
-  })
-
-  test("should return the block if the email's subdomain is blocked due to all subdomais being blocked", async ({
-    fdm,
-  }) => {
-    await addEmailBlock(fdm, admin_id, `*.${domain}`, "Test reason")
-    const result = await getMatchingEmailBlock(fdm, `${createId()}@sub.${domain}`)
-    expect(result).not.toBeNull()
-  })
-
-  test("should return a block for a blank email", async ({ fdm }) => {
-    const result = await getMatchingEmailBlock(fdm, "    ")
-    expect(result).not.toBeNull()
-  })
-
-  test("should return a block for an email that is too long", async ({ fdm }) => {
-    const result = await getMatchingEmailBlock(fdm, `tst@${"a.".repeat(123)}a.com`)
-    expect(result).not.toBeNull()
-  })
-
-  test("should return a block if domain of only one segment matches", async ({ fdm }) => {
-    const result = await getMatchingEmailBlock(fdm, `${createId()}@example..com`)
-    expect(result).not.toBeNull()
-  })
-
   test("should return null for an email that is not blocked", async ({ fdm }) => {
     const email = "good@example.com"
     const result = await getMatchingEmailBlock(fdm, email)

@@ -72,21 +72,6 @@ export async function getMatchingEmailBlock(
       toLookFor.push(domainPart)
     }
 
-    const parts = domainPart.split(".")
-    if (parts.some((x) => x.trim().length === 0)) {
-      return {
-        email: normalizedEmail,
-        blocked_by: "SYSTEM",
-        reason: "Invalid email address",
-        created: new Date(),
-      }
-    }
-
-    while (parts.length > 0) {
-      toLookFor.push(`*.${parts.join(".")}`)
-      parts.shift()
-    }
-
     const blockedEmail = await fdm
       .select()
       .from(schema.blockedEmails)
