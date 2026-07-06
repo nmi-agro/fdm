@@ -1,6 +1,13 @@
 import { cowHead } from "@lucide/lab"
-import { checkPermission, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
+  checkPermission,
+  getCultivationsForFarm,
+  getFarm,
+  getFarms,
+  getFields,
+} from "@nmi-agro/fdm-core"
+import {
+  AlertTriangle,
   ArrowRightLeft,
   BookOpenText,
   ChevronUp,
@@ -49,6 +56,7 @@ import { getRvoCredentials } from "~/integrations/rvo.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
@@ -99,6 +107,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Calculate total area for this farm
     const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
 
+    // Fields without a registered main cultivation ("hoofdteelt") this year are a data-completeness signal worth surfacing
+    const currentYear = new Date().getFullYear()
+    const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm, {
+      start: new Date(`${currentYear}-01-01T00:00:00.000Z`),
+      end: new Date(`${currentYear}-12-31T23:59:59.999Z`),
+    })
+    const fieldsMissingCultivation = fields.filter(
+      (field) =>
+        !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], currentYear.toString()),
+    ).length
+
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, session.principal_id)
     const farmOptions = farms.map((farm) => {
@@ -130,6 +149,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_name_farm: farm.b_name_farm,
       fieldsNumber: fields.length,
       farmArea: Math.round(farmArea),
+      fieldsMissingCultivation,
       farmOptions: farmOptions,
       roles: roles,
       farmWritePermission,
@@ -200,7 +220,7 @@ export default function FarmDashboardIndex() {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             {/* Left Column */}
             <div className="space-y-8 lg:col-span-2">
-              {/* Quick Actions */}
+              {/* Quick Actions - primary, most-used destinations get the most visual weight */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Overzichten</h2>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -208,11 +228,11 @@ export default function FarmDashboardIndex() {
                     <Card className="transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="bg-primary text-primary-foreground rounded-lg p-3">
-                            <Square className="h-6 w-6" />
+                          <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
+                            <Square className="h-7 w-7" />
                           </div>
                           <div>
-                            <CardTitle>Percelen</CardTitle>
+                            <CardTitle className="text-lg">Percelen</CardTitle>
                             <CardDescription>
                               Uitgebreide tabel met o.a. gewassen en gebruikte meststoffen per
                               perceel.
@@ -226,11 +246,11 @@ export default function FarmDashboardIndex() {
                     <Card className="transition-all hover:shadow-md">
                       <CardHeader>
                         <div className="flex items-center gap-4">
-                          <div className="bg-primary text-primary-foreground rounded-lg p-3">
-                            <Sprout className="h-6 w-6" />
+                          <div className="bg-primary text-primary-foreground rounded-lg p-3.5">
+                            <Sprout className="h-7 w-7" />
                           </div>
                           <div>
-                            <CardTitle>Bouwplan</CardTitle>
+                            <CardTitle className="text-lg">Bouwplan</CardTitle>
                             <CardDescription>
                               Uitgebreide tabel met o.a. zaaidata, oogstdata en gebruikte
                               meststoffen per gewas.
@@ -332,119 +352,155 @@ export default function FarmDashboardIndex() {
                     </Card>
                   </NavLink>
                   <Card
-                    className="h-full cursor-pointer transition-all hover:shadow-md"
-                    onClick={handleDownloadPdf}
+                    className={cn(
+                      "h-full transition-all",
+                      isGeneratingPdf ? "opacity-60" : "hover:shadow-md",
+                    )}
                   >
-                    <CardHeader>
-                      <div className="flex items-center gap-4">
-                        <div className="bg-muted rounded-lg p-3">
-                          {isGeneratingPdf ? (
-                            <Loader2 className="text-primary h-6 w-6 animate-spin" />
-                          ) : (
-                            <DownloadIcon className="text-primary h-6 w-6" />
-                          )}
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={isGeneratingPdf}
+                      aria-busy={isGeneratingPdf}
+                      className="focus-visible:ring-ring w-full cursor-pointer rounded-xl text-left outline-hidden focus-visible:ring-[3px] disabled:cursor-not-allowed"
+                    >
+                      <CardHeader>
+                        <div className="flex items-center gap-4">
+                          <div className="bg-muted rounded-lg p-3">
+                            {isGeneratingPdf ? (
+                              <Loader2 className="text-primary h-6 w-6 animate-spin" />
+                            ) : (
+                              <DownloadIcon className="text-primary h-6 w-6" />
+                            )}
+                          </div>
+                          <div>
+                            <CardTitle>Download bemestingsplan</CardTitle>
+                            <CardDescription>
+                              pdf met gebruiksruimte en bemestingsadvies op bedrijfs- en
+                              perceelsniveau.
+                            </CardDescription>
+                          </div>
                         </div>
-                        <div>
-                          <CardTitle>Download bemestingsplan</CardTitle>
-                          <CardDescription>
-                            pdf met gebruiksruimte en bemestingsadvies op bedrijfs- en
-                            perceelsniveau.
-                          </CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
+                      </CardHeader>
+                    </button>
                   </Card>
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Acties - secondary/occasional tasks, demoted to a compact list */}
               <div className="space-y-4">
                 <h2 className="text-2xl font-semibold tracking-tight">Acties</h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <NavLink to={"soil-analysis/bulk"}>
-                    <Card className="h-full transition-all hover:shadow-md">
-                      <CardHeader>
-                        <div className="flex items-center gap-4">
-                          <div className="bg-muted rounded-lg p-3">
-                            <FileStack className="text-primary h-6 w-6" />
-                          </div>
-                          <div>
-                            <CardTitle>Upload bodemanalyses</CardTitle>
-                            <CardDescription>
-                              Upload meerdere pdf's met bodemanalyses en koppel ze aan percelen.
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  </NavLink>
-                  {loaderData.isRvoConfigured && (
+                <Card>
+                  <CardContent className="divide-border divide-y p-0">
                     <NavLink
-                      to={`${calendar}/rvo`}
+                      to={"soil-analysis/bulk"}
+                      className="hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                    >
+                      <div className="bg-muted shrink-0 rounded-lg p-2.5">
+                        <FileStack className="text-primary h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">Upload bodemanalyses</p>
+                        <p className="text-muted-foreground text-xs">
+                          Upload meerdere pdf's met bodemanalyses en koppel ze aan percelen.
+                        </p>
+                      </div>
+                    </NavLink>
+                    {loaderData.isRvoConfigured && (
+                      <NavLink
+                        to={`${calendar}/rvo`}
+                        className={cn(
+                          "hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl",
+                          !loaderData.farmWritePermission && "pointer-events-none",
+                        )}
+                        aria-disabled={!loaderData.farmWritePermission || undefined}
+                        tabIndex={!loaderData.farmWritePermission ? -1 : undefined}
+                      >
+                        <div
+                          className={cn(
+                            "bg-muted shrink-0 rounded-lg p-2.5",
+                            !loaderData.farmWritePermission && "opacity-50",
+                          )}
+                        >
+                          <CloudDownload className="text-primary h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p
+                            className={cn(
+                              "text-sm font-medium",
+                              !loaderData.farmWritePermission && "text-muted-foreground",
+                            )}
+                          >
+                            Ophalen bij RVO
+                          </p>
+                          {loaderData.farmWritePermission ? (
+                            <p className="text-muted-foreground text-xs">
+                              Importeer percelen vanuit RVO.
+                            </p>
+                          ) : (
+                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                              <AlertTriangle className="h-3 w-3 shrink-0" />U heeft geen
+                              schrijfrechten om percelen te importeren.
+                            </p>
+                          )}
+                        </div>
+                      </NavLink>
+                    )}
+                    <NavLink
+                      to={`/farm/${loaderData.b_id_farm}/${calendar}/upload`}
                       className={cn(
-                        !loaderData.farmWritePermission && "pointer-events-none opacity-50",
+                        "hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl",
+                        !loaderData.farmWritePermission && "pointer-events-none",
                       )}
                       aria-disabled={!loaderData.farmWritePermission || undefined}
                       tabIndex={!loaderData.farmWritePermission ? -1 : undefined}
                     >
-                      <Card className="h-full transition-all hover:shadow-md">
-                        <CardHeader>
-                          <div className="flex items-center gap-4">
-                            <div className="bg-muted rounded-lg p-3">
-                              <CloudDownload className="text-primary h-6 w-6" />
-                            </div>
-                            <div>
-                              <CardTitle>Ophalen bij RVO</CardTitle>
-                              <CardDescription>Importeer percelen vanuit RVO.</CardDescription>
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </Card>
+                      <div
+                        className={cn(
+                          "bg-muted shrink-0 rounded-lg p-2.5",
+                          !loaderData.farmWritePermission && "opacity-50",
+                        )}
+                      >
+                        <CloudUpload className="text-primary h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p
+                          className={cn(
+                            "text-sm font-medium",
+                            !loaderData.farmWritePermission && "text-muted-foreground",
+                          )}
+                        >
+                          RVO Shapefile uploaden
+                        </p>
+                        {loaderData.farmWritePermission ? (
+                          <p className="text-muted-foreground text-xs">
+                            Importeer nieuwe of bijgewerkte percelen door een shapefile van RVO Mijn
+                            Percelen te uploaden.
+                          </p>
+                        ) : (
+                          <p className="text-muted-foreground flex items-center gap-1 text-xs">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />U heeft geen
+                            schrijfrechten om een shapefile te uploaden.
+                          </p>
+                        )}
+                      </div>
                     </NavLink>
-                  )}
-                  <NavLink
-                    to={`/farm/${loaderData.b_id_farm}/${calendar}/upload`}
-                    className={cn(
-                      !loaderData.farmWritePermission && "pointer-events-none opacity-50",
-                    )}
-                    aria-disabled={!loaderData.farmWritePermission || undefined}
-                    tabIndex={!loaderData.farmWritePermission ? -1 : undefined}
-                  >
-                    <Card className="h-full transition-all hover:shadow-md">
-                      <CardHeader>
-                        <div className="flex items-center gap-4">
-                          <div className="bg-muted rounded-lg p-3">
-                            <CloudUpload className="text-primary h-6 w-6" />
-                          </div>
-                          <div>
-                            <CardTitle>RVO Shapefile uploaden</CardTitle>
-                            <CardDescription>
-                              Importeer nieuwe of bijgewerkte percelen door een shapefile van RVO
-                              Mijn Percelen te uploaden.
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  </NavLink>
-                  <NavLink to={`${calendar}/field/new`}>
-                    <Card className="h-full transition-all hover:shadow-md">
-                      <CardHeader>
-                        <div className="flex items-center gap-4">
-                          <div className="bg-muted rounded-lg p-3">
-                            <PlusIcon className="text-primary h-6 w-6" />
-                          </div>
-                          <div>
-                            <CardTitle>Nieuwe percelen</CardTitle>
-                            <CardDescription>
-                              Voeg nieuwe percelen toe aan dit bedrijf.
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  </NavLink>
-                </div>
+                    <NavLink
+                      to={`${calendar}/field/new`}
+                      className="hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                    >
+                      <div className="bg-muted shrink-0 rounded-lg p-2.5">
+                        <PlusIcon className="text-primary h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">Nieuwe percelen</p>
+                        <p className="text-muted-foreground text-xs">
+                          Voeg nieuwe percelen toe aan dit bedrijf.
+                        </p>
+                      </div>
+                    </NavLink>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -469,6 +525,23 @@ export default function FarmDashboardIndex() {
                         </p>
                       </div>
                     </div>
+                    {loaderData.fieldsMissingCultivation > 0 && (
+                      <NavLink
+                        to={`${calendar}/field`}
+                        className="border-destructive/30 bg-destructive/5 hover:bg-destructive/10 flex items-start gap-2 rounded-lg border p-3 transition-colors"
+                      >
+                        <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                        <p className="text-sm">
+                          <span className="font-medium">
+                            {loaderData.fieldsMissingCultivation}{" "}
+                            {loaderData.fieldsMissingCultivation === 1
+                              ? "perceel mist"
+                              : "percelen missen"}
+                          </span>{" "}
+                          een hoofdteelt voor dit jaar. Bekijk de percelen om dit aan te vullen.
+                        </p>
+                      </NavLink>
+                    )}
                     <Separator />
                     {/* Role + Year */}
                     <div className="flex items-center justify-between">
@@ -544,13 +617,18 @@ export default function FarmDashboardIndex() {
                           Toegang
                         </NavLink>
                       </Button>
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <NavLink to="settings/delete">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Verwijderen
-                        </NavLink>
-                      </Button>
                     </div>
+                    <Separator className="my-3" />
+                    <Button
+                      variant="ghost"
+                      className="hover:text-destructive hover:bg-destructive/10 w-full justify-start"
+                      asChild
+                    >
+                      <NavLink to="settings/delete">
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Verwijderen
+                      </NavLink>
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
