@@ -7,6 +7,9 @@ export function useCurrentHelpdeskPage() {
   const isTicketViewer = matches.some((match) => match.id === "routes/support._ticketviewer")
   const isAgents = matches.some((match) => match.id === "routes/support.settings.agents")
   const isTags = matches.some((match) => match.id === "routes/support.settings.tags")
+  const isBlockedEmails = matches.some(
+    (match) => match.id === "routes/support.settings.blocked-emails",
+  )
   const isNewTicket = matches.some((match) => match.id === "routes/support.new")
   const isSavedReplies = matches.some(
     (match) => match.id === "routes/support.settings.saved-replies",
@@ -24,9 +27,11 @@ export function useCurrentHelpdeskPage() {
       ? "agents"
       : isTags
         ? "tags"
-        : isNewTicket
-          ? "new_ticket"
-          : isSavedReplies
-            ? "saved_replies"
-            : null
+        : isBlockedEmails
+          ? "blocked_emails"
+          : isNewTicket
+            ? "new_ticket"
+            : isSavedReplies
+              ? "saved_replies"
+              : null
 }

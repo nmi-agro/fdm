@@ -1,5 +1,6 @@
 import type { Session } from "better-auth"
 import { createDisplayUsername, createFdmAuth, type FdmAuth } from "@nmi-agro/fdm-core"
+import { moveInboundEmailTicketsToPrincipalUnchecked } from "@nmi-agro/fdm-helpdesk"
 import { redirect } from "react-router"
 import type { ExtendedUser } from "~/types/extended-user"
 import { fdm } from "~/lib/fdm.server"
@@ -13,7 +14,17 @@ export const auth: FdmAuth = createFdmAuth(
   serverConfig.auth.microsoft,
   sendMagicLinkEmailToUser,
   false,
-  sendWelcomeEmailToUser,
+  async (user) => {
+    const results = await Promise.allSettled([
+      sendWelcomeEmailToUser(user),
+      moveInboundEmailTicketsToPrincipalUnchecked(fdm, user.id, user.email),
+    ])
+
+    const rejection = results.find((result) => result.status === "rejected")
+    if (rejection) {
+      throw rejection.reason
+    }
+  },
 )
 
 // Strip .data and _.data suffixes that v8_passThroughRequests leaves on data

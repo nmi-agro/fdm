@@ -12,6 +12,7 @@ export async function truncateAllTables(fdm: FdmHelpdeskType) {
   await fdm.execute(sql`
         TRUNCATE TABLE
             "fdm-helpdesk"."agents",
+            "fdm-helpdesk"."blocked_emails",
             "fdm-helpdesk"."tickets",
             "fdm-helpdesk"."tags",
             "fdm-helpdesk"."saved_replies"

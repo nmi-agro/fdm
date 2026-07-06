@@ -67,7 +67,7 @@ export function TicketCard({
           <span aria-hidden="true">·</span>
           <span>{statusLabel}</span>
           <span aria-hidden="true">·</span>
-          <span>{principal?.displayUserName ?? "onbekend"}</span>
+          <span>{principal?.displayUserName ?? ticket.requester_email ?? "onbekend"}</span>
           <span aria-hidden="true">·</span>
           <span>{formatDate(ticket.created, "PP", { locale: nl })}</span>
           {assigneeText && (

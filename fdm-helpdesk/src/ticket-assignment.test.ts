@@ -1,5 +1,6 @@
 import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent, updateAgentRole } from "./agent"
+import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { addTagToTicket, createTag } from "./tag"
 import { test, truncateAllTables } from "./test-util"
@@ -8,6 +9,7 @@ import {
   assignTicket,
   assignTicketToAnAdmin,
   getAssigneesForTickets,
+  getAssigneesForTicketsUnchecked,
   getAssignmentHistoryForTicket,
   getTicketCountsForAssignees,
   unassignTicket,
@@ -62,6 +64,65 @@ describe("getAssigneesForTickets", () => {
 
     await expect(getAssigneesForTickets(fdm, other_user_id, [ticket_id_1])).rejects.toThrow(
       "Principal does not have permission to perform this action",
+    )
+  })
+})
+
+describe("getAssigneesForTicketsUnchecked", () => {
+  let admin_id: string
+  let agent_id: string
+  let requester_id: string
+  let ticket_id_1: string
+  let ticket_id_2: string
+
+  test.beforeEach(async ({ fdm }) => {
+    admin_id = createId()
+    await addAdminAgent(fdm, admin_id, "Admin Agent")
+
+    agent_id = createId()
+    await addAgent(fdm, admin_id, agent_id, "Regular Agent")
+
+    requester_id = createId()
+    ticket_id_1 = await createTicket(fdm, requester_id, "Ticket 1")
+    ticket_id_2 = await createTicket(fdm, requester_id, "Ticket 2")
+
+    await assignTicket(fdm, ticket_id_1, admin_id, admin_id)
+    await assignTicket(fdm, ticket_id_1, agent_id, admin_id)
+    // ticket_id_2 intentionally left unassigned
+  })
+
+  test("should return assignees grouped by ticket id without any permission check", async ({
+    fdm,
+  }) => {
+    const assigneesMap = await getAssigneesForTicketsUnchecked(fdm, [ticket_id_1, ticket_id_2])
+
+    const ticket1Assignees = assigneesMap.get(ticket_id_1)
+    expect(ticket1Assignees).toHaveLength(2)
+    expect(ticket1Assignees?.some((a) => a.agent_id === admin_id)).toBe(true)
+    expect(ticket1Assignees?.some((a) => a.agent_id === agent_id)).toBe(true)
+  })
+
+  test("should not include entries for unassigned tickets", async ({ fdm }) => {
+    const assigneesMap = await getAssigneesForTicketsUnchecked(fdm, [ticket_id_1, ticket_id_2])
+
+    expect(assigneesMap.has(ticket_id_2)).toBe(false)
+  })
+
+  test("should return an empty map when given an empty ticket_ids array", async ({ fdm }) => {
+    const assigneesMap = await getAssigneesForTicketsUnchecked(fdm, [])
+
+    expect(assigneesMap.size).toBe(0)
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(getAssigneesForTicketsUnchecked(fdm, ["some_ticket_id"])).rejects.toThrow(
+      "Exception for getAssigneesForTicketsUnchecked",
     )
   })
 })

@@ -6,13 +6,14 @@ import * as schema from "./db/schema-helpdesk"
 import { createId } from "./id"
 import {
   addMessage,
+  addMessageFromInboundEmailUnchecked,
   deleteMessage,
   getMessage,
   getMessagesForTicket,
   updateMessage,
 } from "./message"
 import { test } from "./test-util"
-import { createTicket } from "./ticket"
+import { createTicket, createTicketFromInboundEmail } from "./ticket"
 
 describe("Message CRUD", () => {
   let admin_id: string
@@ -222,6 +223,72 @@ describe("Message CRUD", () => {
     await expect(deleteMessage(fdm, other_user_id, message_id)).rejects.toThrow(
       "Principal does not have permission to perform this action",
     )
+  })
+})
+
+describe("addMessageFromInboundEmailUnchecked", () => {
+  let admin_id: string
+  let requester_email: string
+  let ticket_id: string
+
+  test.beforeEach(async ({ fdm }) => {
+    admin_id = createId()
+    await addAdminAgent(fdm, admin_id, "Helpdesk Agent")
+
+    requester_email = `unmatched-${createId(8)}@example.com`
+    ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Seed email body")
+  })
+
+  test("should add a customer message without any permission check", async ({ fdm }) => {
+    const body = `Inbound reply ${createId(8)}`
+
+    const message_id = await addMessageFromInboundEmailUnchecked(fdm, ticket_id, body)
+
+    const message = await getMessage(fdm, admin_id, message_id)
+
+    expect(message.sender_type).toBe("customer")
+    expect(message.body).toBe(body)
+  })
+
+  test("should escape HTML in the body", async ({ fdm }) => {
+    const message_id = await addMessageFromInboundEmailUnchecked(
+      fdm,
+      ticket_id,
+      `"test"<script>alert('xss')</script>`,
+    )
+
+    const message = await getMessage(fdm, admin_id, message_id)
+
+    expect(message.body).toBe("&quot;test&quot;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;")
+  })
+
+  test("should throw when the ticket does not exist", async ({ fdm }) => {
+    await expect(
+      addMessageFromInboundEmailUnchecked(fdm, createId(), "Body for missing ticket"),
+    ).rejects.toThrow("Principal does not have permission to perform this action")
+  })
+
+  test("should use the provided sender_id when given", async ({ fdm }) => {
+    const sender_id = createId()
+
+    const message_id = await addMessageFromInboundEmailUnchecked(
+      fdm,
+      ticket_id,
+      "Matched reply",
+      sender_id,
+    )
+
+    const message = await getMessage(fdm, admin_id, message_id)
+
+    expect(message.sender_id).toBe(sender_id)
+  })
+
+  test("should fall back to ticket_id as sender_id when no sender_id is given", async ({ fdm }) => {
+    const message_id = await addMessageFromInboundEmailUnchecked(fdm, ticket_id, "Unmatched reply")
+
+    const message = await getMessage(fdm, admin_id, message_id)
+
+    expect(message.sender_id).toBe(ticket_id)
   })
 })
 

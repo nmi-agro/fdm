@@ -1,10 +1,9 @@
-import { generateTicketSubjectAndPriority } from "@nmi-agro/fdm-agents"
 import { getFarms, getPrincipal } from "@nmi-agro/fdm-core"
 import {
   assignTicketToAnAdmin,
   createTicket,
+  getMessagesForTicket,
   getTicket,
-  updateTicketSubjectAndPriorityUnchecked,
 } from "@nmi-agro/fdm-helpdesk"
 import { useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
@@ -19,6 +18,7 @@ import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { performTicketTriage } from "~/lib/support.server"
 import type { Route } from "./+types/support.new"
 
 // Meta
@@ -79,8 +79,9 @@ export async function action({ request }: Route.ActionArgs) {
 
       if (assigned_agent_id) {
         const ticket = await getTicket(fdm, assigned_agent_id, ticket_id)
+        const messages = await getMessagesForTicket(fdm, assigned_agent_id, ticket_id)
         const agentPrincipal = await getPrincipal(fdm, assigned_agent_id)
-        if (agentPrincipal?.email) {
+        if (messages.length >= 1 && agentPrincipal?.email) {
           await sendHelpdeskNewMessageEmail(
             agentPrincipal.email,
             agentPrincipal.displayUserName ?? agentPrincipal.email,
@@ -88,7 +89,8 @@ export async function action({ request }: Route.ActionArgs) {
             ticket.ticket_ref,
             ticket.subject,
             ticket_id,
-            ticketCreateInfo.body,
+            messages[0].message_id,
+            messages[0].body,
           )
         }
       }
@@ -99,7 +101,7 @@ export async function action({ request }: Route.ActionArgs) {
     // Generate subject and priority if Gemini is configured
     if (serverConfig.helpdesk.enableTicketTriage && serverConfig.integrations.gemini) {
       // If it is slow you can remove the await in the beginning
-      await performTriage(
+      await performTicketTriage(
         serverConfig.integrations.gemini.api_key,
         ticket_id,
         ticketCreateInfo.body,
@@ -112,22 +114,6 @@ export async function action({ request }: Route.ActionArgs) {
     )
   } catch (err) {
     throw handleActionError(err)
-  }
-}
-
-async function performTriage(apiKey: string, ticket_id: string, body: string) {
-  try {
-    const { subject, priority, reasoning } = await generateTicketSubjectAndPriority(
-      body,
-      apiKey,
-      clientConfig.name,
-    )
-
-    console.log(reasoning)
-
-    await updateTicketSubjectAndPriorityUnchecked(fdm, ticket_id, subject, priority)
-  } catch (triageError) {
-    void handleActionError(triageError)
   }
 }
 
