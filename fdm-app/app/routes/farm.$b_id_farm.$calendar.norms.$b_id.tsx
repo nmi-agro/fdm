@@ -340,53 +340,57 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
 
   if (errorMessage) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-[350px]">
-          <CardHeader>
-            <CardTitle>
-              Helaas is het niet mogelijk om de gebruiksnormen uit te rekenen voor dit perceel
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-muted-foreground">
-              <p>
-                Er is onverwacht wat misgegaan. Probeer opnieuw of neem contact op met Ondersteuning
-                en deel de volgende foutmelding:
-              </p>
-              <div className="mt-8 w-full max-w-2xl">
-                <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                  {JSON.stringify(
-                    {
-                      message: errorMessage,
-                      fieldId: fieldNormData?.b_id,
-                      timestamp: new Date(),
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
+      <FarmContent>
+        <div className="flex items-center justify-center">
+          <Card className="w-[350px]">
+            <CardHeader>
+              <CardTitle>
+                Helaas is het niet mogelijk om de gebruiksnormen uit te rekenen voor dit perceel
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-muted-foreground">
+                <p>
+                  Er is onverwacht wat misgegaan. Probeer opnieuw of neem contact op met
+                  Ondersteuning en deel de volgende foutmelding:
+                </p>
+                <div className="mt-8 w-full max-w-2xl">
+                  <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                    {JSON.stringify(
+                      {
+                        message: errorMessage,
+                        fieldId: fieldNormData?.b_id,
+                        timestamp: new Date(),
+                      },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </FarmContent>
     )
   }
 
   if (!fieldNormData) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-[350px]">
-          <CardHeader>
-            <CardTitle>Geen gegevens beschikbaar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Er zijn geen normgegevens gevonden voor dit perceel.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <FarmContent>
+        <div className="flex items-center justify-center">
+          <Card className="w-[350px]">
+            <CardHeader>
+              <CardTitle>Geen gegevens beschikbaar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Er zijn geen normgegevens gevonden voor dit perceel.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </FarmContent>
     )
   }
 

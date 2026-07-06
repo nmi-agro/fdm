@@ -107,15 +107,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Calculate total area for this farm
     const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
 
-    // Fields without a registered main cultivation ("hoofdteelt") this year are a data-completeness signal worth surfacing
-    const currentYear = new Date().getFullYear()
+    // Fields without a registered main cultivation ("hoofdteelt") for the active year are a data-completeness
+    // signal worth surfacing. The active year follows the same calendar selection driving the rest of the
+    // dashboard: an optional "calendar" search param (set when navigating here from a calendar-scoped page),
+    // falling back to the current year. The resolved year is also returned so the NavLink target stays aligned
+    // with the count.
+    const activeYear =
+      new URL(request.url).searchParams.get("calendar") ?? new Date().getFullYear().toString()
     const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm, {
-      start: new Date(`${currentYear}-01-01T00:00:00.000Z`),
-      end: new Date(`${currentYear}-12-31T23:59:59.999Z`),
+      start: new Date(`${activeYear}-01-01T00:00:00.000Z`),
+      end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
     })
     const fieldsMissingCultivation = fields.filter(
-      (field) =>
-        !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], currentYear.toString()),
+      (field) => !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
     ).length
 
     // Get a list of possible farms of the user
@@ -150,6 +154,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldsNumber: fields.length,
       farmArea: Math.round(farmArea),
       fieldsMissingCultivation,
+      cultivationYear: activeYear,
       farmOptions: farmOptions,
       roles: roles,
       farmWritePermission,
@@ -158,6 +163,53 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   } catch (error) {
     throw handleLoaderError(error)
   }
+}
+
+/**
+ * A disabled-aware NavLink for the "Acties" list: shows an icon, title and description, and swaps
+ * in `disabledDescription` (with a warning icon) plus disables navigation when `disabled` is true.
+ */
+function ActionLink({
+  to,
+  icon,
+  title,
+  description,
+  disabledDescription,
+  disabled,
+}: {
+  to: string
+  icon: React.ReactNode
+  title: string
+  description: string
+  disabledDescription: string
+  disabled: boolean
+}) {
+  return (
+    <NavLink
+      to={to}
+      className={cn(
+        "hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl",
+        disabled && "pointer-events-none",
+      )}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? -1 : undefined}
+    >
+      <div className={cn("bg-muted shrink-0 rounded-lg p-2.5", disabled && "opacity-50")}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className={cn("text-sm font-medium", disabled && "text-muted-foreground")}>{title}</p>
+        {disabled ? (
+          <p className="text-muted-foreground flex items-center gap-1 text-xs">
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            {disabledDescription}
+          </p>
+        ) : (
+          <p className="text-muted-foreground text-xs">{description}</p>
+        )}
+      </div>
+    </NavLink>
+  )
 }
 
 export default function FarmDashboardIndex() {
@@ -407,84 +459,23 @@ export default function FarmDashboardIndex() {
                       </div>
                     </NavLink>
                     {loaderData.isRvoConfigured && (
-                      <NavLink
+                      <ActionLink
                         to={`${calendar}/rvo`}
-                        className={cn(
-                          "hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl",
-                          !loaderData.farmWritePermission && "pointer-events-none",
-                        )}
-                        aria-disabled={!loaderData.farmWritePermission || undefined}
-                        tabIndex={!loaderData.farmWritePermission ? -1 : undefined}
-                      >
-                        <div
-                          className={cn(
-                            "bg-muted shrink-0 rounded-lg p-2.5",
-                            !loaderData.farmWritePermission && "opacity-50",
-                          )}
-                        >
-                          <CloudDownload className="text-primary h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p
-                            className={cn(
-                              "text-sm font-medium",
-                              !loaderData.farmWritePermission && "text-muted-foreground",
-                            )}
-                          >
-                            Ophalen bij RVO
-                          </p>
-                          {loaderData.farmWritePermission ? (
-                            <p className="text-muted-foreground text-xs">
-                              Importeer percelen vanuit RVO.
-                            </p>
-                          ) : (
-                            <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                              <AlertTriangle className="h-3 w-3 shrink-0" />U heeft geen
-                              schrijfrechten om percelen te importeren.
-                            </p>
-                          )}
-                        </div>
-                      </NavLink>
+                        icon={<CloudDownload className="text-primary h-5 w-5" />}
+                        title="Ophalen bij RVO"
+                        description="Importeer percelen vanuit RVO."
+                        disabledDescription="U heeft geen schrijfrechten om percelen te importeren."
+                        disabled={!loaderData.farmWritePermission}
+                      />
                     )}
-                    <NavLink
+                    <ActionLink
                       to={`/farm/${loaderData.b_id_farm}/${calendar}/upload`}
-                      className={cn(
-                        "hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl",
-                        !loaderData.farmWritePermission && "pointer-events-none",
-                      )}
-                      aria-disabled={!loaderData.farmWritePermission || undefined}
-                      tabIndex={!loaderData.farmWritePermission ? -1 : undefined}
-                    >
-                      <div
-                        className={cn(
-                          "bg-muted shrink-0 rounded-lg p-2.5",
-                          !loaderData.farmWritePermission && "opacity-50",
-                        )}
-                      >
-                        <CloudUpload className="text-primary h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p
-                          className={cn(
-                            "text-sm font-medium",
-                            !loaderData.farmWritePermission && "text-muted-foreground",
-                          )}
-                        >
-                          RVO Shapefile uploaden
-                        </p>
-                        {loaderData.farmWritePermission ? (
-                          <p className="text-muted-foreground text-xs">
-                            Importeer nieuwe of bijgewerkte percelen door een shapefile van RVO Mijn
-                            Percelen te uploaden.
-                          </p>
-                        ) : (
-                          <p className="text-muted-foreground flex items-center gap-1 text-xs">
-                            <AlertTriangle className="h-3 w-3 shrink-0" />U heeft geen
-                            schrijfrechten om een shapefile te uploaden.
-                          </p>
-                        )}
-                      </div>
-                    </NavLink>
+                      icon={<CloudUpload className="text-primary h-5 w-5" />}
+                      title="RVO Shapefile uploaden"
+                      description="Importeer nieuwe of bijgewerkte percelen door een shapefile van RVO Mijn Percelen te uploaden."
+                      disabledDescription="U heeft geen schrijfrechten om een shapefile te uploaden."
+                      disabled={!loaderData.farmWritePermission}
+                    />
                     <NavLink
                       to={`${calendar}/field/new`}
                       className="hover:bg-accent flex items-center gap-4 p-4 transition-colors first:rounded-t-xl last:rounded-b-xl"
@@ -527,7 +518,7 @@ export default function FarmDashboardIndex() {
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (
                       <NavLink
-                        to={`${calendar}/field`}
+                        to={`${loaderData.cultivationYear}/field`}
                         className="border-destructive/30 bg-destructive/5 hover:bg-destructive/10 flex items-start gap-2 rounded-lg border p-3 transition-colors"
                       >
                         <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />

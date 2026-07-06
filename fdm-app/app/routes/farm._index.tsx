@@ -278,8 +278,7 @@ export default function AppIndex() {
     return [userFarms, organizationFarms]
   }, [loaderData])
 
-  const atlasBaseFarmId =
-    userFarms[0]?.b_id_farm ?? organizationFarms[0]?.b_id_farm ?? "undefined"
+  const atlasBaseFarmId = userFarms[0]?.b_id_farm ?? organizationFarms[0]?.b_id_farm ?? "undefined"
 
   return (
     <SidebarInset>
@@ -294,7 +293,7 @@ export default function AppIndex() {
                 <h1 className="text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-6xl">
                   Welkom bij {clientConfig.name}
                 </h1>
-                <p className="mx-auto max-w-162.5 text-lg text-foreground/70 sm:text-xl">
+                <p className="text-foreground/70 mx-auto max-w-162.5 text-lg sm:text-xl">
                   Richt uw eerste bedrijf in en ontdek direct uw stikstofbalans, bemestingsadvies,
                   gebruiksruimte en bodemgezondheidscores.
                 </p>
@@ -321,9 +320,12 @@ export default function AppIndex() {
               )}
 
               <div className="grid w-full gap-6 sm:grid-cols-2">
-                <Card className="group hover:border-primary relative flex flex-col overflow-hidden border-2 bg-primary/5 transition-all hover:shadow-xl">
+                <Card className="group hover:border-primary bg-primary/5 relative flex flex-col overflow-hidden border-2 transition-all hover:shadow-xl">
                   <CardHeader className="pb-4">
-                    <div aria-hidden="true" className="bg-primary text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left">
+                    <div
+                      aria-hidden="true"
+                      className="bg-primary text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left"
+                    >
                       <PlusCircle className="h-7 w-7" />
                     </div>
                     <CardTitle className="text-left text-2xl">Bedrijf aanmaken</CardTitle>
@@ -369,7 +371,10 @@ export default function AppIndex() {
 
                 <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
                   <CardHeader className="pb-4">
-                    <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors">
+                    <div
+                      aria-hidden="true"
+                      className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
+                    >
                       <Layers className="h-7 w-7" />
                     </div>
                     <CardTitle className="text-left text-2xl">Atlas verkennen</CardTitle>
@@ -404,7 +409,7 @@ export default function AppIndex() {
                   </CardContent>
                   <CardFooter className="pt-2">
                     <Button asChild variant="outline" className="w-full" size="lg">
-                      <NavLink to={`/farm/undefined/${loaderData.calendar}/atlas/fields`}>
+                      <NavLink to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/fields`}>
                         Verken de Atlas
                       </NavLink>
                     </Button>
@@ -480,45 +485,69 @@ export default function AppIndex() {
               description="Toegang tot landelijke kaarten met informatie over percelen, bodem en hoogte."
             />
             <div className="px-4 pb-6 md:px-8 md:pb-8">
-              <div className="divide-y rounded-lg border overflow-hidden">
+              <div className="divide-y overflow-hidden rounded-lg border">
                 <NavLink
                   to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/fields`}
-                  className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
+                  className="group hover:bg-muted/50 flex items-center gap-3 p-4 transition-colors"
                 >
-                  <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                  <div
+                    aria-hidden="true"
+                    className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors"
+                  >
                     <MapIcon className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">Percelen</div>
-                    <div className="text-muted-foreground text-sm">Gewashistorie en ruimtelijke kenmerken van alle percelen in Nederland</div>
+                    <div className="text-muted-foreground text-sm">
+                      Gewashistorie en ruimtelijke kenmerken van alle percelen in Nederland
+                    </div>
                   </div>
-                  <ArrowRight aria-hidden="true" className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                  <ArrowRight
+                    aria-hidden="true"
+                    className="text-muted-foreground group-hover:text-primary h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1"
+                  />
                 </NavLink>
                 <NavLink
                   to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/elevation`}
-                  className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
+                  className="group hover:bg-muted/50 flex items-center gap-3 p-4 transition-colors"
                 >
-                  <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                  <div
+                    aria-hidden="true"
+                    className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors"
+                  >
                     <Mountain className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">Hoogtekaart</div>
-                    <div className="text-muted-foreground text-sm">Actueel Hoogtebestand Nederland (AHN) voor gedetailleerde hoogte-informatie</div>
+                    <div className="text-muted-foreground text-sm">
+                      Actueel Hoogtebestand Nederland (AHN) voor gedetailleerde hoogte-informatie
+                    </div>
                   </div>
-                  <ArrowRight aria-hidden="true" className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                  <ArrowRight
+                    aria-hidden="true"
+                    className="text-muted-foreground group-hover:text-primary h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1"
+                  />
                 </NavLink>
                 <NavLink
                   to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/soil`}
-                  className="group flex items-center gap-3 p-4 transition-colors hover:bg-muted/50"
+                  className="group hover:bg-muted/50 flex items-center gap-3 p-4 transition-colors"
                 >
-                  <div aria-hidden="true" className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors">
+                  <div
+                    aria-hidden="true"
+                    className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors"
+                  >
                     <Layers className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-medium">Bodemkaart</div>
-                    <div className="text-muted-foreground text-sm">Landelijke bodemkaart met informatie over bodemtype en grondwatertrappen</div>
+                    <div className="text-muted-foreground text-sm">
+                      Landelijke bodemkaart met informatie over bodemtype en grondwatertrappen
+                    </div>
                   </div>
-                  <ArrowRight aria-hidden="true" className="text-muted-foreground h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                  <ArrowRight
+                    aria-hidden="true"
+                    className="text-muted-foreground group-hover:text-primary h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1"
+                  />
                 </NavLink>
               </div>
             </div>

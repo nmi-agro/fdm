@@ -8,7 +8,7 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table"
 import { ChevronDown, TriangleAlert } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import { Alert, AlertDescription } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
@@ -51,13 +51,19 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
   const [search, setSearch] = useState("")
   const [unitMode, setUnitMode] = useState<UnitMode>("per_ha")
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
-    isMobile
-      ? Object.fromEntries(
-          nutrients.filter((n) => n.type !== "primary").map((n) => [n.symbol, false]),
-        )
-      : {},
-  )
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+
+  // Keep non-primary nutrient columns hidden on mobile and visible on desktop, reacting to
+  // viewport changes after mount (not just the initial render).
+  useEffect(() => {
+    setColumnVisibility(
+      isMobile
+        ? Object.fromEntries(
+            nutrients.filter((n) => n.type !== "primary").map((n) => [n.symbol, false]),
+          )
+        : {},
+    )
+  }, [isMobile, nutrients])
 
   const columns = useMemo<ColumnDef<FieldNutrientRow>[]>(
     () => buildOverviewColumns(nutrients, unitMode),
@@ -93,8 +99,25 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
     if (target instanceof Element && target.closest("a,button,[role=button]")) {
       return
     }
+    navigateToRow(row)
+  }
+
+  const navigateToRow = (row: FieldNutrientRow) => {
     const to = `./${row.b_id}${row.mainCultivation ? `?cultivation=${row.mainCultivation.b_lu}` : ""}`
     navigate(to)
+  }
+
+  const handleRowKeyDown = (
+    row: FieldNutrientRow,
+    event: React.KeyboardEvent<HTMLTableRowElement>,
+  ) => {
+    if (event.key !== "Enter" && event.key !== " ") return
+    const target = event.target
+    if (target instanceof Element && target.closest("a,button,[role=button]")) {
+      return
+    }
+    event.preventDefault()
+    navigateToRow(row)
   }
 
   const nutrientColumns = table.getAllLeafColumns().filter((column) => column.id !== "field")
@@ -217,7 +240,10 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
                 <TableRow
                   key={row.id}
                   className="cursor-pointer"
+                  role="link"
+                  tabIndex={0}
                   onClick={(event) => handleRowClick(row.original, event)}
+                  onKeyDown={(event) => handleRowKeyDown(row.original, event)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell

@@ -37,6 +37,49 @@ function formatUnit(unit: string, unitMode: UnitMode) {
   return unitMode === "total" ? unit.replace(/\/ha$/, "") : unit
 }
 
+interface NutrientStatus {
+  /** Fill percentage relative to advice. Also used as the sortable value: real over-fertilization
+   * (zero advice, positive filling) is reported as Infinity so it sorts above any finite percentage. */
+  percentage: number
+  hasData: boolean
+  isExcess: boolean
+  isDeficit: boolean
+  isCorrect: boolean
+}
+
+/**
+ * Classifies a nutrient's filling against its advice. advice === 0 with filling === 0 means no
+ * meaningful data was available; advice === 0 with filling > 0 is real over-fertilization (there
+ * was no room for any filling at all), not missing data.
+ */
+function getNutrientStatus(
+  nutrientSymbol: string,
+  filling: number,
+  advice: number,
+): NutrientStatus {
+  if (advice === 0 && filling === 0) {
+    return { percentage: 0, hasData: false, isExcess: false, isDeficit: false, isCorrect: false }
+  }
+
+  if (advice === 0) {
+    // Positive filling with zero advice: no room was available, so this is an excess by definition.
+    return {
+      percentage: Infinity,
+      hasData: true,
+      isExcess: true,
+      isDeficit: false,
+      isCorrect: false,
+    }
+  }
+
+  const percentage = (filling / advice) * 100
+  // EOC (organic carbon) is excluded from excess flagging: a surplus is agronomically beneficial, not a risk.
+  const isExcess = nutrientSymbol !== "EOC" && percentage >= EXCESS_THRESHOLD
+  const isDeficit = percentage < DEFICIT_THRESHOLD
+  const isCorrect = !isExcess && !isDeficit
+  return { percentage, hasData: true, isExcess, isDeficit, isCorrect }
+}
+
 function NutrientColumnHeader({
   column,
   nutrient,
@@ -108,11 +151,7 @@ function NutrientCell({
   const area = row.b_area || 0
   const filling = unitMode === "total" ? value.filling * area : value.filling
   const advice = unitMode === "total" ? value.advice * area : value.advice
-  const percentage = advice > 0 ? (filling / advice) * 100 : 0
-  // EOC (organic carbon) is excluded from excess flagging: a surplus is agronomically beneficial, not a risk.
-  const isExcess = nutrient.symbol !== "EOC" && percentage >= EXCESS_THRESHOLD
-  const isDeficit = advice > 0 && percentage < DEFICIT_THRESHOLD
-  const isCorrect = advice > 0 && !isExcess && !isDeficit
+  const { isExcess, isDeficit, isCorrect } = getNutrientStatus(nutrient.symbol, filling, advice)
 
   return (
     <span className="flex items-center justify-end gap-1 whitespace-nowrap tabular-nums">
@@ -139,8 +178,9 @@ function buildNutrientColumn(
     id: nutrient.symbol,
     accessorFn: (row) => {
       const value = row.values[nutrient.symbol]
-      if (row.errorMessage || !value || !value.advice) return -1
-      return (value.filling / value.advice) * 100
+      if (row.errorMessage || !value) return -1
+      const status = getNutrientStatus(nutrient.symbol, value.filling, value.advice)
+      return status.hasData ? status.percentage : -1
     },
     enableHiding: true,
     meta: { groupStart: isGroupStart, groupLabel: GROUP_LABELS[nutrient.type] },

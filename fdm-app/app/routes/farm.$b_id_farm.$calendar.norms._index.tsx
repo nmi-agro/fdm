@@ -318,34 +318,36 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
 
   if (errorMessage) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-[350px]">
-          <CardHeader>
-            <CardTitle>Helaas is het niet mogelijk om je gebruiksnormen uit te rekenen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-muted-foreground">
-              <p>
-                Er is onverwacht wat misgegaan. Probeer opnieuw of neem contact op met Ondersteuning
-                en deel de volgende foutmelding:
-              </p>
-              <div className="mt-8 w-full max-w-2xl">
-                <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                  {JSON.stringify(
-                    {
-                      message: errorMessage,
-                      page: page,
-                      timestamp: new Date(),
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
+      <FarmContent>
+        <div className="flex items-center justify-center">
+          <Card className="w-[350px]">
+            <CardHeader>
+              <CardTitle>Helaas is het niet mogelijk om je gebruiksnormen uit te rekenen</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-muted-foreground">
+                <p>
+                  Er is onverwacht wat misgegaan. Probeer opnieuw of neem contact op met
+                  Ondersteuning en deel de volgende foutmelding:
+                </p>
+                <div className="mt-8 w-full max-w-2xl">
+                  <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                    {JSON.stringify(
+                      {
+                        message: errorMessage,
+                        page: page,
+                        timestamp: new Date(),
+                      },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </FarmContent>
     )
   }
 
@@ -390,19 +392,21 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
   }
   // This block is now an independent return, not an else clause
   return (
-    <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6">
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Helaas, nog geen gebruiksnormen beschikbaar voor {loaderData.calendar}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          Op dit moment kunnen we alleen nog de gebruiksnormen voor 2025 en 2026 berekenen en
-          weergeven.
-        </p>
-        <NavLink to={`/farm/${loaderData.b_id_farm}/2026/norms`}>
-          <Button>Ga naar 2026</Button>
-        </NavLink>
+    <FarmContent>
+      <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6">
+        <div className="flex flex-col space-y-2 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Helaas, nog geen gebruiksnormen beschikbaar voor {loaderData.calendar}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Op dit moment kunnen we alleen nog de gebruiksnormen voor 2025 en 2026 berekenen en
+            weergeven.
+          </p>
+          <NavLink to={`/farm/${loaderData.b_id_farm}/2026/norms`}>
+            <Button>Ga naar 2026</Button>
+          </NavLink>
+        </div>
       </div>
-    </div>
+    </FarmContent>
   )
 }

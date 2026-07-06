@@ -34,6 +34,19 @@ import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
 import { getNmiApiKey } from "../integrations/nmi.server"
 
+// Cap on simultaneous getNutrientAdvice calls per farm, so farms with many fields don't overload
+// the external NMI API with unbounded parallel requests.
+const NUTRIENT_ADVICE_CONCURRENCY = 4
+
+/** Splits an array into consecutive chunks of at most `size` items each. */
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size))
+  }
+  return chunks
+}
+
 // Meta
 export const meta: MetaFunction = () => {
   return [
@@ -86,82 +99,110 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return { rows: [] }
       }
 
-      // Fetch farm-wide data in a handful of batched queries instead of N queries per field.
-      const [cultivationsByField, fertilizerApplicationsByField, soilDataByField, fertilizers] =
-        await Promise.all([
-          getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-          getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-          getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-          getFertilizers(fdm, session.principal_id, b_id_farm),
-        ])
+      // Fetch farm-wide data in a handful of batched queries instead of N queries per field. If this
+      // batch fails, fall back to per-field error rows instead of throwing to the route error boundary.
+      let cultivationsByField: Awaited<ReturnType<typeof getCultivationsForFarm>>
+      let fertilizerApplicationsByField: Awaited<
+        ReturnType<typeof getFertilizerApplicationsForFarm>
+      >
+      let soilDataByField: Awaited<ReturnType<typeof getCurrentSoilDataForFarm>>
+      let fertilizers: Awaited<ReturnType<typeof getFertilizers>>
+      try {
+        ;[cultivationsByField, fertilizerApplicationsByField, soilDataByField, fertilizers] =
+          await Promise.all([
+            getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+            getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+            getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+            getFertilizers(fdm, session.principal_id, b_id_farm),
+          ])
+      } catch (error) {
+        const errorMessage = toFriendlyAdviceError(error)
+        return {
+          rows: fields.map(
+            (field): FieldNutrientRow => ({
+              b_id: field.b_id,
+              b_name: field.b_name,
+              b_area: field.b_area ?? 0,
+              mainCultivation: null,
+              errorMessage,
+              values: {},
+            }),
+          ),
+        }
+      }
 
       const nmiApiKey = getNmiApiKey()
 
-      const results = await Promise.allSettled(
-        fields.map(async (field): Promise<FieldNutrientRow> => {
-          const cultivations = cultivationsByField.get(field.b_id) ?? []
-          const b_area = field.b_area ?? 0
+      const results: PromiseSettledResult<FieldNutrientRow>[] = []
+      for (const fieldsChunk of chunk(fields, NUTRIENT_ADVICE_CONCURRENCY)) {
+        const chunkResults = await Promise.allSettled(
+          fieldsChunk.map(async (field): Promise<FieldNutrientRow> => {
+            const cultivations = cultivationsByField.get(field.b_id) ?? []
+            const b_area = field.b_area ?? 0
 
-          if (cultivations.length === 0) {
-            return {
-              b_id: field.b_id,
-              b_name: field.b_name,
-              b_area,
-              mainCultivation: null,
-              errorMessage: "Geen gewas geregistreerd voor dit perceel.",
-              values: {},
-            }
-          }
-
-          const activeCultivation = getDefaultCultivation(cultivations, calendar) ?? cultivations[0]
-          const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
-          const currentSoilData = soilDataByField.get(field.b_id) ?? []
-
-          const mainCultivation = {
-            b_lu: activeCultivation.b_lu,
-            b_lu_name: activeCultivation.b_lu_name,
-            b_lu_croprotation: activeCultivation.b_lu_croprotation ?? null,
-          }
-
-          try {
-            const doses = calculateDose({ applications: fertilizerApplications, fertilizers })
-            const nutrientAdvice = await getNutrientAdvice(fdm, {
-              b_lu_catalogue: activeCultivation.b_lu_catalogue,
-              b_centroid: field.b_centroid,
-              currentSoilData,
-              nmiApiKey,
-              b_bufferstrip: field.b_bufferstrip,
-            })
-
-            const values: FieldNutrientRow["values"] = {}
-            for (const nutrient of nutrientsDescription) {
-              values[nutrient.symbol] = {
-                filling:
-                  (doses.dose[nutrient.doseParameter as keyof typeof doses.dose] as number) ?? 0,
-                advice:
-                  nutrientAdvice[nutrient.adviceParameter as keyof typeof nutrientAdvice] ?? 0,
+            if (cultivations.length === 0) {
+              return {
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area,
+                mainCultivation: null,
+                errorMessage: "Geen gewas geregistreerd voor dit perceel.",
+                values: {},
               }
             }
 
-            return {
-              b_id: field.b_id,
-              b_name: field.b_name,
-              b_area,
-              mainCultivation,
-              values,
+            const activeCultivation =
+              getDefaultCultivation(cultivations, calendar) ?? cultivations[0]
+            const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
+            const currentSoilData = soilDataByField.get(field.b_id) ?? []
+
+            const mainCultivation = {
+              b_lu: activeCultivation.b_lu,
+              b_lu_name: activeCultivation.b_lu_name,
+              b_lu_croprotation: activeCultivation.b_lu_croprotation ?? null,
             }
-          } catch (error) {
-            return {
-              b_id: field.b_id,
-              b_name: field.b_name,
-              b_area,
-              mainCultivation,
-              errorMessage: toFriendlyAdviceError(error),
-              values: {},
+
+            try {
+              const doses = calculateDose({ applications: fertilizerApplications, fertilizers })
+              const nutrientAdvice = await getNutrientAdvice(fdm, {
+                b_lu_catalogue: activeCultivation.b_lu_catalogue,
+                b_centroid: field.b_centroid,
+                currentSoilData,
+                nmiApiKey,
+                b_bufferstrip: field.b_bufferstrip,
+              })
+
+              const values: FieldNutrientRow["values"] = {}
+              for (const nutrient of nutrientsDescription) {
+                values[nutrient.symbol] = {
+                  filling:
+                    (doses.dose[nutrient.doseParameter as keyof typeof doses.dose] as number) ?? 0,
+                  advice:
+                    nutrientAdvice[nutrient.adviceParameter as keyof typeof nutrientAdvice] ?? 0,
+                }
+              }
+
+              return {
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area,
+                mainCultivation,
+                values,
+              }
+            } catch (error) {
+              return {
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area,
+                mainCultivation,
+                errorMessage: toFriendlyAdviceError(error),
+                values: {},
+              }
             }
-          }
-        }),
-      )
+          }),
+        )
+        results.push(...chunkResults)
+      }
 
       const rows = results.map((result, index) => {
         if (result.status === "fulfilled") {
