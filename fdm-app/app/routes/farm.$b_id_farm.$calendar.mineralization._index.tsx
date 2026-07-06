@@ -145,7 +145,7 @@ export default function MineralizationFarmOverview() {
   return (
     <div className="space-y-8">
       <Suspense fallback={<MineralizationFallback />}>
-        <MineralizationFarmContent
+        <MineralizationOverviewContent
           asyncNSupply={asyncNSupply}
           asyncDynaPromises={asyncDynaPromises}
           b_id_farm={b_id_farm}
@@ -158,7 +158,7 @@ export default function MineralizationFarmOverview() {
   )
 }
 
-function MineralizationFarmContent({
+function MineralizationOverviewContent({
   asyncNSupply,
   asyncDynaPromises,
   b_id_farm,

@@ -20,6 +20,7 @@ import {
 import { useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import { FertilizerForm } from "@/app/components/blocks/fertilizer/form"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { FormSchema } from "~/components/blocks/fertilizer/formschema"
 import { buildFertilizerDefaults } from "~/components/blocks/fertilizer/utils"
@@ -186,7 +187,7 @@ export default function FarmFertilizerBlock() {
               : "Bekijk de gehaltes en eigenschappen van dit product uit de catalogus."
           }
         />
-        <div className="space-y-6 p-4 pb-0 md:p-8">
+        <FarmContent>
           <div className="mx-auto w-full max-w-6xl">
             <FertilizerForm
               fertilizerParameters={
@@ -201,7 +202,7 @@ export default function FarmFertilizerBlock() {
               rvoToType={rvoToType}
             />
           </div>
-        </div>
+        </FarmContent>
       </main>
     </SidebarInset>
   )

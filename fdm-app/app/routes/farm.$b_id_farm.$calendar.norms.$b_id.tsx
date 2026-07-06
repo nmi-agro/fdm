@@ -12,6 +12,7 @@ import { nl } from "date-fns/locale"
 import { AlertTriangle } from "lucide-react"
 import { Suspense, use, useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -327,13 +328,13 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
 
   if (errorMessage && fieldNormData?.isWarning) {
     return (
-      <div className="px-4 py-6 sm:px-6 lg:px-8">
+      <FarmContent>
         <Alert variant="default" className="border-amber-200 bg-amber-50 text-amber-800">
           <AlertTriangle className="h-4 w-4 !text-amber-800" />
           <AlertTitle>Geen gebruiksnorm gevonden</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
-      </div>
+      </FarmContent>
     )
   }
 
@@ -392,63 +393,66 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
   const { norms, normsFilling, fertilizerApplications } = fieldNormData
 
   return (
-    <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
-      <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
-        <AlertTriangle className="h-4 w-4 !text-amber-800" />
-        <AlertTitle>Disclaimer</AlertTitle>
-        <AlertDescription>
-          Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
-          gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische naleving.
-          Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor definitieve normen.
-        </AlertDescription>
-      </Alert>
-
-      <div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <NormCard
-            title="Stikstof, werkzaam"
-            type="field"
-            norm={norms?.nitrogen.normValue ?? 0}
-            filling={normsFilling?.nitrogen.normFilling}
-            unit="kg N"
-          />
-          <NormCard
-            title="Fosfaat"
-            type="field"
-            norm={norms?.phosphate.normValue ?? 0}
-            filling={normsFilling?.phosphate.normFilling}
-            unit="kg P₂O₅"
-          />
-          <NormCard
-            title="Stikstof uit dierlijke mest"
-            type="field"
-            norm={norms?.manure.normValue ?? 0}
-            filling={normsFilling?.manure.normFilling}
-            unit="kg N"
-          />
-        </div>
-
-        <Separator className="my-8" />
+    <FarmContent>
+      <div className="space-y-6 pb-10">
+        <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
+          <AlertTriangle className="h-4 w-4 !text-amber-800" />
+          <AlertTitle>Disclaimer</AlertTitle>
+          <AlertDescription>
+            Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
+            gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische
+            naleving. Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor definitieve
+            normen.
+          </AlertDescription>
+        </Alert>
 
         <div>
-          <h3 className="text-2xl font-semibold tracking-tight">Bemesting op dit perceel</h3>
-          <p className="text-muted-foreground">
-            Hieronder vindt u een overzicht van de bemesting op dit perceel en hun bijdrage aan de
-            gebruiksnormen.
-          </p>
-        </div>
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {fertilizerApplications &&
-            normsFilling &&
-            fertilizerApplications.map((app) => (
-              <FertilizerApplicationCard
-                key={app.p_app_id}
-                application={app}
-                normsFilling={normsFilling}
-              />
-            ))}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <NormCard
+              title="Stikstof, werkzaam"
+              type="field"
+              norm={norms?.nitrogen.normValue ?? 0}
+              filling={normsFilling?.nitrogen.normFilling}
+              unit="kg N"
+            />
+            <NormCard
+              title="Fosfaat"
+              type="field"
+              norm={norms?.phosphate.normValue ?? 0}
+              filling={normsFilling?.phosphate.normFilling}
+              unit="kg P₂O₅"
+            />
+            <NormCard
+              title="Stikstof uit dierlijke mest"
+              type="field"
+              norm={norms?.manure.normValue ?? 0}
+              filling={normsFilling?.manure.normFilling}
+              unit="kg N"
+            />
+          </div>
+
+          <Separator className="my-8" />
+
+          <div>
+            <h3 className="text-2xl font-semibold tracking-tight">Bemesting op dit perceel</h3>
+            <p className="text-muted-foreground">
+              Hieronder vindt u een overzicht van de bemesting op dit perceel en hun bijdrage aan de
+              gebruiksnormen.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {fertilizerApplications &&
+              normsFilling &&
+              fertilizerApplications.map((app) => (
+                <FertilizerApplicationCard
+                  key={app.p_app_id}
+                  application={app}
+                  normsFilling={normsFilling}
+                />
+              ))}
+          </div>
         </div>
       </div>
-    </div>
+    </FarmContent>
   )
 }

@@ -22,6 +22,7 @@ import {
   useLoaderData,
   useLocation,
 } from "react-router"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -361,28 +362,30 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
     })
 
     return (
-      <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
-        <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
-          <AlertTriangle className="h-4 w-4 !text-amber-800" />
-          <AlertTitle>Disclaimer</AlertTitle>
-          <AlertDescription>
-            Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
-            gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische
-            naleving. Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor definitieve
-            normen.
-          </AlertDescription>
-        </Alert>
+      <FarmContent>
+        <div className="space-y-6 pb-10">
+          <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
+            <AlertTriangle className="h-4 w-4 !text-amber-800" />
+            <AlertTitle>Disclaimer</AlertTitle>
+            <AlertDescription>
+              Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
+              gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische
+              naleving. Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor
+              definitieve normen.
+            </AlertDescription>
+          </Alert>
 
-        <FarmNorms
-          farmNorms={farmNorms}
-          farmFillings={farmFillings}
-          hasFieldNormErrors={hasFieldNormErrors}
-          fieldErrorMessages={fieldErrorMessages}
-          fieldWarningMessages={fieldWarningMessages ?? []}
-        />
-        <Separator className="my-8" />
-        <FieldNorms fieldNorms={filteredFieldNorms} fieldOptions={fieldOptions} />
-      </div>
+          <FarmNorms
+            farmNorms={farmNorms}
+            farmFillings={farmFillings}
+            hasFieldNormErrors={hasFieldNormErrors}
+            fieldErrorMessages={fieldErrorMessages}
+            fieldWarningMessages={fieldWarningMessages ?? []}
+          />
+          <Separator className="my-8" />
+          <FieldNorms fieldNorms={filteredFieldNorms} fieldOptions={fieldOptions} />
+        </div>
+      </FarmContent>
     )
   }
   // This block is now an independent return, not an else clause
