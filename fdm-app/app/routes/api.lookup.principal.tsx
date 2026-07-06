@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router"
 import { lookupPrincipal } from "@nmi-agro/fdm-core"
+import { checkHelpdeskPermission } from "@nmi-agro/fdm-helpdesk"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -24,15 +25,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Get identifier from URL query parameters
     const url = new URL(request.url)
     const identifier = url.searchParams.get("identifier") // Read 'identifier' param
+    const useEmail = url.searchParams.has("email")
     const usePrincipalId = url.searchParams.has("principal_id")
+
+    if (useEmail || usePrincipalId) {
+      await checkHelpdeskPermission(
+        fdm,
+        "helpdesk",
+        "write",
+        "",
+        session.principal_id,
+        "routes/api.lookup.principal",
+      )
+    }
 
     if (!identifier) {
       return [] // Return empty array directly
     }
 
     // Basic validation to prevent malicious input
-    // Only allow alphanumeric characters, underscores, and hyphens
-    if (!/^[a-zA-Z0-9_-]+$/.test(identifier)) {
+    // Only allow alphanumeric characters, at-sign, plus, period, underscores, and hyphens
+    if (!/^[a-zA-Z0-9@+._-]+$/.test(identifier)) {
       return []
     }
     if (identifier.length < 2 || identifier.length > 100) {
@@ -41,14 +54,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     const principals = await lookupPrincipal(fdm, identifier)
 
-    const valueSubscript = usePrincipalId ? "id" : "username"
+    const valueSubscript = useEmail ? "email" : usePrincipalId ? "id" : "username"
 
     // Map the result to the format expected by AutoComplete
-    const autocompletePrincipals: AutocompletePrincipal[] = principals.map((p) => ({
-      value: p[valueSubscript],
-      label: p.displayUserName ?? p.username,
-      icon: p.type, // Pass the type as the icon identifier
-    }))
+    const autocompletePrincipals: AutocompletePrincipal[] = principals
+      .map((p) => ({
+        value: p[valueSubscript],
+        label: p.displayUserName ?? p.username,
+        icon: p.type, // Pass the type as the icon identifier
+      }))
+      .filter((result): result is AutocompletePrincipal => typeof result.value === "string")
 
     return autocompletePrincipals // Return array directly
   } catch (error) {

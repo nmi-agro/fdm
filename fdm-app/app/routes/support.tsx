@@ -51,6 +51,16 @@ export async function loader({ request }: Route.LoaderArgs) {
       false,
     )
 
+    const helpdeskWritePermission = await checkHelpdeskPermission(
+      fdm,
+      "helpdesk",
+      "write",
+      "",
+      session.principal_id,
+      "support",
+      false,
+    )
+
     const [numUnreadAssigned, numUnreadRequested, numUnassigned] = await Promise.all([
       helpdeskReadPermission ? getUnreadAssignedTicketCount(fdm, session.principal_id) : 0,
       getUnreadRequestedTicketCount(fdm, session.principal_id),
@@ -63,6 +73,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       userName: session.userName,
       initials: session.initials,
       helpdeskReadPermission: helpdeskReadPermission,
+      helpdeskWritePermission: helpdeskWritePermission,
       numUnreadAssigned: numUnreadAssigned,
       numUnreadRequested: numUnreadRequested,
       numUnassigned: numUnassigned,
@@ -101,6 +112,7 @@ export default function App() {
             <SidebarAdminHelpdesk
               numUnreadAssigned={loaderData.numUnreadAssigned}
               numUnassigned={loaderData.numUnassigned}
+              isAdmin={loaderData.helpdeskWritePermission}
             />
           )}
         </SidebarContent>

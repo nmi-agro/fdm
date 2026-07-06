@@ -97,7 +97,6 @@ export async function getMessagesForTicket(
 ): Promise<Message[]> {
   try {
     const { pageOffset, pageLimit } = getPageOffsetAndLimit(filters, 0)
-
     await checkHelpdeskPermission(
       fdm,
       "ticket-user-side",
@@ -192,6 +191,60 @@ export async function addMessage(
     return message_id
   } catch (err) {
     throw handleError(err, "Exception for addMessage", {
+      ticket_id,
+      sender_id,
+    })
+  }
+}
+
+/**
+ * Adds a new message to an existing ticket. The body is HTML-escaped before storage.
+ *
+ * No permission checks are performed, therefore the caller needs to follow a strategy to not let arbitrary
+ * people add messages.
+ *
+ * `sender_id` is optional: when the inbound email's sender could not be matched to a known fdm-authn user,
+ * pass `undefined`/omit it and `sender_id` falls back to the ticket's own `ticket_id` as a placeholder
+ * value (matching the convention used by {@link createTicketFromInboundEmail}).
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param ticket_id ID of the ticket the message belongs to.
+ * @param body The message text to store.
+ * @param sender_id Optional ID of the matched fdm-authn user sending the message, if known.
+ * @returns The `message_id` of the newly created message.
+ */
+export async function addMessageFromInboundEmailUnchecked(
+  fdm: FdmHelpdeskType,
+  ticket_id: schema.MessageTypeInsert["ticket_id"],
+  body: schema.MessageTypeInsert["body"],
+  sender_id?: schema.MessageTypeInsert["sender_id"],
+) {
+  try {
+    const ticket = await fdm
+      .select({ ticket_id: schema.tickets.ticket_id })
+      .from(schema.tickets)
+      .where(eq(schema.tickets.ticket_id, ticket_id))
+      .limit(1)
+
+    if (ticket.length === 0) {
+      throw new Error(PERMISSION_ERROR_MESSAGE)
+    }
+
+    const message_id = createId()
+    await fdm.insert(schema.messages).values([
+      {
+        ticket_id: ticket_id,
+        message_id: message_id,
+        sender_id: sender_id ?? ticket_id,
+        body: escapeHTML(body),
+        sender_type: "customer",
+      },
+    ])
+
+    return message_id
+  } catch (err) {
+    throw handleError(err, "Exception for addMessageFromInboundEmail", {
       ticket_id,
       sender_id,
     })

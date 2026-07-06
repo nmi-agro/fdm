@@ -1,5 +1,6 @@
 export * from "./agent"
 export * from "./authorization"
+export * from "./blocked-email"
 export * as schemaHelpdesk from "./db/schema-helpdesk"
 export type * from "./fdm-helpdesk.types"
 export type * from "./filter.types"

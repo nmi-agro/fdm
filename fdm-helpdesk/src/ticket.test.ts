@@ -2,12 +2,14 @@ import { eq } from "drizzle-orm"
 import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent } from "./agent"
 import * as schema from "./db/schema-helpdesk"
+import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { addMessage, getMessagesForTicket } from "./message"
 import { addTagToTicket, createTag } from "./tag"
 import { test, truncateAllTables } from "./test-util"
 import {
   createTicket,
+  createTicketFromInboundEmail,
   getDefaultSubjectLine,
   getInbox,
   getTicket,
@@ -18,6 +20,9 @@ import {
   getUnreadRequestedTicketCount,
   markTicketAsNotViewedByAll,
   markTicketAsViewed,
+  moveInboundEmailTicketsToPrincipalUnchecked,
+  tryToGetTicketByRefUnchecked,
+  tryToGetTicketUnchecked,
   updateTicketPriority,
   updateTicketStatus,
   updateTicketSubject,
@@ -740,6 +745,181 @@ describe("createTicket", () => {
   })
 })
 
+describe("tryToGetTicketUnchecked", () => {
+  let requester_id: string
+  let ticket_id: string
+
+  test.beforeEach(async ({ fdm }) => {
+    requester_id = createId()
+    ticket_id = await createTicket(fdm, requester_id, "Unchecked lookup ticket")
+  })
+
+  test("should return the ticket record for an existing ticket_id, without a principal_id", async ({
+    fdm,
+  }) => {
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.ticket_id).toBe(ticket_id)
+    expect(ticket?.requester_id).toBe(requester_id)
+  })
+
+  test("should return null for a non-existent ticket_id", async ({ fdm }) => {
+    const ticket = await tryToGetTicketUnchecked(fdm, createId())
+
+    expect(ticket).toBeNull()
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(tryToGetTicketUnchecked(fdm, ticket_id)).rejects.toThrow(
+      "Exception for tryToGetTicketUnchecked",
+    )
+  })
+})
+
+describe("tryToGetTicketByRefUnchecked", () => {
+  let requester_id: string
+  let ticket_id: string
+  let ticket_ref: string
+
+  test.beforeEach(async ({ fdm }) => {
+    requester_id = createId()
+    ticket_id = await createTicket(fdm, requester_id, "Unchecked ref lookup ticket")
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+    ticket_ref = ticket?.ticket_ref as string
+  })
+
+  test("should return the ticket record for an existing ticket_ref", async ({ fdm }) => {
+    const ticket = await tryToGetTicketByRefUnchecked(fdm, ticket_ref)
+
+    expect(ticket?.ticket_id).toBe(ticket_id)
+    expect(ticket?.ticket_ref).toBe(ticket_ref)
+  })
+
+  test("should return null for a non-existent ticket_ref", async ({ fdm }) => {
+    const ticket = await tryToGetTicketByRefUnchecked(fdm, "TK-000000")
+
+    expect(ticket).toBeNull()
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(tryToGetTicketByRefUnchecked(fdm, ticket_ref)).rejects.toThrow(
+      "Exception for tryToGetTicketByRefUnchecked",
+    )
+  })
+})
+
+describe("createTicketFromInboundEmail", () => {
+  let requester_email: string
+
+  test.beforeEach(() => {
+    requester_email = `unmatched-${createId(8)}@example.com`
+  })
+
+  test("should create an email-channel ticket with requester_id null when unmatched", async ({
+    fdm,
+  }) => {
+    const ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Inbound email body")
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.channel).toBe("email")
+    expect(ticket?.requester_email).toBe(requester_email)
+    expect(ticket?.requester_id).toBeNull()
+  })
+
+  test("should set requester_id when explicitly provided", async ({ fdm }) => {
+    const requester_id = createId()
+
+    const ticket_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      "Inbound email body",
+      requester_id,
+    )
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.requester_id).toBe(requester_id)
+  })
+
+  test("should set priority and context_farm_id from options", async ({ fdm }) => {
+    const ticket_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      "Inbound email body",
+      undefined,
+      { priority: "urgent", context: { b_id_farm: "my-farm-id" } },
+    )
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.priority).toBe("urgent")
+    expect(ticket?.context_farm_id).toBe("my-farm-id")
+  })
+
+  test("should create the first message as an escaped customer message", async ({ fdm }) => {
+    const ticket_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      `"test"<script>alert('xss')</script>`,
+    )
+
+    const messages = await fdm
+      .select()
+      .from(schema.messages)
+      .where(eq(schema.messages.ticket_id, ticket_id))
+
+    const escaped = "&quot;test&quot;&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;"
+    expect(messages[0].body).toBe(escaped)
+    expect(messages[0].sender_type).toBe("customer")
+  })
+
+  test("should fall back to ticket_id as sender_id when no requester_id is given", async ({
+    fdm,
+  }) => {
+    const ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Inbound email body")
+
+    const messages = await fdm
+      .select()
+      .from(schema.messages)
+      .where(eq(schema.messages.ticket_id, ticket_id))
+
+    expect(messages[0].sender_id).toBe(ticket_id)
+  })
+
+  test("should derive the subject line from the body", async ({ fdm }) => {
+    const ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Short inbound body")
+
+    const ticket = await tryToGetTicketUnchecked(fdm, ticket_id)
+
+    expect(ticket?.subject).toBe(getDefaultSubjectLine("Short inbound body"))
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      insert() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(
+      createTicketFromInboundEmail(fdm, requester_email, "Inbound email body"),
+    ).rejects.toThrow("Exception for createTicketFromInboundEmail")
+  })
+})
+
 describe("getTicket", () => {
   let admin_id: string
   let requester_id: string
@@ -942,5 +1122,80 @@ describe("markTicketAsNotViewedByAll", () => {
 
     const ticket = await getTicket(fdm, requester_id, ticket_id)
     expect(ticket.viewed_at, "Ticket viewed date must be null after un-viewing").toBeNull()
+  })
+})
+
+describe("moveInboundEmailTicketsToPrincipalUnchecked", () => {
+  let requester_id: string
+  let requester_email: string
+  let other_requester_id: string
+  let other_requester_email: string
+  let ticket1_id: string
+  let ticket2_id: string
+  test.beforeEach(async ({ fdm }) => {
+    requester_id = createId()
+    requester_email = `${createId()}@example.com`
+    other_requester_id = createId()
+    other_requester_email = `${createId()}@example.com`
+    ticket1_id = await createTicketFromInboundEmail(fdm, requester_email, "Test Email Question")
+    ticket2_id = await createTicketFromInboundEmail(
+      fdm,
+      requester_email,
+      "Test Email Question By Old User",
+      other_requester_id,
+    )
+    await createTicketFromInboundEmail(
+      fdm,
+      other_requester_email,
+      "Test Email Question By Other User",
+    )
+    await createTicket(fdm, other_requester_id, "Test Web Question By Other User")
+  })
+
+  test("should only move tickets with a null requester id and an email set", async ({ fdm }) => {
+    await moveInboundEmailTicketsToPrincipalUnchecked(fdm, requester_id, requester_email)
+
+    const tickets = await getTickets(fdm, requester_id)
+    expect(
+      tickets,
+      "Only ticket 1 has requester_email defined and requester_id unset",
+    ).toHaveLength(1)
+    expect(tickets.some((ticket) => ticket.ticket_id === ticket1_id)).toBe(true)
+  })
+
+  test("should move messages too", async ({ fdm }) => {
+    const admin_id = createId()
+    await addAdminAgent(fdm, admin_id, "Test Admin Agent")
+    await addMessage(fdm, ticket1_id, admin_id, "agent", "Message that should not be moved")
+
+    await moveInboundEmailTicketsToPrincipalUnchecked(fdm, requester_id, requester_email)
+
+    const messages1 = await getMessagesForTicket(fdm, requester_id, ticket1_id)
+    expect(
+      messages1.some((msg) => msg.sender_id === requester_id),
+      "Ticket's body message should have been moved",
+    ).toBe(true)
+    expect(
+      messages1.some((msg) => msg.sender_id === admin_id),
+      "The admin's message should not have been moved",
+    ).toBe(true)
+
+    const messages2 = await getMessagesForTicket(fdm, other_requester_id, ticket2_id)
+    expect(
+      messages2.some((msg) => msg.sender_id === requester_id),
+      "Ticket 2's body message should not have been moved",
+    ).toBe(false)
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      update() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+
+    await expect(
+      moveInboundEmailTicketsToPrincipalUnchecked(fdm, "test", "test@example.com"),
+    ).rejects.toThrow("Exception for moveInboundEmailTicketsToPrincipalUnchecked")
   })
 })

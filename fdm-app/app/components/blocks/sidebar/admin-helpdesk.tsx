@@ -1,4 +1,4 @@
-import { Asterisk, Inbox, MessageSquareDashed, Tag, Users } from "lucide-react"
+import { Asterisk, Inbox, MailX, MessageSquareDashed, Tag, Users } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
@@ -15,9 +15,11 @@ import { NumberBadge } from "./number-badge"
 export function SidebarAdminHelpdesk({
   numUnreadAssigned,
   numUnassigned,
+  isAdmin,
 }: {
   numUnreadAssigned: number
   numUnassigned: number
+  isAdmin: boolean
 }) {
   const currentHelpdeskPage = useCurrentHelpdeskPage()
   const location = useLocation()
@@ -117,6 +119,16 @@ export function SidebarAdminHelpdesk({
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isAdmin ? (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "blocked_emails"}>
+                <NavLink to="/support/settings/blocked-emails">
+                  <MailX />
+                  <span>Geblokkeerde e-mailadressen</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ) : undefined}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
