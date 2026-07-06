@@ -157,7 +157,7 @@ export async function getMessagesForTicket(
 export async function addMessage(
   fdm: FdmHelpdeskType,
   ticket_id: schema.MessageTypeInsert["ticket_id"],
-  sender_id: schema.MessageTypeInsert["sender_id"],
+  sender_id: string,
   sender_type: "customer" | "agent",
   body: schema.MessageTypeInsert["body"],
   is_internal?: schema.MessageTypeInsert["is_internal"],
@@ -236,7 +236,7 @@ export async function addMessageFromInboundEmailUnchecked(
       {
         ticket_id: ticket_id,
         message_id: message_id,
-        sender_id: sender_id ?? ticket_id,
+        sender_id: sender_id ?? null,
         body: escapeHTML(body),
         sender_type: "customer",
       },

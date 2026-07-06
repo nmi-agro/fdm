@@ -222,7 +222,7 @@ export const messages = fdmHelpdeskSchema.table(
     ticket_id: text()
       .notNull()
       .references(() => tickets.ticket_id),
-    sender_id: text().notNull(), // References fdm-authn user.id
+    sender_id: text(), // References fdm-authn user.id
     sender_type: text().notNull(), // 'customer', 'agent'
     body: text().notNull(), // Message content (supports markdown)
     is_internal: boolean().notNull().default(false), // Internal note (agent-only)

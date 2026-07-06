@@ -283,12 +283,12 @@ describe("addMessageFromInboundEmailUnchecked", () => {
     expect(message.sender_id).toBe(sender_id)
   })
 
-  test("should fall back to ticket_id as sender_id when no sender_id is given", async ({ fdm }) => {
+  test("should set sender_id to null when no sender_id is given", async ({ fdm }) => {
     const message_id = await addMessageFromInboundEmailUnchecked(fdm, ticket_id, "Unmatched reply")
 
     const message = await getMessage(fdm, admin_id, message_id)
 
-    expect(message.sender_id).toBe(ticket_id)
+    expect(message.sender_id).toBe(null)
   })
 })
 
