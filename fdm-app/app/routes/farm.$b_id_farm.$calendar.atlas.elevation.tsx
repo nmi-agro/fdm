@@ -13,7 +13,7 @@ import {
   Source,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -21,6 +21,7 @@ import { ElevationLegend } from "~/components/blocks/atlas/atlas-legend"
 import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -136,6 +137,16 @@ export default function FarmAtlasElevationBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const fields = loaderData.fields
   const mapStyle = loaderData.mapStyle
+  const params = useParams()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("atlas_viewed", {
+      b_id_farm: params.b_id_farm,
+      calendar: params.calendar,
+      layer: "elevation",
+    })
+  }, [])
 
   const mapRef = useRef<MapRef>(null)
 

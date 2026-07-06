@@ -11,6 +11,7 @@ import {
   getHarvests,
   updateCultivation,
 } from "@nmi-agro/fdm-core"
+import { useEffect } from "react"
 import { type MetaFunction, NavLink, Outlet, redirect, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
@@ -24,6 +25,7 @@ import { DataTable } from "~/components/blocks/rotation/table"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -383,6 +385,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
  */
 export default function FarmRotationIndex() {
   const loaderData = useLoaderData<typeof loader>()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("rotation_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
+  }, [])
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??

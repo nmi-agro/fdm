@@ -18,6 +18,7 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -197,6 +198,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
       throw new Error("missing: b_id")
     }
 
+    const b_id_farm = params.b_id_farm
+    const calendar = params.calendar
+
     // Get the session
     const session = await getSession(request)
 
@@ -206,6 +210,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const { b_lu_catalogue, b_lu_start, b_lu_end } = formValues
 
       await addCultivation(fdm, session.principal_id, b_lu_catalogue, b_id, b_lu_start, b_lu_end)
+
+      captureEvent(session.principal_id, "cultivation_added", {
+        b_id_farm,
+        b_id,
+        b_lu_catalogue,
+        calendar: String(calendar),
+      })
 
       return dataWithSuccess(
         { result: "Data saved successfully" },

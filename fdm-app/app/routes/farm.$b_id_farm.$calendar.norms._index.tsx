@@ -13,7 +13,7 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { AlertTriangle } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -34,6 +34,7 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getNorms } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -256,6 +257,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmNormsBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("norms_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
+  }, [])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}`,

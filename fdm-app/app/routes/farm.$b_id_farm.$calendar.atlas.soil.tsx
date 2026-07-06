@@ -14,7 +14,7 @@ import {
   Source,
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -23,6 +23,7 @@ import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Badge } from "~/components/ui/badge"
 import { Spinner } from "~/components/ui/spinner"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -108,7 +109,16 @@ export default function FarmAtlasSoilBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const fields = loaderData.fields
   const mapStyle = loaderData.mapStyle
+  const routeParams = useParams()
+  const { capture } = useAnalytics()
 
+  useEffect(() => {
+    capture("atlas_viewed", {
+      b_id_farm: routeParams.b_id_farm,
+      calendar: routeParams.calendar,
+      layer: "soil_map",
+    })
+  }, [])
   const mapRef = useRef<MapRef>(null)
 
   // State
@@ -316,6 +326,12 @@ export default function FarmAtlasSoilBlock() {
               properties: props,
             })
 
+            capture("atlas_soilmap_clicked", {
+              b_id_farm: routeParams.b_id_farm,
+              calendar: routeParams.calendar,
+              soil_code: props.first_soilcode,
+            })
+
             // Get additional data from BodemData
             const bodemData = await fetchBodemData(props.first_soilcode, signal)
             setPopupInfo((popupInfo) => {
@@ -337,7 +353,7 @@ export default function FarmAtlasSoilBlock() {
         }
       }
     },
-    [fetchBodemData, showSoil],
+    [fetchBodemData, showSoil, routeParams.b_id_farm, routeParams.calendar, capture],
   )
 
   const onToggleSoil = useCallback(() => {

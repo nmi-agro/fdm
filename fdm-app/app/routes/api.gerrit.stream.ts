@@ -17,6 +17,7 @@ import {
   getFields,
 } from "@nmi-agro/fdm-core"
 import type { ParsedPlan } from "~/components/blocks/gerrit/types"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
@@ -138,6 +139,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
       // before the (potentially slow) database setup completes.
       sendEvent("start", {
         message: "Verbinding gemaakt, gegevens ophalen...",
+      })
+
+      captureEvent(session.principal_id, "gerrit_plan_requested", {
+        b_id_farm,
+        calendar,
+        strategies,
       })
 
       // Reject if the user has reached their daily limit.
@@ -387,10 +394,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
 
         // Track successful plan generation for rate limiting.
-        posthog?.capture({
-          distinctId: session.principal_id,
-          event: "gerrit_plan_generated",
-          properties: { b_id_farm, calendar },
+        captureEvent(session.principal_id, "gerrit_plan_generated", {
+          b_id_farm,
+          calendar,
         })
 
         sendEvent("complete", {

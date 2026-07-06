@@ -60,6 +60,7 @@ import {
 import { Label } from "~/components/ui/label"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -584,6 +585,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
         ),
       ),
     )
+
+    for (const b_id of fieldIds) {
+      captureEvent(session.principal_id, "fertilizer_application_added", {
+        b_id_farm,
+        b_id,
+        p_id: validatedData.p_id,
+        calendar: String(calendar),
+        source: "field_page",
+        field_count: fieldIds.length,
+      })
+    }
 
     return redirectWithSuccess(returnUrl, {
       message: `Bemesting succesvol toegevoegd aan ${fieldIds.length} ${fieldIds.length === 1 ? "perceel" : "percelen"}.`,
