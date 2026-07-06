@@ -13,6 +13,7 @@ import { FormSchema } from "~/components/blocks/soil/formschema"
 import { getSoilParametersForSoilAnalysisType } from "~/components/blocks/soil/parameters.server"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -188,6 +189,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
       formValues.b_sampling_date,
       formValues,
     )
+
+    captureEvent(session.principal_id, "soil_analysis_saved", {
+      b_id_farm,
+      b_id,
+      analysis_type: formValues.a_source,
+      method: "manual",
+      calendar: String(params.calendar),
+    })
 
     return redirectWithSuccess("../soil", {
       message: "Bodemanalyse is toegevoegd! 🎉",

@@ -11,6 +11,7 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import { FieldDeleteDialog } from "~/components/blocks/field/delete"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -167,6 +168,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Remove the field
     await removeField(fdm, session.principal_id, b_id)
+
+    captureEvent(session.principal_id, "field_deleted", {
+      b_id_farm,
+      b_id,
+      calendar: String(calendar),
+    })
 
     // Redirect to the farm page after successful deletion
     return redirectWithSuccess(

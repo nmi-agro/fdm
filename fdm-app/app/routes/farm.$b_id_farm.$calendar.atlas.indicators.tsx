@@ -1,7 +1,7 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import { lazy, Suspense, useMemo, useState } from "react"
+import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -10,6 +10,7 @@ import {
   useParams,
 } from "react-router"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { type FieldBln3Score, getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import {
@@ -122,6 +123,12 @@ export default function AtlasIndicatorsMap() {
   const { fieldsGeoJSON, mapStyle } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("atlas_viewed", { b_id_farm, calendar, layer: "indicators" })
+  }, [])
+
   const [selectedProperty, setSelectedProperty] = useState("S_BLN")
 
   const selectedLabel =

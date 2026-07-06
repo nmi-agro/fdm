@@ -143,6 +143,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     return {
       b_id,
+      b_id_farm: params.b_id_farm,
       fieldName: field.b_name,
       labAnalysisDate,
       somLoi: typeof somItem?.value === "number" ? somItem.value : null,

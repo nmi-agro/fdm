@@ -35,6 +35,7 @@ import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "~/components/ui/select"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -152,6 +153,11 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   const { calendar, b_id_farm, mapStyle, fieldsData, soilParametersDescriptions } =
     useLoaderData<typeof loader>()
   const navigate = useNavigate()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("atlas_viewed", { b_id_farm, calendar, layer: "soil_analysis" })
+  }, [])
 
   const heatmapLayerId = "fieldsSavedHeatmap"
   const heatmapOutlineLayerId = "fieldsSavedHeatmapOutline"

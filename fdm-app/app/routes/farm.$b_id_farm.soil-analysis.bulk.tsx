@@ -27,6 +27,7 @@ import {
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -159,7 +160,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const matches = JSON.parse(matchesRaw)
       const analysesData = JSON.parse(analysesDataRaw)
 
-      await Promise.all(
+      const results = await Promise.all(
         matches.map(async (match: { analysisId: string; fieldId: string }) => {
           const analysis = analysesData.find((a: any) => a.id === match.analysisId)
           if (analysis) {
@@ -210,6 +211,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
           }
         }),
       )
+
+      const savedCount = results.filter(Boolean).length
+      captureEvent(session.principal_id, "soil_analysis_saved", {
+        b_id_farm,
+        method: "bulk",
+        count: savedCount,
+      })
 
       return redirectWithSuccess(`/farm/${b_id_farm}`, {
         message: "Bodemanalyses succesvol opgeslagen",

@@ -24,6 +24,7 @@ import {
   getEffectiveHarvestable,
   getHarvestCapitalizedTerm,
 } from "~/components/blocks/harvest/utils"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -206,6 +207,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
         ),
       )
 
+      captureEvent(session.principal_id, "harvest_recorded", {
+        b_id_farm: params.b_id_farm,
+        b_id: params.b_id,
+        b_lu: params.b_lu,
+        calendar: String(params.calendar),
+        count: formValues.harvests.length,
+      })
+
       const term =
         formValues.harvests.length === 1
           ? getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
@@ -225,6 +234,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
     await fdm.transaction((tx) =>
       addHarvestFromRow(tx, session.principal_id, cultivation, formValues),
     )
+
+    captureEvent(session.principal_id, "harvest_recorded", {
+      b_id_farm: params.b_id_farm,
+      b_id: params.b_id,
+      b_lu: params.b_lu,
+      calendar: String(params.calendar),
+      count: 1,
+    })
 
     const term = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
     return redirectWithSuccess("..", {

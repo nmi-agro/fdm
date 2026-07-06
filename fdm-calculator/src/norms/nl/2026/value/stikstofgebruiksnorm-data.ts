@@ -652,11 +652,7 @@ export const nitrogenStandardsData = [
         },
       },
       {
-        cultivation_rvo_table2: "Akkerbouwgewassen, Ui overig",
-        b_lu_catalogue_match: ["nl_263", "nl_1934", "nl_1021", "nl_7195", "nl_7196"],
-        type: "akkerbouw",
-        is_winterteelt: true,
-        is_vanggewas: false,
+        omschrijving: "overjarig",
         norms: {
           klei: { standard: 200, nv_area: 160 },
           zand_nwc: { standard: 185, nv_area: 148 },
@@ -867,7 +863,7 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Akkerbouwgewassen, Ui overig",
-    b_lu_catalogue_match: ["nl_263", "nl_1934", "nl_1021"],
+    b_lu_catalogue_match: ["nl_263", "nl_1934", "nl_1021", "nl_7195", "nl_7196"],
     type: "akkerbouw",
     is_winterteelt: true,
     is_vanggewas: false,
@@ -1907,20 +1903,17 @@ export const nitrogenStandardsData = [
           veen: { standard: 135, nv_area: 108 },
         },
       },
+    ],
+  },
+  {
+    cultivation_rvo_table2: "Bloembollengewassen, Krokus",
+    b_lu_catalogue_match: ["nl_976", "nl_977", "nl_1001"],
+    type: "bloembol",
+    is_winterteelt: true,
+    is_vanggewas: false,
+    sub_types: [
       {
-        cultivation_rvo_table2: "Fruitteeltgewassen, kers",
-        b_lu_catalogue_match: [
-          "nl_1872",
-          "nl_2328",
-          "nl_1100",
-          "nl_2645",
-          "nl_7139",
-          "nl_7193",
-          "nl_7194",
-        ],
-        type: "fruitteelt",
-        is_winterteelt: true,
-        is_vanggewas: false,
+        omschrijving: "grote gele",
         norms: {
           klei: { standard: 175, nv_area: 140 },
           zand_nwc: { standard: 165, nv_area: 132 },
@@ -2147,7 +2140,15 @@ export const nitrogenStandardsData = [
   },
   {
     cultivation_rvo_table2: "Fruitteeltgewassen, kers",
-    b_lu_catalogue_match: ["nl_1872", "nl_2328", "nl_1100", "nl_2645"],
+    b_lu_catalogue_match: [
+      "nl_1872",
+      "nl_2328",
+      "nl_1100",
+      "nl_2645",
+      "nl_7139",
+      "nl_7193",
+      "nl_7194",
+    ],
     type: "fruitteelt",
     is_winterteelt: true,
     is_vanggewas: false,
@@ -2318,18 +2319,17 @@ export const nitrogenStandardsData = [
     },
   },
   {
-    cultivation_rvo_table2:
-      "Boomkwekerijgewassen, Snelgroeiende houtsoorten voor biomassaproductie",
-    b_lu_catalogue_match: ["nl_864", "nl_7136", "nl_7197"],
-    type: "bosbouw",
+    cultivation_rvo_table2: "Boomkwekerijgewassen, Laanbomen/parkbomen, opzetters",
+    b_lu_catalogue_match: ["nl_1071", "nl_1072"],
+    type: "boomkwekerij",
     is_winterteelt: true,
     is_vanggewas: false,
     norms: {
-      klei: { standard: 90, nv_area: 72 },
-      zand_nwc: { standard: 90, nv_area: 72 },
-      zand_zuid: { standard: 90, nv_area: 72 },
-      loess: { standard: 90, nv_area: 72 },
-      veen: { standard: 90, nv_area: 72 },
+      klei: { standard: 115, nv_area: 92 },
+      zand_nwc: { standard: 115, nv_area: 92 },
+      zand_zuid: { standard: 115, nv_area: 92 },
+      loess: { standard: 115, nv_area: 92 },
+      veen: { standard: 115, nv_area: 92 },
     },
   },
   {
@@ -2503,7 +2503,7 @@ export const nitrogenStandardsData = [
   {
     cultivation_rvo_table2:
       "Boomkwekerijgewassen, Snelgroeiende houtsoorten voor biomassaproductie",
-    b_lu_catalogue_match: ["nl_864"],
+    b_lu_catalogue_match: ["nl_864", "nl_7136", "nl_7197"],
     type: "bosbouw",
     is_winterteelt: true,
     is_vanggewas: false,

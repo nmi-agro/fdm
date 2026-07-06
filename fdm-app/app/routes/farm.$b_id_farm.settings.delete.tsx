@@ -11,6 +11,7 @@ import { redirectWithSuccess } from "remix-toast"
 import { FarmDeleteDialog } from "~/components/blocks/farm/delete"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -157,6 +158,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Remove the farm
     await removeFarm(fdm, session.principal_id, b_id_farm)
+
+    captureEvent(session.principal_id, "farm_deleted", { b_id_farm })
 
     // Redirect to the farm overview page after successful deletion
     return redirectWithSuccess("/farm", "Bedrijf is verwijderd")

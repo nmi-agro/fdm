@@ -23,6 +23,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
 import { Switch } from "~/components/ui/switch"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { type AggregationId, computeAreaWeightedAggregation } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
@@ -92,6 +93,11 @@ export default function IndicatorsFarmIndex() {
   const { fields, fieldScores } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("indicators_viewed", { b_id_farm, calendar })
+  }, [])
 
   const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
   const [withMeasures, setWithMeasures] = useState(true)

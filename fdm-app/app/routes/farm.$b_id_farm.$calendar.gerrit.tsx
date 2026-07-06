@@ -63,6 +63,7 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -271,6 +272,12 @@ export default function GerritApp() {
   const { farm, farmOptions, defaultStrategies, calendar, fertilizerOptions, gerritUsage } =
     useLoaderData<typeof loader>()
   const navigation = useNavigation()
+  const { capture } = useAnalytics()
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    capture("gerrit_opened", { b_id_farm: farm.b_id_farm, calendar })
+  }, [])
 
   const headerAction = {
     to: `/farm/${farm.b_id_farm}`,

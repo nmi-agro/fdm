@@ -11,13 +11,14 @@ import {
   CircleCheck,
   CircleX,
 } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import {
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
   useLoaderData,
+  useParams,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
@@ -25,6 +26,7 @@ import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -123,6 +125,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmBalanceNitrogenOverviewBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const params = useParams()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("balance_viewed", {
+      b_id_farm: params.b_id_farm,
+      calendar: params.calendar,
+      balance_type: "nitrogen",
+    })
+  }, [])
 
   return (
     <div className="space-y-4">
