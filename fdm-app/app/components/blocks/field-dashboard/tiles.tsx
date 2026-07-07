@@ -10,19 +10,8 @@ import {
   Sprout,
   User,
 } from "lucide-react"
-import maplibregl from "maplibre-gl"
-import { type ReactNode, Suspense, useEffect, useMemo, useRef } from "react"
-import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
-import { Await, Link, useNavigate } from "react-router"
-import { ClientOnly } from "remix-utils/client-only"
-import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
-import {
-  FieldSourceClickable,
-  FieldsSourceNotClickable,
-} from "~/components/blocks/atlas/atlas-sources"
-import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { lazy, type ReactNode, Suspense } from "react"
+import { Await, Link } from "react-router"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
@@ -47,13 +36,20 @@ import {
   type FieldDashboardTileProps,
 } from "./types"
 
+// Lazy-loaded: keeps the (large) maplibre-gl bundle out of the initial JS
+// payload for every dashboard tile that isn't the map, and avoids SSR issues
+// with maplibre-gl, matching the pattern used by the other atlas/map routes.
+const FieldDashboardMap = lazy(() => import("./dashboard-map"))
+
 function formatDateLabel(value: Date | string | null | undefined, fallback = "Onbekend") {
   if (!value) return fallback
-  return format(new Date(value), "d MMM yyyy", { locale: nl })
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return fallback
+  return format(date, "d MMM yyyy", { locale: nl })
 }
 
 function formatNumberLabel(value: number | null | undefined, unit?: string) {
-  if (value == null) return "Onbekend"
+  if (value == null || !Number.isFinite(value)) return "Onbekend"
   const rounded = Math.round(value * 10) / 10
   return unit ? `${rounded.toLocaleString("nl-NL")} ${unit}` : rounded.toLocaleString("nl-NL")
 }
@@ -125,115 +121,17 @@ export function FieldDashboardMapTile({ dashboard, tile }: FieldDashboardTilePro
       detailLabel="Bekijk in atlas"
       contentClassName="space-y-4"
     >
-      <ClientOnly fallback={<div className="bg-muted/40 h-72 animate-pulse rounded-lg border" />}>
-        {() => (
-          <Suspense
-            fallback={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}
-          >
-            <Await
-              resolve={dashboard.asyncInsights.fieldCultivationColors}
-              errorElement={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}
-            >
-              {(fieldCroprotationById) => (
-                <FieldDashboardMap
-                  dashboard={dashboard}
-                  fieldCroprotationById={fieldCroprotationById}
-                />
-              )}
-            </Await>
-          </Suspense>
-        )}
-      </ClientOnly>
+      <Suspense fallback={<div className="bg-muted/40 h-72 animate-pulse rounded-lg border" />}>
+        <Await
+          resolve={dashboard.asyncInsights.fieldCultivationColors}
+          errorElement={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}
+        >
+          {(fieldCroprotationById) => (
+            <FieldDashboardMap dashboard={dashboard} fieldCroprotationById={fieldCroprotationById} />
+          )}
+        </Await>
+      </Suspense>
     </FieldDashboardTile>
-  )
-}
-
-function FieldDashboardMap({
-  dashboard,
-  fieldCroprotationById,
-}: {
-  dashboard: FieldDashboardTileProps["dashboard"]
-  fieldCroprotationById: Record<string, string | null>
-}) {
-  const navigate = useNavigate()
-  const mapRef = useRef<MapRef>(null)
-  // Zoom in on the selected field rather than the full farm extent, so the field itself
-  // is legible; neighbouring fields remain visible/clickable at the map's edges.
-  const initialViewState = useMemo(
-    () => getViewState(dashboard.selectedFieldGeoJson ?? dashboard.farmFieldsGeoJson),
-    [dashboard],
-  )
-
-  useEffect(() => {
-    if (initialViewState.bounds) {
-      mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-    }
-  }, [initialViewState])
-
-  const coloredFieldsGeoJson = useMemo(
-    () => ({
-      ...dashboard.farmFieldsGeoJson,
-      features: dashboard.farmFieldsGeoJson.features.map((feature) => ({
-        ...feature,
-        properties: {
-          ...feature.properties,
-          b_lu_croprotation: fieldCroprotationById[feature.properties.b_id] ?? null,
-        },
-      })),
-    }),
-    [dashboard.farmFieldsGeoJson, fieldCroprotationById],
-  )
-
-  // Reuse the exact same layer styles as the full-screen atlas fields page: a crop-colored
-  // fill, a green "saved fields" outline, and an invisible "fieldsSaved" layer used for
-  // hover/click detection (its id is special-cased by FieldsPanelHover to show name + area).
-  const fieldsColorFill = {
-    ...getFieldsStyle("dashboard-fields-fill"),
-    id: "dashboard-fields-fill",
-  }
-  const fieldsSavedOutline = {
-    ...getFieldsStyle("fieldsSavedOutline"),
-    id: "dashboard-fields-outline",
-  }
-  const fieldsSaved = { ...getFieldsStyle("fieldsSaved"), id: "fieldsSaved" }
-  const selectedOutline = {
-    ...getFieldsStyle("fieldsSelectedOutline"),
-    id: "dashboard-selected-outline",
-  }
-
-  return (
-    <MapGL
-      {...initialViewState}
-      ref={mapRef}
-      style={{ height: 360, width: "100%" }}
-      mapStyle={dashboard.mapStyle}
-      mapLib={maplibregl}
-      interactiveLayerIds={["fieldsSaved"]}
-    >
-      <MapTilerAttribution />
-      <FieldSourceClickable
-        id="dashboard-fields-source"
-        fieldsData={coloredFieldsGeoJson}
-        onFieldClick={(feature) => {
-          const b_id = feature.properties?.b_id
-          if (!b_id || b_id === dashboard.b_id) return
-          void navigate(`/farm/${dashboard.b_id_farm}/${dashboard.calendar}/field/${b_id}`)
-        }}
-      >
-        <Layer {...fieldsColorFill} />
-        <Layer {...fieldsSavedOutline} />
-        <Layer {...fieldsSaved} />
-      </FieldSourceClickable>
-      <FieldsSourceNotClickable
-        id="dashboard-selected-source"
-        fieldsData={dashboard.selectedFieldGeoJson}
-      >
-        <Layer {...selectedOutline} />
-      </FieldsSourceNotClickable>
-      <div className="fields-panel">
-        <FieldsPanelHover zoomLevelFields={-1} layer="fieldsSaved" />
-      </div>
-    </MapGL>
   )
 }
 
@@ -256,7 +154,7 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
     >
       <div className="space-y-6">
         <div>
-          <p className="text-xl font-semibold">{dashboard.field.b_name}</p>
+          <p className="text-xl font-semibold break-words">{dashboard.field.b_name}</p>
           <p className="text-muted-foreground text-sm">
             Overzicht van de belangrijkste perceelsgegevens.
           </p>
@@ -265,7 +163,7 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
           <div>
             <dt className="text-muted-foreground text-xs uppercase">Oppervlakte</dt>
             <dd className="mt-1 text-sm font-medium">
-              {dashboard.field.b_area != null
+              {dashboard.field.b_area != null && Number.isFinite(dashboard.field.b_area)
                 ? `${dashboard.field.b_area.toFixed(1).replace(".", ",")} ha`
                 : "Onbekend"}
             </dd>
@@ -322,7 +220,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-4">
         <div>
-          <p className="text-xl font-semibold">{activeCultivation.name}</p>
+          <p className="text-xl font-semibold break-words">{activeCultivation.name}</p>
           <p className="text-muted-foreground mt-1 text-sm">
             Gestart op {formatDateLabel(activeCultivation.startDate)}.
           </p>

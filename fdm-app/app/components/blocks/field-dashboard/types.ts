@@ -195,7 +195,6 @@ export interface FieldDashboardTileDefinition {
   section: FieldDashboardSectionId
   title: string
   span: string
-  permissionGate?: "field-write"
   detailHref: string
   dataKey: string
   Component: ComponentType<FieldDashboardTileProps>

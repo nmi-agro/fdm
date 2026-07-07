@@ -770,7 +770,11 @@ export default function FieldDashboardRoute() {
         if (tiles.length === 0) return null
 
         return (
-          <section key={section.id} className="space-y-4" aria-labelledby={`${section.id}-heading`}>
+          <section
+            key={section.id}
+            className="space-y-4"
+            aria-labelledby={section.showHeading !== false ? `${section.id}-heading` : undefined}
+          >
             {section.showHeading !== false ? (
               <div id={`${section.id}-heading`}>
                 <FieldDashboardSectionHeading title={section.title} />
