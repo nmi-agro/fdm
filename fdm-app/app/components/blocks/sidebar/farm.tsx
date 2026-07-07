@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState, useEffect } from "react"
-import { NavLink, useLocation, useSearchParams, useNavigate } from "react-router"
+import { NavLink, useLocation, useSearchParams, useNavigate, useFetcher } from "react-router"
 import { getCalendarSelection } from "@/app/lib/calendar"
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
@@ -44,14 +44,18 @@ import {
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
+import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
+import { FieldPickerDialog } from "~/components/blocks/sidebar/field-picker-dialog"
 
 export function SidebarFarm({
   farm,
+  farms = [],
   fields = [],
   activeFieldId,
   fieldWritePermission = false,
 }: {
   farm: Awaited<ReturnType<typeof getFarm>> | undefined
+  farms?: { b_id_farm: string; b_name_farm: string | null }[]
   fields?: { b_id: string; b_name: string; b_area: number }[]
   activeFieldId?: string | null
   fieldWritePermission?: boolean
@@ -95,6 +99,43 @@ export function SidebarFarm({
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [isPerceelOpen, setIsPerceelOpen] = useState(false)
   const [targetSegment, setTargetSegment] = useState("overview")
+
+  // Which farm-scoped feature the user tried to reach without a farm selected.
+  const [pendingFeature, setPendingFeature] = useState<
+    | { kind: "navigate"; label: string; resolvePath: (b_id_farm: string) => string }
+    | { kind: "pick-field"; label: string }
+    | null
+  >(null)
+  // Once a farm has been picked for the "pick-field" flow, load that farm's fields.
+  const [fieldPickerFarmId, setFieldPickerFarmId] = useState<string | null>(null)
+  const fieldOptionsFetcher = useFetcher<{
+    fields: { b_id: string; b_name: string; b_area: number }[]
+  }>()
+
+  const openFarmPicker = (label: string, resolvePath: (b_id_farm: string) => string) => {
+    setPendingFeature({ kind: "navigate", label, resolvePath })
+  }
+
+  const openFieldFarmPicker = (label: string) => {
+    setPendingFeature({ kind: "pick-field", label })
+  }
+
+  const handleFarmPicked = (b_id_farm: string) => {
+    if (pendingFeature?.kind === "navigate") {
+      void navigate(pendingFeature.resolvePath(b_id_farm))
+    } else if (pendingFeature?.kind === "pick-field") {
+      setFieldPickerFarmId(b_id_farm)
+      fieldOptionsFetcher.load(`/farm/${b_id_farm}/${selectedCalendar}/field-options`)
+    }
+    setPendingFeature(null)
+  }
+
+  const handleFieldPickedForNewFarm = (b_id: string) => {
+    if (fieldPickerFarmId) {
+      void navigate(`/farm/${fieldPickerFarmId}/${selectedCalendar}/field/${b_id}/overview`)
+    }
+    setFieldPickerFarmId(null)
+  }
 
   // Auto-expand whenever a field is active
   useEffect(() => {
@@ -264,13 +305,13 @@ export function SidebarFarm({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
-                      asChild
-                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker("de kalender", (b_id_farm) => `/farm/${b_id_farm}`)
+                      }
                     >
-                      <span className="flex items-center gap-2">
-                        <Calendar />
-                        <span>Kalender</span>
-                      </span>
+                      <Calendar />
+                      <span>Kalender</span>
                     </SidebarMenuButton>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -299,13 +340,16 @@ export function SidebarFarm({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
-                      asChild
-                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker(
+                          "uw percelen",
+                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/field`,
+                        )
+                      }
                     >
-                      <span className="flex items-center gap-2">
-                        <Grid2x2 />
-                        <span>Percelen</span>
-                      </span>
+                      <Grid2x2 />
+                      <span>Percelen</span>
                     </SidebarMenuButton>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -332,13 +376,16 @@ export function SidebarFarm({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
-                      asChild
-                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker(
+                          "het bouwplan",
+                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/rotation`,
+                        )
+                      }
                     >
-                      <span className="flex items-center gap-2">
-                        <Sprout />
-                        <span>Bouwplan</span>
-                      </span>
+                      <Sprout />
+                      <span>Bouwplan</span>
                     </SidebarMenuButton>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -359,13 +406,16 @@ export function SidebarFarm({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
-                      asChild
-                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker(
+                          "de maatregelen",
+                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/measures`,
+                        )
+                      }
                     >
-                      <span className="flex items-center gap-2">
-                        <ClipboardList />
-                        <span>Maatregelen</span>
-                      </span>
+                      <ClipboardList />
+                      <span>Maatregelen</span>
                     </SidebarMenuButton>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -386,13 +436,13 @@ export function SidebarFarm({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
-                      asChild
-                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker("meststoffen", (b_id_farm) => `/farm/${b_id_farm}/fertilizers`)
+                      }
                     >
-                      <span className="flex items-center gap-2">
-                        <Shapes />
-                        <span>Meststoffen</span>
-                      </span>
+                      <Shapes />
+                      <span>Meststoffen</span>
                     </SidebarMenuButton>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -506,13 +556,11 @@ export function SidebarFarm({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <SidebarMenuButton
-                      asChild
-                      className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                      className="text-muted-foreground"
+                      onClick={() => openFieldFarmPicker("een perceel")}
                     >
-                      <span className="flex items-center gap-2">
-                        <LandPlot />
-                        <span>Kies een perceel</span>
-                      </span>
+                      <LandPlot />
+                      <span>Kies een perceel</span>
                     </SidebarMenuButton>
                   </TooltipTrigger>
                   <TooltipContent side="right">
@@ -524,6 +572,30 @@ export function SidebarFarm({
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+      <FarmPickerDialog
+        open={pendingFeature !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingFeature(null)
+        }}
+        farms={farms}
+        featureLabel={pendingFeature?.label ?? ""}
+        onSelectFarm={handleFarmPicked}
+      />
+      <FieldPickerDialog
+        open={fieldPickerFarmId !== null}
+        onOpenChange={(open) => {
+          if (!open) setFieldPickerFarmId(null)
+        }}
+        farmName={
+          farms.find((f) => f.b_id_farm === fieldPickerFarmId)?.b_name_farm ?? "dit bedrijf"
+        }
+        loading={fieldOptionsFetcher.state !== "idle"}
+        fields={fieldOptionsFetcher.data?.fields ?? []}
+        createFieldLink={
+          fieldPickerFarmId ? `/farm/${fieldPickerFarmId}/${selectedCalendar}/field/new` : "#"
+        }
+        onSelectField={handleFieldPickedForNewFarm}
+      />
     </TooltipProvider>
   )
 }

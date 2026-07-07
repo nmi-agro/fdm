@@ -286,7 +286,7 @@ export default function AppIndex() {
         <HeaderFarm b_id_farm={undefined} farmOptions={loaderData.farmOptions} />
       </Header>
       <main className="flex flex-1 flex-col">
-        {loaderData.farms.length !== 0 ? (
+        {loaderData.farms.length === 0 ? (
           <div className="flex flex-1 items-center justify-center p-6 md:p-10">
             <div className="mx-auto flex w-full max-w-212.5 flex-col items-center space-y-8 text-center">
               <div className="space-y-4">
