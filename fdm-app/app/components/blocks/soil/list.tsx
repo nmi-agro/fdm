@@ -64,6 +64,19 @@ export function SoilAnalysesList({
               <div className="justify-self-end">
                 <div className="space-x-4">
                   <Button
+                    variant="outline"
+                    className={cn(!analysis.a_fileavailable && "invisible")}
+                    asChild
+                  >
+                    <a
+                      href={`/api/soil-analysis/download/${analysis.a_id}.pdf`}
+                      rel="noopener noreferrer"
+                      download={`soil-analysis-${analysis.a_id}-${analysis.a_source ?? ""}-${analysis.b_sampling_date?.toISOString().split("T")[0]}.pdf`}
+                    >
+                      Bekijk PDF
+                    </a>
+                  </Button>
+                  <Button
                     asChild
                     variant="default"
                     disabled={

@@ -4,8 +4,12 @@
 export interface SoilAnalysis {
   /** Unique identifier for the soil analysis */
   a_id: string
+  /** Date of the soil analysis */
+  a_date: Date | undefined | null
   /** Source of the soil analysis data */
   a_source: string | undefined | null
+  /** Whether the PDF file is available for the analysis */
+  a_fileavailable?: boolean | undefined
   /** Date when soil samples were collected */
   b_sampling_date: Date | null
   /** Organic carbon content ( g C / kg) */

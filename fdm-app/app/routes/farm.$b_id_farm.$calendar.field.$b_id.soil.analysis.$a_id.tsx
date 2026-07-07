@@ -136,12 +136,25 @@ export default function FarmFieldSoilOverviewBlock() {
             Bekijk en bewerk de gegevens van deze bodemanalyse
           </p>
         </div>
-        <Button asChild>
-          <NavLink to="../soil">
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        <div className="flex justify-between gap-2">
+          <Button asChild>
+            <NavLink to="../soil">
+              <ArrowLeft />
+              Terug
+            </NavLink>
+          </Button>
+          {loaderData.soilAnalysis.a_fileavailable && (
+            <Button variant="outline" asChild>
+              <a
+                href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
+                rel="noopener noreferrer"
+                download={`soil-analysis-${loaderData.soilAnalysis.a_id}-${loaderData.soilAnalysis.a_source ?? ""}-${loaderData.soilAnalysis.a_date?.toISOString().split("T")[0]}.pdf`}
+              >
+                Bekijk PDF
+              </a>
+            </Button>
+          )}
+        </div>
       </div>
       <Separator />
       <SoilAnalysisForm

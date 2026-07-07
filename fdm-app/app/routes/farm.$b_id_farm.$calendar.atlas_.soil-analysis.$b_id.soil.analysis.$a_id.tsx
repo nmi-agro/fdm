@@ -1,6 +1,5 @@
 import { getField, getSoilAnalysis, getSoilParametersDescription } from "@nmi-agro/fdm-core"
-import { ArrowLeft } from "lucide-react"
-import { data, type LoaderFunctionArgs, NavLink, useLoaderData } from "react-router"
+import { data, type LoaderFunctionArgs, useLoaderData } from "react-router"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
@@ -106,36 +105,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmFieldSoilOverviewBlock() {
   const loaderData = useLoaderData<typeof loader>()
-  const field = loaderData.field
 
   return (
     <div className="space-y-6 p-6">
-      <div className="space-y-4">
+      <div className="flex justify-between gap-2">
         <div>
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">Bekijk de gegevens van deze bodemanalyse</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild>
-            <NavLink
-              to={`/farm/${field.b_id_farm}/${loaderData.calendar}/atlas/soil-analysis/${field.b_id}/soil`}
+        {loaderData.soilAnalysis.a_fileavailable && (
+          <Button variant="outline" asChild>
+            <a
+              href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
+              rel="noopener noreferrer"
+              download={`soil-analysis-${loaderData.soilAnalysis.a_id}-${loaderData.soilAnalysis.a_source ?? ""}-${loaderData.soilAnalysis.a_date?.toISOString().split("T")[0]}.pdf`}
             >
-              <ArrowLeft />
-              Terug
-            </NavLink>
+              Bekijk PDF
+            </a>
           </Button>
-          {loaderData.soilAnalysis.a_fileavailable && (
-            <Button variant="outline" asChild>
-              <a
-                href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
-                rel="noopener noreferrer"
-                download={`soil-analysis-${loaderData.soilAnalysis.a_id}-${loaderData.soilAnalysis.a_source ?? ""}-${loaderData.soilAnalysis.a_date}.pdf`}
-              >
-                Download Bron
-              </a>
-            </Button>
-          )}
-        </div>
+        )}
       </div>
       <Separator />
       <SoilAnalysisForm

@@ -42,7 +42,7 @@ export function SoilAnalysisForm(props: {
 
   const { calendar } = useCalendarStore()
   const defaultValues: {
-    [key: string]: string | number | Date | undefined | null
+    [key: string]: string | number | boolean | Date | undefined | null
   } = {}
   for (const x of soilParameterDescription) {
     let defaultValue = soilAnalysis ? soilAnalysis[x.parameter as keyof SoilAnalysis] : undefined
@@ -76,7 +76,11 @@ export function SoilAnalysisForm(props: {
       <Form id="soilAnalysisForm" onSubmit={form.handleSubmit} method="post">
         <fieldset disabled={!editable || form.formState.isSubmitting}>
           <div className="space-y-6">
-            <p className="text-muted-foreground text-sm">Vul de gegevens van de bodemanalyse in.</p>
+            {editable && (
+              <p className="text-muted-foreground text-sm">
+                Vul de gegevens van de bodemanalyse in.
+              </p>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               {soilParameterDescription.map((x) => {
                 if (x.parameter === "a_id") {
