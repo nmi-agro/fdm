@@ -25,6 +25,7 @@ import {
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
 import type { Geometry } from "geojson"
+import { useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
 import {
@@ -46,6 +47,7 @@ import type {
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { getEffectiveHarvestable, getHarvestDateTerm, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { constructSoilDataCards } from "~/components/blocks/soil/cards"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { isBcsAnalysis } from "~/lib/bcs"
@@ -762,6 +764,15 @@ export default function FieldDashboardRoute() {
     b_id_farm: dashboard.b_id_farm,
     calendar: dashboard.calendar,
   })
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("field_dashboard_viewed", {
+      b_id_farm: dashboard.b_id_farm,
+      b_id: dashboard.b_id,
+      calendar: dashboard.calendar,
+    })
+  }, [])
 
   return (
     <div className="space-y-8 pb-8">
