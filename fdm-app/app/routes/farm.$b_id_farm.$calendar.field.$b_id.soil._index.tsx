@@ -3,6 +3,7 @@ import {
   getCurrentSoilData,
   getField,
   getSoilAnalyses,
+  getSoilAnalysis,
   getSoilParametersDescription,
   removeSoilAnalysis,
 } from "@nmi-agro/fdm-core"
@@ -21,6 +22,7 @@ import { SoilAnalysesList } from "~/components/blocks/soil/list"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
+import { buildObjectKey, deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
@@ -240,6 +242,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const session = await getSession(request)
 
       // Remove the analysis
+      const soilAnalysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
+      if (isBcsAnalysis(soilAnalysis)) {
+        throw data("Dit is een BodemConditieScore analyse", {
+          status: 403,
+          statusText: "Dit is een BodemConditieScore analyse",
+        })
+      }
+      if (soilAnalysis?.a_fileavailable) {
+        const objectKey = buildObjectKey("soil-analysis", a_id, "pdf")
+        await deleteObject(objectKey)
+      }
       await removeSoilAnalysis(fdm, session.principal_id, a_id)
       return redirectWithSuccess("./", {
         message: "Bodemanalyse is verwijderd! 🎉",

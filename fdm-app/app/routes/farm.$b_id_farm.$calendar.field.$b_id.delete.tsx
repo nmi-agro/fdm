@@ -1,4 +1,10 @@
-import { getField, removeField } from "@nmi-agro/fdm-core"
+import {
+  getField,
+  getSoilAnalyses,
+  getSoilImages,
+  removeField,
+  removeSoilImage,
+} from "@nmi-agro/fdm-core"
 import {
   type ActionFunctionArgs,
   data,
@@ -11,12 +17,14 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import { FieldDeleteDialog } from "~/components/blocks/field/delete"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { buildObjectKey, deleteObject } from "~/integrations/gcs.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
+import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getCalendar } from "../lib/calendar"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -165,6 +173,28 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Get details of field
     const field = await getField(fdm, session.principal_id, b_id)
+
+    // Clean up GCS objects before removing the field from DB
+    const soilAnalyses = await getSoilAnalyses(fdm, session.principal_id, b_id)
+    await Promise.all(
+      soilAnalyses.map(async (analysis) => {
+        if (isBcsAnalysis(analysis)) {
+          // Delete BCS images from GCS
+          const images = await getSoilImages(fdm, session.principal_id, analysis.b_id_sampling)
+          await Promise.all(
+            images.map((image) =>
+              removeSoilImage(fdm, session.principal_id, image.a_id_image, deleteObject),
+            ),
+          )
+        }
+
+        if (analysis.a_fileavailable) {
+          // Delete soil analysis PDF from GCS
+          const objectKey = buildObjectKey("soil_analyses", analysis.a_id, "pdf")
+          await deleteObject(objectKey)
+        }
+      }),
+    )
 
     // Remove the field
     await removeField(fdm, session.principal_id, b_id)

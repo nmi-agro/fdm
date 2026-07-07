@@ -261,6 +261,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     const session = await getSession(request)
     const analysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
+    if (!isBcsAnalysis(analysis)) {
+      throw data("Geen BodemConditieScore analyse", {
+        status: 403,
+        statusText: "Geen BodemConditieScore analyse",
+      })
+    }
     const images = await getSoilImages(fdm, session.principal_id, analysis.b_id_sampling)
 
     await Promise.all(

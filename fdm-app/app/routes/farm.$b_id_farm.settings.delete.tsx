@@ -1,4 +1,11 @@
-import { getFarm, isAllowedToDeleteFarm, removeFarm } from "@nmi-agro/fdm-core"
+import {
+  getFarm,
+  getSoilAnalysesForFarm,
+  getSoilImages,
+  isAllowedToDeleteFarm,
+  removeFarm,
+  removeSoilImage,
+} from "@nmi-agro/fdm-core"
 import {
   type ActionFunctionArgs,
   data,
@@ -11,8 +18,10 @@ import { redirectWithSuccess } from "remix-toast"
 import { FarmDeleteDialog } from "~/components/blocks/farm/delete"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
+import { buildObjectKey, deleteObject } from "~/integrations/gcs.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -155,6 +164,26 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (!canDeleteFarm) {
       throw data("Forbidden", { status: 403, statusText: "Forbidden" })
     }
+
+    // Clean up GCS objects for all fields in the farm before removing from DB
+    const soilAnalysesByField = await getSoilAnalysesForFarm(fdm, session.principal_id, b_id_farm)
+    await Promise.all(
+      [...soilAnalysesByField.values()].flat().map(async (analysis) => {
+        if (isBcsAnalysis(analysis)) {
+          const images = await getSoilImages(fdm, session.principal_id, analysis.b_id_sampling)
+          await Promise.all(
+            images.map((image) =>
+              removeSoilImage(fdm, session.principal_id, image.a_id_image, deleteObject),
+            ),
+          )
+        }
+
+        if (analysis.a_fileavailable) {
+          const objectKey = buildObjectKey("soil_analyses", analysis.a_id, "pdf")
+          await deleteObject(objectKey)
+        }
+      }),
+    )
 
     // Remove the farm
     await removeFarm(fdm, session.principal_id, b_id_farm)
