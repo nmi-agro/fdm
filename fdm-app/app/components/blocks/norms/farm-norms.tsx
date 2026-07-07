@@ -61,21 +61,18 @@ export function FarmNorms({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <NormCard
           title="Stikstof, werkzaam"
-          type="farm"
           norm={farmNorms.nitrogen}
           filling={farmFillings?.nitrogen}
           unit="kg N"
         />
         <NormCard
           title="Fosfaat"
-          type="farm"
           norm={farmNorms.phosphate}
           filling={farmFillings?.phosphate}
           unit="kg P₂O₅"
         />
         <NormCard
           title="Stikstof uit dierlijke mest"
-          type="farm"
           norm={farmNorms.manure}
           filling={farmFillings?.manure}
           unit="kg N"

@@ -156,6 +156,9 @@ export default function FarmFieldIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const calendar = useCalendarStore((state) => state.calendar)
   const location = useLocation()
+  const isDashboardRoute =
+    location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}` ||
+    location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}/`
 
   if (location.pathname.includes("fertilizer/manage")) return <Outlet />
   return (
@@ -177,7 +180,9 @@ export default function FarmFieldIndex() {
       <main>
         <FarmTitle
           title={loaderData.field?.b_name}
-          description={"Beheer hier de gegevens van dit perceel"}
+          description={
+            isDashboardRoute ? "Overzicht van dit perceel" : "Beheer hier de gegevens van dit perceel"
+          }
         />
         <FarmContent>
           <Outlet />

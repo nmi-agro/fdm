@@ -21,7 +21,7 @@ export function BufferStripWarning({ b_id }: { b_id: string }) {
           </div>
         </CardContent>
         <CardFooter>
-          <NavLink to={`../../${calendar}/field/${b_id}/overview`}>
+          <NavLink to={`../../${calendar}/field/${b_id}/settings`}>
             <Button>Naar perceelsinstelling</Button>
           </NavLink>
         </CardFooter>

@@ -273,7 +273,7 @@ function NitrogenBalance({
             </div>
           </CardContent>
           <CardFooter>
-            <NavLink to={`../../${calendar}/field/${field.b_id}/`}>
+            <NavLink to={`../../${calendar}/field/${field.b_id}/settings`}>
               <Button>Naar perceelsinstelling</Button>
             </NavLink>
           </CardFooter>

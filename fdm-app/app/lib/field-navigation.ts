@@ -6,9 +6,9 @@ export function getFieldNavigationItems(
 ) {
   const items = [
     {
-      to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/overview`,
-      title: "Gegevens",
-      segment: "overview",
+      to: `/farm/${b_id_farm}/${calendar}/field/${b_id}`,
+      title: "Overzicht",
+      segment: "",
     },
     {
       to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation`,
@@ -29,6 +29,11 @@ export function getFieldNavigationItems(
       to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`,
       title: "BodemConditieScore",
       segment: "bcs",
+    },
+    {
+      to: `/farm/${b_id_farm}/${calendar}/field/${b_id}/settings`,
+      title: "Gegevens",
+      segment: "settings",
     },
   ]
 

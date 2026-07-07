@@ -40,7 +40,7 @@ export function HeaderField({
       ? `/farm/${b_id_farm}/${calendar}/field/${optionId}/cultivation`
       : b_id
         ? currentPath.replace(`/field/${b_id}`, `/field/${optionId}`)
-        : `/farm/${b_id_farm}/${calendar}/field/${optionId}/overview`
+        : `/farm/${b_id_farm}/${calendar}/field/${optionId}`
     void navigate(targetUrl)
   }
 

@@ -414,21 +414,18 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <NormCard
               title="Stikstof, werkzaam"
-              type="field"
               norm={norms?.nitrogen.normValue ?? 0}
               filling={normsFilling?.nitrogen.normFilling}
               unit="kg N"
             />
             <NormCard
               title="Fosfaat"
-              type="field"
               norm={norms?.phosphate.normValue ?? 0}
               filling={normsFilling?.phosphate.normFilling}
               unit="kg P₂O₅"
             />
             <NormCard
               title="Stikstof uit dierlijke mest"
-              type="field"
               norm={norms?.manure.normValue ?? 0}
               filling={normsFilling?.manure.normFilling}
               unit="kg N"
