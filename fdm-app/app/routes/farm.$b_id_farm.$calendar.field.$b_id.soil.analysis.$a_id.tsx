@@ -14,6 +14,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import { getSoilAnalysisDownloadName } from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
 import { Button } from "~/components/ui/button"
@@ -148,7 +149,7 @@ export default function FarmFieldSoilOverviewBlock() {
               <a
                 href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
                 rel="noopener noreferrer"
-                download={`soil-analysis-${loaderData.soilAnalysis.a_id}-${loaderData.soilAnalysis.a_source ?? ""}-${loaderData.soilAnalysis.a_date?.toISOString().split("T")[0]}.pdf`}
+                download={getSoilAnalysisDownloadName(loaderData.soilAnalysis)}
               >
                 Bekijk PDF
               </a>

@@ -6,6 +6,7 @@ import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 import type { SoilAnalysis } from "./types"
+import { getSoilAnalysisDownloadName } from "./download"
 
 export function SoilAnalysesList({
   soilAnalyses,
@@ -71,7 +72,7 @@ export function SoilAnalysesList({
                     <a
                       href={`/api/soil-analysis/download/${analysis.a_id}.pdf`}
                       rel="noopener noreferrer"
-                      download={`soil-analysis-${analysis.a_id}-${analysis.a_source ?? ""}-${analysis.b_sampling_date?.toISOString().split("T")[0]}.pdf`}
+                      download={getSoilAnalysisDownloadName(analysis)}
                     >
                       Bekijk PDF
                     </a>

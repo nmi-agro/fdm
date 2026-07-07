@@ -1,5 +1,6 @@
 import { getField, getSoilAnalysis, getSoilParametersDescription } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, useLoaderData } from "react-router"
+import { getSoilAnalysisDownloadName } from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
@@ -118,7 +119,7 @@ export default function FarmFieldSoilOverviewBlock() {
             <a
               href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
               rel="noopener noreferrer"
-              download={`soil-analysis-${loaderData.soilAnalysis.a_id}-${loaderData.soilAnalysis.a_source ?? ""}-${loaderData.soilAnalysis.a_date?.toISOString().split("T")[0]}.pdf`}
+              download={getSoilAnalysisDownloadName(loaderData.soilAnalysis)}
             >
               Bekijk PDF
             </a>
