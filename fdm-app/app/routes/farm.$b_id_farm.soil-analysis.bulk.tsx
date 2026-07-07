@@ -177,8 +177,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const analysesData = JSON.parse(analysesDataRaw)
 
       const uploadedPdfs = new Map<string, File>()
-      for (const file of formData.getAll("soilAnalysisFile") as File[]) {
-        uploadedPdfs.set(file.name.toLowerCase(), file)
+      for (const file of formData.getAll("soilAnalysisFile")) {
+        if (file instanceof File && file.type === "application/pdf") {
+          uploadedPdfs.set(file.name.toLowerCase(), file)
+        }
       }
 
       const results = await Promise.all(
