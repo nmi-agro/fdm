@@ -1,0 +1,1 @@
+ALTER TABLE "fdm"."soil_analysis" ADD COLUMN "a_fileavailable" boolean DEFAULT false NOT NULL;

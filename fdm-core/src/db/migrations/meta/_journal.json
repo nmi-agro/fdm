@@ -218,6 +218,13 @@
       "when": 1780047350165,
       "tag": "0030_v0-34-0-1",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1783417244940,
+      "tag": "0031_vengeful_gideon",
+      "breakpoints": true
     }
   ]
 }

@@ -3,6 +3,7 @@ import {
   getFarm,
   getFields,
   getSoilParametersDescription,
+  updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { useState } from "react"
 import {
@@ -28,6 +29,8 @@ import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { buildObjectKey, deleteObject, uploadObject } from "../integrations/gcs.server"
+import { captureEvent } from "../lib/analytics.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -74,6 +77,8 @@ export default function BulkSoilAnalysisUploadWizardPage() {
   const navigation = useNavigation()
   const submit = useSubmit()
 
+  const [files, setFiles] = useState<File[]>([])
+
   const isSaving = navigation.state !== "idle" && navigation.formMethod?.toLowerCase() === "post"
 
   const handleUploadSuccess = (analyses: any[]) => {
@@ -83,16 +88,24 @@ export default function BulkSoilAnalysisUploadWizardPage() {
   }
 
   const handleSave = (
-    matches: { analysisId: string; fieldId: string }[],
+    matches: { analysisId: string; fieldId: string; filename?: string }[],
     updatedAnalyses: ProcessedAnalysis[],
   ) => {
     const formData = new FormData()
     // Filter out "none" selections
     const validMatches = matches.filter((m) => m.fieldId !== "none" && m.fieldId !== "")
+    const validMatchFiles = new Set(
+      validMatches.filter((match) => match.filename).map((match) => match.filename),
+    )
     formData.append("matches", JSON.stringify(validMatches))
     formData.append("analysesData", JSON.stringify(updatedAnalyses))
+    for (const file of files) {
+      if (validMatchFiles.has(file.name.toLowerCase())) {
+        formData.append("soilAnalysisFile", file)
+      }
+    }
 
-    void submit(formData, { method: "post" })
+    void submit(formData, { method: "post", encType: "multipart/form-data" })
   }
 
   return (
@@ -123,7 +136,11 @@ export default function BulkSoilAnalysisUploadWizardPage() {
                 <p className="text-muted-foreground">Opslaan en koppelen...</p>
               </div>
             ) : step === "upload" ? (
-              <BulkSoilAnalysisUploadForm onSuccess={handleUploadSuccess} />
+              <BulkSoilAnalysisUploadForm
+                files={files}
+                onFilesChange={setFiles}
+                onSuccess={handleUploadSuccess}
+              />
             ) : (
               <BulkSoilAnalysisReview
                 analyses={processedAnalyses}
@@ -153,7 +170,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const matches = JSON.parse(formData.get("matches") as string)
       const analysesData = JSON.parse(formData.get("analysesData") as string)
 
-      await Promise.all(
+      const uploadedPdfs = new Map<string, File>()
+      for (const file of formData.getAll("soilAnalysisFile") as File[]) {
+        uploadedPdfs.set(file.name.toLowerCase(), file)
+      }
+
+      const results = await Promise.all(
         matches.map(async (match: { analysisId: string; fieldId: string }) => {
           const analysis = analysesData.find((a: any) => a.id === match.analysisId)
           if (analysis) {
@@ -181,16 +203,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
               a_source: _a_source,
               matchedFieldId: _matchedFieldId,
               matchReason: _matchReason,
-              filename: _filename,
               b_name: _b_name,
               b_sampling_date: _b_sampling_date,
               a_depth_upper: _a_depth_upper,
               a_depth_lower: _a_depth_lower,
               data: _data, // Strip raw data
+              filename,
               ...dbAnalysis
             } = analysis
 
-            return addSoilAnalysis(
+            const soilAnalysisId = await addSoilAnalysis(
               fdm,
               session.principal_id,
               null,
@@ -201,9 +223,41 @@ export async function action({ request, params }: ActionFunctionArgs) {
               dbAnalysis,
               depthUpper,
             )
+
+            const file = uploadedPdfs.get(filename)
+
+            if (file) {
+              const key = buildObjectKey("soil-analysis", soilAnalysisId, "pdf")
+              let uploaded = false
+              try {
+                await uploadObject(key, file.stream(), "application/pdf")
+                uploaded = true
+                await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, {
+                  a_fileavailable: true,
+                })
+              } catch (gcsSaveError) {
+                try {
+                  if (uploaded) {
+                    await deleteObject(key)
+                  }
+                } catch (deleteError) {
+                  handleActionError(deleteError)
+                }
+                handleActionError(gcsSaveError)
+              }
+            }
+
+            return soilAnalysisId
           }
         }),
       )
+
+      const savedCount = results.filter(Boolean).length
+      captureEvent(session.principal_id, "soil_analysis_saved", {
+        b_id_farm,
+        method: "bulk",
+        count: savedCount,
+      })
 
       return redirectWithSuccess(`/farm/create/${b_id_farm}/${calendar}/fields`, {
         message: "Bodemanalyses succesvol opgeslagen",

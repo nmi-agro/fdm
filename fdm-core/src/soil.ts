@@ -193,6 +193,7 @@ export async function getSoilAnalysis(
         a_id: schema.soilAnalysis.a_id,
         a_date: schema.soilAnalysis.a_date,
         a_source: schema.soilAnalysis.a_source,
+        a_fileavailable: schema.soilAnalysis.a_fileavailable,
         a_al_ox: schema.soilAnalysis.a_al_ox,
         a_c_of: schema.soilAnalysis.a_c_of,
         a_ca_co: schema.soilAnalysis.a_ca_co,
@@ -313,6 +314,7 @@ export async function getSoilAnalyses(
         a_id: schema.soilAnalysis.a_id,
         a_date: schema.soilAnalysis.a_date,
         a_source: schema.soilAnalysis.a_source,
+        a_fileavailable: schema.soilAnalysis.a_fileavailable,
         a_al_ox: schema.soilAnalysis.a_al_ox,
         a_c_of: schema.soilAnalysis.a_c_of,
         a_ca_co: schema.soilAnalysis.a_ca_co,
@@ -440,6 +442,7 @@ export async function getSoilAnalysesForFarm(
         a_id: schema.soilAnalysis.a_id,
         a_date: schema.soilAnalysis.a_date,
         a_source: schema.soilAnalysis.a_source,
+        a_fileavailable: schema.soilAnalysis.a_fileavailable,
         a_al_ox: schema.soilAnalysis.a_al_ox,
         a_c_of: schema.soilAnalysis.a_c_of,
         a_ca_co: schema.soilAnalysis.a_ca_co,
@@ -506,6 +509,7 @@ export async function getSoilAnalysesForFarm(
         a_id: row.a_id,
         a_date: row.a_date,
         a_source: row.a_source,
+        a_fileavailable: row.a_fileavailable,
         a_al_ox: row.a_al_ox,
         a_c_of: row.a_c_of,
         a_ca_co: row.a_ca_co,
@@ -616,6 +620,7 @@ export async function getCurrentSoilData(
       .select({
         a_id: schema.soilAnalysis.a_id,
         a_source: schema.soilAnalysis.a_source,
+        a_fileavailable: schema.soilAnalysis.a_fileavailable,
         a_al_ox: schema.soilAnalysis.a_al_ox,
         a_c_of: schema.soilAnalysis.a_c_of,
         a_ca_co: schema.soilAnalysis.a_ca_co,
@@ -680,6 +685,7 @@ export async function getCurrentSoilData(
           a_depth_upper: analysis.a_depth_upper,
           a_depth_lower: analysis.a_depth_lower,
           a_source: analysis.a_source,
+          a_fileavailable: analysis.a_fileavailable,
         }
       })
       .filter((item): item is NonNullable<typeof item> => item !== null)
@@ -726,6 +732,7 @@ export async function getCurrentSoilDataForFarm(
         b_id: schema.fieldAcquiring.b_id,
         a_id: schema.soilAnalysis.a_id,
         a_source: schema.soilAnalysis.a_source,
+        a_fileavailable: schema.soilAnalysis.a_fileavailable,
         a_al_ox: schema.soilAnalysis.a_al_ox,
         a_c_of: schema.soilAnalysis.a_c_of,
         a_ca_co: schema.soilAnalysis.a_ca_co,
@@ -805,6 +812,7 @@ export async function getCurrentSoilDataForFarm(
             a_depth_upper: analysis.a_depth_upper,
             a_depth_lower: analysis.a_depth_lower,
             a_source: analysis.a_source,
+            a_fileavailable: analysis.a_fileavailable,
           }
         })
         .filter((item) => item !== null)

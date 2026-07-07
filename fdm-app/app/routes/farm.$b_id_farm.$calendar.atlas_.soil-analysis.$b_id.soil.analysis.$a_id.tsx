@@ -115,14 +115,27 @@ export default function FarmFieldSoilOverviewBlock() {
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">Bekijk de gegevens van deze bodemanalyse</p>
         </div>
-        <Button asChild>
-          <NavLink
-            to={`/farm/${field.b_id_farm}/${loaderData.calendar}/atlas/soil-analysis/${field.b_id}/soil`}
-          >
-            <ArrowLeft />
-            Terug
-          </NavLink>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild>
+            <NavLink
+              to={`/farm/${field.b_id_farm}/${loaderData.calendar}/atlas/soil-analysis/${field.b_id}/soil`}
+            >
+              <ArrowLeft />
+              Terug
+            </NavLink>
+          </Button>
+          {loaderData.soilAnalysis.a_fileavailable && (
+            <Button variant="outline" asChild>
+              <a
+                href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
+                rel="noopener noreferrer"
+                download={`soil-analysis-${loaderData.soilAnalysis.a_id}-${loaderData.soilAnalysis.a_source ?? ""}-${loaderData.soilAnalysis.a_date}.pdf`}
+              >
+                Download Bron
+              </a>
+            </Button>
+          )}
+        </div>
       </div>
       <Separator />
       <SoilAnalysisForm

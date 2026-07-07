@@ -3,6 +3,7 @@ import {
   getFarms,
   getFields,
   getSoilParametersDescription,
+  updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { useState } from "react"
 import {
@@ -31,7 +32,7 @@ import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { buildObjectKey, uploadObject } from "../integrations/gcs.server"
+import { buildObjectKey, deleteObject, uploadObject } from "../integrations/gcs.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -233,8 +234,26 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
             if (file) {
               const key = buildObjectKey("soil-analysis", soilAnalysisId, "pdf")
-              await uploadObject(key, file.stream(), "application/pdf")
+              let uploaded = false
+              try {
+                await uploadObject(key, file.stream(), "application/pdf")
+                uploaded = true
+                await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, {
+                  a_fileavailable: true,
+                })
+              } catch (gcsSaveError) {
+                try {
+                  if (uploaded) {
+                    await deleteObject(key)
+                  }
+                } catch (deleteError) {
+                  handleActionError(deleteError)
+                }
+                handleActionError(gcsSaveError)
+              }
             }
+
+            return soilAnalysisId
           }
         }),
       )

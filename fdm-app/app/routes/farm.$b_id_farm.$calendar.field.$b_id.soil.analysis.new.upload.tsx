@@ -10,12 +10,12 @@ import { fileTypeFromBuffer } from "file-type"
 import { type ActionFunctionArgs, data, type LoaderFunctionArgs } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FormSchema, SoilAnalysisUploadForm } from "~/components/blocks/soil/form-upload"
+import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
 import { extractSoilAnalysisAndBuffer } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { buildObjectKey, uploadObject } from "../integrations/gcs.server"
 
 /**
  * Loader function for the soil analysis upload page.
@@ -204,9 +204,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     const objectKey = buildObjectKey("soil_analyses", soilAnalysisId, "pdf")
 
-    await uploadObject(objectKey, new Uint8Array(buffer), "application/pdf")
-
-    await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, { a_filepath: objectKey })
+    let uploaded = false
+    try {
+      await uploadObject(objectKey, new Uint8Array(buffer), "application/pdf")
+      uploaded = true
+      await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, { a_fileavailable: true })
+    } catch (gcsSaveError) {
+      try {
+        if (uploaded) {
+          await deleteObject(objectKey)
+        }
+      } catch (deleteError) {
+        handleActionError(deleteError)
+      }
+      handleActionError(gcsSaveError)
+    }
 
     captureEvent(session.principal_id, "soil_analysis_pdf_uploaded", {
       b_id_farm,
