@@ -179,7 +179,7 @@ export interface FieldDashboardData {
 
 export type FieldDashboardSectionId =
   | "anchor"
-  | "teelt"
+  | "gewas"
   | "bemesting"
   | "balansen"
   | "bodem"

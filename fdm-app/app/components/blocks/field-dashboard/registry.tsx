@@ -1,3 +1,4 @@
+import type { FieldDashboardSectionDefinition, FieldDashboardTileDefinition } from "./types"
 import {
   FieldDashboardBcsTile,
   FieldDashboardBlnTile,
@@ -14,7 +15,6 @@ import {
   FieldDashboardSoilAnalysesTile,
   FieldDashboardSoilParametersTile,
 } from "./tiles"
-import type { FieldDashboardSectionDefinition, FieldDashboardTileDefinition } from "./types"
 
 export const FIELD_DASHBOARD_SECTIONS: FieldDashboardSectionDefinition[] = [
   {
@@ -24,8 +24,8 @@ export const FIELD_DASHBOARD_SECTIONS: FieldDashboardSectionDefinition[] = [
     showHeading: false,
   },
   {
-    id: "teelt",
-    title: "Teelt",
+    id: "gewas",
+    title: "Gewas",
     gridClassName: "grid gap-6 xl:grid-cols-12",
   },
   {
@@ -85,8 +85,8 @@ export function buildFieldDashboardRegistry({
     },
     {
       id: "cultivation-main",
-      section: "teelt",
-      title: "Huidige teelt",
+      section: "gewas",
+      title: "Hoofdgewas",
       span: "xl:col-span-7",
       permissionGate: "field-write",
       detailHref: "./cultivation",
@@ -95,8 +95,8 @@ export function buildFieldDashboardRegistry({
     },
     {
       id: "cultivation-history",
-      section: "teelt",
-      title: "Teelthistorie",
+      section: "gewas",
+      title: "Gewashistorie",
       span: "xl:col-span-5",
       detailHref: "./cultivation",
       dataKey: "asyncInsights.cultivationHistory",

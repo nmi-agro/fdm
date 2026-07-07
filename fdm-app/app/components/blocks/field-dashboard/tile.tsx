@@ -1,5 +1,5 @@
 import { ArrowRight, CircleAlert, Plus } from "lucide-react"
-import type { ReactNode } from "react"
+import type { ComponentType, ReactNode } from "react"
 import { Link } from "react-router"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
@@ -119,12 +119,14 @@ export function FieldDashboardTileError({
 export function FieldDashboardTileEmpty({
   title,
   detailHref,
+  icon: Icon = Plus,
   emptyTitle,
   emptyDescription,
   action,
 }: {
   title: string
   detailHref?: string
+  icon?: ComponentType<{ className?: string }>
   emptyTitle: string
   emptyDescription: string
   action?: {
@@ -137,7 +139,7 @@ export function FieldDashboardTileEmpty({
       <Empty className="min-h-52 border border-dashed">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <Plus />
+            <Icon />
           </EmptyMedia>
           <EmptyTitle>{emptyTitle}</EmptyTitle>
           <EmptyDescription>{emptyDescription}</EmptyDescription>

@@ -1,44 +1,51 @@
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import maplibregl from "maplibre-gl"
 import {
+  CheckCircle2,
+  ClipboardCheck,
+  Leaf,
   Microscope,
   MoveRight,
   Sparkles,
+  Sprout,
   User,
 } from "lucide-react"
+import maplibregl from "maplibre-gl"
 import { type ReactNode, Suspense, useEffect, useMemo, useRef } from "react"
+import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
 import { Await, Link, useNavigate } from "react-router"
 import { ClientOnly } from "remix-utils/client-only"
-import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
-import { FieldSourceClickable, FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
+import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
+import {
+  FieldSourceClickable,
+  FieldsSourceNotClickable,
+} from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
+import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
+import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { BCS_COLOR_CLASSES, BCS_SCORE_DOT } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
+import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
-import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
-import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { getScoreDotClass } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
-import {
-  type AsyncTileResult,
-  type FieldDashboardCultivationHistoryEntry,
-  type FieldDashboardTileProps,
-} from "./types"
 import {
   FieldDashboardTile,
   FieldDashboardTileEmpty,
   FieldDashboardTileError,
   FieldDashboardTileSkeleton,
 } from "./tile"
+import {
+  type AsyncTileResult,
+  type FieldDashboardCultivationHistoryEntry,
+  type FieldDashboardTileProps,
+} from "./types"
 
 function formatDateLabel(value: Date | string | null | undefined, fallback = "Onbekend") {
   if (!value) return fallback
@@ -118,16 +125,20 @@ export function FieldDashboardMapTile({ dashboard, tile }: FieldDashboardTilePro
       detailLabel="Bekijk in atlas"
       contentClassName="space-y-4"
     >
-      <ClientOnly
-        fallback={<div className="bg-muted/40 h-72 rounded-lg border animate-pulse" />}
-      >
+      <ClientOnly fallback={<div className="bg-muted/40 h-72 animate-pulse rounded-lg border" />}>
         {() => (
-          <Suspense fallback={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}>
-            <Await resolve={dashboard.asyncInsights.fieldCultivationColors} errorElement={
-              <FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />
-            }>
+          <Suspense
+            fallback={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}
+          >
+            <Await
+              resolve={dashboard.asyncInsights.fieldCultivationColors}
+              errorElement={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}
+            >
               {(fieldCroprotationById) => (
-                <FieldDashboardMap dashboard={dashboard} fieldCroprotationById={fieldCroprotationById} />
+                <FieldDashboardMap
+                  dashboard={dashboard}
+                  fieldCroprotationById={fieldCroprotationById}
+                />
               )}
             </Await>
           </Suspense>
@@ -176,10 +187,19 @@ function FieldDashboardMap({
   // Reuse the exact same layer styles as the full-screen atlas fields page: a crop-colored
   // fill, a green "saved fields" outline, and an invisible "fieldsSaved" layer used for
   // hover/click detection (its id is special-cased by FieldsPanelHover to show name + area).
-  const fieldsColorFill = { ...getFieldsStyle("dashboard-fields-fill"), id: "dashboard-fields-fill" }
-  const fieldsSavedOutline = { ...getFieldsStyle("fieldsSavedOutline"), id: "dashboard-fields-outline" }
+  const fieldsColorFill = {
+    ...getFieldsStyle("dashboard-fields-fill"),
+    id: "dashboard-fields-fill",
+  }
+  const fieldsSavedOutline = {
+    ...getFieldsStyle("fieldsSavedOutline"),
+    id: "dashboard-fields-outline",
+  }
   const fieldsSaved = { ...getFieldsStyle("fieldsSaved"), id: "fieldsSaved" }
-  const selectedOutline = { ...getFieldsStyle("fieldsSelectedOutline"), id: "dashboard-selected-outline" }
+  const selectedOutline = {
+    ...getFieldsStyle("fieldsSelectedOutline"),
+    id: "dashboard-selected-outline",
+  }
 
   return (
     <MapGL
@@ -237,7 +257,9 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
       <div className="space-y-6">
         <div>
           <p className="text-xl font-semibold">{dashboard.field.b_name}</p>
-          <p className="text-muted-foreground text-sm">Overzicht van de belangrijkste veldgegevens.</p>
+          <p className="text-muted-foreground text-sm">
+            Overzicht van de belangrijkste perceelsgegevens.
+          </p>
         </div>
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -276,6 +298,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
       <FieldDashboardTileEmpty
         title={tile.title}
         detailHref={tile.detailHref}
+        icon={Sprout}
         emptyTitle="Nog geen gewas voor dit jaar"
         emptyDescription="Registreer een teelt om oogsten, bemesting en bodeminformatie in context te zien."
         action={
@@ -313,7 +336,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
             </p>
           </div>
           <div className="rounded-lg border p-3">
-            <p className="text-muted-foreground text-xs uppercase capitalize">
+            <p className="text-muted-foreground text-xs capitalize uppercase">
               {isSingleHarvest ? harvestTermPlural.replace(/en$/, "") : harvestTermPlural}
             </p>
             <p className="mt-1 text-sm font-medium">
@@ -350,7 +373,8 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
               </div>
             ) : (
               <p className="text-muted-foreground mt-4 text-sm">
-                Nog geen opbrengst of gehaltes vastgelegd voor deze {activeCultivation.harvestTermPlural.replace(/en$/, "")}.
+                Nog geen opbrengst of gehaltes vastgelegd voor deze{" "}
+                {activeCultivation.harvestTermPlural.replace(/en$/, "")}.
               </p>
             )}
           </div>
@@ -370,7 +394,9 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
 
 export function FieldDashboardCultivationHistoryTile({ dashboard, tile }: FieldDashboardTileProps) {
   return (
-    <Suspense fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}>
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
       <Await
         resolve={dashboard.asyncInsights.cultivationHistory}
         errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
@@ -418,8 +444,18 @@ function FieldDashboardCultivationHistoryList({
             <div className="bg-background relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-full transition-all"
-                style={{ backgroundColor: getCultivationColor(entry.b_lu_croprotation), opacity: 0.2 }}
+                style={{
+                  backgroundColor: getCultivationColor(entry.b_lu_croprotation),
+                  opacity: 0.2,
+                }}
               />
+              {index === 0 ? (
+                <span
+                  className="motion-safe:animate-ping-slow absolute h-3 w-3 rounded-full motion-reduce:hidden"
+                  style={{ backgroundColor: getCultivationColor(entry.b_lu_croprotation) }}
+                  aria-hidden="true"
+                />
+              ) : null}
               <div
                 className="absolute h-3 w-3 rounded-full shadow-sm"
                 style={{ backgroundColor: getCultivationColor(entry.b_lu_croprotation) }}
@@ -434,8 +470,11 @@ function FieldDashboardCultivationHistoryList({
                   {entry.source === "nmi" ? "BRP" : "Ingevuld"}
                 </Badge>
               </div>
-              <span className="text-muted-foreground/70 mt-0.5 inline-block text-xs font-bold tabular-nums">
+              <span className="text-muted-foreground/70 mt-0.5 inline-flex items-center gap-1.5 text-xs font-bold tabular-nums">
                 {entry.year}
+                {index === 0 ? (
+                  <span className="text-primary/70 font-semibold normal-case">· huidig</span>
+                ) : null}
               </span>
             </div>
           </div>
@@ -477,7 +516,10 @@ export function FieldDashboardFertilizerApplicationsTile({
         <Separator />
         <div className="space-y-3">
           {dashboard.fertilizer.applications.slice(0, 4).map((application) => (
-            <div key={application.p_app_id} className="flex items-start justify-between gap-3 text-sm">
+            <div
+              key={application.p_app_id}
+              className="flex items-start justify-between gap-3 text-sm"
+            >
               <div className="min-w-0">
                 <p className="truncate font-medium">{application.p_name}</p>
                 <p className="text-muted-foreground">{formatDateLabel(application.date)}</p>
@@ -500,7 +542,9 @@ export function FieldDashboardFertilizerApplicationsTile({
 
 export function FieldDashboardNutrientAdviceTile({ dashboard, tile }: FieldDashboardTileProps) {
   return (
-    <Suspense fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}>
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
       <Await
         resolve={dashboard.asyncInsights.fertilizer}
         errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
@@ -531,7 +575,9 @@ export function FieldDashboardNutrientAdviceTile({ dashboard, tile }: FieldDashb
 
 export function FieldDashboardNormsTile({ dashboard, tile }: FieldDashboardTileProps) {
   return (
-    <Suspense fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}>
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
       <Await
         resolve={dashboard.asyncInsights.fertilizer}
         errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
@@ -562,7 +608,9 @@ export function FieldDashboardNormsTile({ dashboard, tile }: FieldDashboardTileP
 
 export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDashboardTileProps) {
   return (
-    <Suspense fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}>
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
       <Await
         resolve={dashboard.asyncInsights.nitrogenBalance}
         errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
@@ -581,7 +629,14 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                       : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
                   )}
                 >
-                  {data.balance <= data.target ? "Onder streefwaarde " : "Boven streefwaarde"}
+                  {data.balance <= data.target ? (
+                    <>
+                      <CheckCircle2 className="size-3.5" />
+                      Onder streefwaarde
+                    </>
+                  ) : (
+                    "Boven streefwaarde"
+                  )}
                 </span>
               }
             >
@@ -590,16 +645,22 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
                   <p className="text-3xl font-semibold">
                     {Math.round(data.balance)} / {Math.round(data.target)}
                   </p>
-                  <p className="text-muted-foreground text-sm">Overschot / streefwaarde · {data.unit}</p>
+                  <p className="text-muted-foreground text-sm">
+                    Overschot / streefwaarde · {data.unit}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border p-3">
                     <p className="text-muted-foreground text-xs uppercase">Aanvoer</p>
-                    <p className="mt-1 text-sm font-semibold">{formatNumberLabel(data.supply, data.unit)}</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {formatNumberLabel(data.supply, data.unit)}
+                    </p>
                   </div>
                   <div className="rounded-lg border p-3">
                     <p className="text-muted-foreground text-xs uppercase">Afvoer</p>
-                    <p className="mt-1 text-sm font-semibold">{formatNumberLabel(data.removal, data.unit)}</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {formatNumberLabel(data.removal, data.unit)}
+                    </p>
                   </div>
                   <div className="rounded-lg border p-3">
                     <p className="text-muted-foreground text-xs uppercase">Ammoniakemissie</p>
@@ -623,9 +684,14 @@ export function FieldDashboardNitrogenBalanceTile({ dashboard, tile }: FieldDash
   )
 }
 
-export function FieldDashboardOrganicMatterBalanceTile({ dashboard, tile }: FieldDashboardTileProps) {
+export function FieldDashboardOrganicMatterBalanceTile({
+  dashboard,
+  tile,
+}: FieldDashboardTileProps) {
   return (
-    <Suspense fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}>
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
       <Await
         resolve={dashboard.asyncInsights.organicMatterBalance}
         errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
@@ -644,7 +710,14 @@ export function FieldDashboardOrganicMatterBalanceTile({ dashboard, tile }: Fiel
                       : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
                   )}
                 >
-                  {data.balance > 0 ? "Positief" : "Negatief"}
+                  {data.balance > 0 ? (
+                    <>
+                      <CheckCircle2 className="size-3.5" />
+                      Positief
+                    </>
+                  ) : (
+                    "Negatief"
+                  )}
                 </span>
               }
             >
@@ -656,7 +729,9 @@ export function FieldDashboardOrganicMatterBalanceTile({ dashboard, tile }: Fiel
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg border p-3">
                     <p className="text-muted-foreground text-xs uppercase">Aanvoer</p>
-                    <p className="mt-1 text-sm font-semibold">{formatNumberLabel(data.supply, data.unit)}</p>
+                    <p className="mt-1 text-sm font-semibold">
+                      {formatNumberLabel(data.supply, data.unit)}
+                    </p>
                   </div>
                   <div className="rounded-lg border p-3">
                     <p className="text-muted-foreground text-xs uppercase">Afbraak</p>
@@ -680,6 +755,7 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
       <FieldDashboardTileEmpty
         title={tile.title}
         detailHref={tile.detailHref}
+        icon={Microscope}
         emptyTitle="Nog geen bodemanalyse"
         emptyDescription="Voeg een analyse toe om bodemtype, organische stof en pH in één oogopslag te zien."
         action={
@@ -742,6 +818,7 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
       <FieldDashboardTileEmpty
         title={tile.title}
         detailHref={tile.detailHref}
+        icon={Microscope}
         emptyTitle="Nog geen bodemanalyses"
         emptyDescription="Registreer een analyse om meetmomenten en bronnen van de bodemdata te volgen."
       />
@@ -792,10 +869,13 @@ export function FieldDashboardBcsTile({ dashboard, tile }: FieldDashboardTilePro
       <FieldDashboardTileEmpty
         title={tile.title}
         detailHref={tile.detailHref}
+        icon={ClipboardCheck}
         emptyTitle="Nog geen BodemConditieScore"
         emptyDescription="Voeg een visuele bodembeoordeling toe om de conditie van dit perceel te volgen."
         action={
-          dashboard.fieldWritePermission ? { href: tile.detailHref, label: "Meting toevoegen" } : undefined
+          dashboard.fieldWritePermission
+            ? { href: tile.detailHref, label: "Meting toevoegen" }
+            : undefined
         }
       />
     )
@@ -838,7 +918,9 @@ export function FieldDashboardBcsTile({ dashboard, tile }: FieldDashboardTilePro
 
 export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTileProps) {
   return (
-    <Suspense fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}>
+    <Suspense
+      fallback={<FieldDashboardTileSkeleton title={tile.title} detailHref={tile.detailHref} />}
+    >
       <Await
         resolve={dashboard.asyncInsights.bln}
         errorElement={<FieldDashboardTileError title={tile.title} detailHref={tile.detailHref} />}
@@ -875,7 +957,10 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                         ) : (
                           <>
                             <span
-                              className={cn("size-2 rounded-full", getScoreDotClass(aggregation.score))}
+                              className={cn(
+                                "size-2 rounded-full",
+                                getScoreDotClass(aggregation.score),
+                              )}
                             />
                             {aggregation.score}/100
                           </>
@@ -899,10 +984,13 @@ export function FieldDashboardMeasuresTile({ dashboard, tile }: FieldDashboardTi
       <FieldDashboardTileEmpty
         title={tile.title}
         detailHref={tile.detailHref}
+        icon={Leaf}
         emptyTitle="Nog geen maatregelen"
         emptyDescription="Registreer bodemmaatregelen om de voortgang van dit perceel te volgen."
         action={
-          dashboard.fieldWritePermission ? { href: tile.detailHref, label: "Maatregel toevoegen" } : undefined
+          dashboard.fieldWritePermission
+            ? { href: tile.detailHref, label: "Maatregel toevoegen" }
+            : undefined
         }
       />
     )
