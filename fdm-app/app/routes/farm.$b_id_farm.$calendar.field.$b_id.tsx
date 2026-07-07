@@ -161,15 +161,23 @@ export default function FarmFieldIndex() {
     location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}/`
 
   if (location.pathname.includes("fertilizer/manage")) return <Outlet />
+
+  const fieldDashboardHref = `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}`
+  const backAction = isDashboardRoute
+    ? {
+        to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,
+        label: "Terug naar percelen",
+        disabled: false,
+      }
+    : {
+        to: fieldDashboardHref,
+        label: "Terug naar overzicht",
+        disabled: false,
+      }
+
   return (
     <SidebarInset>
-      <Header
-        action={{
-          to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,
-          label: "Terug naar percelen",
-          disabled: false,
-        }}
-      >
+      <Header action={backAction}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderField
           b_id_farm={loaderData.b_id_farm}
