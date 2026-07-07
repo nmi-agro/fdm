@@ -73,7 +73,9 @@ export async function loader({ params, request }: Args) {
     const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
 
     // Message sender's profile pictures are shown
-    const principal_ids = messages.map((msg) => msg.sender_id)
+    const principal_ids = messages
+      .map((msg) => msg.sender_id)
+      .filter((sender_id) => sender_id !== null)
     // Assignees' profile pictures are shown
     principal_ids.push(...ticket.assignees.map((assignee) => assignee.agent_id))
     // Currently logged-in user's profile picture is shown when creating a message
