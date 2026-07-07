@@ -13,6 +13,7 @@ const mockCurrentSoilData: CurrentSoilData = [
     b_sampling_date: null,
     a_depth_upper: 0,
     a_source: null,
+    a_fileavailable: false,
   },
   {
     parameter: "a_nmin_cc",
@@ -22,6 +23,7 @@ const mockCurrentSoilData: CurrentSoilData = [
     b_sampling_date: null,
     a_depth_upper: 0,
     a_source: null,
+    a_fileavailable: false,
   },
   {
     parameter: "a_som_loi",
@@ -31,6 +33,7 @@ const mockCurrentSoilData: CurrentSoilData = [
     b_sampling_date: null,
     a_depth_upper: 0,
     a_source: null,
+    a_fileavailable: false,
   },
 ]
 
