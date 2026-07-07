@@ -35,6 +35,7 @@ async function validatePdfMagicBytes(file: File) {
   if (type?.ext !== "pdf" || type.mime !== "application/pdf") {
     throw new Error(`invalid: Bestand "${file.name}" is geen geldig PDF-bestand.`)
   }
+  return { buffer }
 }
 
 export async function getSoilParameterEstimates(
@@ -200,6 +201,11 @@ const soilParameterEstimatesSchema = z.object({
 })
 
 export async function extractSoilAnalysis(formData: FormData) {
+  const { soilAnalysis } = await extractSoilAnalysisAndBuffer(formData)
+  return soilAnalysis
+}
+
+export async function extractSoilAnalysisAndBuffer(formData: FormData) {
   const nmiApiKey = getNmiApiKey()
 
   if (!nmiApiKey) {
@@ -212,7 +218,7 @@ export async function extractSoilAnalysis(formData: FormData) {
     throw new Error("No file provided in FormData")
   }
 
-  await validatePdfMagicBytes(file)
+  const { buffer } = await validatePdfMagicBytes(file)
 
   const responseApi = await fetch("https://api.nmi-agro.nl/soilreader", {
     method: "POST",
@@ -303,7 +309,7 @@ export async function extractSoilAnalysis(formData: FormData) {
     }
   }
 
-  return soilAnalysis
+  return { buffer, soilAnalysis }
 }
 
 export async function extractBulkSoilAnalyses(formData: FormData) {

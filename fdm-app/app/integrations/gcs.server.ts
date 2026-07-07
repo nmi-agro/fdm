@@ -1,4 +1,4 @@
-import { Storage } from "@google-cloud/storage"
+import { SaveData, Storage } from "@google-cloud/storage"
 
 let _storage: Storage | null = null
 
@@ -49,6 +49,19 @@ function getBucketName(): string {
     throw new Error("GCS_BUCKET_NAME environment variable is not set")
   }
   return bucket
+}
+
+/**
+ * Returns a consistently formatted GCS object key.
+ * Example: buildObjectKey("soil_analyses", a_id, "pdf") → "soil_analyses/{a_id}.pdf"
+ *
+ * @param prefix - The prefix or folder in GCS (e.g. "soil_analyses")
+ * @param id - The unique identifier for the object (e.g. a_id)
+ * @param ext - The file extension (e.g. "pdf", "jpg")
+ * @returns The full GCS object key
+ */
+export function buildObjectKey(prefix: string, id: string, ext: string): string {
+  return `${prefix}/${id}.${ext}`
 }
 
 /**
@@ -175,7 +188,7 @@ export async function deleteObject(objectKey: string): Promise<void> {
  */
 export async function uploadObject(
   objectKey: string,
-  buffer: Buffer,
+  buffer: SaveData,
   contentType: string,
 ): Promise<void> {
   const storage = getStorage()

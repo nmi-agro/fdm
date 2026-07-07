@@ -31,6 +31,7 @@ import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { buildObjectKey, uploadObject } from "../integrations/gcs.server"
 
 export const handle = { hideNavigationProgress: true }
 
@@ -76,6 +77,8 @@ export default function BulkSoilAnalysisUploadPage() {
   const navigation = useNavigation()
   const submit = useSubmit()
 
+  const [files, setFiles] = useState<File[]>([])
+
   const isSaving = navigation.state !== "idle" && navigation.formMethod?.toLowerCase() === "post"
 
   const handleUploadSuccess = (analyses: any[]) => {
@@ -85,16 +88,24 @@ export default function BulkSoilAnalysisUploadPage() {
   }
 
   const handleSave = (
-    matches: { analysisId: string; fieldId: string }[],
+    matches: { analysisId: string; fieldId: string; filename?: string }[],
     updatedAnalyses: ProcessedAnalysis[],
   ) => {
     const formData = new FormData()
     // Filter out "none" selections
     const validMatches = matches.filter((m) => m.fieldId !== "none" && m.fieldId !== "")
+    const validMatchFiles = new Set(
+      validMatches.filter((match) => match.filename).map((match) => match.filename),
+    )
     formData.append("matches", JSON.stringify(validMatches))
     formData.append("analysesData", JSON.stringify(updatedAnalyses))
+    for (const file of files) {
+      if (validMatchFiles.has(file.name.toLowerCase())) {
+        formData.append("soilAnalysisFile", file)
+      }
+    }
 
-    void submit(formData, { method: "post" })
+    void submit(formData, { method: "post", encType: "multipart/form-data" })
   }
 
   return (
@@ -127,7 +138,11 @@ export default function BulkSoilAnalysisUploadPage() {
                 <p className="text-muted-foreground">Opslaan en koppelen...</p>
               </div>
             ) : step === "upload" ? (
-              <BulkSoilAnalysisUploadForm onSuccess={handleUploadSuccess} />
+              <BulkSoilAnalysisUploadForm
+                onSuccess={handleUploadSuccess}
+                files={files}
+                onFilesChange={setFiles}
+              />
             ) : (
               <BulkSoilAnalysisReview
                 analyses={processedAnalyses}
@@ -160,6 +175,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const matches = JSON.parse(matchesRaw)
       const analysesData = JSON.parse(analysesDataRaw)
 
+      const uploadedPdfs = new Map<string, File>()
+      for (const file of formData.getAll("soilAnalysisFile") as File[]) {
+        uploadedPdfs.set(file.name.toLowerCase(), file)
+      }
+
       const results = await Promise.all(
         matches.map(async (match: { analysisId: string; fieldId: string }) => {
           const analysis = analysesData.find((a: any) => a.id === match.analysisId)
@@ -188,16 +208,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
               a_source: _a_source,
               matchedFieldId: _matchedFieldId,
               matchReason: _matchReason,
-              filename: _filename,
               b_name: _b_name,
               b_sampling_date: _b_sampling_date,
               a_depth_upper: _a_depth_upper,
               a_depth_lower: _a_depth_lower,
               data: _data, // Strip raw data
+              filename,
               ...dbAnalysis
             } = analysis
 
-            return addSoilAnalysis(
+            const soilAnalysisId = await addSoilAnalysis(
               fdm,
               session.principal_id,
               null,
@@ -208,6 +228,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
               dbAnalysis,
               depthUpper,
             )
+
+            const file = uploadedPdfs.get(filename)
+
+            if (file) {
+              const key = buildObjectKey("soil-analysis", soilAnalysisId, "pdf")
+              await uploadObject(key, file.stream(), "application/pdf")
+            }
           }
         }),
       )
