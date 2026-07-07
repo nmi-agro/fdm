@@ -171,9 +171,7 @@ export function Ticket({
           <Message
             key={msg.message_id}
             principal={
-              principalLookup.get(msg.sender_id) ??
-              (msg.sender_id === ticket.ticket_id ? emailPrincipal : null) ??
-              null
+              (msg.sender_id ? principalLookup.get(msg.sender_id) : emailPrincipal) ?? null
             }
             senderType={msg.sender_type}
             isInternal={msg.is_internal}

@@ -886,9 +886,7 @@ describe("createTicketFromInboundEmail", () => {
     expect(messages[0].sender_type).toBe("customer")
   })
 
-  test("should fall back to ticket_id as sender_id when no requester_id is given", async ({
-    fdm,
-  }) => {
+  test("should set sender_id to null when no requester_id is given", async ({ fdm }) => {
     const ticket_id = await createTicketFromInboundEmail(fdm, requester_email, "Inbound email body")
 
     const messages = await fdm
@@ -896,7 +894,7 @@ describe("createTicketFromInboundEmail", () => {
       .from(schema.messages)
       .where(eq(schema.messages.ticket_id, ticket_id))
 
-    expect(messages[0].sender_id).toBe(ticket_id)
+    expect(messages[0].sender_id).toBe(null)
   })
 
   test("should derive the subject line from the body", async ({ fdm }) => {
