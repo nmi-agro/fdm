@@ -27,6 +27,13 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 
+/** Parses a date string, returning `undefined` for missing or unparsable input rather than an Invalid Date. */
+function parseValidDate(value: string | null): Date | undefined {
+  if (!value) return undefined
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? undefined : date
+}
+
 // Meta
 export const meta: MetaFunction = () => {
   return [
@@ -164,22 +171,24 @@ export default function FarmFieldsOverviewBlock() {
 
   // Pre-fill (and auto-open) the add-cultivation dialog when a suggestion was accepted
   // elsewhere in the app (dashboard, field list, field detail, nutrient advice overview).
+  // Query params are untrusted input: parse defensively and drop the whole suggestion rather
+  // than seed the form with an Invalid Date if either date fails to parse.
   const suggestedCatalogue = searchParams.get("suggest_b_lu_catalogue")
-  const suggestedStart = searchParams.get("suggest_start")
-  const suggestedEnd = searchParams.get("suggest_end")
+  const suggestedStart = parseValidDate(searchParams.get("suggest_start"))
+  const suggestedEnd = parseValidDate(searchParams.get("suggest_end"))
   const defaultValues =
     suggestedCatalogue && suggestedStart
       ? {
           b_lu_catalogue: suggestedCatalogue,
-          b_lu_start: new Date(suggestedStart),
-          b_lu_end: suggestedEnd ? new Date(suggestedEnd) : undefined,
+          b_lu_start: suggestedStart,
+          b_lu_end: suggestedEnd,
         }
       : undefined
 
   // Strip the suggestion query params once the dialog is closed (submitted or dismissed) so
   // navigating back, refreshing, or sharing this URL doesn't keep reopening it.
   const clearSuggestionParams = () => {
-    if (!suggestedCatalogue && !suggestedStart && !suggestedEnd) return
+    if (!searchParams.has("suggest_b_lu_catalogue") && !searchParams.has("suggest_start")) return
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)

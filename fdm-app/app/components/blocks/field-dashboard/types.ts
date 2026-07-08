@@ -148,7 +148,6 @@ export interface FieldDashboardData {
   selectedFieldGeoJson: FeatureCollection<Geometry, FieldDashboardMapFeatureProperties>
   cultivation: {
     active: FieldDashboardCultivationSummary | null
-    suggestionResult: CultivationSuggestionResult
   }
   fertilizer: {
     applicationCount: number
@@ -174,6 +173,7 @@ export interface FieldDashboardData {
     fertilizer: Promise<FieldDashboardFertilizerAsyncSummary>
     bln: Promise<AsyncTileResult<FieldDashboardBlnSummary>>
     cultivationHistory: Promise<AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>>
+    cultivationSuggestion: Promise<CultivationSuggestionResult>
     fieldCultivationColors: Promise<Record<string, string | null>>
     nitrogenBalance: Promise<AsyncTileResult<FieldDashboardNitrogenBalanceSummary>>
     organicMatterBalance: Promise<AsyncTileResult<FieldDashboardOrganicMatterBalanceSummary>>

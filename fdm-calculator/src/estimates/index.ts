@@ -35,7 +35,7 @@ import { soilParameterEstimatesSchema } from "./schemas"
  * which adds DB-backed caching via `withCalculationCache`.
  *
  * @param input - Centroid coordinates (`a_lat`/`a_lon`) and the NMI API key.
- * @throws {Error} If `nmiApiKey` is not provided, the NMI API request fails, or the response fails validation.
+ * @throws {Error} If `nmiApiKey` is not provided, the NMI API request fails or times out, or the response fails validation.
  */
 export async function requestSoilParameterEstimates({
   a_lat,
@@ -46,25 +46,44 @@ export async function requestSoilParameterEstimates({
     throw new Error("Please provide a NMI API key")
   }
 
-  const responseApi = await fetch(
-    `https://api.nmi-agro.nl/estimates?${new URLSearchParams({
-      a_lat: a_lat.toString(),
-      a_lon: a_lon.toString(),
-    })}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${nmiApiKey}`,
-      },
-    },
-  )
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
 
-  if (!responseApi.ok) {
-    throw new Error("Request to NMI API failed")
+  let result: { data?: unknown }
+  try {
+    const responseApi = await fetch(
+      `https://api.nmi-agro.nl/estimates?${new URLSearchParams({
+        a_lat: a_lat.toString(),
+        a_lon: a_lon.toString(),
+      })}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${nmiApiKey}`,
+        },
+        signal: controller.signal,
+      },
+    )
+
+    if (!responseApi.ok) {
+      throw new Error("Request to NMI API failed")
+    }
+
+    result = await responseApi.json()
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("De aanvraag naar de NMI Estimates API is verlopen (timeout).")
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
   }
 
-  const result = await responseApi.json()
-  const response = result.data
+  if (!result.data || typeof result.data !== "object") {
+    throw new Error("Invalid response from NMI API: missing data")
+  }
+
+  const response = result.data as Record<string, unknown>
   response.a_source = "nl-other-nmi"
   response.a_depth_upper = 0
   response.a_depth_lower = undefined
@@ -79,7 +98,7 @@ export async function requestSoilParameterEstimates({
     throw new Error(`Invalid response from NMI API: ${parsedResponse.error.message}`)
   }
 
-  return response
+  return response as unknown as SoilParameterEstimatesResponse
 }
 
 /**

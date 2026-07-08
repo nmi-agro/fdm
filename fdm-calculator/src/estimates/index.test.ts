@@ -129,10 +129,10 @@ describe("requestSoilParameterEstimates", () => {
     )
   })
 
-  it("should return undefined for the requested year when it is absent from cultivations", async () => {
+  it("should throw an error if the NMI API response has no data", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ data: mockEstimatesData }),
+      json: async () => ({ data: null }),
     } as Response)
 
     const input: SoilParameterEstimatesInput = {
@@ -141,9 +141,26 @@ describe("requestSoilParameterEstimates", () => {
       nmiApiKey: "mock-api-key",
     }
 
-    const result = await requestSoilParameterEstimates(input)
-    const suggestionForFutureYear = result.cultivations.find((c) => c.year === 2099)
+    await expect(requestSoilParameterEstimates(input)).rejects.toThrow(
+      "Invalid response from NMI API: missing data",
+    )
+  })
 
-    expect(suggestionForFutureYear).toBeUndefined()
+  it("should throw a timeout error if the request is aborted", async () => {
+    vi.mocked(fetch).mockImplementationOnce(() => {
+      const abortError = new Error("The operation was aborted")
+      abortError.name = "AbortError"
+      return Promise.reject(abortError)
+    })
+
+    const input: SoilParameterEstimatesInput = {
+      a_lat: 52.4,
+      a_lon: 4.3,
+      nmiApiKey: "mock-api-key",
+    }
+
+    await expect(requestSoilParameterEstimates(input)).rejects.toThrow(
+      "De aanvraag naar de NMI Estimates API is verlopen (timeout).",
+    )
   })
 })

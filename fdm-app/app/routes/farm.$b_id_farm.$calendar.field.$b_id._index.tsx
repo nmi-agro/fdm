@@ -6,7 +6,6 @@ import {
   calculateOrganicMatterBalance,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
-  collectInputForSoilParameterEstimates,
   getNutrientAdvice,
   getSoilParameterEstimates,
 } from "@nmi-agro/fdm-calculator"
@@ -303,9 +302,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const hasDefaultCultivation = !!getDefaultCultivation(cultivations, calendar)
     // "not_configured" doubles as "nothing to show" here when a default cultivation already
     // exists — CultivationSuggestionStatusBanner renders null for that status either way.
-    const cultivationSuggestionResult: CultivationSuggestionResult = hasDefaultCultivation
-      ? { status: "not_configured" }
-      : await getCultivationSuggestionResult(
+    // Deferred (not awaited) so a slow/unavailable NMI lookup never blocks the rest of the
+    // field dashboard — consumed via `dashboard.asyncInsights.cultivationSuggestion` and an
+    // <Await> boundary, same as the other NMI-backed tiles (cultivation history, bln, etc.).
+    const cultivationSuggestionPromise: Promise<CultivationSuggestionResult> = hasDefaultCultivation
+      ? Promise.resolve({ status: "not_configured" })
+      : getCultivationSuggestionResult(
           fdm,
           session.principal_id,
           b_id_farm,
@@ -454,14 +456,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
 
       try {
-        const estimatesInput = await collectInputForSoilParameterEstimates(
-          fdm,
-          session.principal_id,
-          b_id,
-          nmiApiKey,
-        )
+        // `field.b_centroid` was already resolved by the `getField` call above — build the
+        // estimates input directly instead of re-fetching the field via
+        // `collectInputForSoilParameterEstimates` (which would call `getField` again).
+        const [a_lon, a_lat] = field.b_centroid
         const [estimates, cultivationCatalogue] = await Promise.all([
-          getSoilParameterEstimates(fdm, estimatesInput),
+          getSoilParameterEstimates(fdm, { a_lat, a_lon, nmiApiKey }),
           getCultivationCatalogue("brp"),
         ])
         const catalogueMap = new Map(
@@ -791,7 +791,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       selectedFieldGeoJson,
       cultivation: {
         active: cultivationSummary,
-        suggestionResult: cultivationSuggestionResult,
       },
       fertilizer: {
         applicationCount: fertilizerApplications.length,
@@ -844,6 +843,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         fertilizer: fertilizerAsyncPromise,
         bln: blnPromise,
         cultivationHistory: cultivationHistoryPromise,
+        cultivationSuggestion: cultivationSuggestionPromise,
         fieldCultivationColors: fieldCultivationColorsPromise,
         nitrogenBalance: nitrogenBalancePromise,
         organicMatterBalance: organicMatterBalancePromise,

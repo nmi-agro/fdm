@@ -194,7 +194,24 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
 
 export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldDashboardTileProps) {
   const activeCultivation = dashboard.cultivation.active
-  const suggestionResult = dashboard.cultivation.suggestionResult
+
+  // The suggestion lookup calls the NMI API and must never block the rest of this tile (which
+  // renders synchronously) — resolved separately via <Await>, same pattern as the other
+  // NMI-backed tiles (cultivation history, bln, etc.).
+  const suggestionBanner = (
+    <Suspense fallback={null}>
+      <Await resolve={dashboard.asyncInsights.cultivationSuggestion} errorElement={null}>
+        {(result) => (
+          <CultivationSuggestionStatusBanner
+            b_id_farm={dashboard.b_id_farm}
+            calendar={dashboard.calendar}
+            b_id={dashboard.b_id}
+            result={result}
+          />
+        )}
+      </Await>
+    </Suspense>
+  )
 
   if (!activeCultivation) {
     return (
@@ -214,12 +231,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
               : undefined
           }
         />
-        <CultivationSuggestionStatusBanner
-          b_id_farm={dashboard.b_id_farm}
-          calendar={dashboard.calendar}
-          b_id={dashboard.b_id}
-          result={suggestionResult}
-        />
+        {suggestionBanner}
       </div>
     )
   }
@@ -232,12 +244,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
   return (
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-4">
-        <CultivationSuggestionStatusBanner
-          b_id_farm={dashboard.b_id_farm}
-          calendar={dashboard.calendar}
-          b_id={dashboard.b_id}
-          result={suggestionResult}
-        />
+        {suggestionBanner}
         <div>
           <p className="text-xl font-semibold break-words">{activeCultivation.name}</p>
           <p className="text-muted-foreground mt-1 text-sm">
