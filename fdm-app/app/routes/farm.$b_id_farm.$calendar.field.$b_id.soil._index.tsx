@@ -18,6 +18,7 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
+import { SoilAnalysisDownloadDropdown } from "~/components/blocks/soil/download"
 import { SoilAnalysesList } from "~/components/blocks/soil/list"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
@@ -162,12 +163,18 @@ export default function FarmFieldSoilOverviewBlock() {
             <TabsTrigger value="parameters">Parameters</TabsTrigger>
             <TabsTrigger value="analyses">Analyses</TabsTrigger>
           </TabsList>
-          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
-            <NavLink to="./analysis/new">
-              <Plus />
-              Bodemanalyse toevoegen
-            </NavLink>
-          </Button>
+          <div className="flex items-center gap-2">
+            <SoilAnalysisDownloadDropdown
+              soilAnalyses={loaderData.soilAnalyses}
+              soilParameterDescription={loaderData.soilParameterDescription}
+            />
+            <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
+              <NavLink to="./analysis/new">
+                <Plus />
+                Bodemanalyse toevoegen
+              </NavLink>
+            </Button>
+          </div>
         </div>
       </div>
       <Separator />

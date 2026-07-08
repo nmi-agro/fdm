@@ -6,6 +6,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, useFetcher, useLoaderData } from "react-router"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
+import { SoilAnalysisDownloadDropdown } from "~/components/blocks/soil/download"
 import { SoilAnalysesList } from "~/components/blocks/soil/list"
 import { Separator } from "~/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
@@ -117,6 +118,10 @@ export default function FarmFieldSoilOverviewBlock() {
             <TabsTrigger value="parameters">Parameters</TabsTrigger>
             <TabsTrigger value="analyses">Analyses</TabsTrigger>
           </TabsList>
+          <SoilAnalysisDownloadDropdown
+            soilAnalyses={loaderData.soilAnalyses}
+            soilParameterDescription={loaderData.soilParameterDescription}
+          />
         </div>
       </div>
       <Separator className="mt-4 mb-6" />

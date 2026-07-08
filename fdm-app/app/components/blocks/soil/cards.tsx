@@ -1,15 +1,7 @@
 import type { CurrentSoilData, SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale/nl"
-import {
-  Calendar,
-  ExternalLink,
-  FileSpreadsheet,
-  Microscope,
-  Pencil,
-  Sparkles,
-  User,
-} from "lucide-react"
+import { Calendar, ExternalLink, Microscope, Pencil, Sparkles, User } from "lucide-react"
 import { NavLink } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
@@ -82,8 +74,6 @@ function SoilDataCard({
   date,
   source,
   sourceLabel,
-  downloadUrl,
-  downloadFileName,
   canModify,
 }: {
   title: string
@@ -96,8 +86,6 @@ function SoilDataCard({
   date: Date | null
   source: string | null
   sourceLabel: string
-  downloadUrl?: string
-  downloadFileName?: string
   canModify: boolean
 }) {
   const EditIcon = canModify ? Pencil : ExternalLink
@@ -165,17 +153,6 @@ function SoilDataCard({
                     <Microscope className="text-primary/60 h-3 w-3 shrink-0" />
                   )}
                   <span className="max-w-full truncate">{sourceLabel}</span>
-                  {downloadUrl && downloadFileName && (
-                    <a
-                      href={downloadUrl}
-                      download={downloadFileName}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="h-4 w-4 shrink-0"
-                    >
-                      <FileSpreadsheet className="text-muted-foreground h-full w-full text-xs opacity-50 transition-opacity hover:opacity-100" />
-                    </a>
-                  )}
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom">
@@ -184,9 +161,6 @@ function SoilDataCard({
                   : source === "other" || !source
                     ? "Onbekende bron"
                     : `Gemeten door ${sourceLabel}`}
-                {downloadUrl &&
-                  downloadFileName &&
-                  `${sourceLabel.endsWith(".") ? "" : "."} PDF beschikbaar.`}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
