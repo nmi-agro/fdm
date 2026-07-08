@@ -588,9 +588,7 @@ export async function createTicket(
  *
  * `requester_id` is optional: when the sender's email address cannot be matched to a known
  * fdm-authn user, pass `undefined`/omit it and the ticket is stored with `requester_id: null` and
- * `requester_email` set instead. In that case, the first message's `sender_id` falls back to the
- * generated `ticket_id` as a placeholder value (see {@link addMessageFromInboundEmailUnchecked} for the
- * same convention).
+ * `requester_email` set instead. In that case, the first message's `sender_id` is set to null too.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
@@ -630,7 +628,7 @@ export async function createTicketFromInboundEmail(
 
       await tx.insert(schema.messages).values({
         ticket_id: ticket_id,
-        sender_id: requester_id ?? ticket_id,
+        sender_id: requester_id ?? null,
         message_id: message_id,
         sender_type: "customer",
         body: sanitizedBody,
@@ -917,7 +915,7 @@ export async function moveInboundEmailTicketsToPrincipalUnchecked(
       .set({ sender_id: requester_id })
       .where(
         and(
-          eq(schema.messages.ticket_id, schema.messages.sender_id),
+          isNull(schema.messages.sender_id),
           exists(fdm.select().from(sq).where(eq(sq.ticket_id, schema.messages.ticket_id))),
         ),
       )

@@ -1,7 +1,9 @@
 import { ArrowRightLeft, BookOpenText, Gauge, Landmark, MapIcon, Minus, Plus } from "lucide-react"
-import { NavLink, useLocation, useSearchParams } from "react-router"
+import { useState } from "react"
+import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
+import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import {
   SidebarGroup,
@@ -16,9 +18,14 @@ import {
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 
-export function SidebarApps() {
+export function SidebarApps({
+  farms = [],
+}: {
+  farms?: { b_id_farm: string; b_name_farm: string | null }[]
+}) {
   const farmId = useFarmStore((state) => state.farmId)
   const selectedCalendar = useCalendarStore((state) => state.calendar)
+  const navigate = useNavigate()
 
   // Check if the page or its return page contains `farm/create` in url
   const location = useLocation()
@@ -28,6 +35,27 @@ export function SidebarApps() {
     searchParams.get("returnUrl")?.includes("farm/create")
 
   const isFarmOverview = location.pathname === "/farm" || location.pathname === "/farm/"
+
+  const noFarmSelected = !farmId || farmId === "undefined"
+  // Only offer the farm picker when the item is inactive purely because no farm is
+  // selected yet; not during the create-farm wizard or on the farm overview page.
+  const canPickFarm = noFarmSelected && !isCreateFarmWizard
+
+  const [pendingFeature, setPendingFeature] = useState<{
+    label: string
+    resolvePath: (b_id_farm: string) => string
+  } | null>(null)
+
+  const openFarmPicker = (label: string, resolvePath: (b_id_farm: string) => string) => {
+    setPendingFeature({ label, resolvePath })
+  }
+
+  const handleFarmPicked = (b_id_farm: string) => {
+    if (pendingFeature) {
+      void navigate(pendingFeature.resolvePath(b_id_farm))
+    }
+    setPendingFeature(null)
+  }
 
   let atlasLink: string | undefined
   let atlasFieldsLink: string | undefined
@@ -171,6 +199,28 @@ export function SidebarApps() {
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                    ) : !isCreateFarmWizard ? (
+                      <SidebarMenuSubItem>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <SidebarMenuSubButton
+                              className="text-muted-foreground"
+                              onClick={() =>
+                                openFarmPicker(
+                                  "bodemanalyses",
+                                  (b_id_farm) =>
+                                    `/farm/${b_id_farm}/${selectedCalendar}/atlas/soil-analysis`,
+                                )
+                              }
+                            >
+                              <span>Bodemanalyses</span>
+                            </SidebarMenuSubButton>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            Bodemanalyses is beschikbaar nadat u een bedrijf heeft geselecteerd
+                          </TooltipContent>
+                        </Tooltip>
+                      </SidebarMenuSubItem>
                     ) : null}
                     {atlasElevationLink ? (
                       <SidebarMenuSubItem>
@@ -198,6 +248,28 @@ export function SidebarApps() {
                           </NavLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
+                    ) : !isCreateFarmWizard ? (
+                      <SidebarMenuSubItem>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <SidebarMenuSubButton
+                              className="text-muted-foreground"
+                              onClick={() =>
+                                openFarmPicker(
+                                  "indicatoren",
+                                  (b_id_farm) =>
+                                    `/farm/${b_id_farm}/${selectedCalendar}/atlas/indicators`,
+                                )
+                              }
+                            >
+                              <span>Indicatoren</span>
+                            </SidebarMenuSubButton>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            Indicatoren is beschikbaar nadat u een bedrijf heeft geselecteerd
+                          </TooltipContent>
+                        </Tooltip>
+                      </SidebarMenuSubItem>
                     ) : null}
                   </SidebarMenuSub>
                 </CollapsibleContent>
@@ -214,6 +286,26 @@ export function SidebarApps() {
                       <Minus className="ml-auto group-data-[state=closed]/collapsible:hidden" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
+                ) : canPickFarm ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() =>
+                          openFarmPicker(
+                            "de balansen",
+                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/balance/nitrogen`,
+                          )
+                        }
+                      >
+                        <ArrowRightLeft />
+                        <span>Balans</span>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      Selecteer een bedrijf om de balansen te raadplegen
+                    </TooltipContent>
+                  </Tooltip>
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -271,6 +363,26 @@ export function SidebarApps() {
                     <span>Bemestingsadvies</span>
                   </NavLink>
                 </SidebarMenuButton>
+              ) : canPickFarm ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker(
+                          "bemestingsadvies",
+                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/nutrient_advice`,
+                        )
+                      }
+                    >
+                      <BookOpenText />
+                      <span>Bemestingsadvies</span>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    Selecteer een bedrijf voor bemestingsadvies
+                  </TooltipContent>
+                </Tooltip>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -296,6 +408,26 @@ export function SidebarApps() {
                     <span>Gebruiksruimte</span>
                   </NavLink>
                 </SidebarMenuButton>
+              ) : canPickFarm ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker(
+                          "de gebruiksruimte",
+                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/norms`,
+                        )
+                      }
+                    >
+                      <Landmark />
+                      <span>Gebruiksruimte</span>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    Selecteer een bedrijf om de gebruiksruimte te berekenen
+                  </TooltipContent>
+                </Tooltip>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -327,6 +459,26 @@ export function SidebarApps() {
                     <span>Indicatoren</span>
                   </NavLink>
                 </SidebarMenuButton>
+              ) : canPickFarm ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker(
+                          "de indicatoren",
+                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/indicators`,
+                        )
+                      }
+                    >
+                      <Gauge />
+                      <span>Indicatoren</span>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    Selecteer een bedrijf om de indicatoren te bekijken
+                  </TooltipContent>
+                </Tooltip>
               ) : (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -347,6 +499,15 @@ export function SidebarApps() {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+      <FarmPickerDialog
+        open={pendingFeature !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingFeature(null)
+        }}
+        farms={farms}
+        featureLabel={pendingFeature?.label ?? ""}
+        onSelectFarm={handleFarmPicked}
+      />
     </TooltipProvider>
   )
 }

@@ -26,6 +26,7 @@ import {
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
 import { getColumns, type MeasureTableRow } from "~/components/blocks/measures/columns"
@@ -582,65 +583,67 @@ export default function MeasuresFarmIndex() {
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
       />
 
-      <div className="space-y-6 md:px-8 md:pb-8">
-        {/* Summary stats banner */}
-        {stats.totalFields > 0 && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="bg-card rounded-lg border px-4 py-3">
-              <p className="text-muted-foreground text-xs">Actieve maatregelen</p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.totalMeasures}</p>
-            </div>
-            <div className="bg-card rounded-lg border px-4 py-3">
-              <p className="text-muted-foreground text-xs">Percelen met maatregel</p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.fieldsWithMeasures}</p>
-            </div>
+      <FarmContent>
+        <div className="space-y-6 pb-10">
+          {/* Summary stats banner */}
+          {stats.totalFields > 0 && (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="bg-card rounded-lg border px-4 py-3">
+                <p className="text-muted-foreground text-xs">Actieve maatregelen</p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.totalMeasures}</p>
+              </div>
+              <div className="bg-card rounded-lg border px-4 py-3">
+                <p className="text-muted-foreground text-xs">Percelen met maatregel</p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.fieldsWithMeasures}</p>
+              </div>
 
-            <div className="rounded-lg border px-4 py-3">
-              <p className="text-muted-foreground text-xs">Percelen zonder maatregel</p>
-              <p className="mt-0.5 text-2xl font-bold tabular-nums">
-                {stats.fieldsWithoutMeasures}
-              </p>
+              <div className="rounded-lg border px-4 py-3">
+                <p className="text-muted-foreground text-xs">Percelen zonder maatregel</p>
+                <p className="mt-0.5 text-2xl font-bold tabular-nums">
+                  {stats.fieldsWithoutMeasures}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col items-start gap-6 xl:flex-row">
+            <div className="min-w-0 flex-1">{tableOrEmpty}</div>
+
+            <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
+              <Suspense fallback={<div className="bg-muted h-80 animate-pulse rounded-lg" />}>
+                <MeasuresMap
+                  fieldsGeoJSON={fieldsGeoJSON}
+                  selectedFieldGeoJSON={emptyGeoJSON}
+                  mapStyle={mapStyle}
+                  height="480px"
+                  onFieldClick={handleFieldClick}
+                />
+              </Suspense>
             </div>
           </div>
-        )}
 
-        <div className="flex flex-col items-start gap-6 xl:flex-row">
-          <div className="min-w-0 flex-1">{tableOrEmpty}</div>
-
-          <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
-            <Suspense fallback={<div className="bg-muted h-80 animate-pulse rounded-lg" />}>
-              <MeasuresMap
-                fieldsGeoJSON={fieldsGeoJSON}
-                selectedFieldGeoJSON={emptyGeoJSON}
-                mapStyle={mapStyle}
-                height="480px"
-                onFieldClick={handleFieldClick}
-              />
-            </Suspense>
-          </div>
+          {/* Per-field summary table */}
+          {fieldSummaryRows.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
+                  Percelen
+                </h3>
+                <FieldSummaryTable
+                  columns={fieldSummaryColumns}
+                  data={fieldSummaryRows}
+                  onAddMeasure={(selectedIds) => {
+                    setInitialFieldIds(selectedIds)
+                    setAddDialogOpen(true)
+                  }}
+                  canModify={farmWritePermission}
+                />
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Per-field summary table */}
-        {fieldSummaryRows.length > 0 && (
-          <>
-            <Separator />
-            <div>
-              <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
-                Percelen
-              </h3>
-              <FieldSummaryTable
-                columns={fieldSummaryColumns}
-                data={fieldSummaryRows}
-                onAddMeasure={(selectedIds) => {
-                  setInitialFieldIds(selectedIds)
-                  setAddDialogOpen(true)
-                }}
-                canModify={farmWritePermission}
-              />
-            </div>
-          </>
-        )}
-      </div>
+      </FarmContent>
 
       <AddMeasureDialog
         open={addDialogOpen}
