@@ -2,12 +2,10 @@
 import type { FieldGeometry } from "@nmi-agro/fdm-core"
 import type { Feature, Geometry } from "geojson"
 import centroid from "@turf/centroid"
-import { fileTypeFromBuffer } from "file-type"
 import proj4 from "proj4"
 import { z } from "zod"
 import { serverConfig } from "~/lib/config.server"
-
-const MAX_PDF_SIZE = 5 * 1024 * 1024
+import { readAndValidatePdfUpload } from "~/lib/upload-utils"
 
 // Register the projection for RD New (EPSG:28992)
 if (!proj4.defs("EPSG:28992")) {
@@ -24,18 +22,6 @@ export function getNmiApiKey() {
 
   const nmiApiKey = serverConfig.integrations.nmi.api_key
   return nmiApiKey
-}
-
-async function validatePdfMagicBytes(file: File) {
-  if (file.size > MAX_PDF_SIZE) {
-    throw new Error(`invalid: Bestand "${file.name}" is groter dan 5MB.`)
-  }
-  const buffer = await file.arrayBuffer()
-  const type = await fileTypeFromBuffer(Buffer.from(buffer))
-  if (type?.ext !== "pdf" || type.mime !== "application/pdf") {
-    throw new Error(`invalid: Bestand "${file.name}" is geen geldig PDF-bestand.`)
-  }
-  return { buffer }
 }
 
 export async function getSoilParameterEstimates(
@@ -218,7 +204,7 @@ export async function extractSoilAnalysisAndBuffer(formData: FormData) {
     throw new Error("No file provided in FormData")
   }
 
-  const { buffer } = await validatePdfMagicBytes(file)
+  const { buffer } = await readAndValidatePdfUpload(file)
 
   const responseApi = await fetch("https://api.nmi-agro.nl/soilreader", {
     method: "POST",
@@ -327,7 +313,7 @@ export async function extractBulkSoilAnalyses(formData: FormData) {
   }
 
   for (const file of validFiles) {
-    await validatePdfMagicBytes(file)
+    await readAndValidatePdfUpload(file)
   }
 
   const BATCH_SIZE = 10
