@@ -111,7 +111,7 @@ export function AggregationTree({
           depth === 0 && "bg-card border-emerald-500/30 text-base font-bold shadow-sm",
           depth === 1 && "bg-muted/30 border-border hover:bg-muted/50 text-sm font-semibold",
           depth === 2 && "bg-card hover:bg-muted/20 text-xs",
-          isCollapsible && depth > 0 && "cursor-pointer",
+          isCollapsible && "cursor-pointer",
         )}
         style={{
           paddingLeft: `${Math.max(10, depth * 16 + 10)}px`,
@@ -119,19 +119,16 @@ export function AggregationTree({
       >
         <div className="flex min-w-0 items-center gap-2">
           {isCollapsible ? (
-            <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                aria-label={isExpanded ? "Inklappen" : "Uitklappen"}
-                className="hover:bg-muted text-muted-foreground focus:ring-ring shrink-0 rounded p-0.5 focus:ring-2 focus:outline-hidden"
-              >
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-            </CollapsibleTrigger>
+            // Decorative icon only — the whole row is the CollapsibleTrigger.
+            // (Nesting a second trigger here previously fired the toggle twice
+            // on one click, cancelling out and producing dead/rage clicks.)
+            <span aria-hidden className="text-muted-foreground shrink-0 p-0.5">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </span>
           ) : (
             <div className="w-5 shrink-0" />
           )}
@@ -185,8 +182,8 @@ export function AggregationTree({
         onOpenChange={(isOpen) => toggleNode(id, isOpen)}
         className="space-y-1"
       >
-        {/* Node row */}
-        {depth > 0 && isCollapsible ? (
+        {/* Node row — the entire row is the single trigger when collapsible */}
+        {isCollapsible ? (
           <CollapsibleTrigger asChild>{nodeContent}</CollapsibleTrigger>
         ) : (
           nodeContent
