@@ -1,5 +1,5 @@
 {
-  "id": "01036a46-499b-4a35-bed2-99c2f1b78f3b",
+  "id": "331d4634-1bfa-440a-adaf-d919f947138c",
   "prevId": "cb881026-9e17-49e6-9464-7aedaafa8b44",
   "version": "7",
   "dialect": "postgresql",
@@ -188,7 +188,7 @@
           "name": "sender_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "sender_type": {
           "name": "sender_type",

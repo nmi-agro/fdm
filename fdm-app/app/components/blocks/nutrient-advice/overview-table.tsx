@@ -5,7 +5,6 @@ import {
   getSortedRowModel,
   type SortingState,
   useReactTable,
-  type VisibilityState,
 } from "@tanstack/react-table"
 import { ChevronDown, TriangleAlert } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -16,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -32,6 +32,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
+import { useNutrientAdviceOverviewStore } from "~/store/nutrient-advice-overview"
 import type { FieldNutrientRow, UnitMode } from "./overview-types"
 import type { NutrientDescription } from "./types"
 import { buildOverviewColumns, GROUP_LABELS } from "./overview-columns"
@@ -49,21 +50,30 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const [search, setSearch] = useState("")
-  const [unitMode, setUnitMode] = useState<UnitMode>("per_ha")
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const {
+    unitMode,
+    setUnitMode,
+    columnVisibility,
+    setColumnVisibility,
+    hasCustomColumnVisibility,
+    applyDefaultColumnVisibility,
+    resetColumnVisibility,
+  } = useNutrientAdviceOverviewStore()
 
-  // Keep non-primary nutrient columns hidden on mobile and visible on desktop, reacting to
-  // viewport changes after mount (not just the initial render).
+  // By default, hide trace nutrients (sporenelementen) always, and secondary nutrients too on
+  // mobile, only before the user has made an explicit choice (once persisted, respect their
+  // selection).
   useEffect(() => {
-    setColumnVisibility(
-      isMobile
-        ? Object.fromEntries(
-            nutrients.filter((n) => n.type !== "primary").map((n) => [n.symbol, false]),
-          )
-        : {},
+    if (hasCustomColumnVisibility) return
+    applyDefaultColumnVisibility(
+      Object.fromEntries(
+        nutrients
+          .filter((n) => n.type === "trace" || (isMobile && n.type === "secondary"))
+          .map((n) => [n.symbol, false]),
+      ),
     )
-  }, [isMobile, nutrients])
+  }, [isMobile, nutrients, hasCustomColumnVisibility, applyDefaultColumnVisibility])
 
   const columns = useMemo<ColumnDef<FieldNutrientRow>[]>(
     () => buildOverviewColumns(nutrients, unitMode),
@@ -171,6 +181,15 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="max-h-96 overflow-y-auto">
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault()
+                  resetColumnVisibility()
+                }}
+              >
+                Alles tonen
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {(["primary", "secondary", "trace"] as const).map((type, index) => (
                 <div key={type}>
                   {index > 0 ? <DropdownMenuSeparator /> : null}
@@ -182,6 +201,7 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
                         key={column.id}
                         checked={column.getIsVisible()}
                         onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                        onSelect={(event) => event.preventDefault()}
                       >
                         {nutrientsBySymbol.get(column.id)?.name ?? column.id}
                       </DropdownMenuCheckboxItem>

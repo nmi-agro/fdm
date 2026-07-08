@@ -216,13 +216,41 @@ function buildNutrientColumn(
   }
 }
 
+function FieldColumnHeader({ column }: { column: Column<FieldNutrientRow, unknown> }) {
+  const sorted = column.getIsSorted()
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        // Cycles asc -> desc -> clear, so a third click on "Perceel" resets sorting back to the
+        // default (unsorted) row order instead of only ever toggling between asc/desc.
+        if (sorted === "asc") {
+          column.toggleSorting(true)
+        } else if (sorted === "desc") {
+          column.clearSorting()
+        } else {
+          column.toggleSorting(false)
+        }
+      }}
+      className="text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium transition-colors"
+    >
+      Perceel
+      {sorted === "asc" ? (
+        <ArrowUp className="h-3 w-3" />
+      ) : sorted === "desc" ? (
+        <ArrowDown className="h-3 w-3" />
+      ) : null}
+    </button>
+  )
+}
+
 export function buildFieldColumn(): ColumnDef<FieldNutrientRow> {
   return {
     id: "field",
     accessorKey: "b_name",
     enableHiding: false,
     enableSorting: true,
-    header: () => <span>Perceel</span>,
+    header: ({ column }) => <FieldColumnHeader column={column} />,
     cell: ({ row }) => {
       const field = row.original
       const cultivation = field.mainCultivation

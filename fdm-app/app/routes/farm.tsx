@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
-import { getFarm, getFields, checkPermission } from "@nmi-agro/fdm-core"
+import { getFarm, getFarms, getFields, checkPermission } from "@nmi-agro/fdm-core"
 import {
   checkHelpdeskPermission,
   getUnassignedTicketCount,
@@ -61,6 +61,15 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         ? await getFarm(fdm, session.principal_id, params.b_id_farm)
         : undefined
 
+    // Minimal farm list for the sidebar's farm picker dialog; only needed when no farm is selected yet
+    const isFarmSelected = params.b_id_farm && params.b_id_farm !== "undefined"
+    const farmOptions = isFarmSelected
+      ? []
+      : (await getFarms(fdm, session.principal_id)).map((f) => ({
+          b_id_farm: f.b_id_farm,
+          b_name_farm: f.b_name_farm,
+        }))
+
     const farmWritePermission =
       params.b_id_farm && params.b_id_farm !== "undefined"
         ? await checkPermission(
@@ -115,6 +124,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     // Return user information from loader
     return {
       farm: farm,
+      farmOptions: farmOptions,
       user: session.user,
       userName: session.userName,
       initials: session.initials,
@@ -225,11 +235,12 @@ export default function App() {
         <SidebarContent>
           <SidebarFarm
             farm={loaderData.farm}
+            farms={loaderData.farmOptions}
             fields={loaderData.fieldOptions}
             activeFieldId={activeFieldId}
             fieldWritePermission={fieldWritePermission}
           />
-          <SidebarApps />
+          <SidebarApps farms={loaderData.farmOptions} />
           <SidebarLabs />
         </SidebarContent>
         <SidebarSupport
