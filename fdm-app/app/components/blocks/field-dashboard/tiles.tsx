@@ -310,7 +310,10 @@ export function FieldDashboardCultivationHistoryTile({ dashboard, tile }: FieldD
               />
             ) : (
               <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
-                <FieldDashboardCultivationHistoryList history={history} />
+                <FieldDashboardCultivationHistoryList
+                  history={history}
+                  selectedYear={dashboard.calendar}
+                />
               </FieldDashboardTile>
             ),
           )
@@ -322,61 +325,79 @@ export function FieldDashboardCultivationHistoryTile({ dashboard, tile }: FieldD
 
 function FieldDashboardCultivationHistoryList({
   history,
+  selectedYear,
 }: {
   history: FieldDashboardCultivationHistoryEntry[]
+  selectedYear: string
 }) {
+  const selectedYearNumber = Number(selectedYear)
+
   return (
     <div className="max-h-80 overflow-y-auto pr-2">
       <div className="relative pl-1">
-        {history.map((entry, index) => (
-          <div
-            key={`${entry.year}-${entry.b_lu_catalogue}`}
-            className="group relative flex items-start space-x-4 pb-6 last:pb-0"
-          >
-            {/* Timeline line */}
-            {index !== history.length - 1 && (
-              <div className="bg-border group-hover:bg-primary/30 absolute top-10 left-4.75 h-full w-0.5 transition-colors" />
-            )}
+        {history.map((entry, index) => {
+          const isSelectedYear = entry.year === selectedYearNumber
 
-            {/* Dot */}
-            <div className="bg-background relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full transition-all"
-                style={{
-                  backgroundColor: getCultivationColor(entry.b_lu_croprotation),
-                  opacity: 0.2,
-                }}
-              />
-              {index === 0 ? (
-                <span
-                  className="motion-safe:animate-ping-slow absolute h-3 w-3 rounded-full motion-reduce:hidden"
-                  style={{ backgroundColor: getCultivationColor(entry.b_lu_croprotation) }}
-                  aria-hidden="true"
+          return (
+            <div
+              key={`${entry.year}-${entry.b_lu_catalogue}`}
+              className="group relative flex items-start space-x-4 pb-6 last:pb-0"
+            >
+              {/* Timeline line */}
+              {index !== history.length - 1 && (
+                <div className="bg-border group-hover:bg-primary/30 absolute top-10 left-4.75 h-full w-0.5 transition-colors" />
+              )}
+
+              {/* Dot */}
+              <div className="bg-background relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                <div
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-all"
+                  style={{
+                    backgroundColor: getCultivationColor(entry.b_lu_croprotation),
+                    opacity: 0.2,
+                  }}
                 />
-              ) : null}
-              <div
-                className="absolute h-3 w-3 rounded-full shadow-sm"
-                style={{ backgroundColor: getCultivationColor(entry.b_lu_croprotation) }}
-              />
-            </div>
-
-            {/* Content */}
-            <div className="min-w-0 flex-1 py-1">
-              <div className="flex items-center justify-between gap-2">
-                <p className="truncate font-semibold">{entry.b_lu_name ?? "Onbekend gewas"}</p>
-                <Badge variant="secondary" className="shrink-0">
-                  {entry.source === "nmi" ? "BRP" : "Ingevuld"}
-                </Badge>
-              </div>
-              <span className="text-muted-foreground/70 mt-0.5 inline-flex items-center gap-1.5 text-xs font-bold tabular-nums">
-                {entry.year}
-                {index === 0 ? (
-                  <span className="text-primary/70 font-semibold normal-case">· huidig</span>
+                {isSelectedYear ? (
+                  <span
+                    className="motion-safe:animate-ping-slow absolute h-3 w-3 rounded-full motion-reduce:hidden"
+                    style={{ backgroundColor: getCultivationColor(entry.b_lu_croprotation) }}
+                    aria-hidden="true"
+                  />
                 ) : null}
-              </span>
+                <div
+                  className="absolute h-3 w-3 rounded-full shadow-sm"
+                  style={{ backgroundColor: getCultivationColor(entry.b_lu_croprotation) }}
+                />
+              </div>
+
+              {/* Content */}
+              <div className="min-w-0 flex-1 py-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate font-semibold">{entry.b_lu_name ?? "Onbekend gewas"}</p>
+                  <Badge variant="secondary" className="shrink-0">
+                    {entry.source === "nmi" ? "BRP" : "Ingevuld"}
+                  </Badge>
+                </div>
+                <span className="text-muted-foreground/70 mt-0.5 inline-flex items-center gap-1.5 text-xs font-bold tabular-nums">
+                  {entry.year}
+                  {entry.b_lu_rest_oravib && (
+                    <>
+                      <span className="text-muted-foreground/50 text-[10px]">•</span>
+                      <span className="text-[10px] font-bold tracking-widest text-green-600 uppercase dark:text-green-400">
+                        Rustgewas
+                      </span>
+                    </>
+                  )}
+                  {isSelectedYear ? (
+                    <span className="text-primary/70 font-semibold normal-case">
+                      · geselecteerd
+                    </span>
+                  ) : null}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

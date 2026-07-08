@@ -355,7 +355,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_lu_catalogue: cultivationForYear.b_lu_catalogue,
         b_lu_name: cultivationForYear.b_lu_name ?? undefined,
         b_lu_croprotation: cultivationForYear.b_lu_croprotation ?? undefined,
-        b_lu_rest_oravib: false,
+        b_lu_rest_oravib: cultivationForYear.b_lu_rest_oravib ?? false,
       })
     }
 

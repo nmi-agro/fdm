@@ -125,18 +125,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
-    const fieldWritePermission = await checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      "routes/farm.$b_id_farm.$calendar.norms.$b_id",
-      false,
-    )
-
-    // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    const [fieldWritePermission, fields] = await Promise.all([
+      checkPermission(
+        fdm,
+        "field",
+        "write",
+        b_id,
+        session.principal_id,
+        "routes/farm.$b_id_farm.$calendar.norms.$b_id",
+        false,
+      ),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
     const fieldOptions = fields.map((field) => {
       if (!field?.b_id || !field?.b_name) {
         throw new Error("Invalid field data structure")
