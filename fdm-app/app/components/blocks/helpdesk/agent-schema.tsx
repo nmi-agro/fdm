@@ -13,7 +13,6 @@ export const UpdateAgentRoleSchema = z.object({
 })
 
 export const UpdateAgentSchema = z.object({
-  principal_id: z.string().min(1),
   agent_id: z.string().min(1),
   display_name: z.string(),
   availability_status: z.enum(["online", "away", "out-of-office"]),
