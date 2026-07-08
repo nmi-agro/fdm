@@ -136,6 +136,17 @@ export type {
   NutrientAdviceInputs,
   NutrientAdviceResponse,
 } from "./nutrient-advice/types"
+export {
+  collectInputForSoilParameterEstimates,
+} from "./estimates/input"
+export {
+  getSoilParameterEstimates,
+  requestSoilParameterEstimates,
+} from "./estimates/index"
+export type {
+  SoilParameterEstimatesInput,
+  SoilParameterEstimatesResponse,
+} from "./estimates/types"
 export type { NlvSupplyBySomParams } from "./other/nlv-supply-by-som"
 export { calculateNlvSupplyBySom } from "./other/nlv-supply-by-som"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
