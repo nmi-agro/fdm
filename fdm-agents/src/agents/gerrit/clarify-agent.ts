@@ -1,16 +1,12 @@
 import type { FdmType } from "@nmi-agro/fdm-core"
-import {
-    createAgent,
-    dynamicSystemPromptMiddleware,
-    toolStrategy,
-} from "langchain"
+import { createAgent, dynamicSystemPromptMiddleware, toolStrategy } from "langchain"
 import { createDefaultModel } from "../../models/default"
 import { createClarifyAgentTools } from "../../tools/fertilizer-planner"
 import { ClarifyingQuestionsSchema } from "./clarify-schema"
 
 export const CLARIFY_NAME = "Gerrit Verduidelijking"
 export const CLARIFY_DESCRIPTION =
-    "Analyseert een bedrijf en stelt gerichte verduidelijkingsvragen voordat het bemestingsplan wordt opgesteld."
+  "Analyseert een bedrijf en stelt gerichte verduidelijkingsvragen voordat het bemestingsplan wordt opgesteld."
 
 export const CLARIFY_INSTRUCTION = `Je bent Gerrit, een Nederlandse agronoom-expert.
 Je taak is om het bedrijf te analyseren en — als dat nodig is — maximaal 5 gerichte verduidelijkingsvragen te stellen aan de teler of adviseur, vóórdat het bemestingsplan wordt opgesteld.
@@ -59,49 +55,39 @@ Elke vraag moet:
 Geef een JSON-object terug met een "questions"-lijst (0–5 vragen). Geef een lege lijst als er geen wezenlijke ambiguïteiten zijn.
 `
 
-function isAgentGraph(
-    obj: unknown,
-): obj is { stream: Function; streamEvents: Function } {
-    return (
-        obj != null &&
-        typeof (obj as any).stream === "function" &&
-        typeof (obj as any).streamEvents === "function"
-    )
+function isAgentGraph(obj: unknown): obj is { stream: Function; streamEvents: Function } {
+  return (
+    obj != null &&
+    typeof (obj as any).stream === "function" &&
+    typeof (obj as any).streamEvents === "function"
+  )
 }
 
 /**
  * Creates the Gerrit clarification agent.
  * Uses all planner tools except simulateFarmPlan.
  */
-export function createClarifyAgent(
-    fdm: FdmType,
-    apiKey?: string,
-    modelName?: string,
-) {
-    const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
-    if (!resolvedKey) {
-        throw new Error(
-            "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
-        )
-    }
-
-    const systemPromptMiddleware = dynamicSystemPromptMiddleware(
-        () => CLARIFY_INSTRUCTION,
+export function createClarifyAgent(fdm: FdmType, apiKey?: string, modelName?: string) {
+  const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
+  if (!resolvedKey) {
+    throw new Error(
+      "Missing Gemini API key: provide apiKey or set the GEMINI_API_KEY environment variable.",
     )
+  }
 
-    const result: unknown = createAgent({
-        name: CLARIFY_NAME,
-        description: CLARIFY_DESCRIPTION,
-        model: createDefaultModel(resolvedKey, modelName),
-        tools: createClarifyAgentTools(fdm),
-        responseFormat: toolStrategy(ClarifyingQuestionsSchema),
-        middleware: [systemPromptMiddleware],
-    })
+  const systemPromptMiddleware = dynamicSystemPromptMiddleware(() => CLARIFY_INSTRUCTION)
 
-    if (!isAgentGraph(result)) {
-        throw new Error(
-            "createAgent did not return an object with a callable stream method.",
-        )
-    }
-    return result as { stream: Function; streamEvents: Function }
+  const result: unknown = createAgent({
+    name: CLARIFY_NAME,
+    description: CLARIFY_DESCRIPTION,
+    model: createDefaultModel(resolvedKey, modelName),
+    tools: createClarifyAgentTools(fdm),
+    responseFormat: toolStrategy(ClarifyingQuestionsSchema),
+    middleware: [systemPromptMiddleware],
+  })
+
+  if (!isAgentGraph(result)) {
+    throw new Error("createAgent did not return an object with a callable stream method.")
+  }
+  return result as { stream: Function; streamEvents: Function }
 }

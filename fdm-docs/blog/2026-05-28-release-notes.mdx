@@ -16,14 +16,14 @@ A new package, `@nmi-agro/fdm-api`, provides a REST API that exposes `fdm-core` 
 
 **FDM API (`@nmi-agro/fdm-api`)**
 
-*   Authentication and authorization are built in, with support for API keys.
-*   Rate limiting and structured error responses are provided out of the box.
-*   Calculation endpoints expose balances and norms.
-*   Interactive API documentation is included.
+- Authentication and authorization are built in, with support for API keys.
+- Rate limiting and structured error responses are provided out of the box.
+- Calculation endpoints expose balances and norms.
+- Interactive API documentation is included.
 
 **FDM Docs (`@nmi-agro/fdm-docs`)**
 
-*   New documentation pages cover API authentication, authorization, rate limits, error handling, available endpoints, and delete semantics.
+- New documentation pages cover API authentication, authorization, rate limits, error handling, available endpoints, and delete semantics.
 
 ### BLN3 — Soil Quality Indicators
 
@@ -31,61 +31,61 @@ BLN3 (Bodemindicatoren voor Landbouwgronden in Nederland, versie 3) is a system 
 
 **FDM Calculator (`@nmi-agro/fdm-calculator`)**
 
-*   A new BLN3 module calculates indicator scores based on soil analysis data and field properties.
+- A new BLN3 module calculates indicator scores based on soil analysis data and field properties.
 
 **FDM Core (`@nmi-agro/fdm-core`)**
 
-*   New tables and CRUD operations for BLN3 measures have been added.
-*   The `bln` catalogue is now enabled by default on farm creation.
+- New tables and CRUD operations for BLN3 measures have been added.
+- The `bln` catalogue is now enabled by default on farm creation.
 
 **FDM Data (`@nmi-agro/fdm-data`)**
 
-*   A BLN3 measures catalogue module provides the reference data for available measures.
-*   Catalogue dispatching support has been added to serve the correct catalogue variant.
+- A BLN3 measures catalogue module provides the reference data for available measures.
+- Catalogue dispatching support has been added to serve the correct catalogue variant.
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   A new indicators overview page presents BLN3 scores at farm level.
-*   Measures pages allow users to view and adopt soil quality measures.
-*   A field-level indicators page shows per-field BLN3 scores.
+- A new indicators overview page presents BLN3 scores at farm level.
+- Measures pages allow users to view and adopt soil quality measures.
+- A field-level indicators page shows per-field BLN3 scores.
 
 ### Soil Analysis Atlas
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   The Atlas now includes a Soil Analysis view, allowing users to spatially explore soil analysis results across their fields.
-*   Users with read-only access now see an external link button instead of an edit button for soil parameters, making it clearer that they can only view the values.
+- The Atlas now includes a Soil Analysis view, allowing users to spatially explore soil analysis results across their fields.
+- Users with read-only access now see an external link button instead of an edit button for soil parameters, making it clearer that they can only view the values.
 
 ### Gerrit — AI Fertilizer Planning Assistant (Labs)
 
 **FDM Agents (`@nmi-agro/fdm-agents`)**
 
-*   Gerrit has been migrated from the Google Agent Development Kit to LangChain, providing a more flexible agent architecture.
-*   Gemini 3.5 Flash is now available as a model option.
-*   Prompts and tools have been improved to provide more accurate and relevant planning recommendations.
+- Gerrit has been migrated from the Google Agent Development Kit to LangChain, providing a more flexible agent architecture.
+- Gemini 3.5 Flash is now available as a model option.
+- Prompts and tools have been improved to provide more accurate and relevant planning recommendations.
 
 ### Developer Settings and API Key Management
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   A new Developer Settings page allows users to create and manage API keys for programmatic access to FDM.
+- A new Developer Settings page allows users to create and manage API keys for programmatic access to FDM.
 
 **FDM Core (`@nmi-agro/fdm-core`)**
 
-*   API key creation and validation functions have been added.
-*   Audit records now include a `credential_id` field, making it possible to trace which credential was used for a given action.
+- API key creation and validation functions have been added.
+- Audit records now include a `credential_id` field, making it possible to trace which credential was used for a given action.
 
 ### UI and Workflow Improvements
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   The field list on the balances page now shows a cultivation badge for each field, making it easier to identify what is grown where at a glance.
-*   A warning is displayed when nutrient norms cannot be determined for a field, making it clearer why certain calculations may be unavailable.
+- The field list on the balances page now shows a cultivation badge for each field, making it easier to identify what is grown where at a glance.
+- A warning is displayed when nutrient norms cannot be determined for a field, making it clearer why certain calculations may be unavailable.
 
 **FDM Calculator (`@nmi-agro/fdm-calculator`)**
 
-*   The calculator now returns a distinct warning when norms cannot be determined, rather than silently returning empty values.
-*   Unused nutrient norm values have been removed from the codebase.
+- The calculator now returns a distinct warning when norms cannot be determined, rather than silently returning empty values.
+- Unused nutrient norm values have been removed from the codebase.
 
 ### Hotfixes since April 2026
 
@@ -93,11 +93,11 @@ The following patches were published between the April 2026 and May 2026 release
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   `0.30.1` — Fixed shapefile uploads failing with an `EACCES` error in production environments.
+- `0.30.1` — Fixed shapefile uploads failing with an `EACCES` error in production environments.
 
 **FDM Core (`@nmi-agro/fdm-core`)**
 
-*   `0.32.1` — Fixed retrieval of custom fertilizers when the user has farm access through an organization rather than direct ownership.
+- `0.32.1` — Fixed retrieval of custom fertilizers when the user has farm access through an organization rather than direct ownership.
 
 ---
 

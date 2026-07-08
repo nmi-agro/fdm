@@ -1,46 +1,46 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_analyses_harvestable.json",
-    "title": "Harvestable assets in Farm Data Model",
-    "description": "The data model to describe analyses of harvestables",
-    "type": "object",
-    "properties": {
-        "b_id_analysis_harvestable": {
-            "description": "ID of the analysis of harvestables",
-            "type": "string"
-        },
-        "b_id_harvestable": {
-            "description": "ID of the field",
-            "type": "string"
-        },
-        "b_date_sampling_harvestable": {
-            "description": "Date of sampling harvestable",
-            "type": "string"
-        },
-        "b_lu_n_harvestable": {
-            "description": "",
-            "type": "number"
-        },
-        "b_lu_n_residue": {
-            "description": "",
-            "type": "number"
-        },
-        "b_lu_p_harvestable": {
-            "description": "",
-            "type": "number"
-        },
-        "b_lu_p_residue": {
-            "description": "",
-            "type": "number"
-        },
-        "b_lu_k_harvestable": {
-            "description": "",
-            "type": "number"
-        },
-        "b_lu_k_residue": {
-            "description": "",
-            "type": "number"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_analyses_harvestable.json",
+  "title": "Harvestable assets in Farm Data Model",
+  "description": "The data model to describe analyses of harvestables",
+  "type": "object",
+  "properties": {
+    "b_id_analysis_harvestable": {
+      "description": "ID of the analysis of harvestables",
+      "type": "string"
     },
-    "required": ["b_id_analysis_harvestable", "b_id_harvestable"]
+    "b_id_harvestable": {
+      "description": "ID of the field",
+      "type": "string"
+    },
+    "b_date_sampling_harvestable": {
+      "description": "Date of sampling harvestable",
+      "type": "string"
+    },
+    "b_lu_n_harvestable": {
+      "description": "",
+      "type": "number"
+    },
+    "b_lu_n_residue": {
+      "description": "",
+      "type": "number"
+    },
+    "b_lu_p_harvestable": {
+      "description": "",
+      "type": "number"
+    },
+    "b_lu_p_residue": {
+      "description": "",
+      "type": "number"
+    },
+    "b_lu_k_harvestable": {
+      "description": "",
+      "type": "number"
+    },
+    "b_lu_k_residue": {
+      "description": "",
+      "type": "number"
+    }
+  },
+  "required": ["b_id_analysis_harvestable", "b_id_harvestable"]
 }

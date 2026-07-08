@@ -1,67 +1,67 @@
 {
-    "name": "@nmi-agro/fdm-calculator",
-    "private": false,
-    "version": "0.16.0",
-    "description": "Calculate various insights based on the Farm Data Model",
-    "license": "MIT",
-    "homepage": "https://github.com/nmi-agro/fdm",
-    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
-    "author": {
-        "name": "Sven Verweij",
-        "email": "37927107+SvenVw@users.noreply.github.com",
-        "url": "https://github.com/SvenVw"
-    },
-    "type": "module",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
-            }
-        }
-    },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "db:generate": "npx drizzle-kit generate",
-        "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
-        "dotenvx": "dotenvx",
-        "build": "tsdown",
-        "check-types": "tsc --noEmit",
-        "preinstall": "npx only-allow pnpm",
-        "preview": "vite preview",
-        "test": "dotenvx run -- vitest run",
-        "test-coverage": "dotenvx run -- vitest run --coverage",
-        "watch": "dotenvx run -- vitest"
-    },
-    "dependencies": {
-        "@nmi-agro/fdm-core": "workspace:^",
-        "date-fns": "^4.4.0",
-        "decimal.js": "^10.6.0",
-        "geotiff": "^3.0.5",
-        "zod": "^4.4.3"
-    },
-    "devDependencies": {
-        "@dotenvx/dotenvx": "catalog:",
-        "@nmi-agro/fdm-core": "workspace:*",
-        "@types/node": "catalog:",
-        "@vitest/coverage-v8": "catalog:",
-        "postgres": "^3.4.9",
-        "tsdown": "catalog:",
-        "typedoc": "catalog:",
-        "typedoc-plugin-missing-exports": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
-    },
-    "engines": {
-        "node": ">=24.0.0"
-    },
-    "publishConfig": {
-        "registry": "https://npm.pkg.github.com"
-    },
-    "packageManager": "pnpm@11.7.0"
+  "name": "@nmi-agro/fdm-calculator",
+  "version": "0.17.0",
+  "private": false,
+  "description": "Calculate various insights based on the Farm Data Model",
+  "homepage": "https://github.com/nmi-agro/fdm",
+  "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+  "license": "MIT",
+  "author": {
+    "name": "Sven Verweij",
+    "email": "37927107+SvenVw@users.noreply.github.com",
+    "url": "https://github.com/SvenVw"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "db:generate": "npx drizzle-kit generate",
+    "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
+    "dotenvx": "dotenvx",
+    "build": "tsdown",
+    "check-types": "tsc --noEmit",
+    "preinstall": "npx only-allow pnpm",
+    "preview": "vite preview",
+    "test": "dotenvx run -- vitest run",
+    "test-coverage": "dotenvx run -- vitest run --coverage",
+    "watch": "dotenvx run -- vitest"
+  },
+  "dependencies": {
+    "@nmi-agro/fdm-core": "workspace:^",
+    "date-fns": "^4.4.0",
+    "decimal.js": "^10.6.0",
+    "geotiff": "^3.0.5",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "catalog:",
+    "@nmi-agro/fdm-core": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "postgres": "^3.4.9",
+    "tsdown": "catalog:",
+    "typedoc": "catalog:",
+    "typedoc-plugin-missing-exports": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.7.0"
 }

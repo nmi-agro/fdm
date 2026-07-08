@@ -7,17 +7,13 @@ import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { ScrollArea } from "~/components/ui/scroll-area"
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "~/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { DataTableColumnHeader } from "./column-header"
 import { CropResidueCheckbox } from "./crop-residue-checkbox"
 import { DateRangeDisplay } from "./date-range-display"
@@ -28,380 +24,322 @@ import { NameCell } from "./name-cell"
 import { TableVarietySelector } from "./variety-selector"
 
 export type CropRow = {
-    type: "crop"
-    canModify: boolean
-    b_lu_catalogue: string
-    b_lu: string[]
-    b_lu_name: string
-    b_lu_eom_residue: number | null
-    b_lu_variety_options: { label: string; value: string }[] | null
-    b_lu_croprotation: string
-    b_lu_harvestable: "once" | "multiple" | "none"
-    calendar: string
-    fields: FieldRow[]
+  type: "crop"
+  canModify: boolean
+  b_lu_catalogue: string
+  b_lu: string[]
+  b_lu_name: string
+  b_lu_eom_residue: number | null
+  b_lu_variety_options: { label: string; value: string }[] | null
+  b_lu_croprotation: string
+  b_lu_harvestable: "once" | "multiple" | "none"
+  calendar: string
+  fields: FieldRow[]
 }
 
 export type FieldRow = {
-    type: "field"
-    canModify: boolean
-    b_id: string
-    b_name: string
-    b_area: number
-    b_bufferstrip: boolean
-    a_som_loi: string | number
-    b_soiltype_agr: string | number
-    m_cropresidue: "all" | "some" | "none"
-    b_lu_eom_residue: number | null
-    m_cropresidue_ending: [Date, boolean][]
-    b_lu_variety: [string, number][]
-    b_lu_catalogue: string
-    b_lu_croprotation: string
-    harvests: {
-        b_lu: string
-        b_id_harvesting: string
-        b_lu_harvest_date: Date | null
-    }[]
-    b_lu_harvestable: "once" | "multiple" | "none"
-    calendar: string
-    b_lu_start: Date[]
-    b_lu_end: Date[]
-    fertilizerApplications: {
-        p_name_nl: string | null
-        p_id: string
-    }[]
-    fertilizers: {
-        p_name_nl: string | null
-        p_id: string
-        p_type: string | null
-    }[]
-    fields?: undefined
+  type: "field"
+  canModify: boolean
+  b_id: string
+  b_name: string
+  b_area: number
+  b_bufferstrip: boolean
+  a_som_loi: string | number
+  b_soiltype_agr: string | number
+  m_cropresidue: "all" | "some" | "none"
+  b_lu_eom_residue: number | null
+  m_cropresidue_ending: [Date, boolean][]
+  b_lu_variety: [string, number][]
+  b_lu_catalogue: string
+  b_lu_croprotation: string
+  harvests: {
+    b_lu: string
+    b_id_harvesting: string
+    b_lu_harvest_date: Date | null
+  }[]
+  b_lu_harvestable: "once" | "multiple" | "none"
+  calendar: string
+  b_lu_start: Date[]
+  b_lu_end: Date[]
+  fertilizerApplications: {
+    p_name_nl: string | null
+    p_id: string
+  }[]
+  fertilizers: {
+    p_name_nl: string | null
+    p_id: string
+    p_type: string | null
+  }[]
+  fields?: undefined
 }
 
 export type RotationExtended = CropRow | FieldRow
 
 export const columns: ColumnDef<RotationExtended>[] = [
-    {
-        id: "Children",
-        enableHiding: false,
-        cell: ({ row }) => {
-            return row.getCanExpand() ? (
-                <button
-                    type="button"
-                    onClick={row.getToggleExpandedHandler()}
-                    style={{ cursor: "pointer" }}
+  {
+    id: "Children",
+    enableHiding: false,
+    cell: ({ row }) => {
+      return row.getCanExpand() ? (
+        <button
+          type="button"
+          onClick={row.getToggleExpandedHandler()}
+          style={{ cursor: "pointer" }}
+        >
+          <ChevronRight
+            className={cn(
+              "text-muted-foreground transition-transform duration-300",
+              row.getIsExpanded() ? "rotate-90" : "transform-none",
+            )}
+          />
+        </button>
+      ) : (
+        ""
+      )
+    },
+  },
+  {
+    id: "select",
+    header: ({ table }) => (
+      <div className="pe-4">
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Selecteer alle rijen"
+        />
+      </div>
+    ),
+    cell: ({ row }) => (
+      <div className={cn(row.original.type === "field" ? "ps-4" : "pe-4")}>
+        <Checkbox
+          checked={row.getIsSelected() ? true : row.getIsSomeSelected() ? "indeterminate" : false}
+          onCheckedChange={(value) => {
+            row.toggleSelected(!!value)
+          }}
+          aria-label="Selecteer deze rij"
+          className="text-muted-foreground"
+        />
+      </div>
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    id: "name",
+    accessorFn: (row) => (row.type === "crop" ? row.b_lu_name : row.b_name),
+    enableSorting: true,
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Gewas" />
+    },
+    cell: (context) => <NameCell {...context} />,
+  },
+  {
+    accessorKey: "b_lu_start",
+    enableSorting: true,
+    sortingFn: "datetime",
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Zaaidatum" />
+    },
+    enableHiding: true, // Enable hiding for mobile
+    cell: ({ cell, row }) => {
+      const dates =
+        row.original.type === "field"
+          ? row.original.b_lu_start
+          : (row.subRows ?? [])
+              .flatMap((fieldRow) => (fieldRow.original as FieldRow).b_lu_start)
+              .sort((d1, d2) => d1.getTime() - d2.getTime())
+      return !row.original.canModify ? (
+        <DateRangeDisplay range={dates} emptyContent="Geen" />
+      ) : (
+        <TableDateSelector name="b_lu_start" row={row} cellId={cell.id} required={true} />
+      )
+    },
+  },
+  {
+    accessorKey: "b_lu_end",
+    enableSorting: true,
+    sortingFn: "datetime",
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Einddatum" />
+    },
+    enableHiding: true, // Enable hiding for mobile
+    cell: ({ cell, row }) => {
+      const dates =
+        row.original.type === "field"
+          ? row.original.b_lu_end
+          : (row.subRows ?? [])
+              .flatMap((fieldRow) => (fieldRow.original as FieldRow).b_lu_end)
+              .sort((d1, d2) => d1.getTime() - d2.getTime())
+      if (!row.original.canModify) {
+        return <DateRangeDisplay range={dates} emptyContent="Geen" />
+      }
+      const cultivation = (row.getParentRow() ?? row).original as CropRow
+      const tooltipMessageNumHarvests =
+        cultivation.b_lu_harvestable === "multiple"
+          ? 0
+          : (row.original.type === "crop" ? (row.subRows ?? []) : [row]).reduce(
+              (sum, fieldRow) => sum + (fieldRow.original as FieldRow).harvests.length,
+              0,
+            )
+      return cultivation.b_lu_harvestable !== "multiple" ? (
+        <span className="whitespace-nowrap">
+          <Tooltip>
+            <TooltipTrigger>
+              <DateRangeDisplay range={dates} emptyContent="Geen" />
+            </TooltipTrigger>
+            <TooltipContent>
+              {tooltipMessageNumHarvests > 1
+                ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation, true)} bijwerken.`
+                : tooltipMessageNumHarvests === 1
+                  ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation)} bijwerken.`
+                  : `U zou in plaats daarvan een ${getHarvestTerm(cultivation.b_lu_croprotation)} moeten toevoegen.`}
+            </TooltipContent>
+          </Tooltip>
+        </span>
+      ) : (
+        <TableDateSelector name="b_lu_end" row={row} cellId={cell.id} required={false} />
+      )
+    },
+  },
+  {
+    accessorKey: "b_harvest_date",
+    enableSorting: false,
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Oogst/Maaidata" />
+    },
+    enableHiding: true, // Enable hiding for mobile
+    cell: ({ row }) => {
+      return <HarvestDatesDisplay row={row} />
+    },
+  },
+  {
+    accessorKey: "b_lu_variety",
+    enableSorting: false,
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Variëteit" />
+    },
+    enableHiding: true, // Enable hiding for mobile
+    cell: ({ cell, row }) => (
+      <TableVarietySelector
+        name="b_lu_variety"
+        row={row}
+        cellId={cell.id}
+        canModify={row.original.canModify}
+      />
+    ),
+  },
+  {
+    accessorKey: "m_cropresidue",
+    enableSorting: false,
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Gewasresten" />
+    },
+    enableHiding: true, // Enable hiding for mobile
+    cell: (props) =>
+      props.row.original.b_lu_croprotation === "cereal" && <CropResidueCheckbox {...props} />,
+  },
+  {
+    accessorKey: "fertilizers",
+    enableSorting: false,
+    enableHiding: true, // Enable hiding for mobile
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Bemesting met:" />
+    },
+    cell: ({ row }) => {
+      return <FertilizerDisplay row={row} />
+    },
+  },
+  {
+    accessorKey: "b_name",
+    enableSorting: true,
+    sortingFn: (rowA, rowB, _columnId) => {
+      const fieldA = rowA.original.fields?.length ?? 0
+      const fieldB = rowB.original.fields?.length ?? 0
+      return fieldA - fieldB
+    },
+    enableHiding: true, // Enable hiding for mobile
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Percelen" />
+    },
+    cell: ({ row }) => {
+      const cultivation = row.original
+
+      const fieldsDisplay = React.useMemo(() => {
+        if (cultivation.type === "field") return null
+        const fieldsSorted = (row.subRows ?? [])
+          .map((row) => row.original as FieldRow)
+          .sort((a, b) => a.b_name.localeCompare(b.b_name))
+        return (
+          cultivation.type === "crop" && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost">
+                  <p className="text-muted-foreground">
+                    {fieldsSorted.length === 1 ? "1 perceel" : `${fieldsSorted.length} percelen`}
+                  </p>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <ScrollArea
+                  className={fieldsSorted.length >= 8 ? "h-72 w-48 overflow-y-auto" : "w-48"}
                 >
-                    <ChevronRight
-                        className={cn(
-                            "transition-transform duration-300 text-muted-foreground",
-                            row.getIsExpanded()
-                                ? "rotate-90"
-                                : "transform-none",
-                        )}
-                    />
-                </button>
-            ) : (
-                ""
-            )
-        },
-    },
-    {
-        id: "select",
-        header: ({ table }) => (
-            <div className="pe-4">
-                <Checkbox
-                    checked={
-                        table.getIsAllPageRowsSelected() ||
-                        (table.getIsSomePageRowsSelected() && "indeterminate")
-                    }
-                    onCheckedChange={(value) =>
-                        table.toggleAllPageRowsSelected(!!value)
-                    }
-                    aria-label="Selecteer alle rijen"
-                />
-            </div>
-        ),
-        cell: ({ row }) => (
-            <div
-                className={cn(row.original.type === "field" ? "ps-4" : "pe-4")}
-            >
-                <Checkbox
-                    checked={
-                        row.getIsSelected()
-                            ? true
-                            : row.getIsSomeSelected()
-                              ? "indeterminate"
-                              : false
-                    }
-                    onCheckedChange={(value) => {
-                        row.toggleSelected(!!value)
-                    }}
-                    aria-label="Selecteer deze rij"
-                    className="text-muted-foreground"
-                />
-            </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
-    },
-    {
-        id: "name",
-        accessorFn: (row) => (row.type === "crop" ? row.b_lu_name : row.b_name),
-        enableSorting: true,
-        header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Gewas" />
-        },
-        cell: (context) => <NameCell {...context} />,
-    },
-    {
-        accessorKey: "b_lu_start",
-        enableSorting: true,
-        sortingFn: "datetime",
-        header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Zaaidatum" />
-        },
-        enableHiding: true, // Enable hiding for mobile
-        cell: ({ cell, row }) => {
-            const dates =
-                row.original.type === "field"
-                    ? row.original.b_lu_start
-                    : (row.subRows ?? [])
-                          .flatMap(
-                              (fieldRow) =>
-                                  (fieldRow.original as FieldRow).b_lu_start,
-                          )
-                          .sort((d1, d2) => d1.getTime() - d2.getTime())
-            return !row.original.canModify ? (
-                <DateRangeDisplay range={dates} emptyContent="Geen" />
-            ) : (
-                <TableDateSelector
-                    name="b_lu_start"
-                    row={row}
-                    cellId={cell.id}
-                    required={true}
-                />
-            )
-        },
-    },
-    {
-        accessorKey: "b_lu_end",
-        enableSorting: true,
-        sortingFn: "datetime",
-        header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Einddatum" />
-        },
-        enableHiding: true, // Enable hiding for mobile
-        cell: ({ cell, row }) => {
-            const dates =
-                row.original.type === "field"
-                    ? row.original.b_lu_end
-                    : (row.subRows ?? [])
-                          .flatMap(
-                              (fieldRow) =>
-                                  (fieldRow.original as FieldRow).b_lu_end,
-                          )
-                          .sort((d1, d2) => d1.getTime() - d2.getTime())
-            if (!row.original.canModify) {
-                return <DateRangeDisplay range={dates} emptyContent="Geen" />
-            }
-            const cultivation = (row.getParentRow() ?? row).original as CropRow
-            const tooltipMessageNumHarvests =
-                cultivation.b_lu_harvestable === "multiple"
-                    ? 0
-                    : (row.original.type === "crop"
-                          ? (row.subRows ?? [])
-                          : [row]
-                      ).reduce(
-                          (sum, fieldRow) =>
-                              sum +
-                              (fieldRow.original as FieldRow).harvests.length,
-                          0,
-                      )
-            return cultivation.b_lu_harvestable !== "multiple" ? (
-                <span className="whitespace-nowrap">
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <DateRangeDisplay
-                                range={dates}
-                                emptyContent="Geen"
-                            />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {tooltipMessageNumHarvests > 1
-                                ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation, true)} bijwerken.`
-                                : tooltipMessageNumHarvests === 1
-                                  ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation)} bijwerken.`
-                                  : `U zou in plaats daarvan een ${getHarvestTerm(cultivation.b_lu_croprotation)} moeten toevoegen.`}
-                        </TooltipContent>
-                    </Tooltip>
-                </span>
-            ) : (
-                <TableDateSelector
-                    name="b_lu_end"
-                    row={row}
-                    cellId={cell.id}
-                    required={false}
-                />
-            )
-        },
-    },
-    {
-        accessorKey: "b_harvest_date",
-        enableSorting: false,
-        header: ({ column }) => {
-            return (
-                <DataTableColumnHeader column={column} title="Oogst/Maaidata" />
-            )
-        },
-        enableHiding: true, // Enable hiding for mobile
-        cell: ({ row }) => {
-            return <HarvestDatesDisplay row={row} />
-        },
-    },
-    {
-        accessorKey: "b_lu_variety",
-        enableSorting: false,
-        header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Variëteit" />
-        },
-        enableHiding: true, // Enable hiding for mobile
-        cell: ({ cell, row }) => (
-            <TableVarietySelector
-                name="b_lu_variety"
-                row={row}
-                cellId={cell.id}
-                canModify={row.original.canModify}
-            />
-        ),
-    },
-    {
-        accessorKey: "m_cropresidue",
-        enableSorting: false,
-        header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Gewasresten" />
-        },
-        enableHiding: true, // Enable hiding for mobile
-        cell: (props) =>
-            props.row.original.b_lu_croprotation === "cereal" && (
-                <CropResidueCheckbox {...props} />
-            ),
-    },
-    {
-        accessorKey: "fertilizers",
-        enableSorting: false,
-        enableHiding: true, // Enable hiding for mobile
-        header: ({ column }) => {
-            return (
-                <DataTableColumnHeader column={column} title="Bemesting met:" />
-            )
-        },
-        cell: ({ row }) => {
-            return <FertilizerDisplay row={row} />
-        },
-    },
-    {
-        accessorKey: "b_name",
-        enableSorting: true,
-        sortingFn: (rowA, rowB, _columnId) => {
-            const fieldA = rowA.original.fields?.length ?? 0
-            const fieldB = rowB.original.fields?.length ?? 0
-            return fieldA - fieldB
-        },
-        enableHiding: true, // Enable hiding for mobile
-        header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Percelen" />
-        },
-        cell: ({ row }) => {
-            const cultivation = row.original
+                  <div className="grid grid-cols-1 gap-2">
+                    {fieldsSorted.map((field) => (
+                      <NavLink
+                        to={`../${cultivation.calendar}/field/${field.b_id}`}
+                        key={`${field.b_id}`}
+                      >
+                        <DropdownMenuItem>{field.b_name}</DropdownMenuItem>
+                      </NavLink>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        )
+      }, [cultivation.type, cultivation.calendar, row.subRows])
 
-            const fieldsDisplay = React.useMemo(() => {
-                if (cultivation.type === "field") return null
-                const fieldsSorted = (row.subRows ?? [])
-                    .map((row) => row.original as FieldRow)
-                    .sort((a, b) => a.b_name.localeCompare(b.b_name))
-                return (
-                    cultivation.type === "crop" && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost">
-                                    <p className="text-muted-foreground">
-                                        {fieldsSorted.length === 1
-                                            ? "1 perceel"
-                                            : `${fieldsSorted.length} percelen`}
-                                    </p>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <ScrollArea
-                                    className={
-                                        fieldsSorted.length >= 8
-                                            ? "h-72 overflow-y-auto w-48"
-                                            : "w-48"
-                                    }
-                                >
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {fieldsSorted.map((field) => (
-                                            <NavLink
-                                                to={`../${cultivation.calendar}/field/${field.b_id}`}
-                                                key={`${field.b_id}`}
-                                            >
-                                                <DropdownMenuItem>
-                                                    {field.b_name}
-                                                </DropdownMenuItem>
-                                            </NavLink>
-                                        ))}
-                                    </div>
-                                </ScrollArea>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )
-                )
-            }, [cultivation.type, cultivation.calendar, row.subRows])
-
-            return fieldsDisplay
-        },
+      return fieldsDisplay
     },
-    {
-        accessorKey: "b_area",
-        enableSorting: true,
-        sortingFn: (rowA, rowB, _columnId) => {
-            const areaA =
-                rowA.original.type === "field"
-                    ? rowA.original.b_area
-                    : rowA.original.fields.reduce(
-                          (acc, field) => acc + field.b_area,
-                          0,
-                      )
-            const areaB =
-                rowB.original.type === "field"
-                    ? rowB.original.b_area
-                    : rowB.original.fields.reduce(
-                          (acc, field) => acc + field.b_area,
-                          0,
-                      )
-            return areaA - areaB
-        },
-        header: ({ column }) => {
-            return <DataTableColumnHeader column={column} title="Oppervlakte" />
-        },
-        enableHiding: true, // Enable hiding for mobile
-        cell: ({ row }) => {
-            const formattedArea = React.useMemo(() => {
-                // There will always be some field rows below the crop row
-                // Otherwise, the crop row wouldn't be displayed altogether
-                const b_area =
-                    row.original.type === "field"
-                        ? (row.original.b_area ?? 0)
-                        : (row.subRows ?? []).reduce(
-                              (total, fieldRow) =>
-                                  total +
-                                  (fieldRow.original as FieldRow).b_area,
-                              0,
-                          )
-
-                return b_area < 0.1 ? "< 0.1 ha" : `${b_area.toFixed(1)} ha`
-            }, [row.original, row.subRows])
-
-            return <p className="text-muted-foreground">{formattedArea}</p>
-        },
+  },
+  {
+    accessorKey: "b_area",
+    enableSorting: true,
+    sortingFn: (rowA, rowB, _columnId) => {
+      const areaA =
+        rowA.original.type === "field"
+          ? rowA.original.b_area
+          : rowA.original.fields.reduce((acc, field) => acc + field.b_area, 0)
+      const areaB =
+        rowB.original.type === "field"
+          ? rowB.original.b_area
+          : rowB.original.fields.reduce((acc, field) => acc + field.b_area, 0)
+      return areaA - areaB
     },
+    header: ({ column }) => {
+      return <DataTableColumnHeader column={column} title="Oppervlakte" />
+    },
+    enableHiding: true, // Enable hiding for mobile
+    cell: ({ row }) => {
+      const formattedArea = React.useMemo(() => {
+        // There will always be some field rows below the crop row
+        // Otherwise, the crop row wouldn't be displayed altogether
+        const b_area =
+          row.original.type === "field"
+            ? (row.original.b_area ?? 0)
+            : (row.subRows ?? []).reduce(
+                (total, fieldRow) => total + (fieldRow.original as FieldRow).b_area,
+                0,
+              )
+
+        return b_area < 0.1 ? "< 0.1 ha" : `${b_area.toFixed(1)} ha`
+      }, [row.original, row.subRows])
+
+      return <p className="text-muted-foreground">{formattedArea}</p>
+    },
+  },
 ]

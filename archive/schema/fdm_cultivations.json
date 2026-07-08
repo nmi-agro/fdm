@@ -1,18 +1,18 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_cultivations.json",
-    "title": "Cultivation assets in Farm Data Model",
-    "description": "The data model to describe cultivations and connect sowing with harvesting or terminating",
-    "type": "object",
-    "properties": {
-        "b_id_cultivation": {
-            "description": "ID of the cultivation",
-            "type": "string"
-        },
-        "b_id_sowing": {
-            "description": "ID of the sowing event",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_cultivations.json",
+  "title": "Cultivation assets in Farm Data Model",
+  "description": "The data model to describe cultivations and connect sowing with harvesting or terminating",
+  "type": "object",
+  "properties": {
+    "b_id_cultivation": {
+      "description": "ID of the cultivation",
+      "type": "string"
     },
-    "required": ["b_id_cultivation", "b_id_sowing"]
+    "b_id_sowing": {
+      "description": "ID of the sowing event",
+      "type": "string"
+    }
+  },
+  "required": ["b_id_cultivation", "b_id_sowing"]
 }

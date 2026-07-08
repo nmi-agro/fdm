@@ -1,14 +1,15 @@
+/* eslint-disable typescript/restrict-template-expressions -- Number, Decimal, and string union literals are intentionally formatted in template strings and serialize safely. */
 import type { FdmType, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
 import {
-    getCultivations,
-    getCultivationsForFarm,
-    getFertilizerApplications,
-    getFertilizerApplicationsForFarm,
-    getFertilizers,
-    getField,
-    getFields,
-    getGrazingIntention,
-    isOrganicCertificationValid,
+  getCultivations,
+  getCultivationsForFarm,
+  getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
+  getFertilizers,
+  getField,
+  getFields,
+  getGrazingIntention,
+  isOrganicCertificationValid,
 } from "@nmi-agro/fdm-core"
 import type { NL2026NormsFillingInput } from "./types"
 
@@ -27,77 +28,60 @@ import type { NL2026NormsFillingInput } from "./types"
  * @throws {Error} Throws an error if the specified field cannot be found.
  */
 export async function collectNL2026InputForFertilizerApplicationFilling(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id: string,
-    fosfaatgebruiksnorm: number,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: string,
+  fosfaatgebruiksnorm: number,
 ): Promise<NL2026NormsFillingInput> {
-    // Define the calendar year for the norms calculation.
-    const year = 2026
-    // Define the timeframe for data collection for the current year.
-    const startOfYear = new Date(year, 0, 1) // January 1st of the specified year
-    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999) // December 31st of the specified year, including December 31st
-    const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
+  // Define the calendar year for the norms calculation.
+  const year = 2026
+  // Define the timeframe for data collection for the current year.
+  const startOfYear = new Date(year, 0, 1) // January 1st of the specified year
+  const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999) // December 31st of the specified year, including December 31st
+  const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
 
-    // 1. Retrieve field details using the field ID.
-    // This is crucial for obtaining the farm ID and the field's geographical centroid.
-    const field = await getField(fdm, principal_id, b_id)
-    if (!field) {
-        throw new Error(
-            `Field with id ${b_id} not found for principal ${principal_id}`,
-        )
-    }
-    const b_id_farm = field.b_id_farm
-    const b_centroid = field.b_centroid
+  // 1. Retrieve field details using the field ID.
+  // This is crucial for obtaining the farm ID and the field's geographical centroid.
+  const field = await getField(fdm, principal_id, b_id)
+  if (!field) {
+    throw new Error(`Field with id ${b_id} not found for principal ${principal_id}`)
+  }
+  const b_id_farm = field.b_id_farm
+  const b_centroid = field.b_centroid
 
-    // 2. Retrieve the grazing intention status for the farm for the specified year.
-    // This indicates whether grazing is intended on the farm, affecting certain norm calculations.
-    const has_grazing_intention = await getGrazingIntention(
-        fdm,
-        principal_id,
-        b_id_farm,
-        year,
-    )
+  // 2. Retrieve the grazing intention status for the farm for the specified year.
+  // This indicates whether grazing is intended on the farm, affecting certain norm calculations.
+  const has_grazing_intention = await getGrazingIntention(fdm, principal_id, b_id_farm, year)
 
-    // 3. Check the organic certification status for the farm.
-    // This is relevant for specific organic-rich fertilizer regulations.
-    // The date is set to mid-year to ensure it falls within the certification period if applicable.
-    const has_organic_certification = await isOrganicCertificationValid(
-        fdm,
-        principal_id,
-        b_id_farm,
-        new Date(year, 4, 15), // May 15th of the specified year
-    )
+  // 3. Check the organic certification status for the farm.
+  // This is relevant for specific organic-rich fertilizer regulations.
+  // The date is set to mid-year to ensure it falls within the certification period if applicable.
+  const has_organic_certification = await isOrganicCertificationValid(
+    fdm,
+    principal_id,
+    b_id_farm,
+    new Date(year, 4, 15), // May 15th of the specified year
+  )
 
-    // 4. Retrieve all cultivations associated with the field within the defined cultivation timeframe.
-    // This data is used to determine land use (e.g., bouwland/grasland).
-    const cultivations = await getCultivations(
-        fdm,
-        principal_id,
-        b_id,
-        timeframe2026,
-    )
+  // 4. Retrieve all cultivations associated with the field within the defined cultivation timeframe.
+  // This data is used to determine land use (e.g., bouwland/grasland).
+  const cultivations = await getCultivations(fdm, principal_id, b_id, timeframe2026)
 
-    // 5. Retrieve all fertilizer applications for the farm within the current year's timeframe.
-    const applications = await getFertilizerApplications(
-        fdm,
-        principal_id,
-        b_id,
-        timeframe2026,
-    )
-    // 6. Retrieve details of all fertilizers used on the farm.
-    const fertilizers = await getFertilizers(fdm, principal_id, b_id_farm)
+  // 5. Retrieve all fertilizer applications for the farm within the current year's timeframe.
+  const applications = await getFertilizerApplications(fdm, principal_id, b_id, timeframe2026)
+  // 6. Retrieve details of all fertilizers used on the farm.
+  const fertilizers = await getFertilizers(fdm, principal_id, b_id_farm)
 
-    // Assemble all collected data into the standardized NL2026NormsFillingInput object.
-    return {
-        cultivations: cultivations,
-        applications: applications,
-        fertilizers: fertilizers,
-        has_organic_certification: has_organic_certification,
-        has_grazing_intention: has_grazing_intention,
-        fosfaatgebruiksnorm: fosfaatgebruiksnorm,
-        b_centroid: b_centroid,
-    }
+  // Assemble all collected data into the standardized NL2026NormsFillingInput object.
+  return {
+    cultivations: cultivations,
+    applications: applications,
+    fertilizers: fertilizers,
+    has_organic_certification: has_organic_certification,
+    has_grazing_intention: has_grazing_intention,
+    fosfaatgebruiksnorm: fosfaatgebruiksnorm,
+    b_centroid: b_centroid,
+  }
 }
 
 /**
@@ -114,54 +98,43 @@ export async function collectNL2026InputForFertilizerApplicationFilling(
  * @returns A promise that resolves to a `Map<b_id, NL2026NormsFillingInput>` keyed by field ID.
  */
 export async function collectNL2026InputForFertilizerApplicationFillingForFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: string,
-    fosfaatgebruiksnormByField: Map<string, number>,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: string,
+  fosfaatgebruiksnormByField: Map<string, number>,
 ): Promise<Map<string, NL2026NormsFillingInput>> {
-    const year = 2026
-    const startOfYear = new Date(year, 0, 1)
-    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999)
-    const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
+  const year = 2026
+  const startOfYear = new Date(year, 0, 1)
+  const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999)
+  const timeframe2026: Timeframe = { start: startOfYear, end: endOfYear }
 
-    const [
-        farmFields,
-        has_grazing_intention,
-        has_organic_certification,
-        fertilizers,
-        cultivationsByField,
-        applicationsByField,
-    ] = await Promise.all([
-        getFields(fdm, principal_id, b_id_farm),
-        getGrazingIntention(fdm, principal_id, b_id_farm, year),
-        isOrganicCertificationValid(
-            fdm,
-            principal_id,
-            b_id_farm,
-            new Date(year, 4, 15),
-        ),
-        getFertilizers(fdm, principal_id, b_id_farm),
-        getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
-        getFertilizerApplicationsForFarm(
-            fdm,
-            principal_id,
-            b_id_farm,
-            timeframe2026,
-        ),
-    ])
+  const [
+    farmFields,
+    has_grazing_intention,
+    has_organic_certification,
+    fertilizers,
+    cultivationsByField,
+    applicationsByField,
+  ] = await Promise.all([
+    getFields(fdm, principal_id, b_id_farm),
+    getGrazingIntention(fdm, principal_id, b_id_farm, year),
+    isOrganicCertificationValid(fdm, principal_id, b_id_farm, new Date(year, 4, 15)),
+    getFertilizers(fdm, principal_id, b_id_farm),
+    getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
+    getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe2026),
+  ])
 
-    const result = new Map<string, NL2026NormsFillingInput>()
-    for (const field of farmFields) {
-        result.set(field.b_id, {
-            cultivations: cultivationsByField.get(field.b_id) ?? [],
-            applications: applicationsByField.get(field.b_id) ?? [],
-            fertilizers,
-            has_organic_certification,
-            has_grazing_intention,
-            fosfaatgebruiksnorm:
-                fosfaatgebruiksnormByField.get(field.b_id) ?? 0,
-            b_centroid: field.b_centroid,
-        })
-    }
-    return result
+  const result = new Map<string, NL2026NormsFillingInput>()
+  for (const field of farmFields) {
+    result.set(field.b_id, {
+      cultivations: cultivationsByField.get(field.b_id) ?? [],
+      applications: applicationsByField.get(field.b_id) ?? [],
+      fertilizers,
+      has_organic_certification,
+      has_grazing_intention,
+      fosfaatgebruiksnorm: fosfaatgebruiksnormByField.get(field.b_id) ?? 0,
+      b_centroid: field.b_centroid,
+    })
+  }
+  return result
 }

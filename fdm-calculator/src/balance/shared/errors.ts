@@ -8,24 +8,22 @@
  * @returns a wrapped error or the input error itself. The returned error is guaranteed to have a descriptive message.
  */
 export const handleInputCollectionError =
-    (failedToCollectForFarmMessage: string, failedToCollectMessage: string) =>
-    (error: unknown, b_id_farm?: string) => {
-        if (
-            error instanceof Error &&
-            (error.message?.startsWith(failedToCollectForFarmMessage) ||
-                error.message?.startsWith(failedToCollectMessage))
-        ) {
-            return error
-        }
-        // Wrap any errors in a more descriptive error message.
-        return new Error(
-            b_id_farm
-                ? `${failedToCollectForFarmMessage} ${b_id_farm}: ${
-                      error instanceof Error ? error.message : String(error)
-                  }`
-                : `${failedToCollectMessage}: ${
-                      error instanceof Error ? error.message : String(error)
-                  }`,
-            { cause: error },
-        )
+  (failedToCollectForFarmMessage: string, failedToCollectMessage: string) =>
+  (error: unknown, b_id_farm?: string) => {
+    if (
+      error instanceof Error &&
+      (error.message?.startsWith(failedToCollectForFarmMessage) ||
+        error.message?.startsWith(failedToCollectMessage))
+    ) {
+      return error
     }
+    // Wrap any errors in a more descriptive error message.
+    return new Error(
+      b_id_farm
+        ? `${failedToCollectForFarmMessage} ${b_id_farm}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        : `${failedToCollectMessage}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    )
+  }

@@ -1,12 +1,12 @@
+import type { LoaderFunctionArgs } from "react-router"
 import {
-    checkHelpdeskPermission,
-    getUnassignedTicketCount,
-    getUnreadAssignedTicketCount,
-    getUnreadRequestedTicketCount,
+  checkHelpdeskPermission,
+  getUnassignedTicketCount,
+  getUnreadAssignedTicketCount,
+  getUnreadRequestedTicketCount,
 } from "@nmi-agro/fdm-helpdesk"
 import posthog from "posthog-js"
 import { useEffect } from "react"
-import type { LoaderFunctionArgs } from "react-router"
 import { Outlet, redirect, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"
@@ -15,12 +15,7 @@ import { SidebarOrganizationApps } from "~/components/blocks/sidebar/organizatio
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarInset,
-    SidebarProvider,
-} from "~/components/ui/sidebar"
+import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { auth, checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -38,84 +33,82 @@ import { fdm } from "~/lib/fdm.server"
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the session
-        const session = await getSession(request)
-        const sessionCheckResponse = await checkSession(session, request)
-        // If checkSession returns a Response, it means a redirect is needed
-        if (sessionCheckResponse instanceof Response) {
-            return sessionCheckResponse
-        }
-        const selectedOrganizationSlug = params.slug
-
-        const organizations = await auth.api.listOrganizations({
-            headers: request.headers,
-        })
-
-        const selectedOrganization = organizations.find(
-            (organization) => organization.slug === params.slug,
-        )
-
-        let selectedOrganizationRoles: Awaited<
-            ReturnType<typeof auth.api.listMembers>
-        >["members"][number]["role"][] = []
-        if (selectedOrganization) {
-            const membersListResponse = await auth.api.listMembers({
-                headers: request.headers,
-                query: {
-                    organizationId: selectedOrganization.id,
-                },
-            })
-
-            const member = membersListResponse.members.find(
-                (member) => member.userId === session.principal_id,
-            )
-
-            if (member) {
-                selectedOrganizationRoles = [member.role]
-            }
-        }
-
-        const helpdeskReadPermission = await checkHelpdeskPermission(
-            fdm,
-            "helpdesk",
-            "read",
-            "",
-            session.principal_id,
-            "routes/farm",
-            false,
-        )
-        const [numUnread, numUnassigned] = await Promise.all([
-            helpdeskReadPermission
-                ? getUnreadAssignedTicketCount(fdm, session.principal_id)
-                : getUnreadRequestedTicketCount(fdm, session.principal_id),
-            helpdeskReadPermission
-                ? getUnassignedTicketCount(fdm, session.principal_id)
-                : 0,
-        ])
-        const hasNotification = numUnread > 0 || numUnassigned > 0
-
-        // Return user information from loader
-        return {
-            user: session.user,
-            userName: session.userName,
-            initials: session.initials,
-            selectedOrganizationSlug: selectedOrganizationSlug,
-            selectedOrganizationRoles: selectedOrganizationRoles,
-            organizations: organizations,
-            hasNotification: hasNotification,
-        }
-    } catch (error) {
-        // If getSession throws (e.g., invalid token), it might result in a 401
-        // We need to handle that case here as well, similar to the ErrorBoundary
-        if (error instanceof Response && error.status === 401) {
-            const currentPath = new URL(request.url).pathname
-            const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
-            return redirect(signInUrl)
-        }
-        // Re-throw other errors to be handled by the ErrorBoundary or default handling
-        throw handleLoaderError(error)
+  try {
+    // Get the session
+    const session = await getSession(request)
+    const sessionCheckResponse = await checkSession(session, request)
+    // If checkSession returns a Response, it means a redirect is needed
+    if (sessionCheckResponse instanceof Response) {
+      return sessionCheckResponse
     }
+    const selectedOrganizationSlug = params.slug
+
+    const organizations = await auth.api.listOrganizations({
+      headers: request.headers,
+    })
+
+    const selectedOrganization = organizations.find(
+      (organization) => organization.slug === params.slug,
+    )
+
+    let selectedOrganizationRoles: Awaited<
+      ReturnType<typeof auth.api.listMembers>
+    >["members"][number]["role"][] = []
+    if (selectedOrganization) {
+      const membersListResponse = await auth.api.listMembers({
+        headers: request.headers,
+        query: {
+          organizationId: selectedOrganization.id,
+        },
+      })
+
+      const member = membersListResponse.members.find(
+        (member) => member.userId === session.principal_id,
+      )
+
+      if (member) {
+        selectedOrganizationRoles = [member.role]
+      }
+    }
+
+    const helpdeskReadPermission = await checkHelpdeskPermission(
+      fdm,
+      "helpdesk",
+      "read",
+      "",
+      session.principal_id,
+      "routes/farm",
+      false,
+    )
+    const [numUnread, numUnassigned] = await Promise.all([
+      helpdeskReadPermission
+        ? getUnreadAssignedTicketCount(fdm, session.principal_id)
+        : getUnreadRequestedTicketCount(fdm, session.principal_id),
+      helpdeskReadPermission ? getUnassignedTicketCount(fdm, session.principal_id) : 0,
+    ])
+    const hasNotification = numUnread > 0 || numUnassigned > 0
+
+    // Return user information from loader
+    return {
+      user: session.user,
+      userName: session.userName,
+      initials: session.initials,
+      selectedOrganizationSlug: selectedOrganizationSlug,
+      selectedOrganizationRoles: selectedOrganizationRoles,
+      organizations: organizations,
+      hasNotification: hasNotification,
+    }
+  } catch (error) {
+    // If getSession throws (e.g., invalid token), it might result in a 401
+    // We need to handle that case here as well, similar to the ErrorBoundary
+    if (error instanceof Response && error.status === 401) {
+      const currentPath = new URL(request.url).pathname
+      const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
+      return redirect(signInUrl)
+    }
+    // Re-throw other errors to be handled by the ErrorBoundary or default handling
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -124,58 +117,65 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * This component retrieves user data from the loader using React Router's useLoaderData hook and passes it to the SidebarApp component within a SidebarProvider context. It also renders an Outlet to display nested routes.
  */
 export default function App() {
-    const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
 
-    const organization = loaderData.organizations.find(
-        (org) => org.slug === loaderData.selectedOrganizationSlug,
-    )
+  const organization = loaderData.organizations.find(
+    (org) => org.slug === loaderData.selectedOrganizationSlug,
+  )
 
-    // Identify user if PostHog is configured
-    useEffect(() => {
-        if (clientConfig.analytics.posthog && loaderData.user) {
-            posthog.identify(loaderData.user.id, {
-                id: loaderData.user.id,
-                email: loaderData.user.email,
-                name: loaderData.user.name,
-            })
-        }
-    }, [loaderData.user])
+  // Identify user if PostHog is configured
+  useEffect(() => {
+    if (clientConfig.analytics.posthog && loaderData.user) {
+      posthog.identify(loaderData.user.id, {
+        id: loaderData.user.id,
+        email: loaderData.user.email,
+        name: loaderData.user.name,
+      })
+    }
+  }, [loaderData.user])
 
-    return (
-        <SidebarProvider>
-            <Sidebar>
-                <SidebarTitle />
-                <SidebarContent>
-                    <SidebarOrganization
-                        organization={organization}
-                        roles={loaderData.selectedOrganizationRoles}
-                    />
-                    <SidebarOrganizationApps />
-                </SidebarContent>
-                <SidebarSupport
-                    name={loaderData.userName}
-                    email={loaderData.user.email}
-                    hasNotification={loaderData.hasNotification}
-                />
-                <SidebarUser
-                    name={loaderData.userName}
-                    email={loaderData.user.email}
-                    image={loaderData.user.image}
-                    avatarInitials={loaderData.initials}
-                    userName={loaderData.userName}
-                />
-            </Sidebar>
-            <SidebarInset className="min-w-0">
-                <Header action={undefined}>
-                    <HeaderOrganization
-                        selectedOrganizationSlug={
-                            loaderData.selectedOrganizationSlug
-                        }
-                        organizationOptions={loaderData.organizations}
-                    />
-                </Header>
-                <Outlet />
-            </SidebarInset>
-        </SidebarProvider>
-    )
+  // Register organization group so org-level dashboards aggregate events
+  useEffect(() => {
+    if (clientConfig.analytics.posthog && organization) {
+      posthog.group("organization", organization.slug, {
+        name: organization.name,
+      })
+    }
+  }, [loaderData.selectedOrganizationSlug, organization?.name])
+
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarTitle />
+        <SidebarContent>
+          <SidebarOrganization
+            organization={organization}
+            roles={loaderData.selectedOrganizationRoles}
+          />
+          <SidebarOrganizationApps />
+        </SidebarContent>
+        <SidebarSupport
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          hasNotification={loaderData.hasNotification}
+        />
+        <SidebarUser
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          image={loaderData.user.image}
+          avatarInitials={loaderData.initials}
+          userName={loaderData.userName}
+        />
+      </Sidebar>
+      <SidebarInset className="min-w-0">
+        <Header action={undefined}>
+          <HeaderOrganization
+            selectedOrganizationSlug={loaderData.selectedOrganizationSlug}
+            organizationOptions={loaderData.organizations}
+          />
+        </Header>
+        <Outlet />
+      </SidebarInset>
+    </SidebarProvider>
+  )
 }

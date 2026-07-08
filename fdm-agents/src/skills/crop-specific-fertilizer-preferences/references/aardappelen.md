@@ -9,6 +9,7 @@ Vooral geteeld in de Veenkoloniën / Noordoost-Nederland voor de zetmeelindustri
 bepaald via **onderwatergewicht (OWG)** — de belangrijkste uitbetalingsparameter.
 
 **Vermijden:**
+
 - Chloridehoudende meststoffen (KCl / kali-60): **absoluut verboden**. Zelfs matige hoeveelheden Cl
   verlagen het OWG en daarmee de zetmeelopbrengst. Gebruik alleen K₂SO₄ (zwavelzure kali) of patentkali als K-bron.
 - Extra N boven `advice.d_n_req`: zetmeel is gevoelig voor overbemesting — te veel N
@@ -16,6 +17,7 @@ bepaald via **onderwatergewicht (OWG)** — de belangrijkste uitbetalingsparamet
   nauwkeurig.
 
 **Voorkeur:**
+
 - Patentkali (K₂SO₄·MgSO₄) als belangrijkste K-bron — levert tegelijk Mg en S, beide
   belangrijk op de doorgaans Mg-arme zandgronden in de Veenkoloniën.
 - Gesplitste N-gift: ~60 % bij het poten, ~40 % als bijbemesting bij knolzetting.
@@ -25,6 +27,7 @@ bepaald via **onderwatergewicht (OWG)** — de belangrijkste uitbetalingsparamet
   te veel N bij opkomst te voorkomen.
 
 **Extra aandacht:**
+
 - Magnesium: zetmeelaardappelen zijn zeer gevoelig voor Mg-gebrek op zure zandgronden.
   Controleer de Mg-aanvoer uit patentkali of kieseriet als de Mg-toestand van de bodem laag is.
 - Mangaan: veelvoorkomend gebrek op dalgronden in de regio. Controleer
@@ -52,6 +55,7 @@ Als de bestemming vóór de planning niet kan worden vastgesteld, val dan terug 
 Deze zijn conservatief en werken voor beide segmenten; signaleer de onduidelijke bestemming aan de teler.
 
 **Vermijden:**
+
 - KCl (kali-60): zowel verwerkings- als tafelaardappelen profiteren van K in sulfaatvorm.
   Gebruik K₂SO₄ of patentkali.
 - Late N (na eind juli): ongunstig voor beide segmenten — verwerkingsaardappelen verliezen drogestof
@@ -59,6 +63,7 @@ Deze zijn conservatief en werken voor beide segmenten; signaleer de onduidelijke
 - N-giften boven `advice.d_n_req`.
 
 **Voorkeur:**
+
 - Gesplitste N-gift met nadruk aan het begin: ongeveer de helft vóór het poten, een kwart bij knolaanleg
   en een kwart tijdens knolgroei. De totale N volgt `advice.d_n_req`.
 - Patentkali voor gecombineerde aanvoer van K + Mg + S.
@@ -66,6 +71,7 @@ Deze zijn conservatief en werken voor beide segmenten; signaleer de onduidelijke
 - Magnesium wanneer de Mg-toestand van de bodem laag is (kieseriet of patentkali).
 
 **Extra aandacht:**
+
 - Het drogestofgehalte is in beide segmenten belangrijk (typische contractband 19–24 % voor
   verwerking; bij de versmarkt bepaalt het mede de kookkwaliteit). Te veel N verlaagt drogestof.
 - pH-risico voor gewone schurft op zand bij versmarktbestemmingen — zie de schurftopmerking in
@@ -84,17 +90,20 @@ Geteeld voor de fritesindustrie (bijv. Aviko, LambWeston, Farm Frites). De kwali
 **bakkleur** en **drogestof** (streefwaarde 19–24 %).
 
 **Vermijden:**
+
 - KCl (kali-60): chloride verhoogt het gehalte aan reducerende suikers → donkere bakkleur (Maillardreactie).
   Gebruik voor verwerkingsaardappelen altijd K₂SO₄ of patentkali.
 - Late N-giften (na eind juli): vertragen de afrijping, verhogen reducerende suikers en
   verlagen drogestof.
 
 **Voorkeur:**
+
 - Gesplitste N-gift: ~50 % vóór het poten, ~25 % bij knolzetting, ~25 % tijdens knolgroei. De totale N volgt
   `advice.d_n_req`.
 - Patentkali voor de aanvoer van K + Mg + S.
 
 **Extra aandacht:**
+
 - Calcium: inwendig bruin is deels Ca-gerelateerd. Stuur via Ca-beschikbaarheid vroeg in het seizoen
   wanneer `advice.d_ca_req > 0` (vroege bekalking of gips), niet via N-houdende Ca-producten laat in het seizoen.
   De veldreactie op Ca-bemesting is wisselend en wordt grotendeels bepaald door beregening en raskeuze.
@@ -111,6 +120,7 @@ Geteeld voor de fritesindustrie (bijv. Aviko, LambWeston, Farm Frites). De kwali
 De kwaliteit wordt beoordeeld op uiterlijk (gladde schil, geen schurft) en smaak (drogestof, kookkwaliteit).
 
 **Vermijden:**
+
 - Bekalking op zandgronden bestemd voor tafelaardappelen: een lage pH onderdrukt gewone schurft
   (schurft). Op zand neemt het schurftrisico toe zodra pH-KCl boven het schurftonderdrukkende
   bereik komt (ruwweg boven ~5.2). Signaleer dit risico in het plan en bekalk alleen via `advice.d_ca_req`
@@ -119,6 +129,7 @@ De kwaliteit wordt beoordeeld op uiterlijk (gladde schil, geen schurft) en smaak
   drogestof. Het N-advies voor tafelaardappelen is doorgaans matig.
 
 **Voorkeur:**
+
 - Volg `advice.d_n_req` met gesplitste giften.
 - K₂SO₄ heeft de voorkeur boven KCl voor de algemene knolkwaliteit, al is de Cl-gevoeligheid lager dan bij
   frites/zetmeel.
@@ -129,6 +140,7 @@ De kwaliteit wordt beoordeeld op uiterlijk (gladde schil, geen schurft) en smaak
 Geteeld voor NAK-gecertificeerd pootgoed. Doel is een uniforme sortering van kleine tot middelgrote knollen (28–55 mm sortering).
 
 **Vermijden:**
+
 - Te veel N: pootaardappelen hebben het laagste N-advies van alle aardappeltypen. Te grote knollen worden
   afgekeurd of lager gewaardeerd. Te veel N vertraagt ook het moment van loofvernietiging. Volg
   `advice.d_n_req` strikt — overschrijd het niet.
@@ -137,6 +149,7 @@ Geteeld voor NAK-gecertificeerd pootgoed. Doel is een uniforme sortering van kle
 - KCl: pootaardappelcontracten vragen steeds vaker kwaliteitsparameters die Cl-gevoelig zijn.
 
 **Voorkeur:**
+
 - N vroeg in het seizoen: ~70 % bij het poten, maximaal ~30 % als bijbemesting kort na opkomst.
 - K₂SO₄ of patentkali.
 - Mangaan: belangrijk op kalkrijke gronden/gronden met hoge pH (Flevoland, Noordoostpolder — belangrijke

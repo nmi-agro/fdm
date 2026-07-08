@@ -1,66 +1,9 @@
 {
-  "id": "0c45f11b-19b2-4e89-8bc0-03b66168ebe8",
+  "id": "331d4634-1bfa-440a-adaf-d919f947138c",
   "prevId": "cb881026-9e17-49e6-9464-7aedaafa8b44",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "fdm-helpdesk.agent_absences": {
-      "name": "agent_absences",
-      "schema": "fdm-helpdesk",
-      "columns": {
-        "absence_id": {
-          "name": "absence_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "start_date": {
-          "name": "start_date",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "end_date": {
-          "name": "end_date",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reason": {
-          "name": "reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'holiday'"
-        },
-        "note": {
-          "name": "note",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created": {
-          "name": "created",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "fdm-helpdesk.agents": {
       "name": "agents",
       "schema": "fdm-helpdesk",
@@ -187,6 +130,44 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "fdm-helpdesk.blocked_emails": {
+      "name": "blocked_emails",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blocked_by": {
+          "name": "blocked_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "fdm-helpdesk.messages": {
       "name": "messages",
       "schema": "fdm-helpdesk",
@@ -207,7 +188,7 @@
           "name": "sender_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "sender_type": {
           "name": "sender_type",
@@ -322,12 +303,8 @@
           "tableFrom": "messages",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -589,12 +566,8 @@
           "tableFrom": "ticket_activity",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -726,12 +699,8 @@
           "tableFrom": "ticket_assignments",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -740,12 +709,8 @@
           "tableFrom": "ticket_assignments",
           "tableTo": "agents",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "agent_id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["agent_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -818,12 +783,8 @@
           "tableFrom": "ticket_tags_map",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -832,12 +793,8 @@
           "tableFrom": "ticket_tags_map",
           "tableTo": "tags",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "tag_id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["tag_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -845,10 +802,7 @@
       "compositePrimaryKeys": {
         "ticket_tags_map_pk": {
           "name": "ticket_tags_map_pk",
-          "columns": [
-            "ticket_id",
-            "tag_id"
-          ]
+          "columns": ["ticket_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -887,12 +841,8 @@
           "tableFrom": "ticket_views",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -900,10 +850,7 @@
       "compositePrimaryKeys": {
         "ticket_views_pk": {
           "name": "ticket_views_pk",
-          "columns": [
-            "ticket_id",
-            "actor_id"
-          ]
+          "columns": ["ticket_id", "actor_id"]
         }
       },
       "uniqueConstraints": {},
@@ -956,6 +903,12 @@
         },
         "requester_id": {
           "name": "requester_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requester_email": {
+          "name": "requester_email",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1030,6 +983,21 @@
               "expression": "requester_id",
               "isExpression": false,
               "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ticket_requester_email_idx": {
+          "name": "ticket_requester_email_idx",
+          "columns": [
+            {
+              "expression": "lower(\"requester_email\")",
+              "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],

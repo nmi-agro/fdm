@@ -52,13 +52,13 @@ If a request includes **both** `X-API-Key` and `Authorization: Bearer`, it is re
 
 ## Error responses for failed authentication
 
-| Condition | HTTP status | Error type |
-|---|---|---|
-| No authentication header | `401` | `unauthorized` |
-| Malformed key | `401` | `unauthorized` |
-| Unknown key | `401` | `unauthorized` |
-| Revoked key | `401` | `unauthorized` |
-| Expired key | `401` | `unauthorized` |
+| Condition                | HTTP status | Error type     |
+| ------------------------ | ----------- | -------------- |
+| No authentication header | `401`       | `unauthorized` |
+| Malformed key            | `401`       | `unauthorized` |
+| Unknown key              | `401`       | `unauthorized` |
+| Revoked key              | `401`       | `unauthorized` |
+| Expired key              | `401`       | `unauthorized` |
 
 All authentication errors return `application/problem+json`. Raw error details are never included to prevent key enumeration.
 
@@ -75,9 +75,9 @@ All authentication errors return `application/problem+json`. Raw error details a
 
 ## Key lifecycle
 
-| State | Behaviour |
-|---|---|
-| **Active** | Authenticates requests normally |
+| State       | Behaviour                                           |
+| ----------- | --------------------------------------------------- |
+| **Active**  | Authenticates requests normally                     |
 | **Revoked** | All requests with this key return `401` immediately |
 | **Expired** | All requests with this key return `401` immediately |
 
@@ -88,6 +88,7 @@ The raw API key is shown **once** at creation time. After that, only the key pre
 ### Rotation
 
 To rotate a key:
+
 1. Create a new API key in Developer Settings.
 2. Update your integration to use the new key.
 3. Verify the new key works.
@@ -98,6 +99,7 @@ There is no atomic swap — plan for a brief window where both old and new keys 
 ### Leaked key response
 
 If a key is compromised:
+
 1. **Immediately revoke it** in Developer Settings.
 2. Review the audit log for requests made with the compromised key.
 3. Create a replacement key.

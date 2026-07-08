@@ -3,9 +3,9 @@
  * Compatible with both `Cultivation` (fdm-core) and `NL2025NormsInputForCultivation`.
  */
 export type CultivationForHoofdteelt = {
-    b_lu_catalogue: string
-    b_lu_start: Date | null | undefined
-    b_lu_end: Date | null | undefined
+  b_lu_catalogue: string
+  b_lu_start: Date | null | undefined
+  b_lu_end: Date | null | undefined
 }
 
 /**
@@ -30,36 +30,33 @@ export const GROENE_BRAAK = "nl_6794"
  * @returns The `b_lu_catalogue` of the hoofdteelt, or `GROENE_BRAAK` (`"nl_6794"`)
  *          if no cultivation overlaps with the May 15–July 15 window.
  */
-export function findHoofdteelt(
-    cultivations: CultivationForHoofdteelt[],
-    year: number,
-): string {
-    const windowStart = new Date(`${year}-05-15`)
-    const windowEnd = new Date(`${year}-07-15`)
+export function findHoofdteelt(cultivations: CultivationForHoofdteelt[], year: number): string {
+  const windowStart = new Date(`${year}-05-15`)
+  const windowEnd = new Date(`${year}-07-15`)
 
-    let maxDuration = -1
-    let result: string | null = null
+  let maxDuration = -1
+  let result: string | null = null
 
-    for (const c of cultivations) {
-        if (!c.b_lu_start) continue
-        const start = new Date(c.b_lu_start)
-        const end = c.b_lu_end ? new Date(c.b_lu_end) : windowEnd
+  for (const c of cultivations) {
+    if (!c.b_lu_start) continue
+    const start = new Date(c.b_lu_start)
+    const end = c.b_lu_end ? new Date(c.b_lu_end) : windowEnd
 
-        const effectiveStart = start > windowStart ? start : windowStart
-        const effectiveEnd = end < windowEnd ? end : windowEnd
+    const effectiveStart = start > windowStart ? start : windowStart
+    const effectiveEnd = end < windowEnd ? end : windowEnd
 
-        if (effectiveEnd > effectiveStart) {
-            const duration = effectiveEnd.getTime() - effectiveStart.getTime()
-            if (duration > maxDuration) {
-                maxDuration = duration
-                result = c.b_lu_catalogue
-            } else if (duration === maxDuration && result !== null) {
-                if (c.b_lu_catalogue.localeCompare(result) < 0) {
-                    result = c.b_lu_catalogue
-                }
-            }
+    if (effectiveEnd > effectiveStart) {
+      const duration = effectiveEnd.getTime() - effectiveStart.getTime()
+      if (duration > maxDuration) {
+        maxDuration = duration
+        result = c.b_lu_catalogue
+      } else if (duration === maxDuration && result !== null) {
+        if (c.b_lu_catalogue.localeCompare(result) < 0) {
+          result = c.b_lu_catalogue
         }
+      }
     }
+  }
 
-    return result ?? GROENE_BRAAK
+  return result ?? GROENE_BRAAK
 }

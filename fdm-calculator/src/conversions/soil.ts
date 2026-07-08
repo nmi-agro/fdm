@@ -11,22 +11,22 @@ import { Decimal } from "decimal.js"
  * @param a_som_loi - The soil organic matter content as a percentage (%).
  */
 export function calculateOrganicCarbon(
-    a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"] | undefined,
+  a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"] | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_c_of"] {
-    if (a_som_loi === null || a_som_loi === undefined) {
-        return null
-    }
+  if (a_som_loi === null || a_som_loi === undefined) {
+    return null
+  }
 
-    let a_c_of = new Decimal(a_som_loi).times(0.5).times(10)
+  let a_c_of = new Decimal(a_som_loi).times(0.5).times(10)
 
-    if (a_c_of.gt(new Decimal(600))) {
-        a_c_of = new Decimal(600)
-    }
-    if (a_c_of.lt(new Decimal(0.1))) {
-        a_c_of = new Decimal(0.1)
-    }
+  if (a_c_of.gt(new Decimal(600))) {
+    a_c_of = new Decimal(600)
+  }
+  if (a_c_of.lt(new Decimal(0.1))) {
+    a_c_of = new Decimal(0.1)
+  }
 
-    return a_c_of.toNumber()
+  return a_c_of.toNumber()
 }
 
 /**
@@ -38,22 +38,22 @@ export function calculateOrganicCarbon(
  * @param a_c_of - The organic carbon content of the soil (g C / kg soil).
  */
 export function calculateOrganicMatter(
-    a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"] | undefined,
+  a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"] | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_som_loi"] {
-    if (a_c_of === null || a_c_of === undefined) {
-        return null
-    }
+  if (a_c_of === null || a_c_of === undefined) {
+    return null
+  }
 
-    let a_som_loi = new Decimal(a_c_of).dividedBy(10).dividedBy(0.5)
+  let a_som_loi = new Decimal(a_c_of).dividedBy(10).dividedBy(0.5)
 
-    if (a_som_loi.gt(new Decimal(75))) {
-        a_som_loi = new Decimal(75)
-    }
-    if (a_som_loi.lt(new Decimal(0.5))) {
-        a_som_loi = new Decimal(0.5)
-    }
+  if (a_som_loi.gt(new Decimal(75))) {
+    a_som_loi = new Decimal(75)
+  }
+  if (a_som_loi.lt(new Decimal(0.5))) {
+    a_som_loi = new Decimal(0.5)
+  }
 
-    return a_som_loi.toNumber()
+  return a_som_loi.toNumber()
 }
 
 /**
@@ -67,25 +67,23 @@ export function calculateOrganicMatter(
  * @param a_n_rt - The total nitrogen content of the soil (mg N / kg soil).
  */
 export function calculateCarbonNitrogenRatio(
-    a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"] | undefined,
-    a_n_rt: fdmSchema.soilAnalysisTypeSelect["a_n_rt"] | undefined,
+  a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"] | undefined,
+  a_n_rt: fdmSchema.soilAnalysisTypeSelect["a_n_rt"] | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_cn_fr"] {
-    if (a_c_of === null || a_c_of === undefined || !a_n_rt) {
-        return null
-    }
+  if (a_c_of === null || a_c_of === undefined || !a_n_rt) {
+    return null
+  }
 
-    let a_cn_fr = new Decimal(a_c_of).dividedBy(
-        new Decimal(a_n_rt).dividedBy(1000),
-    )
+  let a_cn_fr = new Decimal(a_c_of).dividedBy(new Decimal(a_n_rt).dividedBy(1000))
 
-    if (a_cn_fr.gt(new Decimal(40))) {
-        a_cn_fr = new Decimal(40)
-    }
-    if (a_cn_fr.lt(new Decimal(5))) {
-        a_cn_fr = new Decimal(5)
-    }
+  if (a_cn_fr.gt(new Decimal(40))) {
+    a_cn_fr = new Decimal(40)
+  }
+  if (a_cn_fr.lt(new Decimal(5))) {
+    a_cn_fr = new Decimal(5)
+  }
 
-    return a_cn_fr.toNumber()
+  return a_cn_fr.toNumber()
 }
 
 /**
@@ -100,38 +98,30 @@ export function calculateCarbonNitrogenRatio(
  * @param b_soiltype_agr - The agricultural soil type classification.
  */
 export function calculateBulkDensity(
-    a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"] | undefined,
-    b_soiltype_agr:
-        | fdmSchema.soilAnalysisTypeSelect["b_soiltype_agr"]
-        | undefined,
+  a_som_loi: fdmSchema.soilAnalysisTypeSelect["a_som_loi"] | undefined,
+  b_soiltype_agr: fdmSchema.soilAnalysisTypeSelect["b_soiltype_agr"] | undefined,
 ): fdmSchema.soilAnalysisTypeSelect["a_density_sa"] {
-    if (
-        a_som_loi === null ||
-        a_som_loi === undefined ||
-        b_soiltype_agr == null
-    ) {
-        return null
-    }
+  if (a_som_loi === null || a_som_loi === undefined || b_soiltype_agr == null) {
+    return null
+  }
 
-    let a_density_sa = new Decimal(0)
-    if (["dekzand", "dalgrond", "duinzand", "loess"].includes(b_soiltype_agr)) {
-        a_density_sa = new Decimal(1).dividedBy(
-            new Decimal(a_som_loi).times(0.02525).plus(0.6541),
-        )
-    } else {
-        const a = new Decimal(a_som_loi).pow(4).times(0.00000067)
-        const b = new Decimal(a_som_loi).pow(3).times(0.00007792)
-        const c = new Decimal(a_som_loi).pow(2).times(0.00314712)
-        const d = new Decimal(a_som_loi).times(0.06039523)
-        a_density_sa = a.minus(b).add(c).minus(d).add(1.33932206)
-    }
+  let a_density_sa: Decimal
+  if (["dekzand", "dalgrond", "duinzand", "loess"].includes(b_soiltype_agr)) {
+    a_density_sa = new Decimal(1).dividedBy(new Decimal(a_som_loi).times(0.02525).plus(0.6541))
+  } else {
+    const a = new Decimal(a_som_loi).pow(4).times(0.00000067)
+    const b = new Decimal(a_som_loi).pow(3).times(0.00007792)
+    const c = new Decimal(a_som_loi).pow(2).times(0.00314712)
+    const d = new Decimal(a_som_loi).times(0.06039523)
+    a_density_sa = a.minus(b).add(c).minus(d).add(1.33932206)
+  }
 
-    if (a_density_sa.gt(new Decimal(3))) {
-        a_density_sa = new Decimal(3)
-    }
-    if (a_density_sa.lt(new Decimal(0.5))) {
-        a_density_sa = new Decimal(0.5)
-    }
+  if (a_density_sa.gt(new Decimal(3))) {
+    a_density_sa = new Decimal(3)
+  }
+  if (a_density_sa.lt(new Decimal(0.5))) {
+    a_density_sa = new Decimal(0.5)
+  }
 
-    return a_density_sa.toNumber()
+  return a_density_sa.toNumber()
 }

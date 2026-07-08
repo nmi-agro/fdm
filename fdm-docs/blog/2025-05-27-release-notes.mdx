@@ -14,74 +14,74 @@ This post outlines the recent updates to the FDM libraries: `@nmi-agro/fdm-core`
 
 This release significantly expands the capabilities for managing and interpreting soil analysis data, allowing for a more nuanced understanding of soil characteristics:
 
-*   **Expanded Soil Parameter Set:** To support more detailed soil characterization and agronomic modeling, a wide array of new soil parameters have been added. These include:
-    *   Key indicators such as `a_c_of` (organic carbon, g C / kg), `a_nmin_cc` (Plant available mineral nitrogen), and `a_density_sa` (soil bulk density, g/cm³), which is crucial for converting nutrient concentrations to area-based amounts (e.g., kg/ha).
-    *   A comprehensive suite for in-depth analysis: `a_al_ox` (Aluminium with oxalate extraction), `a_ca_co` (Calcium exchangeable, extracted with cohex), `a_ca_co_po` (Calcium occupation), `a_caco3_if` (Carbonated Lime), `a_cec_co` (	Cation Exchange Capacity), `a_cn_fr` (Carbon to Nitrogen fraction/ratio), `a_com_fr` (Carbon fraction Organic Matter), `a_cu_cc` (Copper plant available), `a_fe_ox` (Iron extractable with oxalate), `a_k_cc` (Potassium plant available), `a_k_co` (Potassium exchangeable, extracted with cohex), `a_k_co_po` (Potassium occupation), `a_mg_cc` (Magnesium plant available), `a_mg_co` (Magnesium exchangeable, extracted with cohex), `a_mg_co_po` (Magnesium occupation), `a_n_pmn` (Microbial Activity),`a_p_ox` (Phosphor extractable with oxalate), `a_p_rt` (	Phosphor total content), `a_p_sg` (	Phosphor saturation grade), `a_p_wa` (Phosphate in water extraction), `a_ph_cc` (	Acidity in CaCl2), `a_s_rt` (Sulphur total), `a_sand_mi` (Sand content), `a_silt_mi` (Silt content), and `a_zn_cc` (Zinc plant available).
-    *   Specific nitrogen forms: `a_nh4_cc` (Ammonium nitrogen) and `a_no3_cc` (Nitrate nitrogen), providing insight into readily available nitrogen.
-    *   The `a_cn_fr` (Carbon to Nitrogen ratio) and `a_n_rt` (total nitrogen content, mg N / kg) parameters further refine soil nitrogen characterization.
-*   **Precise Soil Sampling Depth:** To allow for more accurate representation of soil profile data, `a_depth` for soil sampling has been replaced by `a_depth_lower` and `a_depth_upper`, enabling the definition of specific soil layers.
-*   **Developer Type Availability:** The `SoilAnalysis` TypeScript type is now exported, improving developer experience when working with soil data.
+- **Expanded Soil Parameter Set:** To support more detailed soil characterization and agronomic modeling, a wide array of new soil parameters have been added. These include:
+  - Key indicators such as `a_c_of` (organic carbon, g C / kg), `a_nmin_cc` (Plant available mineral nitrogen), and `a_density_sa` (soil bulk density, g/cm³), which is crucial for converting nutrient concentrations to area-based amounts (e.g., kg/ha).
+  - A comprehensive suite for in-depth analysis: `a_al_ox` (Aluminium with oxalate extraction), `a_ca_co` (Calcium exchangeable, extracted with cohex), `a_ca_co_po` (Calcium occupation), `a_caco3_if` (Carbonated Lime), `a_cec_co` ( Cation Exchange Capacity), `a_cn_fr` (Carbon to Nitrogen fraction/ratio), `a_com_fr` (Carbon fraction Organic Matter), `a_cu_cc` (Copper plant available), `a_fe_ox` (Iron extractable with oxalate), `a_k_cc` (Potassium plant available), `a_k_co` (Potassium exchangeable, extracted with cohex), `a_k_co_po` (Potassium occupation), `a_mg_cc` (Magnesium plant available), `a_mg_co` (Magnesium exchangeable, extracted with cohex), `a_mg_co_po` (Magnesium occupation), `a_n_pmn` (Microbial Activity),`a_p_ox` (Phosphor extractable with oxalate), `a_p_rt` ( Phosphor total content), `a_p_sg` ( Phosphor saturation grade), `a_p_wa` (Phosphate in water extraction), `a_ph_cc` ( Acidity in CaCl2), `a_s_rt` (Sulphur total), `a_sand_mi` (Sand content), `a_silt_mi` (Silt content), and `a_zn_cc` (Zinc plant available).
+  - Specific nitrogen forms: `a_nh4_cc` (Ammonium nitrogen) and `a_no3_cc` (Nitrate nitrogen), providing insight into readily available nitrogen.
+  - The `a_cn_fr` (Carbon to Nitrogen ratio) and `a_n_rt` (total nitrogen content, mg N / kg) parameters further refine soil nitrogen characterization.
+- **Precise Soil Sampling Depth:** To allow for more accurate representation of soil profile data, `a_depth` for soil sampling has been replaced by `a_depth_lower` and `a_depth_upper`, enabling the definition of specific soil layers.
+- **Developer Type Availability:** The `SoilAnalysis` TypeScript type is now exported, improving developer experience when working with soil data.
 
 ### Advancements in Cultivation, Harvest, and Catalogue Management
 
 Updates to cultivation and harvest functionalities in `@nmi-agro/fdm-core` and related catalogue data in `@nmi-agro/fdm-data` provide greater detail for agronomic planning and analysis:
 
-*   **Enriched Cultivation Catalogue (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`):** The cultivation catalogue now includes several new default parameters, enhancing the information available for each crop:
-    *   `b_n_fixation`: Estimated nitrogen fixation by the cultivation (kg N / ha), important for nitrogen balancing.
-    *   `b_lu_n_residue`: Default nitrogen content (g N / kg) of crop residues, aiding in nutrient cycling calculations.
-    *   `b_lu_hi` (Harvest Index): The fraction of total crop biomass that is commercially valuable, crucial for yield and residue estimations.
-    *   `b_lu_n_harvestable`: Default nitrogen content (g N / kg) of the harvestable parts of the crop, used for calculating nutrient removal.
-    *   `b_lu_yield`: Default average dry matter yield (kg / ha), useful for planning and benchmarking.
-    *   `b_lu_croprotation`: Specifies the crop's category within a rotation sequence (e.g., cereals, grassland, maize, etc.).
-    *   These new parameters have also been integrated into the BRP (Basisregistratie Percelen) dataset within `@nmi-agro/fdm-data` to ensure data consistency.
-*   **Crop Residue Tracking (`@nmi-agro/fdm-core`):** The `cultivationEnding` process now includes an `m_cropresidue` parameter, allowing users to explicitly state whether crop residues are left on the field or removed. This is vital for accurate soil organic matter modeling and nutrient management.
-*   **Refined Harvest Data Structure (`@nmi-agro/fdm-core`):**
-    *   To simplify data relationships, each `Harvest` event is now limited to a single `Harvestable` entity.
-    *   The TypeScript types `Harvestable`, `Harvest`, and `HarvestableAnalysis` are now exported for easier use by developers.
-*   **Cultivation Type Exports (`@nmi-agro/fdm-core`):** The `Cultivation`, `CultivationPlan`, and `CultivationCatalogue` TypeScript types are now exported.
-*   **Standardized Source Input (`@nmi-agro/fdm-core`):** The `a_source` parameter (e.g., for soil analysis or fertilizer) has been changed to a list of predefined options, promoting data consistency and simplifying input.
+- **Enriched Cultivation Catalogue (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`):** The cultivation catalogue now includes several new default parameters, enhancing the information available for each crop:
+  - `b_n_fixation`: Estimated nitrogen fixation by the cultivation (kg N / ha), important for nitrogen balancing.
+  - `b_lu_n_residue`: Default nitrogen content (g N / kg) of crop residues, aiding in nutrient cycling calculations.
+  - `b_lu_hi` (Harvest Index): The fraction of total crop biomass that is commercially valuable, crucial for yield and residue estimations.
+  - `b_lu_n_harvestable`: Default nitrogen content (g N / kg) of the harvestable parts of the crop, used for calculating nutrient removal.
+  - `b_lu_yield`: Default average dry matter yield (kg / ha), useful for planning and benchmarking.
+  - `b_lu_croprotation`: Specifies the crop's category within a rotation sequence (e.g., cereals, grassland, maize, etc.).
+  - These new parameters have also been integrated into the BRP (Basisregistratie Percelen) dataset within `@nmi-agro/fdm-data` to ensure data consistency.
+- **Crop Residue Tracking (`@nmi-agro/fdm-core`):** The `cultivationEnding` process now includes an `m_cropresidue` parameter, allowing users to explicitly state whether crop residues are left on the field or removed. This is vital for accurate soil organic matter modeling and nutrient management.
+- **Refined Harvest Data Structure (`@nmi-agro/fdm-core`):**
+  - To simplify data relationships, each `Harvest` event is now limited to a single `Harvestable` entity.
+  - The TypeScript types `Harvestable`, `Harvest`, and `HarvestableAnalysis` are now exported for easier use by developers.
+- **Cultivation Type Exports (`@nmi-agro/fdm-core`):** The `Cultivation`, `CultivationPlan`, and `CultivationCatalogue` TypeScript types are now exported.
+- **Standardized Source Input (`@nmi-agro/fdm-core`):** The `a_source` parameter (e.g., for soil analysis or fertilizer) has been changed to a list of predefined options, promoting data consistency and simplifying input.
 
 ### Streamlined Organization and Access Control (`@nmi-agro/fdm-core`)
 
 To address the need for more robust multi-user and multi-organizational capabilities, especially since `better-auth` does not natively provide server-side organization management functions, a comprehensive suite of tools has been added:
 
-*   **Full Organization Lifecycle Management:** New functions allow for complete control over organizations:
-    *   Creation and modification: `createOrganization`, `updateOrganization`.
-    *   Information retrieval: `getOrganization`, `getOrganizationsForUser`, `getUsersInOrganization`.
-    *   Utility: `checkOrganizationSlugForAvailability`.
-    *   Deletion and user removal: `deleteOrganization`, `removeUserFromOrganization`.
-    *   Role management: `updateRoleOfUserAtOrganization`.
-*   **Enhanced Invitation System:** A full set of functions for managing user invitations to organizations:
-    *   `inviteUserToOrganization`, `getPendingInvitationsForUser`, `getPendingInvitation`, `acceptInvitation`, `rejectInvitation`, `getPendingInvitationsForOrganization`, `cancelPendingInvitation`.
-*   **Granular Farm Access Control:** Building on organization management, new functions enable precise control over which users and organizations can access specific farm data and what level of access they have:
-    *   `grantRoleToFarm`, `revokePrincipalFromFarm`, `updateRoleOfPrincipalAtFarm`.
-    *   Supporting functions: `isAllowedToShareFarm`, `listPrincipalsForFarm`.
-*   **Improved Principal Identification:**
-    *   A function lookup for users and organizations has been added for easier referencing.
-    *   The `getFarm` and `getFarms` responses now include the roles the requesting principal (user or organization) holds on the farm, which can be used to tailor UI elements or enforce permissions.
+- **Full Organization Lifecycle Management:** New functions allow for complete control over organizations:
+  - Creation and modification: `createOrganization`, `updateOrganization`.
+  - Information retrieval: `getOrganization`, `getOrganizationsForUser`, `getUsersInOrganization`.
+  - Utility: `checkOrganizationSlugForAvailability`.
+  - Deletion and user removal: `deleteOrganization`, `removeUserFromOrganization`.
+  - Role management: `updateRoleOfUserAtOrganization`.
+- **Enhanced Invitation System:** A full set of functions for managing user invitations to organizations:
+  - `inviteUserToOrganization`, `getPendingInvitationsForUser`, `getPendingInvitation`, `acceptInvitation`, `rejectInvitation`, `getPendingInvitationsForOrganization`, `cancelPendingInvitation`.
+- **Granular Farm Access Control:** Building on organization management, new functions enable precise control over which users and organizations can access specific farm data and what level of access they have:
+  - `grantRoleToFarm`, `revokePrincipalFromFarm`, `updateRoleOfPrincipalAtFarm`.
+  - Supporting functions: `isAllowedToShareFarm`, `listPrincipalsForFarm`.
+- **Improved Principal Identification:**
+  - A function lookup for users and organizations has been added for easier referencing.
+  - The `getFarm` and `getFarms` responses now include the roles the requesting principal (user or organization) holds on the farm, which can be used to tailor UI elements or enforce permissions.
 
 ### Farm and Field Data Refinements (`@nmi-agro/fdm-core`)
 
 Minor but useful improvements have been made to field data attributes:
 
-*   **Field Centroid:** The `getField` and `getFields` functions now return `b_centroid`, providing the geographic center ([longitude, latitude]) of a field, useful for mapping applications.
-*   **Consistent Area Values:** The `b_area` (field area in hectares) returned by `getField` and `getFields` is now consistently rounded to two decimal places.
-*   **Field Type Export:** The `Field` TypeScript type is now exported for developer convenience.
+- **Field Centroid:** The `getField` and `getFields` functions now return `b_centroid`, providing the geographic center ([longitude, latitude]) of a field, useful for mapping applications.
+- **Consistent Area Values:** The `b_area` (field area in hectares) returned by `getField` and `getFields` is now consistently rounded to two decimal places.
+- **Field Type Export:** The `Field` TypeScript type is now exported for developer convenience.
 
 ### Nitrogen Balance Calculation Engine (`@nmi-agro/fdm-calculator`)
 
 The `@nmi-agro/fdm-calculator` package sees the introduction of its foundational nitrogen balance module:
 
-*   **Farm-Level Nitrogen Balance:** The `calculateNitrogenBalance` function provides the core logic for calculating the nitrogen balance at the farm level, a key indicator for nutrient use efficiency and environmental performance.
-*   **Automated Data Collection:** To support the balance calculation, the `collectInputForNitrogenBalance` function has been developed. It gathers all necessary input data from an FDM instance, simplifying the process of running the balance.
-*   **Nitrogen Balance Target Setting:** A new function allows for the calculation of a target nitrogen balance, which can be used for benchmarking or setting improvement goals.
+- **Farm-Level Nitrogen Balance:** The `calculateNitrogenBalance` function provides the core logic for calculating the nitrogen balance at the farm level, a key indicator for nutrient use efficiency and environmental performance.
+- **Automated Data Collection:** To support the balance calculation, the `collectInputForNitrogenBalance` function has been developed. It gathers all necessary input data from an FDM instance, simplifying the process of running the balance.
+- **Nitrogen Balance Target Setting:** A new function allows for the calculation of a target nitrogen balance, which can be used for benchmarking or setting improvement goals.
 
 ### Other Notable Changes
 
-*   **Type Renaming for Clarity (`@nmi-agro/fdm-core`):** For improved readability and semantic accuracy, `getFertilizerType` and `GetFertilizerApplicationsType` have been renamed to `Fertilizer` and `FertilizerApplication`, respectively.
-*   **Dependency Alignments:**
-    *   `@nmi-agro/fdm-core` now specifies its dependency on `@nmi-agro/fdm-data@0.13.0`.
-    *   `@nmi-agro/fdm-calculator` is updated to depend on `@nmi-agro/fdm-core@0.20.0`.
+- **Type Renaming for Clarity (`@nmi-agro/fdm-core`):** For improved readability and semantic accuracy, `getFertilizerType` and `GetFertilizerApplicationsType` have been renamed to `Fertilizer` and `FertilizerApplication`, respectively.
+- **Dependency Alignments:**
+  - `@nmi-agro/fdm-core` now specifies its dependency on `@nmi-agro/fdm-data@0.13.0`.
+  - `@nmi-agro/fdm-calculator` is updated to depend on `@nmi-agro/fdm-core@0.20.0`.
 
 ---
 

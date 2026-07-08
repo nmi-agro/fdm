@@ -1,23 +1,23 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_zones.json",
-    "title": "Zone asset in Farm Data Model",
-    "description": "The data model to describe the asset: zones",
-    "type": "object",
-    "properties": {
-        "b_id_zone": {
-            "description": "ID of the zone",
-            "type": "string"
-        },
-        "b_name_zone": {
-            "description": "Name of the zone",
-            "type": "string"
-        },
-        "b_geometry_zone": {
-            "description": "Geometry of the zone in WKT format",
-            "type": "string",
-            "pattern": "^POLYGON"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_zones.json",
+  "title": "Zone asset in Farm Data Model",
+  "description": "The data model to describe the asset: zones",
+  "type": "object",
+  "properties": {
+    "b_id_zone": {
+      "description": "ID of the zone",
+      "type": "string"
     },
-    "required": ["b_id_zone"]
+    "b_name_zone": {
+      "description": "Name of the zone",
+      "type": "string"
+    },
+    "b_geometry_zone": {
+      "description": "Geometry of the zone in WKT format",
+      "type": "string",
+      "pattern": "^POLYGON"
+    }
+  },
+  "required": ["b_id_zone"]
 }

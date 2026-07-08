@@ -1,9 +1,9 @@
 import type {
-    CultivationDetail,
-    FertilizerDetail,
-    FieldInput,
-    OrganicMatterBalanceInput,
-    OrganicMatterSupply,
+  CultivationDetail,
+  FertilizerDetail,
+  FieldInput,
+  OrganicMatterBalanceInput,
+  OrganicMatterSupply,
 } from "../types"
 import { calculateOrganicMatterSupplyByCultivations } from "./cultivation"
 import { calculateOrganicMatterSupplyByFertilizers } from "./fertilizers"
@@ -29,48 +29,48 @@ import { calculateOrganicMatterSupplyByResidues } from "./residues"
  * @throws {Error} If any of the sub-calculations fail, the error is caught and re-thrown with additional context.
  */
 export function calculateOrganicMatterSupply(
-    cultivations: FieldInput["cultivations"],
-    fertilizerApplications: FieldInput["fertilizerApplications"],
-    cultivationDetailsMap: Map<string, CultivationDetail>,
-    fertilizerDetailsMap: Map<string, FertilizerDetail>,
-    timeFrame: OrganicMatterBalanceInput["timeFrame"],
+  cultivations: FieldInput["cultivations"],
+  fertilizerApplications: FieldInput["fertilizerApplications"],
+  cultivationDetailsMap: Map<string, CultivationDetail>,
+  fertilizerDetailsMap: Map<string, FertilizerDetail>,
+  timeFrame: OrganicMatterBalanceInput["timeFrame"],
 ): OrganicMatterSupply {
-    try {
-        // 1. Calculate EOM supply from all organic fertilizer applications.
-        const fertilizersSupply = calculateOrganicMatterSupplyByFertilizers(
-            fertilizerApplications,
-            fertilizerDetailsMap,
-        )
+  try {
+    // 1. Calculate EOM supply from all organic fertilizer applications.
+    const fertilizersSupply = calculateOrganicMatterSupplyByFertilizers(
+      fertilizerApplications,
+      fertilizerDetailsMap,
+    )
 
-        // 2. Calculate EOM supply from the primary growth of main crops and green manures.
-        const cultivationsSupply = calculateOrganicMatterSupplyByCultivations(
-            cultivations,
-            cultivationDetailsMap,
-        )
+    // 2. Calculate EOM supply from the primary growth of main crops and green manures.
+    const cultivationsSupply = calculateOrganicMatterSupplyByCultivations(
+      cultivations,
+      cultivationDetailsMap,
+    )
 
-        // 3. Calculate EOM supply from incorporated crop residues.
-        const residuesSupply = calculateOrganicMatterSupplyByResidues(
-            cultivations,
-            cultivationDetailsMap,
-            timeFrame,
-        )
+    // 3. Calculate EOM supply from incorporated crop residues.
+    const residuesSupply = calculateOrganicMatterSupplyByResidues(
+      cultivations,
+      cultivationDetailsMap,
+      timeFrame,
+    )
 
-        // 4. Sum the totals from all sources to get the grand total EOM supply.
-        const totalSupply = fertilizersSupply.total
-            .plus(cultivationsSupply.total)
-            .plus(residuesSupply.total)
+    // 4. Sum the totals from all sources to get the grand total EOM supply.
+    const totalSupply = fertilizersSupply.total
+      .plus(cultivationsSupply.total)
+      .plus(residuesSupply.total)
 
-        // Return the aggregated results with a detailed breakdown.
-        return {
-            total: totalSupply,
-            fertilizers: fertilizersSupply,
-            cultivations: cultivationsSupply,
-            residues: residuesSupply,
-        }
-    } catch (error) {
-        console.error("Error calculating organic matter supply:", error)
-        throw new Error(
-            `Failed to calculate organic matter supply: ${error instanceof Error ? error.message : "Unknown error"}`,
-        )
+    // Return the aggregated results with a detailed breakdown.
+    return {
+      total: totalSupply,
+      fertilizers: fertilizersSupply,
+      cultivations: cultivationsSupply,
+      residues: residuesSupply,
     }
+  } catch (error) {
+    console.error("Error calculating organic matter supply:", error)
+    throw new Error(
+      `Failed to calculate organic matter supply: ${error instanceof Error ? error.message : "Unknown error"}`,
+    )
+  }
 }

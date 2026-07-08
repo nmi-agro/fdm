@@ -1,10 +1,10 @@
 import { type Field, withCalculationCache } from "@nmi-agro/fdm-core"
+import type { DierlijkeMestGebruiksnormResult } from "../../types"
+import type { NL2025NormsInput } from "./types.d"
 import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"
 import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
-import type { DierlijkeMestGebruiksnormResult } from "../../types"
 import { isFieldInNVGebied } from "./stikstofgebruiksnorm"
-import type { NL2025NormsInput } from "./types.d"
 
 /**
  * Determines if a field is located within a grondwaterbeschermingsgebied (GWBG) in the Netherlands.
@@ -17,26 +17,24 @@ import type { NL2025NormsInput } from "./types.d"
  *   and `false` if the value is 0.
  * @throws {Error} If the GeoTIFF returns an unexpected value, or if there are issues fetching or processing the file.
  */
-export async function isFieldInGWGBGebied(
-    b_centroid: Field["b_centroid"],
-): Promise<boolean> {
-    const fdmPublicDataUrl = getFdmPublicDataUrl()
-    const url = `${fdmPublicDataUrl}norms/nl/2024/gwbg.tiff`
-    const longitude = b_centroid[0]
-    const latitude = b_centroid[1]
-    const gwbgCode = await getGeoTiffValue(url, longitude, latitude)
+export async function isFieldInGWGBGebied(b_centroid: Field["b_centroid"]): Promise<boolean> {
+  const fdmPublicDataUrl = getFdmPublicDataUrl()
+  const url = `${fdmPublicDataUrl}norms/nl/2024/gwbg.tiff`
+  const longitude = b_centroid[0]
+  const latitude = b_centroid[1]
+  const gwbgCode = await getGeoTiffValue(url, longitude, latitude)
 
-    switch (gwbgCode) {
-        case 1: {
-            return true
-        }
-        case 0: {
-            return false
-        }
-        default: {
-            return false
-        }
+  switch (gwbgCode) {
+    case 1: {
+      return true
     }
+    case 0: {
+      return false
+    }
+    default: {
+      return false
+    }
+  }
 }
 
 /**
@@ -50,26 +48,24 @@ export async function isFieldInGWGBGebied(
  *   and `false` if the value is 0.
  * @throws {Error} If the GeoTIFF returns an unexpected value, or if there are issues fetching or processing the file.
  */
-export async function isFieldInNatura2000Gebied(
-    b_centroid: Field["b_centroid"],
-): Promise<boolean> {
-    const fdmPublicDataUrl = getFdmPublicDataUrl()
-    const url = `${fdmPublicDataUrl}norms/nl/2024/natura2000.tiff`
-    const longitude = b_centroid[0]
-    const latitude = b_centroid[1]
-    const natura2000Code = await getGeoTiffValue(url, longitude, latitude)
+export async function isFieldInNatura2000Gebied(b_centroid: Field["b_centroid"]): Promise<boolean> {
+  const fdmPublicDataUrl = getFdmPublicDataUrl()
+  const url = `${fdmPublicDataUrl}norms/nl/2024/natura2000.tiff`
+  const longitude = b_centroid[0]
+  const latitude = b_centroid[1]
+  const natura2000Code = await getGeoTiffValue(url, longitude, latitude)
 
-    switch (natura2000Code) {
-        case 1: {
-            return true
-        }
-        case 0: {
-            return false
-        }
-        default: {
-            return false
-        }
+  switch (natura2000Code) {
+    case 1: {
+      return true
     }
+    case 0: {
+      return false
+    }
+    default: {
+      return false
+    }
+  }
 }
 
 /**
@@ -84,29 +80,25 @@ export async function isFieldInNatura2000Gebied(
  * @throws {Error} If the GeoTIFF returns an unexpected value, or if there are issues fetching or processing the file.
  */
 export async function isFieldInDerogatieVrijeZone(
-    b_centroid: Field["b_centroid"],
+  b_centroid: Field["b_centroid"],
 ): Promise<boolean> {
-    const fdmPublicDataUrl = getFdmPublicDataUrl()
-    const url = `${fdmPublicDataUrl}norms/nl/2025/derogatievrije_zones.tiff`
-    const longitude = b_centroid[0]
-    const latitude = b_centroid[1]
-    const derogatieVrijeZoneCode = await getGeoTiffValue(
-        url,
-        longitude,
-        latitude,
-    )
+  const fdmPublicDataUrl = getFdmPublicDataUrl()
+  const url = `${fdmPublicDataUrl}norms/nl/2025/derogatievrije_zones.tiff`
+  const longitude = b_centroid[0]
+  const latitude = b_centroid[1]
+  const derogatieVrijeZoneCode = await getGeoTiffValue(url, longitude, latitude)
 
-    switch (derogatieVrijeZoneCode) {
-        case 1: {
-            return true
-        }
-        case 0: {
-            return false
-        }
-        default: {
-            return false
-        }
+  switch (derogatieVrijeZoneCode) {
+    case 1: {
+      return true
     }
+    case 0: {
+      return false
+    }
+    default: {
+      return false
+    }
+  }
 }
 
 /**
@@ -140,57 +132,53 @@ export async function isFieldInDerogatieVrijeZone(
  * @see {@link https://www.rvo.nl/onderwerpen/mest/met-nutrienten-verontreinigde-gebieden-nv-gebieden | RVO Met nutriënten verontreinigde gebieden (NV-gebieden) (official page)}
  */
 export async function calculateNL2025DierlijkeMestGebruiksNorm(
-    input: NL2025NormsInput,
+  input: NL2025NormsInput,
 ): Promise<DierlijkeMestGebruiksnormResult> {
-    const is_derogatie_bedrijf = input.farm.is_derogatie_bedrijf ?? false
-    const field = input.field
+  const is_derogatie_bedrijf = input.farm.is_derogatie_bedrijf ?? false
+  const field = input.field
 
-    // Check for buffer strip
-    if (field.b_bufferstrip) {
-        return {
-            normValue: 0,
-            normSource: "Bufferstrook: geen plaatsingsruimte",
-        }
+  // Check for buffer strip
+  if (field.b_bufferstrip) {
+    return {
+      normValue: 0,
+      normSource: "Bufferstrook: geen plaatsingsruimte",
     }
+  }
 
-    const [
-        is_nv_gebied,
-        is_gwbg_gebied,
-        is_natura2000_gebied,
-        is_derogatie_vrije_zone,
-    ] = await Promise.all([
-        isFieldInNVGebied(field.b_centroid),
-        isFieldInGWGBGebied(field.b_centroid),
-        isFieldInNatura2000Gebied(field.b_centroid),
-        isFieldInDerogatieVrijeZone(field.b_centroid),
+  const [is_nv_gebied, is_gwbg_gebied, is_natura2000_gebied, is_derogatie_vrije_zone] =
+    await Promise.all([
+      isFieldInNVGebied(field.b_centroid),
+      isFieldInGWGBGebied(field.b_centroid),
+      isFieldInNatura2000Gebied(field.b_centroid),
+      isFieldInDerogatieVrijeZone(field.b_centroid),
     ])
 
-    let normValue: number
-    let normSource: string
+  let normValue: number
+  let normSource: string
 
-    if (is_derogatie_bedrijf) {
-        if (is_natura2000_gebied) {
-            normValue = 170
-            normSource = "Derogatie - Natura2000 Gebied"
-        } else if (is_gwbg_gebied) {
-            normValue = 170
-            normSource = "Derogatie - Grondwaterbeschermingsgebied"
-        } else if (is_derogatie_vrije_zone) {
-            normValue = 170
-            normSource = "Derogatie - Derogatie-vrije zone"
-        } else if (is_nv_gebied) {
-            normValue = 190
-            normSource = "Derogatie - NV Gebied"
-        } else {
-            normValue = 200
-            normSource = "Derogatie"
-        }
+  if (is_derogatie_bedrijf) {
+    if (is_natura2000_gebied) {
+      normValue = 170
+      normSource = "Derogatie - Natura2000 Gebied"
+    } else if (is_gwbg_gebied) {
+      normValue = 170
+      normSource = "Derogatie - Grondwaterbeschermingsgebied"
+    } else if (is_derogatie_vrije_zone) {
+      normValue = 170
+      normSource = "Derogatie - Derogatie-vrije zone"
+    } else if (is_nv_gebied) {
+      normValue = 190
+      normSource = "Derogatie - NV Gebied"
     } else {
-        normValue = 170
-        normSource = "Standaard - geen derogatie"
+      normValue = 200
+      normSource = "Derogatie"
     }
+  } else {
+    normValue = 170
+    normSource = "Standaard - geen derogatie"
+  }
 
-    return { normValue, normSource }
+  return { normValue, normSource }
 }
 
 /**
@@ -204,7 +192,7 @@ export async function calculateNL2025DierlijkeMestGebruiksNorm(
  *   nitrogen usage standard (`normValue`) and a `normSource` string explaining the rule applied.
  */
 export const getNL2025DierlijkeMestGebruiksNorm = withCalculationCache(
-    calculateNL2025DierlijkeMestGebruiksNorm,
-    "calculateNL2025DierlijkeMestGebruiksNorm",
-    pkg.calculatorVersion,
+  calculateNL2025DierlijkeMestGebruiksNorm,
+  "calculateNL2025DierlijkeMestGebruiksNorm",
+  pkg.calculatorVersion,
 )

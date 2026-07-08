@@ -1,64 +1,64 @@
 {
-    "name": "@nmi-agro/fdm-data",
-    "private": false,
-    "version": "0.21.0",
-    "description": "Extend Farm Data Model with catalogue data",
-    "license": "MIT",
-    "homepage": "https://github.com/nmi-agro/fdm",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/nmi-agro/fdm.git"
-    },
-    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
-    "author": {
-        "name": "Sven Verweij",
-        "email": "37927107+SvenVw@users.noreply.github.com",
-        "url": "https://github.com/SvenVw"
-    },
-    "type": "module",
-    "main": "./dist/index.js",
-    "module": "./dist/index.js",
-    "types": "./dist/index.d.ts",
-    "exports": {
-        ".": {
-            "import": {
-                "types": "./dist/index.d.ts",
-                "default": "./dist/index.js"
-            }
-        }
-    },
-    "files": [
-        "dist"
-    ],
-    "scripts": {
-        "db:generate": "npx drizzle-kit generate",
-        "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
-        "build": "tsdown",
-        "check-types": "tsc --noEmit",
-        "preinstall": "npx only-allow pnpm",
-        "preview": "vite preview",
-        "test": "vitest run",
-        "test-coverage": "vitest run --coverage",
-        "watch": "vitest"
-    },
-    "devDependencies": {
-        "@dotenvx/dotenvx": "catalog:",
-        "@types/node": "catalog:",
-        "@vitest/coverage-v8": "catalog:",
-        "tsdown": "catalog:",
-        "typedoc": "catalog:",
-        "typedoc-plugin-missing-exports": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:"
-    },
-    "packageManager": "pnpm@11.7.0",
-    "engines": {
-        "node": ">=24.0.0"
-    },
-    "publishConfig": {
-        "registry": "https://npm.pkg.github.com"
-    },
-    "dependencies": {
-        "xxhash-wasm": "^1.1.0"
+  "name": "@nmi-agro/fdm-data",
+  "version": "0.22.0",
+  "private": false,
+  "description": "Extend Farm Data Model with catalogue data",
+  "homepage": "https://github.com/nmi-agro/fdm",
+  "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+  "license": "MIT",
+  "author": {
+    "name": "Sven Verweij",
+    "email": "37927107+SvenVw@users.noreply.github.com",
+    "url": "https://github.com/SvenVw"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nmi-agro/fdm.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "db:generate": "npx drizzle-kit generate",
+    "document": "npx typedoc src --plugin typedoc-plugin-missing-exports",
+    "build": "tsdown",
+    "check-types": "tsc --noEmit",
+    "preinstall": "npx only-allow pnpm",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test-coverage": "vitest run --coverage",
+    "watch": "vitest"
+  },
+  "dependencies": {
+    "xxhash-wasm": "^1.1.0"
+  },
+  "devDependencies": {
+    "@dotenvx/dotenvx": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typedoc": "catalog:",
+    "typedoc-plugin-missing-exports": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@11.7.0"
 }

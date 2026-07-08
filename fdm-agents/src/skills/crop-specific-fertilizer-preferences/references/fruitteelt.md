@@ -1,6 +1,7 @@
 # Orchard fruit and small fruit (fruitteelt)
 
 Omvat:
+
 - **Pit- en steenvrucht**: appel (nl_212 generiek, nl_1095 geplant huidig seizoen,
   nl_1096 geplant vorig seizoen), peer (gedeeld onder nl_212), pruim (nl_1870), kers
   (nl_1872 zuur, nl_2328 zoet).
@@ -21,6 +22,7 @@ alleen de algemene bandbreedte.
 ## Pit- en steenvrucht — appel, peer, pruim, kers (nl_212, nl_1095, nl_1096, nl_1870, nl_1872, nl_2328)
 
 **Voorkeur:**
+
 - **Bladanalysegestuurde** N, P, K, Mg, Ca, B, Mn, Zn — vraag de jaarlijkse bladanalyse
   op bij de teler en combineer die met `advice.d_*_req`.
 - Gedeelde N-gift: kleine vroege voorjaarsgift (knopzwelling / muizenoorstadium) plus
@@ -39,6 +41,7 @@ alleen de algemene bandbreedte.
   `advice.d_ca_req` dekt het bodemdeel, niet de bladbespuitingen.
 
 **Vermijden:**
+
 - Hoge N in jonge aanplant (nl_1095, nl_1096): geeft te sterke groei ten koste van
   vroege productie en wortelontwikkeling. `advice.d_n_req` houdt rekening met leeftijd.
 - N-toepassingen na half juli in appel: verminderen vruchtkleur en bewaarbaarheid
@@ -47,6 +50,7 @@ alleen de algemene bandbreedte.
 - Verse drijfmest direct rond de stam — wortelschade en zoutstress.
 
 **Extra aandacht:**
+
 - In moderne boomgaarden wordt bemesting vaak toegediend via **fertigatie / druppel**; de
   giften uit `advice.d_*_req` blijven gelden, alleen de toedieningsroute verschilt.
 - Hagelnetten / regenkappen in moderne pit- en steenvrucht beïnvloeden N-mineralisatie
@@ -57,6 +61,7 @@ alleen de algemene bandbreedte.
 ## Kleinfruit — bessen, framboos, kruisbes (nl_1869, nl_1873, nl_2325, nl_2326, nl_1874)
 
 **Voorkeur:**
+
 - **Blauwe bes (nl_1869)** vraagt een **zure grond** (pH-KCl 4.0–5.0). **Geen
   bekalking** in blauwe-bessenaanplant; in plaats daarvan is verzuring met elementaire S
   of zure organische stof (veen, naaldhoutcompost) standaard. `advice.d_ca_req > 0` bij
@@ -70,6 +75,7 @@ alleen de algemene bandbreedte.
 - Borium en Mg volgens `advice.d_b_req` / `advice.d_mg_req`.
 
 **Vermijden:**
+
 - KCl op kleinfruit — bladrandverbranding en verminderde houdbaarheid.
 - Bekalking in blauwe-bessenaanplant — vernietigt het volledige teeltsysteem.
 - Verse drijfmest tussen de struiken — wortelschade en ziekterisico.
@@ -80,6 +86,7 @@ Aardbei is **kort-meerjarig** (1–2 productiejaren) en agronomisch het meest ve
 vollegrondsgroenten.
 
 **Voorkeur:**
+
 - Basisgift NPK vóór planten (juli–augustus voor doordragers / wachtbedplanten;
   augustus–september voor junidragers); voorjaarsbijbemesting voor het productieperceel.
 - Fertigatie waar beschikbaar — aardbei is een klassiek fertigatiegewas op stellingen en
@@ -89,8 +96,9 @@ vollegrondsgroenten.
   en zacht fruit.
 
 **Vermijden:**
-- Hoge N tijdens vruchtzetting en oogst — zacht fruit, *Botrytis*, smaakverlies.
-- Verse drijfmest in productiepercelen — risico op *Phytophthora* en *Botrytis*, en
+
+- Hoge N tijdens vruchtzetting en oogst — zacht fruit, _Botrytis_, smaakverlies.
+- Verse drijfmest in productiepercelen — risico op _Phytophthora_ en _Botrytis_, en
   aandachtspunten rond voedselveiligheid.
 - KCl in productiepercelen.
 
@@ -103,6 +111,7 @@ dan productie (beheerste groei, geen vruchtvorming gewenst); `advice.d_n_req` ho
 rekening met dit stadium.
 
 **Extra aandacht (alle fruitsoorten):**
+
 - Zowel bodem- als bladanalyse zijn nodig; bodemanalyse alleen overschat of onderschat de
   werkelijke aanvoer in een meerjarige aanplant.
 - Rest-N uit een gerooid oud perceel of uit een grasstrook tussen de rijen is aanzienlijk;

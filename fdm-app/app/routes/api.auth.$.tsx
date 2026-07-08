@@ -1,20 +1,16 @@
-import type {
-    ActionFunctionArgs,
-    LoaderFunctionArgs,
-    MetaFunction,
-} from "react-router"
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Authenticatie | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: "Beveiligde authenticatie voor toegang tot het platform.",
-        },
-    ]
+  return [
+    { title: `Authenticatie | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: "Beveiligde authenticatie voor toegang tot het platform.",
+    },
+  ]
 }
 
 /**
@@ -27,11 +23,11 @@ export const meta: MetaFunction = () => {
  * @returns The result of the authentication handler, or an error response if an error occurs.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
-    try {
-        return auth.handler(request)
-    } catch (error) {
-        return handleLoaderError(error)
-    }
+  try {
+    return auth.handler(request)
+  } catch (error) {
+    return handleLoaderError(error)
+  }
 }
 
 /**
@@ -44,9 +40,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * @returns A promise that resolves to either the authentication result or an error response.
  */
 export async function action({ request }: ActionFunctionArgs) {
-    try {
-        return auth.handler(request)
-    } catch (error) {
-        return handleActionError(error)
-    }
+  try {
+    return auth.handler(request)
+  } catch (error) {
+    return handleActionError(error)
+  }
 }

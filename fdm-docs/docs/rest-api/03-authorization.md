@@ -12,11 +12,11 @@ An API key has the **same effective FDM access as the user who owns it**. The ke
 
 Authorization is enforced by passing the owning user's principal identifier into `fdm-core`, so the API follows the same farm, field, organization-membership, write, and delete permissions as the web application.
 
-| Rule | Consequence |
-|---|---|
-| User can perform an action in the app | Their API key can perform the corresponding API action |
-| User loses access in the app | API key loses that access on the **next request** |
-| User cannot access a resource via `fdm-core` | API returns `403` |
+| Rule                                         | Consequence                                            |
+| -------------------------------------------- | ------------------------------------------------------ |
+| User can perform an action in the app        | Their API key can perform the corresponding API action |
+| User loses access in the app                 | API key loses that access on the **next request**      |
+| User cannot access a resource via `fdm-core` | API returns `403`                                      |
 
 ## Access paths
 
@@ -31,11 +31,11 @@ The API does not construct a broad scope list of all the user's organizations. E
 
 `fdm-core` defines three roles with the following permissions:
 
-| Role | Read | Write | List | Share |
-|---|---|---|---|---|
-| `owner` | ✅ | ✅ | ✅ | ✅ |
-| `advisor` | ✅ | ✅ | ✅ | ❌ |
-| `researcher` | ✅ | ❌ | ❌ | ❌ |
+| Role         | Read | Write | List | Share |
+| ------------ | ---- | ----- | ---- | ----- |
+| `owner`      | ✅   | ✅    | ✅   | ✅    |
+| `advisor`    | ✅   | ✅    | ✅   | ❌    |
+| `researcher` | ✅   | ❌    | ❌   | ❌    |
 
 Write operations (POST, PATCH, DELETE) require at least the `advisor` role. Share operations (invitations) are not available through the API in the initial release.
 
@@ -59,4 +59,3 @@ If a user's organization membership is removed, their API key loses access to re
 ## Audit channel
 
 All API requests are tagged with `audit_channel: "api"` in the FDM audit log. This makes API-originated actions distinguishable from web-application actions in reporting and compliance queries.
-

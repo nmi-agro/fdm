@@ -1,21 +1,21 @@
 {
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "strict": true,
-        "skipLibCheck": true,
-        "resolveJsonModule": true,
-        "jsx": "react-jsx"
-    },
-    "include": [
-        "fdm-core/src/**/*",
-        "fdm-data/src/**/*",
-        "fdm-calculator/src/**/*",
-        "fdm-rvo/src/**/*",
-        "fdm-agents/src/**/*",
-        "fdm-api/src/**/*"
-    ],
-    "exclude": ["node_modules", "**/*.test.ts", "**/dist", "**/build"]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "fdm-core/src/**/*",
+    "fdm-data/src/**/*",
+    "fdm-calculator/src/**/*",
+    "fdm-rvo/src/**/*",
+    "fdm-agents/src/**/*",
+    "fdm-api/src/**/*"
+  ],
+  "exclude": ["node_modules", "**/*.test.ts", "**/dist", "**/build"]
 }

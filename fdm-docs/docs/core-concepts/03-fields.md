@@ -14,17 +14,17 @@ The geometry is stored in the [WGS 84](https://en.wikipedia.org/wiki/World_Geode
 
 A `Field` has the following properties, which are stored in the `fields` table:
 
-* **`b_id`**: A unique identifier for the field. This is the primary key for the `fields` table.
-* **`b_name`**: The name of the field.
-* **`b_geometry`**: The geometry of the field, as a GeoJSON polygon.
-* **`b_id_source`**: An optional identifier from an external data source.
+- **`b_id`**: A unique identifier for the field. This is the primary key for the `fields` table.
+- **`b_name`**: The name of the field.
+- **`b_geometry`**: The geometry of the field, as a GeoJSON polygon.
+- **`b_id_source`**: An optional identifier from an external data source.
 
 ## Relationship to a Farm
 
 A `Field` is always associated with a `Farm`. This relationship is established through the `fieldAcquiring` table, which links a `field` (`b_id`) to a `farm` (`b_id_farm`). This table also records:
 
-* **`b_start`**: The date when the farm's management of the field began.
-* **`b_acquiring_method`**: The method by which the farm acquired the field (e.g., ownership, lease).
+- **`b_start`**: The date when the farm's management of the field began.
+- **`b_acquiring_method`**: The method by which the farm acquired the field (e.g., ownership, lease).
 
 The `fieldDiscarding` table is used to mark when a field is no longer actively managed by the farm.
 

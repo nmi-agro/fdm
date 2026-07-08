@@ -1,19 +1,19 @@
 import {
-    checkPermission,
-    getCurrentSoilData,
-    getField,
-    getSoilAnalyses,
-    getSoilParametersDescription,
-    removeSoilAnalysis,
+  checkPermission,
+  getCurrentSoilData,
+  getField,
+  getSoilAnalyses,
+  getSoilParametersDescription,
+  removeSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { Plus } from "lucide-react"
 import {
-    type ActionFunctionArgs,
-    data,
-    type LoaderFunctionArgs,
-    NavLink,
-    useFetcher,
-    useLoaderData,
+  type ActionFunctionArgs,
+  data,
+  type LoaderFunctionArgs,
+  NavLink,
+  useFetcher,
+  useLoaderData,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
@@ -45,107 +45,93 @@ import { cn } from "~/lib/utils"
  * @throws {Error} If the field is not found (HTTP 404).
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
-        }
-
-        // Get the field id
-        const b_id = params.b_id
-        if (!b_id) {
-            throw data("Field ID is required", {
-                status: 400,
-                statusText: "Field ID is required",
-            })
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        // Get timeframe from calendar store
-        const timeframe = getTimeframe(params)
-
-        // Get details of field
-        const field = await getField(fdm, session.principal_id, b_id)
-        if (!field) {
-            throw data("Field is not found", {
-                status: 404,
-                statusText: "Field is not found",
-            })
-        }
-
-        // Get the soil analyses
-        const soilAnalyses = await getSoilAnalyses(
-            fdm,
-            session.principal_id,
-            b_id,
-            {
-                start: null,
-                end: timeframe.end,
-            },
-        )
-
-        const filteredSoilAnalyses = soilAnalyses.filter(
-            (analysis) => !isBcsAnalysis(analysis),
-        )
-
-        // Get current soil data
-        const currentSoilData = await getCurrentSoilData(
-            fdm,
-            session.principal_id,
-            b_id,
-            timeframe,
-        )
-
-        // Get soil parameter descriptions
-        const soilParameterDescription = getSoilParametersDescription()
-
-        const pathname = new URL(request.url).pathname
-        const fieldWritePermission = checkPermission(
-            fdm,
-            "field",
-            "write",
-            b_id,
-            session.principal_id,
-            pathname,
-            false,
-        )
-
-        const soilAnalysisWritePermissionsEntries = await Promise.all(
-            filteredSoilAnalyses.map(async (analysis) => [
-                analysis.a_id,
-                await checkPermission(
-                    fdm,
-                    "soil_analysis",
-                    "write",
-                    analysis.a_id,
-                    session.principal_id,
-                    pathname,
-                    false,
-                ),
-            ]),
-        )
-        const soilAnalysisWritePermissions = Object.fromEntries(
-            soilAnalysisWritePermissionsEntries,
-        )
-
-        // Return user information from loader
-        return {
-            field: field,
-            fieldWritePermission: await fieldWritePermission,
-            currentSoilData: currentSoilData,
-            soilParameterDescription: soilParameterDescription,
-            soilAnalyses: filteredSoilAnalyses,
-            soilAnalysisWritePermissions: soilAnalysisWritePermissions,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+  try {
+    // Get the farm id
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw data("Farm ID is required", {
+        status: 400,
+        statusText: "Farm ID is required",
+      })
     }
+
+    // Get the field id
+    const b_id = params.b_id
+    if (!b_id) {
+      throw data("Field ID is required", {
+        status: 400,
+        statusText: "Field ID is required",
+      })
+    }
+
+    // Get the session
+    const session = await getSession(request)
+
+    // Get timeframe from calendar store
+    const timeframe = getTimeframe(params)
+
+    // Get details of field
+    const field = await getField(fdm, session.principal_id, b_id)
+    if (!field) {
+      throw data("Field is not found", {
+        status: 404,
+        statusText: "Field is not found",
+      })
+    }
+
+    // Get the soil analyses
+    const soilAnalyses = await getSoilAnalyses(fdm, session.principal_id, b_id, {
+      start: null,
+      end: timeframe.end,
+    })
+
+    const filteredSoilAnalyses = soilAnalyses.filter((analysis) => !isBcsAnalysis(analysis))
+
+    // Get current soil data
+    const currentSoilData = await getCurrentSoilData(fdm, session.principal_id, b_id, timeframe)
+
+    // Get soil parameter descriptions
+    const soilParameterDescription = getSoilParametersDescription()
+
+    const pathname = new URL(request.url).pathname
+    const fieldWritePermission = checkPermission(
+      fdm,
+      "field",
+      "write",
+      b_id,
+      session.principal_id,
+      pathname,
+      false,
+    )
+
+    const soilAnalysisWritePermissionsEntries = await Promise.all(
+      filteredSoilAnalyses.map(async (analysis) => [
+        analysis.a_id,
+        await checkPermission(
+          fdm,
+          "soil_analysis",
+          "write",
+          analysis.a_id,
+          session.principal_id,
+          pathname,
+          false,
+        ),
+      ]),
+    )
+    const soilAnalysisWritePermissions = Object.fromEntries(soilAnalysisWritePermissionsEntries)
+
+    // Return user information from loader
+    return {
+      field: field,
+      fieldWritePermission: await fieldWritePermission,
+      currentSoilData: currentSoilData,
+      soilParameterDescription: soilParameterDescription,
+      soilAnalyses: filteredSoilAnalyses,
+      soilAnalysisWritePermissions: soilAnalysisWritePermissions,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -156,137 +142,114 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  *
  */
 export default function FarmFieldSoilOverviewBlock() {
-    const loaderData = useLoaderData<typeof loader>()
-    const fetcher = useFetcher()
+  const loaderData = useLoaderData<typeof loader>()
+  const fetcher = useFetcher()
 
-    return (
-        <Tabs defaultValue="parameters" className="space-y-6">
-            <div className="space-y-4">
-                <div>
-                    <h3 className="text-lg font-medium">Bodem</h3>
-                    <p className="text-sm text-muted-foreground">
-                        In de gegevens hieronder vind je de meest recente waarde
-                        gemeten voor elke bodemparameter
-                    </p>
-                </div>
-                <div className="flex items-center justify-between">
-                    <TabsList>
-                        <TabsTrigger value="parameters">Parameters</TabsTrigger>
-                        <TabsTrigger value="analyses">Analyses</TabsTrigger>
-                    </TabsList>
-                    <Button
-                        asChild
-                        className={cn(
-                            !loaderData.fieldWritePermission ? "invisible" : "",
-                        )}
-                    >
-                        <NavLink to="./analysis/new">
-                            <Plus />
-                            Bodemanalyse toevoegen
-                        </NavLink>
-                    </Button>
-                </div>
+  return (
+    <Tabs defaultValue="parameters" className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-medium">Bodem</h3>
+          <p className="text-muted-foreground text-sm">
+            In de gegevens hieronder vind je de meest recente waarde gemeten voor elke
+            bodemparameter
+          </p>
+        </div>
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="parameters">Parameters</TabsTrigger>
+            <TabsTrigger value="analyses">Analyses</TabsTrigger>
+          </TabsList>
+          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
+            <NavLink to="./analysis/new">
+              <Plus />
+              Bodemanalyse toevoegen
+            </NavLink>
+          </Button>
+        </div>
+      </div>
+      <Separator />
+      <div className="">
+        <TabsContent value="parameters">
+          {loaderData.soilAnalyses.length === 0 ? (
+            <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
+              <div className="flex flex-col space-y-2 text-center">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  Dit perceel heeft nog geen bodemanalyse
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  Voeg een analyse toe om gegevens over de bodem bij te houden
+                </p>
+              </div>
+              <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
+                <NavLink to="./analysis/new">Bodemanalyse toevoegen</NavLink>
+              </Button>
             </div>
-            <Separator />
-            <div className="">
-                <TabsContent value="parameters">
-                    {loaderData.soilAnalyses.length === 0 ? (
-                        <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
-                            <div className="flex flex-col space-y-2 text-center">
-                                <h1 className="text-2xl font-semibold tracking-tight">
-                                    Dit perceel heeft nog geen bodemanalyse
-                                </h1>
-                                <p className="text-sm text-muted-foreground">
-                                    Voeg een analyse toe om gegevens over de
-                                    bodem bij te houden
-                                </p>
-                            </div>
-                            <Button
-                                asChild
-                                className={cn(
-                                    !loaderData.fieldWritePermission
-                                        ? "invisible"
-                                        : "",
-                                )}
-                            >
-                                <NavLink to="./analysis/new">
-                                    Bodemanalyse toevoegen
-                                </NavLink>
-                            </Button>
-                        </div>
-                    ) : (
-                        <SoilDataCards
-                            currentSoilData={loaderData.currentSoilData}
-                            soilParameterDescription={
-                                loaderData.soilParameterDescription
-                            }
-                            canModifySoilAnalysis={
-                                loaderData.soilAnalysisWritePermissions
-                            }
-                        />
-                    )}
-                </TabsContent>
-                <TabsContent value="analyses">
-                    <SoilAnalysesList
-                        soilAnalyses={loaderData.soilAnalyses}
-                        soilParameterDescription={
-                            loaderData.soilParameterDescription
-                        }
-                        fetcher={fetcher}
-                        canModifySoilAnalysis={
-                            loaderData.soilAnalysisWritePermissions
-                        }
-                    />
-                </TabsContent>
-            </div>
-        </Tabs>
-    )
+          ) : (
+            <SoilDataCards
+              currentSoilData={loaderData.currentSoilData}
+              soilParameterDescription={loaderData.soilParameterDescription}
+              canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
+            />
+          )}
+        </TabsContent>
+        <TabsContent value="analyses">
+          <SoilAnalysesList
+            soilAnalyses={loaderData.soilAnalyses}
+            soilParameterDescription={loaderData.soilParameterDescription}
+            fetcher={fetcher}
+            canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
+          />
+        </TabsContent>
+      </div>
+    </Tabs>
+  )
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
-    // Get the farm id
-    const b_id_farm = params.b_id_farm
-    if (!b_id_farm) {
-        throw data("Farm ID is required", {
-            status: 400,
-            statusText: "Farm ID is required",
+  // Get the farm id
+  const b_id_farm = params.b_id_farm
+  if (!b_id_farm) {
+    throw data("Farm ID is required", {
+      status: 400,
+      statusText: "Farm ID is required",
+    })
+  }
+
+  // Get the field id
+  const b_id = params.b_id
+  if (!b_id) {
+    throw data("Field ID is required", {
+      status: 400,
+      statusText: "Field ID is required",
+    })
+  }
+
+  try {
+    if (request.method === "DELETE") {
+      const formData = await request.formData()
+      const a_id = formData.get("a_id") as string | null
+      if (!a_id) {
+        throw data("Analysis ID is required", {
+          status: 400,
+          statusText: "Analysis ID is required",
         })
+      }
+
+      // Get the session
+      const session = await getSession(request)
+
+      // Remove the analysis
+      await removeSoilAnalysis(fdm, session.principal_id, a_id)
+      return redirectWithSuccess("./", {
+        message: "Bodemanalyse is verwijderd! 🎉",
+      })
     }
-
-    // Get the field id
-    const b_id = params.b_id
-    if (!b_id) {
-        throw data("Field ID is required", {
-            status: 400,
-            statusText: "Field ID is required",
-        })
-    }
-
-    try {
-        if (request.method === "DELETE") {
-            const formData = await request.formData()
-            const a_id = formData.get("a_id") as string | null
-            if (!a_id) {
-                throw data("Analysis ID is required", {
-                    status: 400,
-                    statusText: "Analysis ID is required",
-                })
-            }
-
-            // Get the session
-            const session = await getSession(request)
-
-            // Remove the analysis
-            await removeSoilAnalysis(fdm, session.principal_id, a_id)
-            return redirectWithSuccess("./", {
-                message: "Bodemanalyse is verwijderd! 🎉",
-            })
-        }
-        throw data("Method not allowed", {
-            status: 405,
-            statusText: "Method not allowed",
-        })
-    } catch (error) {
-        throw handleActionError(error)
-    }
+    throw data("Method not allowed", {
+      status: 405,
+      statusText: "Method not allowed",
+    })
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }
