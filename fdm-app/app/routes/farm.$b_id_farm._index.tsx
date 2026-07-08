@@ -38,11 +38,11 @@ import {
   useLoaderData,
 } from "react-router"
 import { toast } from "sonner"
+import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { CultivationSuggestionBanner } from "~/components/blocks/cultivation/suggestion"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -59,8 +59,8 @@ import { getRvoCredentials } from "~/integrations/rvo.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
@@ -132,13 +132,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const nmiApiKey = getNmiApiKey()
     const fieldsMissingCultivationDetails = await Promise.all(
       fields
-        .filter((field) => !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear))
+        .filter(
+          (field) => !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
+        )
         .map(async (field) => ({
           b_id: field.b_id,
           b_name: field.b_name,
-          suggestion: await getCultivationSuggestion(
+          result: await getCultivationSuggestionResult(
             fdm,
             session.principal_id,
+            b_id_farm,
             field.b_id,
             activeYear,
             nmiApiKey,
@@ -575,26 +578,25 @@ export default function FarmDashboardIndex() {
                         </button>
                         {showMissingCultivationDetails && (
                           <div className="space-y-2 border-t p-3">
-                            {loaderData.fieldsMissingCultivationDetails.map((field) =>
-                              field.suggestion ? (
-                                <CultivationSuggestionBanner
-                                  key={field.b_id}
+                            {loaderData.fieldsMissingCultivationDetails.map((field) => (
+                              <div key={field.b_id} className="space-y-1">
+                                <CultivationSuggestionStatusBanner
                                   b_id_farm={loaderData.b_id_farm}
                                   calendar={loaderData.cultivationYear}
                                   b_id={field.b_id}
                                   b_name={field.b_name}
-                                  suggestion={field.suggestion}
+                                  result={field.result}
                                 />
-                              ) : (
-                                <NavLink
-                                  key={field.b_id}
-                                  to={`${loaderData.cultivationYear}/field/${field.b_id}/cultivation`}
-                                  className="text-muted-foreground hover:text-foreground block text-sm underline"
-                                >
-                                  {field.b_name}: hoofdteelt toevoegen
-                                </NavLink>
-                              ),
-                            )}
+                                {field.result.status !== "suggested" && (
+                                  <NavLink
+                                    to={`${loaderData.cultivationYear}/field/${field.b_id}/cultivation`}
+                                    className="text-muted-foreground hover:text-foreground block text-sm underline"
+                                  >
+                                    {field.b_name}: hoofdteelt handmatig toevoegen
+                                  </NavLink>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

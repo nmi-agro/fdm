@@ -427,7 +427,11 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
         const nmiApiKey = getNmiApiKey()
         if (nmiApiKey) {
           try {
-            const soilEstimates = await getSoilParameterEstimatesForGeometry(fdm, geometry, nmiApiKey)
+            const soilEstimates = await getSoilParameterEstimatesForGeometry(
+              fdm,
+              geometry,
+              nmiApiKey,
+            )
             await addSoilAnalysis(
               tx,
               session.principal_id,

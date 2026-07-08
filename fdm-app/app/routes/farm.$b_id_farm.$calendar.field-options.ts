@@ -1,9 +1,9 @@
 import { getFields } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs } from "react-router"
+import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getSession } from "~/lib/auth.server"
 
 /**
  * Resource route that returns a minimal list of fields for a farm.

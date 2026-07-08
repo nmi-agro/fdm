@@ -308,7 +308,11 @@ export async function genericAction(
       if (nmiApiKey) {
         for (const { b_id, geometry } of addedFields) {
           try {
-            const soilEstimates = await getSoilParameterEstimatesForGeometry(fdm, geometry, nmiApiKey)
+            const soilEstimates = await getSoilParameterEstimatesForGeometry(
+              fdm,
+              geometry,
+              nmiApiKey,
+            )
             await addSoilAnalysis(
               fdm,
               session.principal_id,

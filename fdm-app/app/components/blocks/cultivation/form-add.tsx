@@ -17,22 +17,36 @@ import { Spinner } from "~/components/ui/spinner"
 import type { CultivationsFormProps } from "./types"
 import { CultivationAddFormSchema } from "./schema"
 
-export function CultivationAddFormDialog({ options, defaultValues }: CultivationsFormProps) {
+export function CultivationAddFormDialog({
+  options,
+  defaultValues,
+  onClose,
+}: CultivationsFormProps & { onClose?: () => void }) {
   const [isOpen, setIsOpen] = useState(!!defaultValues)
+  const isSuggested = !!defaultValues
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) {
+      onClose?.()
+    }
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>Gewas toevoegen</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Gewas toevoegen</DialogTitle>
+          <DialogTitle>
+            {isSuggested ? "Voorgesteld gewas bevestigen" : "Gewas toevoegen"}
+          </DialogTitle>
         </DialogHeader>
         <CultivationAddForm
           options={options}
           defaultValues={defaultValues}
-          onSuccess={() => setIsOpen(false)}
+          onSuccess={() => handleOpenChange(false)}
         />
       </DialogContent>
     </Dialog>
@@ -45,13 +59,14 @@ function CultivationAddForm({
   onSuccess,
   editable = true,
 }: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void }) {
+  const isSuggested = !!defaultValues
   const form = useRemixForm<z.infer<typeof CultivationAddFormSchema>>({
     mode: "onTouched",
     resolver: zodResolver(CultivationAddFormSchema) as never,
     defaultValues: {
       b_lu_catalogue: defaultValues?.b_lu_catalogue ?? "",
       b_lu_start: defaultValues?.b_lu_start ?? new Date(),
-      b_lu_end: undefined,
+      b_lu_end: defaultValues?.b_lu_end ?? undefined,
     },
   })
 
@@ -108,6 +123,8 @@ function CultivationAddForm({
                     <Spinner />
                     <span>Opslaan...</span>
                   </div>
+                ) : isSuggested ? (
+                  "Bevestigen"
                 ) : (
                   "Voeg toe"
                 )}

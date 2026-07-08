@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { NavLink, useParams } from "react-router"
 import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
+import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -21,10 +22,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
+import { CultivationSuggestionBadge } from "../cultivation/suggestion"
 import { BufferStripCheckbox } from "./buffer-strip-checkbox"
 import { DataTableColumnHeader } from "./column-header"
-import { CultivationSuggestionBadge } from "../cultivation/suggestion"
 
 const BCS_BADGE_CLASS: Record<BcsColor, string> = {
   red: "bg-red-100 text-red-700 hover:bg-red-200",

@@ -1,3 +1,4 @@
+import type { Geometry } from "geojson"
 import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import {
   calculateDose,
@@ -27,15 +28,9 @@ import {
 } from "@nmi-agro/fdm-core"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
-import type { Geometry } from "geojson"
 import { useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
-import {
-  buildFieldDashboardRegistry,
-  FIELD_DASHBOARD_SECTIONS,
-} from "~/components/blocks/field-dashboard/registry"
-import { FieldDashboardSectionHeading } from "~/components/blocks/field-dashboard/tile"
 import type {
   AsyncTileResult,
   FieldDashboardBlnSummary,
@@ -47,24 +42,34 @@ import type {
   FieldDashboardNutrientAdviceSummary,
   FieldDashboardOrganicMatterBalanceSummary,
 } from "~/components/blocks/field-dashboard/types"
+import type { CultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
+import {
+  buildFieldDashboardRegistry,
+  FIELD_DASHBOARD_SECTIONS,
+} from "~/components/blocks/field-dashboard/registry"
+import { FieldDashboardSectionHeading } from "~/components/blocks/field-dashboard/tile"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
-import { getEffectiveHarvestable, getHarvestDateTerm, getHarvestTerm } from "~/components/blocks/harvest/utils"
+import {
+  getEffectiveHarvestable,
+  getHarvestDateTerm,
+  getHarvestTerm,
+} from "~/components/blocks/harvest/utils"
 import { constructSoilDataCards } from "~/components/blocks/soil/cards"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getSession } from "~/lib/auth.server"
-import { computeBcs } from "~/lib/bcs.server"
-import { isBcsAnalysis } from "~/lib/bcs"
-import { getTimeframe } from "~/lib/calendar"
-import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
-import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
-import { handleLoaderError, reportError } from "~/lib/error"
-import { fdm } from "~/lib/fdm.server"
-import { getFieldAggregationScore } from "~/lib/aggregations"
 import { getIndicatorsForField } from "~/integrations/bln3.server"
 import { getNorms } from "~/integrations/calculator"
 import { getMapStyle } from "~/integrations/map"
 import { getNmiApiKey } from "~/integrations/nmi.server"
+import { getFieldAggregationScore } from "~/lib/aggregations"
+import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
+import { computeBcs } from "~/lib/bcs.server"
+import { getTimeframe } from "~/lib/calendar"
+import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
+import { handleLoaderError, reportError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
 import { getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
@@ -121,7 +126,9 @@ async function computeFieldBalanceResult<TData>(options: {
   isBufferstrip: boolean
   bufferstripMessage: string
   collectInput: () => Promise<unknown>
-  calculate: (input: unknown) => Promise<{ fields: Array<{ b_id: string; errorMessage?: string; balance?: unknown }> }>
+  calculate: (
+    input: unknown,
+  ) => Promise<{ fields: Array<{ b_id: string; errorMessage?: string; balance?: unknown }> }>
   b_id: string
   missingParamsMessage: string
   genericErrorMessage: string
@@ -231,20 +238,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       soilAnalyses,
       measures,
     ] = await Promise.all([
-        getField(fdm, session.principal_id, b_id),
-        getFields(fdm, session.principal_id, b_id_farm, timeframe),
-        getCultivations(fdm, session.principal_id, b_id, timeframe),
-        // Fetched without a timeframe to cover the field's full multi-year cultivation history
-        getCultivations(fdm, session.principal_id, b_id),
-        getFertilizerApplications(fdm, session.principal_id, b_id, timeframe),
-        getFertilizers(fdm, session.principal_id, b_id_farm),
-        getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
-        getSoilAnalyses(fdm, session.principal_id, b_id, {
-          start: null,
-          end: timeframe.end,
-        }),
-        getMeasures(fdm, session.principal_id, b_id, timeframe),
-      ])
+      getField(fdm, session.principal_id, b_id),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivations(fdm, session.principal_id, b_id, timeframe),
+      // Fetched without a timeframe to cover the field's full multi-year cultivation history
+      getCultivations(fdm, session.principal_id, b_id),
+      getFertilizerApplications(fdm, session.principal_id, b_id, timeframe),
+      getFertilizers(fdm, session.principal_id, b_id_farm),
+      getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+      getSoilAnalyses(fdm, session.principal_id, b_id, {
+        start: null,
+        end: timeframe.end,
+      }),
+      getMeasures(fdm, session.principal_id, b_id, timeframe),
+    ])
 
     if (!field) {
       throw data("Unable to find field", { status: 404, statusText: "Unable to find field" })
@@ -291,17 +298,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     )
     const harvestsByCultivation = Object.fromEntries(harvestEntries)
 
-    const activeCultivation = getDefaultCultivation(cultivations, calendar) ?? cultivations[0] ?? null
+    const activeCultivation =
+      getDefaultCultivation(cultivations, calendar) ?? cultivations[0] ?? null
     const hasDefaultCultivation = !!getDefaultCultivation(cultivations, calendar)
-    const cultivationSuggestion = hasDefaultCultivation
-      ? null
-      : (await getCultivationSuggestion(
+    // "not_configured" doubles as "nothing to show" here when a default cultivation already
+    // exists — CultivationSuggestionStatusBanner renders null for that status either way.
+    const cultivationSuggestionResult: CultivationSuggestionResult = hasDefaultCultivation
+      ? { status: "not_configured" }
+      : await getCultivationSuggestionResult(
           fdm,
           session.principal_id,
+          b_id_farm,
           b_id,
           calendar,
           getNmiApiKey(),
-        )) ?? null
+        )
 
     const cultivationSummary = activeCultivation
       ? {
@@ -320,7 +331,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           harvests: (harvestsByCultivation[activeCultivation.b_lu] ?? [])
             .slice()
             .sort(
-              (a: (typeof harvestsByCultivation)[string][number], b: (typeof harvestsByCultivation)[string][number]) =>
+              (
+                a: (typeof harvestsByCultivation)[string][number],
+                b: (typeof harvestsByCultivation)[string][number],
+              ) =>
                 new Date(b.b_lu_harvest_date ?? 0).getTime() -
                 new Date(a.b_lu_harvest_date ?? 0).getTime(),
             )
@@ -401,9 +415,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       )[0]
 
     const measuredCount = filteredSoilAnalyses.filter(
-      (analysis) => analysis.a_source && analysis.a_source !== "nl-other-nmi" && analysis.a_source !== "other",
+      (analysis) =>
+        analysis.a_source && analysis.a_source !== "nl-other-nmi" && analysis.a_source !== "other",
     ).length
-    const estimatedCount = filteredSoilAnalyses.filter((analysis) => analysis.a_source === "nl-other-nmi").length
+    const estimatedCount = filteredSoilAnalyses.filter(
+      (analysis) => analysis.a_source === "nl-other-nmi",
+    ).length
     const unknownCount = filteredSoilAnalyses.length - measuredCount - estimatedCount
 
     const latestBcsAnalysis = soilAnalyses
@@ -427,9 +444,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>
     > => {
       const nmiApiKey = getNmiApiKey()
-      const fdmHistoryWithSource: FieldDashboardCultivationHistoryEntry[] = fdmCultivationHistory.map(
-        (entry) => ({ ...entry, source: "fdm" }),
-      )
+      const fdmHistoryWithSource: FieldDashboardCultivationHistoryEntry[] =
+        fdmCultivationHistory.map((entry) => ({ ...entry, source: "fdm" }))
 
       if (!nmiApiKey || !field.b_geometry) {
         return fdmHistoryWithSource.length > 0
@@ -511,20 +527,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     })()
 
-
     const fertilizerAsyncPromise = (async (): Promise<FieldDashboardFertilizerAsyncSummary> => {
       const nmiApiKey = getNmiApiKey()
 
       if (!nmiApiKey) {
         return {
-          advice: buildUnavailableResult("Advies is nu niet beschikbaar omdat er geen NMI-koppeling is ingesteld."),
+          advice: buildUnavailableResult(
+            "Advies is nu niet beschikbaar omdat er geen NMI-koppeling is ingesteld.",
+          ),
           norms: buildUnavailableResult(
             "Gebruiksruimte is nu niet beschikbaar omdat de NMI-koppeling voor dit dashboard ontbreekt.",
           ),
         }
       }
 
-      const adviceResult = await (async (): Promise<AsyncTileResult<FieldDashboardNutrientAdviceSummary>> => {
+      const adviceResult = await (async (): Promise<
+        AsyncTileResult<FieldDashboardNutrientAdviceSummary>
+      > => {
         if (!activeCultivation) {
           return buildEmptyResult("Voeg eerst een gewas toe om bemestingsadvies te tonen.")
         }
@@ -616,7 +635,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const blnPromise = (async (): Promise<AsyncTileResult<FieldDashboardBlnSummary>> => {
       const nmiApiKey = getNmiApiKey()
       if (!nmiApiKey) {
-        return buildUnavailableResult("BLN is nu niet beschikbaar omdat de NMI-koppeling ontbreekt.")
+        return buildUnavailableResult(
+          "BLN is nu niet beschikbaar omdat de NMI-koppeling ontbreekt.",
+        )
       }
 
       try {
@@ -652,7 +673,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           { id: "S_CLIM_BLN", label: "Klimaat" },
           { id: "S_PROD_BLN", label: "Productie" },
         ].map(({ id, label }) => {
-          const score01 = getFieldAggregationScore(result.score, id as Parameters<typeof getFieldAggregationScore>[1])
+          const score01 = getFieldAggregationScore(
+            result.score,
+            id as Parameters<typeof getFieldAggregationScore>[1],
+          )
           return {
             id,
             label,
@@ -683,7 +707,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       bufferstripMessage: "Bufferstroken hebben geen stikstofbalans.",
       collectInput: () =>
         collectInputForNitrogenBalance(fdm, session.principal_id, b_id_farm, timeframe, b_id),
-      calculate: (input) => calculateNitrogenBalance(fdm, input as Parameters<typeof calculateNitrogenBalance>[1]),
+      calculate: (input) =>
+        calculateNitrogenBalance(fdm, input as Parameters<typeof calculateNitrogenBalance>[1]),
       b_id,
       missingParamsMessage:
         "Voor dit perceel ontbreken bodemparameters die nodig zijn voor de stikstofbalans.",
@@ -717,7 +742,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         isBufferstrip: !!field.b_bufferstrip,
         bufferstripMessage: "Bufferstroken hebben geen organische stofbalans.",
         collectInput: () =>
-          collectInputForOrganicMatterBalance(fdm, session.principal_id, b_id_farm, timeframe, b_id),
+          collectInputForOrganicMatterBalance(
+            fdm,
+            session.principal_id,
+            b_id_farm,
+            timeframe,
+            b_id,
+          ),
         calculate: (input) => {
           type InputType = Omit<
             Awaited<ReturnType<typeof collectInputForOrganicMatterBalance>>,
@@ -760,7 +791,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       selectedFieldGeoJson,
       cultivation: {
         active: cultivationSummary,
-        suggestion: cultivationSuggestion,
+        suggestionResult: cultivationSuggestionResult,
       },
       fertilizer: {
         applicationCount: fertilizerApplications.length,
@@ -777,7 +808,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             : null,
         applications: fertilizerApplications
           .slice()
-          .sort((a, b) => new Date(b.p_app_date ?? 0).getTime() - new Date(a.p_app_date ?? 0).getTime())
+          .sort(
+            (a, b) => new Date(b.p_app_date ?? 0).getTime() - new Date(a.p_app_date ?? 0).getTime(),
+          )
           .map((application) => ({
             p_app_id: application.p_app_id,
             p_name: application.p_name_nl ?? "Onbekende meststof",

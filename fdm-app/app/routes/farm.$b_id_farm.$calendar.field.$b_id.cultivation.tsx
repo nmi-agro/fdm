@@ -148,7 +148,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmFieldsOverviewBlock() {
   const loaderData = useLoaderData<typeof loader>()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   if ("warning" in loaderData) {
     return (
@@ -166,10 +166,31 @@ export default function FarmFieldsOverviewBlock() {
   // elsewhere in the app (dashboard, field list, field detail, nutrient advice overview).
   const suggestedCatalogue = searchParams.get("suggest_b_lu_catalogue")
   const suggestedStart = searchParams.get("suggest_start")
+  const suggestedEnd = searchParams.get("suggest_end")
   const defaultValues =
     suggestedCatalogue && suggestedStart
-      ? { b_lu_catalogue: suggestedCatalogue, b_lu_start: new Date(suggestedStart) }
+      ? {
+          b_lu_catalogue: suggestedCatalogue,
+          b_lu_start: new Date(suggestedStart),
+          b_lu_end: suggestedEnd ? new Date(suggestedEnd) : undefined,
+        }
       : undefined
+
+  // Strip the suggestion query params once the dialog is closed (submitted or dismissed) so
+  // navigating back, refreshing, or sharing this URL doesn't keep reopening it.
+  const clearSuggestionParams = () => {
+    if (!suggestedCatalogue && !suggestedStart && !suggestedEnd) return
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("suggest_b_lu_catalogue")
+        next.delete("suggest_start")
+        next.delete("suggest_end")
+        return next
+      },
+      { replace: true },
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -180,6 +201,7 @@ export default function FarmFieldsOverviewBlock() {
           harvests={loaderData.harvests}
           editable={loaderData.fieldWritePermission}
           defaultValues={defaultValues}
+          onSuggestionDialogClose={clearSuggestionParams}
         />
         <Outlet />
       </div>

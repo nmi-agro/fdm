@@ -1,8 +1,8 @@
+import type { SoilParameterEstimatesResponse } from "@nmi-agro/fdm-calculator"
 /* eslint-disable typescript/no-redundant-type-constituents -- 'any' is used intentionally inside custom return types to represent raw third-party JSON properties that cannot be typed ahead of time. */
 import type { FdmType, FieldGeometry } from "@nmi-agro/fdm-core"
-import type { SoilParameterEstimatesResponse } from "@nmi-agro/fdm-calculator"
-import { getSoilParameterEstimates } from "@nmi-agro/fdm-calculator"
 import type { Feature, Geometry } from "geojson"
+import { getSoilParameterEstimates } from "@nmi-agro/fdm-calculator"
 import centroid from "@turf/centroid"
 import { fileTypeFromBuffer } from "file-type"
 import proj4 from "proj4"

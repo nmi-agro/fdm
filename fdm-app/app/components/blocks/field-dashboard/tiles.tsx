@@ -12,12 +12,12 @@ import {
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
+import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { BCS_COLOR_CLASSES, BCS_SCORE_DOT } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
-import { CultivationSuggestionBanner } from "~/components/blocks/cultivation/suggestion"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -128,7 +128,10 @@ export function FieldDashboardMapTile({ dashboard, tile }: FieldDashboardTilePro
           errorElement={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}
         >
           {(fieldCroprotationById) => (
-            <FieldDashboardMap dashboard={dashboard} fieldCroprotationById={fieldCroprotationById} />
+            <FieldDashboardMap
+              dashboard={dashboard}
+              fieldCroprotationById={fieldCroprotationById}
+            />
           )}
         </Await>
       </Suspense>
@@ -191,7 +194,7 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
 
 export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldDashboardTileProps) {
   const activeCultivation = dashboard.cultivation.active
-  const suggestion = dashboard.cultivation.suggestion
+  const suggestionResult = dashboard.cultivation.suggestionResult
 
   if (!activeCultivation) {
     return (
@@ -211,14 +214,12 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
               : undefined
           }
         />
-        {suggestion && (
-          <CultivationSuggestionBanner
-            b_id_farm={dashboard.b_id_farm}
-            calendar={dashboard.calendar}
-            b_id={dashboard.b_id}
-            suggestion={suggestion}
-          />
-        )}
+        <CultivationSuggestionStatusBanner
+          b_id_farm={dashboard.b_id_farm}
+          calendar={dashboard.calendar}
+          b_id={dashboard.b_id}
+          result={suggestionResult}
+        />
       </div>
     )
   }
@@ -231,14 +232,12 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
   return (
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-4">
-        {suggestion && (
-          <CultivationSuggestionBanner
-            b_id_farm={dashboard.b_id_farm}
-            calendar={dashboard.calendar}
-            b_id={dashboard.b_id}
-            suggestion={suggestion}
-          />
-        )}
+        <CultivationSuggestionStatusBanner
+          b_id_farm={dashboard.b_id_farm}
+          calendar={dashboard.calendar}
+          b_id={dashboard.b_id}
+          result={suggestionResult}
+        />
         <div>
           <p className="text-xl font-semibold break-words">{activeCultivation.name}</p>
           <p className="text-muted-foreground mt-1 text-sm">

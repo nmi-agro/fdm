@@ -156,6 +156,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           : await getCultivationSuggestion(
               fdm,
               session.principal_id,
+              b_id_farm,
               field.b_id,
               calendar,
               nmiApiKey,

@@ -16,6 +16,7 @@ export interface CultivationOption {
 export interface CultivationDefaultValues {
   b_lu_catalogue: string
   b_lu_start: Date
+  b_lu_end?: Date
 }
 
 export interface CultivationsFormProps {

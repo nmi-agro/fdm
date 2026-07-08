@@ -3,9 +3,9 @@ import type { FeatureCollection, Geometry } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
 import type { ComponentType } from "react"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
-import type { BcsPreviewResult } from "~/lib/bcs"
-import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
+import type { BcsPreviewResult } from "~/lib/bcs"
+import type { CultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 
 export type AsyncTileResult<T> =
   | { status: "ready"; data: T }
@@ -148,7 +148,7 @@ export interface FieldDashboardData {
   selectedFieldGeoJson: FeatureCollection<Geometry, FieldDashboardMapFeatureProperties>
   cultivation: {
     active: FieldDashboardCultivationSummary | null
-    suggestion: CultivationSuggestion | null
+    suggestionResult: CultivationSuggestionResult
   }
   fertilizer: {
     applicationCount: number

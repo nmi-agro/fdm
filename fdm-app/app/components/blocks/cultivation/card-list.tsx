@@ -23,23 +23,27 @@ export function CultivationListCard({
   harvests,
   editable = true,
   defaultValues,
+  onSuggestionDialogClose,
 }: {
   cultivationsCatalogueOptions: CultivationOption[]
   cultivations: Cultivation[]
   harvests: Harvest[]
   editable?: boolean
   defaultValues?: CultivationDefaultValues
+  /** Called when the pre-filled suggestion dialog is closed (submitted or dismissed). */
+  onSuggestionDialogClose?: () => void
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-xl font-semibold tracking-tight text-gray-900">
+        <CardTitle className="text-foreground text-xl font-semibold tracking-tight">
           Gewassen
         </CardTitle>
         {cultivations.length !== 0 && editable ? (
           <CultivationAddFormDialog
             options={cultivationsCatalogueOptions}
             defaultValues={defaultValues}
+            onClose={onSuggestionDialogClose}
           />
         ) : null}
       </CardHeader>
@@ -63,6 +67,7 @@ export function CultivationListCard({
                 <CultivationAddFormDialog
                   options={cultivationsCatalogueOptions}
                   defaultValues={defaultValues}
+                  onClose={onSuggestionDialogClose}
                 />
               </EmptyContent>
             )}

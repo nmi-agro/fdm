@@ -8,11 +8,11 @@ import {
 import { CheckCircle2, ChevronDown, ChevronUp, Info } from "lucide-react"
 import { Fragment } from "react"
 import { Form } from "react-router"
+import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { Spinner } from "~/components/ui/spinner"
 import {
   Table,
@@ -328,7 +328,11 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                             {Math.round(fill)} / {Math.round(norm)}
                                           </span>
                                         </div>
-                                        <NormProgressBar used={fill} limit={norm} className="h-1.5" />
+                                        <NormProgressBar
+                                          used={fill}
+                                          limit={norm}
+                                          className="h-1.5"
+                                        />
                                       </div>
                                     ))}
                                   </div>

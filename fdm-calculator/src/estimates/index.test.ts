@@ -109,9 +109,7 @@ describe("requestSoilParameterEstimates", () => {
       nmiApiKey: "mock-api-key",
     }
 
-    await expect(requestSoilParameterEstimates(input)).rejects.toThrow(
-      "Request to NMI API failed",
-    )
+    await expect(requestSoilParameterEstimates(input)).rejects.toThrow("Request to NMI API failed")
   })
 
   it("should throw an error if the NMI API response fails validation", async () => {

@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
+import { HeaderFieldPicker } from "~/components/blocks/header/field-picker"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import {
   DropdownMenu,
@@ -8,7 +9,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
-import { HeaderFieldPicker } from "~/components/blocks/header/field-picker"
 
 export function HeaderBalance({
   b_id_farm,
@@ -64,7 +64,9 @@ export function HeaderBalance({
             <HeaderFieldPicker
               b_id={b_id}
               fieldOptions={fieldOptions}
-              buildHref={(optionId) => `/farm/${b_id_farm}/${calendar}/balance/${balanceKind}/${optionId}`}
+              buildHref={(optionId) =>
+                `/farm/${b_id_farm}/${calendar}/balance/${balanceKind}/${optionId}`
+              }
             />
           </BreadcrumbItem>
         </>
