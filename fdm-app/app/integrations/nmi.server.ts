@@ -5,7 +5,7 @@ import centroid from "@turf/centroid"
 import proj4 from "proj4"
 import { z } from "zod"
 import { serverConfig } from "~/lib/config.server"
-import { readAndValidatePdfUpload } from "~/lib/upload-utils"
+import { readAndValidatePdfUpload } from "~/lib/upload-utils.server"
 
 // Register the projection for RD New (EPSG:28992)
 if (!proj4.defs("EPSG:28992")) {

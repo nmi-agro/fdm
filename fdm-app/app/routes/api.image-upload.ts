@@ -6,7 +6,7 @@ import { nanoid } from "nanoid"
 import { buildObjectKey, uploadObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
-import { readAndValidateFileUpload } from "~/lib/upload-utils"
+import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
