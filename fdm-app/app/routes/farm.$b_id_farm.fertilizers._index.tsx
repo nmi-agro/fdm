@@ -6,6 +6,7 @@ import {
   getFertilizers,
 } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { columns, type Fertilizer } from "~/components/blocks/fertilizer/columns"
 import { DataTable } from "~/components/blocks/fertilizer/table"
@@ -133,17 +134,13 @@ export default function FarmFertilizersIndexPage({ params: _params }: Route.Comp
       </Header>
       <main>
         <FarmTitle title={"Meststoffen"} description={"Beheer de meststoffen van dit bedrijf"} />
-        <div className="space-y-6 p-4 pb-0 md:p-8">
-          <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
-            <div className="flex-1">
-              <DataTable
-                columns={columns}
-                data={loaderData.fertilizers}
-                canAddItem={loaderData.farmWritePermission}
-              />
-            </div>
-          </div>
-        </div>
+        <FarmContent>
+          <DataTable
+            columns={columns}
+            data={loaderData.fertilizers}
+            canAddItem={loaderData.farmWritePermission}
+          />
+        </FarmContent>
       </main>
     </SidebarInset>
   )

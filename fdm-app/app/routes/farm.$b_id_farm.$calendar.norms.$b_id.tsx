@@ -12,6 +12,7 @@ import { nl } from "date-fns/locale"
 import { AlertTriangle } from "lucide-react"
 import { Suspense, use, useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -327,128 +328,135 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
 
   if (errorMessage && fieldNormData?.isWarning) {
     return (
-      <div className="px-4 py-6 sm:px-6 lg:px-8">
+      <FarmContent>
         <Alert variant="default" className="border-amber-200 bg-amber-50 text-amber-800">
           <AlertTriangle className="h-4 w-4 !text-amber-800" />
           <AlertTitle>Geen gebruiksnorm gevonden</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
-      </div>
+      </FarmContent>
     )
   }
 
   if (errorMessage) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-[350px]">
-          <CardHeader>
-            <CardTitle>
-              Helaas is het niet mogelijk om de gebruiksnormen uit te rekenen voor dit perceel
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-muted-foreground">
-              <p>
-                Er is onverwacht wat misgegaan. Probeer opnieuw of neem contact op met Ondersteuning
-                en deel de volgende foutmelding:
-              </p>
-              <div className="mt-8 w-full max-w-2xl">
-                <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
-                  {JSON.stringify(
-                    {
-                      message: errorMessage,
-                      fieldId: fieldNormData?.b_id,
-                      timestamp: new Date(),
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
+      <FarmContent>
+        <div className="flex items-center justify-center">
+          <Card className="w-[350px]">
+            <CardHeader>
+              <CardTitle>
+                Helaas is het niet mogelijk om de gebruiksnormen uit te rekenen voor dit perceel
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-muted-foreground">
+                <p>
+                  Er is onverwacht wat misgegaan. Probeer opnieuw of neem contact op met
+                  Ondersteuning en deel de volgende foutmelding:
+                </p>
+                <div className="mt-8 w-full max-w-2xl">
+                  <pre className="overflow-x-auto rounded-md bg-gray-200 p-4 text-sm text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                    {JSON.stringify(
+                      {
+                        message: errorMessage,
+                        fieldId: fieldNormData?.b_id,
+                        timestamp: new Date(),
+                      },
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </FarmContent>
     )
   }
 
   if (!fieldNormData) {
     return (
-      <div className="flex items-center justify-center">
-        <Card className="w-[350px]">
-          <CardHeader>
-            <CardTitle>Geen gegevens beschikbaar</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Er zijn geen normgegevens gevonden voor dit perceel.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <FarmContent>
+        <div className="flex items-center justify-center">
+          <Card className="w-[350px]">
+            <CardHeader>
+              <CardTitle>Geen gegevens beschikbaar</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Er zijn geen normgegevens gevonden voor dit perceel.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </FarmContent>
     )
   }
 
   const { norms, normsFilling, fertilizerApplications } = fieldNormData
 
   return (
-    <div className="space-y-6 px-4 pb-16 sm:px-6 lg:px-8">
-      <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
-        <AlertTriangle className="h-4 w-4 !text-amber-800" />
-        <AlertTitle>Disclaimer</AlertTitle>
-        <AlertDescription>
-          Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
-          gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische naleving.
-          Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor definitieve normen.
-        </AlertDescription>
-      </Alert>
-
-      <div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <NormCard
-            title="Stikstof, werkzaam"
-            type="field"
-            norm={norms?.nitrogen.normValue ?? 0}
-            filling={normsFilling?.nitrogen.normFilling}
-            unit="kg N"
-          />
-          <NormCard
-            title="Fosfaat"
-            type="field"
-            norm={norms?.phosphate.normValue ?? 0}
-            filling={normsFilling?.phosphate.normFilling}
-            unit="kg P₂O₅"
-          />
-          <NormCard
-            title="Stikstof uit dierlijke mest"
-            type="field"
-            norm={norms?.manure.normValue ?? 0}
-            filling={normsFilling?.manure.normFilling}
-            unit="kg N"
-          />
-        </div>
-
-        <Separator className="my-8" />
+    <FarmContent>
+      <div className="space-y-6 pb-10">
+        <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
+          <AlertTriangle className="h-4 w-4 !text-amber-800" />
+          <AlertTitle>Disclaimer</AlertTitle>
+          <AlertDescription>
+            Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
+            gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische
+            naleving. Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor definitieve
+            normen.
+          </AlertDescription>
+        </Alert>
 
         <div>
-          <h3 className="text-2xl font-semibold tracking-tight">Bemesting op dit perceel</h3>
-          <p className="text-muted-foreground">
-            Hieronder vindt u een overzicht van de bemesting op dit perceel en hun bijdrage aan de
-            gebruiksnormen.
-          </p>
-        </div>
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {fertilizerApplications &&
-            normsFilling &&
-            fertilizerApplications.map((app) => (
-              <FertilizerApplicationCard
-                key={app.p_app_id}
-                application={app}
-                normsFilling={normsFilling}
-              />
-            ))}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <NormCard
+              title="Stikstof, werkzaam"
+              type="field"
+              norm={norms?.nitrogen.normValue ?? 0}
+              filling={normsFilling?.nitrogen.normFilling}
+              unit="kg N"
+            />
+            <NormCard
+              title="Fosfaat"
+              type="field"
+              norm={norms?.phosphate.normValue ?? 0}
+              filling={normsFilling?.phosphate.normFilling}
+              unit="kg P₂O₅"
+            />
+            <NormCard
+              title="Stikstof uit dierlijke mest"
+              type="field"
+              norm={norms?.manure.normValue ?? 0}
+              filling={normsFilling?.manure.normFilling}
+              unit="kg N"
+            />
+          </div>
+
+          <Separator className="my-8" />
+
+          <div>
+            <h3 className="text-2xl font-semibold tracking-tight">Bemesting op dit perceel</h3>
+            <p className="text-muted-foreground">
+              Hieronder vindt u een overzicht van de bemesting op dit perceel en hun bijdrage aan de
+              gebruiksnormen.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {fertilizerApplications &&
+              normsFilling &&
+              fertilizerApplications.map((app) => (
+                <FertilizerApplicationCard
+                  key={app.p_app_id}
+                  application={app}
+                  normsFilling={normsFilling}
+                />
+              ))}
+          </div>
         </div>
       </div>
-    </div>
+    </FarmContent>
   )
 }

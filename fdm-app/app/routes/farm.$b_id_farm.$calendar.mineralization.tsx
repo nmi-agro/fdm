@@ -10,6 +10,8 @@ import {
   useLocation,
   useParams,
 } from "react-router"
+import { FarmContent } from "~/components/blocks/farm/farm-content"
+import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderMineralization } from "~/components/blocks/header/mineralization"
@@ -171,19 +173,10 @@ export default function MineralizationLayout() {
         />
       </Header>
       <main>
-        <div className="space-y-6 px-10 py-5 pb-0">
-          <div className="flex items-center gap-4">
-            <div className="space-y-0.5">
-              <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-              <p className="text-muted-foreground">{description}</p>
-            </div>
-          </div>
-          <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
-            <div className="flex-1">
-              <Outlet />
-            </div>
-          </div>
-        </div>
+        <FarmTitle title={title} description={description} />
+        <FarmContent>
+          <Outlet />
+        </FarmContent>
       </main>
     </SidebarInset>
   )
