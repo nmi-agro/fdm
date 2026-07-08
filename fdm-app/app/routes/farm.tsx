@@ -184,9 +184,15 @@ export default function App() {
     syncContext(initialFarmId, initialCalendar)
   }, [initialFarmId, initialCalendar, syncContext])
 
-  // Sync store only from field-specific routes to avoid leaking indicator/measure IDs
+  // Sync store from any route scoped to a specific field (b_id), not just /field/*, so pages
+  // like nutrient advice, norms, balance, indicators, and measures also keep the sidebar's
+  // active field in sync. Excludes the farm/field creation wizards, whose :b_id is a
+  // not-yet-saved draft rather than a real, persisted field.
   const fieldMatch = matches.find(
-    (match) => match.pathname.includes("/field/") && match.params.b_id,
+    (match) =>
+      typeof match.params.b_id === "string" &&
+      !match.pathname.includes("/create") &&
+      !match.pathname.includes("/field/new"),
   )
   const urlFieldId = fieldMatch?.params.b_id as string | undefined
   const fieldWritePermission =

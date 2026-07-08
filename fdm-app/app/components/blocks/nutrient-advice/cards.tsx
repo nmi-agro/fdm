@@ -5,10 +5,10 @@ import { nl } from "date-fns/locale"
 import { ChevronDown, ChevronUp, TriangleAlert } from "lucide-react"
 import { useState } from "react"
 import { NavLink } from "react-router"
+import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { Progress } from "~/components/ui/progress"
 import { Separator } from "~/components/ui/separator"
 import type { NutrientDescription } from "./types"
 
@@ -79,15 +79,10 @@ export function NutrientCard({
             <span>Bemestingsniveau</span>
             <span>{advice > 0 ? `${Math.round(percentage)}%` : null}</span>
           </div>
-          <Progress
-            value={percentage}
-            colorBar={
-              (percentage > 100 || advice === 0) && description.symbol === "EOC"
-                ? "green-500"
-                : percentage > 100
-                  ? "orange-500"
-                  : undefined
-            }
+          <AdviceProgressBar
+            current={doseTotal}
+            target={advice}
+            excessExempt={description.symbol === "EOC"}
             className="h-3"
           />
         </div>
