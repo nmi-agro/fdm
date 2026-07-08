@@ -14,6 +14,7 @@ import {
   type MetaFunction,
   Outlet,
   useLoaderData,
+  useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
@@ -147,6 +148,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmFieldsOverviewBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const [searchParams] = useSearchParams()
 
   if ("warning" in loaderData) {
     return (
@@ -160,6 +162,15 @@ export default function FarmFieldsOverviewBlock() {
     )
   }
 
+  // Pre-fill (and auto-open) the add-cultivation dialog when a suggestion was accepted
+  // elsewhere in the app (dashboard, field list, field detail, nutrient advice overview).
+  const suggestedCatalogue = searchParams.get("suggest_b_lu_catalogue")
+  const suggestedStart = searchParams.get("suggest_start")
+  const defaultValues =
+    suggestedCatalogue && suggestedStart
+      ? { b_lu_catalogue: suggestedCatalogue, b_lu_start: new Date(suggestedStart) }
+      : undefined
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 2xl:grid-cols-2">
@@ -168,6 +179,7 @@ export default function FarmFieldsOverviewBlock() {
           cultivations={loaderData.cultivations}
           harvests={loaderData.harvests}
           editable={loaderData.fieldWritePermission}
+          defaultValues={defaultValues}
         />
         <Outlet />
       </div>

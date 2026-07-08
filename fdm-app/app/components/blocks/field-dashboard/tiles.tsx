@@ -17,6 +17,7 @@ import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { BCS_COLOR_CLASSES, BCS_SCORE_DOT } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
+import { CultivationSuggestionBanner } from "~/components/blocks/cultivation/suggestion"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -190,24 +191,35 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
 
 export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldDashboardTileProps) {
   const activeCultivation = dashboard.cultivation.active
+  const suggestion = dashboard.cultivation.suggestion
 
   if (!activeCultivation) {
     return (
-      <FieldDashboardTileEmpty
-        title={tile.title}
-        detailHref={tile.detailHref}
-        icon={Sprout}
-        emptyTitle="Nog geen gewas voor dit jaar"
-        emptyDescription="Registreer een teelt om oogsten, bemesting en bodeminformatie in context te zien."
-        action={
-          dashboard.fieldWritePermission
-            ? {
-                href: tile.detailHref,
-                label: "Gewas toevoegen",
-              }
-            : undefined
-        }
-      />
+      <div className="space-y-3">
+        <FieldDashboardTileEmpty
+          title={tile.title}
+          detailHref={tile.detailHref}
+          icon={Sprout}
+          emptyTitle="Nog geen gewas voor dit jaar"
+          emptyDescription="Registreer een teelt om oogsten, bemesting en bodeminformatie in context te zien."
+          action={
+            dashboard.fieldWritePermission
+              ? {
+                  href: tile.detailHref,
+                  label: "Gewas toevoegen",
+                }
+              : undefined
+          }
+        />
+        {suggestion && (
+          <CultivationSuggestionBanner
+            b_id_farm={dashboard.b_id_farm}
+            calendar={dashboard.calendar}
+            b_id={dashboard.b_id}
+            suggestion={suggestion}
+          />
+        )}
+      </div>
     )
   }
 
@@ -219,6 +231,14 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
   return (
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-4">
+        {suggestion && (
+          <CultivationSuggestionBanner
+            b_id_farm={dashboard.b_id_farm}
+            calendar={dashboard.calendar}
+            b_id={dashboard.b_id}
+            suggestion={suggestion}
+          />
+        )}
         <div>
           <p className="text-xl font-semibold break-words">{activeCultivation.name}</p>
           <p className="text-muted-foreground mt-1 text-sm">

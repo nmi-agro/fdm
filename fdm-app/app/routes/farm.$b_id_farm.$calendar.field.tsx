@@ -29,11 +29,14 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
@@ -82,6 +85,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         return {
           shouldShowLayout: false,
           b_id_farm: params.b_id_farm,
+          calendar: params.calendar,
           farmOptions: [],
           fieldOptions: [],
           fieldsExtended: [],
@@ -140,9 +144,22 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 
     const fertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm)
 
+    const calendar = params.calendar ?? new Date().getFullYear().toString()
+    const nmiApiKey = getNmiApiKey()
+
     const fieldsExtended = await Promise.all(
       fields.map(async (field) => {
         const cultivations = await getCultivations(fdm, session.principal_id, field.b_id, timeframe)
+
+        const cultivationSuggestion = getDefaultCultivation(cultivations, calendar)
+          ? undefined
+          : await getCultivationSuggestion(
+              fdm,
+              session.principal_id,
+              field.b_id,
+              calendar,
+              nmiApiKey,
+            )
 
         const fertilizerApplications = await getFertilizerApplications(
           fdm,
@@ -215,6 +232,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           b_id: field.b_id,
           b_name: field.b_name,
           cultivations: cultivations,
+          cultivationSuggestion,
           fertilizers: fertilizersFiltered,
           a_som_loi: a_som_loi,
           b_soiltype_agr: b_soiltype_agr,
@@ -240,6 +258,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     return {
       shouldShowLayout: true,
       b_id_farm: b_id_farm,
+      calendar,
       farmOptions: farmOptions,
       fieldOptions: fieldOptions,
       fieldsExtended: fieldsExtended,

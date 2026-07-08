@@ -8,7 +8,7 @@ import {
   Square,
   Triangle,
 } from "lucide-react"
-import { NavLink } from "react-router"
+import { NavLink, useParams } from "react-router"
 import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
@@ -21,8 +21,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { BufferStripCheckbox } from "./buffer-strip-checkbox"
 import { DataTableColumnHeader } from "./column-header"
+import { CultivationSuggestionBadge } from "../cultivation/suggestion"
 
 const BCS_BADGE_CLASS: Record<BcsColor, string> = {
   red: "bg-red-100 text-red-700 hover:bg-red-200",
@@ -36,6 +38,7 @@ export type FieldExtended = {
   b_id: string
   b_name: string
   cultivations: Cultivation[]
+  cultivationSuggestion?: CultivationSuggestion
   fertilizers: Fertilizer[]
   a_som_loi: number | null
   b_soiltype_agr: string | null
@@ -102,6 +105,7 @@ export const columns: ColumnDef<FieldExtended>[] = [
     },
     cell: ({ row }) => {
       const field = row.original
+      const params = useParams()
 
       const cultivationsSorted = [...field.cultivations].sort((a, b) =>
         a.b_lu_name.localeCompare(b.b_lu_name),
@@ -121,6 +125,14 @@ export const columns: ColumnDef<FieldExtended>[] = [
               {cultivation.b_lu_name}
             </Badge>
           ))}
+          {field.cultivationSuggestion && params.b_id_farm && params.calendar && (
+            <CultivationSuggestionBadge
+              b_id_farm={params.b_id_farm}
+              calendar={params.calendar}
+              b_id={field.b_id}
+              suggestion={field.cultivationSuggestion}
+            />
+          )}
         </div>
       )
     },

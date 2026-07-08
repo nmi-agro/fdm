@@ -44,7 +44,7 @@ import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Skeleton } from "~/components/ui/skeleton"
 import { getMapStyle } from "~/integrations/map"
-import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
+import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -454,7 +454,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           )
 
           if (nmiApiKey) {
-            const estimates = await getSoilParameterEstimates(field, nmiApiKey)
+            const estimates = await getSoilParameterEstimatesForGeometry(fdm, field, nmiApiKey)
 
             await addSoilAnalysis(
               fdm,

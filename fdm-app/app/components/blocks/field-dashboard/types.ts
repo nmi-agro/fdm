@@ -4,6 +4,7 @@ import type { StyleSpecification } from "maplibre-gl"
 import type { ComponentType } from "react"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
 import type { BcsPreviewResult } from "~/lib/bcs"
+import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 
 export type AsyncTileResult<T> =
@@ -147,6 +148,7 @@ export interface FieldDashboardData {
   selectedFieldGeoJson: FeatureCollection<Geometry, FieldDashboardMapFeatureProperties>
   cultivation: {
     active: FieldDashboardCultivationSummary | null
+    suggestion: CultivationSuggestion | null
   }
   fertilizer: {
     applicationCount: number

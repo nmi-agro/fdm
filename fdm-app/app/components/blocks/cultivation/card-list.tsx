@@ -8,7 +8,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "~/components/ui/empty"
-import type { Cultivation, CultivationOption } from "./types"
+import type { Cultivation, CultivationDefaultValues, CultivationOption } from "./types"
 import { CultivationAddFormDialog } from "./form-add"
 import { CultivationList } from "./list"
 
@@ -22,11 +22,13 @@ export function CultivationListCard({
   cultivations,
   harvests,
   editable = true,
+  defaultValues,
 }: {
   cultivationsCatalogueOptions: CultivationOption[]
   cultivations: Cultivation[]
   harvests: Harvest[]
   editable?: boolean
+  defaultValues?: CultivationDefaultValues
 }) {
   return (
     <Card>
@@ -35,7 +37,10 @@ export function CultivationListCard({
           Gewassen
         </CardTitle>
         {cultivations.length !== 0 && editable ? (
-          <CultivationAddFormDialog options={cultivationsCatalogueOptions} />
+          <CultivationAddFormDialog
+            options={cultivationsCatalogueOptions}
+            defaultValues={defaultValues}
+          />
         ) : null}
       </CardHeader>
       <CardContent>
@@ -55,7 +60,10 @@ export function CultivationListCard({
             </EmptyHeader>
             {editable && (
               <EmptyContent>
-                <CultivationAddFormDialog options={cultivationsCatalogueOptions} />
+                <CultivationAddFormDialog
+                  options={cultivationsCatalogueOptions}
+                  defaultValues={defaultValues}
+                />
               </EmptyContent>
             )}
           </Empty>

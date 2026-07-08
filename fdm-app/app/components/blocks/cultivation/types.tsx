@@ -12,6 +12,14 @@ export interface CultivationOption {
   label: string
 }
 
+/** Pre-fill values sourced from an accepted `CultivationSuggestion` (see `~/lib/cultivation-suggestion.server`). */
+export interface CultivationDefaultValues {
+  b_lu_catalogue: string
+  b_lu_start: Date
+}
+
 export interface CultivationsFormProps {
   options: CultivationOption[]
+  /** When set, pre-fills the form and auto-opens the dialog (used for accepted suggestions). */
+  defaultValues?: CultivationDefaultValues
 }

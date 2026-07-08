@@ -17,8 +17,8 @@ import { Spinner } from "~/components/ui/spinner"
 import type { CultivationsFormProps } from "./types"
 import { CultivationAddFormSchema } from "./schema"
 
-export function CultivationAddFormDialog({ options }: CultivationsFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function CultivationAddFormDialog({ options, defaultValues }: CultivationsFormProps) {
+  const [isOpen, setIsOpen] = useState(!!defaultValues)
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -29,7 +29,11 @@ export function CultivationAddFormDialog({ options }: CultivationsFormProps) {
         <DialogHeader>
           <DialogTitle>Gewas toevoegen</DialogTitle>
         </DialogHeader>
-        <CultivationAddForm options={options} onSuccess={() => setIsOpen(false)} />
+        <CultivationAddForm
+          options={options}
+          defaultValues={defaultValues}
+          onSuccess={() => setIsOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   )
@@ -37,6 +41,7 @@ export function CultivationAddFormDialog({ options }: CultivationsFormProps) {
 
 function CultivationAddForm({
   options,
+  defaultValues,
   onSuccess,
   editable = true,
 }: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void }) {
@@ -44,8 +49,8 @@ function CultivationAddForm({
     mode: "onTouched",
     resolver: zodResolver(CultivationAddFormSchema) as never,
     defaultValues: {
-      b_lu_catalogue: "",
-      b_lu_start: new Date(),
+      b_lu_catalogue: defaultValues?.b_lu_catalogue ?? "",
+      b_lu_start: defaultValues?.b_lu_start ?? new Date(),
       b_lu_end: undefined,
     },
   })

@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   BookOpenText,
+  ChevronDown,
   ChevronUp,
   CloudDownload,
   CloudUpload,
@@ -41,6 +42,7 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { CultivationSuggestionBanner } from "~/components/blocks/cultivation/suggestion"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -52,10 +54,12 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -122,6 +126,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       (field) => !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
     ).length
 
+    // For fields missing a main cultivation, look up an NMI-estimate-based suggestion (BRP guess)
+    // so the user can accept it instead of searching for the crop from scratch. Silently omitted
+    // (never blocks the dashboard) when no NMI API key is configured or no estimate is available.
+    const nmiApiKey = getNmiApiKey()
+    const fieldsMissingCultivationDetails = await Promise.all(
+      fields
+        .filter((field) => !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear))
+        .map(async (field) => ({
+          b_id: field.b_id,
+          b_name: field.b_name,
+          suggestion: await getCultivationSuggestion(
+            fdm,
+            session.principal_id,
+            field.b_id,
+            activeYear,
+            nmiApiKey,
+          ),
+        })),
+    )
+
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, session.principal_id)
     const farmOptions = farms.map((farm) => {
@@ -154,6 +178,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldsNumber: fields.length,
       farmArea: Math.round(farmArea),
       fieldsMissingCultivation,
+      fieldsMissingCultivationDetails,
       cultivationYear: activeYear,
       farmOptions: farmOptions,
       roles: roles,
@@ -219,6 +244,7 @@ export default function FarmDashboardIndex() {
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const years = getCalendarSelection()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
 
   const handleDownloadPdf = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -517,21 +543,61 @@ export default function FarmDashboardIndex() {
                       </div>
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (
-                      <NavLink
-                        to={`${loaderData.cultivationYear}/field`}
-                        className="border-destructive/30 bg-destructive/5 hover:bg-destructive/10 flex items-start gap-2 rounded-lg border p-3 transition-colors"
-                      >
-                        <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
-                        <p className="text-sm">
-                          <span className="font-medium">
-                            {loaderData.fieldsMissingCultivation}{" "}
-                            {loaderData.fieldsMissingCultivation === 1
-                              ? "perceel mist"
-                              : "percelen missen"}
-                          </span>{" "}
-                          een hoofdteelt voor dit jaar. Bekijk de percelen om dit aan te vullen.
-                        </p>
-                      </NavLink>
+                      <div className="border-destructive/30 bg-destructive/5 rounded-lg border">
+                        <button
+                          type="button"
+                          onClick={() => setShowMissingCultivationDetails((prev) => !prev)}
+                          className="hover:bg-destructive/10 flex w-full items-start gap-2 rounded-lg p-3 text-left transition-colors"
+                        >
+                          <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                          <p className="flex-1 text-sm">
+                            <span className="font-medium">
+                              {loaderData.fieldsMissingCultivation}{" "}
+                              {loaderData.fieldsMissingCultivation === 1
+                                ? "perceel mist"
+                                : "percelen missen"}
+                            </span>{" "}
+                            een hoofdteelt voor dit jaar.{" "}
+                            <NavLink
+                              to={`${loaderData.cultivationYear}/field`}
+                              className="underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Bekijk de percelen
+                            </NavLink>{" "}
+                            om dit aan te vullen.
+                          </p>
+                          {showMissingCultivationDetails ? (
+                            <ChevronUp className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                          ) : (
+                            <ChevronDown className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                          )}
+                        </button>
+                        {showMissingCultivationDetails && (
+                          <div className="space-y-2 border-t p-3">
+                            {loaderData.fieldsMissingCultivationDetails.map((field) =>
+                              field.suggestion ? (
+                                <CultivationSuggestionBanner
+                                  key={field.b_id}
+                                  b_id_farm={loaderData.b_id_farm}
+                                  calendar={loaderData.cultivationYear}
+                                  b_id={field.b_id}
+                                  b_name={field.b_name}
+                                  suggestion={field.suggestion}
+                                />
+                              ) : (
+                                <NavLink
+                                  key={field.b_id}
+                                  to={`${loaderData.cultivationYear}/field/${field.b_id}/cultivation`}
+                                  className="text-muted-foreground hover:text-foreground block text-sm underline"
+                                >
+                                  {field.b_name}: hoofdteelt toevoegen
+                                </NavLink>
+                              ),
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
                     <Separator />
                     {/* Role + Year */}
