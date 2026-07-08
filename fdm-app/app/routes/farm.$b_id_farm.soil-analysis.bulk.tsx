@@ -96,7 +96,9 @@ export default function BulkSoilAnalysisUploadPage() {
     // Filter out "none" selections
     const validMatches = matches.filter((m) => m.fieldId !== "none" && m.fieldId !== "")
     const validMatchFiles = new Set(
-      validMatches.filter((match) => match.filename).map((match) => match.filename),
+      validMatches
+        .map((match) => match.filename?.toLowerCase())
+        .filter((filename) => typeof filename === "string"),
     )
     formData.append("matches", JSON.stringify(validMatches))
     formData.append("analysesData", JSON.stringify(updatedAnalyses))
@@ -232,10 +234,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
               depthUpper,
             )
 
-            const file = uploadedPdfs.get(filename)
+            const file = uploadedPdfs.get(filename.toLowerCase())
 
             if (file) {
-              const key = buildObjectKey("soil-analysis", soilAnalysisId, "pdf")
+              const key = buildObjectKey("soil_analyses", soilAnalysisId, "pdf")
               let uploaded = false
               try {
                 await uploadObject(key, file.stream(), "application/pdf")

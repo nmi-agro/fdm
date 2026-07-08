@@ -250,7 +250,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         })
       }
       if (soilAnalysis?.a_fileavailable) {
-        const objectKey = buildObjectKey("soil-analysis", a_id, "pdf")
+        const objectKey = buildObjectKey("soil_analyses", a_id, "pdf")
         await deleteObject(objectKey)
       }
       await removeSoilAnalysis(fdm, session.principal_id, a_id)

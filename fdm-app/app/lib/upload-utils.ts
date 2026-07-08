@@ -4,7 +4,7 @@ import { fileTypeFromBuffer } from "file-type"
 /**
  * Reads a file upload field, validates its MIME type against magic bytes,
  * and returns the raw buffer and detected MIME.
- * Throws if the type is not in allowedMimes or exceeds maxSizeBytes.
+ * Throws if the type is not in allowedMimes.
  *
  * @param fileUpload - The uploaded file field
  * @param allowedMimes - Set of allowed MIME types (e.g. "image/jpeg", "image/png")

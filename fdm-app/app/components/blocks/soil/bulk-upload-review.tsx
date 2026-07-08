@@ -317,9 +317,9 @@ export function BulkSoilAnalysisReview({
         .map(([analysisId, fieldId]) => ({
           analysisId,
           fieldId,
-          filename: analyses.find((a) => a.id == analysisId)?.filename,
+          filename: analyses.find((a) => a.id === analysisId)?.filename.toLowerCase(),
         })),
-    [matches, dates],
+    [analyses, matches, dates],
   )
 
   const handleSave = () => {

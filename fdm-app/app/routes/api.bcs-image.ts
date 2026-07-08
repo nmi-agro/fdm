@@ -3,7 +3,7 @@ import type { ActionFunctionArgs } from "react-router"
 import { checkPermission } from "@nmi-agro/fdm-core"
 import { parseFormData } from "@remix-run/form-data-parser"
 import { nanoid } from "nanoid"
-import { generateSignedReadUrl, uploadObject } from "~/integrations/gcs.server"
+import { buildObjectKey, generateSignedReadUrl, uploadObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
 import { readAndValidateFileUpload } from "~/lib/upload-utils"
@@ -37,9 +37,12 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const uploadHandler = async (fileUpload: FileUpload) => {
     if (fileUpload.fieldName !== "file") return undefined
-    const { buffer, mime } = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
-    return new File([new Uint8Array(buffer)], fileUpload.name, {
-      type: mime,
+    const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+    fileBuffer = result.buffer
+    detectedMime = result.mime
+
+    return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
+      type: detectedMime,
     })
   }
 
@@ -80,7 +83,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   const ext = MIME_TO_EXT[detectedMime] ?? "jpg"
-  const objectKey = `soil_image/${nanoid()}.${ext}`
+  const objectKey = buildObjectKey("soil_image", nanoid(), ext)
 
   try {
     await uploadObject(objectKey, fileBuffer, detectedMime)

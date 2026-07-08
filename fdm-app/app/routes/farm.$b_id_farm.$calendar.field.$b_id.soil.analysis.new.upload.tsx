@@ -194,14 +194,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       Number(a_depth_upper),
     )
 
-    captureEvent(session.principal_id, "soil_analysis_saved", {
-      b_id_farm,
-      b_id,
-      analysis_type: typeof a_source === "string" ? a_source : "other",
-      method: "upload",
-      calendar: String(params.calendar),
-    })
-
     const objectKey = buildObjectKey("soil_analyses", soilAnalysisId, "pdf")
 
     let uploaded = false
@@ -220,10 +212,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       handleActionError(gcsSaveError)
     }
 
-    captureEvent(session.principal_id, "soil_analysis_pdf_uploaded", {
+    captureEvent(session.principal_id, "soil_analysis_saved", {
       b_id_farm,
       b_id,
-      a_id: soilAnalysisId,
+      analysis_type: typeof a_source === "string" ? a_source : "other",
+      method: "upload",
+      calendar: String(params.calendar),
     })
 
     return redirectWithSuccess(`../soil/analysis/${soilAnalysisId}`, {
