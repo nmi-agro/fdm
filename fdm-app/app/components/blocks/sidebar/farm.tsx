@@ -132,7 +132,7 @@ export function SidebarFarm({
 
   const handleFieldPickedForNewFarm = (b_id: string) => {
     if (fieldPickerFarmId) {
-      void navigate(`/farm/${fieldPickerFarmId}/${selectedCalendar}/field/${b_id}/overview`)
+      void navigate(`/farm/${fieldPickerFarmId}/${selectedCalendar}/field/${b_id}`)
     }
     setFieldPickerFarmId(null)
   }

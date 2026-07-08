@@ -3,7 +3,7 @@ import {
   collectInputForOrganicMatterBalance,
   type OrganicMatterBalanceFieldResultNumeric,
 } from "@nmi-agro/fdm-calculator"
-import { getFarm, getField } from "@nmi-agro/fdm-core"
+import { checkPermission, getFarm, getField } from "@nmi-agro/fdm-core"
 import {
   ArrowDownToLine,
   ArrowRightLeft,
@@ -76,6 +76,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
     const field = await getField(fdm, session.principal_id, b_id)
 
+    const fieldWritePermission = await checkPermission(
+      fdm,
+      "field",
+      "write",
+      b_id,
+      session.principal_id,
+      "routes/farm.$b_id_farm.$calendar.balance.organic-matter.$b_id",
+      false,
+    )
+
     const organicMatterBalancePromise = collectInputForOrganicMatterBalance(
       fdm,
       session.principal_id,
@@ -125,6 +135,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       organicMatterBalanceResult: organicMatterBalancePromise,
       field: field,
       farm: farm,
+      fieldWritePermission,
     }
   } catch (error) {
     throw handleLoaderError(error)

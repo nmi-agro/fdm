@@ -84,7 +84,7 @@ export default function FieldDashboardMap({
     >
       <MapTilerAttribution />
       <FieldSourceClickable
-        id="dashboard-fields-source"
+        id="fieldsSaved"
         fieldsData={coloredFieldsGeoJson}
         onFieldClick={(feature) => {
           const b_id = feature.properties?.b_id

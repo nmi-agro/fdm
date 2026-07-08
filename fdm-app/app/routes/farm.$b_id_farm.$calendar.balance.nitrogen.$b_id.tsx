@@ -3,7 +3,7 @@ import {
   collectInputForNitrogenBalance,
   type NitrogenBalanceFieldResultNumeric,
 } from "@nmi-agro/fdm-calculator"
-import { getFarm, getField } from "@nmi-agro/fdm-core"
+import { checkPermission, getFarm, getField } from "@nmi-agro/fdm-core"
 import {
   ArrowDown,
   ArrowRight,
@@ -97,6 +97,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get details of field
     const field = await getField(fdm, session.principal_id, b_id)
 
+    const fieldWritePermission = await checkPermission(
+      fdm,
+      "field",
+      "write",
+      b_id,
+      session.principal_id,
+      "routes/farm.$b_id_farm.$calendar.balance.nitrogen.$b_id",
+      false,
+    )
+
     // Return promise directly for React Router v7 Suspense pattern
     const nitrogenBalancePromise = collectInputForNitrogenBalance(
       fdm,
@@ -155,6 +165,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       nitrogenBalanceResult: nitrogenBalancePromise,
       field: field,
       farm: farm,
+      fieldWritePermission,
     }
   } catch (error) {
     throw handleLoaderError(error)

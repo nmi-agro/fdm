@@ -4,6 +4,7 @@ import type { StyleSpecification } from "maplibre-gl"
 import type { ComponentType } from "react"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
 import type { BcsPreviewResult } from "~/lib/bcs"
+import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 
 export type AsyncTileResult<T> =
   | { status: "ready"; data: T }
@@ -61,7 +62,7 @@ export interface FieldDashboardSoilParameterCard {
 }
 
 export interface FieldDashboardBcsSummary extends BcsPreviewResult {
-  scores: any
+  scores: BcsScores
   measuredAt: string | null
 }
 

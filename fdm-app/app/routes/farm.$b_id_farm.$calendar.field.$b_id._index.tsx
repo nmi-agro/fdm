@@ -10,6 +10,7 @@ import {
 import {
   checkPermission,
   getCultivations,
+  getCultivationsForFarm,
   getCurrentSoilData,
   getField,
   getFields,
@@ -89,12 +90,83 @@ function buildErrorResult<T>(message: string): AsyncTileResult<T> {
   return { status: "error", message }
 }
 
+// Sanitizes thrown errors before surfacing them to the client: logs/reports the real error via
+// `reportError` (Sentry + console), but returns a generic Dutch message so no internal exception
+// text (stack traces, SQL errors, etc.) ever reaches the browser.
+function buildSanitizedErrorResult<T>(
+  error: unknown,
+  tags: Record<string, string>,
+  context?: Record<string, unknown>,
+): AsyncTileResult<T> {
+  reportError(error, tags, context)
+  return buildErrorResult("Deze gegevens konden niet worden opgehaald. Probeer het later opnieuw.")
+}
+
 function buildUnavailableResult<T>(message: string): AsyncTileResult<T> {
   return { status: "unavailable", message }
 }
 
 function buildEmptyResult<T>(message: string): AsyncTileResult<T> {
   return { status: "empty", message }
+}
+
+// Shared shape for the nitrogen/organic-matter balance tiles: both check the bufferstrip
+// exemption, collect balance input, calculate the farm-wide balance, then pick out and shape
+// this field's result. Only the balance-specific collect/calculate functions and the final
+// data mapping differ between the two callers.
+async function computeFieldBalanceResult<TData>(options: {
+  isBufferstrip: boolean
+  bufferstripMessage: string
+  collectInput: () => Promise<unknown>
+  calculate: (input: unknown) => Promise<{ fields: Array<{ b_id: string; errorMessage?: string; balance?: unknown }> }>
+  b_id: string
+  missingParamsMessage: string
+  genericErrorMessage: string
+  emptyMessage: string
+  mapResult: (fieldResult: { b_id: string; errorMessage?: string; balance?: unknown }) => TData
+  reportTags: Record<string, string>
+  reportContext: Record<string, unknown>
+}): Promise<AsyncTileResult<TData>> {
+  const {
+    isBufferstrip,
+    bufferstripMessage,
+    collectInput,
+    calculate,
+    b_id,
+    missingParamsMessage,
+    genericErrorMessage,
+    emptyMessage,
+    mapResult,
+    reportTags,
+    reportContext,
+  } = options
+
+  if (isBufferstrip) {
+    return buildUnavailableResult(bufferstripMessage)
+  }
+
+  try {
+    const input = await collectInput()
+    const result = await calculate(input)
+    const fieldResult = result.fields.find((entry) => entry.b_id === b_id)
+
+    if (fieldResult?.errorMessage) {
+      reportError(fieldResult.errorMessage, reportTags, reportContext)
+      return buildErrorResult(
+        fieldResult.errorMessage.match(/Missing required soil parameters/)
+          ? missingParamsMessage
+          : genericErrorMessage,
+      )
+    }
+
+    if (!fieldResult?.balance) {
+      return buildEmptyResult(emptyMessage)
+    }
+
+    return { status: "ready", data: mapResult(fieldResult) }
+  } catch (error) {
+    return buildSanitizedErrorResult(error, reportTags, reportContext)
+  }
 }
 
 function formatRequirementItem(
@@ -388,34 +460,32 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         if (fdmHistoryWithSource.length > 0) {
           return { status: "ready", data: fdmHistoryWithSource }
         }
-        return buildErrorResult(String(error).replace("Error: ", ""))
+        return buildSanitizedErrorResult(
+          error,
+          { page: "field-dashboard", scope: "loader", tile: "cultivation-history" },
+          { b_id, b_id_farm, timeframe, userId: session.principal_id },
+        )
       }
     })()
 
-    // Streamed separately: colours the map by crop rotation without blocking the initial render,
-    // since it requires one cultivation lookup per farm field (can be 100+ on large farms).
+    // Streamed separately: colours the map by crop rotation without blocking the initial render.
     const fieldCultivationColorsPromise = (async (): Promise<Record<string, string | null>> => {
       try {
-        const entries = await Promise.all(
-          fields.map(async (candidate) => {
-            if (candidate.b_id === b_id) {
-              return [candidate.b_id, activeCultivation?.b_lu_croprotation ?? null] as const
-            }
-            try {
-              const fieldCultivations = await getCultivations(
-                fdm,
-                session.principal_id,
-                candidate.b_id,
-                timeframe,
-              )
-              const active =
-                getDefaultCultivation(fieldCultivations, calendar) ?? fieldCultivations[0] ?? null
-              return [candidate.b_id, active?.b_lu_croprotation ?? null] as const
-            } catch {
-              return [candidate.b_id, null] as const
-            }
-          }),
+        const cultivationsByField = await getCultivationsForFarm(
+          fdm,
+          session.principal_id,
+          b_id_farm,
+          timeframe,
         )
+        const entries = fields.map((candidate) => {
+          if (candidate.b_id === b_id) {
+            return [candidate.b_id, activeCultivation?.b_lu_croprotation ?? null] as const
+          }
+          const fieldCultivations = cultivationsByField.get(candidate.b_id) ?? []
+          const active =
+            getDefaultCultivation(fieldCultivations, calendar) ?? fieldCultivations[0] ?? null
+          return [candidate.b_id, active?.b_lu_croprotation ?? null] as const
+        })
         return Object.fromEntries(entries)
       } catch {
         return {}
@@ -460,7 +530,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             },
           }
         } catch (error) {
-          return buildErrorResult(String(error).replace("Error: ", ""))
+          return buildSanitizedErrorResult(
+            error,
+            { page: "field-dashboard", scope: "loader", tile: "nutrient-advice" },
+            { b_id, b_id_farm, timeframe, userId: session.principal_id },
+          )
         }
       })()
 
@@ -506,7 +580,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           if (error instanceof NormNotApplicableError) {
             return buildEmptyResult(String(error).replace("NormNotApplicableError: ", ""))
           }
-          return buildErrorResult(String(error).replace("Error: ", ""))
+          return buildSanitizedErrorResult(
+            error,
+            { page: "field-dashboard", scope: "loader", tile: "norms" },
+            { b_id, b_id_farm, timeframe, userId: session.principal_id },
+          )
         }
       })()
 
@@ -573,115 +651,83 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           },
         }
       } catch (error) {
-        return buildErrorResult(String(error).replace("Error: ", ""))
+        return buildSanitizedErrorResult(
+          error,
+          { page: "field-dashboard", scope: "loader", tile: "bln" },
+          { b_id, b_id_farm, timeframe, userId: session.principal_id },
+        )
       }
     })()
 
-    const nitrogenBalancePromise = (async (): Promise<
-      AsyncTileResult<FieldDashboardNitrogenBalanceSummary>
-    > => {
-      if (field.b_bufferstrip) {
-        return buildUnavailableResult("Bufferstroken hebben geen stikstofbalans.")
-      }
-
-      try {
-        const input = await collectInputForNitrogenBalance(
-          fdm,
-          session.principal_id,
-          b_id_farm,
-          timeframe,
-          b_id,
-        )
-        const result = await calculateNitrogenBalance(fdm, input)
-        const fieldResult = result.fields.find((entry: { b_id: string }) => entry.b_id === b_id)
-
-        if (fieldResult?.errorMessage) {
-          reportError(
-            fieldResult.errorMessage,
-            { page: "field-dashboard", scope: "loader" },
-            { b_id, b_id_farm, timeframe, userId: session.principal_id },
-          )
-          return buildErrorResult(
-            fieldResult.errorMessage.match(/Missing required soil parameters/)
-              ? "Voor dit perceel ontbreken bodemparameters die nodig zijn voor de stikstofbalans."
-              : "De stikstofbalans kon niet berekend worden voor dit perceel.",
-          )
+    const nitrogenBalancePromise = computeFieldBalanceResult<FieldDashboardNitrogenBalanceSummary>({
+      isBufferstrip: !!field.b_bufferstrip,
+      bufferstripMessage: "Bufferstroken hebben geen stikstofbalans.",
+      collectInput: () =>
+        collectInputForNitrogenBalance(fdm, session.principal_id, b_id_farm, timeframe, b_id),
+      calculate: (input) => calculateNitrogenBalance(fdm, input as Parameters<typeof calculateNitrogenBalance>[1]),
+      b_id,
+      missingParamsMessage:
+        "Voor dit perceel ontbreken bodemparameters die nodig zijn voor de stikstofbalans.",
+      genericErrorMessage: "De stikstofbalans kon niet berekend worden voor dit perceel.",
+      emptyMessage:
+        "Dit perceel was niet in gebruik in dit jaar, dus er is geen stikstofbalans beschikbaar.",
+      mapResult: (fieldResult) => {
+        const balance = fieldResult.balance as {
+          balance: number
+          target: number
+          supply: { total: number }
+          removal: { total: number }
+          emission: { ammonia: { total: number }; nitrate: { total: number } }
         }
-
-        if (!fieldResult?.balance) {
-          return buildEmptyResult(
-            "Dit perceel was niet in gebruik in dit jaar, dus er is geen stikstofbalans beschikbaar.",
-          )
-        }
-
         return {
-          status: "ready",
-          data: {
-            balance: fieldResult.balance.balance,
-            target: fieldResult.balance.target,
-            supply: fieldResult.balance.supply.total,
-            removal: fieldResult.balance.removal.total,
-            emissionAmmonia: fieldResult.balance.emission.ammonia.total,
-            emissionNitrate: fieldResult.balance.emission.nitrate.total,
-            unit: "kg N/ha",
-          },
+          balance: balance.balance,
+          target: balance.target,
+          supply: balance.supply.total,
+          removal: balance.removal.total,
+          emissionAmmonia: balance.emission.ammonia.total,
+          emissionNitrate: balance.emission.nitrate.total,
+          unit: "kg N/ha",
         }
-      } catch (error) {
-        return buildErrorResult(String(error).replace("Error: ", ""))
-      }
-    })()
+      },
+      reportTags: { page: "field-dashboard", scope: "loader", tile: "nitrogen-balance" },
+      reportContext: { b_id, b_id_farm, timeframe, userId: session.principal_id },
+    })
 
-    const organicMatterBalancePromise = (async (): Promise<
-      AsyncTileResult<FieldDashboardOrganicMatterBalanceSummary>
-    > => {
-      if (field.b_bufferstrip) {
-        return buildUnavailableResult("Bufferstroken hebben geen organische stofbalans.")
-      }
-
-      try {
-        const input = await collectInputForOrganicMatterBalance(
-          fdm,
-          session.principal_id,
-          b_id_farm,
-          timeframe,
-          b_id,
-        )
-        type InputType = Omit<typeof input, "timeFrame"> & { timeFrame: { start: Date; end: Date } }
-        const result = await calculateOrganicMatterBalance(fdm, input as InputType)
-        const fieldResult = result.fields.find((entry: { b_id: string }) => entry.b_id === b_id)
-
-        if (fieldResult?.errorMessage) {
-          reportError(
-            fieldResult.errorMessage,
-            { page: "field-dashboard", scope: "loader" },
-            { b_id, b_id_farm, timeframe, userId: session.principal_id },
-          )
-          return buildErrorResult(
-            fieldResult.errorMessage.match(/Missing required soil parameters/)
-              ? "Voor dit perceel ontbreken bodemparameters die nodig zijn voor de organische stofbalans."
-              : "De organische stofbalans kon niet berekend worden voor dit perceel.",
-          )
-        }
-
-        if (!fieldResult?.balance) {
-          return buildEmptyResult(
-            "Dit perceel was niet in gebruik in dit jaar, dus er is geen organische stofbalans beschikbaar.",
-          )
-        }
-
-        return {
-          status: "ready",
-          data: {
-            balance: fieldResult.balance.balance,
-            supply: fieldResult.balance.supply.total,
-            degradation: fieldResult.balance.degradation.total,
+    const organicMatterBalancePromise =
+      computeFieldBalanceResult<FieldDashboardOrganicMatterBalanceSummary>({
+        isBufferstrip: !!field.b_bufferstrip,
+        bufferstripMessage: "Bufferstroken hebben geen organische stofbalans.",
+        collectInput: () =>
+          collectInputForOrganicMatterBalance(fdm, session.principal_id, b_id_farm, timeframe, b_id),
+        calculate: (input) => {
+          type InputType = Omit<
+            Awaited<ReturnType<typeof collectInputForOrganicMatterBalance>>,
+            "timeFrame"
+          > & { timeFrame: { start: Date; end: Date } }
+          return calculateOrganicMatterBalance(fdm, input as InputType)
+        },
+        b_id,
+        missingParamsMessage:
+          "Voor dit perceel ontbreken bodemparameters die nodig zijn voor de organische stofbalans.",
+        genericErrorMessage: "De organische stofbalans kon niet berekend worden voor dit perceel.",
+        emptyMessage:
+          "Dit perceel was niet in gebruik in dit jaar, dus er is geen organische stofbalans beschikbaar.",
+        mapResult: (fieldResult) => {
+          const balance = fieldResult.balance as {
+            balance: number
+            supply: { total: number }
+            degradation: { total: number }
+          }
+          return {
+            balance: balance.balance,
+            supply: balance.supply.total,
+            degradation: balance.degradation.total,
             unit: "kg OS/ha",
-          },
-        }
-      } catch (error) {
-        return buildErrorResult(String(error).replace("Error: ", ""))
-      }
-    })()
+          }
+        },
+        reportTags: { page: "field-dashboard", scope: "loader", tile: "organic-matter-balance" },
+        reportContext: { b_id, b_id_farm, timeframe, userId: session.principal_id },
+      })
 
     const dashboardData: FieldDashboardData = {
       b_id,
@@ -772,7 +818,7 @@ export default function FieldDashboardRoute() {
       b_id: dashboard.b_id,
       calendar: dashboard.calendar,
     })
-  }, [])
+  }, [dashboard.b_id_farm, dashboard.b_id, dashboard.calendar, capture])
 
   return (
     <div className="space-y-8 pb-8">

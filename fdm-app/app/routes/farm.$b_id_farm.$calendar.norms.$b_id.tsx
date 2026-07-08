@@ -1,6 +1,7 @@
 import type { GebruiksnormResult, NormFilling } from "@nmi-agro/fdm-calculator"
 import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import {
+  checkPermission,
   getFarm,
   getFarms,
   getFertilizerApplications,
@@ -124,6 +125,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
+    const fieldWritePermission = await checkPermission(
+      fdm,
+      "field",
+      "write",
+      b_id,
+      session.principal_id,
+      "routes/farm.$b_id_farm.$calendar.norms.$b_id",
+      false,
+    )
+
     // Get the fields to be selected
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
     const fieldOptions = fields.map((field) => {
@@ -189,6 +200,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       farm,
       field,
+      fieldWritePermission,
       b_id_farm,
       b_id,
       calendar,

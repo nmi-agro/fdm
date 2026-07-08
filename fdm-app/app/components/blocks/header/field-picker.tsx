@@ -54,7 +54,7 @@ export function HeaderFieldPicker({
   const regularFields = fieldOptions.filter((f) => !recentFieldIds.includes(f.b_id))
 
   const selectedLabel = b_id
-    ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ?? "Unknown field")
+    ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ?? "Onbekend perceel")
     : placeholder
 
   return (
