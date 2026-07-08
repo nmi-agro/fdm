@@ -1,13 +1,6 @@
-import { ChevronDown } from "lucide-react"
-import { NavLink } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu"
+import { HeaderFieldPicker } from "~/components/blocks/header/field-picker"
 
 export function HeaderNorms({
   b_id_farm,
@@ -32,23 +25,11 @@ export function HeaderNorms({
         <>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
-                <span className="truncate">
-                  {fieldOptions.find((option) => option.b_id === b_id)?.b_name ?? "Unknown field"}
-                </span>
-                <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {fieldOptions.map((option) => (
-                  <DropdownMenuCheckboxItem checked={b_id === option.b_id} key={option.b_id}>
-                    <NavLink to={`/farm/${b_id_farm}/${calendar}/norms/${option.b_id}`}>
-                      {option.b_name}
-                    </NavLink>
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <HeaderFieldPicker
+              b_id={b_id}
+              fieldOptions={fieldOptions}
+              buildHref={(optionId) => `/farm/${b_id_farm}/${calendar}/norms/${optionId}`}
+            />
           </BreadcrumbItem>
         </>
       ) : null}

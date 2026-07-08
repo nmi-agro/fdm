@@ -12,7 +12,7 @@ import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { Progress } from "~/components/ui/progress"
+import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { Spinner } from "~/components/ui/spinner"
 import {
   Table,
@@ -328,13 +328,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                             {Math.round(fill)} / {Math.round(norm)}
                                           </span>
                                         </div>
-                                        <Progress
-                                          value={
-                                            fill > norm ? 100 : norm > 0 ? (fill / norm) * 100 : 0
-                                          }
-                                          colorBar={fill > norm ? "red-500" : "green-500"}
-                                          className="h-1.5"
-                                        />
+                                        <NormProgressBar used={fill} limit={norm} className="h-1.5" />
                                       </div>
                                     ))}
                                   </div>

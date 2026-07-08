@@ -347,7 +347,7 @@ async function runDynaForPrefetchedField({
   timeframe: Timeframe
   nmiApiKey: string
 }): Promise<import("@nmi-agro/fdm-calculator").DynaResult> {
-  if (!field) throw new Error("Veldgegevens ontbreken")
+  if (!field) throw new Error("perceelsgegevens ontbreken")
 
   const { soilData } = buildSoilDataMap(soilDataArray)
 

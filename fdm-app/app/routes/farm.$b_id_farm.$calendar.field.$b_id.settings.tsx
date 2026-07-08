@@ -66,7 +66,7 @@ export const meta: MetaFunction = () => {
 }
 
 /**
- * Loads farm field details for the overview page.
+ * Loads farm field details for the settings page.
  *
  * Retrieves the field ID from route parameters and uses the current user's session to fetch the corresponding field details.
  * Throws an error with a 400 status if the field ID is missing, or with a 404 status if the field is not found.
@@ -142,13 +142,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
- * Renders the overview block for editing farm field details.
+ * Renders the settings block for editing farm field details.
  *
  * Retrieves initial field data via useLoaderData and initializes a validated form with fields for the
  * field's name, acquiring method, acquiring date, and terminating date. The form automatically resets
  * its values when updated loader data is provided and integrates with a submit handler to update the field.
  */
-export default function FarmFieldsOverviewBlock() {
+export default function FarmFieldSettingsBlock() {
   const loaderData = useLoaderData<typeof loader>()
 
   const form = useRemixForm<z.infer<typeof FormSchema>>({
@@ -197,7 +197,7 @@ export default function FarmFieldsOverviewBlock() {
         </CardHeader>
         <CardContent>
           <RemixFormProvider {...form}>
-            <Form id="formFieldOverview" onSubmit={form.handleSubmit} method="post">
+            <Form id="formFieldSettings" onSubmit={form.handleSubmit} method="post">
               <fieldset disabled={form.formState.isSubmitting}>
                 <div className="grid w-full grid-cols-1 gap-6 xl:grid-cols-2">
                   <Controller

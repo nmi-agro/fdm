@@ -1,6 +1,7 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import { type CultivationForHoofdteelt, findHoofdteelt } from "@nmi-agro/fdm-calculator"
 import {
+  checkPermission,
   getCultivations,
   getField,
   getFields,
@@ -195,7 +196,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations, BRP catalogue
     // Cultivations are fetched without timeframe to cover multi-year history (for display)
-    const [field, fields, bln3Result, fieldMeasures, cultivations, brpCatalogue] =
+    const [field, fields, bln3Result, fieldMeasures, cultivations, brpCatalogue, fieldWritePermission] =
       await Promise.all([
         getField(fdm, session.principal_id, b_id),
         getFields(fdm, session.principal_id, b_id_farm, timeframe),
@@ -211,6 +212,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }),
         getCultivations(fdm, session.principal_id, b_id),
         getCultivationCatalogue("brp"),
+        checkPermission(
+          fdm,
+          "field",
+          "write",
+          b_id,
+          session.principal_id,
+          "routes/farm.$b_id_farm.$calendar.indicators.$b_id",
+          false,
+        ),
       ])
     const fieldScore = bln3Result.score
     const bln3Inputs = bln3Result.inputs
@@ -364,6 +374,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id: f.b_id,
         b_name: f.b_name ?? null,
       })),
+      fieldWritePermission,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)

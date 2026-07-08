@@ -269,7 +269,7 @@ export function SoilDataCards({
   )
 }
 
-function constructSoilDataCards(
+export function constructSoilDataCards(
   currentSoilData: CurrentSoilData,
   soilParameterDescription: SoilParameterDescription,
 ) {

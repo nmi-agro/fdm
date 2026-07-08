@@ -5,6 +5,7 @@ import type {
 import { NavLink } from "react-router"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { NormProgressBar } from "./progress-bar"
 
 export interface FieldNorm {
   b_id: string
@@ -31,24 +32,6 @@ interface FieldNormsProps {
   }[]
 }
 
-const getProgressColorClass = (percentage: number) => {
-  if (percentage > 100) return "bg-orange-500"
-  return "bg-green-500"
-}
-
-interface ProgressBarProps {
-  value: number
-}
-
-const ProgressBar = ({ value }: ProgressBarProps) => (
-  <div className="bg-muted h-2 w-full rounded-full">
-    <div
-      className={`h-full rounded-full ${getProgressColorClass(value)}`}
-      style={{ width: `${Math.min(value, 100)}%` }}
-    />
-  </div>
-)
-
 interface NormItemProps {
   title: string
   norm: GebruiksnormResult | undefined
@@ -61,7 +44,6 @@ function NormItem({ title, norm, filling }: NormItemProps) {
   const normValue = norm.normValue || 0
   const normSource = norm.normSource || ""
   const fillingValue = filling?.normFilling || 0
-  const percentage = normValue > 0 ? (fillingValue / normValue) * 100 : 0
 
   return (
     <div className="hover:bg-muted/50 block rounded-lg py-3 transition-colors">
@@ -79,7 +61,7 @@ function NormItem({ title, norm, filling }: NormItemProps) {
           <p className="text-muted-foreground text-right text-xs">
             {fillingValue.toFixed(0)} kg gebruikt
           </p>
-          <ProgressBar value={percentage} />
+          <NormProgressBar used={fillingValue} limit={normValue} />
         </div>
       )}
     </div>

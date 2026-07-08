@@ -98,7 +98,7 @@ export function SidebarFarm({
     : null
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [isPerceelOpen, setIsPerceelOpen] = useState(false)
-  const [targetSegment, setTargetSegment] = useState("overview")
+  const [targetSegment, setTargetSegment] = useState("")
 
   // Which farm-scoped feature the user tried to reach without a farm selected.
   const [pendingFeature, setPendingFeature] = useState<
@@ -132,7 +132,7 @@ export function SidebarFarm({
 
   const handleFieldPickedForNewFarm = (b_id: string) => {
     if (fieldPickerFarmId) {
-      void navigate(`/farm/${fieldPickerFarmId}/${selectedCalendar}/field/${b_id}/overview`)
+      void navigate(`/farm/${fieldPickerFarmId}/${selectedCalendar}/field/${b_id}`)
     }
     setFieldPickerFarmId(null)
   }
@@ -150,7 +150,8 @@ export function SidebarFarm({
     if (location.pathname.includes("/soil")) return "soil"
     if (location.pathname.includes("/bcs")) return "bcs"
     if (location.pathname.includes("/delete")) return "delete"
-    return "overview"
+    if (location.pathname.includes("/settings")) return "settings"
+    return ""
   }
 
   const handleSubSectionClick = (e: React.MouseEvent, segment: string) => {
@@ -168,7 +169,11 @@ export function SidebarFarm({
     const activeSegment = getActiveSegment()
     const segment = activeFieldId ? activeSegment : targetSegment
 
-    void navigate(`/farm/${farmId}/${selectedCalendar}/field/${b_id}/${segment}`)
+    void navigate(
+      segment
+        ? `/farm/${farmId}/${selectedCalendar}/field/${b_id}/${segment}`
+        : `/farm/${farmId}/${selectedCalendar}/field/${b_id}`,
+    )
   }
 
   // LRU order: iterate recentFieldIds so most-recent-first is preserved
@@ -536,7 +541,11 @@ export function SidebarFarm({
                         <SidebarMenuSubItem key={item.segment}>
                           <SidebarMenuSubButton
                             asChild
-                            isActive={location.pathname.startsWith(item.to)}
+                            isActive={
+                              item.segment === ""
+                                ? location.pathname === item.to || location.pathname === `${item.to}/`
+                                : location.pathname.startsWith(item.to)
+                            }
                           >
                             <NavLink
                               to={activeFieldId ? item.to : "#"}
