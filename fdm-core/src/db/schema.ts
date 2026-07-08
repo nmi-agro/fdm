@@ -679,7 +679,7 @@ export const soilAnalysis = fdmSchema.table("soil_analysis", {
   a_id: text().primaryKey(),
   a_date: timestamp({ withTimezone: true }),
   a_source: soilAnalysisSourceEnum().default("other"),
-  a_fileavailable: boolean().notNull().default(false),
+  a_file_path: text(),
   a_al_ox: numericCasted(),
   a_c_of: numericCasted(),
   a_ca_co: numericCasted(),

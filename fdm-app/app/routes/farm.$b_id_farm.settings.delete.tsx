@@ -18,7 +18,7 @@ import { redirectWithSuccess } from "remix-toast"
 import { FarmDeleteDialog } from "~/components/blocks/farm/delete"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
-import { buildObjectKey, deleteObject } from "~/integrations/gcs.server"
+import { deleteObject } from "~/integrations/gcs.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
@@ -178,9 +178,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
           )
         }
 
-        if (analysis.a_fileavailable) {
-          const objectKey = buildObjectKey("soil_analyses", analysis.a_id, "pdf")
-          await deleteObject(objectKey)
+        if (analysis.a_file_path) {
+          await deleteObject(analysis.a_file_path)
         }
       }),
     )

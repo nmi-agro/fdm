@@ -8,8 +8,8 @@ export interface SoilAnalysis {
   a_date: Date | undefined | null
   /** Source of the soil analysis data */
   a_source: string | undefined | null
-  /** Whether the PDF file is available for the analysis */
-  a_fileavailable?: boolean | undefined
+  /** Path to the PDF file on the GCS bucket, if there is one available. */
+  a_file_name?: string | null
   /** Date when soil samples were collected */
   b_sampling_date: Date | null
   /** Organic carbon content ( g C / kg) */

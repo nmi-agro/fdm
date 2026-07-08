@@ -6,7 +6,7 @@ export interface SoilAnalysis {
   a_depth_upper: schema.soilSamplingTypeSelect["a_depth_upper"]
   a_depth_lower: schema.soilSamplingTypeSelect["a_depth_lower"]
   a_source: schema.soilAnalysisTypeSelect["a_source"]
-  a_fileavailable: schema.soilAnalysisTypeSelect["a_fileavailable"]
+  a_file_path: schema.soilAnalysisTypeSelect["a_file_path"]
   a_al_ox: schema.soilAnalysisTypeSelect["a_al_ox"]
   a_c_of: schema.soilAnalysisTypeSelect["a_c_of"]
   a_ca_co: schema.soilAnalysisTypeSelect["a_ca_co"]
@@ -119,7 +119,6 @@ export interface CurrentSoilDataItem {
   a_depth_upper: schema.soilSamplingTypeSelect["a_depth_upper"]
   a_depth_lower: schema.soilSamplingTypeSelect["a_depth_lower"]
   a_source: schema.soilAnalysisTypeSelect["a_source"]
-  a_fileavailable: schema.soilAnalysisTypeSelect["a_fileavailable"]
 }
 
 export type CurrentSoilData = CurrentSoilDataItem[]

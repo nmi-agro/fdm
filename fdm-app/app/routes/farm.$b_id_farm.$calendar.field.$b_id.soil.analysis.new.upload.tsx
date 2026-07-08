@@ -200,7 +200,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     try {
       await uploadObject(objectKey, new Uint8Array(buffer), "application/pdf")
       uploaded = true
-      await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, { a_fileavailable: true })
+      await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, {
+        a_file_path: objectKey,
+      })
     } catch (gcsSaveError) {
       try {
         if (uploaded) {

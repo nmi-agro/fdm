@@ -114,7 +114,7 @@ export default function FarmFieldSoilOverviewBlock() {
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">Bekijk de gegevens van deze bodemanalyse</p>
         </div>
-        {loaderData.soilAnalysis.a_fileavailable && (
+        {loaderData.soilAnalysis.a_file_path && (
           <Button variant="outline" asChild>
             <a
               href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}

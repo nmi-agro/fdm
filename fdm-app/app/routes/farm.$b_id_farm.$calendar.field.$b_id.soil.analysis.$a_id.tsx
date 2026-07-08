@@ -144,7 +144,7 @@ export default function FarmFieldSoilOverviewBlock() {
               Terug
             </NavLink>
           </Button>
-          {loaderData.soilAnalysis.a_fileavailable && (
+          {loaderData.soilAnalysis.a_file_path && (
             <Button variant="outline" asChild>
               <a
                 href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}

@@ -15,7 +15,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { cn } from "~/lib/utils"
-import { getSoilAnalysisDownloadName } from "./download"
 
 const SOIL_GROUPS = [
   {
@@ -255,8 +254,6 @@ export function SoilDataCards({
                     date={card.date}
                     source={card.source}
                     sourceLabel={sourceLabel}
-                    downloadUrl={card.downloadUrl}
-                    downloadFileName={card.downloadFileName}
                     canModify={canModifyAllSoilAnalyses || canModifySoilAnalysis[card.a_id]}
                   />
                 )
@@ -307,10 +304,6 @@ export function constructSoilDataCards(
       link: `./analysis/${item.a_id}`,
       date: item.b_sampling_date,
       source: item.a_source,
-      downloadUrl: item.a_fileavailable
-        ? `/api/soil-analysis/download/${item.a_id}.pdf`
-        : undefined,
-      downloadFileName: item.a_fileavailable ? getSoilAnalysisDownloadName(item) : undefined,
     }
   })
   return cardValues.filter((x) => x !== null)

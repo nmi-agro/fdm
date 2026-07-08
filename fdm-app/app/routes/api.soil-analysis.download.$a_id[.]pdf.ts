@@ -1,7 +1,7 @@
 import { ApiError } from "@google-cloud/storage"
 import { getSoilAnalysis } from "@nmi-agro/fdm-core"
 import { data, redirect } from "react-router"
-import { buildObjectKey, generateSignedReadUrl } from "~/integrations/gcs.server"
+import { generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -11,12 +11,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   try {
     const session = await getSession(request)
     const soilAnalysis = await getSoilAnalysis(fdm, session.principal_id, params.a_id)
-    if (!soilAnalysis.a_fileavailable) {
+    if (!soilAnalysis.a_file_path) {
       return data("Not Found", { status: 404 })
     }
-    const objectKey = buildObjectKey("soil_analyses", params.a_id, "pdf")
     try {
-      const url = await generateSignedReadUrl(objectKey)
+      const url = await generateSignedReadUrl(soilAnalysis.a_file_path)
       return redirect(url)
     } catch (gcsError) {
       if (gcsError instanceof ApiError && gcsError.code === 404) {

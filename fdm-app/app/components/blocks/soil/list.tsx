@@ -66,7 +66,7 @@ export function SoilAnalysesList({
                 <div className="space-x-4">
                   <Button
                     variant="outline"
-                    className={cn(!analysis.a_fileavailable && "invisible")}
+                    className={cn(!analysis.a_file_name && "invisible")}
                     asChild
                   >
                     <a

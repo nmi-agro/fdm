@@ -17,7 +17,7 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import { FieldDeleteDialog } from "~/components/blocks/field/delete"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { buildObjectKey, deleteObject } from "~/integrations/gcs.server"
+import { deleteObject } from "~/integrations/gcs.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
@@ -188,10 +188,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
           )
         }
 
-        if (analysis.a_fileavailable) {
+        if (analysis.a_file_path) {
           // Delete soil analysis PDF from GCS
-          const objectKey = buildObjectKey("soil_analyses", analysis.a_id, "pdf")
-          await deleteObject(objectKey)
+          await deleteObject(analysis.a_file_path)
         }
       }),
     )
