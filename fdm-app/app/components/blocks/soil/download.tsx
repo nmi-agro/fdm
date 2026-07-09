@@ -38,7 +38,6 @@ export function SoilAnalysisDownloadDropdown({
             : 0,
     )
 
-  console.log(soilAnalyses)
   if (soilAnalysesToDownload.length === 0) {
     return null
   }
