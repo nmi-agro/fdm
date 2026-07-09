@@ -18,11 +18,9 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
-import { SoilAnalysisDownloadDropdown } from "~/components/blocks/soil/download"
 import { SoilAnalysesList } from "~/components/blocks/soil/list"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
@@ -149,8 +147,8 @@ export default function FarmFieldSoilOverviewBlock() {
   const fetcher = useFetcher()
 
   return (
-    <Tabs defaultValue="parameters" className="space-y-6">
-      <div className="space-y-4">
+    <div className="space-y-6">
+      <div className="flex space-y-4">
         <div>
           <h3 className="text-lg font-medium">Bodem</h3>
           <p className="text-muted-foreground text-sm">
@@ -158,62 +156,54 @@ export default function FarmFieldSoilOverviewBlock() {
             bodemparameter
           </p>
         </div>
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="parameters">Parameters</TabsTrigger>
-            <TabsTrigger value="analyses">Analyses</TabsTrigger>
-          </TabsList>
-          <div className="flex items-center gap-2">
-            <SoilAnalysisDownloadDropdown
-              soilAnalyses={loaderData.soilAnalyses}
-              soilParameterDescription={loaderData.soilParameterDescription}
-              fieldName={loaderData.field.b_name}
-            />
-            <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
-              <NavLink to="./analysis/new">
-                <Plus />
-                Bodemanalyse toevoegen
-              </NavLink>
-            </Button>
-          </div>
+        <div className="ml-auto">
+          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
+            <NavLink to="./analysis/new">
+              <Plus />
+              Bodemanalyse toevoegen
+            </NavLink>
+          </Button>
         </div>
       </div>
       <Separator />
-      <div className="">
-        <TabsContent value="parameters">
-          {loaderData.soilAnalyses.length === 0 ? (
-            <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
-              <div className="flex flex-col space-y-2 text-center">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Dit perceel heeft nog geen bodemanalyse
-                </h1>
-                <p className="text-muted-foreground text-sm">
-                  Voeg een analyse toe om gegevens over de bodem bij te houden
-                </p>
-              </div>
-              <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
-                <NavLink to="./analysis/new">Bodemanalyse toevoegen</NavLink>
-              </Button>
-            </div>
-          ) : (
+      {loaderData.soilAnalyses.length === 0 ? (
+        <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col space-y-2 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Dit perceel heeft nog geen bodemanalyse
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Voeg een analyse toe om gegevens over de bodem bij te houden
+            </p>
+          </div>
+          <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
+            <NavLink to="./analysis/new">Bodemanalyse toevoegen</NavLink>
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col-reverse gap-6 lg:flex-row lg:items-start">
+          <div className="border-t pt-6 lg:w-2/3 lg:border-t-0 lg:pt-0">
             <SoilDataCards
               currentSoilData={loaderData.currentSoilData}
               soilParameterDescription={loaderData.soilParameterDescription}
               canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
             />
-          )}
-        </TabsContent>
-        <TabsContent value="analyses">
-          <SoilAnalysesList
-            soilAnalyses={loaderData.soilAnalyses}
-            soilParameterDescription={loaderData.soilParameterDescription}
-            fetcher={fetcher}
-            canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
-            fieldName={loaderData.field.b_name}
-          />
-        </TabsContent>
-      </div>
-    </Tabs>
+          </div>
+          <div className="space-y-4 lg:w-1/3 lg:border-l lg:pl-6">
+            <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] uppercase">
+              Bodemanalyses
+            </h4>
+            <SoilAnalysesList
+              soilAnalyses={loaderData.soilAnalyses}
+              soilParameterDescription={loaderData.soilParameterDescription}
+              fetcher={fetcher}
+              canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
+              fieldName={loaderData.field.b_name}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
