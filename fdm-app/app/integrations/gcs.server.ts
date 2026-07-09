@@ -1,4 +1,5 @@
 import { SaveData, Storage } from "@google-cloud/storage"
+import type { Readable } from "node:stream"
 
 let _storage: Storage | null = null
 
@@ -210,7 +211,7 @@ export async function uploadObject(
  * @returns The object's readable stream plus content type / size metadata
  */
 export async function getObjectStream(objectKey: string): Promise<{
-  stream: NodeJS.ReadableStream
+  stream: Readable
   contentType?: string
   size?: number
 }> {
