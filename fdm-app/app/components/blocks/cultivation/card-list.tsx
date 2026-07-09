@@ -8,7 +8,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "~/components/ui/empty"
-import type { Cultivation, CultivationOption } from "./types"
+import type { Cultivation, CultivationDefaultValues, CultivationOption } from "./types"
 import { CultivationAddFormDialog } from "./form-add"
 import { CultivationList } from "./list"
 
@@ -22,20 +22,29 @@ export function CultivationListCard({
   cultivations,
   harvests,
   editable = true,
+  defaultValues,
+  onSuggestionDialogClose,
 }: {
   cultivationsCatalogueOptions: CultivationOption[]
   cultivations: Cultivation[]
   harvests: Harvest[]
   editable?: boolean
+  defaultValues?: CultivationDefaultValues
+  /** Called when the pre-filled suggestion dialog is closed (submitted or dismissed). */
+  onSuggestionDialogClose?: () => void
 }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-xl font-semibold tracking-tight text-gray-900">
+        <CardTitle className="text-foreground text-xl font-semibold tracking-tight">
           Gewassen
         </CardTitle>
         {cultivations.length !== 0 && editable ? (
-          <CultivationAddFormDialog options={cultivationsCatalogueOptions} />
+          <CultivationAddFormDialog
+            options={cultivationsCatalogueOptions}
+            defaultValues={defaultValues}
+            onClose={onSuggestionDialogClose}
+          />
         ) : null}
       </CardHeader>
       <CardContent>
@@ -55,7 +64,11 @@ export function CultivationListCard({
             </EmptyHeader>
             {editable && (
               <EmptyContent>
-                <CultivationAddFormDialog options={cultivationsCatalogueOptions} />
+                <CultivationAddFormDialog
+                  options={cultivationsCatalogueOptions}
+                  defaultValues={defaultValues}
+                  onClose={onSuggestionDialogClose}
+                />
               </EmptyContent>
             )}
           </Empty>

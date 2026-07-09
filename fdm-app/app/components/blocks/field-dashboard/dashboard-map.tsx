@@ -11,13 +11,13 @@ import { useEffect, useMemo, useRef } from "react"
 import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import {
   FieldSourceClickable,
   FieldsSourceNotClickable,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import type { FieldDashboardTileProps } from "./types"
 
 export default function FieldDashboardMap({

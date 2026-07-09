@@ -49,7 +49,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
+import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import {
   createConfiguredRvoClient,
   createRvoState,
@@ -541,7 +541,11 @@ export async function action({ request, params, url }: Route.ActionArgs) {
         const nmiApiKey = getNmiApiKey()
         if (nmiApiKey) {
           try {
-            const soilEstimates = await getSoilParameterEstimates(geometry, nmiApiKey)
+            const soilEstimates = await getSoilParameterEstimatesForGeometry(
+              fdm,
+              geometry,
+              nmiApiKey,
+            )
             await addSoilAnalysis(
               tx,
               session.principal_id,
