@@ -4,6 +4,7 @@ import { formatDate } from "date-fns/format"
 import { nl } from "date-fns/locale"
 import { ChevronDown, Download, Eye, FileText } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
 import { PdfViewerDialogContent } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { Button } from "~/components/ui/button"
 import { Dialog } from "~/components/ui/dialog"
@@ -92,7 +93,7 @@ export function SoilAnalysisDownloadDropdown({
         : a.b_sampling_date && !b.b_sampling_date
           ? -1
           : a.b_sampling_date && b.b_sampling_date
-            ? a.b_sampling_date.getTime() - b.b_sampling_date.getTime()
+            ? b.b_sampling_date.getTime() - a.b_sampling_date.getTime()
             : 0,
     )
 
@@ -107,7 +108,7 @@ export function SoilAnalysisDownloadDropdown({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline">
-            Download analyses... <ChevronDown className="ml-2 h-4 w-4" />
+            Analyses downloaden <ChevronDown className="ml-2 h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -139,8 +140,9 @@ export function SoilAnalysisDownloadDropdown({
                     className="h-7 w-7"
                     onClick={() => setViewingAnalysis(analysis)}
                     title="Bekijk PDF"
+                    aria-label="Bekijk PDF"
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4" aria-hidden="true" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
                     <a
@@ -150,9 +152,11 @@ export function SoilAnalysisDownloadDropdown({
                         fieldName,
                         soilParameterDescription,
                       )}
-                      title="Download PDF"
+                      title="PDF downloaden"
+                      aria-label="PDF downloaden"
+                      onClick={() => toast("PDF wordt gedownload")}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-4 w-4" aria-hidden="true" />
                     </a>
                   </Button>
                 </div>

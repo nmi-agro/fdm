@@ -43,8 +43,8 @@ export function SoilAnalysesList({
             fetcher.state !== "idle" && fetcher.formData?.get("a_id") === analysis.a_id
 
           return (
-            <div className="grid grid-cols-3 items-center gap-x-3" key={analysis.a_id}>
-              <div className="col-span-1">
+            <div className="flex items-center justify-between gap-x-3" key={analysis.a_id}>
+              <div>
                 <p className="text-sm leading-none font-medium">
                   {analysis.a_source === "nl-other-nmi"
                     ? "Geschat met NMI BodemSchat"
@@ -62,9 +62,8 @@ export function SoilAnalysesList({
                       : `Gemeten door ${sourceLabel}`}
                 </p>
               </div>
-              <div>{""}</div>
 
-              <div className="justify-self-end">
+              <div>
                 <div className="space-x-4">
                   {analysis.a_file_path ? (
                     <PdfViewerDialog
@@ -77,9 +76,7 @@ export function SoilAnalysesList({
                       title={getSoilAnalysisTitle(analysis, soilParameterDescription)}
                     />
                   ) : (
-                    <Button variant="outline" className="invisible" disabled>
-                      Bekijk PDF
-                    </Button>
+                    <span className="inline-block h-9 w-[6.5rem]" aria-hidden="true" />
                   )}
                   <Button
                     asChild
