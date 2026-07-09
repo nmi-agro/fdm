@@ -48,6 +48,7 @@ import type {
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { getEffectiveHarvestable, getHarvestDateTerm, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { constructSoilDataCards } from "~/components/blocks/soil/cards"
+import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "~/components/blocks/soil/download"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { computeBcs } from "~/lib/bcs.server"
@@ -386,6 +387,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           new Date(b.b_sampling_date ?? b.a_date ?? 0).getTime() -
           new Date(a.b_sampling_date ?? a.a_date ?? 0).getTime(),
       )[0]
+
+    const latestAnalysisPdf = latestAnalysis?.a_file_path
+      ? {
+          a_id: latestAnalysis.a_id,
+          filename: getSoilAnalysisDownloadName(
+            latestAnalysis,
+            field.b_name,
+            getSoilParametersDescription(),
+          ),
+          title: getSoilAnalysisTitle(latestAnalysis, getSoilParametersDescription()),
+        }
+      : null
 
     const measuredCount = filteredSoilAnalyses.filter(
       (analysis) => analysis.a_source && analysis.a_source !== "nl-other-nmi" && analysis.a_source !== "other",
@@ -770,6 +783,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         parameterCards: basisCards,
         analysisCount: filteredSoilAnalyses.length,
         latestAnalysisDate: toIsoString(latestAnalysis?.b_sampling_date ?? latestAnalysis?.a_date),
+        latestAnalysisPdf,
         measuredCount,
         estimatedCount,
         unknownCount,

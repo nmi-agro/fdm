@@ -17,6 +17,7 @@ import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { BCS_COLOR_CLASSES, BCS_SCORE_DOT } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
+import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -744,14 +745,28 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
     )
   }
 
+  const latestAnalysisPdf = dashboard.soil.latestAnalysisPdf
+
   return (
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-5">
-        <div>
-          <p className="text-3xl font-semibold">{dashboard.soil.analysisCount}</p>
-          <p className="text-muted-foreground text-sm">
-            analyses · laatste bemonstering op {formatDateLabel(dashboard.soil.latestAnalysisDate)}
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-3xl font-semibold">{dashboard.soil.analysisCount}</p>
+            <p className="text-muted-foreground text-sm">
+              analyses · laatste bemonstering op {formatDateLabel(dashboard.soil.latestAnalysisDate)}
+            </p>
+          </div>
+          {latestAnalysisPdf && (
+            <PdfViewerDialog
+              a_id={latestAnalysisPdf.a_id}
+              filename={latestAnalysisPdf.filename}
+              title={latestAnalysisPdf.title}
+              triggerLabel="Bekijk PDF"
+              triggerVariant="outline"
+              triggerClassName="shrink-0"
+            />
+          )}
         </div>
         <Separator />
         <div className="space-y-3">
