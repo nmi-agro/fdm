@@ -54,6 +54,7 @@ export interface SoilAnalysis {
   a_c_bcs: schema.soilAnalysisTypeSelect["a_c_bcs"]
   a_rt_bcs: schema.soilAnalysisTypeSelect["a_rt_bcs"]
   b_id_sampling: schema.soilSamplingTypeSelect["b_id_sampling"]
+  b_id: schema.soilSamplingTypeSelect["b_id"]
   b_sampling_date: schema.soilSamplingTypeSelect["b_sampling_date"]
   b_sampling_geometry?: schema.soilSamplingTypeSelect["b_sampling_geometry"]
 }

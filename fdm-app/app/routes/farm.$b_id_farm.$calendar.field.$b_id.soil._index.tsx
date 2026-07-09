@@ -167,6 +167,7 @@ export default function FarmFieldSoilOverviewBlock() {
             <SoilAnalysisDownloadDropdown
               soilAnalyses={loaderData.soilAnalyses}
               soilParameterDescription={loaderData.soilParameterDescription}
+              fieldName={loaderData.field.b_name}
             />
             <Button asChild className={cn(!loaderData.fieldWritePermission ? "invisible" : "")}>
               <NavLink to="./analysis/new">
@@ -208,6 +209,7 @@ export default function FarmFieldSoilOverviewBlock() {
             soilParameterDescription={loaderData.soilParameterDescription}
             fetcher={fetcher}
             canModifySoilAnalysis={loaderData.soilAnalysisWritePermissions}
+            fieldName={loaderData.field.b_name}
           />
         </TabsContent>
       </div>

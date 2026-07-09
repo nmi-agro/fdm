@@ -199,3 +199,30 @@ export async function uploadObject(
     resumable: false,
   })
 }
+
+/**
+ * Opens a readable stream for a GCS object, along with its content type and
+ * size (when known). Used to proxy file contents through the app server
+ * instead of redirecting the client to a signed GCS URL, so downloads and
+ * inline views stay same-origin.
+ *
+ * @param objectKey - The GCS object path
+ * @returns The object's readable stream plus content type / size metadata
+ */
+export async function getObjectStream(objectKey: string): Promise<{
+  stream: NodeJS.ReadableStream
+  contentType?: string
+  size?: number
+}> {
+  const storage = getStorage()
+  const bucket = getBucketName()
+  const file = storage.bucket(bucket).file(objectKey)
+
+  const [metadata] = await file.getMetadata()
+
+  return {
+    stream: file.createReadStream(),
+    contentType: metadata.contentType ?? undefined,
+    size: metadata.size !== undefined ? Number(metadata.size) : undefined,
+  }
+}

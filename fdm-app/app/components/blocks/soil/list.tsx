@@ -2,21 +2,24 @@ import type { SoilParameterDescription, SoilAnalysis } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { NavLink, type useFetcher } from "react-router"
+import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
-import { getSoilAnalysisDownloadName } from "./download"
+import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "./download"
 
 export function SoilAnalysesList({
   soilAnalyses,
   soilParameterDescription,
   fetcher,
   canModifySoilAnalysis = {},
+  fieldName,
 }: {
   soilAnalyses: SoilAnalysis[]
   soilParameterDescription: SoilParameterDescription
   fetcher: ReturnType<typeof useFetcher>
   canModifySoilAnalysis?: Record<string, boolean>
+  fieldName: string
 }) {
   const handleDelete = (a_id: string) => {
     if (fetcher.state !== "idle") return
@@ -63,19 +66,21 @@ export function SoilAnalysesList({
 
               <div className="justify-self-end">
                 <div className="space-x-4">
-                  <Button
-                    variant="outline"
-                    className={cn(!analysis.a_file_path && "invisible")}
-                    asChild
-                  >
-                    <a
-                      href={`/api/soil-analysis/download/${analysis.a_id}.pdf`}
-                      rel="noopener noreferrer"
-                      download={getSoilAnalysisDownloadName(analysis)}
-                    >
+                  {analysis.a_file_path ? (
+                    <PdfViewerDialog
+                      a_id={analysis.a_id}
+                      filename={getSoilAnalysisDownloadName(
+                        analysis,
+                        fieldName,
+                        soilParameterDescription,
+                      )}
+                      title={getSoilAnalysisTitle(analysis, soilParameterDescription)}
+                    />
+                  ) : (
+                    <Button variant="outline" className="invisible" disabled>
                       Bekijk PDF
-                    </a>
-                  </Button>
+                    </Button>
+                  )}
                   <Button
                     asChild
                     variant="default"

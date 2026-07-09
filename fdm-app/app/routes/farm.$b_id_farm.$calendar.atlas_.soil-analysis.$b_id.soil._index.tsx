@@ -121,6 +121,7 @@ export default function FarmFieldSoilOverviewBlock() {
           <SoilAnalysisDownloadDropdown
             soilAnalyses={loaderData.soilAnalyses}
             soilParameterDescription={loaderData.soilParameterDescription}
+            fieldName={loaderData.field.b_name}
           />
         </div>
       </div>
@@ -149,6 +150,7 @@ export default function FarmFieldSoilOverviewBlock() {
           soilAnalyses={loaderData.soilAnalyses}
           soilParameterDescription={loaderData.soilParameterDescription}
           fetcher={fetcher}
+          fieldName={loaderData.field.b_name}
         />
       </TabsContent>
     </Tabs>

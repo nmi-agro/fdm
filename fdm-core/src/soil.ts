@@ -241,6 +241,7 @@ export async function getSoilAnalysis(
         a_c_bcs: schema.soilAnalysis.a_c_bcs,
         a_rt_bcs: schema.soilAnalysis.a_rt_bcs,
         b_id_sampling: schema.soilSampling.b_id_sampling,
+        b_id: schema.soilSampling.b_id,
         a_depth_upper: schema.soilSampling.a_depth_upper,
         a_depth_lower: schema.soilSampling.a_depth_lower,
         b_sampling_date: schema.soilSampling.b_sampling_date,
@@ -362,6 +363,7 @@ export async function getSoilAnalyses(
         a_c_bcs: schema.soilAnalysis.a_c_bcs,
         a_rt_bcs: schema.soilAnalysis.a_rt_bcs,
         b_id_sampling: schema.soilSampling.b_id_sampling,
+        b_id: schema.soilSampling.b_id,
         a_depth_upper: schema.soilSampling.a_depth_upper,
         a_depth_lower: schema.soilSampling.a_depth_lower,
         b_sampling_date: schema.soilSampling.b_sampling_date,
@@ -493,7 +495,6 @@ export async function getSoilAnalysesForFarm(
         a_depth_upper: schema.soilSampling.a_depth_upper,
         a_depth_lower: schema.soilSampling.a_depth_lower,
         b_sampling_date: schema.soilSampling.b_sampling_date,
-        // extra field for grouping – not part of SoilAnalysis type
         b_id: schema.soilSampling.b_id,
       })
       .from(schema.soilAnalysis)
@@ -557,6 +558,7 @@ export async function getSoilAnalysesForFarm(
         a_c_bcs: row.a_c_bcs,
         a_rt_bcs: row.a_rt_bcs,
         b_id_sampling: row.b_id_sampling,
+        b_id: row.b_id,
         a_depth_upper: row.a_depth_upper,
         a_depth_lower: row.a_depth_lower,
         b_sampling_date: row.b_sampling_date,

@@ -1,8 +1,8 @@
 import { getField, getSoilAnalysis, getSoilParametersDescription } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, useLoaderData } from "react-router"
-import { getSoilAnalysisDownloadName } from "~/components/blocks/soil/download"
+import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
-import { Button } from "~/components/ui/button"
+import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -115,15 +115,18 @@ export default function FarmFieldSoilOverviewBlock() {
           <p className="text-muted-foreground text-sm">Bekijk de gegevens van deze bodemanalyse</p>
         </div>
         {loaderData.soilAnalysis.a_file_path && (
-          <Button variant="outline" asChild>
-            <a
-              href={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
-              rel="noopener noreferrer"
-              download={getSoilAnalysisDownloadName(loaderData.soilAnalysis)}
-            >
-              Bekijk PDF
-            </a>
-          </Button>
+          <PdfViewerDialog
+            a_id={loaderData.soilAnalysis.a_id}
+            filename={getSoilAnalysisDownloadName(
+              loaderData.soilAnalysis,
+              loaderData.field.b_name,
+              loaderData.soilParameterDescription,
+            )}
+            title={getSoilAnalysisTitle(
+              loaderData.soilAnalysis,
+              loaderData.soilParameterDescription,
+            )}
+          />
         )}
       </div>
       <Separator />
