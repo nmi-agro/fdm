@@ -15,6 +15,7 @@ export function useCurrentHelpdeskPage() {
   const isSavedReplies = matches.some(
     (match) => match.id === "routes/support.settings.saved-replies",
   )
+  const isAbsences = matches.some((match) => match.id === "routes/support.settings.absences")
 
   return isTicketViewer
     ? searchParams.has("all")
@@ -36,5 +37,7 @@ export function useCurrentHelpdeskPage() {
               ? "new_ticket"
               : isSavedReplies
                 ? "saved_replies"
-                : null
+                : isAbsences
+                  ? "absences"
+                  : null
 }

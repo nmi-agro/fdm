@@ -65,6 +65,14 @@ export function HeaderHelpdesk() {
           <BreadcrumbItem>Medewerkers</BreadcrumbItem>
         </>
       )}
+      {currentHelpdeskPage === "absences" && (
+        <>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Instellingen</BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Afwezigheid</BreadcrumbItem>
+        </>
+      )}
       {currentHelpdeskPage === "tags" && (
         <>
           <BreadcrumbSeparator />

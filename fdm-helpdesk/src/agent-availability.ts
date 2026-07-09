@@ -1,5 +1,6 @@
 import { and, asc, eq, gte, inArray, isNull, lt, lte, notExists, or, sql } from "drizzle-orm"
 import type { AgentSummary } from "./agent"
+import type { HelpdeskPrincipalId } from "./authorization.types"
 import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
@@ -399,11 +400,79 @@ export async function scheduleAbsence(
   }
 }
 
-export async function cancelAbsence(fdm: FdmHelpdeskType, availability_id: string) {
+/**
+ * Updates the dates, reason, and/or note of an existing absence.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param absence_id ID of the absence to update.
+ * @param updates The fields to update. Only the provided fields are changed.
+ */
+export async function updateAbsence(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  absence_id: string,
+  updates: {
+    start_date?: Date
+    end_date?: Date
+    reason?: string
+    note?: string | null
+  },
+) {
   try {
-    const absence = await getAbsence(fdm, availability_id)
+    const absence = await getAbsence(fdm, principal_id, absence_id)
 
-    await checkHelpdeskPermission(fdm, "agent", "write", absence.agent_id, "", "cancelAbsence")
+    await checkHelpdeskPermission(
+      fdm,
+      "agent",
+      "write",
+      absence.agent_id,
+      principal_id,
+      "updateAbsence",
+    )
+
+    await fdm
+      .update(schema.agentAbsences)
+      .set({
+        start_date: updates.start_date,
+        end_date: updates.end_date,
+        reason: updates.reason,
+        note: updates.note,
+      })
+      .where(eq(schema.agentAbsences.absence_id, absence_id))
+  } catch (err) {
+    throw handleError(err, "Exception for updateAbsence", {
+      absence_id,
+      ...updates,
+    })
+  }
+}
+
+/**
+ * Cancels (deletes) an existing absence.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param availability_id ID of the absence to cancel.
+ */
+export async function cancelAbsence(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  availability_id: string,
+) {
+  try {
+    const absence = await getAbsence(fdm, principal_id, availability_id)
+
+    await checkHelpdeskPermission(
+      fdm,
+      "agent",
+      "write",
+      absence.agent_id,
+      principal_id,
+      "cancelAbsence",
+    )
 
     await fdm
       .delete(schema.agentAbsences)
@@ -415,7 +484,19 @@ export async function cancelAbsence(fdm: FdmHelpdeskType, availability_id: strin
   }
 }
 
-export async function getAbsence(fdm: FdmHelpdeskType, absence_id: string) {
+/**
+ * Gets a single absence by ID.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param absence_id ID of the absence to get.
+ */
+export async function getAbsence(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  absence_id: string,
+) {
   try {
     const absences = await fdm
       .select()
@@ -427,7 +508,14 @@ export async function getAbsence(fdm: FdmHelpdeskType, absence_id: string) {
       throw new Error(`Absence with ID ${absence_id} not found`)
     }
 
-    await checkHelpdeskPermission(fdm, "agent", "read", absences[0].agent_id, "", "getAbsence")
+    await checkHelpdeskPermission(
+      fdm,
+      "agent",
+      "read",
+      absences[0].agent_id,
+      principal_id,
+      "getAbsence",
+    )
 
     return absences[0]
   } catch (err) {
@@ -443,4 +531,40 @@ export async function getAgentAbsences(fdm: FdmHelpdeskType, agent_id: string) {
     .from(schema.agentAbsences)
     .where(eq(schema.agentAbsences.agent_id, agent_id))
     .orderBy((t) => [asc(t.start_date)])
+}
+
+/**
+ * Gets every recorded absence across all agents, joined with the agent's display name.
+ *
+ * Any agent or admin on the helpdesk may read the full list; this is what powers the shared
+ * absence calendar where everyone's absences are visible to every agent.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @throws if the principal does not have permission to read the helpdesk.
+ */
+export async function getAllAbsences(fdm: FdmHelpdeskType, principal_id: HelpdeskPrincipalId) {
+  try {
+    await checkHelpdeskPermission(fdm, "helpdesk", "read", "", principal_id, "getAllAbsences")
+
+    return await fdm
+      .select({
+        absence_id: schema.agentAbsences.absence_id,
+        agent_id: schema.agentAbsences.agent_id,
+        display_name: schema.agents.display_name,
+        start_date: schema.agentAbsences.start_date,
+        end_date: schema.agentAbsences.end_date,
+        reason: schema.agentAbsences.reason,
+        note: schema.agentAbsences.note,
+        created: schema.agentAbsences.created,
+      })
+      .from(schema.agentAbsences)
+      .innerJoin(schema.agents, eq(schema.agentAbsences.agent_id, schema.agents.agent_id))
+      .orderBy((t) => [asc(t.start_date)])
+  } catch (err) {
+    throw handleError(err, "Exception for getAllAbsences", {
+      principal_id,
+    })
+  }
 }

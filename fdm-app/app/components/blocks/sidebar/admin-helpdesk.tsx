@@ -4,6 +4,7 @@ import {
   IdCardLanyard,
   Inbox,
   MessageSquareDashed,
+  CalendarOff,
   Tag,
   Users,
 } from "lucide-react"
@@ -131,6 +132,14 @@ export function SidebarAdminHelpdesk({
                 <NavLink to="/support/settings/agents">
                   <Users />
                   <span>Medewerkers</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "absences"}>
+                <NavLink to="/support/settings/absences">
+                  <CalendarOff />
+                  <span>Afwezigheid</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
