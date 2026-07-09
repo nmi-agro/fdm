@@ -114,7 +114,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
-    const fileStorage = createFsFileStorage("./uploads/soil_analyses")
+    const fileStorage = createFsFileStorage("./uploads/soil_analysis")
 
     const uploadHandler = async (fileUpload: FileUpload) => {
       if (fileUpload.fieldName === "soilAnalysisFile" && fileUpload.type === "application/pdf") {
@@ -194,7 +194,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       Number(a_depth_upper),
     )
 
-    const objectKey = buildObjectKey("soil_analyses", soilAnalysisId, "pdf")
+    const objectKey = buildObjectKey("soil_analysis", soilAnalysisId, "pdf")
 
     let uploaded = false
     try {

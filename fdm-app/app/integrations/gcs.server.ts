@@ -53,9 +53,9 @@ function getBucketName(): string {
 
 /**
  * Returns a consistently formatted GCS object key.
- * Example: buildObjectKey("soil_analyses", a_id, "pdf") → "soil_analyses/{a_id}.pdf"
+ * Example: buildObjectKey("soil_analysis", a_id, "pdf") → "soil_analysis/{a_id}.pdf"
  *
- * @param prefix - The prefix or folder in GCS (e.g. "soil_analyses")
+ * @param prefix - The prefix or folder in GCS (e.g. "soil_analysis")
  * @param id - The unique identifier for the object (e.g. a_id)
  * @param ext - The file extension (e.g. "pdf", "jpg")
  * @returns The full GCS object key

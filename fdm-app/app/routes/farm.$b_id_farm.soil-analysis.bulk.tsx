@@ -237,7 +237,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             const file = uploadedPdfs.get(filename.toLowerCase())
 
             if (file) {
-              const key = buildObjectKey("soil_analyses", soilAnalysisId, "pdf")
+              const key = buildObjectKey("soil_analysis", soilAnalysisId, "pdf")
               let uploaded = false
               try {
                 await uploadObject(key, file.stream(), "application/pdf")
