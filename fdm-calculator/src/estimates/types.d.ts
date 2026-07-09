@@ -19,7 +19,6 @@ export type SoilParameterEstimatesInput = {
  */
 export type SoilParameterEstimatesResponse = {
   a_al_ox: number
-  a_c_of: number
   a_ca_co: number
   a_ca_co_po: number
   a_caco3_if: number
@@ -28,7 +27,6 @@ export type SoilParameterEstimatesResponse = {
   a_cn_fr: number
   a_com_fr: number
   a_cu_cc: number
-  a_density_sa: number
   a_fe_ox: number
   a_k_cc: number
   a_k_co: number
