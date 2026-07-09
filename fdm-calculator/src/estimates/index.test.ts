@@ -4,7 +4,6 @@ import { requestSoilParameterEstimates } from "./index"
 
 const mockEstimatesData: SoilParameterEstimatesResponse = {
   a_al_ox: 1,
-  a_c_of: 1,
   a_ca_co: 1,
   a_ca_co_po: 1,
   a_caco3_if: 1,
@@ -13,7 +12,6 @@ const mockEstimatesData: SoilParameterEstimatesResponse = {
   a_cn_fr: 1,
   a_com_fr: 1,
   a_cu_cc: 1,
-  a_density_sa: 1,
   a_fe_ox: 1,
   a_k_cc: 1,
   a_k_co: 1,
