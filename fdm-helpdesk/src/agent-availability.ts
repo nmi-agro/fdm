@@ -41,24 +41,24 @@ export async function getAvailableAgents(
       .select({
         ...agentSummaryColumns,
         // Total "weight" of all active tickets that this agent is assigned to
-        total_assigned_weight: sql`(select sum(CASE tickets.priority
+        total_assigned_weight: sql`(select sum(CASE t.priority
         WHEN 'low' THEN 1
         WHEN 'normal' THEN 2
         WHEN 'high' THEN 4
         WHEN 'urgent' THEN 8
         ELSE 3
-    END) FROM ${schema.ticketAssignments}
-    JOIN ${schema.tickets}
-      ON ${schema.ticketAssignments.ticket_id} = ${schema.tickets.ticket_id}
+    END) FROM ${schema.ticketAssignments} ta
+    JOIN ${schema.tickets} t
+      ON ta.ticket_id = t.ticket_id
     WHERE
-        ${schema.ticketAssignments.agent_id} = ${schema.agents.agent_id}
-      AND ${inArray(schema.tickets.status, ACTIVE_TICKET_STATUSES)})`,
+        ta.agent_id = ${schema.agents.agent_id}
+      AND ${inArray(sql`t.status`, ACTIVE_TICKET_STATUSES)})`,
         // Number of active tickets that this agent is assigned to
         num_assigned_tickets: sql`(select count(*)
-from ${schema.ticketAssignments}
-inner join ${schema.tickets} on ${schema.ticketAssignments.ticket_id} = ${schema.tickets.ticket_id}
-where ${schema.ticketAssignments.agent_id} = ${schema.agents.agent_id}
-and ${inArray(schema.tickets.status, ACTIVE_TICKET_STATUSES)})`,
+from ${schema.ticketAssignments} ta
+inner join ${schema.tickets} t on ta.ticket_id = t.ticket_id
+where ta.agent_id = ${schema.agents.agent_id}
+and ${inArray(sql`t.status`, ACTIVE_TICKET_STATUSES)})`,
       })
       .from(schema.agents)
       .where((t) =>

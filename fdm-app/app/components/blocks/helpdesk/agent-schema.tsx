@@ -33,6 +33,7 @@ export const UpdateAgentSchema = z.object({
     .nullable()
     .optional(),
   work_days: z.array(z.number().min(0).max(6)),
+  reassign_tickets: z.boolean(),
 })
 
 export const SetAgentActiveStatusSchema = z.object({

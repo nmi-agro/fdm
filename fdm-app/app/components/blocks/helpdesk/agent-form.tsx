@@ -2,15 +2,17 @@ import type { Agent } from "@nmi-agro/fdm-helpdesk"
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useId } from "react"
-import { Controller, type Resolver } from "react-hook-form"
+import { Controller, useWatch, type Resolver } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
+import { Card } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Spinner } from "~/components/ui/spinner"
+import { Switch } from "~/components/ui/switch"
 import { UpdateAgentSchema } from "./agent-schema"
 
 type AgentFormDefaults = Partial<Agent> & { agent_id: string }
@@ -30,6 +32,7 @@ function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
       ? agent.availability_status
       : "online") as AgentFormValues["availability_status"],
     work_days: work_days,
+    reassign_tickets: false,
   }
 }
 
@@ -40,9 +43,15 @@ export function useAgentForm({ agent }: { agent: AgentFormDefaults }) {
     defaultValues: getFormDefaults(agent),
   })
 
+  const availability_status = useWatch({ control: form.control, name: "availability_status" })
+
   useEffect(() => {
     form.reset(getFormDefaults(agent))
   }, [form.reset, agent])
+
+  useEffect(() => {
+    form.setValue("reassign_tickets", availability_status === "out-of-office")
+  }, [availability_status])
 
   return form
 }
@@ -51,6 +60,7 @@ export function AgentFormFields({ agent }: { agent: Agent }) {
   const statusOnlineId = useId()
   const statusAwayId = useId()
   const statusOutOfOfficeId = useId()
+  const availability_status = useWatch({ name: "availability_status" })
 
   return (
     <>
@@ -68,62 +78,73 @@ export function AgentFormFields({ agent }: { agent: Agent }) {
       <Controller
         name="availability_status"
         render={({ field, fieldState }) => (
-          <Field>
-            <FieldLabel>Status</FieldLabel>
-            <FieldDescription>Wat is je beschikbaarheid op dit moment?</FieldDescription>
-            <RadioGroup value={field.value} onValueChange={(newValue) => field.onChange(newValue)}>
-              <Field orientation="horizontal">
-                <RadioGroupItem id={statusOnlineId} value="online" />
-                <FieldLabel htmlFor={statusOnlineId}>
-                  <span>
-                    Online:{" "}
-                    <span className="text-muted-foreground">
-                      Je bent nu beschikbaar om nieuwe tickets te behandelen.
+          <div className="space-y-2">
+            <Field>
+              <FieldLabel>Status</FieldLabel>
+              <FieldDescription>Wat is je beschikbaarheid op dit moment?</FieldDescription>
+              <RadioGroup
+                value={field.value}
+                onValueChange={(newValue) => field.onChange(newValue)}
+              >
+                <Field orientation="horizontal">
+                  <RadioGroupItem id={statusOnlineId} value="online" />
+                  <FieldLabel htmlFor={statusOnlineId}>
+                    <span>
+                      Online:{" "}
+                      <span className="text-muted-foreground">
+                        Je bent nu beschikbaar om nieuwe tickets te behandelen.
+                      </span>
                     </span>
-                  </span>
-                </FieldLabel>
-              </Field>
-              <Field orientation="horizontal">
-                <RadioGroupItem id={statusAwayId} value="away" />
-                <FieldLabel htmlFor={statusAwayId}>
-                  <span>
-                    Even weg:{" "}
-                    <span className="text-muted-foreground">
-                      Je kunt nog geen nieuwe tickets behandelen maar je bent zo weer terug.
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <RadioGroupItem id={statusAwayId} value="away" />
+                  <FieldLabel htmlFor={statusAwayId}>
+                    <span>
+                      Even weg:{" "}
+                      <span className="text-muted-foreground">
+                        Je kunt nog geen nieuwe tickets behandelen maar je bent zo weer terug.
+                      </span>
                     </span>
-                  </span>
-                </FieldLabel>
-              </Field>
-              <Field orientation="horizontal">
-                <RadioGroupItem id={statusOutOfOfficeId} value="out-of-office" />
-                <FieldLabel htmlFor={statusOutOfOfficeId}>
-                  <span>
-                    Buiten het kantoor:{" "}
-                    <span className="text-muted-foreground">
-                      Je bent helemaal niet beschikbaar, en je tickets moeten opnieuw worden
-                      togewezen.
+                  </FieldLabel>
+                </Field>
+                <Field orientation="horizontal">
+                  <RadioGroupItem id={statusOutOfOfficeId} value="out-of-office" />
+                  <FieldLabel htmlFor={statusOutOfOfficeId}>
+                    <span>
+                      Buiten het kantoor:{" "}
+                      <span className="text-muted-foreground">
+                        Je bent helemaal niet beschikbaar, en je tickets moeten opnieuw worden
+                        togewezen.
+                      </span>
                     </span>
-                  </span>
-                </FieldLabel>
-              </Field>
-            </RadioGroup>
-            {fieldState.error && <FieldError errors={[fieldState.error]} />}
-          </Field>
+                  </FieldLabel>
+                </Field>
+              </RadioGroup>
+              {fieldState.error && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          </div>
         )}
       />
-      <Controller
-        name="max_tickets"
-        render={({ field, fieldState }) => (
-          <Field>
-            <FieldLabel>Maximale tickets</FieldLabel>
-            <FieldDescription>
-              Het maximale aantal tickets dat een agent tegelijk kan behandelen als je online bent.
-            </FieldDescription>
-            <Input {...field} placeholder="Geen" type="number" min={1} />
-            {fieldState.error && <FieldError errors={[fieldState.error]} />}
-          </Field>
-        )}
-      />
+      {availability_status === "out-of-office" && (
+        <Controller
+          name="reassign_tickets"
+          render={({ field, fieldState }) => (
+            <div>
+              <Card className="inline-block p-2">
+                <Field orientation="horizontal">
+                  <FieldLabel>Mijn tickets opnieuw toewijzen</FieldLabel>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked)}
+                  />
+                </Field>
+                {fieldState.error && <FieldError errors={[fieldState.error]} />}
+              </Card>
+            </div>
+          )}
+        />
+      )}
       <Controller
         name="work_days"
         render={({ field, fieldState }) => (

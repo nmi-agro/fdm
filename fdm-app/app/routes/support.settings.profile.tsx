@@ -61,6 +61,7 @@ export async function action({ request }: Route.ActionArgs) {
       const agent = await getAgent(fdm, session.principal_id, session.principal_id)
 
       if (
+        agentUpdate.reassign_tickets &&
         agentUpdate.availability_status !== agent.availability_status &&
         agentUpdate.availability_status === "out-of-office"
       ) {
