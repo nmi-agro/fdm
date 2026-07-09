@@ -20,6 +20,8 @@ import { getCalendarSelection } from "@/app/lib/calendar"
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
 import { useSelectedFieldStore } from "@/app/store/selected-field"
+import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
+import { FieldPickerDialog } from "~/components/blocks/sidebar/field-picker-dialog"
 import { Badge } from "~/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import {
@@ -44,8 +46,6 @@ import {
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
-import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
-import { FieldPickerDialog } from "~/components/blocks/sidebar/field-picker-dialog"
 
 export function SidebarFarm({
   farm,
@@ -443,7 +443,10 @@ export function SidebarFarm({
                     <SidebarMenuButton
                       className="text-muted-foreground"
                       onClick={() =>
-                        openFarmPicker("meststoffen", (b_id_farm) => `/farm/${b_id_farm}/fertilizers`)
+                        openFarmPicker(
+                          "meststoffen",
+                          (b_id_farm) => `/farm/${b_id_farm}/fertilizers`,
+                        )
                       }
                     >
                       <Shapes />
@@ -543,7 +546,8 @@ export function SidebarFarm({
                             asChild
                             isActive={
                               item.segment === ""
-                                ? location.pathname === item.to || location.pathname === `${item.to}/`
+                                ? location.pathname === item.to ||
+                                  location.pathname === `${item.to}/`
                                 : location.pathname.startsWith(item.to)
                             }
                           >

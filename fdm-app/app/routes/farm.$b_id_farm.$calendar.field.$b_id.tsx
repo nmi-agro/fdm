@@ -189,7 +189,9 @@ export default function FarmFieldIndex() {
         <FarmTitle
           title={loaderData.field?.b_name}
           description={
-            isDashboardRoute ? "Overzicht van dit perceel" : "Beheer hier de gegevens van dit perceel"
+            isDashboardRoute
+              ? "Overzicht van dit perceel"
+              : "Beheer hier de gegevens van dit perceel"
           }
         />
         <FarmContent>

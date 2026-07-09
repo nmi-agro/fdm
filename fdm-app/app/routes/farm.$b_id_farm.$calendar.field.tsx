@@ -9,6 +9,7 @@ import {
   getSoilAnalyses,
   updateField,
 } from "@nmi-agro/fdm-core"
+import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -22,22 +23,39 @@ import {
 import { dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { columns, type FieldExtended } from "~/components/blocks/fields/columns"
+import { buildColumns, type FieldExtended } from "~/components/blocks/fields/columns"
 import { DataTable } from "~/components/blocks/fields/table"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
+
+// Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
+// missing a main cultivation don't overload the external NMI API with unbounded parallel
+// requests (same concurrency-limiting approach as the nutrient advice overview loader).
+const CULTIVATION_SUGGESTION_CONCURRENCY = 4
+
+/** Splits an array into consecutive chunks of at most `size` items each. */
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size))
+  }
+  return chunks
+}
 
 export const meta: MetaFunction = () => {
   return [
@@ -82,6 +100,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         return {
           shouldShowLayout: false,
           b_id_farm: params.b_id_farm,
+          calendar: params.calendar,
           farmOptions: [],
           fieldOptions: [],
           fieldsExtended: [],
@@ -139,6 +158,9 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     })
 
     const fertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm)
+
+    const calendar = params.calendar ?? new Date().getFullYear().toString()
+    const nmiApiKey = getNmiApiKey()
 
     const fieldsExtended = await Promise.all(
       fields.map(async (field) => {
@@ -215,6 +237,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           b_id: field.b_id,
           b_name: field.b_name,
           cultivations: cultivations,
+          cultivationSuggestion: undefined as Awaited<ReturnType<typeof getCultivationSuggestion>>,
           fertilizers: fertilizersFiltered,
           a_som_loi: a_som_loi,
           b_soiltype_agr: b_soiltype_agr,
@@ -225,6 +248,28 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         }
       }),
     )
+
+    // Look up NMI-estimate-based cultivation suggestions for fields missing a default
+    // cultivation, in small concurrency-limited batches so a farm with many affected fields
+    // doesn't fire unbounded parallel requests at the external NMI API (same approach as the
+    // farm dashboard and nutrient advice overview loaders).
+    const fieldsMissingCultivation = fieldsExtended.filter(
+      (field) => !getDefaultCultivation(field.cultivations, calendar),
+    )
+    for (const fieldsChunk of chunk(fieldsMissingCultivation, CULTIVATION_SUGGESTION_CONCURRENCY)) {
+      await Promise.all(
+        fieldsChunk.map(async (field) => {
+          field.cultivationSuggestion = await getCultivationSuggestion(
+            fdm,
+            session.principal_id,
+            b_id_farm,
+            field.b_id,
+            calendar,
+            nmiApiKey,
+          )
+        }),
+      )
+    }
 
     const farmWritePermission = await checkPermission(
       fdm,
@@ -240,6 +285,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     return {
       shouldShowLayout: true,
       b_id_farm: b_id_farm,
+      calendar,
       farmOptions: farmOptions,
       fieldOptions: fieldOptions,
       fieldsExtended: fieldsExtended,
@@ -265,6 +311,11 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 export default function FarmFieldIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const { showProductiveOnly } = useFieldFilterStore()
+
+  const columns = useMemo(
+    () => buildColumns(loaderData.b_id_farm, loaderData.calendar ?? ""),
+    [loaderData.b_id_farm, loaderData.calendar],
+  )
 
   const filteredFields = loaderData.fieldsExtended.filter((field) => {
     if (!showProductiveOnly) {

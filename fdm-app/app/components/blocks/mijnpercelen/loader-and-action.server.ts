@@ -19,7 +19,7 @@ import { length } from "@turf/length"
 import fs from "node:fs/promises"
 import { data } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
-import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
+import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -308,7 +308,11 @@ export async function genericAction(
       if (nmiApiKey) {
         for (const { b_id, geometry } of addedFields) {
           try {
-            const soilEstimates = await getSoilParameterEstimates(geometry, nmiApiKey)
+            const soilEstimates = await getSoilParameterEstimatesForGeometry(
+              fdm,
+              geometry,
+              nmiApiKey,
+            )
             await addSoilAnalysis(
               fdm,
               session.principal_id,

@@ -3,8 +3,9 @@ import type { FeatureCollection, Geometry } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
 import type { ComponentType } from "react"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
-import type { BcsPreviewResult } from "~/lib/bcs"
 import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
+import type { BcsPreviewResult } from "~/lib/bcs"
+import type { CultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 
 export type AsyncTileResult<T> =
   | { status: "ready"; data: T }
@@ -172,6 +173,7 @@ export interface FieldDashboardData {
     fertilizer: Promise<FieldDashboardFertilizerAsyncSummary>
     bln: Promise<AsyncTileResult<FieldDashboardBlnSummary>>
     cultivationHistory: Promise<AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>>
+    cultivationSuggestion: Promise<CultivationSuggestionResult>
     fieldCultivationColors: Promise<Record<string, string | null>>
     nitrogenBalance: Promise<AsyncTileResult<FieldDashboardNitrogenBalanceSummary>>
     organicMatterBalance: Promise<AsyncTileResult<FieldDashboardOrganicMatterBalanceSummary>>

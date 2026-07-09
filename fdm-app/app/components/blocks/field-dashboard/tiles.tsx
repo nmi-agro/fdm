@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
+import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
@@ -127,7 +128,10 @@ export function FieldDashboardMapTile({ dashboard, tile }: FieldDashboardTilePro
           errorElement={<FieldDashboardMap dashboard={dashboard} fieldCroprotationById={{}} />}
         >
           {(fieldCroprotationById) => (
-            <FieldDashboardMap dashboard={dashboard} fieldCroprotationById={fieldCroprotationById} />
+            <FieldDashboardMap
+              dashboard={dashboard}
+              fieldCroprotationById={fieldCroprotationById}
+            />
           )}
         </Await>
       </Suspense>
@@ -191,23 +195,44 @@ export function FieldDashboardIdentityTile({ dashboard, tile }: FieldDashboardTi
 export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldDashboardTileProps) {
   const activeCultivation = dashboard.cultivation.active
 
+  // The suggestion lookup calls the NMI API and must never block the rest of this tile (which
+  // renders synchronously) — resolved separately via <Await>, same pattern as the other
+  // NMI-backed tiles (cultivation history, bln, etc.).
+  const suggestionBanner = (
+    <Suspense fallback={null}>
+      <Await resolve={dashboard.asyncInsights.cultivationSuggestion} errorElement={null}>
+        {(result) => (
+          <CultivationSuggestionStatusBanner
+            b_id_farm={dashboard.b_id_farm}
+            calendar={dashboard.calendar}
+            b_id={dashboard.b_id}
+            result={result}
+          />
+        )}
+      </Await>
+    </Suspense>
+  )
+
   if (!activeCultivation) {
     return (
-      <FieldDashboardTileEmpty
-        title={tile.title}
-        detailHref={tile.detailHref}
-        icon={Sprout}
-        emptyTitle="Nog geen gewas voor dit jaar"
-        emptyDescription="Registreer een teelt om oogsten, bemesting en bodeminformatie in context te zien."
-        action={
-          dashboard.fieldWritePermission
-            ? {
-                href: tile.detailHref,
-                label: "Gewas toevoegen",
-              }
-            : undefined
-        }
-      />
+      <div className="space-y-3">
+        <FieldDashboardTileEmpty
+          title={tile.title}
+          detailHref={tile.detailHref}
+          icon={Sprout}
+          emptyTitle="Nog geen gewas voor dit jaar"
+          emptyDescription="Registreer een teelt om oogsten, bemesting en bodeminformatie in context te zien."
+          action={
+            dashboard.fieldWritePermission
+              ? {
+                  href: tile.detailHref,
+                  label: "Gewas toevoegen",
+                }
+              : undefined
+          }
+        />
+        {suggestionBanner}
+      </div>
     )
   }
 
@@ -219,6 +244,7 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
   return (
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-4">
+        {suggestionBanner}
         <div>
           <p className="text-xl font-semibold break-words">{activeCultivation.name}</p>
           <p className="text-muted-foreground mt-1 text-sm">
