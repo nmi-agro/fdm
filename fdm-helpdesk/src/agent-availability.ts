@@ -9,6 +9,8 @@ import { createId } from "./id"
 import { ACTIVE_TICKET_STATUSES, getTickets, type Ticket } from "./ticket"
 import { assignTicketUnchecked, type TicketAssignmentSummary } from "./ticket-assignment"
 
+export type AgentAbsence = schema.AgentAbsenceTypeSelect
+
 export type TicketReassignment = TicketAssignmentSummary & {
   ticket: Ticket
 }
@@ -24,6 +26,16 @@ const agentSummaryColumns = {
   max_tickets: schema.agents.max_tickets,
   created: schema.agents.created,
   updated: schema.agents.updated,
+}
+
+const agentAbsenceColumns = {
+  absence_id: schema.agentAbsences.absence_id,
+  agent_id: schema.agentAbsences.agent_id,
+  start_date: schema.agentAbsences.start_date,
+  end_date: schema.agentAbsences.end_date,
+  reason: schema.agentAbsences.reason,
+  note: schema.agentAbsences.note,
+  created: schema.agentAbsences.created,
 }
 
 /**
@@ -525,12 +537,53 @@ export async function getAbsence(
   }
 }
 
+/**
+ * Gets all absences of the agent.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param agent_id Agent ID to get the absences of
+ * @returns Array of absences, ordered by start date
+ */
 export async function getAgentAbsences(fdm: FdmHelpdeskType, agent_id: string) {
   return fdm
     .select()
     .from(schema.agentAbsences)
     .where(eq(schema.agentAbsences.agent_id, agent_id))
     .orderBy((t) => [asc(t.start_date)])
+}
+
+/**
+ * Gets each agent's absence that ends the latest on the given day.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param date Date to check for absences on
+ * @returns Map of agent IDs to the found absence, for each agent who is absent on the given date
+ */
+export async function getAbsencesForAgents(fdm: FdmHelpdeskType, date = new Date()) {
+  try {
+    // select the absence that ends the latest for each agent
+    const rankedAbsences = fdm
+      .select({
+        ...agentAbsenceColumns,
+        _rank:
+          sql`ROW_NUMBER() OVER (PARTITION BY ${schema.agentAbsences.agent_id} ORDER BY ${schema.agentAbsences.end_date} DESC)`.as(
+            "_rank",
+          ),
+      })
+      .from(schema.agentAbsences)
+      .where(
+        and(lte(schema.agentAbsences.start_date, date), gte(schema.agentAbsences.end_date, date)),
+      )
+      .as("sq")
+
+    const absences = await fdm.select().from(rankedAbsences).where(eq(rankedAbsences._rank, 1))
+
+    return new Map<string, AgentAbsence>(absences.map((absence) => [absence.agent_id, absence]))
+  } catch (err) {
+    throw handleError(err, "Exception for getAbsencesForAgents")
+  }
 }
 
 /**
@@ -549,16 +602,7 @@ export async function getAllAbsences(fdm: FdmHelpdeskType, principal_id: Helpdes
     await checkHelpdeskPermission(fdm, "helpdesk", "read", "", principal_id, "getAllAbsences")
 
     return await fdm
-      .select({
-        absence_id: schema.agentAbsences.absence_id,
-        agent_id: schema.agentAbsences.agent_id,
-        display_name: schema.agents.display_name,
-        start_date: schema.agentAbsences.start_date,
-        end_date: schema.agentAbsences.end_date,
-        reason: schema.agentAbsences.reason,
-        note: schema.agentAbsences.note,
-        created: schema.agentAbsences.created,
-      })
+      .select({ ...agentAbsenceColumns, display_name: schema.agents.display_name })
       .from(schema.agentAbsences)
       .innerJoin(schema.agents, eq(schema.agentAbsences.agent_id, schema.agents.agent_id))
       .orderBy((t) => [asc(t.start_date)])

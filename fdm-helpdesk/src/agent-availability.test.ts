@@ -4,6 +4,7 @@ import {
   cancelAbsence,
   getAbsence,
   getAgentAbsences,
+  getAbsencesForAgents,
   getAllAbsences,
   scheduleAbsence,
   updateAbsence,
@@ -218,5 +219,71 @@ describe("Agent absences", () => {
     const agentIds = all.map((a) => a.agent_id).sort()
     expect(agentIds).toEqual([agent_id, other_agent_id].sort())
     expect(all.find((a) => a.agent_id === agent_id)?.display_name).toBe("Support Agent")
+  })
+
+  test("getAbsencesForAgents should return only absences active on the requested date", async ({
+    fdm,
+  }) => {
+    await scheduleAbsence(
+      fdm,
+      agent_id,
+      agent_id,
+      new Date("2025-01-01"),
+      new Date("2025-01-05"),
+      "holiday",
+    )
+    await scheduleAbsence(
+      fdm,
+      admin_id,
+      other_agent_id,
+      new Date("2025-01-10"),
+      new Date("2025-01-12"),
+      "sick",
+    )
+
+    const absences = await getAbsencesForAgents(fdm, new Date("2025-01-03"))
+
+    expect(absences.size).toBe(1)
+    expect(absences.get(agent_id)?.reason).toBe("holiday")
+    expect(absences.has(other_agent_id)).toBe(false)
+  })
+
+  test("getAbsencesForAgents should keep the overlapping absence that ends latest per agent", async ({
+    fdm,
+  }) => {
+    await scheduleAbsence(
+      fdm,
+      agent_id,
+      agent_id,
+      new Date("2025-01-01"),
+      new Date("2025-01-05"),
+      "holiday",
+      "First",
+    )
+    await scheduleAbsence(
+      fdm,
+      agent_id,
+      agent_id,
+      new Date("2025-01-03"),
+      new Date("2025-01-08"),
+      "sick",
+      "Second",
+    )
+    await scheduleAbsence(
+      fdm,
+      admin_id,
+      other_agent_id,
+      new Date("2025-01-03"),
+      new Date("2025-01-04"),
+      "training",
+    )
+
+    const absences = await getAbsencesForAgents(fdm, new Date("2025-01-04"))
+
+    expect(absences.size).toBe(2)
+    expect(absences.get(agent_id)?.reason).toBe("sick")
+    expect(absences.get(agent_id)?.note).toBe("Second")
+    expect(absences.get(agent_id)?.end_date).toEqual(new Date("2025-01-08"))
+    expect(absences.get(other_agent_id)?.reason).toBe("training")
   })
 })

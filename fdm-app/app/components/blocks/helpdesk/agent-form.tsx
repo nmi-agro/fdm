@@ -18,6 +18,25 @@ import { UpdateAgentSchema } from "./agent-schema"
 type AgentFormDefaults = Partial<Agent> & { agent_id: string }
 type AgentFormValues = z.infer<typeof UpdateAgentSchema>
 
+export const AGENT_AVAILABILITY_STATUSES = [
+  {
+    value: "online",
+    label: "Online",
+    description: "Je bent nu beschikbaar om nieuwe tickets te behandelen.",
+  },
+  {
+    value: "away",
+    label: "Even weg",
+    description: "Je kunt nog geen nieuwe tickets behandelen maar je bent zo weer terug.",
+  },
+  {
+    value: "out-of-office",
+    label: "Uit kantoor",
+    description:
+      "Je bent helemaal niet beschikbaar, en je tickets moeten opnieuw worden togewezen.",
+  },
+] as const
+
 function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   const work_days = Array.isArray(agent.work_days)
     ? agent.work_days.map((day) => day).filter((d) => typeof d === "number")
@@ -60,6 +79,11 @@ export function AgentFormFields({ agent }: { agent: Agent }) {
   const statusOnlineId = useId()
   const statusAwayId = useId()
   const statusOutOfOfficeId = useId()
+  const radioIds: Record<(typeof AGENT_AVAILABILITY_STATUSES)[number]["value"], string> = {
+    online: statusOnlineId,
+    away: statusAwayId,
+    "out-of-office": statusOutOfOfficeId,
+  }
   const availability_status = useWatch({ name: "availability_status" })
 
   return (
@@ -86,40 +110,17 @@ export function AgentFormFields({ agent }: { agent: Agent }) {
                 value={field.value}
                 onValueChange={(newValue) => field.onChange(newValue)}
               >
-                <Field orientation="horizontal">
-                  <RadioGroupItem id={statusOnlineId} value="online" />
-                  <FieldLabel htmlFor={statusOnlineId}>
-                    <span>
-                      Online:{" "}
-                      <span className="text-muted-foreground">
-                        Je bent nu beschikbaar om nieuwe tickets te behandelen.
+                {AGENT_AVAILABILITY_STATUSES.map((status) => (
+                  <Field orientation="horizontal" key={status.value}>
+                    <RadioGroupItem id={radioIds[status.value]} value={status.value} />
+                    <FieldLabel htmlFor={radioIds[status.value]}>
+                      <span>
+                        {status.label}:{" "}
+                        <span className="text-muted-foreground">{status.description}</span>
                       </span>
-                    </span>
-                  </FieldLabel>
-                </Field>
-                <Field orientation="horizontal">
-                  <RadioGroupItem id={statusAwayId} value="away" />
-                  <FieldLabel htmlFor={statusAwayId}>
-                    <span>
-                      Even weg:{" "}
-                      <span className="text-muted-foreground">
-                        Je kunt nog geen nieuwe tickets behandelen maar je bent zo weer terug.
-                      </span>
-                    </span>
-                  </FieldLabel>
-                </Field>
-                <Field orientation="horizontal">
-                  <RadioGroupItem id={statusOutOfOfficeId} value="out-of-office" />
-                  <FieldLabel htmlFor={statusOutOfOfficeId}>
-                    <span>
-                      Buiten het kantoor:{" "}
-                      <span className="text-muted-foreground">
-                        Je bent helemaal niet beschikbaar, en je tickets moeten opnieuw worden
-                        togewezen.
-                      </span>
-                    </span>
-                  </FieldLabel>
-                </Field>
+                    </FieldLabel>
+                  </Field>
+                ))}
               </RadioGroup>
               {fieldState.error && <FieldError errors={[fieldState.error]} />}
             </Field>
