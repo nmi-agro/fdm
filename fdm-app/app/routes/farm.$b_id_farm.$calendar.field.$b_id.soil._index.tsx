@@ -248,10 +248,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
           statusText: "Dit is een BodemConditieScore analyse",
         })
       }
+      await removeSoilAnalysis(fdm, session.principal_id, a_id)
       if (soilAnalysis?.a_file_path) {
         await deleteObject(soilAnalysis.a_file_path)
       }
-      await removeSoilAnalysis(fdm, session.principal_id, a_id)
       return redirectWithSuccess("./", {
         message: "Bodemanalyse is verwijderd! 🎉",
       })
