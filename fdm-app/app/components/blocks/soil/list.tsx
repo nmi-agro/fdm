@@ -1,11 +1,10 @@
-import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
+import type { SoilParameterDescription, SoilAnalysis } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import { NavLink, type useFetcher } from "react-router"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
-import type { SoilAnalysis } from "./types"
 import { getSoilAnalysisDownloadName } from "./download"
 
 export function SoilAnalysesList({
@@ -66,7 +65,7 @@ export function SoilAnalysesList({
                 <div className="space-x-4">
                   <Button
                     variant="outline"
-                    className={cn(!analysis.a_file_name && "invisible")}
+                    className={cn(!analysis.a_file_path && "invisible")}
                     asChild
                   >
                     <a
