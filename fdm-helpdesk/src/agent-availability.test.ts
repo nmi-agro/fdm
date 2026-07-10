@@ -168,6 +168,21 @@ describe("Agent availability CRUD", () => {
     expect(absences[0].reason).toBe("sick")
   })
 
+  test("should not let schedule an absence with the end date to be before the start date", async ({
+    fdm,
+  }) => {
+    await expect(
+      scheduleAbsence(
+        fdm,
+        agent_id,
+        agent_id,
+        new Date("2025-01-05"),
+        new Date("2025-01-01"),
+        "holiday",
+      ),
+    ).rejects.toThrow("Exception for scheduleAbsence")
+  })
+
   test("getAbsence should let the owner read their own absence", async ({ fdm }) => {
     await scheduleAbsence(
       fdm,
@@ -237,6 +252,25 @@ describe("Agent availability CRUD", () => {
 
     const updated = await getAbsence(fdm, admin_id, created.absence_id)
     expect(updated.reason).toBe("other")
+  })
+
+  test("updateAbsence should not let end date to be before start date", async ({ fdm }) => {
+    await scheduleAbsence(
+      fdm,
+      agent_id,
+      agent_id,
+      new Date("2025-01-01"),
+      new Date("2025-01-05"),
+      "holiday",
+    )
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
+
+    await expect(
+      updateAbsence(fdm, admin_id, created.absence_id, {
+        start_date: new Date("2025-01-06"),
+        end_date: new Date("2025-01-05"),
+      }),
+    ).rejects.toThrow("Exception for updateAbsence")
   })
 
   test("cancelAbsence should let the owner cancel their own absence", async ({ fdm }) => {

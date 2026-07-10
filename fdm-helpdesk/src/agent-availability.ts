@@ -167,6 +167,8 @@ export async function autoAssignTicket(
  * If so, it ensures they are the primary assignee. Otherwise, it lists all the available agents who will
  * meet the ticket deadline and assigns the ticket to the least-loaded one.
  *
+ * If an assignee is promoted to be the primary assignee on a ticket, it is also listed as a reassignment.
+ *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param departing_agent_id The ID of the agent whose tickets are being reassigned.
@@ -204,6 +206,7 @@ export async function reassignAgentTickets(
       const otherAssignee = ticket.assignees.find((a) => a.agent_id !== departing_agent_id)
       if (otherAssignee) {
         if (!otherAssignee.is_primary) {
+          // Ensure that the existing assignee is the primary assignee, though
           await assignTicketUnchecked(
             fdm,
             ticket.ticket_id,
@@ -211,7 +214,15 @@ export async function reassignAgentTickets(
             reassigned_by,
             true,
           )
+          reassigned.push({
+            ticket: ticket,
+            agent_id: otherAssignee.agent_id,
+            display_name: otherAssignee.display_name,
+            availability_status: otherAssignee.availability_status,
+            is_primary: true,
+          })
         }
+        continue
       }
 
       const result = await autoAssignTicket(fdm, ticket.ticket_id, new Date())
@@ -408,6 +419,10 @@ export async function scheduleAbsence(
   note?: string,
 ) {
   try {
+    if (start_date > end_date) {
+      throw new Error("End date must be after start date")
+    }
+
     await checkHelpdeskPermission(fdm, "agent", "write", agent_id, principal_id, "scheduleAbsence")
 
     const absence_id = createId()
@@ -449,6 +464,10 @@ export async function updateAbsence(
   },
 ) {
   try {
+    if (updates.start_date && updates.end_date && updates.start_date > updates.end_date) {
+      throw new Error("End date must be after start date")
+    }
+
     const absence = await getAbsence(fdm, principal_id, absence_id)
 
     await checkHelpdeskPermission(
@@ -483,15 +502,15 @@ export async function updateAbsence(
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
- * @param availability_id ID of the absence to cancel.
+ * @param absence_id ID of the absence to cancel.
  */
 export async function cancelAbsence(
   fdm: FdmHelpdeskType,
   principal_id: HelpdeskPrincipalId,
-  availability_id: string,
+  absence_id: string,
 ) {
   try {
-    const absence = await getAbsence(fdm, principal_id, availability_id)
+    const absence = await getAbsence(fdm, principal_id, absence_id)
 
     await checkHelpdeskPermission(
       fdm,
@@ -502,12 +521,10 @@ export async function cancelAbsence(
       "cancelAbsence",
     )
 
-    await fdm
-      .delete(schema.agentAbsences)
-      .where(eq(schema.agentAbsences.absence_id, availability_id))
+    await fdm.delete(schema.agentAbsences).where(eq(schema.agentAbsences.absence_id, absence_id))
   } catch (err) {
     throw handleError(err, "Exception for cancelAbsence", {
-      availability_id,
+      absence_id,
     })
   }
 }
