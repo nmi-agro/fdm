@@ -18,7 +18,8 @@ export const MagicLinkEmail = ({
   senderName,
   emailTimestamp,
 }: MagicLinkEmailProps) => {
-  const previewText = "Gebruik de code of link om in te loggen."
+  const formattedCode = code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code
+  const previewText = `Gebruik ${formattedCode} om aan te melden bij ${appName}.`
   const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
 
   return (
@@ -42,7 +43,7 @@ export const MagicLinkEmail = ({
           Uw inlogcode
         </Text>
         <Text className="m-0 py-2 text-3xl font-bold tracking-[0.2em] text-black">
-          {code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code}
+          {formattedCode}
         </Text>
       </Section>
       <Text className="text-[14px] leading-6 text-black">
