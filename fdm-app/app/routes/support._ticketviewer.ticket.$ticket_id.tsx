@@ -388,7 +388,7 @@ export async function action({ params, request }: Args) {
     // return the response returned from it directly.
     if (err instanceof Promise) {
       const awaited = await (err as Promise<any>).catch(() => {})
-      if (awaited.type === "DataWithResponseInit") {
+      if (awaited?.type === "DataWithResponseInit") {
         return awaited
       }
     }

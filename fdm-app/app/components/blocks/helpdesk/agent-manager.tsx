@@ -50,7 +50,6 @@ export function HelpdeskAgentManager({
   roles,
   canModify,
 }: HelpdeskAgentManagerProps) {
-  console.log(helpdeskUsers)
   return (
     <Card className="mx-auto max-w-5xl">
       {canModify && (

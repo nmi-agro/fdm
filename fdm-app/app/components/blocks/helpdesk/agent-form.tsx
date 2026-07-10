@@ -57,6 +57,16 @@ export function useAgentForm({ agent }: { agent: AgentFormDefaults }) {
   return form
 }
 
+const WORK_DAYS: [string, number][] = [
+  ["Maandag", 1],
+  ["Dinsdag", 2],
+  ["Woensdag", 3],
+  ["Donderdag", 4],
+  ["Vrijdag", 5],
+  ["Zaterdag", 6],
+  ["Zondag", 0],
+]
+
 export function AgentFormFields({ agent }: { agent: Agent }) {
   const statusOnlineId = useId()
   const statusAwayId = useId()
@@ -137,15 +147,7 @@ export function AgentFormFields({ agent }: { agent: Agent }) {
               Dagen in een week dat je beschikbaar bent om tickets te behandelen.
             </FieldDescription>
             <div className="flex flex-col gap-2 md:flex-row">
-              {[
-                ["Maandag", 1],
-                ["Dinsdag", 2],
-                ["Woensdag", 3],
-                ["Donderdag", 4],
-                ["Vrijdag", 5],
-                ["Zaterdag", 6],
-                ["Zondag", 0],
-              ].map(([dayName, dayNumber]) => (
+              {WORK_DAYS.map(([dayName, dayNumber]) => (
                 <div key={dayNumber} className="flex flex-row items-center gap-2 md:flex-col">
                   <div className="text-muted-foreground">{dayName}</div>
                   <Checkbox

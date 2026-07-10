@@ -6,6 +6,7 @@ import { Controller } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
+import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import {
   Dialog,
@@ -17,7 +18,6 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog"
 import { Field, FieldError, FieldLabel } from "~/components/ui/field"
-import { Input } from "~/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -218,31 +218,25 @@ export function AbsenceDialog({
               <Controller
                 name="start_date"
                 render={({ field, fieldState }) => (
-                  <Field>
-                    <FieldLabel>Startdatum</FieldLabel>
-                    <Input
-                      type="date"
-                      {...field}
-                      value={field.value ?? ""}
-                      disabled={!canEdit || isSubmitting}
-                    />
-                    {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                  </Field>
+                  <DatePicker
+                    label="Startdatum"
+                    defaultValue={absence?.start_date}
+                    field={field}
+                    fieldState={fieldState}
+                    required={true}
+                  />
                 )}
               />
               <Controller
                 name="end_date"
                 render={({ field, fieldState }) => (
-                  <Field>
-                    <FieldLabel>Einddatum</FieldLabel>
-                    <Input
-                      type="date"
-                      {...field}
-                      value={field.value ?? ""}
-                      disabled={!canEdit || isSubmitting}
-                    />
-                    {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                  </Field>
+                  <DatePicker
+                    label="Einddatum"
+                    defaultValue={absence?.end_date}
+                    field={field}
+                    fieldState={fieldState}
+                    required={true}
+                  />
                 )}
               />
             </div>

@@ -21,13 +21,13 @@ export const UpdateAgentSchema = z.object({
       (val) => (val === "" ? undefined : typeof val === "string" ? Number(val) : val),
       z
         .number({
-          error: "Dit moet een getaal zijn.",
+          error: "Dit moet een getal zijn.",
         })
         .int({
-          message: "Dit moet een hele getaal zijn.",
+          error: "Dit moet een hele getal zijn.",
         })
         .positive({
-          message: "Jij moet meer dan 0 tickets kunnen verwerken.",
+          error: "Jij moet meer dan 0 tickets kunnen verwerken.",
         }),
     )
     .nullable()

@@ -17,7 +17,7 @@ import { UpdateAgentSchema } from "~/components/blocks/helpdesk/agent-schema"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import type { Route } from "./+types/support.settings.profile"
@@ -58,7 +58,7 @@ export async function action({ request }: Route.ActionArgs) {
     let newAssignments: TicketReassignment[] = []
 
     await fdm.transaction(async (tx) => {
-      const agent = await getAgent(fdm, session.principal_id, session.principal_id)
+      const agent = await getAgent(tx, session.principal_id, session.principal_id)
 
       if (
         agentUpdate.reassign_tickets &&
@@ -66,7 +66,7 @@ export async function action({ request }: Route.ActionArgs) {
         agentUpdate.availability_status === "out-of-office"
       ) {
         const reassignment = await reassignAgentTickets(
-          fdm,
+          tx,
           session.principal_id,
           session.principal_id,
         )
@@ -138,7 +138,7 @@ export async function action({ request }: Route.ActionArgs) {
 
           sentCounts.set(assignment.agent_id, (sentCounts.get(assignment.agent_id) ?? 0) + 1)
         } catch (err) {
-          handleLoaderError(err)
+          handleActionError(err)
         }
       }
 
@@ -150,7 +150,7 @@ export async function action({ request }: Route.ActionArgs) {
       message: "Gegevens succesvol bijgewerkt.",
     })
   } catch (err) {
-    throw handleLoaderError(err)
+    throw handleActionError(err)
   }
 }
 

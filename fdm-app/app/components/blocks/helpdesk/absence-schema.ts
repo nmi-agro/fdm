@@ -35,9 +35,8 @@ const AbsenceDateSchema = z.union([z.date(), z.string().min(1)]).transform((valu
   return parsed
 })
 
-export const ScheduleAbsenceSchema = z
+const AbsenceSchemaBase = z
   .object({
-    agent_id: z.string().min(1),
     start_date: AbsenceDateSchema,
     end_date: AbsenceDateSchema,
     reason: AbsenceReasonSchema,
@@ -52,22 +51,13 @@ export const ScheduleAbsenceSchema = z
     path: ["end_date"],
   })
 
-export const UpdateAbsenceSchema = z
-  .object({
-    absence_id: z.string().min(1),
-    start_date: AbsenceDateSchema,
-    end_date: AbsenceDateSchema,
-    reason: AbsenceReasonSchema,
-    note: z
-      .string()
-      .trim()
-      .optional()
-      .transform((value) => (value === "" ? undefined : value)),
-  })
-  .refine((value) => value.end_date >= value.start_date, {
-    message: "De einddatum moet na de startdatum liggen.",
-    path: ["end_date"],
-  })
+export const ScheduleAbsenceSchema = AbsenceSchemaBase.extend({
+  agent_id: z.string().min(1),
+})
+
+export const UpdateAbsenceSchema = AbsenceSchemaBase.extend({
+  absence_id: z.string().min(1),
+})
 
 export const DeleteAbsenceSchema = z.object({
   absence_id: z.string().min(1),

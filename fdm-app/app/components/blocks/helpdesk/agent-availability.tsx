@@ -53,7 +53,7 @@ export function AgentAvailabilityDisplay({
         <Circle className="size-[1.2em] text-gray-400" />
       )}
       {absence
-        ? `${ABSENCE_MESSAGE[absence.reason as keyof typeof ABSENCE_MESSAGE]} t/m ${formatDate(absence.end_date, "PP", { locale: nl })}${absence.note ? `: ${absence.note}` : ""}`
+        ? `${ABSENCE_MESSAGE[absence.reason as keyof typeof ABSENCE_MESSAGE] ?? absence.reason} t/m ${formatDate(absence.end_date, "PP", { locale: nl })}${absence.note ? `: ${absence.note}` : ""}`
         : availability_status
           ? (AGENT_AVAILABILITY_STATUSES.find((status) => status.value === availability_status)
               ?.label ?? "")
