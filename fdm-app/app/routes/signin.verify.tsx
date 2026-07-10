@@ -83,9 +83,9 @@ export default function Verify() {
 
   // Typing animation effect
   useEffect(() => {
-    if (code && code.length === 8 && !hasAnimated.current) {
+    if (code && code.length === 6 && !hasAnimated.current) {
       hasAnimated.current = true
-      const chars = code.toUpperCase().split("")
+      const chars = code.split("")
       let current = ""
       chars.forEach((char, index) => {
         setTimeout(() => {
@@ -100,7 +100,7 @@ export default function Verify() {
     <AuthLayout>
       <AuthCard
         title="Verifieer je code"
-        description="Vul de 8-cijferige code in die je per e-mail hebt ontvangen."
+        description="Vul de 6-cijferige code in die je per e-mail hebt ontvangen."
       >
         <Form
           onSubmit={(e) => {

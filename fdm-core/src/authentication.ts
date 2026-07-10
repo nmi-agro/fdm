@@ -411,16 +411,16 @@ export function createDisplayUsername(
   return name
 }
 
-const ALPHABET = "23456789ABCDFGHJKLMNPQRSTVWXYZ"
-const generateCodeWithNanoId = customAlphabet(ALPHABET, 8)
+const ALPHABET = "0123456789"
+const generateCodeWithNanoId = customAlphabet(ALPHABET, 6)
 /**
- * Generates a read-safe OTP (One-Time Password).
+ * Generates a numeric OTP (One-Time Password).
  *
- * This function uses a character set that avoids ambiguous characters
- * (e.g., I, O, 1, 0) to ensure the code is easy to read and type.
- * It produces an 8-character string.
+ * This function uses a digits-only character set so that mobile
+ * devices consistently show a numeric keypad for entry. It produces
+ * a 6-character string.
  *
- * @returns {string} An 8-character read-safe OTP.
+ * @returns {string} A 6-digit numeric OTP.
  */
 function generateReadSafeOTP(): string {
   return generateCodeWithNanoId()

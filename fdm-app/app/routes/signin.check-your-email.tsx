@@ -13,7 +13,7 @@ import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { modifySearchParams } from "~/lib/url-utils"
-import { FormSchema } from "../components/blocks/auth/auth-formschema"
+import { FormSchema } from "~/components/blocks/auth/auth-formschema"
 
 export const meta: MetaFunction = () => {
   return [
