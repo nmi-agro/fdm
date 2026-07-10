@@ -117,6 +117,9 @@ and ${inArray(sql`t.status`, ACTIVE_TICKET_STATUSES)})`,
   }
 }
 
+type AutoAssignmentResult =
+  | (TicketAssignmentSummary & { assigned: true })
+  | (Partial<Record<keyof TicketAssignmentSummary, undefined>> & { assigned: false })
 /**
  * Auto-assign to least-loaded available agent (respects tier cascade) as the primary assignment.
  *
@@ -129,18 +132,28 @@ and ${inArray(sql`t.status`, ACTIVE_TICKET_STATUSES)})`,
  * {@link createFdmServer} of fdm-core.
  * @param ticket_id Ticket ID to assign.
  * @param date Date on which to check the agent availabilites for.
- * @returns If assignment succeeded, assigned: true and agent_id is the ID of the agent assigned.
+ * @returns If assignment succeeded, assigned: true along with the assigned agent's summary.
  * If no agents were available, assigned: false.
  */
-export async function autoAssignTicket(fdm: FdmHelpdeskType, ticket_id: string, date: Date) {
+export async function autoAssignTicket(
+  fdm: FdmHelpdeskType,
+  ticket_id: string,
+  date: Date,
+): Promise<AutoAssignmentResult> {
   try {
     const availableAgents = await getAvailableAgents(fdm, date)
     if (availableAgents.length > 0) {
       const agentToAssign = availableAgents[0]
       await assignTicketUnchecked(fdm, ticket_id, agentToAssign.agent_id, "SYSTEM", true)
-      return { assigned: true, agent_id: agentToAssign.agent_id } as const
+      return {
+        assigned: true,
+        agent_id: agentToAssign.agent_id,
+        display_name: agentToAssign.display_name,
+        availability_status: agentToAssign.availability_status,
+        is_primary: true,
+      } as const
     }
-    return { assigned: false, agent_id: undefined as never } as const
+    return { assigned: false } as const
   } catch (err) {
     throw handleError(err, "Exception for autoAssignTicket", {
       ticket_id,
@@ -165,7 +178,7 @@ export async function reassignAgentTickets(
   fdm: FdmHelpdeskType,
   departing_agent_id: string,
   reassigned_by: string,
-) {
+): Promise<{ reassigned: TicketReassignment[]; unassigned: string[] }> {
   try {
     await checkHelpdeskPermission(
       fdm,
@@ -203,14 +216,12 @@ export async function reassignAgentTickets(
 
       const result = await autoAssignTicket(fdm, ticket.ticket_id, new Date())
       if (result.assigned) {
-        // This should be always found
-        const agent = ticket.assignees.find((a) => a.agent_id === result.agent_id)
         reassigned.push({
           ticket: ticket,
           agent_id: result.agent_id,
-          display_name: agent?.display_name ?? "",
-          availability_status: agent?.availability_status ?? "online",
-          is_primary: true,
+          display_name: result.display_name,
+          availability_status: result.availability_status,
+          is_primary: result.is_primary,
         })
       } else {
         unassigned.push(ticket.ticket_id)

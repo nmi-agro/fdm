@@ -1,5 +1,5 @@
 import { describe, expect } from "vitest"
-import { addAdminAgent, addAgent } from "./agent"
+import { addAdminAgent, addAgent, setAgentActiveStatus } from "./agent"
 import {
   cancelAbsence,
   getAbsence,
@@ -8,15 +8,24 @@ import {
   getAllAbsences,
   scheduleAbsence,
   updateAbsence,
+  getAvailableAgents,
+  setMaxTickets,
+  setWorkDays,
+  setAgentStatus,
+  autoAssignTicket,
+  reassignAgentTickets,
 } from "./agent-availability"
+import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { test, truncateAllTables } from "./test-util"
+import { createTicket, getTicket, type Ticket } from "./ticket"
+import { assignTicket } from "./ticket-assignment"
 
 test.beforeEach(async ({ fdm }) => {
   await truncateAllTables(fdm)
 })
 
-describe("Agent absences", () => {
+describe("Agent availability CRUD", () => {
   let admin_id: string
   let agent_id: string
   let other_agent_id: string
@@ -285,5 +294,223 @@ describe("Agent absences", () => {
     expect(absences.get(agent_id)?.note).toBe("Second")
     expect(absences.get(agent_id)?.end_date).toEqual(new Date("2025-01-08"))
     expect(absences.get(other_agent_id)?.reason).toBe("training")
+  })
+})
+
+describe("Agent availability", () => {
+  let agent_id: string
+
+  test.beforeEach(async ({ fdm }) => {
+    agent_id = createId()
+    await addAdminAgent(fdm, agent_id, "Test Admin Agent")
+    await setWorkDays(fdm, agent_id, agent_id, [0, 1, 2, 3, 4, 5, 6])
+  })
+
+  test("should get an agent if they are available", async ({ fdm }) => {
+    const available = await getAvailableAgents(fdm, new Date())
+    expect(
+      available.some((agent) => agent.agent_id === agent_id),
+      "Newly created agent should have been listed as available.",
+    ).toBe(true)
+  })
+
+  test("should not get an agent if they have too many tickets assigned", async ({ fdm }) => {
+    await setMaxTickets(fdm, agent_id, agent_id, 1)
+    const ticket_id = await createTicket(fdm, agent_id, "Ticket")
+    await assignTicket(fdm, ticket_id, agent_id, agent_id, true)
+    const available = await getAvailableAgents(fdm, new Date())
+    expect(
+      available.some((agent) => agent.agent_id === agent_id),
+      "Agent with too many active tickets assigned should not have been listed as available.",
+    ).toBe(false)
+  })
+
+  test("should not get an agent if they are not available on this day", async ({ fdm }) => {
+    await setWorkDays(fdm, agent_id, agent_id, [0, 1, 2, 3, 4, 6])
+    const date = new Date("2026-07-10T08:51:08.545Z") // Friday
+    const available = await getAvailableAgents(fdm, date)
+    expect(
+      available.some((agent) => agent.agent_id === agent_id),
+      "Agent who is not available on the day of the week should not have been listed as available.",
+    ).toBe(false)
+  })
+
+  test("should not get an agent who is not online", async ({ fdm }) => {
+    await setAgentStatus(fdm, agent_id, agent_id, "out-of-office")
+    const available = await getAvailableAgents(fdm, new Date())
+    expect(
+      available.some((agent) => agent.agent_id === agent_id),
+      "Agent who is out of the office should not have been listed as available.",
+    ).toBe(false)
+  })
+
+  test("should not get an agent who is absent", async ({ fdm }) => {
+    const absenceStart = new Date("2023-03-03T08:51:08.545Z")
+    const absenceEnd = new Date("2023-03-05T23:59:59.999Z")
+    const currentDate = new Date("2023-03-04T10:00:00.000Z")
+    await scheduleAbsence(fdm, agent_id, agent_id, absenceStart, absenceEnd, "sick")
+    const available = await getAvailableAgents(fdm, currentDate)
+    expect(
+      available.some((agent) => agent.agent_id === agent_id),
+      "Agent who is absent should not have been listed as available.",
+    ).toBe(false)
+  })
+})
+
+describe("Agent prioritization", () => {
+  let agent1_id: string
+  let agent2_id: string
+
+  test.beforeEach(async ({ fdm }) => {
+    agent1_id = createId()
+    await addAdminAgent(fdm, agent1_id, "Test Agent 1")
+    await setWorkDays(fdm, agent1_id, agent1_id, [0, 1, 2, 3, 4, 5, 6])
+    agent2_id = createId()
+    await addAdminAgent(fdm, agent2_id, "Test Agent 2")
+    await setWorkDays(fdm, agent2_id, agent2_id, [0, 1, 2, 3, 4, 5, 6])
+  })
+
+  test("should prioritize an agent with a low-priority assignment over one with a high-priority assignment", async ({
+    fdm,
+  }) => {
+    const ticket_high_id = await createTicket(fdm, agent1_id, agent1_id, { priority: "high" })
+    const ticket_normal_id = await createTicket(fdm, agent2_id, agent2_id, { priority: "normal" })
+    await assignTicket(fdm, ticket_high_id, agent1_id, agent1_id, true)
+    await assignTicket(fdm, ticket_normal_id, agent2_id, agent2_id, true)
+    const available = await getAvailableAgents(fdm, new Date())
+    const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
+    const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
+    expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
+    expect(agent1_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(
+      agent2_idx < agent1_idx,
+      "Agent 2 has a lower priority ticket assigned than Agent 1.",
+    ).toBe(true)
+  })
+
+  test("should prioritize an agent with fewer tickets assigned", async ({ fdm }) => {
+    const ticket1_id = await createTicket(fdm, agent1_id, agent1_id)
+    const ticket2_id = await createTicket(fdm, agent1_id, agent1_id)
+    const ticket3_id = await createTicket(fdm, agent1_id, agent1_id)
+    await assignTicket(fdm, ticket1_id, agent1_id, agent1_id, true)
+    await assignTicket(fdm, ticket2_id, agent1_id, agent1_id, true)
+    await assignTicket(fdm, ticket3_id, agent2_id, agent2_id, true)
+    const available = await getAvailableAgents(fdm, new Date())
+    const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
+    const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
+    expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
+    expect(agent1_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(
+      agent2_idx < agent1_idx,
+      "Agent 2 has a lower priority ticket assigned than Agent 1.",
+    ).toBe(true)
+  })
+})
+
+describe("getAvailableAgents", () => {
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+    await expect(getAvailableAgents(fdm, new Date())).rejects.toThrow(
+      "Exception for getAvailableAgents",
+    )
+  })
+})
+
+describe("autoAssignTicket", () => {
+  let ticket_id: string
+
+  test.beforeEach(async ({ fdm }) => {
+    await truncateAllTables(fdm)
+    ticket_id = await createTicket(fdm, createId(), "Ticket to Assign")
+  })
+
+  test("should assign when there is an available agent", async ({ fdm }) => {
+    const agent_id = createId()
+    await addAdminAgent(fdm, agent_id, "Available Agent")
+    await setWorkDays(fdm, agent_id, agent_id, [0, 1, 2, 3, 4, 5, 6])
+    const result = await autoAssignTicket(fdm, ticket_id, new Date())
+    expect(result.assigned).toBe(true)
+    expect(result.agent_id).toBe(agent_id)
+    expect(result.display_name).toBe("Available Agent")
+  })
+
+  test("should fail to assign when there is no available agent", async ({ fdm }) => {
+    const result = await autoAssignTicket(fdm, ticket_id, new Date())
+    expect(result).toEqual({
+      assigned: false,
+      agent_id: undefined,
+      agent: undefined,
+    })
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+    await expect(autoAssignTicket(fdm, ticket_id, new Date())).rejects.toThrow(
+      "Exception for autoAssignTicket",
+    )
+  })
+})
+
+describe("reassignAgentTickets", () => {
+  let ticket: Ticket
+  let admin_id: string
+  let departing_agent_id: string
+
+  test.beforeEach(async ({ fdm }) => {
+    await truncateAllTables(fdm)
+    admin_id = createId()
+    await addAdminAgent(fdm, admin_id, "Admin Agent")
+    // Keep the admin out of the pool of auto-assignment candidates, so it doesn't shadow the
+    // agents under test that we explicitly make available below.
+    await setAgentStatus(fdm, admin_id, admin_id, "out-of-office")
+    departing_agent_id = createId()
+    await addAgent(fdm, admin_id, departing_agent_id, "Leaving Agent")
+    const ticket_id = await createTicket(fdm, createId(), "Ticket to Assign")
+    await assignTicket(fdm, ticket_id, departing_agent_id, admin_id, true)
+    // Capture the ticket (with its current assignee) as it looks right before reassignment,
+    // matching the snapshot that reassignAgentTickets itself reads.
+    ticket = await getTicket(fdm, admin_id, ticket_id)
+    // Deactivating the departing agent must happen last, since they lose their permissions once inactive.
+    await setAgentActiveStatus(fdm, admin_id, departing_agent_id, false)
+  })
+
+  test("should assign when there is an available agent", async ({ fdm }) => {
+    const agent_id = await createId()
+    await addAgent(fdm, admin_id, agent_id, "Available Agent")
+    await setWorkDays(fdm, agent_id, agent_id, [0, 1, 2, 3, 4, 5, 6])
+    const { reassigned } = await reassignAgentTickets(fdm, departing_agent_id, admin_id)
+    expect(reassigned).toEqual([
+      {
+        ticket: ticket,
+        agent_id: agent_id,
+        display_name: "Available Agent",
+        availability_status: "online",
+        is_primary: true,
+      },
+    ])
+  })
+
+  test("should fail to assign when there is no available agent", async ({ fdm }) => {
+    const { unassigned } = await reassignAgentTickets(fdm, departing_agent_id, admin_id)
+    expect(unassigned).toEqual([ticket.ticket_id])
+  })
+
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+    await expect(reassignAgentTickets(fdm, departing_agent_id, admin_id)).rejects.toThrow(
+      "Exception for reassignAgentTickets",
+    )
   })
 })
