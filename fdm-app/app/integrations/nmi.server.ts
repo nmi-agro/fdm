@@ -25,17 +25,6 @@ export function getNmiApiKey() {
   return nmiApiKey
 }
 
-async function validatePdfMagicBytes(file: File) {
-  if (file.size > MAX_PDF_SIZE) {
-    throw new Error(`invalid: Bestand "${file.name}" is groter dan 5MB.`)
-  }
-  const buffer = await file.arrayBuffer()
-  const type = await fileTypeFromBuffer(Buffer.from(buffer))
-  if (type?.ext !== "pdf" || type.mime !== "application/pdf") {
-    throw new Error(`invalid: Bestand "${file.name}" is geen geldig PDF-bestand.`)
-  }
-}
-
 /**
  * Resolves the centroid of a not-yet-persisted field geometry (e.g. a drawn or
  * imported polygon that doesn't have a `b_id` yet) and fetches the cached soil
