@@ -9,5 +9,6 @@ CREATE TABLE "fdm-helpdesk"."agent_absences" (
 );
 --> statement-breakpoint
 ALTER TABLE "fdm-helpdesk"."agent_absences" ADD CONSTRAINT "agent_absences_agent_id_agents_agent_id_fk" FOREIGN KEY ("agent_id") REFERENCES "fdm-helpdesk"."agents"("agent_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "agent_absences_agent_idx" ON "fdm-helpdesk"."agent_absences" USING btree ("agent_id");--> statement-breakpoint
 CREATE INDEX "agent_absences_start_date_idx" ON "fdm-helpdesk"."agent_absences" USING btree ("start_date");--> statement-breakpoint
 CREATE INDEX "agent_absences_end_date_idx" ON "fdm-helpdesk"."agent_absences" USING btree ("end_date");

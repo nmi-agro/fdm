@@ -1,5 +1,5 @@
 {
-  "id": "16ac2c60-0eef-4cd0-9cfc-24b62d26dce1",
+  "id": "3d270bf5-526d-425c-bec3-d015abac2261",
   "prevId": "331d4634-1bfa-440a-adaf-d919f947138c",
   "version": "7",
   "dialect": "postgresql",
@@ -54,6 +54,21 @@
         }
       },
       "indexes": {
+        "agent_absences_agent_idx": {
+          "name": "agent_absences_agent_idx",
+          "columns": [
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "agent_absences_start_date_idx": {
           "name": "agent_absences_start_date_idx",
           "columns": [
