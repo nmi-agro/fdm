@@ -145,7 +145,12 @@ export default function Verify() {
 
           {actionData?.errors?.code && (
             <Button asChild variant="link" className="w-full">
-              <a href={requestNewCodeUrl}>Nieuwe code aanvragen</a>
+              <a
+                href={requestNewCodeUrl}
+                onClick={() => capture("signin_request_new_code_clicked")}
+              >
+                Nieuwe code aanvragen
+              </a>
             </Button>
           )}
         </Form>

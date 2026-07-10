@@ -2,13 +2,22 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useRef, useState } from "react"
-import { Form, redirect, useFetcher, useLoaderData, useNavigation, useSearchParams } from "react-router"
+import {
+  Form,
+  NavLink,
+  redirect,
+  useFetcher,
+  useLoaderData,
+  useNavigation,
+  useSearchParams,
+} from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
@@ -59,6 +68,7 @@ export default function SignIn() {
   const [cooldown, setCooldown] = useState(0)
   const loaderData = useLoaderData<typeof loader>()
   const email = loaderData.email
+  const { capture } = useAnalytics()
 
   const verifyActionUrl = modifySearchParams("/signin/verify", (params) => {
     params.set("redirectTo", redirectTo)
@@ -85,8 +95,12 @@ export default function SignIn() {
   useEffect(() => {
     if (resendFetcher.state === "idle" && resendFetcher.data && "success" in resendFetcher.data) {
       setCooldown(RESEND_COOLDOWN_SECONDS)
+      capture("signin_code_resend_succeeded")
     }
-  }, [resendFetcher.state, resendFetcher.data])
+    if (resendFetcher.state === "idle" && resendFetcher.data && "error" in resendFetcher.data) {
+      capture("signin_code_resend_failed")
+    }
+  }, [resendFetcher.state, resendFetcher.data, capture])
 
   const isSubmitting =
     (navigation.state !== "idle" && navigation.formAction?.startsWith("/signin/verify")) ||
@@ -110,6 +124,7 @@ export default function SignIn() {
             : "Een aanmeldcode en link zijn naar je e-mailadres gestuurd."
         }
         contentClassName="space-y-6"
+        footer={null}
       >
         <p className="text-muted-foreground text-center text-sm">
           De code en link zijn 15 minuten geldig en kunnen maar één keer worden gebruikt.
@@ -135,6 +150,7 @@ export default function SignIn() {
             onComplete={(value) => {
               pendingCodeRef.current = value
               setIsAutoSubmitting(true)
+              capture("signin_code_autosubmit_scheduled")
               // Trigger programmatic submit which fires onSubmit handler
               // 1.5s delay so the user can see and confirm the completed code
               timeoutRef.current = setTimeout(() => {
@@ -143,6 +159,7 @@ export default function SignIn() {
                   formRef.current?.requestSubmit()
                 } else {
                   setIsAutoSubmitting(false)
+                  capture("signin_code_autosubmit_cancelled")
                 }
               }, 1500)
             }}
@@ -167,34 +184,52 @@ export default function SignIn() {
           </Button>
         </Form>
 
-        {email && (
-          <resendFetcher.Form method="POST" className="flex flex-col items-center gap-1 text-center">
-            <input type="hidden" name="redirectTo" value={redirectTo} />
-            <Button
-              type="submit"
-              variant="link"
-              size="sm"
-              className="text-muted-foreground h-auto p-0 text-xs"
-              disabled={resendFetcher.state !== "idle" || cooldown > 0}
+        {/* Resend and "different email" sit together as matching small text
+            links, rather than pairing a small link with a full-width button. */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          {email && (
+            <resendFetcher.Form
+              method="POST"
+              className="flex flex-col items-center gap-1"
+              onSubmit={() => capture("signin_code_resend_clicked")}
             >
-              {cooldown > 0
-                ? `Nieuwe code opnieuw versturen (${cooldown}s)`
-                : resendFetcher.state !== "idle"
-                  ? "Code versturen..."
-                  : "Geen code ontvangen? Opnieuw versturen"}
-            </Button>
-            {resendFetcher.data && "error" in resendFetcher.data && (
-              <p className="text-destructive text-xs" role="alert">
-                {resendFetcher.data.error}
-              </p>
-            )}
-            {resendFetcher.data && "success" in resendFetcher.data && (
-              <p className="text-xs" role="status">
-                Nieuwe code verstuurd.
-              </p>
-            )}
-          </resendFetcher.Form>
-        )}
+              <input type="hidden" name="redirectTo" value={redirectTo} />
+              <Button
+                type="submit"
+                variant="link"
+                size="sm"
+                className="text-muted-foreground h-auto p-0 text-xs"
+                disabled={resendFetcher.state !== "idle" || cooldown > 0}
+              >
+                {cooldown > 0
+                  ? `Nieuwe code opnieuw versturen (${cooldown}s)`
+                  : resendFetcher.state !== "idle"
+                    ? "Code versturen..."
+                    : "Geen code ontvangen? Opnieuw versturen"}
+              </Button>
+              {resendFetcher.data && "error" in resendFetcher.data && (
+                <p className="text-destructive text-xs" role="alert">
+                  {resendFetcher.data.error}
+                </p>
+              )}
+              {resendFetcher.data && "success" in resendFetcher.data && (
+                <p className="text-xs" role="status">
+                  Nieuwe code verstuurd.
+                </p>
+              )}
+            </resendFetcher.Form>
+          )}
+          <Button
+            asChild
+            variant="link"
+            size="sm"
+            className="text-muted-foreground h-auto p-0 text-xs"
+          >
+            <NavLink to="/signin" onClick={() => capture("signin_different_email_clicked")}>
+              Ander e-mailadres gebruiken
+            </NavLink>
+          </Button>
+        </div>
       </AuthCard>
     </AuthLayout>
   )
