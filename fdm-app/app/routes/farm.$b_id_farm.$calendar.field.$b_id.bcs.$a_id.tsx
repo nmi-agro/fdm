@@ -32,6 +32,7 @@ import {
 import { Button } from "~/components/ui/button"
 import { deleteObject, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -242,6 +243,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     const session = await getSession(request)
     const analysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
+    if (!isBcsAnalysis(analysis)) {
+      throw data("Geen BodemConditieScore analyse", {
+        status: 403,
+        statusText: "Geen BodemConditieScore analyse",
+      })
+    }
     const images = await getSoilImages(fdm, session.principal_id, analysis.b_id_sampling)
 
     await Promise.all(

@@ -1,5 +1,5 @@
 import { FileText, FileUp, Trash2, Upload, X } from "lucide-react"
-import { useState } from "react"
+import { Dispatch, SetStateAction, useState } from "react"
 import { toast } from "sonner"
 import { Dropzone } from "~/components/custom/dropzone"
 import { Button } from "~/components/ui/button"
@@ -11,18 +11,21 @@ import { cn } from "~/lib/utils"
 import type { ProcessedAnalysis } from "./bulk-upload-review"
 
 export function BulkSoilAnalysisUploadForm({
+  files,
+  onFilesChange,
   onSuccess,
 }: {
+  files: File[]
+  onFilesChange: Dispatch<SetStateAction<File[]>>
   onSuccess: (data: ProcessedAnalysis[]) => void
 }) {
-  const [files, setFiles] = useState<File[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [currentFile, setCurrentFile] = useState<string | null>(null)
   const MAX_FILE_SIZE = 5 * 1024 * 1024
 
   const handleFilesChange = (newFiles: File[]) => {
-    setFiles(newFiles)
+    onFilesChange(newFiles)
   }
 
   const handleUpload = async () => {
@@ -139,7 +142,7 @@ export function BulkSoilAnalysisUploadForm({
   const removeFile = (index: number) => {
     const newFiles = [...files]
     newFiles.splice(index, 1)
-    setFiles(newFiles)
+    onFilesChange(newFiles)
   }
 
   const formatFileSize = (bytes: number) => {
@@ -213,7 +216,7 @@ export function BulkSoilAnalysisUploadForm({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setFiles([])}
+                  onClick={() => onFilesChange([])}
                   disabled={isUploading}
                   className="text-muted-foreground hover:text-destructive h-8 px-2 text-xs"
                 >

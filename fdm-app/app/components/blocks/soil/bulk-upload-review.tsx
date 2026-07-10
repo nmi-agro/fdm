@@ -280,7 +280,7 @@ export function BulkSoilAnalysisReview({
   fields: Field[]
   soilParameterDescription: SoilParameterDescription
   onSave: (
-    matches: { analysisId: string; fieldId: string }[],
+    matches: { analysisId: string; fieldId: string; filename?: string }[],
     updatedAnalyses: ProcessedAnalysis[],
   ) => void
   onCancel: () => void
@@ -314,8 +314,12 @@ export function BulkSoilAnalysisReview({
           const date = dates[analysisId]
           return isValidDate(date)
         })
-        .map(([analysisId, fieldId]) => ({ analysisId, fieldId })),
-    [matches, dates],
+        .map(([analysisId, fieldId]) => ({
+          analysisId,
+          fieldId,
+          filename: analyses.find((a) => a.id === analysisId)?.filename.toLowerCase(),
+        })),
+    [analyses, matches, dates],
   )
 
   const handleSave = () => {

@@ -2,11 +2,11 @@ import type { FileUpload } from "@remix-run/form-data-parser"
 import type { ActionFunctionArgs } from "react-router"
 import { checkPermission } from "@nmi-agro/fdm-core"
 import { parseFormData } from "@remix-run/form-data-parser"
-import { fileTypeFromBuffer } from "file-type"
 import { nanoid } from "nanoid"
-import { generateSignedReadUrl, uploadObject } from "~/integrations/gcs.server"
+import { buildObjectKey, generateSignedReadUrl, uploadObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
+import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
@@ -37,16 +37,11 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const uploadHandler = async (fileUpload: FileUpload) => {
     if (fileUpload.fieldName !== "file") return undefined
+    const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+    fileBuffer = result.buffer
+    detectedMime = result.mime
 
-    const arrayBuffer = await fileUpload.arrayBuffer()
-    const fileType = await fileTypeFromBuffer(arrayBuffer)
-    if (!fileType || !ALLOWED_MIME_TYPES.has(fileType.mime)) {
-      throw new Error(`Unsupported file type. Allowed: ${[...ALLOWED_MIME_TYPES].join(", ")}`)
-    }
-
-    fileBuffer = Buffer.from(arrayBuffer)
-    detectedMime = fileType.mime
-    return new File([new Uint8Array(arrayBuffer)], fileUpload.name, {
+    return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
       type: detectedMime,
     })
   }
@@ -88,7 +83,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   const ext = MIME_TO_EXT[detectedMime] ?? "jpg"
-  const objectKey = `soil_image/${nanoid()}.${ext}`
+  const objectKey = buildObjectKey("soil_image", nanoid(), ext)
 
   try {
     await uploadObject(objectKey, fileBuffer, detectedMime)

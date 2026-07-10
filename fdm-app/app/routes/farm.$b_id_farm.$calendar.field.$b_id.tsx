@@ -163,17 +163,26 @@ export default function FarmFieldIndex() {
   if (location.pathname.includes("fertilizer/manage")) return <Outlet />
 
   const fieldDashboardHref = `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}`
+  const isSoilAnalysisRoute = location.pathname.includes(
+    `/field/${loaderData.b_id}/soil/analysis`,
+  )
   const backAction = isDashboardRoute
     ? {
         to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,
         label: "Terug naar percelen",
         disabled: false,
       }
-    : {
-        to: fieldDashboardHref,
-        label: "Terug naar overzicht",
-        disabled: false,
-      }
+    : isSoilAnalysisRoute
+      ? {
+          to: `${fieldDashboardHref}/soil`,
+          label: "Terug naar bodemanalyses",
+          disabled: false,
+        }
+      : {
+          to: fieldDashboardHref,
+          label: "Terug naar overzicht",
+          disabled: false,
+        }
 
   return (
     <SidebarInset>

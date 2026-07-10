@@ -62,6 +62,12 @@ export interface FieldDashboardSoilParameterCard {
   link: string
 }
 
+export interface FieldDashboardLatestAnalysisPdf {
+  a_id: string
+  filename: string
+  title: string
+}
+
 export interface FieldDashboardBcsSummary extends BcsPreviewResult {
   scores: BcsScores
   measuredAt: string | null
@@ -158,6 +164,7 @@ export interface FieldDashboardData {
     parameterCards: FieldDashboardSoilParameterCard[]
     analysisCount: number
     latestAnalysisDate: string | null
+    latestAnalysisPdf: FieldDashboardLatestAnalysisPdf | null
     measuredCount: number
     estimatedCount: number
     unknownCount: number

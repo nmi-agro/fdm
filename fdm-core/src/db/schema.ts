@@ -93,7 +93,7 @@ export const fields = fdmSchema.table(
     b_id: text().primaryKey(),
     b_name: text().notNull(),
     b_geometry: geometry<"Polygon" | "MultiPolygon">("b_geometry", {
-      type: ["Polygon", "MultiPolygon"],
+      type: "Polygon",
     }), // PGLite does not support PostGIS yet; I expect to be supported in Q4 2024: https://github.com/electric-sql/pglite/issues/11
     b_id_source: text(),
     b_bufferstrip: boolean().notNull().default(false),
@@ -679,6 +679,7 @@ export const soilAnalysis = fdmSchema.table("soil_analysis", {
   a_id: text().primaryKey(),
   a_date: timestamp({ withTimezone: true }),
   a_source: soilAnalysisSourceEnum().default("other"),
+  a_file_path: text(),
   a_al_ox: numericCasted(),
   a_c_of: numericCasted(),
   a_ca_co: numericCasted(),
