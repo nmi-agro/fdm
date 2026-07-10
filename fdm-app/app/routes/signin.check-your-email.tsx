@@ -2,7 +2,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useRef, useState } from "react"
-import { Form, redirect, useFetcher, useNavigation, useSearchParams } from "react-router"
+import { Form, redirect, useFetcher, useLoaderData, useNavigation, useSearchParams } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
@@ -12,6 +12,7 @@ import { Spinner } from "~/components/ui/spinner"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
 import { maskEmail } from "~/lib/utils"
 import { modifySearchParams } from "~/lib/url-utils"
 import { FormSchema } from "~/components/blocks/auth/auth-formschema"
@@ -36,8 +37,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return redirect("/farm")
     }
 
-    const url = new URL(request.url)
-    const email = url.searchParams.get("email") || ""
+    // The email travels via a short-lived httpOnly cookie rather than the
+    // URL, so it never ends up in server logs, browser history, or Referer.
+    const email = (await magicLinkCookie.parse(request.headers.get("Cookie"))) || ""
 
     return { email }
   } catch (error) {
@@ -49,17 +51,17 @@ const RESEND_COOLDOWN_SECONDS = 30
 
 export default function SignIn() {
   const [searchParams] = useSearchParams()
-  const email = searchParams.get("email") || ""
   const redirectTo = searchParams.get("redirectTo") || "/farm"
   const navigation = useNavigation()
   const formRef = useRef<HTMLFormElement>(null)
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false)
   const resendFetcher = useFetcher<typeof action>()
   const [cooldown, setCooldown] = useState(0)
+  const loaderData = useLoaderData<typeof loader>()
+  const email = loaderData.email
 
   const verifyActionUrl = modifySearchParams("/signin/verify", (params) => {
     params.set("redirectTo", redirectTo)
-    if (email) params.set("email", email)
   })
 
   // Cancel a pending auto-submit if the user edits the code afterwards,
@@ -167,7 +169,6 @@ export default function SignIn() {
 
         {email && (
           <resendFetcher.Form method="POST" className="flex flex-col items-center gap-1 text-center">
-            <input type="hidden" name="email" value={email} />
             <input type="hidden" name="redirectTo" value={redirectTo} />
             <Button
               type="submit"
@@ -201,8 +202,11 @@ export default function SignIn() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
-  const email = String(formData.get("email") || "")
   const redirectTo = String(formData.get("redirectTo") || "/farm")
+
+  // Re-read the email from the cookie rather than trusting a client-supplied
+  // field, keeping it the single source of truth for this flow.
+  const email = (await magicLinkCookie.parse(request.headers.get("Cookie"))) || ""
 
   if (!email) {
     return { error: "E-mailadres ontbreekt. Ga terug naar aanmelden." }
@@ -213,7 +217,12 @@ export async function action({ request }: ActionFunctionArgs) {
       body: { email, callbackURL: redirectTo },
       headers: request.headers,
     })
-    return { success: true }
+    // Refresh the cookie's expiry so repeated resends keep working within
+    // the flow, without extending the window indefinitely on its own.
+    return Response.json(
+      { success: true },
+      { headers: { "Set-Cookie": await magicLinkCookie.serialize(email) } },
+    )
   } catch (error) {
     console.error("Error resending magic link:", error)
     return { error: "Het opnieuw versturen is niet gelukt. Probeer het straks opnieuw." }

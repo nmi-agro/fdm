@@ -41,7 +41,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const url = new URL(request.url)
     const code = url.searchParams.get("code") || ""
     const redirectTo = url.searchParams.get("redirectTo") || "/farm"
-    const email = url.searchParams.get("email") || ""
 
     // Check if user is already logged in
     const session = await auth.api.getSession({
@@ -51,14 +50,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return redirect("/farm")
     }
 
-    return { code, redirectTo, email }
+    return { code, redirectTo }
   } catch (error) {
     throw handleLoaderError(error)
   }
 }
 
 export default function Verify() {
-  const { code, redirectTo, email } = useLoaderData<typeof loader>()
+  const { code, redirectTo } = useLoaderData<typeof loader>()
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
   const isSubmitting = navigation.state !== "idle"
@@ -113,7 +112,6 @@ export default function Verify() {
 
   const requestNewCodeUrl = modifySearchParams("/signin/check-your-email", (params) => {
     params.set("redirectTo", redirectTo || "/farm")
-    if (email) params.set("email", email)
   })
 
   return (
