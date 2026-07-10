@@ -21,6 +21,7 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
 import type { HelpdeskUser } from "./types"
+import { AgentAvailabilityDisplay } from "./agent-availability"
 import { AddAgentSchema } from "./agent-schema"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
 
@@ -49,6 +50,7 @@ export function HelpdeskAgentManager({
   roles,
   canModify,
 }: HelpdeskAgentManagerProps) {
+  console.log(helpdeskUsers)
   return (
     <Card className="mx-auto max-w-5xl">
       {canModify && (
@@ -167,6 +169,10 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       </TableCell>
       <TableCell width="99%" className="align-middle">
         {principal.displayUserName}
+        <AgentAvailabilityDisplay
+          availability_status={principal.availability_status}
+          absence={principal.absence}
+        />
       </TableCell>
       {canModify ? (
         <>

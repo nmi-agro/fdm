@@ -2,7 +2,7 @@ import { getPrincipal, getPrincipals } from "@nmi-agro/fdm-core"
 import {
   addAgent,
   checkHelpdeskPermission,
-  getAbsencesForAgents,
+  getAbsencesForAgentsOnDate,
   getAgents,
   setAgentActiveStatus,
   updateAgentRole,
@@ -62,7 +62,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       false,
     )
 
-    const agentAbsences = await getAbsencesForAgents(fdm)
+    const agentAbsences = await getAbsencesForAgentsOnDate(fdm, session.principal_id, new Date())
 
     const helpdeskUsers: HelpdeskUserExtended[] = agents.map((agent) => {
       return {

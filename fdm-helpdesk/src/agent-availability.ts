@@ -286,8 +286,11 @@ export async function setWorkDays(
   work_days: number[],
 ) {
   try {
+    if (!Array.isArray(work_days) || work_days.length === 0) {
+      throw new Error("Invalid work days")
+    }
     for (const day of work_days) {
-      if (day < 0 || day > 6) {
+      if (![0, 1, 2, 3, 4, 5, 6].includes(day)) {
         throw new Error(`Invalid work day: ${day}`)
       }
     }
@@ -309,7 +312,7 @@ export async function setWorkDays(
 }
 
 /**
- * Sets the assignment tier for the agent.
+ * Sets the assignment tier for the agent. Only admins are allowed to do this.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
@@ -331,7 +334,7 @@ export async function setAssignmentTier(
 
     await checkHelpdeskPermission(
       fdm,
-      "agent",
+      "helpdesk",
       "write",
       agent_id,
       principal_id,
@@ -516,6 +519,7 @@ export async function cancelAbsence(
  * {@link createFdmServer} of fdm-core.
  * @param principal_id The principal identifier(s); supports a single ID or an array.
  * @param absence_id ID of the absence to get.
+ * @throws if the absence does not exist or the principal does not have permission to read the agent.
  */
 export async function getAbsence(
   fdm: FdmHelpdeskType,
@@ -530,7 +534,7 @@ export async function getAbsence(
       .limit(1)
 
     if (absences.length === 0) {
-      throw new Error(`Absence with ID ${absence_id} not found`)
+      throw new Error("Principal does not have permission to perform this action")
     }
 
     await checkHelpdeskPermission(
@@ -557,13 +561,22 @@ export async function getAbsence(
  * {@link createFdmServer} of fdm-core.
  * @param agent_id Agent ID to get the absences of
  * @returns Array of absences, ordered by start date
+ * @throws if the principal does not have permission to read the agent.
  */
-export async function getAgentAbsences(fdm: FdmHelpdeskType, agent_id: string) {
-  return fdm
-    .select()
-    .from(schema.agentAbsences)
-    .where(eq(schema.agentAbsences.agent_id, agent_id))
-    .orderBy((t) => [asc(t.start_date)])
+export async function getAbsencesForAgent(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  agent_id: string,
+) {
+  try {
+    await checkHelpdeskPermission(fdm, "agent", "read", agent_id, principal_id, "")
+    return await fdm
+      .select()
+      .from(schema.agentAbsences)
+      .where(eq(schema.agentAbsences.agent_id, agent_id))
+  } catch (err) {
+    throw handleError(err, "Exception for getAbsencesForAgent")
+  }
 }
 
 /**
@@ -573,9 +586,23 @@ export async function getAgentAbsences(fdm: FdmHelpdeskType, agent_id: string) {
  * {@link createFdmServer} of fdm-core.
  * @param date Date to check for absences on
  * @returns Map of agent IDs to the found absence, for each agent who is absent on the given date
+ * @throws if the principal does not have permission to read the helpdesk.
  */
-export async function getAbsencesForAgents(fdm: FdmHelpdeskType, date = new Date()) {
+export async function getAbsencesForAgentsOnDate(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  date = new Date(),
+) {
   try {
+    await checkHelpdeskPermission(
+      fdm,
+      "helpdesk",
+      "read",
+      "",
+      principal_id,
+      "getAbsencesForAgentsOnDate",
+    )
+
     // select the absence that ends the latest for each agent
     const rankedAbsences = fdm
       .select({
@@ -595,7 +622,7 @@ export async function getAbsencesForAgents(fdm: FdmHelpdeskType, date = new Date
 
     return new Map<string, AgentAbsence>(absences.map((absence) => [absence.agent_id, absence]))
   } catch (err) {
-    throw handleError(err, "Exception for getAbsencesForAgents")
+    throw handleError(err, "Exception for getAbsencesForAgentsOnDate")
   }
 }
 

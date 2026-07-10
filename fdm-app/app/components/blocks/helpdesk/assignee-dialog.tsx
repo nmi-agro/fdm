@@ -182,6 +182,7 @@ export function AssignmentSelector({
                   <AssigneeSelectItem
                     key={assignee.agent_id}
                     agent={assignee}
+                    agentAbsence={agentAbsences?.get(assignee.agent_id) ?? null}
                     isSelected={selectedAssignees.includes(assignee.agent_id)}
                     isPrimary={primaryAssignees.includes(assignee.agent_id)}
                     principalLookup={principalLookup}
@@ -204,7 +205,7 @@ export function AssignmentSelector({
                   <AssigneeSelectItem
                     key={agent.agent_id}
                     agent={agent}
-                    agentAbsence={agentAbsences?.get(agent.agent_id)}
+                    agentAbsence={agentAbsences?.get(agent.agent_id) ?? null}
                     isSelected={selectedAssignees.includes(agent.agent_id)}
                     isPrimary={primaryAssignees.includes(agent.agent_id)}
                     principalLookup={principalLookup}
@@ -249,7 +250,7 @@ function AssigneeSelectItem({
   onIsPrimaryClick,
 }: {
   agent: AgentSummary
-  agentAbsence?: AgentAbsence
+  agentAbsence: AgentAbsence | null
   isPrimary: boolean
   isSelected: boolean
   principalLookup: Map<string, HelpdeskUser>
@@ -287,8 +288,8 @@ function AssigneeSelectItem({
         <div className="text-start">
           <span className="grow text-start group-hover:underline">{agent.display_name}</span>
           <AgentAvailabilityDisplay
-            agent={agent}
-            agentAbsence={agentAbsence}
+            availability_status={agent.availability_status}
+            absence={agentAbsence}
             className="text-[11px]"
           />
         </div>

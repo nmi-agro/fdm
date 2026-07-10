@@ -1,14 +1,15 @@
 import { describe, expect } from "vitest"
-import { addAdminAgent, addAgent, setAgentActiveStatus } from "./agent"
+import { addAdminAgent, addAgent, getAgent, setAgentActiveStatus } from "./agent"
 import {
   cancelAbsence,
   getAbsence,
-  getAgentAbsences,
-  getAbsencesForAgents,
+  getAbsencesForAgent,
+  getAbsencesForAgentsOnDate,
   getAllAbsences,
   scheduleAbsence,
   updateAbsence,
   getAvailableAgents,
+  setAssignmentTier,
   setMaxTickets,
   setWorkDays,
   setAgentStatus,
@@ -30,6 +31,8 @@ describe("Agent availability CRUD", () => {
   let agent_id: string
   let other_agent_id: string
 
+  const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5]
+
   test.beforeEach(async ({ fdm }) => {
     admin_id = createId()
     await addAdminAgent(fdm, admin_id, "Admin Agent")
@@ -41,12 +44,97 @@ describe("Agent availability CRUD", () => {
     await addAgent(fdm, admin_id, other_agent_id, "Other Support Agent")
   })
 
+  test("should set an agent's work days", async ({ fdm }) => {
+    await setWorkDays(fdm, admin_id, agent_id, [1])
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.work_days).toEqual([1])
+  })
+
+  test("should not let agents set each other's work days", async ({ fdm }) => {
+    await expect(setWorkDays(fdm, agent_id, admin_id, [1])).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.work_days).toEqual(DEFAULT_WORK_DAYS)
+  })
+
+  test("should not let setting work days to an empty array", async ({ fdm }) => {
+    await expect(setWorkDays(fdm, agent_id, admin_id, [])).rejects.toThrow(
+      "Exception for setWorkDays",
+    )
+  })
+
+  test("should not let setting work days to an invalid object", async ({ fdm }) => {
+    await expect(setWorkDays(fdm, agent_id, admin_id, {} as unknown as number[])).rejects.toThrow(
+      "Exception for setWorkDays",
+    )
+    await expect(
+      setWorkDays(fdm, agent_id, admin_id, ["hello"] as unknown as number[]),
+    ).rejects.toThrow("Exception for setWorkDays")
+    await expect(
+      setWorkDays(fdm, agent_id, admin_id, false as unknown as number[]),
+    ).rejects.toThrow("Exception for setWorkDays")
+    await expect(setWorkDays(fdm, agent_id, admin_id, [Math.PI])).rejects.toThrow(
+      "Exception for setWorkDays",
+    )
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.work_days).toEqual(DEFAULT_WORK_DAYS)
+  })
+
+  test("should not let setting a work day that is out of range", async ({ fdm }) => {
+    await expect(setWorkDays(fdm, agent_id, admin_id, [7])).rejects.toThrow(
+      "Exception for setWorkDays",
+    )
+  })
+
+  test("should let an admin set an agent's assignment tier", async ({ fdm }) => {
+    await setAssignmentTier(fdm, admin_id, agent_id, 3)
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.assignment_tier).toEqual(3)
+  })
+
+  test("should not let regular agents set assignment tiers", async ({ fdm }) => {
+    await expect(setAssignmentTier(fdm, agent_id, agent_id, 3)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.assignment_tier).toEqual(1)
+  })
+
+  test("should not let setting an invalid assignment tier", async ({ fdm }) => {
+    await expect(
+      setAssignmentTier(fdm, agent_id, agent_id, 4 as unknown as 1 | 2 | 3),
+    ).rejects.toThrow("Exception for setAssignmentTier")
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.assignment_tier).toEqual(1)
+  })
+
+  test("should let a regular agent set their own availability status", async ({ fdm }) => {
+    await setAgentStatus(fdm, agent_id, agent_id, "away")
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.availability_status).toEqual("away")
+  })
+
+  test("should let an admin set an agent's availability status", async ({ fdm }) => {
+    await setAgentStatus(fdm, admin_id, agent_id, "away")
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.availability_status).toEqual("away")
+  })
+
+  test("should not let regular agents set each other's availability status", async ({ fdm }) => {
+    await expect(setAgentStatus(fdm, agent_id, admin_id, "away")).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.availability_status).toEqual("online")
+  })
+
   test("should let an agent schedule their own absence", async ({ fdm }) => {
     const start_date = new Date("2025-01-01")
     const end_date = new Date("2025-01-05")
     await scheduleAbsence(fdm, agent_id, agent_id, start_date, end_date, "holiday", "Skiing")
 
-    const absences = await getAgentAbsences(fdm, agent_id)
+    const absences = await getAbsencesForAgent(fdm, agent_id, agent_id)
     expect(absences).toHaveLength(1)
     expect(absences[0].reason).toBe("holiday")
     expect(absences[0].note).toBe("Skiing")
@@ -75,7 +163,7 @@ describe("Agent availability CRUD", () => {
       "sick",
     )
 
-    const absences = await getAgentAbsences(fdm, other_agent_id)
+    const absences = await getAbsencesForAgent(fdm, other_agent_id, other_agent_id)
     expect(absences).toHaveLength(1)
     expect(absences[0].reason).toBe("sick")
   })
@@ -89,7 +177,7 @@ describe("Agent availability CRUD", () => {
       new Date("2025-01-05"),
       "holiday",
     )
-    const [created] = await getAgentAbsences(fdm, agent_id)
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
 
     const absence = await getAbsence(fdm, agent_id, created.absence_id)
     expect(absence.absence_id).toBe(created.absence_id)
@@ -104,7 +192,7 @@ describe("Agent availability CRUD", () => {
       new Date("2025-01-05"),
       "holiday",
     )
-    const [created] = await getAgentAbsences(fdm, agent_id)
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
 
     await updateAbsence(fdm, agent_id, created.absence_id, {
       reason: "sick",
@@ -127,7 +215,7 @@ describe("Agent availability CRUD", () => {
       new Date("2025-01-05"),
       "holiday",
     )
-    const [created] = await getAgentAbsences(fdm, agent_id)
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
 
     await expect(
       updateAbsence(fdm, other_agent_id, created.absence_id, { reason: "other" }),
@@ -143,7 +231,7 @@ describe("Agent availability CRUD", () => {
       new Date("2025-01-05"),
       "holiday",
     )
-    const [created] = await getAgentAbsences(fdm, agent_id)
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
 
     await updateAbsence(fdm, admin_id, created.absence_id, { reason: "other" })
 
@@ -160,11 +248,11 @@ describe("Agent availability CRUD", () => {
       new Date("2025-01-05"),
       "holiday",
     )
-    const [created] = await getAgentAbsences(fdm, agent_id)
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
 
     await cancelAbsence(fdm, agent_id, created.absence_id)
 
-    const absences = await getAgentAbsences(fdm, agent_id)
+    const absences = await getAbsencesForAgent(fdm, agent_id, agent_id)
     expect(absences).toHaveLength(0)
   })
 
@@ -179,7 +267,7 @@ describe("Agent availability CRUD", () => {
       new Date("2025-01-05"),
       "holiday",
     )
-    const [created] = await getAgentAbsences(fdm, agent_id)
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
 
     await expect(cancelAbsence(fdm, other_agent_id, created.absence_id)).rejects.toThrow(
       "Principal does not have permission to perform this action",
@@ -195,11 +283,11 @@ describe("Agent availability CRUD", () => {
       new Date("2025-01-05"),
       "holiday",
     )
-    const [created] = await getAgentAbsences(fdm, agent_id)
+    const [created] = await getAbsencesForAgent(fdm, agent_id, agent_id)
 
     await cancelAbsence(fdm, admin_id, created.absence_id)
 
-    const absences = await getAgentAbsences(fdm, agent_id)
+    const absences = await getAbsencesForAgent(fdm, agent_id, agent_id)
     expect(absences).toHaveLength(0)
   })
 
@@ -250,7 +338,7 @@ describe("Agent availability CRUD", () => {
       "sick",
     )
 
-    const absences = await getAbsencesForAgents(fdm, new Date("2025-01-03"))
+    const absences = await getAbsencesForAgentsOnDate(fdm, agent_id, new Date("2025-01-03"))
 
     expect(absences.size).toBe(1)
     expect(absences.get(agent_id)?.reason).toBe("holiday")
@@ -287,7 +375,7 @@ describe("Agent availability CRUD", () => {
       "training",
     )
 
-    const absences = await getAbsencesForAgents(fdm, new Date("2025-01-04"))
+    const absences = await getAbsencesForAgentsOnDate(fdm, agent_id, new Date("2025-01-04"))
 
     expect(absences.size).toBe(2)
     expect(absences.get(agent_id)?.reason).toBe("sick")
@@ -404,6 +492,17 @@ describe("Agent prioritization", () => {
       agent2_idx < agent1_idx,
       "Agent 2 has a lower priority ticket assigned than Agent 1.",
     ).toBe(true)
+  })
+
+  test("should prioritize an agent with a lower assignment tier", async ({ fdm }) => {
+    await setAssignmentTier(fdm, agent1_id, agent1_id, 2)
+    await setAssignmentTier(fdm, agent2_id, agent2_id, 1)
+    const available = await getAvailableAgents(fdm, new Date())
+    const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
+    const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
+    expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
+    expect(agent1_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(agent2_idx < agent1_idx, "Agent 2 has a lower assignment tier than Agent 1.").toBe(true)
   })
 })
 
