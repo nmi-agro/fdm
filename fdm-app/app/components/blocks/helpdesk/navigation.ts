@@ -4,40 +4,23 @@ export function useCurrentHelpdeskPage() {
   const [searchParams] = useSearchParams()
   const matches = useMatches()
 
-  const isTicketViewer = matches.some((match) => match.id === "routes/support._ticketviewer")
-  const isProfile = matches.some((match) => match.id === "routes/support.settings.profile")
-  const isAgents = matches.some((match) => match.id === "routes/support.settings.agents")
-  const isTags = matches.some((match) => match.id === "routes/support.settings.tags")
-  const isBlockedEmails = matches.some(
-    (match) => match.id === "routes/support.settings.blocked-emails",
-  )
-  const isNewTicket = matches.some((match) => match.id === "routes/support.new")
-  const isSavedReplies = matches.some(
-    (match) => match.id === "routes/support.settings.saved-replies",
-  )
-  const isAbsences = matches.some((match) => match.id === "routes/support.settings.absences")
+  if (matches.some((match) => match.id === "routes/support.new")) return "new_ticket"
+  if (matches.some((match) => match.id === "routes/support.settings.profile")) return "profile"
+  if (matches.some((match) => match.id === "routes/support.settings.agents")) return "agents"
+  if (matches.some((match) => match.id === "routes/support.settings.absences")) return "absences"
 
-  return isTicketViewer
-    ? searchParams.has("all")
-      ? "all_tickets"
-      : searchParams.has("inbox")
-        ? "inbox"
-        : searchParams.has("unassigned")
-          ? "unassigned_tickets"
-          : "my_tickets"
-    : isProfile
-      ? "profile"
-      : isAgents
-        ? "agents"
-        : isTags
-          ? "tags"
-          : isBlockedEmails
-            ? "blocked_emails"
-            : isNewTicket
-              ? "new_ticket"
-              : isSavedReplies
-                ? "saved_replies"
-                : isAbsences
-                  ? "absences"
-                  : null
+  if (matches.some((match) => match.id === "routes/support.settings.saved-replies"))
+    return "saved_replies"
+  if (matches.some((match) => match.id === "routes/support.settings.tags")) return "tags"
+  if (matches.some((match) => match.id === "routes/support.settings.blocked-emails"))
+    return "blocked_emails"
+
+  if (matches.some((match) => match.id === "routes/support._ticketviewer")) {
+    if (searchParams.has("all")) return "all_tickets"
+    if (searchParams.has("inbox")) return "inbox"
+    if (searchParams.has("unassigned")) return "unassigned_tickets"
+    return "my_tickets"
+  }
+
+  return null
 }
