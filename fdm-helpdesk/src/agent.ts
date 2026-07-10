@@ -14,6 +14,7 @@ import { getPageOffsetAndLimit } from "./pagination"
 export type AgentSummary = {
   agent_id: schema.AgentTypeSelect["agent_id"]
   display_name: schema.AgentTypeSelect["display_name"]
+  availability_status: schema.AgentTypeSelect["availability_status"]
 }
 
 /** An agent record without the `created` and `updated` timestamps. */

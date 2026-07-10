@@ -203,11 +203,13 @@ export async function reassignAgentTickets(
 
       const result = await autoAssignTicket(fdm, ticket.ticket_id, new Date())
       if (result.assigned) {
+        // This should be always found
+        const agent = ticket.assignees.find((a) => a.agent_id === result.agent_id)
         reassigned.push({
           ticket: ticket,
           agent_id: result.agent_id,
-          display_name:
-            ticket.assignees.find((a) => a.agent_id === result.agent_id)?.display_name ?? "",
+          display_name: agent?.display_name ?? "",
+          availability_status: agent?.availability_status ?? "online",
           is_primary: true,
         })
       } else {

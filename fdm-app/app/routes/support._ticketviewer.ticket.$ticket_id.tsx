@@ -5,6 +5,7 @@ import {
   assignTicket,
   checkHelpdeskPermission,
   createTag,
+  getAbsencesForAgents,
   getAgents,
   getAssigneesForTickets,
   getMessagesForTicket,
@@ -71,6 +72,7 @@ export async function loader({ params, request }: Args) {
 
     // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
     const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
+    const agentAbsences = isAgent ? await getAbsencesForAgents(fdm) : undefined
 
     // Message sender's profile pictures are shown
     const principal_ids = messages
@@ -122,6 +124,7 @@ export async function loader({ params, request }: Args) {
       isAgent: isAgent,
       principals: principalsSummarized,
       agents: agents,
+      agentAbsences: agentAbsences,
       // To prevent hydration failed errors
       todayDate: new Date(),
       contextFarmName: ticket.context_farm_id

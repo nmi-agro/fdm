@@ -4,6 +4,7 @@ import type {
   PriorityString,
   TagSummary,
   Ticket as TicketT,
+  AgentAbsence,
 } from "@nmi-agro/fdm-helpdesk"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
@@ -25,6 +26,7 @@ export function Ticket({
   ticket,
   messages,
   agents = [],
+  agentAbsences,
   availableTags = [],
   canAddMessages,
   isAgent,
@@ -36,6 +38,7 @@ export function Ticket({
   ticket: TicketT
   messages: MessageT[]
   agents?: Agent[]
+  agentAbsences?: Map<string, AgentAbsence>
   availableTags?: TagSummary[]
   canAddMessages: boolean
   isAgent: boolean
@@ -124,6 +127,7 @@ export function Ticket({
                 canModify={isAgent}
                 assignees={ticket.assignees}
                 agents={agents}
+                agentAbsences={agentAbsences}
                 principalLookup={principalLookup}
               />
               <label htmlFor={prioritySelectId} className="text-muted-foreground ms-6 text-sm">

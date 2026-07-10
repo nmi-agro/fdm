@@ -1,4 +1,4 @@
-import type { AgentSummary, TicketAssignmentSummary } from "@nmi-agro/fdm-helpdesk"
+import type { AgentSummary, AgentAbsence, TicketAssignmentSummary } from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown, UserPlus, Users } from "lucide-react"
 import { type MouseEventHandler, useEffect, useId, useState } from "react"
 import { useFetcher } from "react-router"
@@ -20,6 +20,7 @@ import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import type { HelpdeskUser } from "./types"
+import { AgentAvailabilityDisplay } from "./agent-availability"
 import { HelpdeskUserAvatar, makeHelpdeskUser } from "./helpdesk-user"
 
 // How many assignees to display, before saying "en meer/and more"
@@ -31,6 +32,7 @@ export function AssignmentSelector({
   canModify = true,
   assignees,
   agents,
+  agentAbsences,
   principalLookup,
 }: {
   triggerId?: string
@@ -38,6 +40,7 @@ export function AssignmentSelector({
   canModify?: boolean
   assignees: TicketAssignmentSummary[]
   agents: AgentSummary[]
+  agentAbsences?: Map<string, AgentAbsence>
   principalLookup: Map<string, HelpdeskUser>
 }) {
   const fetcher = useFetcher()
@@ -201,6 +204,7 @@ export function AssignmentSelector({
                   <AssigneeSelectItem
                     key={agent.agent_id}
                     agent={agent}
+                    agentAbsence={agentAbsences?.get(agent.agent_id)}
                     isSelected={selectedAssignees.includes(agent.agent_id)}
                     isPrimary={primaryAssignees.includes(agent.agent_id)}
                     principalLookup={principalLookup}
@@ -236,6 +240,7 @@ export function AssignmentSelector({
 
 function AssigneeSelectItem({
   agent,
+  agentAbsence,
   isPrimary,
   isSelected,
   principalLookup,
@@ -244,6 +249,7 @@ function AssigneeSelectItem({
   onIsPrimaryClick,
 }: {
   agent: AgentSummary
+  agentAbsence?: AgentAbsence
   isPrimary: boolean
   isSelected: boolean
   principalLookup: Map<string, HelpdeskUser>
@@ -278,7 +284,14 @@ function AssigneeSelectItem({
           {isSelected && <Check className="size-3" />}
         </span>
         <HelpdeskUserAvatar user={makeHelpdeskUser(agent, principalLookup)} type="agent" />
-        <span className="grow text-start group-hover:underline">{agent.display_name}</span>
+        <div className="text-start">
+          <span className="grow text-start group-hover:underline">{agent.display_name}</span>
+          <AgentAvailabilityDisplay
+            agent={agent}
+            agentAbsence={agentAbsence}
+            className="text-[11px]"
+          />
+        </div>
       </Button>
 
       <Tooltip>

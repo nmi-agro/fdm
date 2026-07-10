@@ -13,29 +13,11 @@ import { Input } from "~/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
+import { AGENT_AVAILABILITY_STATUSES } from "./agent-availability"
 import { UpdateAgentSchema } from "./agent-schema"
 
 type AgentFormDefaults = Partial<Agent> & { agent_id: string }
 type AgentFormValues = z.infer<typeof UpdateAgentSchema>
-
-export const AGENT_AVAILABILITY_STATUSES = [
-  {
-    value: "online",
-    label: "Online",
-    description: "Je bent nu beschikbaar om nieuwe tickets te behandelen.",
-  },
-  {
-    value: "away",
-    label: "Even weg",
-    description: "Je kunt nog geen nieuwe tickets behandelen maar je bent zo weer terug.",
-  },
-  {
-    value: "out-of-office",
-    label: "Uit kantoor",
-    description:
-      "Je bent helemaal niet beschikbaar, en je tickets moeten opnieuw worden togewezen.",
-  },
-] as const
 
 function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   const work_days = Array.isArray(agent.work_days)

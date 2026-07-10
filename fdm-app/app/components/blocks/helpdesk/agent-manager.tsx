@@ -2,9 +2,7 @@ import type { ComponentProps } from "react"
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AgentAbsence } from "@nmi-agro/fdm-helpdesk"
-import { formatDate } from "date-fns/format"
-import { nl } from "date-fns/locale"
-import { Circle, CircleArrowLeft, CircleCheck, Clock, User, Users } from "lucide-react"
+import { User, Users } from "lucide-react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -23,8 +21,6 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
 import type { HelpdeskUser } from "./types"
-import { ABSENCE_REASON_LABELS } from "./absence-schema"
-import { AGENT_AVAILABILITY_STATUSES } from "./agent-form"
 import { AddAgentSchema } from "./agent-schema"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
 
@@ -40,13 +36,6 @@ export const agentRoles = [
   { name: "agent", label: "Medewerker" },
   { name: "admin", label: "Beheerder" },
 ] as const
-
-const AbsenceMessage = {
-  holiday: "Op vakantie",
-  day_off: "Heeft een dagje uit",
-  sick: "Is ziek",
-  other: "Afwezig",
-}
 
 type RoleDescription = (typeof agentRoles)[number]
 export interface HelpdeskAgentManagerProps {
@@ -178,24 +167,6 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       </TableCell>
       <TableCell width="99%" className="align-middle">
         {principal.displayUserName}
-        <div className="text-muted-foreground flex flex-row items-center gap-1 text-sm">
-          {principal.absence || principal.availability_status === "out-of-office" ? (
-            <CircleArrowLeft className="size-4 text-purple-700" />
-          ) : principal.availability_status === "away" ? (
-            <Clock className="size-4 text-yellow-700" />
-          ) : principal.availability_status === "online" ? (
-            <CircleCheck className="size-4 text-green-600" />
-          ) : (
-            <Circle className="size-4 text-gray-400" />
-          )}
-          {principal.absence
-            ? `${AbsenceMessage[principal.absence.reason as keyof typeof ABSENCE_REASON_LABELS]} t/m ${formatDate(principal.absence.end_date, "PP", { locale: nl })}${principal.absence.note ? `: ${principal.absence.note}` : ""}`
-            : principal.availability_status
-              ? (AGENT_AVAILABILITY_STATUSES.find(
-                  (status) => status.value === principal.availability_status,
-                )?.label ?? "")
-              : ""}
-        </div>
       </TableCell>
       {canModify ? (
         <>
