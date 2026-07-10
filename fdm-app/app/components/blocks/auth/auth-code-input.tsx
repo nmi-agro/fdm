@@ -11,14 +11,16 @@ interface AuthCodeInputProps {
     disabled?: boolean
   }
   onComplete?: (value: string) => void
+  "aria-invalid"?: boolean
 }
 
-export function AuthCodeInput({ field, onComplete }: AuthCodeInputProps) {
+export function AuthCodeInput({ field, onComplete, "aria-invalid": ariaInvalid }: AuthCodeInputProps) {
   return (
     <div className="flex justify-center">
       <InputOTP
         maxLength={6}
         {...field}
+        aria-invalid={ariaInvalid}
         inputMode="numeric"
         pattern={REGEXP_ONLY_DIGITS}
         onComplete={onComplete}

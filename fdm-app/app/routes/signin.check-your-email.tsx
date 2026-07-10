@@ -1,8 +1,8 @@
-import type { LoaderFunctionArgs, MetaFunction } from "react-router"
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useRef, useState } from "react"
-import { Form, redirect, useNavigation, useSearchParams } from "react-router"
+import { Form, redirect, useFetcher, useNavigation, useSearchParams } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
@@ -12,6 +12,7 @@ import { Spinner } from "~/components/ui/spinner"
 import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import { maskEmail } from "~/lib/utils"
 import { modifySearchParams } from "~/lib/url-utils"
 import { FormSchema } from "~/components/blocks/auth/auth-formschema"
 
@@ -35,23 +36,35 @@ export async function loader({ request }: LoaderFunctionArgs) {
       return redirect("/farm")
     }
 
-    return {}
+    const url = new URL(request.url)
+    const email = url.searchParams.get("email") || ""
+
+    return { email }
   } catch (error) {
     throw handleLoaderError(error)
   }
 }
 
+const RESEND_COOLDOWN_SECONDS = 30
+
 export default function SignIn() {
   const [searchParams] = useSearchParams()
+  const email = searchParams.get("email") || ""
   const redirectTo = searchParams.get("redirectTo") || "/farm"
   const navigation = useNavigation()
   const formRef = useRef<HTMLFormElement>(null)
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false)
+  const resendFetcher = useFetcher<typeof action>()
+  const [cooldown, setCooldown] = useState(0)
 
   const verifyActionUrl = modifySearchParams("/signin/verify", (params) => {
     params.set("redirectTo", redirectTo)
+    if (email) params.set("email", email)
   })
 
+  // Cancel a pending auto-submit if the user edits the code afterwards,
+  // so the auto-submit never overrides an intentional change.
+  const pendingCodeRef = useRef<string | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     return () => {
@@ -60,6 +73,18 @@ export default function SignIn() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const interval = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearInterval(interval)
+  }, [cooldown])
+
+  useEffect(() => {
+    if (resendFetcher.state === "idle" && resendFetcher.data && "success" in resendFetcher.data) {
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    }
+  }, [resendFetcher.state, resendFetcher.data])
 
   const isSubmitting =
     (navigation.state !== "idle" && navigation.formAction?.startsWith("/signin/verify")) ||
@@ -77,7 +102,11 @@ export default function SignIn() {
     <AuthLayout showCookieSettings={true}>
       <AuthCard
         title="Controleer je e-mail inbox"
-        description="Een aanmeldcode en link zijn naar je e-mailadres gestuurd."
+        description={
+          email
+            ? `Een aanmeldcode en link zijn naar ${maskEmail(email)} gestuurd.`
+            : "Een aanmeldcode en link zijn naar je e-mailadres gestuurd."
+        }
         contentClassName="space-y-6"
       >
         <p className="text-muted-foreground text-center text-sm">
@@ -101,16 +130,30 @@ export default function SignIn() {
         >
           <AuthCodeField
             control={form.control}
-            onComplete={() => {
+            onComplete={(value) => {
+              pendingCodeRef.current = value
               setIsAutoSubmitting(true)
               // Trigger programmatic submit which fires onSubmit handler
-              // 1.5s delay so user sees the completed code
+              // 1.5s delay so the user can see and confirm the completed code
               timeoutRef.current = setTimeout(() => {
-                formRef.current?.requestSubmit()
+                // Only submit if the code hasn't been edited since completion
+                if (form.getValues("code") === pendingCodeRef.current) {
+                  formRef.current?.requestSubmit()
+                } else {
+                  setIsAutoSubmitting(false)
+                }
               }, 1500)
             }}
           />
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting}
+            onClick={() => {
+              // Let a deliberate click interrupt any pending auto-submit
+              if (timeoutRef.current) clearTimeout(timeoutRef.current)
+            }}
+          >
             {isSubmitting ? (
               <div className="flex items-center space-x-2">
                 <Spinner />
@@ -121,7 +164,58 @@ export default function SignIn() {
             )}
           </Button>
         </Form>
+
+        {email && (
+          <resendFetcher.Form method="POST" className="flex flex-col items-center gap-1 text-center">
+            <input type="hidden" name="email" value={email} />
+            <input type="hidden" name="redirectTo" value={redirectTo} />
+            <Button
+              type="submit"
+              variant="link"
+              size="sm"
+              className="text-muted-foreground h-auto p-0 text-xs"
+              disabled={resendFetcher.state !== "idle" || cooldown > 0}
+            >
+              {cooldown > 0
+                ? `Nieuwe code opnieuw versturen (${cooldown}s)`
+                : resendFetcher.state !== "idle"
+                  ? "Code versturen..."
+                  : "Geen code ontvangen? Opnieuw versturen"}
+            </Button>
+            {resendFetcher.data && "error" in resendFetcher.data && (
+              <p className="text-destructive text-xs" role="alert">
+                {resendFetcher.data.error}
+              </p>
+            )}
+            {resendFetcher.data && "success" in resendFetcher.data && (
+              <p className="text-xs" role="status">
+                Nieuwe code verstuurd.
+              </p>
+            )}
+          </resendFetcher.Form>
+        )}
       </AuthCard>
     </AuthLayout>
   )
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const formData = await request.formData()
+  const email = String(formData.get("email") || "")
+  const redirectTo = String(formData.get("redirectTo") || "/farm")
+
+  if (!email) {
+    return { error: "E-mailadres ontbreekt. Ga terug naar aanmelden." }
+  }
+
+  try {
+    await auth.api.signInMagicLink({
+      body: { email, callbackURL: redirectTo },
+      headers: request.headers,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error("Error resending magic link:", error)
+    return { error: "Het opnieuw versturen is niet gelukt. Probeer het straks opnieuw." }
+  }
 }

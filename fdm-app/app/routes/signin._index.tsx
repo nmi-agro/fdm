@@ -1513,9 +1513,11 @@ export async function action({ request }: ActionFunctionArgs) {
       headers: request.headers,
     })
 
-    // Construct redirect URL preserving redirectTo/callbackURL
+    // Construct redirect URL preserving redirectTo/callbackURL and the
+    // email address, so check-your-email can show it and offer a resend
     const nextUrl = new URL("/signin/check-your-email", "http://localhost")
     nextUrl.searchParams.set("redirectTo", safeRedirectTo)
+    nextUrl.searchParams.set("email", email)
     const redirectUrl = `${nextUrl.pathname}${nextUrl.search}`
 
     return redirectWithSuccess(redirectUrl, `Een aanmeldcode is verstuurd naar ${email}.`)
