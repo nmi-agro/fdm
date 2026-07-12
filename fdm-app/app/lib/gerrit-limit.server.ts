@@ -87,6 +87,12 @@ export async function getGerritDailyLimit(principalId: string): Promise<number> 
     if (!posthog) return Number.POSITIVE_INFINITY
 
     const flags = await posthog.evaluateFlags(principalId)
+    // Record the flag access so a `$feature_flag_called` event is emitted,
+    // making evaluations observable in PostHog (populates last_called_at and
+    // the evaluations trend). `getFlagPayload` reads the payload but never
+    // fires this event, so without this call the flag looks like it is never
+    // evaluated even though the limit is being read on every request.
+    flags.getFlag(FLAG_KEY)
     const payload = flags.getFlagPayload(FLAG_KEY)
 
     let limit: number | undefined
