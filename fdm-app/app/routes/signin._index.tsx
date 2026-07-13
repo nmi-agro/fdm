@@ -65,7 +65,8 @@ import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { modifySearchParams } from "~/lib/url-utils"
+import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
+import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
 import { extractFormValuesFromRequest } from "../lib/form"
 
@@ -159,15 +160,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch (error) {
     throw handleLoaderError(error)
   }
-}
-
-/**Normalizes the given address to be a safe redirect, or `/farm` by default.
- *
- * @param address address to check for safety, null if not specified
- * @returns the normalized, safe redirect address
- */
-function getSafeRedirect(address: string | null) {
-  return address?.startsWith("/") && !address.startsWith("//") ? address : "/farm"
 }
 
 function scrollToTop() {
@@ -1513,12 +1505,19 @@ export async function action({ request }: ActionFunctionArgs) {
       headers: request.headers,
     })
 
-    // Construct redirect URL preserving redirectTo/callbackURL
+    // Preserve redirectTo/callbackURL in the URL, but keep the plaintext
+    // email out of it (query params leak into server logs, browser history,
+    // and the Referer header). It travels instead via a short-lived,
+    // httpOnly cookie that check-your-email/verify read server-side.
     const nextUrl = new URL("/signin/check-your-email", "http://localhost")
     nextUrl.searchParams.set("redirectTo", safeRedirectTo)
     const redirectUrl = `${nextUrl.pathname}${nextUrl.search}`
 
-    return redirectWithSuccess(redirectUrl, `Een aanmeldcode is verstuurd naar ${email}.`)
+    return redirectWithSuccess(redirectUrl, `Een aanmeldcode is verstuurd naar ${email}.`, {
+      headers: {
+        "Set-Cookie": await magicLinkCookie.serialize(email),
+      },
+    })
   } catch (error) {
     if (isInactiveRecipientError(error)) {
       console.error(`Attempted to send magic link to inactive email: ${email}`)

@@ -2,36 +2,23 @@ import type { Resolver } from "react-hook-form"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateUserProfile } from "@nmi-agro/fdm-core"
-import { Cookie } from "lucide-react"
+import { Controller } from "react-hook-form"
 import { Form, redirect, useLoaderData } from "react-router"
-import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import { useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import { AuthCard } from "~/components/blocks/auth/auth-card"
+import { AuthLayout } from "~/components/blocks/auth/auth-layout"
 import { Avatar, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card"
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "~/components/ui/form"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { extractFormValuesFromRequest } from "../lib/form"
+import { extractFormValuesFromRequest } from "~/lib/form"
 
 export const meta: MetaFunction = () => {
   return [
@@ -102,14 +89,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
  */
 export default function Welcome() {
   const loaderData = useLoaderData<typeof loader>()
-  const openCookieSettings = () => {
-    if (window?.openCookieSettings) {
-      window.openCookieSettings()
-    }
-  }
-  const onOpenCookieSettings = () => {
-    openCookieSettings()
-  }
 
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onTouched",
@@ -121,119 +100,63 @@ export default function Welcome() {
   })
 
   return (
-    <div className="h-screen w-full overflow-hidden lg:grid lg:grid-cols-2">
-      <div className="flex h-full items-start justify-center overflow-y-auto py-6">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <Card className="shadow-xl">
-            <CardHeader className="text-center">
-              <div className="mb-2 flex justify-center">
-                <div className="flex aspect-square size-16 items-center justify-center rounded-lg bg-[#122023]">
-                  <img className="size-12" src={clientConfig.logomark} alt={clientConfig.name} />
+    <AuthLayout showCookieSettings={true}>
+      <AuthCard
+        title="Profiel voltooien"
+        description={`Welkom bij ${clientConfig.name}. Vul je naam aan om direct te starten met je percelen, bemesting en bodemdata.`}
+        footer={
+          <p className="text-muted-foreground text-center text-xs">
+            Je kunt dit later altijd aanpassen via je profielinstellingen.
+          </p>
+        }
+      >
+        <Form id="formWelcome" onSubmit={form.handleSubmit} method="post">
+          <fieldset disabled={form.formState.isSubmitting}>
+            <div className="grid w-full items-center gap-4">
+              {loaderData.image ? (
+                <div className="flex flex-col justify-self-center">
+                  <Avatar className="h-12 w-12 rounded-lg">
+                    <AvatarImage src={loaderData.image} />
+                  </Avatar>
                 </div>
-              </div>
-              <h2 className="text-muted-foreground mb-2 text-lg font-semibold tracking-tight">
-                {clientConfig.name}
-              </h2>
-              <CardTitle className="text-xl">Profiel voltooien</CardTitle>
-              <CardDescription>
-                {`Welkom bij ${clientConfig.name}. Om verder te gaan maken we eerst je profiel compleet.`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <RemixFormProvider {...form}>
-                <Form id="formWelcome" onSubmit={form.handleSubmit} method="post">
-                  <fieldset disabled={form.formState.isSubmitting}>
-                    <div className="grid w-full items-center gap-4">
-                      {loaderData.image ? (
-                        <div className="flex flex-col justify-self-center">
-                          <Avatar className="h-12 w-12 rounded-lg">
-                            <AvatarImage src={loaderData.image} />
-                          </Avatar>
-                        </div>
-                      ) : null}
-                      <div className="flex flex-col space-y-1.5">
-                        <FormField
-                          control={form.control}
-                          name="firstname"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Voornaam</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="bv. Jan"
-                                  aria-required="true"
-                                  required
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription />
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="flex flex-col space-y-1.5">
-                        <FormField
-                          control={form.control}
-                          name="surname"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Achternaam</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="bv. de Vries"
-                                  aria-required="true"
-                                  required
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription />
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <Button type="submit" className="w-full">
-                        {form.formState.isSubmitting ? (
-                          <div className="flex items-center space-x-2">
-                            <Spinner />
-                            <span>Opslaan...</span>
-                          </div>
-                        ) : (
-                          "Doorgaan"
-                        )}
-                      </Button>
-                    </div>
-                  </fieldset>
-                </Form>
-              </RemixFormProvider>
-            </CardContent>
-            <CardFooter className="flex justify-center" />
-          </Card>
-        </div>
-      </div>
-      <div className="bg-muted hidden lg:block">
-        <img
-          src="https://images.unsplash.com/photo-1625565570971-e6b404974366?q=80&w=1930&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-          alt="Herd of cows on green grass field during daytime by Rickie-Tom Schünemann on Unsplash"
-          width="1920"
-          height="1080"
-          loading="lazy"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </div>
-      <div className="fixed bottom-3 left-3 z-50">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="bg-card/80 hover:bg-card border-border flex items-center gap-1 border text-xs opacity-70 hover:opacity-100"
-          onClick={onOpenCookieSettings}
-        >
-          <Cookie className="h-3 w-3" />
-          <span>Cookie instellingen</span>
-        </Button>
-      </div>
-    </div>
+              ) : null}
+              <Controller
+                control={form.control}
+                name="firstname"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Voornaam</FieldLabel>
+                    <Input placeholder="bv. Jan" aria-required="true" required {...field} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="surname"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Achternaam</FieldLabel>
+                    <Input placeholder="bv. de Vries" aria-required="true" required {...field} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Button type="submit" className="w-full">
+                {form.formState.isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <Spinner />
+                    <span>Opslaan...</span>
+                  </div>
+                ) : (
+                  "Doorgaan"
+                )}
+              </Button>
+            </div>
+          </fieldset>
+        </Form>
+      </AuthCard>
+    </AuthLayout>
   )
 }
 
