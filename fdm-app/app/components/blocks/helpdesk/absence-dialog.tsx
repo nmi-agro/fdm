@@ -172,31 +172,95 @@ export function AbsenceDialog({
               </DialogDescription>
             </DialogHeader>
 
-            <input
-              type="hidden"
-              name="intent"
-              value={isCreating ? "create_absence" : "update_absence"}
-            />
-            {!isCreating && <input type="hidden" name="absence_id" value={absence?.absence_id} />}
+            <fieldset disabled={!canEdit || isSubmitting}>
+              <input
+                type="hidden"
+                name="intent"
+                value={isCreating ? "create_absence" : "update_absence"}
+              />
+              {!isCreating && <input type="hidden" name="absence_id" value={absence?.absence_id} />}
 
-            {isCreating && isAdmin && (
+              {isCreating && isAdmin && (
+                <Controller
+                  name="agent_id"
+                  render={({ field, fieldState }) => (
+                    <Field>
+                      <FieldLabel>Medewerker</FieldLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        disabled={isSubmitting}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Kies een medewerker" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {agents.map((agent) => (
+                            <SelectItem key={agent.agent_id} value={agent.agent_id}>
+                              {agent.display_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                    </Field>
+                  )}
+                />
+              )}
+              {isCreating && !isAdmin && (
+                <input type="hidden" name="agent_id" value={principal_id} />
+              )}
+              {!isCreating && (
+                <Field>
+                  <FieldLabel>Medewerker</FieldLabel>
+                  <p className="text-sm">{absence?.display_name}</p>
+                </Field>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  name="start_date"
+                  render={({ field, fieldState }) => (
+                    <DatePicker
+                      label="Startdatum"
+                      defaultValue={absence?.start_date}
+                      field={field}
+                      fieldState={fieldState}
+                      required={true}
+                    />
+                  )}
+                />
+                <Controller
+                  name="end_date"
+                  render={({ field, fieldState }) => (
+                    <DatePicker
+                      label="Einddatum"
+                      defaultValue={absence?.end_date}
+                      field={field}
+                      fieldState={fieldState}
+                      required={true}
+                    />
+                  )}
+                />
+              </div>
+
               <Controller
-                name="agent_id"
+                name="reason"
                 render={({ field, fieldState }) => (
                   <Field>
-                    <FieldLabel>Medewerker</FieldLabel>
+                    <FieldLabel>Reden</FieldLabel>
                     <Select
                       value={field.value}
                       onValueChange={field.onChange}
-                      disabled={isSubmitting}
+                      disabled={!canEdit || isSubmitting}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Kies een medewerker" />
+                        <SelectValue placeholder="Kies een reden" />
                       </SelectTrigger>
                       <SelectContent>
-                        {agents.map((agent) => (
-                          <SelectItem key={agent.agent_id} value={agent.agent_id}>
-                            {agent.display_name}
+                        {AbsenceReasonOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -205,83 +269,23 @@ export function AbsenceDialog({
                   </Field>
                 )}
               />
-            )}
-            {isCreating && !isAdmin && <input type="hidden" name="agent_id" value={principal_id} />}
-            {!isCreating && (
-              <Field>
-                <FieldLabel>Medewerker</FieldLabel>
-                <p className="text-sm">{absence?.display_name}</p>
-              </Field>
-            )}
 
-            <div className="grid grid-cols-2 gap-4">
               <Controller
-                name="start_date"
+                name="note"
                 render={({ field, fieldState }) => (
-                  <DatePicker
-                    label="Startdatum"
-                    defaultValue={absence?.start_date}
-                    field={field}
-                    fieldState={fieldState}
-                    required={true}
-                  />
+                  <Field>
+                    <FieldLabel>Notitie</FieldLabel>
+                    <Textarea
+                      placeholder="Optionele toelichting"
+                      {...field}
+                      value={field.value ?? ""}
+                      disabled={!canEdit || isSubmitting}
+                    />
+                    {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                  </Field>
                 )}
               />
-              <Controller
-                name="end_date"
-                render={({ field, fieldState }) => (
-                  <DatePicker
-                    label="Einddatum"
-                    defaultValue={absence?.end_date}
-                    field={field}
-                    fieldState={fieldState}
-                    required={true}
-                  />
-                )}
-              />
-            </div>
-
-            <Controller
-              name="reason"
-              render={({ field, fieldState }) => (
-                <Field>
-                  <FieldLabel>Reden</FieldLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={!canEdit || isSubmitting}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Kies een reden" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AbsenceReasonOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="note"
-              render={({ field, fieldState }) => (
-                <Field>
-                  <FieldLabel>Notitie</FieldLabel>
-                  <Textarea
-                    placeholder="Optionele toelichting"
-                    {...field}
-                    value={field.value ?? ""}
-                    disabled={!canEdit || isSubmitting}
-                  />
-                  {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
+            </fieldset>
 
             <DialogFooter className="gap-2">
               {!isCreating && canEdit && (

@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { AgentAbsence } from "@nmi-agro/fdm-helpdesk"
 import { Pencil, User, Users } from "lucide-react"
 import { Controller } from "react-hook-form"
-import { Form, NavLink, useFetcher, useNavigation } from "react-router"
+import { NavLink, useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { cn } from "@/app/lib/utils"
 import { AutoComplete } from "~/components/custom/autocomplete"
@@ -27,6 +27,7 @@ import { HelpdeskUserAvatar } from "./helpdesk-user"
 
 export type HelpdeskUserExtended = HelpdeskUser & {
   absence: AgentAbsence | null
+  assignment_tier: number
   availability_status: string
   role: string
   isInvitation: boolean
@@ -82,8 +83,8 @@ export interface AddAgentFormProps {
 
 const FormSchema = AddAgentSchema.extend({ intent: "add_agent" })
 export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
-  const navigation = useNavigation()
-  const isSubmitting = navigation.state !== "idle"
+  const fetcher = useFetcher()
+  const isSubmitting = fetcher.state !== "idle"
 
   const defaultRole = roles[0].name
   const form = useRemixForm<z.infer<typeof FormSchema>>({
@@ -100,7 +101,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
 
   return (
     <RemixFormProvider {...form}>
-      <Form method="post" onSubmit={form.handleSubmit}>
+      <fetcher.Form method="post" onSubmit={form.handleSubmit}>
         <fieldset disabled={isSubmitting} className="flex items-center justify-between space-x-4">
           {/* For uncontrolled form - intent is injected in Javascript in submitHandlers, see above. */}
           <input type="hidden" name="intent" value="add_agent" />
@@ -146,7 +147,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
             Toevoegen{isSubmitting && <Spinner />}
           </Button>
         </fieldset>
-      </Form>
+      </fetcher.Form>
     </RemixFormProvider>
   )
 }
@@ -173,11 +174,14 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
           absence={principal.absence}
         />
       </TableCell>
+      {canModify && (
+        <TableCell>
+          <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
+        </TableCell>
+      )}
+      <TableCell className="whitespace-nowrap">{`${principal.assignment_tier}e linie`}</TableCell>
       {canModify ? (
         <>
-          <TableCell>
-            <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
-          </TableCell>
           <TableCell>
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
               <NavLink to={`/support/settings/agents/${principal.principal_id}`}>
@@ -221,9 +225,11 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
           </TableCell>
         </>
       ) : (
-        <TableCell>
-          {roles.find((role) => role.name === principal.role)?.label ?? "Gebruiker"}
-        </TableCell>
+        <>
+          <TableCell>
+            {roles.find((role) => role.name === principal.role)?.label ?? "Gebruiker"}
+          </TableCell>
+        </>
       )}
     </TableRow>
   )

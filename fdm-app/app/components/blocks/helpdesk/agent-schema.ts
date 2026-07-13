@@ -1,5 +1,11 @@
 import z from "zod"
 
+export const AssignmentTierOptions = [
+  { value: 1, label: "1e linie - voorkeur voor toewijzing" },
+  { value: 2, label: "2e linie" },
+  { value: 3, label: "3e linie - escalatie" },
+] as const
+
 const AgentRoleSchema = z.enum(["agent", "admin"])
 
 export const AddAgentSchema = z.object({
@@ -12,7 +18,6 @@ export const UpdateAgentRoleSchema = z.object({
   role: AgentRoleSchema,
 })
 
-type AssignmentTier = 1 | 2 | 3
 export const UpdateAgentSchema = z.object({
   agent_id: z.string().min(1),
   display_name: z.string(),
@@ -37,10 +42,7 @@ export const UpdateAgentSchema = z.object({
   assignment_tier: z
     .preprocess(
       (val) => (val === "" ? undefined : typeof val === "string" ? Number.parseInt(val, 10) : val),
-      z
-        .literal(1 as AssignmentTier)
-        .or(z.literal(2 as AssignmentTier))
-        .or(z.literal(3 as AssignmentTier)),
+      z.union(AssignmentTierOptions.map((opt) => z.literal(opt.value))),
     )
     .optional(),
   reassign_tickets: z.boolean(),

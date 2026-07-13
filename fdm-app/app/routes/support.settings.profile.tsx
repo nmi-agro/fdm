@@ -163,7 +163,7 @@ export default function SupportSettingsProfile() {
         title="Mijn Info"
         description="Hier kun je jouw informatie als medewerker beheren."
       />
-      <AgentForm agent={agent} />
+      <AgentForm agent={agent} isAdmin={false} />
     </main>
   )
 }

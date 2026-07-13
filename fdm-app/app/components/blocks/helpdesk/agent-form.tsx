@@ -29,16 +29,11 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { AGENT_AVAILABILITY_STATUSES } from "./agent-availability"
-import { UpdateAgentSchema } from "./agent-schema"
+import { AssignmentTierOptions, UpdateAgentSchema } from "./agent-schema"
 
 type AgentFormDefaults = Partial<Agent> & { agent_id: string }
 type AgentFormValues = z.infer<typeof UpdateAgentSchema>
 
-const AssignmentTierOptions = [
-  { value: 1, label: "1e linie - voorkeur voor toewijzing" },
-  { value: 2, label: "2e linie" },
-  { value: 3, label: "3e linie - escalatie" },
-] as const
 function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   const work_days = Array.isArray(agent.work_days)
     ? agent.work_days.map((day) => day).filter((d) => typeof d === "number")
