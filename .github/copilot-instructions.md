@@ -1,6 +1,6 @@
 # Copilot instructions for `nmi-agro/fdm`
 
-FDM (Farm Data Model) is a pnpm + Turborepo monorepo of TypeScript packages for standardizing, storing, and analyzing farm data. Node `>=24`, `pnpm@11.7.0` (enforced via `only-allow pnpm`), ESM-only (`"type": "module"`).
+FDM (Farm Data Model) is a pnpm + Turborepo monorepo of TypeScript packages for standardizing, storing, and analyzing farm data. Node `>=24`, `pnpm@11.12.0` (enforced via `only-allow pnpm`), ESM-only (`"type": "module"`).
 
 ## Packages and how they depend on each other
 
