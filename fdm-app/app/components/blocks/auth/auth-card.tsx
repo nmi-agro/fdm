@@ -19,6 +19,11 @@ interface AuthCardProps {
   backLabel?: string
   showLogo?: boolean
   contentClassName?: string
+  /**
+   * Overrides the default "back to sign in" footer. Pass `null` to omit the
+   * footer entirely, or a node to render custom footer content instead.
+   */
+  footer?: React.ReactNode | null
 }
 
 export function AuthCard({
@@ -29,6 +34,7 @@ export function AuthCard({
   backLabel = "Terug naar aanmelden",
   showLogo = true,
   contentClassName,
+  footer,
 }: AuthCardProps) {
   return (
     <Card className="shadow-xl">
@@ -49,11 +55,17 @@ export function AuthCard({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className={cn("space-y-4", contentClassName)}>{children}</CardContent>
-      <CardFooter className="flex justify-center">
-        <Button asChild variant="ghost" className="text-muted-foreground w-full">
-          <NavLink to={backLink}>{backLabel}</NavLink>
-        </Button>
-      </CardFooter>
+      {footer !== null && (
+        <CardFooter className="flex justify-center">
+          {footer !== undefined ? (
+            footer
+          ) : (
+            <Button asChild variant="ghost" className="text-muted-foreground w-full">
+              <NavLink to={backLink}>{backLabel}</NavLink>
+            </Button>
+          )}
+        </CardFooter>
+      )}
     </Card>
   )
 }
