@@ -19,7 +19,7 @@ export const MagicLinkEmail = ({
   emailTimestamp,
 }: MagicLinkEmailProps) => {
   const formattedCode = code.length === 6 ? `${code.slice(0, 3)}-${code.slice(3)}` : code
-  const previewText = `Gebruik ${formattedCode} om aan te melden bij ${appName}.`
+  const previewText = `Gebruik de code of link in deze e-mail om aan te melden bij ${appName}.`
   const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
 
   return (
