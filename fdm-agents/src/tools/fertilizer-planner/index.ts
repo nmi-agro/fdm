@@ -1,6 +1,6 @@
 import type { RunnableConfig } from "@langchain/core/runnables"
 import type { FdmType, Fertilizer, FertilizerApplication, PrincipalId } from "@nmi-agro/fdm-core"
-import { tool } from "@langchain/core/tools"
+import { tool, type StructuredToolInterface } from "@langchain/core/tools"
 import {
   aggregateNormFillingsToFarmLevel,
   aggregateNormsToFarmLevel,
@@ -54,7 +54,7 @@ export function getMainCultivation(cultivations: any[], calendarYear: string) {
  * Creates tools for the fertilizer application planner.
  * @param fdm The non-serializable FDM database instance.
  */
-export function createFertilizerPlannerTools(fdm: FdmType) {
+export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterface[] {
   /**
    * Tool for fetching the list of fields for a farm.
    */
@@ -1002,7 +1002,7 @@ export function createFertilizerPlannerTools(fdm: FdmType) {
  * Returns the planner tool subset safe for the clarify agent:
  * all tools except simulateFarmPlan (which is plan-execution, not investigation).
  */
-export function createClarifyAgentTools(fdm: FdmType) {
+export function createClarifyAgentTools(fdm: FdmType): StructuredToolInterface[] {
   return createFertilizerPlannerTools(fdm).filter((t) => (t as any).name !== "simulateFarmPlan")
 }
 
