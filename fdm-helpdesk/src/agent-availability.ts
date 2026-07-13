@@ -6,13 +6,13 @@ import { checkHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
 import { handleError } from "./error"
 import { createId } from "./id"
-import { ACTIVE_TICKET_STATUSES, getTickets, type Ticket } from "./ticket"
+import { ACTIVE_TICKET_STATUSES, getTickets, Ticket } from "./ticket"
 import { assignTicketUnchecked, type TicketAssignmentSummary } from "./ticket-assignment"
 
 export type AgentAbsence = schema.AgentAbsenceTypeSelect
 
 export type TicketReassignment = TicketAssignmentSummary & {
-  ticket: Ticket
+  ticket: Omit<Ticket, "assignees" | "viewed_at">
 }
 
 const agentSummaryColumns = {
@@ -214,8 +214,9 @@ export async function reassignAgentTickets(
             reassigned_by,
             true,
           )
+          const { assignees: _a, viewed_at: _va, ...baseTicket } = ticket
           reassigned.push({
-            ticket: ticket,
+            ticket: baseTicket,
             agent_id: otherAssignee.agent_id,
             display_name: otherAssignee.display_name,
             availability_status: otherAssignee.availability_status,
@@ -434,6 +435,8 @@ export async function scheduleAbsence(
       reason: reason,
       note: note,
     })
+
+    return absence_id
   } catch (err) {
     throw handleError(err, "Exception for scheduleAbsence", {
       agent_id,

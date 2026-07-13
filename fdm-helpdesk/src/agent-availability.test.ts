@@ -44,6 +44,28 @@ describe("Agent availability CRUD", () => {
     await addAgent(fdm, admin_id, other_agent_id, "Other Support Agent")
   })
 
+  test("should set an agent's max number of tickets", async ({ fdm }) => {
+    await setMaxTickets(fdm, admin_id, agent_id, 1)
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.max_tickets).toEqual(1)
+  })
+
+  test("should not set a negative max number of tickets", async ({ fdm }) => {
+    await expect(setMaxTickets(fdm, admin_id, agent_id, -1)).rejects.toThrow(
+      "Exception for setMaxTickets",
+    )
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.max_tickets).toBeGreaterThanOrEqual(0)
+  })
+
+  test("should not let agents set each other's max number of tickets", async ({ fdm }) => {
+    await expect(setMaxTickets(fdm, agent_id, admin_id, 1)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+    const agent = await getAgent(fdm, admin_id, agent_id)
+    expect(agent.max_tickets).not.toBe(1)
+  })
+
   test("should set an agent's work days", async ({ fdm }) => {
     await setWorkDays(fdm, admin_id, agent_id, [1])
     const agent = await getAgent(fdm, admin_id, agent_id)
@@ -127,6 +149,12 @@ describe("Agent availability CRUD", () => {
     )
     const agent = await getAgent(fdm, admin_id, agent_id)
     expect(agent.availability_status).toEqual("online")
+  })
+
+  test("should not allow getting an absence that doesn't exist", async ({ fdm }) => {
+    await expect(getAbsence(fdm, agent_id, createId())).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
   })
 
   test("should let an agent schedule their own absence", async ({ fdm }) => {
@@ -352,7 +380,13 @@ describe("Agent availability CRUD", () => {
     expect(all.find((a) => a.agent_id === agent_id)?.display_name).toBe("Support Agent")
   })
 
-  test("getAbsencesForAgents should return only absences active on the requested date", async ({
+  test("getAllAbsences should not let regular users list agent absences", async ({ fdm }) => {
+    await expect(getAllAbsences(fdm, createId())).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+  })
+
+  test("getAbsencesForAgentsOnDate should return only absences active on the requested date", async ({
     fdm,
   }) => {
     await scheduleAbsence(
@@ -379,7 +413,7 @@ describe("Agent availability CRUD", () => {
     expect(absences.has(other_agent_id)).toBe(false)
   })
 
-  test("getAbsencesForAgents should keep the overlapping absence that ends latest per agent", async ({
+  test("getAbsencesForAgentsOnDate should keep the overlapping absence that ends latest per agent", async ({
     fdm,
   }) => {
     await scheduleAbsence(
@@ -416,6 +450,14 @@ describe("Agent availability CRUD", () => {
     expect(absences.get(agent_id)?.note).toBe("Second")
     expect(absences.get(agent_id)?.end_date).toEqual(new Date("2025-01-08"))
     expect(absences.get(other_agent_id)?.reason).toBe("training")
+  })
+
+  test("getAbsencesForAgentsOnDate should not let regular users list agent absences", async ({
+    fdm,
+  }) => {
+    await expect(getAbsencesForAgentsOnDate(fdm, createId())).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
   })
 })
 
@@ -623,6 +665,35 @@ describe("reassignAgentTickets", () => {
     expect(reassigned).toEqual([
       {
         ticket: ticket,
+        agent_id: agent_id,
+        display_name: "Available Agent",
+        availability_status: "online",
+        is_primary: true,
+      },
+    ])
+  })
+
+  test("should do nothing when there is another primary assignee", async ({ fdm }) => {
+    const agent_id = await createId()
+    await addAgent(fdm, admin_id, agent_id, "Available Agent")
+    await assignTicket(fdm, ticket.ticket_id, agent_id, admin_id, true)
+    await setWorkDays(fdm, agent_id, agent_id, [0, 1, 2, 3, 4, 5, 6])
+    const { reassigned } = await reassignAgentTickets(fdm, departing_agent_id, admin_id)
+    expect(reassigned).toEqual([])
+  })
+
+  test("should promote other assignee as primary when there is another non-primary assignee", async ({
+    fdm,
+  }) => {
+    const agent_id = await createId()
+    await addAgent(fdm, admin_id, agent_id, "Available Agent")
+    await assignTicket(fdm, ticket.ticket_id, agent_id, admin_id, false)
+    await setWorkDays(fdm, agent_id, agent_id, [0, 1, 2, 3, 4, 5, 6])
+    const { reassigned } = await reassignAgentTickets(fdm, departing_agent_id, admin_id)
+    const { assignees: _a, viewed_at: _va, ...baseTicket } = ticket
+    expect(reassigned).toEqual([
+      {
+        ticket: baseTicket,
         agent_id: agent_id,
         display_name: "Available Agent",
         availability_status: "online",
