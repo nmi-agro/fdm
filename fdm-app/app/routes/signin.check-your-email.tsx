@@ -23,7 +23,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
 import { maskEmail } from "~/lib/utils"
-import { modifySearchParams } from "~/lib/url-utils"
+import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
 import { FormSchema } from "~/components/blocks/auth/auth-formschema"
 
 export const meta: MetaFunction = () => {
@@ -237,7 +237,8 @@ export default function SignIn() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
-  const redirectTo = String(formData.get("redirectTo") || "/farm")
+  // Validate redirectTo to prevent open redirect, matching signin._index.tsx
+  const safeRedirectTo = getSafeRedirect(String(formData.get("redirectTo") || ""))
 
   // Re-read the email from the cookie rather than trusting a client-supplied
   // field, keeping it the single source of truth for this flow.
@@ -249,7 +250,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     await auth.api.signInMagicLink({
-      body: { email, callbackURL: redirectTo },
+      body: { email, callbackURL: safeRedirectTo },
       headers: request.headers,
     })
     // Refresh the cookie's expiry so repeated resends keep working within

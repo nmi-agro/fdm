@@ -66,7 +66,7 @@ import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
-import { modifySearchParams } from "~/lib/url-utils"
+import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
 import { extractFormValuesFromRequest } from "../lib/form"
 
@@ -160,15 +160,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch (error) {
     throw handleLoaderError(error)
   }
-}
-
-/**Normalizes the given address to be a safe redirect, or `/farm` by default.
- *
- * @param address address to check for safety, null if not specified
- * @returns the normalized, safe redirect address
- */
-function getSafeRedirect(address: string | null) {
-  return address?.startsWith("/") && !address.startsWith("//") ? address : "/farm"
 }
 
 function scrollToTop() {

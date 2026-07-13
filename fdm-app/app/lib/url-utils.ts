@@ -112,3 +112,16 @@ export function isOfOrigin(href: string, origin: string) {
     return false
   }
 }
+
+/**
+ * Normalises the given address to be a safe, root-relative redirect target,
+ * or `/farm` by default. Rejects protocol-relative (`//`) and absolute URLs
+ * to prevent open-redirect vulnerabilities when the value is used as a
+ * post-auth destination (e.g. a magic-link `callbackURL`).
+ *
+ * @param address address to check for safety, null/undefined if not specified
+ * @returns the normalized, safe redirect address
+ */
+export function getSafeRedirect(address: string | null | undefined): string {
+  return address?.startsWith("/") && !address.startsWith("//") ? address : "/farm"
+}

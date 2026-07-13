@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import {
   type ActionFunctionArgs,
   Form,
+  Link,
   type LoaderFunctionArgs,
   type MetaFunction,
   redirect,
@@ -88,25 +89,32 @@ export default function Verify() {
   // received and is about to be verified, rather than jumping straight to a
   // spinner. Fills instantly when the user prefers reduced motion.
   useEffect(() => {
-    if (code && code.length === 6 && !hasAnimated.current) {
-      hasAnimated.current = true
-      const prefersReducedMotion = window.matchMedia?.(
-        "(prefers-reduced-motion: reduce)",
-      )?.matches
+    if (!(code && code.length === 6 && !hasAnimated.current)) {
+      return
+    }
+    hasAnimated.current = true
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
 
-      if (prefersReducedMotion) {
-        form.setValue("code", code)
-        return
+    if (prefersReducedMotion) {
+      form.setValue("code", code)
+      return
+    }
+
+    const chars = code.split("")
+    let current = ""
+    // Track every scheduled timeout so we can clear them all on cleanup,
+    // preventing form.setValue from firing after the component unmounts.
+    const timeoutIds = chars.map((char, index) =>
+      setTimeout(() => {
+        current += char
+        form.setValue("code", current)
+      }, index * 75),
+    ) // 75ms delay between keystrokes
+
+    return () => {
+      for (const id of timeoutIds) {
+        clearTimeout(id)
       }
-
-      const chars = code.split("")
-      let current = ""
-      chars.forEach((char, index) => {
-        setTimeout(() => {
-          current += char
-          form.setValue("code", current)
-        }, index * 75) // 75ms delay between keystrokes
-      })
     }
   }, [code, form])
 
@@ -145,12 +153,12 @@ export default function Verify() {
 
           {actionData?.errors?.code && (
             <Button asChild variant="link" className="w-full">
-              <a
-                href={requestNewCodeUrl}
+              <Link
+                to={requestNewCodeUrl}
                 onClick={() => capture("signin_request_new_code_clicked")}
               >
                 Nieuwe code aanvragen
-              </a>
+              </Link>
             </Button>
           )}
         </Form>
