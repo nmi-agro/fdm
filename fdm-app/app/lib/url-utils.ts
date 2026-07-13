@@ -115,13 +115,23 @@ export function isOfOrigin(href: string, origin: string) {
 
 /**
  * Normalises the given address to be a safe, root-relative redirect target,
- * or `/farm` by default. Rejects protocol-relative (`//`) and absolute URLs
- * to prevent open-redirect vulnerabilities when the value is used as a
- * post-auth destination (e.g. a magic-link `callbackURL`).
+ * or `/farm` by default. Resolves the candidate against a fixed same-origin
+ * base and only accepts it if the resolved origin is unchanged, which closes
+ * host-confusion bypasses that a simple `startsWith("/")` check misses (e.g.
+ * a backslash-based address like `/\evil.com` is normalized by browsers/URL
+ * parsers to the protocol-relative `//evil.com`, silently changing the host).
  *
  * @param address address to check for safety, null/undefined if not specified
  * @returns the normalized, safe redirect address
  */
 export function getSafeRedirect(address: string | null | undefined): string {
-  return address?.startsWith("/") && !address.startsWith("//") ? address : "/farm"
+  if (!address) return "/farm"
+  try {
+    const base = new URL("http://localhost")
+    const resolved = new URL(address, base)
+    if (resolved.origin !== base.origin) return "/farm"
+    return `${resolved.pathname}${resolved.search}${resolved.hash}` || "/farm"
+  } catch {
+    return "/farm"
+  }
 }
