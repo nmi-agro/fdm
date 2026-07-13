@@ -3,14 +3,29 @@ import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useId } from "react"
 import { Controller, useWatch, type Resolver } from "react-hook-form"
-import { Form } from "react-router"
+import { Form, useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { AGENT_AVAILABILITY_STATUSES } from "./agent-availability"
@@ -19,6 +34,11 @@ import { UpdateAgentSchema } from "./agent-schema"
 type AgentFormDefaults = Partial<Agent> & { agent_id: string }
 type AgentFormValues = z.infer<typeof UpdateAgentSchema>
 
+const AssignmentTierOptions = [
+  { value: 1, label: "1e linie - voorkeur voor toewijzing" },
+  { value: 2, label: "2e linie" },
+  { value: 3, label: "3e linie - escalatie" },
+] as const
 function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   const work_days = Array.isArray(agent.work_days)
     ? agent.work_days.map((day) => day).filter((d) => typeof d === "number")
@@ -34,6 +54,9 @@ function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
       : "online") as AgentFormValues["availability_status"],
     work_days: work_days,
     reassign_tickets: false,
+    assignment_tier: AssignmentTierOptions.some((o) => o.value === agent.assignment_tier)
+      ? (agent.assignment_tier as (typeof AssignmentTierOptions)[number]["value"])
+      : (1 as (typeof AssignmentTierOptions)[number]["value"]),
   }
 }
 
@@ -67,7 +90,7 @@ const WORK_DAYS: [string, number][] = [
   ["Zondag", 0],
 ]
 
-export function AgentFormFields({ agent }: { agent: Agent }) {
+export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
   const statusOnlineId = useId()
   const statusAwayId = useId()
   const statusOutOfOfficeId = useId()
@@ -87,6 +110,32 @@ export function AgentFormFields({ agent }: { agent: Agent }) {
             <FieldLabel>Naam</FieldLabel>
             <FieldDescription>De naam die gebruikers kunnen zien.</FieldDescription>
             <Input {...field} placeholder={agent.display_name} />
+            {fieldState.error && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="assignment_tier"
+        render={({ field, fieldState }) => (
+          <Field>
+            <FieldLabel>Rang</FieldLabel>
+            <FieldDescription>
+              De rang van de agent tijdens het toewijzen van tickets.
+            </FieldDescription>
+            <Select
+              value={field.value?.toString() ?? "1"}
+              onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+              disabled={!isAdmin}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1e linie - voorkeur voor toewijzing</SelectItem>
+                <SelectItem value="2">2e linie</SelectItem>
+                <SelectItem value="3">3e linie - escalatie</SelectItem>
+              </SelectContent>
+            </Select>
             {fieldState.error && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}
@@ -170,7 +219,7 @@ export function AgentFormFields({ agent }: { agent: Agent }) {
   )
 }
 
-export function AgentForm({ agent }: { agent: Agent }) {
+export function AgentForm({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
   const form = useAgentForm({ agent })
 
   const isSubmitting = form.formState.isSubmitting
@@ -179,7 +228,7 @@ export function AgentForm({ agent }: { agent: Agent }) {
     <RemixFormProvider {...form}>
       <Form method="post" onSubmit={form.handleSubmit} className="mx-auto max-w-2xl space-y-6">
         <fieldset disabled={isSubmitting} className="space-y-4">
-          <AgentFormFields agent={agent} />
+          <AgentFormFields agent={agent} isAdmin={isAdmin} />
         </fieldset>
         <div className="text-end">
           <Button type="submit" disabled={isSubmitting}>
@@ -188,5 +237,57 @@ export function AgentForm({ agent }: { agent: Agent }) {
         </div>
       </Form>
     </RemixFormProvider>
+  )
+}
+
+export function AgentFormDialog({
+  agent,
+  isAdmin,
+  open,
+  onOpenChange,
+}: {
+  agent: Agent
+  isAdmin: boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const form = useAgentForm({ agent })
+  const fetcher = useFetcher()
+  const formId = useId()
+
+  const isSubmitting = fetcher.state !== "idle"
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <RemixFormProvider {...form}>
+          <fetcher.Form
+            id={formId}
+            method="post"
+            action={`/support/settings/agents/${agent.agent_id}`}
+            onSubmit={form.handleSubmit}
+            className="mx-auto space-y-6"
+          >
+            <input type="hidden" name="agent_id" value={agent.agent_id} />
+            <DialogHeader>
+              <DialogTitle>Agent Bewerken</DialogTitle>
+            </DialogHeader>
+            <fieldset disabled={isSubmitting} className="space-y-4">
+              <AgentFormFields agent={agent} isAdmin={isAdmin} />
+            </fieldset>
+            <DialogFooter className="flex flex-row justify-end gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Sluiten
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={isSubmitting}>
+                Opslaan{isSubmitting && <Spinner />}
+              </Button>
+            </DialogFooter>
+          </fetcher.Form>
+        </RemixFormProvider>
+      </DialogContent>
+    </Dialog>
   )
 }

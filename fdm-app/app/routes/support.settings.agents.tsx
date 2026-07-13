@@ -7,7 +7,7 @@ import {
   setAgentActiveStatus,
   updateAgentRole,
 } from "@nmi-agro/fdm-helpdesk"
-import { useLoaderData } from "react-router"
+import { Outlet, useLoaderData } from "react-router"
 import z from "zod"
 import { makeHelpdeskUser } from "@/app/components/blocks/helpdesk/helpdesk-user"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -144,6 +144,7 @@ export default function HelpdeskAgentSettings() {
         roles={agentRoles}
         canModify={helpdeskWritePermission}
       />
+      <Outlet />
     </main>
   )
 }

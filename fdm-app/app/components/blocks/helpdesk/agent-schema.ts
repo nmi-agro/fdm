@@ -12,6 +12,7 @@ export const UpdateAgentRoleSchema = z.object({
   role: AgentRoleSchema,
 })
 
+type AssignmentTier = 1 | 2 | 3
 export const UpdateAgentSchema = z.object({
   agent_id: z.string().min(1),
   display_name: z.string(),
@@ -33,6 +34,15 @@ export const UpdateAgentSchema = z.object({
     .nullable()
     .optional(),
   work_days: z.array(z.number().min(0).max(6)),
+  assignment_tier: z
+    .preprocess(
+      (val) => (val === "" ? undefined : typeof val === "string" ? Number.parseInt(val, 10) : val),
+      z
+        .literal(1 as AssignmentTier)
+        .or(z.literal(2 as AssignmentTier))
+        .or(z.literal(3 as AssignmentTier)),
+    )
+    .optional(),
   reassign_tickets: z.boolean(),
 })
 

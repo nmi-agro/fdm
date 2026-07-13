@@ -2,9 +2,9 @@ import type { ComponentProps } from "react"
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AgentAbsence } from "@nmi-agro/fdm-helpdesk"
-import { User, Users } from "lucide-react"
+import { Pencil, User, Users } from "lucide-react"
 import { Controller } from "react-hook-form"
-import { Form, useFetcher, useNavigation } from "react-router"
+import { Form, NavLink, useFetcher, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { cn } from "@/app/lib/utils"
 import { AutoComplete } from "~/components/custom/autocomplete"
@@ -177,6 +177,13 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
         <>
           <TableCell>
             <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
+          </TableCell>
+          <TableCell>
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
+              <NavLink to={`/support/settings/agents/${principal.principal_id}`}>
+                <Pencil />
+              </NavLink>
+            </Button>
           </TableCell>
           <TableCell className="align-middle">
             {principal.isActive ? (
