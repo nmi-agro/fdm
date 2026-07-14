@@ -168,7 +168,9 @@ export function AgentFormFields({
           <div className="space-y-2">
             <Field>
               <FieldLabel>Status</FieldLabel>
-              <FieldDescription>Wat is je beschikbaarheid op dit moment?</FieldDescription>
+              <FieldDescription>
+                De beschikbaarheid op dit moment om tickets te behandelen.
+              </FieldDescription>
               <RadioGroup
                 value={field.value}
                 onValueChange={(newValue) => field.onChange(newValue)}
@@ -179,7 +181,7 @@ export function AgentFormFields({
                     <FieldLabel htmlFor={radioIds[status.value]}>
                       <span>
                         {status.label}:{" "}
-                        <span className="text-muted-foreground">{status.description}</span>
+                        <span className="text-muted-foreground">{status.description[person]}</span>
                       </span>
                     </FieldLabel>
                   </Field>
@@ -227,7 +229,9 @@ export function AgentFormFields({
           <Field>
             <FieldLabel>Werkdagen</FieldLabel>
             <FieldDescription>
-              Dagen in een week dat je beschikbaar bent om tickets te behandelen.
+              {person === "second"
+                ? "De dagen in een week dat je beschikbaar bent om tickets te behandelen."
+                : "De dagen in een week dat de medewerker beschikbaar is om tickets te behandelen."}
             </FieldDescription>
             <div className="flex flex-col justify-between gap-2 md:flex-row">
               {WORK_DAYS.map(([dayName, dayNumber]) => (

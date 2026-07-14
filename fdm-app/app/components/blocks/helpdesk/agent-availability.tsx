@@ -14,19 +14,28 @@ const ABSENCE_MESSAGE = {
 export const AGENT_AVAILABILITY_STATUSES = [
   {
     value: "online",
+
     label: "Online",
-    description: "Je bent nu beschikbaar om nieuwe tickets te behandelen.",
+    description: {
+      second: "Je bent nu beschikbaar om nieuwe tickets te behandelen.",
+      third: "Zij zijn nu beschikbaar om nieuwe tickets te behandelen.",
+    },
   },
   {
     value: "away",
     label: "Even weg",
-    description: "Je kunt nog geen nieuwe tickets behandelen maar je bent zo weer terug.",
+    description: {
+      second: "Je kunt nog geen nieuwe tickets behandelen maar je bent zo weer terug.",
+      third: "Zij kunnen nog geen nieuwe tickets behandelen maar zij zijn zo weer terug.",
+    },
   },
   {
     value: "out-of-office",
     label: "Uit kantoor",
-    description:
-      "Je bent helemaal niet beschikbaar, en je tickets moeten opnieuw worden togewezen.",
+    description: {
+      second: "Je bent helemaal niet beschikbaar, en je tickets moeten opnieuw worden togewezen.",
+      third: "Zij zijn helemaal niet beschikbaar, en hun tickets moeten opnieuw worden togewezen.",
+    },
   },
 ] as const
 
