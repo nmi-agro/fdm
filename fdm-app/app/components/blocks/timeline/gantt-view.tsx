@@ -189,7 +189,17 @@ function buildFieldFeatures(
       const span = cultivation.endAt.getTime() - cultivation.startAt.getTime()
       const rawPercent =
         span > 0 ? ((date.getTime() - cultivation.startAt.getTime()) / span) * 100 : 50
-      const percent = Math.min(96, Math.max(4, rawPercent))
+      // Don't clamp events that fall exactly on the cultivation's start/end date (e.g. a
+      // single-harvest crop like luzerne, where the harvest date IS the end date) — clamping
+      // those to 4/96% would visually shift them away from the edge they actually belong on,
+      // contradicting the exact date shown in the tooltip. Only pull interior events in from
+      // the very edge so they don't render on top of the bar's rounded corners.
+      const percent =
+        date.getTime() === cultivation.endAt.getTime()
+          ? 100
+          : date.getTime() === cultivation.startAt.getTime()
+            ? 0
+            : Math.min(96, Math.max(4, rawPercent))
       cultivation.events?.push({ ...event, percent })
     } else {
       orphanFeatures.push(orphan)
