@@ -8,7 +8,7 @@ import {
 import { getCultivations, getCurrentSoilData, getFertilizers, getFields } from "@nmi-agro/fdm-core"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers.server"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 

@@ -8,11 +8,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 
 interface FieldCultivationsBadgeProps {
   cultivations: Cultivation[]
-  calendarYear: string
+  /**
+   * The field's main cultivation ('hoofdteelt') for the year, computed server-side
+   * via `getDefaultCultivation` so the label matches the value used in calculations.
+   * The calculator that determines this cannot run in client bundles, so it is
+   * passed in as a prop rather than recomputed here.
+   */
+  mainCultivation: Cultivation | null
   harvestsMap: Map<string, Harvest[]>
   fieldName: string
 }
@@ -38,13 +43,11 @@ function formatHarvestDates(harvests: Harvest[] | undefined): string {
 
 export function FieldCultivationsBadge({
   cultivations,
-  calendarYear,
+  mainCultivation,
   harvestsMap,
   fieldName,
 }: FieldCultivationsBadgeProps) {
   if (cultivations.length === 0) return null
-
-  const mainCultivation = getDefaultCultivation(cultivations, calendarYear)
   if (!mainCultivation) return null
 
   const extraCount = cultivations.length - 1

@@ -28,6 +28,7 @@ import { getOrganicMatterBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -104,6 +105,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fields: fields,
       calendar: getCalendar(params),
       cultivationsEntries: [...cultivationsMap.entries()] as [string, Cultivation[]][],
+      mainCultivationsEntries: [...cultivationsMap.entries()].map(
+        ([b_id, cultivations]) =>
+          [b_id, getDefaultCultivation(cultivations, getCalendar(params)) ?? null] as [
+            string,
+            Cultivation | null,
+          ],
+      ),
       harvestsEntries: [...harvestsMap.entries()] as [string, Harvest[]][],
       asyncData: asyncData,
     }
@@ -137,14 +145,15 @@ export default function FarmBalanceOrganicMatterOverviewBlock() {
 function FarmBalanceOrganicMatterOverview({
   farm,
   fields,
-  calendar,
   cultivationsEntries,
+  mainCultivationsEntries,
   harvestsEntries,
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
   const { organicMatterBalanceResult } = use(asyncData)
 
   const cultivationsMap = new Map(cultivationsEntries)
+  const mainCultivationsMap = new Map(mainCultivationsEntries)
   const harvestsMap = new Map(harvestsEntries)
 
   if (organicMatterBalanceResult.errorMessage) {
@@ -276,7 +285,7 @@ function FarmBalanceOrganicMatterOverview({
                       </div>
                       <FieldCultivationsBadge
                         cultivations={cultivationsMap.get(fieldResult.b_id) ?? []}
-                        calendarYear={calendar}
+                        mainCultivation={mainCultivationsMap.get(fieldResult.b_id) ?? null}
                         harvestsMap={harvestsMap}
                         fieldName={fieldData?.b_name ?? ""}
                       />

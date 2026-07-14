@@ -27,10 +27,29 @@ export const GROENE_BRAAK = "nl_6794"
  *
  * @param cultivations - List of cultivations to evaluate.
  * @param year - The calendar year to evaluate.
+ * @param options - When `fallback` is `false`, `null` is returned instead of the
+ *          regulatory `GROENE_BRAAK` default when no cultivation overlaps the
+ *          window. This lets UI callers distinguish "no cultivation registered"
+ *          from the legal fallback. Defaults to `true`.
  * @returns The `b_lu_catalogue` of the hoofdteelt, or `GROENE_BRAAK` (`"nl_6794"`)
- *          if no cultivation overlaps with the May 15–July 15 window.
+ *          if no cultivation overlaps with the May 15–July 15 window (or `null`
+ *          when `fallback` is `false`).
  */
-export function findHoofdteelt(cultivations: CultivationForHoofdteelt[], year: number): string {
+export function findHoofdteelt(
+  cultivations: CultivationForHoofdteelt[],
+  year: number,
+  options?: { fallback?: true },
+): string
+export function findHoofdteelt(
+  cultivations: CultivationForHoofdteelt[],
+  year: number,
+  options: { fallback: false },
+): string | null
+export function findHoofdteelt(
+  cultivations: CultivationForHoofdteelt[],
+  year: number,
+  options?: { fallback?: boolean },
+): string | null {
   const windowStart = new Date(`${year}-05-15`)
   const windowEnd = new Date(`${year}-07-15`)
 
@@ -58,5 +77,8 @@ export function findHoofdteelt(cultivations: CultivationForHoofdteelt[], year: n
     }
   }
 
-  return result ?? GROENE_BRAAK
+  if (result !== null) {
+    return result
+  }
+  return options?.fallback === false ? null : GROENE_BRAAK
 }

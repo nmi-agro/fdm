@@ -29,7 +29,7 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getDefaultCultivation } from "~/lib/cultivation-helpers.server"
 import { getNmiApiKey } from "./nmi.server"
 
 type OrganicMatterFieldInput = Awaited<
