@@ -1,7 +1,7 @@
-import { differenceInDays, differenceInMonths, format } from "date-fns"
+import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { LandPlot, TestTube2, Wheat } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react"
 import { NavLink, useNavigate } from "react-router"
 import { FertilizerIcon } from "~/components/blocks/gerrit/fertilizer-icon"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -10,6 +10,7 @@ import {
   GanttFeatureList,
   GanttFeatureListGroup,
   GanttFeatureRow,
+  getGanttDateOffset,
   GanttHeader,
   GanttProvider,
   type GanttStatus,
@@ -30,6 +31,13 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { endMonth, startMonth } from "~/lib/calendar"
+
+// The years the Gantt renders/scrolls through must never exceed what the app's "Calendar" year
+// picker actually supports (`~/lib/calendar`) — otherwise the timeline could show a year (e.g.
+// one past the real current year) that isn't a selectable calendar year anywhere else in the app.
+const TIMELINE_START_YEAR = startMonth.getFullYear()
+const TIMELINE_END_YEAR = endMonth.getFullYear()
 
 export type TimelineFertilizerApplication = {
   p_app_id: string
@@ -151,10 +159,9 @@ function buildFieldFeatures(
     for (const cultivation of field.cultivations) {
       if (!cultivation.b_lu_start) continue
       const startAt = cultivation.b_lu_start
-      // Cultivations without an end date are still active. Extend the bar to the end of the
-      // selected calendar year (rather than to "today") so it doesn't visually stop midway
-      // through the year when browsing a past year, and still shows the rest of the year when
-      // browsing the current year.
+      // Cultivations without an end date are still ongoing — extend the bar all the way to the
+      // edge of the rendered timeline (rather than stopping at the selected calendar year) so it
+      // visually keeps going instead of implying it ended on Dec 31.
       const endAt = cultivation.b_lu_end ?? openCultivationEndAt
       const name = cultivation.b_lu_name ?? "Onbekend gewas"
       const color = cultivationStatus(cultivation.b_lu_croprotation).color
@@ -164,7 +171,7 @@ function buildFieldFeatures(
         startAt,
         endAt,
         status: cultivationStatus(cultivation.b_lu_croprotation),
-        color: hexToRgba(color, 0.35),
+        color: hexToRgba(color, 0.5),
         lane: field.b_id,
         kind: "cultivation",
         href: `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/cultivation`,
@@ -286,6 +293,23 @@ function buildFieldFeatures(
     }
   }
 
+  // Events attached to the same cultivation can legitimately share (or nearly share) a date —
+  // e.g. two fertilizer applications a few days apart. Left as raw percentages, those render as
+  // overlapping icons. Spread them out left-to-right (preserving chronological order) so every
+  // icon stays individually clickable and legible.
+  const MIN_EVENT_GAP_PERCENT = 6
+  for (const cultivation of cultivationFeatures) {
+    if (!cultivation.events || cultivation.events.length < 2) continue
+    cultivation.events.sort((a, b) => a.percent - b.percent)
+    for (let index = 1; index < cultivation.events.length; index++) {
+      const previous = cultivation.events[index - 1]
+      const current = cultivation.events[index]
+      if (current.percent - previous.percent < MIN_EVENT_GAP_PERCENT) {
+        current.percent = Math.min(100, previous.percent + MIN_EVENT_GAP_PERCENT)
+      }
+    }
+  }
+
   return [...cultivationFeatures, ...orphanFeatures]
 }
 
@@ -318,20 +342,21 @@ function FeatureContent({ feature }: { feature: TimelineFeature }) {
 
   if (feature.kind === "cultivation") {
     return (
-      <div className="relative flex h-full min-w-0 flex-1 items-center">
+      <div className="relative h-full min-w-0 flex-1">
         <Tooltip>
           <TooltipTrigger asChild>
+            {/* The crop name isn't rendered inline here (only in the sidebar and this tooltip) —
+                at high field-count density there's no room in the bar for both text and event
+                icons without one covering the other; see the density note on `ROW_HEIGHT_PX`. */}
             <div
-              className="absolute inset-0 flex cursor-pointer items-center"
+              className="absolute inset-0 cursor-pointer"
               onClick={() => void navigate(feature.href ?? "#")}
               onKeyDown={(event) => {
                 if (event.key === "Enter") void navigate(feature.href ?? "#")
               }}
               role="button"
               tabIndex={0}
-            >
-              <p className="flex-1 truncate px-1.5 text-xs">{feature.name}</p>
-            </div>
+            />
           </TooltipTrigger>
           <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
         </Tooltip>
@@ -360,6 +385,21 @@ function FeatureContent({ feature }: { feature: TimelineFeature }) {
 }
 
 /**
+ * Horizontal scroll offset (px) for a given date within the Gantt's rendered timeline, which
+ * starts at `TIMELINE_START_YEAR` (see `createInitialTimelineData`/the `startYear` prop below).
+ * Reuses Kibo UI's own `getGanttDateOffset` (the exact function that positions feature bars) so
+ * the scroll target lines up precisely with where that date actually renders, at day precision.
+ */
+function computeScrollOffset(target: Date, range: Range): number {
+  const timelineStartDate = new Date(TIMELINE_START_YEAR, 0, 1)
+  const columnWidth = range === "monthly" ? 150 : range === "quarterly" ? 100 : 50
+  return Math.max(
+    0,
+    getGanttDateOffset(target, timelineStartDate, { columnWidth, range, zoom: 100 }),
+  )
+}
+
+/**
  * Scrolls the Gantt viewport so the start of the selected calendar year is visible on mount
  * (and whenever the year or zoom range changes), instead of Kibo UI's default of always
  * centering on the real-world "today".
@@ -373,16 +413,7 @@ function useScrollToCalendarYear(
     const scrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
     if (!scrollElement) return
 
-    // Kibo UI's GanttProvider always initializes its timeline data around the real current
-    // date (see `createInitialTimelineData`), spanning [currentYear - 1, currentYear + 1].
-    const timelineStartDate = new Date(new Date().getFullYear() - 1, 0, 1)
-    const target = new Date(calendarYear, 0, 1)
-    const columnWidth = range === "monthly" ? 150 : range === "quarterly" ? 100 : 50
-    const diff =
-      range === "daily"
-        ? differenceInDays(target, timelineStartDate)
-        : differenceInMonths(target, timelineStartDate)
-    const offset = Math.max(0, columnWidth * diff)
+    const offset = computeScrollOffset(new Date(calendarYear, 0, 1), range)
 
     // Run after Kibo's own mount effect (which centers on today) has applied.
     const timeout = window.setTimeout(() => {
@@ -415,31 +446,67 @@ function computeMaxSubRows(features: TimelineFeature[]): number {
   return Math.max(1, subRowEndTimes.length)
 }
 
-const ROW_HEIGHT_PX = 36
-const GROUP_GAP_PX = 16 // Tailwind's `space-y-4`, used both in GanttSidebar and GanttFeatureList
+// Denser than Kibo UI's 36px default: farms can have 100+ fields, so every row counts. The
+// cultivation name no longer renders inline on the bar (see `FeatureContent`) — only the
+// sidebar and the on-hover tooltip show it — which is what frees this row up to shrink.
+const ROW_HEIGHT_PX = 32
+const GROUP_GAP_PX = 8 // Tailwind's `space-y-2`, used both in GanttSidebar and GanttFeatureList
 
-export function TimelineGanttView({
-  fields,
-  filters,
-  onFiltersChange,
-  fertilizerTypeById,
-  b_id_farm,
-  calendar,
-  calendarYear,
-  range,
-}: {
-  fields: TimelineField[]
-  filters: TimelineFilters
-  /** Optional: enables the "reset filters" action in the all-hidden empty state. */
-  onFiltersChange?: (filters: TimelineFilters) => void
-  fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>
-  b_id_farm: string
-  calendar: string
-  calendarYear: number
-  range: Range
-}) {
+export type TimelineGanttViewHandle = {
+  /** Scrolls the timeline horizontally so today's date is in view. */
+  scrollToToday: () => void
+}
+
+export const TimelineGanttView = forwardRef<
+  TimelineGanttViewHandle,
+  {
+    fields: TimelineField[]
+    filters: TimelineFilters
+    /** Optional: enables the "reset filters" action in the all-hidden empty state. */
+    onFiltersChange?: (filters: TimelineFilters) => void
+    fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>
+    b_id_farm: string
+    calendar: string
+    calendarYear: number
+    range: Range
+  }
+>(function TimelineGanttView(
+  {
+    fields,
+    filters,
+    onFiltersChange,
+    fertilizerTypeById,
+    b_id_farm,
+    calendar,
+    calendarYear,
+    range,
+  },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   useScrollToCalendarYear(containerRef, calendarYear, range)
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToToday: () => {
+        const scrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
+        if (!scrollElement) return
+        const sidebarElement = scrollElement.querySelector<HTMLDivElement>(
+          '[data-roadmap-ui="gantt-sidebar"]',
+        )
+        const sidebarWidth = sidebarElement?.getBoundingClientRect().width ?? 0
+        // The sidebar is sticky and always covers the left edge of the viewport, so center
+        // "today" within the visible timeline area to its right, not the full scroll viewport.
+        const visibleTimelineWidth = scrollElement.clientWidth - sidebarWidth
+        const offset = computeScrollOffset(new Date(), range)
+        const left = Math.max(0, offset - visibleTimelineWidth / 2)
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        scrollElement.scrollTo({ left, behavior: prefersReducedMotion ? "auto" : "smooth" })
+      },
+    }),
+    [range],
+  )
 
   const visibleFields = fields
     .filter((field) => filters.showBufferStrips || !field.b_bufferstrip)
@@ -488,7 +555,10 @@ export function TimelineGanttView({
     )
   }
 
-  const openCultivationEndAt = new Date(calendarYear, 11, 31, 23, 59, 59)
+  // Cap open-ended cultivations at the rendered timeline's right edge (the last calendar year the
+  // app supports), not the browsed year's Dec 31, so they visually keep going instead of
+  // appearing to stop.
+  const openCultivationEndAt = new Date(TIMELINE_END_YEAR, 11, 31, 23, 59, 59)
 
   // Precompute each field's features once (reused for the timeline row) and its resulting
   // sub-row count, so we can give `GanttTimeline` an explicit total height below.
@@ -514,12 +584,20 @@ export function TimelineGanttView({
     fieldsWithFeatures.reduce(
       (sum, { maxSubRows }) => sum + ROW_HEIGHT_PX + maxSubRows * ROW_HEIGHT_PX,
       0,
-    ) + Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
+    ) +
+    Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
 
   return (
     <TooltipProvider delayDuration={150}>
       <div ref={containerRef}>
-        <GanttProvider className="h-[calc(100vh-16rem)] rounded-lg border" range={range} zoom={100}>
+        <GanttProvider
+          className="h-[calc(100vh-16rem)] rounded-lg border"
+          endYear={TIMELINE_END_YEAR}
+          range={range}
+          rowHeight={ROW_HEIGHT_PX}
+          startYear={TIMELINE_START_YEAR}
+          zoom={100}
+        >
           <GanttSidebar>
             {visibleFields.map((field) => {
               const cultivationFeatures = buildFieldFeatures(
@@ -536,7 +614,19 @@ export function TimelineGanttView({
                 openCultivationEndAt,
               )
               return (
-                <GanttSidebarGroup key={field.b_id} name={`${field.b_name} (${field.b_area} ha)`}>
+                <GanttSidebarGroup
+                  key={field.b_id}
+                  name={
+                    <>
+                      <span className="text-foreground truncate text-xs font-semibold">
+                        {field.b_name}
+                      </span>
+                      <span className="text-muted-foreground shrink-0 text-xs">
+                        {field.b_area} ha
+                      </span>
+                    </>
+                  }
+                >
                   {cultivationFeatures.length === 0 ? (
                     <p className="text-muted-foreground p-2.5 text-xs">Geen gewassen</p>
                   ) : (
@@ -565,4 +655,4 @@ export function TimelineGanttView({
       </div>
     </TooltipProvider>
   )
-}
+})

@@ -1,4 +1,4 @@
-import { Filter } from "lucide-react"
+import { Filter, Locate } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { Badge } from "~/components/ui/badge"
@@ -40,11 +40,13 @@ export function TimelineToolbar({
   onRangeChange,
   filters,
   onFiltersChange,
+  onJumpToToday,
 }: {
   range: Range
   onRangeChange: (range: Range) => void
   filters: TimelineFilters
   onFiltersChange: (filters: TimelineFilters) => void
+  onJumpToToday: () => void
 }) {
   const activeFilterCount = countActiveFilters(filters)
 
@@ -63,13 +65,22 @@ export function TimelineToolbar({
         </SelectContent>
       </Select>
 
+      <Button onClick={onJumpToToday} variant="outline">
+        <Locate className="size-4" />
+        Vandaag
+      </Button>
+
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline">
             <Filter className="size-4" />
             Filters
             {activeFilterCount > 0 && (
-              <Badge className="ml-1 px-1.5" variant="secondary">
+              <Badge
+                className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
+                key={activeFilterCount}
+                variant="secondary"
+              >
                 {activeFilterCount}
               </Badge>
             )}
@@ -89,7 +100,6 @@ export function TimelineToolbar({
             )}
           </div>
           <div className="space-y-2">
-            <p className="text-muted-foreground text-xs font-medium">Gebeurtenissen</p>
             <div className="flex items-center gap-2">
               <Checkbox
                 checked={filters.showCultivations}

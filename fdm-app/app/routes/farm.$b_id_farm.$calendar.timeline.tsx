@@ -10,9 +10,9 @@ import {
   getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import { Smartphone } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useLoaderData, useParams } from "react-router"
-import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
+import type { TimelineFilters, TimelineGanttViewHandle } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -158,6 +158,7 @@ export default function TimelinePage() {
   const loaderData = useLoaderData<typeof loader>()
   const { calendar } = useParams()
   const isMobile = useIsMobile()
+  const ganttRef = useRef<TimelineGanttViewHandle>(null)
 
   const [range, setRange] = useState<Range>("monthly")
   const [filters, setFilters] = useState<TimelineFilters>({
@@ -226,6 +227,7 @@ export default function TimelinePage() {
                 <TimelineToolbar
                   filters={filters}
                   onFiltersChange={setFilters}
+                  onJumpToToday={() => ganttRef.current?.scrollToToday()}
                   onRangeChange={setRange}
                   range={range}
                 />
@@ -241,6 +243,7 @@ export default function TimelinePage() {
                 filters={filters}
                 onFiltersChange={setFilters}
                 range={range}
+                ref={ganttRef}
               />
             </FarmContent>
           </>

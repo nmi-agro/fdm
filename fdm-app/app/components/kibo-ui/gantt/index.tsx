@@ -181,14 +181,12 @@ const getDateByMousePosition = (context: GanttContextProps, mouseX: number) => {
   return actualDate
 }
 
-const createInitialTimelineData = (today: Date) => {
+const createInitialTimelineData = (startYear: number, endYear: number) => {
   const data: TimelineData = []
 
-  data.push(
-    { year: today.getFullYear() - 1, quarters: new Array(4).fill(null) },
-    { year: today.getFullYear(), quarters: new Array(4).fill(null) },
-    { year: today.getFullYear() + 1, quarters: new Array(4).fill(null) },
-  )
+  for (let year = startYear; year <= endYear; year++) {
+    data.push({ year, quarters: new Array(4).fill(null) })
+  }
 
   for (const yearObj of data) {
     yearObj.quarters = new Array(4).fill(null).map((_, quarterIndex) => ({
@@ -204,7 +202,11 @@ const createInitialTimelineData = (today: Date) => {
   return data
 }
 
-const getOffset = (date: Date, timelineStartDate: Date, context: GanttContextProps) => {
+export const getGanttDateOffset = (
+  date: Date,
+  timelineStartDate: Date,
+  context: Pick<GanttContextProps, "columnWidth" | "zoom" | "range">,
+) => {
   const parsedColumnWidth = (context.columnWidth * context.zoom) / 100
   const differenceIn = getDifferenceIn(context.range)
   const startOf = getStartOf(context.range)
@@ -220,6 +222,8 @@ const getOffset = (date: Date, timelineStartDate: Date, context: GanttContextPro
 
   return fullColumns * parsedColumnWidth + partialColumns * pixelsPerDay
 }
+
+const getOffset = getGanttDateOffset
 
 const getWidth = (startAt: Date, endAt: Date | null, context: GanttContextProps) => {
   const parsedColumnWidth = (context.columnWidth * context.zoom) / 100
@@ -467,10 +471,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
 
   return (
     <div
-      className={cn(
-        "hover:bg-secondary relative flex items-center gap-2.5 p-2.5 text-xs",
-        className,
-      )}
+      className={cn("hover:bg-secondary relative flex items-center gap-2 p-1.5 text-xs", className)}
       key={feature.id}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -505,18 +506,18 @@ export const GanttSidebarHeader: FC = () => (
 
 export type GanttSidebarGroupProps = {
   children: ReactNode
-  name: string
+  name: ReactNode
   className?: string
 }
 
 export const GanttSidebarGroup: FC<GanttSidebarGroupProps> = ({ children, name, className }) => (
   <div className={className}>
-    <p
-      className="text-muted-foreground w-full truncate p-2.5 text-left text-xs font-medium"
+    <div
+      className="flex w-full items-baseline gap-1.5 truncate p-1.5 text-left"
       style={{ height: "var(--gantt-row-height)" }}
     >
       {name}
-    </p>
+    </div>
     <div className="divide-border/50 divide-y">{children}</div>
   </div>
 )
@@ -535,7 +536,7 @@ export const GanttSidebar: FC<GanttSidebarProps> = ({ children, className }) => 
     data-roadmap-ui="gantt-sidebar"
   >
     <GanttSidebarHeader />
-    <div className="space-y-4">{children}</div>
+    <div className="space-y-2">{children}</div>
   </div>
 )
 
@@ -751,7 +752,7 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({ id, color,
 
   return (
     <Card
-      className="bg-background h-full w-full rounded-md p-2 text-xs shadow-sm"
+      className="bg-background h-full w-full rounded-md p-1 text-xs shadow-sm transition-shadow duration-150 hover:shadow-md"
       style={color ? { backgroundColor: color } : undefined}
     >
       <div
@@ -928,6 +929,8 @@ export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
   children,
   className,
 }) => {
+  const gantt = useContext(GanttContext)
+
   // Sort features by start date to handle potential overlaps
   const sortedFeatures = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
 
@@ -954,7 +957,9 @@ export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
   }
 
   const maxSubRows = Math.max(1, subRowEndTimes.length)
-  const subRowHeight = 36 // Base row height
+  // Read the configured row height from context instead of hardcoding it, so sub-row stacking
+  // stays in sync with the sidebar (which sizes its rows from the same `--gantt-row-height`).
+  const subRowHeight = gantt.rowHeight
 
   return (
     <div
@@ -993,7 +998,7 @@ export type GanttFeatureListProps = {
 
 export const GanttFeatureList: FC<GanttFeatureListProps> = ({ className, children }) => (
   <div
-    className={cn("absolute top-0 left-0 h-full w-max space-y-4", className)}
+    className={cn("absolute top-0 left-0 h-full w-max space-y-2", className)}
     style={{ marginTop: "var(--gantt-header-height)" }}
   >
     {children}
@@ -1069,6 +1074,12 @@ GanttMarker.displayName = "GanttMarker"
 export type GanttProviderProps = {
   range?: Range
   zoom?: number
+  /** Height (px) of each timeline/sidebar row. Defaults to 36. */
+  rowHeight?: number
+  /** First year rendered. Defaults to one year before the real current year. */
+  startYear?: number
+  /** Last year rendered. Defaults to one year after the real current year. */
+  endYear?: number
   onAddItem?: (date: Date) => void
   children: ReactNode
   className?: string
@@ -1077,19 +1088,21 @@ export type GanttProviderProps = {
 export const GanttProvider: FC<GanttProviderProps> = ({
   zoom = 100,
   range = "monthly",
+  rowHeight = 36,
+  startYear = new Date().getFullYear() - 1,
+  endYear = new Date().getFullYear() + 1,
   onAddItem,
   children,
   className,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [timelineData, setTimelineData] = useState<TimelineData>(
-    createInitialTimelineData(new Date()),
+    createInitialTimelineData(startYear, endYear),
   )
   const [, setScrollX] = useGanttScrollX()
   const [sidebarWidth, setSidebarWidth] = useState(0)
 
   const headerHeight = 60
-  const rowHeight = 36
   let columnWidth = 50
 
   if (range === "monthly") {
@@ -1108,7 +1121,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         "--gantt-row-height": `${rowHeight}px`,
         "--gantt-sidebar-width": `${sidebarWidth}px`,
       }) as CSSProperties,
-    [zoom, columnWidth, sidebarWidth],
+    [zoom, columnWidth, sidebarWidth, rowHeight],
   )
 
   useEffect(() => {
@@ -1237,18 +1250,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
       const timelineStartDate = new Date(timelineData[0].year, 0, 1)
 
       // Calculate the horizontal offset for the feature's start date
-      const offset = getOffset(feature.startAt, timelineStartDate, {
-        zoom,
-        range,
-        columnWidth,
-        sidebarWidth,
-        headerHeight,
-        rowHeight,
-        onAddItem,
-        placeholderLength: 2,
-        timelineData,
-        ref: scrollRef,
-      })
+      const offset = getOffset(feature.startAt, timelineStartDate, { zoom, range, columnWidth })
 
       // Scroll to align the feature's start with the right side of the sidebar
       const targetScrollLeft = Math.max(0, offset)
@@ -1302,7 +1304,10 @@ export type GanttTimelineProps = {
 }
 
 export const GanttTimeline: FC<GanttTimelineProps> = ({ children, className, style }) => (
-  <div className={cn("relative flex h-full w-max flex-none overflow-clip", className)} style={style}>
+  <div
+    className={cn("relative flex h-full w-max flex-none overflow-clip", className)}
+    style={style}
+  >
     {children}
   </div>
 )
@@ -1341,7 +1346,8 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
     >
       <div
         className={cn(
-          "group bg-card text-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs whitespace-nowrap select-auto",
+          "group bg-primary text-primary-foreground pointer-events-auto sticky top-0 flex flex-col flex-nowrap items-center justify-center rounded-b-md px-2 py-1 text-xs font-medium whitespace-nowrap select-auto",
+          "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-90 motion-safe:duration-500 motion-safe:ease-out",
           className,
         )}
       >
@@ -1350,7 +1356,13 @@ export const GanttToday: FC<GanttTodayProps> = ({ className }) => {
           {formatDate(date, "d MMM yyyy", { locale: nl })}
         </span>
       </div>
-      <div className={cn("bg-card h-full w-px", className)} />
+      <div
+        className={cn(
+          "bg-primary h-full w-px",
+          "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700",
+          className,
+        )}
+      />
     </div>
   )
 }
