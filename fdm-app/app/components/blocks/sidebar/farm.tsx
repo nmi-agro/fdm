@@ -6,6 +6,7 @@ import {
   Check,
   ChevronRight,
   ClipboardList,
+  GanttChart,
   Grid2x2,
   House,
   LandPlot,
@@ -202,6 +203,15 @@ export function SidebarFarm({
     fertilizersLink = undefined
   }
 
+  let timelineLink: string | undefined
+  if (isCreateFarmWizard) {
+    timelineLink = undefined
+  } else if (farmId && farmId !== "undefined") {
+    timelineLink = `/farm/${farmId}/${selectedCalendar}/timeline`
+  } else {
+    timelineLink = undefined
+  }
+
   let measuresLink: string | undefined
   if (isCreateFarmWizard) {
     measuresLink = undefined
@@ -395,6 +405,36 @@ export function SidebarFarm({
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     Selecteer een bedrijf om het bouwplan te beheren
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              {timelineLink ? (
+                <SidebarMenuButton asChild isActive={location.pathname.includes("/timeline")}>
+                  <NavLink to={timelineLink}>
+                    <GanttChart />
+                    <span>Tijdlijn</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <SidebarMenuButton
+                      className="text-muted-foreground"
+                      onClick={() =>
+                        openFarmPicker(
+                          "de tijdlijn",
+                          (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/timeline`,
+                        )
+                      }
+                    >
+                      <GanttChart />
+                      <span>Tijdlijn</span>
+                    </SidebarMenuButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    Selecteer een bedrijf om de tijdlijn te bekijken
                   </TooltipContent>
                 </Tooltip>
               )}
