@@ -126,12 +126,18 @@ export async function action({ request }: Route.ActionArgs) {
     })
 
     if (newAssignments.length > 0) {
-      await notifyAboutReassignments(session.principal_id, newAssignments)
+      try {
+        await notifyAboutReassignments(session.principal_id, newAssignments)
 
-      return dataWithSuccess("Gegevens succesvol bijgewerkt en tickets opnieuw toegewezen.", {
-        message: "Gegevens succesvol bijgewerkt en tickets opnieuw toegewezen.",
-      })
+        return dataWithSuccess("Gegevens succesvol bijgewerkt en tickets opnieuw toegewezen.", {
+          message: "Gegevens succesvol bijgewerkt en tickets opnieuw toegewezen.",
+        })
+      } catch (err) {
+        handleActionError(err)
+      }
     }
+
+    // Code will reach here also when notifying the new assignees fails
     return dataWithSuccess("Gegevens succesvol bijgewerkt.", {
       message: "Gegevens succesvol bijgewerkt.",
     })

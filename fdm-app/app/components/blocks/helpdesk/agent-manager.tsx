@@ -110,6 +110,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onSubmit",
     resolver: zodResolver(FormSchema),
+    fetcher: fetcher,
     defaultValues: {
       intent: "add_agent",
       role: defaultRole,

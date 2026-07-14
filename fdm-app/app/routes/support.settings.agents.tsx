@@ -144,20 +144,27 @@ export async function action({ request }: Route.ActionArgs) {
       })
 
       if (newAssignments.length > 0) {
-        await notifyAboutReassignments(session.principal_id, newAssignments)
+        try {
+          await notifyAboutReassignments(session.principal_id, newAssignments)
 
-        return dataWithSuccess(
-          "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
-          {
-            message: "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
-          },
-        )
+          return dataWithSuccess(
+            "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
+            {
+              message: "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
+            },
+          )
+        } catch (err) {
+          handleActionError(err)
+        }
       }
 
+      // Code will reach here also when notifying the new assignees fails
       return dataWithSuccess(
-        formValues.is_active ? "De medewerker is geactiveerd." : "De medewerker is gedeactiveerd.",
+        { is_active: formValues.is_active },
         {
-          message: "De medewerker is bijgewerkt.",
+          message: formValues.is_active
+            ? "De medewerker is geactiveerd."
+            : "De medewerker is gedeactiveerd.",
         },
       )
     }

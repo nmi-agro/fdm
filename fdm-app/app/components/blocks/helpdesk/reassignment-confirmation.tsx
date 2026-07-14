@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ComponentProps } from "react"
+import { useEffect, useId, useRef, useState, type ComponentProps } from "react"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -44,7 +44,7 @@ export function SubmitButtonWithReassignmentConfirmation({
   onConfirmation?: () => void
 }) {
   // So that the form can be submitted when JS is disabled
-  const [iNeedConfirmation, setINeedConfirmation] = useState(needsConfirmation)
+  const [iNeedConfirmation, setINeedConfirmation] = useState(false)
   useEffect(() => {
     setINeedConfirmation(needsConfirmation)
   }, [needsConfirmation])
@@ -53,17 +53,20 @@ export function SubmitButtonWithReassignmentConfirmation({
   const [open, setOpen] = useState(false)
 
   const submitButtonId = useId()
+  const hiddenSubmitRef = useRef<HTMLInputElement>(null)
 
   if (!iNeedConfirmation) {
     return (
-      <Button
-        {...buttonProps}
-        onClick={(e) => {
-          buttonProps.onClick?.(e)
-          onConfirmation?.()
-        }}
-        type={type}
-      />
+      <div>
+        <Button
+          {...buttonProps}
+          onClick={(e) => {
+            buttonProps.onClick?.(e)
+            onConfirmation?.()
+          }}
+          type={type}
+        />
+      </div>
     )
   }
 
@@ -74,6 +77,7 @@ export function SubmitButtonWithReassignmentConfirmation({
           <Button {...buttonProps} type="button" />
         </AlertDialogTrigger>
         <input
+          ref={hiddenSubmitRef}
           type={type === "submit" ? "submit" : "button"}
           id={submitButtonId}
           className="hidden"
@@ -83,24 +87,23 @@ export function SubmitButtonWithReassignmentConfirmation({
         <AlertDialogHeader>
           <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
           {person === "second" && (
-            <AlertDialogDescription>Jouw tickets wordt opnieuw toegewezen.</AlertDialogDescription>
+            <AlertDialogDescription>Jouw tickets worden opnieuw toegewezen.</AlertDialogDescription>
           )}
           {person === "third" && (
-            <AlertDialogDescription>De tickets wordt opnieuw toegewezen.</AlertDialogDescription>
+            <AlertDialogDescription>De tickets worden opnieuw toegewezen.</AlertDialogDescription>
           )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuleren</AlertDialogCancel>
-          <Button asChild>
-            <label
-              htmlFor={submitButtonId}
-              onClick={() => {
-                setOpen(false)
-                onConfirmation?.()
-              }}
-            >
-              Bevestigen
-            </label>
+          <Button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              onConfirmation?.()
+              hiddenSubmitRef.current?.click()
+            }}
+          >
+            Bevestigen
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

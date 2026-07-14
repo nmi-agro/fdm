@@ -116,11 +116,12 @@ export function AgentFormFields({
 
   const nameId = useId()
   const assignmentTierId = useId()
-  const workDaysIds = WORK_DAYS.map(() => useId())
+  const workDaysIds = [useId(), useId(), useId(), useId(), useId(), useId(), useId()]
   const reassignTicketsId = useId()
 
   return (
     <>
+      <input type="hidden" name="agent_id" value={agent.agent_id} />
       <Controller
         name="display_name"
         render={({ field, fieldState }) => (
@@ -157,6 +158,7 @@ export function AgentFormFields({
               </SelectContent>
             </Select>
             {fieldState.error && <FieldError errors={[fieldState.error]} />}
+            <input {...field} type="hidden" />
           </Field>
         )}
       />
@@ -184,6 +186,7 @@ export function AgentFormFields({
                 ))}
               </RadioGroup>
               {fieldState.error && <FieldError errors={[fieldState.error]} />}
+              <input {...field} type="hidden" />
             </Field>
           </div>
         )}
@@ -212,6 +215,7 @@ export function AgentFormFields({
                   />
                 </Field>
                 {fieldState.error && <FieldError errors={[fieldState.error]} />}
+                <input {...field} type="hidden" />
               </Card>
             </div>
           )}
@@ -245,6 +249,7 @@ export function AgentFormFields({
               ))}
             </div>
             {fieldState.error && <FieldError errors={[fieldState.error]} />}
+            <input name={field.name} value={JSON.stringify(field.value)} type="hidden" />
           </Field>
         )}
       />
