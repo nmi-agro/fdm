@@ -25,7 +25,7 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getNmiApiKey } from "../integrations/nmi.server"
@@ -100,7 +100,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         const activeCultivation = cultivationId
           ? cultivations.find((c) => c.b_lu === cultivationId)
-          : (getDefaultCultivation(cultivations, calendar) ?? cultivations[0])
+          : (getMainCultivation(cultivations, calendar) ?? cultivations[0])
 
         if (!activeCultivation) {
           throw handleLoaderError("missing: active cultivation")

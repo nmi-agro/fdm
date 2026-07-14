@@ -27,6 +27,7 @@ import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -110,12 +111,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     })()
 
+    const calendar = getCalendar(params)
+    const mainCultivationEntries = fields.map(
+      (field) =>
+        [field.b_id, getMainCultivation(cultivationsMap.get(field.b_id) ?? [], calendar)] as const,
+    )
+
     return {
       farm: farm,
       fields: fields,
-      calendar: getCalendar(params),
+      calendar: calendar,
       cultivationsEntries: [...cultivationsMap.entries()] as [string, Cultivation[]][],
       harvestsEntries: [...harvestsMap.entries()] as [string, Harvest[]][],
+      mainCultivationEntries: mainCultivationEntries as [string, Cultivation | undefined][],
       asyncData: asyncData,
     }
   } catch (error) {
@@ -157,15 +165,16 @@ export default function FarmBalanceNitrogenOverviewBlock() {
 function FarmBalanceNitrogenOverview({
   farm,
   fields,
-  calendar,
   cultivationsEntries,
   harvestsEntries,
+  mainCultivationEntries,
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
   const { nitrogenBalanceResult } = use(asyncData)
 
   const cultivationsMap = new Map(cultivationsEntries)
   const harvestsMap = new Map(harvestsEntries)
+  const mainCultivationMap = new Map(mainCultivationEntries)
 
   const resolvedNitrogenBalanceResult = nitrogenBalanceResult
 
@@ -344,7 +353,7 @@ function FarmBalanceNitrogenOverview({
                       </div>
                       <FieldCultivationsBadge
                         cultivations={cultivationsMap.get(fieldResult.b_id) ?? []}
-                        calendarYear={calendar}
+                        mainCultivation={mainCultivationMap.get(fieldResult.b_id)}
                         harvestsMap={harvestsMap}
                         fieldName={fieldData?.b_name ?? ""}
                       />

@@ -29,7 +29,7 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getNmiApiKey } from "./nmi.server"
 
 type OrganicMatterFieldInput = Awaited<
@@ -318,7 +318,7 @@ export async function getNutrientAdviceForField({
   if (!cultivations.length) {
     b_lu_catalogue = "nl_6794" // Set to 'braak' when no cultivation is present
   } else {
-    const mainCultivation = getDefaultCultivation(cultivations, calendar) || cultivations[0]
+    const mainCultivation = getMainCultivation(cultivations, calendar) || cultivations[0]
     b_lu_catalogue = mainCultivation.b_lu_catalogue
   }
 

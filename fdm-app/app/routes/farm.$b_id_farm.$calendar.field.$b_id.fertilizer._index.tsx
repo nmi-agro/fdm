@@ -37,7 +37,7 @@ import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -192,7 +192,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     let activeCultivation = cultivationId
       ? cultivations.find((c) => c.b_lu === cultivationId)
-      : getDefaultCultivation(cultivations, calendar)
+      : getMainCultivation(cultivations, calendar)
 
     if (!activeCultivation && cultivations.length > 0) {
       activeCultivation = cultivations[0]

@@ -22,7 +22,7 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -69,7 +69,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             getCurrentSoilData(fdm, session.principal_id, field.b_id),
           ])
 
-          const mainCultivation = getDefaultCultivation(cultivations, calendar) || cultivations[0]
+          const mainCultivation = getMainCultivation(cultivations, calendar) || cultivations[0]
           const catchCrop = cultivations.find((c) => c.b_lu !== mainCultivation?.b_lu)
 
           // OM Balance for this field

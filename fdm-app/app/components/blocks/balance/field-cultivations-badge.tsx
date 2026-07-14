@@ -8,11 +8,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 
 interface FieldCultivationsBadgeProps {
   cultivations: Cultivation[]
-  calendarYear: string
+  mainCultivation: Cultivation | undefined
   harvestsMap: Map<string, Harvest[]>
   fieldName: string
 }
@@ -38,13 +37,12 @@ function formatHarvestDates(harvests: Harvest[] | undefined): string {
 
 export function FieldCultivationsBadge({
   cultivations,
-  calendarYear,
+  mainCultivation,
   harvestsMap,
   fieldName,
 }: FieldCultivationsBadgeProps) {
   if (cultivations.length === 0) return null
 
-  const mainCultivation = getDefaultCultivation(cultivations, calendarYear)
   if (!mainCultivation) return null
 
   const extraCount = cultivations.length - 1

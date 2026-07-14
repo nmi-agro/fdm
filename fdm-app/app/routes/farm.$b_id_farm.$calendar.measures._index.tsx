@@ -56,7 +56,7 @@ import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -109,7 +109,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     )
     const fieldList = fields.map((f, i) => {
       const cultivations = fieldCultivations[i]
-      const main = getDefaultCultivation(cultivations, calendar) ?? cultivations[0] ?? null
+      const main = getMainCultivation(cultivations, calendar) ?? cultivations[0] ?? null
       return {
         b_id: f.b_id,
         b_name: f.b_name ?? null,
@@ -189,7 +189,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const fieldSummaries = fields.map((f, i) => {
       const fieldMeasures = measuresMap.get(f.b_id) ?? []
       const cultivation = fieldCultivations[i]
-      const main = getDefaultCultivation(cultivation, calendar) ?? cultivation[0] ?? null
+      const main = getMainCultivation(cultivation, calendar) ?? cultivation[0] ?? null
       return {
         b_id: f.b_id,
         b_name: f.b_name ?? null,

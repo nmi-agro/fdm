@@ -66,7 +66,7 @@ import { isBcsAnalysis } from "~/lib/bcs"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -299,8 +299,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const harvestsByCultivation = Object.fromEntries(harvestEntries)
 
     const activeCultivation =
-      getDefaultCultivation(cultivations, calendar) ?? cultivations[0] ?? null
-    const hasDefaultCultivation = !!getDefaultCultivation(cultivations, calendar)
+      getMainCultivation(cultivations, calendar) ?? cultivations[0] ?? null
+    const hasDefaultCultivation = !!getMainCultivation(cultivations, calendar)
     // "not_configured" doubles as "nothing to show" here when a default cultivation already
     // exists — CultivationSuggestionStatusBanner renders null for that status either way.
     // Deferred (not awaited) so a slow/unavailable NMI lookup never blocks the rest of the
@@ -376,9 +376,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const fdmCultivationHistory: CultivationHistory[] = []
     for (let year = maxYear; year >= minYear; year--) {
-      // Use the same "May 15th" default-cultivation rule as the rest of the app, rather than
-      // grouping by start date, so multi-cultivation years resolve to the one considered active.
-      const cultivationForYear = getDefaultCultivation(allCultivations, String(year))
+      // Use the same hoofdteelt rule as the rest of the app, rather than grouping by start
+      // date, so multi-cultivation years resolve to the one considered active.
+      const cultivationForYear = getMainCultivation(allCultivations, String(year))
       if (!cultivationForYear) continue
       fdmCultivationHistory.push({
         year,
@@ -531,7 +531,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           }
           const fieldCultivations = cultivationsByField.get(candidate.b_id) ?? []
           const active =
-            getDefaultCultivation(fieldCultivations, calendar) ?? fieldCultivations[0] ?? null
+            getMainCultivation(fieldCultivations, calendar) ?? fieldCultivations[0] ?? null
           return [candidate.b_id, active?.b_lu_croprotation ?? null] as const
         })
         return Object.fromEntries(entries)

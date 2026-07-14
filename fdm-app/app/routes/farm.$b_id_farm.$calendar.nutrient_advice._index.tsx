@@ -28,7 +28,7 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -152,9 +152,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               }
             }
 
-            const hasDefaultCultivation = !!getDefaultCultivation(cultivations, calendar)
+            const hasDefaultCultivation = !!getMainCultivation(cultivations, calendar)
             const activeCultivation =
-              getDefaultCultivation(cultivations, calendar) ?? cultivations[0]
+              getMainCultivation(cultivations, calendar) ?? cultivations[0]
             const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
             const currentSoilData = soilDataByField.get(field.b_id) ?? []
 
