@@ -39,7 +39,7 @@ type AgentFormPerson = "second" | "third"
 
 function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   const work_days = Array.isArray(agent.work_days)
-    ? agent.work_days.map((day) => day).filter((d) => typeof d === "number")
+    ? agent.work_days.filter((d: unknown) => typeof d === "number")
     : [1, 2, 3, 4, 5]
 
   return {
@@ -225,7 +225,7 @@ export function AgentFormFields({
             <FieldDescription>
               Dagen in een week dat je beschikbaar bent om tickets te behandelen.
             </FieldDescription>
-            <div className="flex flex-col gap-2 md:flex-row">
+            <div className="flex flex-col justify-between gap-2 md:flex-row">
               {WORK_DAYS.map(([dayName, dayNumber]) => (
                 <div key={dayNumber} className="flex flex-row items-center gap-2 md:flex-col">
                   <Label className="text-muted-foreground" htmlFor={workDaysIds[dayNumber]}>
@@ -269,27 +269,25 @@ export function AgentForm({
   const reassignTickets = useWatch({ control: form.control, name: "reassign_tickets" })
 
   return (
-    <RemixFormProvider {...form}>
-      <fetcher.Form
-        method="post"
-        onSubmit={form.handleSubmit}
-        className="mx-auto max-w-2xl space-y-6"
-      >
-        <fieldset disabled={isSubmitting} className="space-y-4">
-          <AgentFormFields agent={agent} isAdmin={isAdmin} person={person} />
-        </fieldset>
-        <div className="text-end">
-          <SubmitButtonWithReassignmentConfirmation
-            type="submit"
-            needsConfirmation={reassignTickets}
-            person={person}
-            disabled={isSubmitting}
-          >
-            Opslaan{isSubmitting && <Spinner />}
-          </SubmitButtonWithReassignmentConfirmation>
-        </div>
-      </fetcher.Form>
-    </RemixFormProvider>
+    <Card className="mx-auto max-w-2xl p-6">
+      <RemixFormProvider {...form}>
+        <fetcher.Form method="post" onSubmit={form.handleSubmit} className="space-y-6">
+          <fieldset disabled={isSubmitting} className="space-y-4">
+            <AgentFormFields agent={agent} isAdmin={isAdmin} person={person} />
+          </fieldset>
+          <div className="text-end">
+            <SubmitButtonWithReassignmentConfirmation
+              type="submit"
+              needsConfirmation={reassignTickets}
+              person={person}
+              disabled={isSubmitting}
+            >
+              Opslaan{isSubmitting && <Spinner />}
+            </SubmitButtonWithReassignmentConfirmation>
+          </div>
+        </fetcher.Form>
+      </RemixFormProvider>
+    </Card>
   )
 }
 
