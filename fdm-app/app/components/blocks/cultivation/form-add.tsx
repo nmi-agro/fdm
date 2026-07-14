@@ -17,19 +17,37 @@ import { Spinner } from "~/components/ui/spinner"
 import type { CultivationsFormProps } from "./types"
 import { CultivationAddFormSchema } from "./schema"
 
-export function CultivationAddFormDialog({ options }: CultivationsFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function CultivationAddFormDialog({
+  options,
+  defaultValues,
+  onClose,
+}: CultivationsFormProps & { onClose?: () => void }) {
+  const [isOpen, setIsOpen] = useState(!!defaultValues)
+  const isSuggested = !!defaultValues
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    if (!open) {
+      onClose?.()
+    }
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>Gewas toevoegen</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Gewas toevoegen</DialogTitle>
+          <DialogTitle>
+            {isSuggested ? "Voorgesteld gewas bevestigen" : "Gewas toevoegen"}
+          </DialogTitle>
         </DialogHeader>
-        <CultivationAddForm options={options} onSuccess={() => setIsOpen(false)} />
+        <CultivationAddForm
+          options={options}
+          defaultValues={defaultValues}
+          onSuccess={() => handleOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   )
@@ -37,16 +55,18 @@ export function CultivationAddFormDialog({ options }: CultivationsFormProps) {
 
 function CultivationAddForm({
   options,
+  defaultValues,
   onSuccess,
   editable = true,
 }: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void }) {
+  const isSuggested = !!defaultValues
   const form = useRemixForm<z.infer<typeof CultivationAddFormSchema>>({
     mode: "onTouched",
     resolver: zodResolver(CultivationAddFormSchema) as never,
     defaultValues: {
-      b_lu_catalogue: "",
-      b_lu_start: new Date(),
-      b_lu_end: undefined,
+      b_lu_catalogue: defaultValues?.b_lu_catalogue ?? "",
+      b_lu_start: defaultValues?.b_lu_start ?? new Date(),
+      b_lu_end: defaultValues?.b_lu_end ?? undefined,
     },
   })
 
@@ -103,6 +123,8 @@ function CultivationAddForm({
                     <Spinner />
                     <span>Opslaan...</span>
                   </div>
+                ) : isSuggested ? (
+                  "Bevestigen"
                 ) : (
                   "Voeg toe"
                 )}

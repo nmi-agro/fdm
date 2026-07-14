@@ -8,7 +8,6 @@ import { data, type LoaderFunctionArgs, useFetcher, useLoaderData } from "react-
 import { SoilDataCards } from "~/components/blocks/soil/cards"
 import { SoilAnalysesList } from "~/components/blocks/soil/list"
 import { Separator } from "~/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
@@ -101,7 +100,7 @@ export default function FarmFieldSoilOverviewBlock() {
   const fetcher = useFetcher()
 
   return (
-    <Tabs defaultValue="parameters" className="p-6">
+    <div className="p-6">
       <div className="space-y-4">
         <div className="space-y-0.5">
           <h2 className="truncate text-2xl font-bold tracking-tight xl:whitespace-normal">
@@ -112,40 +111,40 @@ export default function FarmFieldSoilOverviewBlock() {
             bodemparameter
           </p>
         </div>
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="parameters">Parameters</TabsTrigger>
-            <TabsTrigger value="analyses">Analyses</TabsTrigger>
-          </TabsList>
-        </div>
       </div>
       <Separator className="mt-4 mb-6" />
-      <TabsContent value="parameters">
-        {loaderData.soilAnalyses.length === 0 ? (
-          <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
-            <div className="flex flex-col space-y-2 text-center">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                Dit perceel heeft nog geen bodemanalyse
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Voeg een analyse toe om gegevens over de bodem bij te houden
-              </p>
-            </div>
+      {loaderData.soilAnalyses.length === 0 ? (
+        <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col space-y-2 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Dit perceel heeft nog geen bodemanalyse
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Voeg een analyse toe om gegevens over de bodem bij te houden
+            </p>
           </div>
-        ) : (
-          <SoilDataCards
-            currentSoilData={loaderData.currentSoilData}
-            soilParameterDescription={loaderData.soilParameterDescription}
-          />
-        )}
-      </TabsContent>
-      <TabsContent value="analyses">
-        <SoilAnalysesList
-          soilAnalyses={loaderData.soilAnalyses}
-          soilParameterDescription={loaderData.soilParameterDescription}
-          fetcher={fetcher}
-        />
-      </TabsContent>
-    </Tabs>
+        </div>
+      ) : (
+        <div className="flex flex-col-reverse gap-6 lg:flex-row lg:items-start">
+          <div className="border-t pt-6 lg:w-2/3 lg:border-t-0 lg:pt-0">
+            <SoilDataCards
+              currentSoilData={loaderData.currentSoilData}
+              soilParameterDescription={loaderData.soilParameterDescription}
+            />
+          </div>
+          <div className="space-y-4 lg:w-1/3 lg:border-l lg:pl-6">
+            <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] uppercase">
+              Bodemanalyses
+            </h4>
+            <SoilAnalysesList
+              soilAnalyses={loaderData.soilAnalyses}
+              soilParameterDescription={loaderData.soilParameterDescription}
+              fetcher={fetcher}
+              fieldName={loaderData.field.b_name}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

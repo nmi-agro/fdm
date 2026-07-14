@@ -38,8 +38,7 @@ export const useNutrientAdviceOverviewStore = create<NutrientAdviceOverviewState
       applyDefaultColumnVisibility: (columnVisibility) => set({ columnVisibility }),
       // "Select all" in the column visibility dropdown: an empty state means every column is
       // visible, so resetting simply clears any per-column overrides.
-      resetColumnVisibility: () =>
-        set({ columnVisibility: {}, hasCustomColumnVisibility: true }),
+      resetColumnVisibility: () => set({ columnVisibility: {}, hasCustomColumnVisibility: true }),
     }),
     {
       name: "nutrient-advice-overview-storage",

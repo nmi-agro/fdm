@@ -21,17 +21,20 @@ export function AuthCodeField({
     <Controller
       control={control}
       name={name}
-      render={({ field, fieldState }) => (
-        <Field>
-          <FieldLabel className="sr-only">Code</FieldLabel>
-          <FieldContent>
-            <AuthCodeInput field={field} onComplete={onComplete} />
-            <FieldError
-              errors={[fieldState.error, serverError ? { message: serverError } : undefined]}
-            />
-          </FieldContent>
-        </Field>
-      )}
+      render={({ field, fieldState }) => {
+        const isInvalid = fieldState.invalid || !!serverError
+        return (
+          <Field data-invalid={isInvalid}>
+            <FieldLabel className="sr-only">Code</FieldLabel>
+            <FieldContent>
+              <AuthCodeInput field={field} onComplete={onComplete} aria-invalid={isInvalid} />
+              <FieldError
+                errors={[fieldState.error, serverError ? { message: serverError } : undefined]}
+              />
+            </FieldContent>
+          </Field>
+        )
+      }}
     />
   )
 }

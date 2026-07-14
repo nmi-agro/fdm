@@ -1,12 +1,11 @@
-import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
+import type { SoilAnalysis, SoilParameterDescription } from "@nmi-agro/fdm-core"
 import type { Control, FieldValues, Path, Resolver, UseFormReturn } from "react-hook-form"
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type { SoilAnalysis } from "@/app/components/blocks/soil/types"
-import { FormSchema } from "@/app/components/blocks/soil/formschema"
+import { FormSchema } from "~/components/blocks/soil/formschema"
 import { DatePicker } from "~/components/custom/date-picker"
 import { Button } from "~/components/ui/button"
 import {
@@ -42,10 +41,12 @@ export function SoilAnalysisForm(props: {
 
   const { calendar } = useCalendarStore()
   const defaultValues: {
-    [key: string]: string | number | Date | undefined | null
+    [key: string]: string | number | boolean | Date | undefined | null
   } = {}
   for (const x of soilParameterDescription) {
-    let defaultValue = soilAnalysis ? soilAnalysis[x.parameter as keyof SoilAnalysis] : undefined
+    let defaultValue = soilAnalysis
+      ? soilAnalysis[x.parameter as keyof Omit<SoilAnalysis, "b_sampling_geometry">]
+      : undefined
 
     if (defaultValue === undefined && (x.type === "text" || x.type === "numeric")) {
       defaultValue = ""
@@ -76,7 +77,11 @@ export function SoilAnalysisForm(props: {
       <Form id="soilAnalysisForm" onSubmit={form.handleSubmit} method="post">
         <fieldset disabled={!editable || form.formState.isSubmitting}>
           <div className="space-y-6">
-            <p className="text-muted-foreground text-sm">Vul de gegevens van de bodemanalyse in.</p>
+            {editable && (
+              <p className="text-muted-foreground text-sm">
+                Vul de gegevens van de bodemanalyse in.
+              </p>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               {soilParameterDescription.map((x) => {
                 if (x.parameter === "a_id") {

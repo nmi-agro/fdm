@@ -1,14 +1,20 @@
-import { addSoilAnalysis, getField, getSoilParametersDescription } from "@nmi-agro/fdm-core"
+import {
+  addSoilAnalysis,
+  getField,
+  getSoilParametersDescription,
+  updateSoilAnalysis,
+} from "@nmi-agro/fdm-core"
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { fileTypeFromBuffer } from "file-type"
 import { type ActionFunctionArgs, data, type LoaderFunctionArgs } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FormSchema, SoilAnalysisUploadForm } from "~/components/blocks/soil/form-upload"
-import { extractSoilAnalysis } from "~/integrations/nmi.server"
+import { extractSoilAnalysisAndBuffer } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { buildObjectKey, deleteObject, uploadObject } from "../integrations/gcs.server"
 
 /**
  * Loader function for the soil analysis upload page.
@@ -108,7 +114,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
-    const fileStorage = createFsFileStorage("./uploads/soil_analyses")
+    const fileStorage = createFsFileStorage("./uploads/soil_analysis")
 
     const uploadHandler = async (fileUpload: FileUpload) => {
       if (fileUpload.fieldName === "soilAnalysisFile" && fileUpload.type === "application/pdf") {
@@ -149,7 +155,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
 
     // Submit to NMI API
-    const soilAnalysisResult = await extractSoilAnalysis(formData)
+    const { soilAnalysis: soilAnalysisResult, buffer } =
+      await extractSoilAnalysisAndBuffer(formData)
 
     // Validate required fields exist
     if (!soilAnalysisResult.a_depth_lower) {
@@ -169,7 +176,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const { a_source: _a_source, ...soilAnalysisData } = soilAnalysisResult as any
 
     // Add soil analysis
-    await addSoilAnalysis(
+    const soilAnalysisId = await addSoilAnalysis(
       fdm,
       session.principal_id,
       null,
@@ -180,6 +187,26 @@ export async function action({ request, params }: ActionFunctionArgs) {
       soilAnalysisData,
       Number(soilAnalysisResult.a_depth_upper),
     )
+
+    const objectKey = buildObjectKey("soil_analysis", soilAnalysisId, "pdf")
+
+    let uploaded = false
+    try {
+      await uploadObject(objectKey, new Uint8Array(buffer), "application/pdf")
+      uploaded = true
+      await updateSoilAnalysis(fdm, session.principal_id, soilAnalysisId, {
+        a_file_path: objectKey,
+      })
+    } catch (gcsSaveError) {
+      try {
+        if (uploaded) {
+          await deleteObject(objectKey)
+        }
+      } catch (deleteError) {
+        handleActionError(deleteError)
+      }
+      handleActionError(gcsSaveError)
+    }
 
     const url = new URL(request.url)
 

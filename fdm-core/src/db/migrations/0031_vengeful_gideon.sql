@@ -1,0 +1,1 @@
+ALTER TABLE "fdm"."soil_analysis" ADD COLUMN "a_file_path" text;

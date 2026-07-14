@@ -1,6 +1,7 @@
 import type { GebruiksnormResult, NormFilling } from "@nmi-agro/fdm-calculator"
 import { NormNotApplicableError } from "@nmi-agro/fdm-calculator"
 import {
+  checkPermission,
   getFarm,
   getFarms,
   getFertilizerApplications,
@@ -124,8 +125,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
-    // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    const [fieldWritePermission, fields] = await Promise.all([
+      checkPermission(
+        fdm,
+        "field",
+        "write",
+        b_id,
+        session.principal_id,
+        "routes/farm.$b_id_farm.$calendar.norms.$b_id",
+        false,
+      ),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
     const fieldOptions = fields.map((field) => {
       if (!field?.b_id || !field?.b_name) {
         throw new Error("Invalid field data structure")
@@ -189,6 +200,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       farm,
       field,
+      fieldWritePermission,
       b_id_farm,
       b_id,
       calendar,
@@ -414,21 +426,18 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             <NormCard
               title="Stikstof, werkzaam"
-              type="field"
               norm={norms?.nitrogen.normValue ?? 0}
               filling={normsFilling?.nitrogen.normFilling}
               unit="kg N"
             />
             <NormCard
               title="Fosfaat"
-              type="field"
               norm={norms?.phosphate.normValue ?? 0}
               filling={normsFilling?.phosphate.normFilling}
               unit="kg P₂O₅"
             />
             <NormCard
               title="Stikstof uit dierlijke mest"
-              type="field"
               norm={norms?.manure.normValue ?? 0}
               filling={normsFilling?.manure.normFilling}
               unit="kg N"

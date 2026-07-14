@@ -1,8 +1,8 @@
-import type { Feature, Point } from "geojson"
 import {
   calculateNlvSupplyBySom,
   calculateWaterSupplyBySom,
   getRegion,
+  getSoilParameterEstimates,
   isFieldInGWGBGebied,
   isFieldInNatura2000Gebied,
   isFieldInNVGebied,
@@ -30,10 +30,11 @@ import { SoilTextureCard } from "~/components/blocks/atlas-fields/soil-texture"
 import { ErrorBlock } from "~/components/custom/error"
 import { Button } from "~/components/ui/button"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getNmiApiKey, getSoilParameterEstimates } from "~/integrations/nmi.server"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -149,17 +150,13 @@ async function loadAsyncData(_calendar: string, latitude: number, longitude: num
   try {
     const latestStatusYear = "2026"
     const fieldPromise = getFieldByCentroid(longitude, latitude, latestStatusYear)
-    const field = {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "Point",
-        coordinates: [longitude, latitude],
-      },
-    } as Feature<Point>
     const nmiApiKey = getNmiApiKey()
 
-    const estimatesPromise = getSoilParameterEstimates(field, nmiApiKey)
+    const estimatesPromise = getSoilParameterEstimates(fdm, {
+      a_lat: latitude,
+      a_lon: longitude,
+      nmiApiKey,
+    })
     const cultivationCataloguePromise = getCultivationCatalogue("brp")
 
     const fieldDetailsPromise = Promise.all([

@@ -44,9 +44,16 @@ const MAX_ERROR_FIELDS_LISTED = 4
 interface NutrientAdviceOverviewTableProps {
   data: FieldNutrientRow[]
   nutrients: NutrientDescription[]
+  b_id_farm: string
+  calendar: string
 }
 
-export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceOverviewTableProps) {
+export function NutrientAdviceOverviewTable({
+  data,
+  nutrients,
+  b_id_farm,
+  calendar,
+}: NutrientAdviceOverviewTableProps) {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const [search, setSearch] = useState("")
@@ -76,8 +83,8 @@ export function NutrientAdviceOverviewTable({ data, nutrients }: NutrientAdviceO
   }, [isMobile, nutrients, hasCustomColumnVisibility, applyDefaultColumnVisibility])
 
   const columns = useMemo<ColumnDef<FieldNutrientRow>[]>(
-    () => buildOverviewColumns(nutrients, unitMode),
-    [nutrients, unitMode],
+    () => buildOverviewColumns(nutrients, unitMode, b_id_farm, calendar),
+    [nutrients, unitMode, b_id_farm, calendar],
   )
 
   const filteredData = useMemo(() => {
