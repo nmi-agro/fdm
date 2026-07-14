@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AgentAbsence } from "@nmi-agro/fdm-helpdesk"
 import { Pencil, User, Users } from "lucide-react"
-import { useId, useMemo, useState, type ComponentProps } from "react"
+import { useId, useMemo, type ComponentProps } from "react"
 import { Controller } from "react-hook-form"
 import { NavLink, useFetcher } from "react-router"
 import { useRemixForm, RemixFormProvider } from "remix-hook-form"
 import z from "zod"
 import { cn } from "@/app/lib/utils"
+import { useAgentManagerFilterStore } from "@/app/store/agent-manager-filter"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
@@ -53,12 +54,13 @@ export function HelpdeskAgentManager({
   roles,
   canModify,
 }: HelpdeskAgentManagerProps) {
-  const [onlyActive, setOnlyActive] = useState(false)
   const onlyActiveId = useId()
+  const agentManagerFilter = useAgentManagerFilterStore()
 
   const filteredHelpdeskUsers = useMemo(
-    () => (onlyActive ? helpdeskUsers.filter((user) => user.isActive) : helpdeskUsers),
-    [helpdeskUsers, onlyActive],
+    () =>
+      agentManagerFilter.activeOnly ? helpdeskUsers.filter((user) => user.isActive) : helpdeskUsers,
+    [helpdeskUsers, agentManagerFilter.activeOnly],
   )
 
   return (
@@ -70,7 +72,11 @@ export function HelpdeskAgentManager({
       )}
       <CardContent className="space-y-4 first:pt-6">
         <Field orientation="horizontal">
-          <Switch id={onlyActiveId} checked={onlyActive} onCheckedChange={setOnlyActive} />
+          <Switch
+            id={onlyActiveId}
+            checked={agentManagerFilter.activeOnly}
+            onCheckedChange={(value) => agentManagerFilter.setActiveOnly(value)}
+          />
           <FieldLabel htmlFor={onlyActiveId}>Toon alleen actief</FieldLabel>
         </Field>
         <Table className="w-full">
