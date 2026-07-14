@@ -70,6 +70,8 @@ export type GanttFeature = {
   endAt: Date
   status: GanttStatus
   lane?: string // Optional: features with the same lane will share a row
+  /** Optional background color (e.g. an rgba string) applied to the feature's card. */
+  color?: string
 }
 
 export type GanttMarkerProps = {
@@ -736,11 +738,11 @@ export const GanttFeatureDragHelper: FC<GanttFeatureDragHelperProps> = ({
   )
 }
 
-export type GanttFeatureItemCardProps = Pick<GanttFeature, "id"> & {
+export type GanttFeatureItemCardProps = Pick<GanttFeature, "id" | "color"> & {
   children?: ReactNode
 }
 
-export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({ id, children }) => {
+export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({ id, color, children }) => {
   const [, setDragging] = useGanttDragging()
   const { attributes, listeners, setNodeRef } = useDraggable({ id })
   const isPressed = Boolean(attributes["aria-pressed"])
@@ -748,7 +750,10 @@ export const GanttFeatureItemCard: FC<GanttFeatureItemCardProps> = ({ id, childr
   useEffect(() => setDragging(isPressed), [isPressed, setDragging])
 
   return (
-    <Card className="bg-background h-full w-full rounded-md p-2 text-xs shadow-sm">
+    <Card
+      className="bg-background h-full w-full rounded-md p-2 text-xs shadow-sm"
+      style={color ? { backgroundColor: color } : undefined}
+    >
       <div
         className={cn(
           "flex h-full w-full items-center justify-between gap-2 text-left",
@@ -876,7 +881,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           onDragStart={handleItemDragStart}
           sensors={[mouseSensor]}
         >
-          <GanttFeatureItemCard id={feature.id}>
+          <GanttFeatureItemCard color={feature.color} id={feature.id}>
             {children ?? <p className="flex-1 truncate text-xs">{feature.name}</p>}
           </GanttFeatureItemCard>
         </DndContext>
@@ -1293,10 +1298,11 @@ export const GanttProvider: FC<GanttProviderProps> = ({
 export type GanttTimelineProps = {
   children: ReactNode
   className?: string
+  style?: CSSProperties
 }
 
-export const GanttTimeline: FC<GanttTimelineProps> = ({ children, className }) => (
-  <div className={cn("relative flex h-full w-max flex-none overflow-clip", className)}>
+export const GanttTimeline: FC<GanttTimelineProps> = ({ children, className, style }) => (
+  <div className={cn("relative flex h-full w-max flex-none overflow-clip", className)} style={style}>
     {children}
   </div>
 )

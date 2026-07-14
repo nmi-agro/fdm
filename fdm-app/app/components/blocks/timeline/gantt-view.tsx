@@ -26,7 +26,7 @@ export type TimelineFertilizerApplication = {
   p_app_id: string
   p_id: string
   p_name_nl: string | null
-  p_app_amount: number | null
+  p_app_amount_display: number | null
   p_app_amount_unit: string | null
   p_app_date: Date
 }
@@ -36,6 +36,8 @@ export type TimelineHarvest = {
   b_lu: string
   b_lu_name: string | null
   b_lu_harvest_date: Date | null
+  /** Pre-filtered/labeled by the server loader to only the parameters fillable for this crop's harvest category. */
+  parameters: { label: string; value: number }[]
 }
 
 export type TimelineSoilAnalysis = {
@@ -105,6 +107,20 @@ const soilStatus: GanttStatus = { id: "soil", name: "Bodemmonster", color: "#256
 
 const formatNl = (date: Date) => format(date, "d MMM yyyy", { locale: nl })
 
+/** Converts a "#rrggbb" hex color to an rgba() string with the given alpha, for a translucent tint. */
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "")
+  const bigint = Number.parseInt(clean, 16)
+  const r = (bigint >> 16) & 255
+  const g = (bigint >> 8) & 255
+  const b = bigint & 255
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+function formatHarvestDetails(harvest: TimelineHarvest): string {
+  return harvest.parameters.map(({ label, value }) => `${label}: ${value}`).join("\n")
+}
+
 /**
  * Builds the Gantt features for a single field: cultivation periods as duration bars, with
  * fertilizer/harvest/soil events that fall within a cultivation's date range overlaid directly
@@ -132,12 +148,14 @@ function buildFieldFeatures(
       // browsing the current year.
       const endAt = cultivation.b_lu_end ?? openCultivationEndAt
       const name = cultivation.b_lu_name ?? "Onbekend gewas"
+      const color = cultivationStatus(cultivation.b_lu_croprotation).color
       cultivationFeatures.push({
         id: `cultivation-${cultivation.b_lu}`,
         name,
         startAt,
         endAt,
         status: cultivationStatus(cultivation.b_lu_croprotation),
+        color: hexToRgba(color, 0.35),
         lane: field.b_id,
         kind: "cultivation",
         href: `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/cultivation`,
@@ -174,8 +192,8 @@ function buildFieldFeatures(
       const p_type = fertilizerTypeById.get(app.p_id) ?? null
       const name = app.p_name_nl ?? "Bemesting"
       const amountText =
-        app.p_app_amount != null && app.p_app_amount_unit
-          ? `${app.p_app_amount} ${app.p_app_amount_unit}`
+        app.p_app_amount_display != null && app.p_app_amount_unit
+          ? `${app.p_app_amount_display} ${app.p_app_amount_unit}`
           : null
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/fertilizer`
       const detail = `Bemesting: ${name}${amountText ? ` — ${amountText}` : ""}\n${field.b_name} · ${formatNl(app.p_app_date)}`
@@ -203,7 +221,10 @@ function buildFieldFeatures(
       if (!harvest.b_lu_harvest_date) continue
       const name = harvest.b_lu_name ? `Oogst ${harvest.b_lu_name}` : "Oogst"
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/cultivation`
-      const detail = `${name}\n${field.b_name} · ${formatNl(harvest.b_lu_harvest_date)}`
+      const parameterDetails = formatHarvestDetails(harvest)
+      const detail = `${name}\n${field.b_name} · ${formatNl(harvest.b_lu_harvest_date)}${
+        parameterDetails ? `\n${parameterDetails}` : ""
+      }`
       attachOrPush(
         harvest.b_lu_harvest_date,
         { id: `harvest-${harvest.b_id_harvesting}`, kind: "harvest", label: name, detail, href },
@@ -278,25 +299,29 @@ function FeatureContent({ feature }: { feature: TimelineFeature }) {
 
   if (feature.kind === "cultivation") {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className="relative flex h-full min-w-0 flex-1 cursor-pointer items-center"
-            onClick={() => void navigate(feature.href ?? "#")}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") void navigate(feature.href ?? "#")
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <p className="flex-1 truncate px-1.5 text-xs">{feature.name}</p>
-            {feature.events?.map((event) => (
-              <EventOverlay event={event} key={event.id} />
-            ))}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
-      </Tooltip>
+      <div className="relative flex h-full min-w-0 flex-1 items-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className="absolute inset-0 flex cursor-pointer items-center"
+              onClick={() => void navigate(feature.href ?? "#")}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void navigate(feature.href ?? "#")
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <p className="flex-1 truncate px-1.5 text-xs">{feature.name}</p>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
+        </Tooltip>
+        {/* Rendered as siblings (not nested inside the label's Tooltip trigger above) so
+            hovering an event icon only opens its own tooltip, not the cultivation bar's. */}
+        {feature.events?.map((event) => (
+          <EventOverlay event={event} key={event.id} />
+        ))}
+      </div>
     )
   }
 
@@ -349,6 +374,31 @@ function useScrollToCalendarYear(
   }, [containerRef, calendarYear, range])
 }
 
+/**
+ * Replicates Kibo UI's internal `GanttFeatureRow` overlap-stacking algorithm so we can compute,
+ * ahead of render, exactly how many sub-rows a field's features will occupy — needed to size
+ * `GanttTimeline` explicitly (see below).
+ */
+function computeMaxSubRows(features: TimelineFeature[]): number {
+  const sorted = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
+  const subRowEndTimes: number[] = []
+  for (const feature of sorted) {
+    let subRow = 0
+    while (subRow < subRowEndTimes.length && subRowEndTimes[subRow] > feature.startAt.getTime()) {
+      subRow++
+    }
+    if (subRow === subRowEndTimes.length) {
+      subRowEndTimes.push(feature.endAt.getTime())
+    } else {
+      subRowEndTimes[subRow] = feature.endAt.getTime()
+    }
+  }
+  return Math.max(1, subRowEndTimes.length)
+}
+
+const ROW_HEIGHT_PX = 36
+const GROUP_GAP_PX = 16 // Tailwind's `space-y-4`, used both in GanttSidebar and GanttFeatureList
+
 export function TimelineGanttView({
   fields,
   filters,
@@ -374,6 +424,32 @@ export function TimelineGanttView({
     .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name, "nl"))
 
   const openCultivationEndAt = new Date(calendarYear, 11, 31, 23, 59, 59)
+
+  // Precompute each field's features once (reused for the timeline row) and its resulting
+  // sub-row count, so we can give `GanttTimeline` an explicit total height below.
+  const fieldsWithFeatures = visibleFields.map((field) => {
+    const features = buildFieldFeatures(
+      field,
+      filters,
+      fertilizerTypeById,
+      b_id_farm,
+      calendar,
+      openCultivationEndAt,
+    )
+    return { field, features, maxSubRows: computeMaxSubRows(features) }
+  })
+
+  // Kibo UI's `GanttTimeline` uses `overflow-clip` combined with a percentage (`h-full`) height,
+  // which — inside this nested sidebar/timeline grid layout — resolves to the height of the
+  // *initially visible* viewport instead of stretching to fit all field rows. That silently
+  // clips any bars/markers (including the "today" line) beyond roughly the first screenful,
+  // even though the sidebar (which sizes itself from real content) keeps scrolling correctly.
+  // Fix: give it an explicit pixel height computed from the actual content, overriding `h-full`.
+  const totalTimelineHeight =
+    fieldsWithFeatures.reduce(
+      (sum, { maxSubRows }) => sum + ROW_HEIGHT_PX + maxSubRows * ROW_HEIGHT_PX,
+      0,
+    ) + Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -407,26 +483,16 @@ export function TimelineGanttView({
               )
             })}
           </GanttSidebar>
-          <GanttTimeline>
+          <GanttTimeline style={{ height: totalTimelineHeight }}>
             <GanttHeader />
             <GanttFeatureList>
-              {visibleFields.map((field) => {
-                const features = buildFieldFeatures(
-                  field,
-                  filters,
-                  fertilizerTypeById,
-                  b_id_farm,
-                  calendar,
-                  openCultivationEndAt,
-                )
-                return (
-                  <GanttFeatureListGroup key={field.b_id}>
-                    <GanttFeatureRow features={features}>
-                      {(feature) => <FeatureContent feature={feature as TimelineFeature} />}
-                    </GanttFeatureRow>
-                  </GanttFeatureListGroup>
-                )
-              })}
+              {fieldsWithFeatures.map(({ field, features }) => (
+                <GanttFeatureListGroup key={field.b_id}>
+                  <GanttFeatureRow features={features}>
+                    {(feature) => <FeatureContent feature={feature as TimelineFeature} />}
+                  </GanttFeatureRow>
+                </GanttFeatureListGroup>
+              ))}
             </GanttFeatureList>
             <GanttToday />
           </GanttTimeline>

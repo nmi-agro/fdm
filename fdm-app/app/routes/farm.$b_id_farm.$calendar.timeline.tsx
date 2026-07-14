@@ -6,6 +6,7 @@ import {
   getFertilizers,
   getFields,
   getHarvestsForFarm,
+  getParametersForHarvestCat,
   getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
 import { Smartphone } from "lucide-react"
@@ -15,6 +16,7 @@ import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
@@ -98,12 +100,27 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
         const cultivations = cultivationsByField.get(field.b_id) ?? []
         const harvests = cultivations.flatMap((cultivation) =>
-          (harvestsByCultivation.get(cultivation.b_lu) ?? []).map((harvest) => ({
-            b_id_harvesting: harvest.b_id_harvesting,
-            b_lu: harvest.b_lu,
-            b_lu_name: cultivation.b_lu_name,
-            b_lu_harvest_date: harvest.b_lu_harvest_date,
-          })),
+          (harvestsByCultivation.get(cultivation.b_lu) ?? []).map((harvest) => {
+            const analysis = harvest.harvestable.harvestable_analyses[0]
+            // Only include parameters that are actually fillable for this crop's harvest
+            // category, computed here (server-side) so the client component doesn't need to
+            // import fdm-core at all — importing it client-side would pull server-only code
+            // (e.g. authentication using node:crypto) into the browser bundle.
+            const fillableParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
+            const parameters = fillableParameters
+              .filter((param) => analysis?.[param] != null)
+              .map((param) => ({
+                label: getHarvestParameterLabel(param),
+                value: analysis?.[param] as number,
+              }))
+            return {
+              b_id_harvesting: harvest.b_id_harvesting,
+              b_lu: harvest.b_lu,
+              b_lu_name: cultivation.b_lu_name,
+              b_lu_harvest_date: harvest.b_lu_harvest_date,
+              parameters,
+            }
+          }),
         )
 
         return {
