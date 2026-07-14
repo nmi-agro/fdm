@@ -1,16 +1,16 @@
-import type { ComponentProps } from "react"
-import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AgentAbsence } from "@nmi-agro/fdm-helpdesk"
 import { Pencil, User, Users } from "lucide-react"
+import { useId, useMemo, useState, type ComponentProps } from "react"
 import { Controller } from "react-hook-form"
 import { NavLink, useFetcher } from "react-router"
-import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import { useRemixForm, RemixFormProvider } from "remix-hook-form"
+import z from "zod"
 import { cn } from "@/app/lib/utils"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
-import { Field, FieldContent } from "~/components/ui/field"
+import { Field, FieldContent, FieldLabel } from "~/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -19,11 +19,13 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
+import { Switch } from "~/components/ui/switch"
 import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
 import type { HelpdeskUser } from "./types"
 import { AgentAvailabilityDisplay } from "./agent-availability"
 import { AddAgentSchema } from "./agent-schema"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
+import { SubmitButtonWithReassignmentConfirmation } from "./reassignment-confirmation"
 
 export type HelpdeskUserExtended = HelpdeskUser & {
   absence: AgentAbsence | null
@@ -51,6 +53,14 @@ export function HelpdeskAgentManager({
   roles,
   canModify,
 }: HelpdeskAgentManagerProps) {
+  const [onlyActive, setOnlyActive] = useState(false)
+  const onlyActiveId = useId()
+
+  const filteredHelpdeskUsers = useMemo(
+    () => (onlyActive ? helpdeskUsers.filter((user) => user.isActive) : helpdeskUsers),
+    [helpdeskUsers, onlyActive],
+  )
+
   return (
     <Card className="mx-auto max-w-5xl">
       {canModify && (
@@ -58,10 +68,14 @@ export function HelpdeskAgentManager({
           <AddAgentForm helpdeskUsers={helpdeskUsers} roles={roles} />
         </CardHeader>
       )}
-      <CardContent className="first:pt-6">
+      <CardContent className="space-y-4 first:pt-6">
+        <Field orientation="horizontal">
+          <Switch id={onlyActiveId} checked={onlyActive} onCheckedChange={setOnlyActive} />
+          <FieldLabel htmlFor={onlyActiveId}>Toon alleen actief</FieldLabel>
+        </Field>
         <Table className="w-full">
           <TableBody>
-            {helpdeskUsers.map((principal) => (
+            {filteredHelpdeskUsers.map((principal) => (
               <PrincipalRow
                 key={principal.principal_id}
                 principal={principal}
@@ -81,7 +95,7 @@ export interface AddAgentFormProps {
   roles: readonly RoleDescription[]
 }
 
-const FormSchema = AddAgentSchema.extend({ intent: "add_agent" })
+const FormSchema = AddAgentSchema.extend({ intent: z.literal("add_agent") })
 export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
   const fetcher = useFetcher()
   const isSubmitting = fetcher.state !== "idle"
@@ -179,12 +193,15 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
           <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
         </TableCell>
       )}
-      <TableCell className="whitespace-nowrap">{`${principal.assignment_tier}e linie`}</TableCell>
+      <TableCell className="text-muted-foreground whitespace-nowrap">{`${principal.assignment_tier}e linie`}</TableCell>
       {canModify ? (
         <>
           <TableCell>
             <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
-              <NavLink to={`/support/settings/agents/${principal.principal_id}`}>
+              <NavLink
+                to={`/support/settings/agents/${principal.principal_id}`}
+                aria-label={`Bewerk medewerker ${principal.displayUserName}`}
+              >
                 <Pencil />
               </NavLink>
             </Button>
@@ -208,20 +225,22 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
             )}
           </TableCell>
           <TableCell className="text-end align-middle">
-            <Button
+            <SubmitButtonWithReassignmentConfirmation
               type="button"
               variant={principal.isActive ? "destructive" : "outline"}
-              onClick={() => {
+              disabled={isSubmitting}
+              needsConfirmation={principal.isActive}
+              person="third"
+              onConfirmation={() => {
                 const formData = new FormData()
                 formData.append("intent", "set_agent_active_status")
                 formData.append("principal_id", principal.principal_id)
                 formData.append("is_active", principal.isActive ? "false" : "true")
                 void fetcher.submit(formData, { method: "post" })
               }}
-              disabled={isSubmitting}
             >
               {principal.isActive ? "Deactiveren" : "Activeren"}
-            </Button>
+            </SubmitButtonWithReassignmentConfirmation>
           </TableCell>
         </>
       ) : (

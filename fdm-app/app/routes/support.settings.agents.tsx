@@ -3,11 +3,15 @@ import {
   addAgent,
   checkHelpdeskPermission,
   getAbsencesForAgentsOnDate,
+  getAgent,
   getAgents,
+  reassignAgentTickets,
   setAgentActiveStatus,
+  TicketReassignment,
   updateAgentRole,
 } from "@nmi-agro/fdm-helpdesk"
 import { Outlet, useLoaderData } from "react-router"
+import { dataWithSuccess } from "remix-toast"
 import z from "zod"
 import { makeHelpdeskUser } from "@/app/components/blocks/helpdesk/helpdesk-user"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -21,6 +25,7 @@ import {
   SetAgentActiveStatusSchema,
   UpdateAgentRoleSchema,
 } from "~/components/blocks/helpdesk/agent-schema"
+import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -115,11 +120,45 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (formValues.intent === "set_agent_active_status") {
-      await setAgentActiveStatus(
-        fdm,
-        session.principal_id,
-        formValues.principal_id,
-        Boolean(formValues.is_active),
+      let newAssignments: TicketReassignment[] = []
+      await fdm.transaction(async (tx) => {
+        const agent = await getAgent(tx, session.principal_id, formValues.principal_id)
+
+        if (agent.is_active !== formValues.is_active) {
+          await setAgentActiveStatus(
+            tx,
+            session.principal_id,
+            formValues.principal_id,
+            Boolean(formValues.is_active),
+          )
+        }
+
+        if (agent.is_active && !formValues.is_active) {
+          const reassignment = await reassignAgentTickets(
+            tx,
+            formValues.principal_id,
+            session.principal_id,
+          )
+          newAssignments = reassignment.reassigned
+        }
+      })
+
+      if (newAssignments.length > 0) {
+        await notifyAboutReassignments(session.principal_id, newAssignments)
+
+        return dataWithSuccess(
+          "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
+          {
+            message: "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
+          },
+        )
+      }
+
+      return dataWithSuccess(
+        formValues.is_active ? "De medewerker is geactiveerd." : "De medewerker is gedeactiveerd.",
+        {
+          message: "De medewerker is bijgewerkt.",
+        },
       )
     }
   } catch (err) {

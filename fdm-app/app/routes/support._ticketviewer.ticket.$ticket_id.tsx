@@ -71,7 +71,7 @@ export async function loader({ params, request }: Args) {
     ])
 
     // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
-    const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
+    const agents = isAgent ? await getAgents(fdm, session.principal_id, { isActive: true }) : []
     const agentAbsences = isAgent
       ? await getAbsencesForAgentsOnDate(fdm, session.principal_id, new Date())
       : undefined

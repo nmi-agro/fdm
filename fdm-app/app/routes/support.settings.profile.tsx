@@ -1,9 +1,9 @@
-import { getPrincipals } from "@nmi-agro/fdm-core"
 import {
+  checkHelpdeskPermission,
   getAgent,
-  getMessagesForTicket,
   reassignAgentTickets,
   setAgentStatus,
+  setAssignmentTier,
   setMaxTickets,
   setWorkDays,
   type TicketReassignment,
@@ -14,9 +14,9 @@ import { dataWithSuccess } from "remix-toast"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AgentForm } from "~/components/blocks/helpdesk/agent-form"
 import { UpdateAgentSchema } from "~/components/blocks/helpdesk/agent-schema"
+import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -41,8 +41,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const agent = await getAgent(fdm, session.principal_id, session.principal_id)
 
+    const helpdeskWritePermission = await checkHelpdeskPermission(
+      fdm,
+      "helpdesk",
+      "write",
+      "",
+      session.principal_id,
+      "routes/support.settings.profile",
+      false,
+    )
+
     return {
       agent: agent,
+      helpdeskWritePermission: helpdeskWritePermission,
     }
   } catch (err) {
     throw handleLoaderError(err)
@@ -59,19 +70,6 @@ export async function action({ request }: Route.ActionArgs) {
 
     await fdm.transaction(async (tx) => {
       const agent = await getAgent(tx, session.principal_id, session.principal_id)
-
-      if (
-        agentUpdate.reassign_tickets &&
-        agentUpdate.availability_status !== agent.availability_status &&
-        agentUpdate.availability_status === "out-of-office"
-      ) {
-        const reassignment = await reassignAgentTickets(
-          tx,
-          session.principal_id,
-          session.principal_id,
-        )
-        newAssignments = reassignment.reassigned
-      }
 
       await updateAgent(tx, session.principal_id, session.principal_id, agentUpdate.display_name)
 
@@ -90,57 +88,45 @@ export async function action({ request }: Route.ActionArgs) {
         session.principal_id,
         agentUpdate.max_tickets ?? null,
       )
+
+      if (typeof agentUpdate.assignment_tier === "number") {
+        const helpdeskWritePermission = await checkHelpdeskPermission(
+          fdm,
+          "helpdesk",
+          "write",
+          "",
+          session.principal_id,
+          "routes/support.settings.profile",
+          false,
+        )
+
+        if (helpdeskWritePermission) {
+          await setAssignmentTier(
+            tx,
+            session.principal_id,
+            session.principal_id,
+            agentUpdate.assignment_tier,
+          )
+        }
+      }
+
+      // Only after updating the agent to the latest state, try to reassign their tickets
+      if (
+        agentUpdate.reassign_tickets &&
+        agentUpdate.availability_status !== agent.availability_status &&
+        agentUpdate.availability_status === "out-of-office"
+      ) {
+        const reassignment = await reassignAgentTickets(
+          tx,
+          session.principal_id,
+          session.principal_id,
+        )
+        newAssignments = reassignment.reassigned
+      }
     })
 
     if (newAssignments.length > 0) {
-      const principals = await getPrincipals(fdm, [
-        ...newAssignments.map((assignment) => assignment.agent_id),
-        ...newAssignments
-          .map((assignment) => assignment.ticket.requester_id)
-          .filter((id) => typeof id === "string"),
-      ])
-
-      const sentCounts = new Map<string, number>()
-
-      for (const assignment of newAssignments) {
-        // Limit email sending to a maximum number per agent
-        if ((sentCounts.get(assignment.agent_id) ?? 0) >= 3) continue
-
-        try {
-          const email = principals.get(assignment.agent_id)?.email
-          const requester_name =
-            (assignment.ticket.requester_id
-              ? principals.get(assignment.ticket.requester_id)?.displayUserName
-              : undefined) ??
-            assignment.ticket.requester_id ??
-            "Onbekend"
-
-          if (!email) continue
-
-          const subject = assignment.ticket.subject ?? "Onbekend"
-          const messages = await getMessagesForTicket(
-            fdm,
-            session.principal_id,
-            assignment.ticket.ticket_id,
-            { pageLimit: 1 },
-          )
-
-          await sendHelpdeskNewMessageEmail(
-            email,
-            assignment.display_name,
-            requester_name,
-            assignment.ticket.ticket_ref,
-            subject,
-            assignment.ticket.ticket_id,
-            messages.length > 0 ? messages[0].body : subject,
-            messages.length > 0 ? messages[0].body : subject,
-          )
-
-          sentCounts.set(assignment.agent_id, (sentCounts.get(assignment.agent_id) ?? 0) + 1)
-        } catch (err) {
-          handleActionError(err)
-        }
-      }
+      await notifyAboutReassignments(session.principal_id, newAssignments)
 
       return dataWithSuccess("Gegevens succesvol bijgewerkt en tickets opnieuw toegewezen.", {
         message: "Gegevens succesvol bijgewerkt en tickets opnieuw toegewezen.",
@@ -155,7 +141,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function SupportSettingsProfile() {
-  const { agent } = useLoaderData<typeof loader>()
+  const { agent, helpdeskWritePermission } = useLoaderData<typeof loader>()
 
   return (
     <main className="p-6">
@@ -163,7 +149,7 @@ export default function SupportSettingsProfile() {
         title="Mijn Info"
         description="Hier kun je jouw informatie als medewerker beheren."
       />
-      <AgentForm agent={agent} isAdmin={false} />
+      <AgentForm agent={agent} isAdmin={helpdeskWritePermission} person="second" />
     </main>
   )
 }

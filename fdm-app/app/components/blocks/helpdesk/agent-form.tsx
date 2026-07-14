@@ -3,7 +3,7 @@ import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useId } from "react"
 import { Controller, useWatch, type Resolver } from "react-hook-form"
-import { Form, useFetcher } from "react-router"
+import { FetcherWithComponents, useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
@@ -18,6 +18,7 @@ import {
 } from "~/components/ui/dialog"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import {
   Select,
@@ -30,9 +31,11 @@ import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { AGENT_AVAILABILITY_STATUSES } from "./agent-availability"
 import { AssignmentTierOptions, UpdateAgentSchema } from "./agent-schema"
+import { SubmitButtonWithReassignmentConfirmation } from "./reassignment-confirmation"
 
 type AgentFormDefaults = Partial<Agent> & { agent_id: string }
 type AgentFormValues = z.infer<typeof UpdateAgentSchema>
+type AgentFormPerson = "second" | "third"
 
 function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   const work_days = Array.isArray(agent.work_days)
@@ -55,11 +58,18 @@ function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   }
 }
 
-export function useAgentForm({ agent }: { agent: AgentFormDefaults }) {
+export function useAgentForm({
+  agent,
+  fetcher,
+}: {
+  agent: AgentFormDefaults
+  fetcher: FetcherWithComponents<unknown>
+}) {
   const form = useRemixForm<AgentFormValues>({
     mode: "onTouched",
     resolver: zodResolver(UpdateAgentSchema) as Resolver<AgentFormValues>,
     defaultValues: getFormDefaults(agent),
+    fetcher: fetcher,
   })
 
   const availability_status = useWatch({ control: form.control, name: "availability_status" })
@@ -85,7 +95,15 @@ const WORK_DAYS: [string, number][] = [
   ["Zondag", 0],
 ]
 
-export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
+export function AgentFormFields({
+  agent,
+  isAdmin,
+  person,
+}: {
+  agent: Agent
+  isAdmin: boolean
+  person: AgentFormPerson
+}) {
   const statusOnlineId = useId()
   const statusAwayId = useId()
   const statusOutOfOfficeId = useId()
@@ -96,15 +114,20 @@ export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boo
   }
   const availability_status = useWatch({ name: "availability_status" })
 
+  const nameId = useId()
+  const assignmentTierId = useId()
+  const workDaysIds = WORK_DAYS.map(() => useId())
+  const reassignTicketsId = useId()
+
   return (
     <>
       <Controller
         name="display_name"
         render={({ field, fieldState }) => (
           <Field>
-            <FieldLabel>Naam</FieldLabel>
+            <FieldLabel htmlFor={nameId}>Naam</FieldLabel>
             <FieldDescription>De naam die gebruikers kunnen zien.</FieldDescription>
-            <Input {...field} placeholder={agent.display_name} />
+            <Input {...field} id={nameId} placeholder={agent.display_name} />
             {fieldState.error && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}
@@ -113,7 +136,7 @@ export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boo
         name="assignment_tier"
         render={({ field, fieldState }) => (
           <Field>
-            <FieldLabel>Rang</FieldLabel>
+            <FieldLabel htmlFor={assignmentTierId}>Rang</FieldLabel>
             <FieldDescription>
               De rang van de agent tijdens het toewijzen van tickets.
             </FieldDescription>
@@ -122,13 +145,15 @@ export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boo
               onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
               disabled={!isAdmin}
             >
-              <SelectTrigger>
+              <SelectTrigger id={assignmentTierId}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1e linie - voorkeur voor toewijzing</SelectItem>
-                <SelectItem value="2">2e linie</SelectItem>
-                <SelectItem value="3">3e linie - escalatie</SelectItem>
+                {AssignmentTierOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {fieldState.error && <FieldError errors={[fieldState.error]} />}
@@ -170,8 +195,18 @@ export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boo
             <div>
               <Card className="inline-block p-2">
                 <Field orientation="horizontal">
-                  <FieldLabel>Mijn tickets opnieuw toewijzen</FieldLabel>
+                  {person === "second" && (
+                    <FieldLabel htmlFor={reassignTicketsId}>
+                      Mijn tickets opnieuw toewijzen
+                    </FieldLabel>
+                  )}
+                  {person === "third" && (
+                    <FieldLabel htmlFor={reassignTicketsId}>
+                      De tickets opnieuw toewijzen
+                    </FieldLabel>
+                  )}
                   <Switch
+                    id={reassignTicketsId}
                     checked={field.value}
                     onCheckedChange={(checked) => field.onChange(checked)}
                   />
@@ -193,8 +228,11 @@ export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boo
             <div className="flex flex-col gap-2 md:flex-row">
               {WORK_DAYS.map(([dayName, dayNumber]) => (
                 <div key={dayNumber} className="flex flex-row items-center gap-2 md:flex-col">
-                  <div className="text-muted-foreground">{dayName}</div>
+                  <Label className="text-muted-foreground" htmlFor={workDaysIds[dayNumber]}>
+                    {dayName}
+                  </Label>
                   <Checkbox
+                    id={workDaysIds[dayNumber]}
                     checked={field.value.includes(dayNumber)}
                     onCheckedChange={(checked) => {
                       const newValue = checked
@@ -214,23 +252,43 @@ export function AgentFormFields({ agent, isAdmin }: { agent: Agent; isAdmin: boo
   )
 }
 
-export function AgentForm({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }) {
-  const form = useAgentForm({ agent })
+export function AgentForm({
+  agent,
+  isAdmin,
+  person,
+}: {
+  agent: Agent
+  isAdmin: boolean
+  person: AgentFormPerson
+}) {
+  const fetcher = useFetcher()
+  const form = useAgentForm({ agent, fetcher })
 
   const isSubmitting = form.formState.isSubmitting
 
+  const reassignTickets = useWatch({ control: form.control, name: "reassign_tickets" })
+
   return (
     <RemixFormProvider {...form}>
-      <Form method="post" onSubmit={form.handleSubmit} className="mx-auto max-w-2xl space-y-6">
+      <fetcher.Form
+        method="post"
+        onSubmit={form.handleSubmit}
+        className="mx-auto max-w-2xl space-y-6"
+      >
         <fieldset disabled={isSubmitting} className="space-y-4">
-          <AgentFormFields agent={agent} isAdmin={isAdmin} />
+          <AgentFormFields agent={agent} isAdmin={isAdmin} person={person} />
         </fieldset>
         <div className="text-end">
-          <Button type="submit" disabled={isSubmitting}>
+          <SubmitButtonWithReassignmentConfirmation
+            type="submit"
+            needsConfirmation={reassignTickets}
+            person={person}
+            disabled={isSubmitting}
+          >
             Opslaan{isSubmitting && <Spinner />}
-          </Button>
+          </SubmitButtonWithReassignmentConfirmation>
         </div>
-      </Form>
+      </fetcher.Form>
     </RemixFormProvider>
   )
 }
@@ -238,19 +296,23 @@ export function AgentForm({ agent, isAdmin }: { agent: Agent; isAdmin: boolean }
 export function AgentFormDialog({
   agent,
   isAdmin,
+  person,
   open,
   onOpenChange,
 }: {
   agent: Agent
   isAdmin: boolean
+  person: AgentFormPerson
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const form = useAgentForm({ agent })
   const fetcher = useFetcher()
   const formId = useId()
+  const form = useAgentForm({ agent, fetcher })
 
   const isSubmitting = fetcher.state !== "idle"
+
+  const reassignTickets = useWatch({ control: form.control, name: "reassign_tickets" })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -268,7 +330,7 @@ export function AgentFormDialog({
               <DialogTitle>Agent Bewerken</DialogTitle>
             </DialogHeader>
             <fieldset disabled={isSubmitting} className="space-y-4">
-              <AgentFormFields agent={agent} isAdmin={isAdmin} />
+              <AgentFormFields agent={agent} isAdmin={isAdmin} person={person} />
             </fieldset>
             <DialogFooter className="flex flex-row justify-end gap-2">
               <DialogClose asChild>
@@ -276,9 +338,14 @@ export function AgentFormDialog({
                   Sluiten
                 </Button>
               </DialogClose>
-              <Button type="submit" disabled={isSubmitting}>
+              <SubmitButtonWithReassignmentConfirmation
+                type="submit"
+                needsConfirmation={reassignTickets}
+                person={person}
+                disabled={isSubmitting}
+              >
                 Opslaan{isSubmitting && <Spinner />}
-              </Button>
+              </SubmitButtonWithReassignmentConfirmation>
             </DialogFooter>
           </fetcher.Form>
         </RemixFormProvider>

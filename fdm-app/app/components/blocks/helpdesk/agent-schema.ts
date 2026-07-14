@@ -41,7 +41,7 @@ export const UpdateAgentSchema = z.object({
   work_days: z.array(z.number().min(0).max(6)),
   assignment_tier: z
     .preprocess(
-      (val) => (val === "" ? undefined : typeof val === "string" ? Number.parseInt(val, 10) : val),
+      (val) => (val === "" ? undefined : typeof val === "string" ? Number(val) : val),
       z.union(AssignmentTierOptions.map((opt) => z.literal(opt.value))),
     )
     .optional(),
