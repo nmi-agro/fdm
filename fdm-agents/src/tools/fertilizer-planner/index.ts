@@ -1002,8 +1002,8 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
  * Returns the planner tool subset safe for the clarify agent:
  * all tools except simulateFarmPlan (which is plan-execution, not investigation).
  */
-export function createClarifyAgentTools(fdm: FdmType): StructuredToolInterface[] {
-  return createFertilizerPlannerTools(fdm).filter((t) => (t as any).name !== "simulateFarmPlan")
+export function createClarifyAgentTools(fdm: FdmType) {
+  return createFertilizerPlannerTools(fdm).filter((t) => t.name !== "simulateFarmPlan")
 }
 
 interface SearchArgs {
