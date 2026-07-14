@@ -1,6 +1,6 @@
 import { differenceInDays, differenceInMonths, format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { TestTube2, Wheat } from "lucide-react"
+import { LandPlot, TestTube2, Wheat } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { NavLink, useNavigate } from "react-router"
 import { FertilizerIcon } from "~/components/blocks/gerrit/fertilizer-icon"
@@ -20,6 +20,15 @@ import {
   GanttToday,
   type Range,
 } from "~/components/kibo-ui/gantt"
+import { Button } from "~/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 
 export type TimelineFertilizerApplication = {
@@ -402,6 +411,7 @@ const GROUP_GAP_PX = 16 // Tailwind's `space-y-4`, used both in GanttSidebar and
 export function TimelineGanttView({
   fields,
   filters,
+  onFiltersChange,
   fertilizerTypeById,
   b_id_farm,
   calendar,
@@ -410,6 +420,8 @@ export function TimelineGanttView({
 }: {
   fields: TimelineField[]
   filters: TimelineFilters
+  /** Optional: enables the "reset filters" action in the all-hidden empty state. */
+  onFiltersChange?: (filters: TimelineFilters) => void
   fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>
   b_id_farm: string
   calendar: string
@@ -422,6 +434,49 @@ export function TimelineGanttView({
   const visibleFields = fields
     .filter((field) => filters.showBufferStrips || !field.b_bufferstrip)
     .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name, "nl"))
+
+  if (fields.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <LandPlot />
+          </EmptyMedia>
+          <EmptyTitle>Geen percelen in dit jaar</EmptyTitle>
+          <EmptyDescription>
+            Er zijn voor {calendarYear} nog geen percelen met gewassen, bemestingen, oogsten of
+            bodemmonsters om op de tijdlijn te tonen.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
+
+  if (visibleFields.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <LandPlot />
+          </EmptyMedia>
+          <EmptyTitle>Geen percelen zichtbaar met deze filters</EmptyTitle>
+          <EmptyDescription>
+            Alle percelen van dit bedrijf zijn bufferstroken en die zijn nu verborgen.
+          </EmptyDescription>
+        </EmptyHeader>
+        {onFiltersChange && (
+          <EmptyContent>
+            <Button
+              onClick={() => onFiltersChange({ ...filters, showBufferStrips: true })}
+              variant="outline"
+            >
+              Toon bufferstroken
+            </Button>
+          </EmptyContent>
+        )}
+      </Empty>
+    )
+  }
 
   const openCultivationEndAt = new Date(calendarYear, 11, 31, 23, 59, 59)
 

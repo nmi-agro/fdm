@@ -304,7 +304,7 @@ export const GanttContentHeader: FC<GanttContentHeaderProps> = ({
 
   return (
     <div
-      className="bg-backdrop/90 sticky top-0 z-20 grid w-full shrink-0 backdrop-blur-sm"
+      className="bg-background sticky top-0 z-20 grid w-full shrink-0"
       style={{ height: "var(--gantt-header-height)" }}
     >
       <div>
@@ -495,7 +495,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
 
 export const GanttSidebarHeader: FC = () => (
   <div
-    className="border-border/50 bg-backdrop/90 text-muted-foreground sticky top-0 z-10 flex shrink-0 items-end justify-between gap-2.5 border-b p-2.5 text-xs font-medium backdrop-blur-sm"
+    className="border-border/50 bg-background text-muted-foreground sticky top-0 z-10 flex shrink-0 items-end justify-between gap-2.5 border-b p-2.5 text-xs font-medium"
     style={{ height: "var(--gantt-header-height)" }}
   >
     {/* <Checkbox className="shrink-0" /> */}
@@ -529,7 +529,7 @@ export type GanttSidebarProps = {
 export const GanttSidebar: FC<GanttSidebarProps> = ({ children, className }) => (
   <div
     className={cn(
-      "border-border/50 bg-background/90 sticky left-0 z-30 h-max min-h-full overflow-clip border-r backdrop-blur-md",
+      "border-border/50 bg-background sticky left-0 z-30 h-max min-h-full overflow-clip border-r",
       className,
     )}
     data-roadmap-ui="gantt-sidebar"

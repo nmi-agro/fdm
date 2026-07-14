@@ -1,6 +1,7 @@
 import { Filter } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
+import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Label } from "~/components/ui/label"
@@ -19,6 +20,21 @@ const rangeLabels: Record<Range, string> = {
   quarterly: "Kwartaal",
 }
 
+/** Filters that are "on" by default; a filter counts as active once it deviates from that default. */
+const defaultFilters: TimelineFilters = {
+  showBufferStrips: false,
+  showCultivations: true,
+  showFertilizers: true,
+  showHarvests: true,
+  showSoilSamplings: true,
+}
+
+function countActiveFilters(filters: TimelineFilters): number {
+  return Object.entries(filters).filter(
+    ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
+  ).length
+}
+
 export function TimelineToolbar({
   range,
   onRangeChange,
@@ -30,6 +46,8 @@ export function TimelineToolbar({
   filters: TimelineFilters
   onFiltersChange: (filters: TimelineFilters) => void
 }) {
+  const activeFilterCount = countActiveFilters(filters)
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>
@@ -50,9 +68,26 @@ export function TimelineToolbar({
           <Button variant="outline">
             <Filter className="size-4" />
             Filters
+            {activeFilterCount > 0 && (
+              <Badge className="ml-1 px-1.5" variant="secondary">
+                {activeFilterCount}
+              </Badge>
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-muted-foreground text-xs font-medium">Actieve filters</p>
+            {activeFilterCount > 0 && (
+              <Button
+                className="h-auto p-0 text-xs"
+                onClick={() => onFiltersChange(defaultFilters)}
+                variant="link"
+              >
+                Standaard herstellen
+              </Button>
+            )}
+          </div>
           <div className="space-y-2">
             <p className="text-muted-foreground text-xs font-medium">Gebeurtenissen</p>
             <div className="flex items-center gap-2">

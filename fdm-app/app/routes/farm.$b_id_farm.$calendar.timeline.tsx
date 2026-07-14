@@ -239,6 +239,7 @@ export default function TimelinePage() {
                 fertilizerTypeById={fertilizerTypeById}
                 fields={loaderData.fields}
                 filters={filters}
+                onFiltersChange={setFilters}
                 range={range}
               />
             </FarmContent>
