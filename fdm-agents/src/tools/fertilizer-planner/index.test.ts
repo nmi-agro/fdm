@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import {
+  createClarifyAgentTools,
   createFertilizerPlannerTools,
   getMainCultivation,
   isValidDutchCropCatalogue,
@@ -317,6 +318,15 @@ describe("fertilizer-planner tools", () => {
       expect(names).toContain("searchFertilizers")
       expect(names).toContain("simulateFarmPlan")
       expect(names).toContain("getCropFertilizerGuide")
+    })
+  })
+
+  describe("createClarifyAgentTools", () => {
+    it("should exclude simulateFarmPlan from clarify toolset", () => {
+      const tools = createClarifyAgentTools(mockFdm)
+      const names = tools.map((t) => t.name)
+      expect(names).not.toContain("simulateFarmPlan")
+      expect(names).toHaveLength(5)
     })
   })
 })
