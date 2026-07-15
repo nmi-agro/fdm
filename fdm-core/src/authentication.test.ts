@@ -48,9 +48,7 @@ describe("createFdmAuth", () => {
   it("should generate a 6-digit numeric magic-link OTP", () => {
     fdmAuth = createFdmAuth(fdm, googleAuth, microsoftAuth)
 
-    const magicLinkPlugin = fdmAuth.options.plugins?.find(
-      (p: any) => p.id === "magic-link",
-    ) as any
+    const magicLinkPlugin = fdmAuth.options.plugins?.find((p: any) => p.id === "magic-link") as any
     expect(magicLinkPlugin).toBeDefined()
 
     const token = magicLinkPlugin?.options?.generateToken?.()

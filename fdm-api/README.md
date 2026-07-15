@@ -216,9 +216,7 @@ GET /farms?limit=20&offset=0
 
 ```jsonc
 {
-  "data": [
-    /* array of items */
-  ],
+  "data": [/* array of items */],
   "limit": 20,
   "offset": 0,
   "total": 42,

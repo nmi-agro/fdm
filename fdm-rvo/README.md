@@ -145,9 +145,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const rvoFields = await fetchRvoFields(rvoClient, year, kvkNumber)
 
   // Fetch local fields (server-side)
-  const localFields = await db.query.fields.findMany({
-    /* ... */
-  })
+  const localFields = await db.query.fields.findMany({/* ... */})
 
   const rvoImportReviewResults = compareFields(localFields, rvoFields, Number(year))
   return { rvoImportReviewResults }

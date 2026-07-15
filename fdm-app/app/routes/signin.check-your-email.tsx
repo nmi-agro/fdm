@@ -14,6 +14,7 @@ import {
 import { useRemixForm } from "remix-hook-form"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthCodeField } from "~/components/blocks/auth/auth-code-field"
+import { FormSchema } from "~/components/blocks/auth/auth-formschema"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
@@ -22,9 +23,8 @@ import { auth } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
-import { maskEmail } from "~/lib/utils"
 import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
-import { FormSchema } from "~/components/blocks/auth/auth-formschema"
+import { maskEmail } from "~/lib/utils"
 
 export const meta: MetaFunction = () => {
   return [

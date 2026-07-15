@@ -54,7 +54,10 @@ import {
   getHarvestTerm,
 } from "~/components/blocks/harvest/utils"
 import { constructSoilDataCards } from "~/components/blocks/soil/cards"
-import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "~/components/blocks/soil/download"
+import {
+  getSoilAnalysisDownloadName,
+  getSoilAnalysisTitle,
+} from "~/components/blocks/soil/download"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getIndicatorsForField } from "~/integrations/bln3.server"
 import { getNorms } from "~/integrations/calculator"
