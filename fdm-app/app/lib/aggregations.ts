@@ -150,7 +150,7 @@ export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
     S_BBWP: [
         "GW_GWR",
         "GW_NLEA",
-        "P_WRET",
+        "GW_WHC",
         "P_DS",
         "P_WS",
         "NUT_N",
@@ -160,7 +160,7 @@ export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
     ],
 
     // Leaves under Water
-    S_GW_QUANT_BLN: ["GW_GWR", "P_WRET"],
+    S_GW_QUANT_BLN: ["GW_GWR", "GW_WHC"],
     S_GW_QUAL_BLN: ["GW_NLEA", "GW_PEST"],
     S_SW_QUAL_BLN: ["SW_NLEA", "SW_PLEA"],
 
@@ -168,7 +168,7 @@ export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
     S_NUT_BLN: ["NUT_K", "NUT_N", "NUT_P"],
 
     // Climate (direct leaf in S_BLN)
-    S_CLIM_BLN: ["C_SEQ"],
+    S_CLIM_BLN: ["CR_CSEQ"],
 
     // Leaves under OBI/Productivity
     S_PROD_BIOL_BLN: ["B_DI", "B_SF"],
