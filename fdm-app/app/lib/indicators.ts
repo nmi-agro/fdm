@@ -35,212 +35,223 @@ export type FieldMeasure = {
 // ── Indicator taxonomy ──────────────────────────────────────────────────────
 
 export const INDICATORS: IndicatorInfo[] = [
-  // Productie
-  {
-    id: "B_DI",
-    name: "Ziektewerendheid",
-    description: "Het vermogen van de bodem om bodemgebonden ziekten en plagen te voorkomen",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "B_SF",
-    name: "Microbiele activiteit",
-    description:
-      "De mate van activiteit van het micro-organismen (zoals bacteriën en schimmels) in de bodem",
-    ecosysteemdienst: "Productie",
-    unit: "mg N/kg",
-  },
-  {
-    id: "C_K",
-    name: "Kaliumbeschikbaarheid",
-    description: "De beschikbaarheid van kalium vanuit de bodem voor het gewas",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "C_MG",
-    name: "Magnesiumbeschikbaarheid",
-    description: "De beschikbaarheid van magnesium vanuit de bodem voor het gewas",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "C_N",
-    name: "Stikstofbeschikbaarheid",
-    description: "De beschikbaarheid van stikstof vanuit de bodem voor het gewas",
-    ecosysteemdienst: "Productie",
-    unit: "kg N/ha",
-  },
-  {
-    id: "C_P",
-    name: "Fosfaatbeschikbaarheid",
-    description: "De beschikbaarheid van fosfaat vanuit de bodem voor het gewas",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "C_PH",
-    name: "Zuurgraad",
-    description:
-      "De zuurgraad van de bodem, belangrijk voor de beschikbaarheid van nutriënten en een actief bodemleven",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "C_S",
-    name: "Zwavelbeschikbaarheid",
-    description: "De beschikbaarheid van zwavel vanuit de bodem voor het gewas",
-    ecosysteemdienst: "Productie",
-    unit: "kg S/ha",
-  },
-  {
-    id: "P_AS",
-    name: "Aggregaatstabiliteit",
-    description:
-      "De stevigheid van bodemaggregaten wat de bodem beter bestand maakt tegen verdichting en zware regenval",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "P_CO",
-    name: "Weerstand tegen bodemverdichting",
-    description: "De mate waarin de bodem bestand is tegen bodemverdichting",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "P_CR",
-    name: "Verkruimelbaarheid",
-    description: "De mate waarin de bodem is te verkruimelen om een goed zaaibed aan te leggen",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "P_DS",
-    name: "Weerstand tegen droogte",
-    description:
-      "Het vermogen van de bodem om voldoende vocht vast te houden en te leveren tijdens droge perioden",
-    ecosysteemdienst: "Productie",
-    unit: "%",
-  },
-  {
-    id: "P_DU",
-    name: "Weerstand tegen verstuiving",
-    description: "De weerbaarheid van de bodem tegen winderosie",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "P_RO",
-    name: "Bewortelbaarheid",
-    description: "De mate waarin de bodem gemakkelijk te bewortelen is voor het gewas",
-    ecosysteemdienst: "Productie",
-    unit: "kg/m³",
-  },
-  {
-    id: "P_SE",
-    name: "Weerstand tegen verslemping",
-    description: "De weerbaarheid van de bodem tegen het vormen van een slempkorst",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "P_WRET",
-    name: "Waterbergend vermogen",
-    description: "Het vermogen van de bodem om water vast te houden",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "P_WO",
-    name: "Bewerkbaarheid",
-    description: "De mate waarin de bodem bewerkbaar is en voldoende draagkracht heeft",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
-    id: "P_WS",
-    name: "Weerstand tegen wateroverlast",
-    description:
-      "Het vermogen van de bodem om overtollig water snel af te voeren, zodat zuurstoftekort bij de wortels wordt voorkomen",
-    ecosysteemdienst: "Productie",
-    unit: "%",
-  },
-  // Klimaat
-  {
-    id: "C_SEQ",
-    name: "Klimaat",
-    description: "De potentie van de bodem om koolstof vast te leggen",
-    ecosysteemdienst: "Klimaat",
-    unit: null,
-  },
-  // Water
-  {
-    id: "GW_GWR",
-    name: "Grondwateraanvulling",
-    description:
-      "De mate waarin regenwater kan infiltreren naar het diepere grondwater in plaats van oppervlakkig af te stromen naar de sloten",
-    ecosysteemdienst: "Water",
-    unit: null,
-  },
-  {
-    id: "GW_NLEA",
-    name: "Weerstand tegen stikstofuitspoeling",
-    description:
-      "Het vermogen van de bodem om stikstof in de bodem vast te houden in plaats van dat het uitspoelt naar het grondwater",
-    ecosysteemdienst: "Water",
-    unit: null,
-  },
-  {
-    id: "GW_PEST",
-    name: "Weerstand tegen middeluitspoeling",
-    description:
-      "Het vermogen van de bodem om gewasbeschermingsmiddelen te binden en af te breken, zodat ze niet in het grondwater terechtkomen",
-    ecosysteemdienst: "Water",
-    unit: null,
-  },
-  {
-    id: "SW_NLEA",
-    name: "Weerstand tegen stikstofafspoeling",
-    description:
-      "Het vermogen van de bodem om afstroming van stikstof naar het oppervlaktewater te voorkomen na hevige neerslag",
-    ecosysteemdienst: "Water",
-    unit: null,
-  },
-  {
-    id: "SW_PLEA",
-    name: "Weerstand tegen fosfaatafspoeling",
-    description:
-      "Het vermogen van de bodem om fosfaat te binden en afstroming naar het oppervlaktewater te voorkomen na hevige neerslag",
-    ecosysteemdienst: "Water",
-    unit: null,
-  },
-  // Nutriëntenkringloop
-  {
-    id: "NUT_K",
-    name: "Kaliumbenutting",
-    description:
-      "De effectiviteit waarmee het gewas de aanwezige en bemeste kalium kan opnemen en benutten",
-    ecosysteemdienst: "Nutriëntenkringloop",
-    unit: null,
-  },
-  {
-    id: "NUT_N",
-    name: "Stikstofbenutting",
-    description:
-      "De effectiviteit waarmee het gewas de aanwezige en bemeste stikstof kan opnemen en benutten",
-    ecosysteemdienst: "Nutriëntenkringloop",
-    unit: null,
-  },
-  {
-    id: "NUT_P",
-    name: "Fosfaatbenutting",
-    description:
-      "De effectiviteit waarmee het gewas de aanwezige en bemeste fosfaat kan opnemen en benutten",
-    ecosysteemdienst: "Nutriëntenkringloop",
-    unit: null,
-  },
+    // Productie
+    {
+        id: "B_DI",
+        name: "Ziektewerendheid",
+        description:
+            "Het vermogen van de bodem om bodemgebonden ziekten en plagen te voorkomen",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "B_SF",
+        name: "Microbiele activiteit",
+        description:
+            "De mate van activiteit van het micro-organismen (zoals bacteriën en schimmels) in de bodem",
+        ecosysteemdienst: "Productie",
+        unit: "mg N/kg",
+    },
+    {
+        id: "C_K",
+        name: "Kaliumbeschikbaarheid",
+        description:
+            "De beschikbaarheid van kalium vanuit de bodem voor het gewas",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "C_MG",
+        name: "Magnesiumbeschikbaarheid",
+        description:
+            "De beschikbaarheid van magnesium vanuit de bodem voor het gewas",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "C_N",
+        name: "Stikstofbeschikbaarheid",
+        description:
+            "De beschikbaarheid van stikstof vanuit de bodem voor het gewas",
+        ecosysteemdienst: "Productie",
+        unit: "kg N/ha",
+    },
+    {
+        id: "C_P",
+        name: "Fosfaatbeschikbaarheid",
+        description:
+            "De beschikbaarheid van fosfaat vanuit de bodem voor het gewas",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "C_PH",
+        name: "Zuurgraad",
+        description:
+            "De zuurgraad van de bodem, belangrijk voor de beschikbaarheid van nutriënten en een actief bodemleven",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "C_S",
+        name: "Zwavelbeschikbaarheid",
+        description:
+            "De beschikbaarheid van zwavel vanuit de bodem voor het gewas",
+        ecosysteemdienst: "Productie",
+        unit: "kg S/ha",
+    },
+    {
+        id: "P_AS",
+        name: "Aggregaatstabiliteit",
+        description:
+            "De stevigheid van bodemaggregaten wat de bodem beter bestand maakt tegen verdichting en zware regenval",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "P_CO",
+        name: "Weerstand tegen bodemverdichting",
+        description:
+            "De mate waarin de bodem bestand is tegen bodemverdichting",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "P_CR",
+        name: "Verkruimelbaarheid",
+        description:
+            "De mate waarin de bodem is te verkruimelen om een goed zaaibed aan te leggen",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "P_DS",
+        name: "Weerstand tegen droogte",
+        description:
+            "Het vermogen van de bodem om voldoende vocht vast te houden en te leveren tijdens droge perioden",
+        ecosysteemdienst: "Productie",
+        unit: "%",
+    },
+    {
+        id: "P_DU",
+        name: "Weerstand tegen verstuiving",
+        description: "De weerbaarheid van de bodem tegen winderosie",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "P_RO",
+        name: "Bewortelbaarheid",
+        description:
+            "De mate waarin de bodem gemakkelijk te bewortelen is voor het gewas",
+        ecosysteemdienst: "Productie",
+        unit: "kg/m³",
+    },
+    {
+        id: "P_SE",
+        name: "Weerstand tegen verslemping",
+        description:
+            "De weerbaarheid van de bodem tegen het vormen van een slempkorst",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "P_WO",
+        name: "Bewerkbaarheid",
+        description:
+            "De mate waarin de bodem bewerkbaar is en voldoende draagkracht heeft",
+        ecosysteemdienst: "Productie",
+        unit: null,
+    },
+    {
+        id: "P_WS",
+        name: "Weerstand tegen wateroverlast",
+        description:
+            "Het vermogen van de bodem om overtollig water snel af te voeren, zodat zuurstoftekort bij de wortels wordt voorkomen",
+        ecosysteemdienst: "Productie",
+        unit: "%",
+    },
+    // Klimaat
+    {
+        id: "CR_CSEQ",
+        name: "Klimaat",
+        description: "De potentie van de bodem om koolstof vast te leggen",
+        ecosysteemdienst: "Klimaat",
+        unit: null,
+    },
+    // Water
+    {
+        id: "GW_GWR",
+        name: "Grondwateraanvulling",
+        description:
+            "De mate waarin regenwater kan infiltreren naar het diepere grondwater in plaats van oppervlakkig af te stromen naar de sloten",
+        ecosysteemdienst: "Water",
+        unit: null,
+    },
+    {
+        id: "GW_WHC",
+        name: "Waterbergend vermogen",
+        description: "Het vermogen van de bodem om water vast te houden",
+        ecosysteemdienst: "Water",
+        unit: null,
+    },
+    {
+        id: "GW_NLEA",
+        name: "Weerstand tegen stikstofuitspoeling",
+        description:
+            "Het vermogen van de bodem om stikstof in de bodem vast te houden in plaats van dat het uitspoelt naar het grondwater",
+        ecosysteemdienst: "Water",
+        unit: null,
+    },
+    {
+        id: "GW_PEST",
+        name: "Weerstand tegen middeluitspoeling",
+        description:
+            "Het vermogen van de bodem om gewasbeschermingsmiddelen te binden en af te breken, zodat ze niet in het grondwater terechtkomen",
+        ecosysteemdienst: "Water",
+        unit: null,
+    },
+    {
+        id: "SW_NLEA",
+        name: "Weerstand tegen stikstofafspoeling",
+        description:
+            "Het vermogen van de bodem om afstroming van stikstof naar het oppervlaktewater te voorkomen na hevige neerslag",
+        ecosysteemdienst: "Water",
+        unit: null,
+    },
+    {
+        id: "SW_PLEA",
+        name: "Weerstand tegen fosfaatafspoeling",
+        description:
+            "Het vermogen van de bodem om fosfaat te binden en afstroming naar het oppervlaktewater te voorkomen na hevige neerslag",
+        ecosysteemdienst: "Water",
+        unit: null,
+    },
+    // Nutriëntenkringloop
+    {
+        id: "NUT_K",
+        name: "Kaliumbenutting",
+        description:
+            "De effectiviteit waarmee het gewas de aanwezige en bemeste kalium kan opnemen en benutten",
+        ecosysteemdienst: "Nutriëntenkringloop",
+        unit: null,
+    },
+    {
+        id: "NUT_N",
+        name: "Stikstofbenutting",
+        description:
+            "De effectiviteit waarmee het gewas de aanwezige en bemeste stikstof kan opnemen en benutten",
+        ecosysteemdienst: "Nutriëntenkringloop",
+        unit: null,
+    },
+    {
+        id: "NUT_P",
+        name: "Fosfaatbenutting",
+        description:
+            "De effectiviteit waarmee het gewas de aanwezige en bemeste fosfaat kan opnemen en benutten",
+        ecosysteemdienst: "Nutriëntenkringloop",
+        unit: null,
+    },
 ]
 
 // ── Ecosystem service groupings ────────────────────────────────────────────
