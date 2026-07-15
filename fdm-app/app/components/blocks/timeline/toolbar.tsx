@@ -1,11 +1,8 @@
 import { Eye, Locate } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
-import { Badge } from "~/components/ui/badge"
+import { TimelineFiltersPopover } from "~/components/blocks/timeline/timeline-filters"
 import { Button } from "~/components/ui/button"
-import { Checkbox } from "~/components/ui/checkbox"
-import { Label } from "~/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -18,21 +15,6 @@ const rangeLabels: Record<Range, string> = {
   daily: "Dagelijks",
   monthly: "Maandelijks",
   quarterly: "Kwartaal",
-}
-
-/** Filters that are "on" by default; a filter counts as active once it deviates from that default. */
-const defaultFilters: TimelineFilters = {
-  showBufferStrips: false,
-  showCultivations: true,
-  showFertilizers: true,
-  showHarvests: true,
-  showSoilSamplings: true,
-}
-
-function countActiveFilters(filters: TimelineFilters): number {
-  return Object.entries(filters).filter(
-    ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
-  ).length
 }
 
 export function TimelineToolbar({
@@ -48,8 +30,6 @@ export function TimelineToolbar({
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
 }) {
-  const activeFilterCount = countActiveFilters(filters)
-
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>

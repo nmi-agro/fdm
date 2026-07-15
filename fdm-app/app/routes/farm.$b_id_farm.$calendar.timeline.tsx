@@ -1,4 +1,14 @@
-import { checkPermission, getFarms, getFertilizers } from "@nmi-agro/fdm-core"
+import {
+  checkPermission,
+  getCultivationsForFarm,
+  getFarms,
+  getFertilizerApplicationsForFarm,
+  getFertilizers,
+  getFields,
+  getParametersForHarvestCat,
+  getHarvestsForFarm,
+  getSoilAnalysesForFarm,
+} from "@nmi-agro/fdm-core"
 import { Smartphone } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useLoaderData, useParams } from "react-router"
@@ -12,9 +22,9 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
+import { TimelineMobileView } from "~/components/blocks/timeline/mobile-view"
 import { TimelineToolbar } from "~/components/blocks/timeline/toolbar"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { getSession } from "~/lib/auth.server"
@@ -164,20 +174,14 @@ export default function TimelinePage() {
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gebeurtenissen op je bedrijf."
             />
-            <div className="flex flex-1 flex-col items-center justify-center p-6">
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <Smartphone className="text-muted-foreground h-10 w-10" />
-                  </EmptyMedia>
-                  <EmptyTitle>Tijdlijn binnenkort beschikbaar op mobiel</EmptyTitle>
-                  <EmptyDescription>
-                    De tijdlijn is momenteel alleen beschikbaar op een groter scherm. We werken aan
-                    een mobiele weergave.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            </div>
+            <TimelineMobileView
+              b_id_farm={loaderData.b_id_farm}
+              calendar={calendar ?? ""}
+              fertilizerTypeById={fertilizerTypeById}
+              fields={loaderData.fields}
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
           </>
         ) : (
           <>
