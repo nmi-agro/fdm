@@ -19,9 +19,8 @@ export type FieldNutrientRow = {
     b_lu_croprotation: string | null
   } | null
   /**
-   * Set when `mainCultivation` was resolved via the `cultivations[0]` fallback (no registered
-   * default/"hoofdteelt" cultivation for the active year) and an NMI-estimate-based suggestion
-   * is available for the actual missing cultivation.
+   * Set when `mainCultivation` is `null` (no registered default/"hoofdteelt" cultivation for
+   * the active year) and an NMI-estimate-based suggestion is available for the field.
    */
   cultivationSuggestion?: CultivationSuggestion
   /** Set when the advice could not be calculated for this field (e.g. missing cultivation or soil data). */

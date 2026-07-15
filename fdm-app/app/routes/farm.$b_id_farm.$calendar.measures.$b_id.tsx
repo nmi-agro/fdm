@@ -61,7 +61,7 @@ import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
@@ -144,7 +144,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Derive harvest date from the active cultivation's b_lu_end
     const cal = getCalendar(params)
-    const activeCultivation = getDefaultCultivation(cultivations, cal)
+    const activeCultivation = getMainCultivation(cultivations, cal)
     const harvestDate = activeCultivation?.b_lu_end
       ? activeCultivation.b_lu_end.toISOString().split("T")[0]
       : null
