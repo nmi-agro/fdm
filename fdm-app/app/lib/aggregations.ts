@@ -168,7 +168,7 @@ export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
     S_NUT_BLN: ["NUT_K", "NUT_N", "NUT_P"],
 
     // Climate (direct leaf in S_BLN)
-    S_CLIM_BLN: ["C_SEQ"],
+    S_CLIM_BLN: ["CR_SEQ"],
 
     // Leaves under OBI/Productivity
     S_PROD_BIOL_BLN: ["B_DI", "B_SF"],

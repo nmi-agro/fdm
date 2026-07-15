@@ -184,7 +184,7 @@ export const INDICATORS: IndicatorInfo[] = [
     },
     // Klimaat
     {
-        id: "C_SEQ",
+        id: "CR_SEQ",
         name: "Klimaat",
         description: "De potentie van de bodem om koolstof vast te leggen",
         ecosysteemdienst: "Klimaat",
