@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, Outlet, useLoaderData } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -78,6 +78,7 @@ export default function UserSettingsProfile() {
           </CardContent>
         </Card>
       </div>
+      <Outlet />
     </>
   )
 }
