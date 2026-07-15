@@ -74,6 +74,47 @@ export type GanttFeature = {
   color?: string
 }
 
+export type GanttSubRowPositioned<T> = T & { subRow: number }
+
+/**
+ * Stacks time-overlapping features into separate sub-rows (greedy interval-graph coloring: sort
+ * by start date, assign each feature the first sub-row whose previous occupant has already
+ * ended). Shared by `GanttFeatureRow` (which renders the stacked bars) and any caller that needs
+ * to precompute the resulting row count ahead of render (e.g. to size a container explicitly) —
+ * using one implementation for both keeps the precomputed height and the actual rendered stack
+ * from drifting out of sync.
+ */
+export function computeGanttSubRows<T extends Pick<GanttFeature, "startAt" | "endAt">>(
+  features: T[],
+): GanttSubRowPositioned<T>[] {
+  const sorted = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
+  const subRowEndTimes: number[] = []
+  const positioned: GanttSubRowPositioned<T>[] = []
+
+  for (const feature of sorted) {
+    let subRow = 0
+    while (subRow < subRowEndTimes.length && subRowEndTimes[subRow] > feature.startAt.getTime()) {
+      subRow++
+    }
+    if (subRow === subRowEndTimes.length) {
+      subRowEndTimes.push(feature.endAt.getTime())
+    } else {
+      subRowEndTimes[subRow] = feature.endAt.getTime()
+    }
+    positioned.push({ ...feature, subRow })
+  }
+
+  return positioned
+}
+
+/** Number of sub-rows `computeGanttSubRows` would stack the given features into (at least 1). */
+export function computeGanttSubRowCount(features: Pick<GanttFeature, "startAt" | "endAt">[]) {
+  return computeGanttSubRows(features).reduce(
+    (max, feature) => Math.max(max, feature.subRow + 1),
+    1,
+  )
+}
+
 export type GanttMarkerProps = {
   id: string
   date: Date
@@ -931,32 +972,11 @@ export const GanttFeatureRow: FC<GanttFeatureRowProps> = ({
 }) => {
   const gantt = useContext(GanttContext)
 
-  // Sort features by start date to handle potential overlaps
-  const sortedFeatures = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
-
-  // Calculate sub-row positions for overlapping features using a proper algorithm
-  const featureWithPositions = []
-  const subRowEndTimes: Date[] = [] // Track when each sub-row becomes free
-
-  for (const feature of sortedFeatures) {
-    let subRow = 0
-
-    // Find the first sub-row that's free (doesn't overlap)
-    while (subRow < subRowEndTimes.length && subRowEndTimes[subRow] > feature.startAt) {
-      subRow++
-    }
-
-    // Update the end time for this sub-row
-    if (subRow === subRowEndTimes.length) {
-      subRowEndTimes.push(feature.endAt)
-    } else {
-      subRowEndTimes[subRow] = feature.endAt
-    }
-
-    featureWithPositions.push({ ...feature, subRow })
-  }
-
-  const maxSubRows = Math.max(1, subRowEndTimes.length)
+  const featureWithPositions = computeGanttSubRows(features)
+  const maxSubRows = featureWithPositions.reduce(
+    (max, feature) => Math.max(max, feature.subRow + 1),
+    1,
+  )
   // Read the configured row height from context instead of hardcoding it, so sub-row stacking
   // stays in sync with the sidebar (which sizes its rows from the same `--gantt-row-height`).
   const subRowHeight = gantt.rowHeight

@@ -6,6 +6,7 @@ import { NavLink, useNavigate } from "react-router"
 import { FertilizerIcon } from "~/components/blocks/gerrit/fertilizer-icon"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import {
+  computeGanttSubRowCount,
   type GanttFeature,
   GanttFeatureList,
   GanttFeatureListGroup,
@@ -424,28 +425,6 @@ function useScrollToCalendarYear(
   }, [containerRef, calendarYear, range])
 }
 
-/**
- * Replicates Kibo UI's internal `GanttFeatureRow` overlap-stacking algorithm so we can compute,
- * ahead of render, exactly how many sub-rows a field's features will occupy — needed to size
- * `GanttTimeline` explicitly (see below).
- */
-function computeMaxSubRows(features: TimelineFeature[]): number {
-  const sorted = [...features].sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
-  const subRowEndTimes: number[] = []
-  for (const feature of sorted) {
-    let subRow = 0
-    while (subRow < subRowEndTimes.length && subRowEndTimes[subRow] > feature.startAt.getTime()) {
-      subRow++
-    }
-    if (subRow === subRowEndTimes.length) {
-      subRowEndTimes.push(feature.endAt.getTime())
-    } else {
-      subRowEndTimes[subRow] = feature.endAt.getTime()
-    }
-  }
-  return Math.max(1, subRowEndTimes.length)
-}
-
 // Denser than Kibo UI's 36px default: farms can have 100+ fields, so every row counts. The
 // cultivation name no longer renders inline on the bar (see `FeatureContent`) — only the
 // sidebar and the on-hover tooltip show it — which is what frees this row up to shrink.
@@ -571,7 +550,7 @@ export const TimelineGanttView = forwardRef<
       calendar,
       openCultivationEndAt,
     )
-    return { field, features, maxSubRows: computeMaxSubRows(features) }
+    return { field, features, maxSubRows: computeGanttSubRowCount(features) }
   })
 
   // Kibo UI's `GanttTimeline` uses `overflow-clip` combined with a percentage (`h-full`) height,
