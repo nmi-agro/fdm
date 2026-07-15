@@ -298,9 +298,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     )
     const harvestsByCultivation = Object.fromEntries(harvestEntries)
 
-    const activeCultivation =
-      getMainCultivation(cultivations, calendar) ?? cultivations[0] ?? null
-    const hasDefaultCultivation = !!getMainCultivation(cultivations, calendar)
+    const mainCultivation = getMainCultivation(cultivations, calendar)
+    const activeCultivation = mainCultivation ?? null
+    const hasDefaultCultivation = !!mainCultivation
     // "not_configured" doubles as "nothing to show" here when a default cultivation already
     // exists — CultivationSuggestionStatusBanner renders null for that status either way.
     // Deferred (not awaited) so a slow/unavailable NMI lookup never blocks the rest of the
@@ -530,8 +530,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             return [candidate.b_id, activeCultivation?.b_lu_croprotation ?? null] as const
           }
           const fieldCultivations = cultivationsByField.get(candidate.b_id) ?? []
-          const active =
-            getMainCultivation(fieldCultivations, calendar) ?? fieldCultivations[0] ?? null
+          const active = getMainCultivation(fieldCultivations, calendar) ?? null
           return [candidate.b_id, active?.b_lu_croprotation ?? null] as const
         })
         return Object.fromEntries(entries)

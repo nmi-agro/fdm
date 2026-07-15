@@ -190,13 +190,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const cultivationId = url.searchParams.get("cultivation")
     const calendar = getCalendar(params)
 
-    let activeCultivation = cultivationId
+    const activeCultivation = cultivationId
       ? cultivations.find((c) => c.b_lu === cultivationId)
       : getMainCultivation(cultivations, calendar)
-
-    if (!activeCultivation && cultivations.length > 0) {
-      activeCultivation = cultivations[0]
-    }
 
     const currentSoilData = await getCurrentSoilData(fdm, session.principal_id, b_id)
 

@@ -152,9 +152,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               }
             }
 
-            const hasDefaultCultivation = !!getMainCultivation(cultivations, calendar)
-            const activeCultivation =
-              getMainCultivation(cultivations, calendar) ?? cultivations[0]
+            const activeCultivation = getMainCultivation(cultivations, calendar)
+            const hasDefaultCultivation = !!activeCultivation
             const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
             const currentSoilData = soilDataByField.get(field.b_id) ?? []
 
@@ -168,6 +167,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                   calendar,
                   nmiApiKey,
                 )
+
+            if (!activeCultivation) {
+              return {
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area,
+                mainCultivation: null,
+                cultivationSuggestion,
+                errorMessage: "Geen hoofdteelt bepaald voor dit jaar.",
+                values: {},
+              }
+            }
 
             const mainCultivation = {
               b_lu: activeCultivation.b_lu,

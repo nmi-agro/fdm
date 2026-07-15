@@ -69,8 +69,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             getCurrentSoilData(fdm, session.principal_id, field.b_id),
           ])
 
-          const mainCultivation = getMainCultivation(cultivations, calendar) || cultivations[0]
-          const catchCrop = cultivations.find((c) => c.b_lu !== mainCultivation?.b_lu)
+          const mainCultivation = getMainCultivation(cultivations, calendar)
+          const catchCrop = mainCultivation
+            ? cultivations.find((c) => c.b_lu !== mainCultivation.b_lu)
+            : undefined
 
           // OM Balance for this field
           const fieldOmInput = omInput.fields.find((f) => f.field.b_id === field.b_id)

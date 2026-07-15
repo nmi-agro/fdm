@@ -10,6 +10,7 @@ import {
   getNitrogenBalanceField,
   getNutrientAdvice,
   getOrganicMatterBalanceField,
+  GROENE_BRAAK,
   type NitrogenBalanceFieldResultNumeric,
   type NitrogenBalanceNumeric,
   type NormFilling,
@@ -316,10 +317,10 @@ export async function getNutrientAdviceForField({
   let b_lu_catalogue: string | null
 
   if (!cultivations.length) {
-    b_lu_catalogue = "nl_6794" // Set to 'braak' when no cultivation is present
+    b_lu_catalogue = GROENE_BRAAK // Set to 'braak' when no cultivation is present
   } else {
-    const mainCultivation = getMainCultivation(cultivations, calendar) || cultivations[0]
-    b_lu_catalogue = mainCultivation.b_lu_catalogue
+    const mainCultivation = getMainCultivation(cultivations, calendar)
+    b_lu_catalogue = mainCultivation?.b_lu_catalogue ?? GROENE_BRAAK
   }
 
   const nutrientAdvice = await getNutrientAdvice(fdm, {

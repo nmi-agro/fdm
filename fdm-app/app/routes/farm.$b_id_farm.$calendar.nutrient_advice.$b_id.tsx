@@ -100,16 +100,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         const activeCultivation = cultivationId
           ? cultivations.find((c) => c.b_lu === cultivationId)
-          : (getMainCultivation(cultivations, calendar) ?? cultivations[0])
+          : getMainCultivation(cultivations, calendar)
 
         if (!activeCultivation) {
-          throw handleLoaderError("missing: active cultivation")
+          throw new Error("Geen hoofdteelt gevonden voor dit perceel in dit jaar.")
         }
 
         const [resolvedCurrentSoilData, resolvedFertilizerApplications, resolvedFertilizers] =
           await Promise.all([currentSoilData, fertilizerApplications, fertilizers])
 
-        // For now take the first cultivation
         const b_lu_catalogue = activeCultivation.b_lu_catalogue
 
         const doses = calculateDose({
