@@ -144,29 +144,19 @@ export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
   S_WAT_BLN: [],
   S_PROD_BLN: [],
 
-    // S_BBWP acts as both a top-level aggregation and maps directly to its indicators
-    S_BBWP: [
-        "GW_GWR",
-        "GW_NLEA",
-        "GW_WHC",
-        "P_DS",
-        "P_WS",
-        "NUT_N",
-        "NUT_P",
-        "SW_NLEA",
-        "SW_PLEA",
-    ],
+  // S_BBWP acts as both a top-level aggregation and maps directly to its indicators
+  S_BBWP: ["GW_GWR", "GW_NLEA", "GW_WHC", "P_DS", "P_WS", "NUT_N", "NUT_P", "SW_NLEA", "SW_PLEA"],
 
-    // Leaves under Water
-    S_GW_QUANT_BLN: ["GW_GWR", "GW_WHC"],
-    S_GW_QUAL_BLN: ["GW_NLEA", "GW_PEST"],
-    S_SW_QUAL_BLN: ["SW_NLEA", "SW_PLEA"],
+  // Leaves under Water
+  S_GW_QUANT_BLN: ["GW_GWR", "GW_WHC"],
+  S_GW_QUAL_BLN: ["GW_NLEA", "GW_PEST"],
+  S_SW_QUAL_BLN: ["SW_NLEA", "SW_PLEA"],
 
   // Nutrient Cycle (direct leaf in S_BLN)
   S_NUT_BLN: ["NUT_K", "NUT_N", "NUT_P"],
 
-    // Climate (direct leaf in S_BLN)
-    S_CLIM_BLN: ["CR_CSEQ"],
+  // Climate (direct leaf in S_BLN)
+  S_CLIM_BLN: ["CR_CSEQ"],
 
   // Leaves under OBI/Productivity
   S_PROD_BIOL_BLN: ["B_DI", "B_SF"],
