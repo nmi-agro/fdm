@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.33.2
+
+### Patch Changes
+
+- [#701](https://github.com/nmi-agro/fdm/pull/701) [`be15738`](https://github.com/nmi-agro/fdm/commit/be1573826986a3fb735ac735f64765783cd33253) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now users see an error message inline in the form also when trying to create a cultivation, whose end date is before the start date. This used to only work for updating a cultivation.
+
 ## 0.33.1
 
 ### Patch Changes
