@@ -69,6 +69,18 @@ export const CultivationAddFormSchema = z.object({
         return value
     }, z.coerce.date().optional().nullable()),
 })
+    .refine(
+        (data) => {
+            if (data.b_lu_start && data.b_lu_end) {
+                return data.b_lu_end > data.b_lu_start
+            }
+            return true
+        },
+        {
+            path: ["b_lu_end"],
+            error: "Einddatum moet na de zaaidatum liggen.",
+        },
+    )
 
 export type CultivationAddFormSchemaType = z.infer<
     typeof CultivationAddFormSchema
