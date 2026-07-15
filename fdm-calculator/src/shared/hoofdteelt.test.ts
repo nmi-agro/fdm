@@ -113,4 +113,36 @@ describe("findHoofdteelt", () => {
     ]
     expect(findHoofdteelt(cultivations, 2025)).toBe(GROENE_BRAAK)
   })
+
+  it("should break ties by effective (clamped) duration, not raw cultivation length", () => {
+    const cultivations: CultivationForHoofdteelt[] = [
+      {
+        b_lu_catalogue: "cat_zz_late",
+        b_lu_start: new Date("2025-07-05"),
+        b_lu_end: new Date("2025-07-15"),
+      },
+      {
+        b_lu_catalogue: "cat_aa_early",
+        b_lu_start: new Date("2025-04-01"),
+        b_lu_end: new Date("2025-05-25"),
+      },
+    ]
+    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_aa_early")
+  })
+
+  it("should prefer the cultivation with the larger effective overlap when raw durations are equal", () => {
+    const cultivations: CultivationForHoofdteelt[] = [
+      {
+        b_lu_catalogue: "cat_mostly_outside",
+        b_lu_start: new Date("2025-04-20"),
+        b_lu_end: new Date("2025-05-20"),
+      },
+      {
+        b_lu_catalogue: "cat_fully_inside",
+        b_lu_start: new Date("2025-05-20"),
+        b_lu_end: new Date("2025-06-19"),
+      },
+    ]
+    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_fully_inside")
+  })
 })
