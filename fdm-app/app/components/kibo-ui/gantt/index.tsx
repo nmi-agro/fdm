@@ -552,11 +552,10 @@ export type GanttSidebarGroupProps = {
 }
 
 export const GanttSidebarGroup: FC<GanttSidebarGroupProps> = ({ children, name, className }) => (
-  <div className={className}>
-    <div
-      className="flex w-full items-baseline gap-1.5 truncate p-1.5 text-left"
-      style={{ height: "var(--gantt-row-height)" }}
-    >
+  <div className={cn("relative", className)}>
+    {/* Overlaid on top of `children` (rather than stacked above it in its own row) so a field
+        occupies exactly the height its bar(s) need — one row per field by default, not two. */}
+    <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-full items-center gap-1.5 truncate p-1.5 text-left">
       {name}
     </div>
     <div className="divide-border/50 divide-y">{children}</div>
@@ -952,9 +951,7 @@ export type GanttFeatureListGroupProps = {
 }
 
 export const GanttFeatureListGroup: FC<GanttFeatureListGroupProps> = ({ children, className }) => (
-  <div className={className} style={{ paddingTop: "var(--gantt-row-height)" }}>
-    {children}
-  </div>
+  <div className={className}>{children}</div>
 )
 
 export type GanttFeatureRowProps = {

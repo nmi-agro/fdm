@@ -17,7 +17,6 @@ import {
   type GanttStatus,
   GanttSidebar,
   GanttSidebarGroup,
-  GanttSidebarItem,
   GanttTimeline,
   GanttToday,
   type Range,
@@ -475,9 +474,9 @@ function useScrollToCalendarYear(
   }, [containerRef, calendarYear, range])
 }
 
-// Denser than Kibo UI's 36px default: farms can have 100+ fields, so every row counts. The
-// cultivation name no longer renders inline on the bar (see `FeatureContent`) — only the
-// sidebar and the on-hover tooltip show it — which is what frees this row up to shrink.
+// Each field now occupies exactly one row per bar/sub-row (no separate row reserved for the
+// field name — see GanttSidebarGroup/GanttFeatureListGroup, which overlay the name instead of
+// stacking it above the content) so farms with 100+ fields show far more of them at once.
 const ROW_HEIGHT_PX = 32
 const GROUP_GAP_PX = 8 // Tailwind's `space-y-2`, used both in GanttSidebar and GanttFeatureList
 
@@ -620,10 +619,7 @@ export const TimelineGanttView = forwardRef<
   // even though the sidebar (which sizes itself from real content) keeps scrolling correctly.
   // Fix: give it an explicit pixel height computed from the actual content, overriding `h-full`.
   const totalTimelineHeight =
-    fieldsWithFeatures.reduce(
-      (sum, { maxSubRows }) => sum + ROW_HEIGHT_PX + maxSubRows * ROW_HEIGHT_PX,
-      0,
-    ) +
+    fieldsWithFeatures.reduce((sum, { maxSubRows }) => sum + maxSubRows * ROW_HEIGHT_PX, 0) +
     Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
 
   return (
@@ -638,44 +634,28 @@ export const TimelineGanttView = forwardRef<
           zoom={100}
         >
           <GanttSidebar>
-            {visibleFields.map((field) => {
-              const cultivationFeatures = buildFieldFeatures(
-                field,
-                {
-                  ...filters,
-                  showFertilizers: false,
-                  showHarvests: false,
-                  showSoilSamplings: false,
-                },
-                fertilizerTypeById,
-                b_id_farm,
-                calendar,
-                openCultivationEndAt,
-              )
-              return (
-                <GanttSidebarGroup
-                  key={field.b_id}
-                  name={
-                    <>
-                      <span className="text-foreground truncate text-xs font-semibold">
-                        {field.b_name}
-                      </span>
-                      <span className="text-muted-foreground shrink-0 text-xs">
-                        {field.b_area} ha
-                      </span>
-                    </>
-                  }
-                >
-                  {cultivationFeatures.length === 0 ? (
-                    <p className="text-muted-foreground p-2.5 text-xs">Geen gewassen</p>
-                  ) : (
-                    cultivationFeatures.map((feature) => (
-                      <GanttSidebarItem feature={feature} key={feature.id} />
-                    ))
-                  )}
-                </GanttSidebarGroup>
-              )
-            })}
+            {fieldsWithFeatures.map(({ field, maxSubRows }) => (
+              <GanttSidebarGroup
+                key={field.b_id}
+                name={
+                  <>
+                    <span className="text-foreground truncate text-xs font-semibold">
+                      {field.b_name}
+                    </span>
+                    <span className="text-muted-foreground shrink-0 text-xs">
+                      {field.b_area} ha
+                    </span>
+                  </>
+                }
+              >
+                {/* No per-cultivation listing here (a field's cultivations, fertilizer
+                    applications, etc. are all visible directly on the bar/icons and their
+                    tooltips) — this is purely blank filler reserving the same height as the
+                    corresponding timeline row(s), so the two panes stay vertically aligned even
+                    when a field's bar needs extra sub-rows for overlapping features. */}
+                <div style={{ height: maxSubRows * ROW_HEIGHT_PX }} />
+              </GanttSidebarGroup>
+            ))}
           </GanttSidebar>
           <GanttTimeline style={{ height: totalTimelineHeight }}>
             <GanttHeader />
