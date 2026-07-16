@@ -21,7 +21,7 @@ import { getMapStyle } from "~/integrations/map"
 import { auth } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/organization.$slug.$calendar.measures"
@@ -172,7 +172,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         for (const field of farmFields.get(farm.b_id_farm) ?? []) {
           const fieldCultivations = farmCultivations.get(field.b_id)
           if (!fieldCultivations || fieldCultivations.length === 0) continue
-          const defaultCultivation = getDefaultCultivation(fieldCultivations, calendar)
+          const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
 
           if (defaultCultivation?.b_lu_catalogue) {
             const existing = collectedCultivations.get(defaultCultivation.b_lu_catalogue)

@@ -780,7 +780,8 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
           <div>
             <p className="text-3xl font-semibold">{dashboard.soil.analysisCount}</p>
             <p className="text-muted-foreground text-sm">
-              analyses · laatste bemonstering op {formatDateLabel(dashboard.soil.latestAnalysisDate)}
+              analyses · laatste bemonstering op{" "}
+              {formatDateLabel(dashboard.soil.latestAnalysisDate)}
             </p>
           </div>
           {latestAnalysisPdf && (

@@ -32,7 +32,8 @@ export type CultivationSuggestionResult =
 /**
  * Suggests a main cultivation for a field/year based on the NMI Estimates endpoint's
  * BRP-derived cultivation guess (`cultivations: { year, b_lu_brp }[]`), for use when
- * `getDefaultCultivation` (the "May 15th" rule) finds no registered cultivation.
+ * `getMainCultivation` (the hoofdteelt rule, May 15–July 15 longest duration) finds no
+ * registered cultivation.
  *
  * Always resolves to a result rather than throwing — the suggestion is a nice-to-have
  * enrichment and must never block or break a page. See {@link CultivationSuggestionResult}

@@ -146,13 +146,6 @@ export const INDICATORS: IndicatorInfo[] = [
     unit: null,
   },
   {
-    id: "P_WRET",
-    name: "Waterbergend vermogen",
-    description: "Het vermogen van de bodem om water vast te houden",
-    ecosysteemdienst: "Productie",
-    unit: null,
-  },
-  {
     id: "P_WO",
     name: "Bewerkbaarheid",
     description: "De mate waarin de bodem bewerkbaar is en voldoende draagkracht heeft",
@@ -169,7 +162,7 @@ export const INDICATORS: IndicatorInfo[] = [
   },
   // Klimaat
   {
-    id: "C_SEQ",
+    id: "CR_CSEQ",
     name: "Klimaat",
     description: "De potentie van de bodem om koolstof vast te leggen",
     ecosysteemdienst: "Klimaat",
@@ -181,6 +174,13 @@ export const INDICATORS: IndicatorInfo[] = [
     name: "Grondwateraanvulling",
     description:
       "De mate waarin regenwater kan infiltreren naar het diepere grondwater in plaats van oppervlakkig af te stromen naar de sloten",
+    ecosysteemdienst: "Water",
+    unit: null,
+  },
+  {
+    id: "GW_WHC",
+    name: "Waterbergend vermogen",
+    description: "Het vermogen van de bodem om water vast te houden",
     ecosysteemdienst: "Water",
     unit: null,
   },

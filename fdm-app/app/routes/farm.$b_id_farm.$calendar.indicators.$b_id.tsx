@@ -52,7 +52,7 @@ import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS, scoreToDisplay } from "~/lib/indicators"
@@ -325,8 +325,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       ]
     })
 
-    // Derive the current cultivation (FarmTitle badge) using the May 15th point check.
-    const currentCultivation = getDefaultCultivation(cultivations, calendar ?? "")
+    // Derive the current cultivation (FarmTitle badge) using the hoofdteelt rule.
+    const currentCultivation = getMainCultivation(cultivations, calendar ?? "")
 
     // Build cultivation display list using findHoofdteelt (May 15–July 15 duration
     // window) — exactly consistent with what is submitted to the BLN3 API.
