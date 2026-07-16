@@ -2,7 +2,10 @@ import { checkPermission, getFarms, getFertilizers } from "@nmi-agro/fdm-core"
 import { Smartphone } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useLoaderData, useParams } from "react-router"
-import type { TimelineFilters, TimelineGanttViewHandle } from "~/components/blocks/timeline/gantt-view"
+import type {
+  TimelineFilters,
+  TimelineGanttViewHandle,
+} from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -133,7 +136,10 @@ export default function TimelinePage() {
       if (!Number.isInteger(year) || year < TIMELINE_START_YEAR || year > TIMELINE_END_YEAR) {
         return false
       }
-      ganttRef.current?.scrollToYear(year)
+      if (!ganttRef.current) {
+        return false
+      }
+      ganttRef.current.scrollToYear(year)
       return true
     })
   }, [registerJumpToYear])
