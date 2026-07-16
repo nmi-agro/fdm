@@ -1,7 +1,7 @@
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { LandPlot, TestTube2, Wheat } from "lucide-react"
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react"
 import { NavLink, useNavigate } from "react-router"
 import { FertilizerIcon } from "~/components/blocks/gerrit/fertilizer-icon"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -341,23 +341,45 @@ function EventOverlay({ event }: { event: AttachedEvent }) {
 function FeatureContent({ feature }: { feature: TimelineFeature }) {
   const navigate = useNavigate()
 
+  // The earliest overlaid event (if any) bounds how much horizontal room the crop-name label
+  // can safely claim before it would run under that icon.
+  const firstEventPercent = useMemo(
+    () =>
+      feature.events && feature.events.length > 0
+        ? Math.min(...feature.events.map((event) => event.percent))
+        : null,
+    [feature.events],
+  )
+
   if (feature.kind === "cultivation") {
     return (
       <div className="relative h-full min-w-0 flex-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            {/* The crop name isn't rendered inline here (only in the sidebar and this tooltip) —
-                at high field-count density there's no room in the bar for both text and event
-                icons without one covering the other; see the density note on `ROW_HEIGHT_PX`. */}
             <div
-              className="absolute inset-0 cursor-pointer"
+              className="absolute inset-0 flex cursor-pointer items-start"
               onClick={() => void navigate(feature.href ?? "#")}
               onKeyDown={(event) => {
                 if (event.key === "Enter") void navigate(feature.href ?? "#")
               }}
               role="button"
               tabIndex={0}
-            />
+            >
+              {/* Clipped to end just before the first event icon (rather than always spanning
+                  the full bar) so at high field-count density the label never renders under an
+                  icon — see the density note on `ROW_HEIGHT_PX`. `max()` floors it at 0 instead
+                  of going negative when an event sits right at (or near) the bar's start. */}
+              <p
+                className="truncate px-1.5 pt-0.5 text-xs"
+                style={
+                  firstEventPercent !== null
+                    ? { maxWidth: `max(0px, calc(${firstEventPercent}% - 14px))` }
+                    : undefined
+                }
+              >
+                {feature.name}
+              </p>
+            </div>
           </TooltipTrigger>
           <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
         </Tooltip>
