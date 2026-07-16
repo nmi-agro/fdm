@@ -1,22 +1,11 @@
-import {
-  checkPermission,
-  getCultivationsForFarm,
-  getFarms,
-  getFertilizerApplicationsForFarm,
-  getFertilizers,
-  getFields,
-  getHarvestsForFarm,
-  getParametersForHarvestCat,
-  getSoilAnalysesForFarm,
-} from "@nmi-agro/fdm-core"
+import { checkPermission, getFarms, getFertilizers } from "@nmi-agro/fdm-core"
 import { Smartphone } from "lucide-react"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useLoaderData, useParams } from "react-router"
 import type { TimelineFilters, TimelineGanttViewHandle } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
@@ -26,11 +15,19 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { fetchTimelineFields } from "~/lib/timeline-data.server"
+import { useCalendarJump } from "~/store/calendar"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
+
+// The years the timeline can ever request must stay within the app's supported Calendar range
+// (see ~/lib/calendar's getCalendarSelection), so scrolling can never ask for a year that isn't a
+// selectable calendar year anywhere else in the app.
+const TIMELINE_START_YEAR = startMonth.getFullYear()
+const TIMELINE_END_YEAR = endMonth.getFullYear()
 
 export const meta: MetaFunction = () => {
   return [
@@ -54,7 +51,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     }
 
     const session = await getSession(request)
-    const timeframe = getTimeframe(params)
 
     await checkPermission(fdm, "farm", "read", b_id_farm, session.principal_id, "timeline")
 
@@ -71,76 +67,20 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       b_name_farm: f.b_name_farm,
     }))
 
-    // Fetch all timeline-relevant data for the whole farm in parallel, using the
-    // farm-scoped batch functions (single query + single permission check each)
-    // rather than looping per field.
-    const [
-      fields,
-      cultivationsByField,
-      fertilizerApplicationsByField,
-      harvestsByCultivation,
-      soilAnalysesByField,
-      fertilizers,
-    ] = await Promise.all([
-      getFields(fdm, session.principal_id, b_id_farm, timeframe),
-      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-      getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-      getSoilAnalysesForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    // The Gantt itself renders/lets users scroll across the whole supported year range (see
+    // TIMELINE_START_YEAR/END_YEAR in gantt-view.tsx), so it fetches that same full range up
+    // front rather than just the single selected year — otherwise scrolling into any other year
+    // always looked empty, even when it genuinely had data.
+    const [timelineFields, fertilizers] = await Promise.all([
+      fetchTimelineFields(
+        session.principal_id,
+        b_id_farm,
+        getTimeframeForYears(TIMELINE_START_YEAR, TIMELINE_END_YEAR),
+      ),
       getFertilizers(fdm, session.principal_id, b_id_farm),
     ])
 
     const fertilizerTypeById = new Map(fertilizers.map((f) => [f.p_id, f.p_type]))
-
-    const timelineFields = fields
-      .map((field) => {
-        if (!field?.b_id || !field?.b_name) {
-          throw new Error("Invalid field data structure")
-        }
-
-        const cultivations = cultivationsByField.get(field.b_id) ?? []
-        const harvests = cultivations.flatMap((cultivation) =>
-          (harvestsByCultivation.get(cultivation.b_lu) ?? []).map((harvest) => {
-            const analysis = harvest.harvestable.harvestable_analyses[0]
-            // Only include parameters that are actually fillable for this crop's harvest
-            // category, computed here (server-side) so the client component doesn't need to
-            // import fdm-core at all — importing it client-side would pull server-only code
-            // (e.g. authentication using node:crypto) into the browser bundle.
-            const fillableParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
-            const parameters = fillableParameters
-              .filter((param) => analysis?.[param] != null)
-              .map((param) => ({
-                label: getHarvestParameterLabel(param),
-                value: analysis?.[param] as number,
-              }))
-            return {
-              b_id_harvesting: harvest.b_id_harvesting,
-              b_lu: harvest.b_lu,
-              b_lu_name: cultivation.b_lu_name,
-              b_lu_harvest_date: harvest.b_lu_harvest_date,
-              parameters,
-            }
-          }),
-        )
-
-        return {
-          b_id: field.b_id,
-          b_name: field.b_name,
-          b_area: field.b_area != null ? Math.round(field.b_area * 10) / 10 : 0,
-          b_bufferstrip: field.b_bufferstrip ?? false,
-          cultivations: cultivations.map((cultivation) => ({
-            b_lu: cultivation.b_lu,
-            b_lu_name: cultivation.b_lu_name,
-            b_lu_croprotation: cultivation.b_lu_croprotation,
-            b_lu_start: cultivation.b_lu_start,
-            b_lu_end: cultivation.b_lu_end,
-          })),
-          fertilizerApplications: fertilizerApplicationsByField.get(field.b_id) ?? [],
-          harvests,
-          soilAnalyses: soilAnalysesByField.get(field.b_id) ?? [],
-        }
-      })
-      .sort((a, b) => a.b_name.localeCompare(b.b_name, "nl"))
 
     return {
       b_id_farm,
@@ -159,6 +99,7 @@ export default function TimelinePage() {
   const { calendar } = useParams()
   const isMobile = useIsMobile()
   const ganttRef = useRef<TimelineGanttViewHandle>(null)
+  const registerJumpToYear = useCalendarJump((state) => state.registerJumpToYear)
 
   const [range, setRange] = useState<Range>("monthly")
   const [filters, setFilters] = useState<TimelineFilters>({
@@ -182,6 +123,20 @@ export default function TimelinePage() {
     () => new Map(Object.entries(loaderData.fertilizerTypeById)),
     [loaderData.fertilizerTypeById],
   )
+
+  // While this page is mounted, let the sidebar's Calendar year selector scroll the already-
+  // loaded timeline to a year instead of triggering a full page navigation (every other route is
+  // unaffected — they never register a handler here, so the sidebar falls back to navigating).
+  useEffect(() => {
+    return registerJumpToYear((yearString) => {
+      const year = Number(yearString)
+      if (!Number.isInteger(year) || year < TIMELINE_START_YEAR || year > TIMELINE_END_YEAR) {
+        return false
+      }
+      ganttRef.current?.scrollToYear(year)
+      return true
+    })
+  }, [registerJumpToYear])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}`,

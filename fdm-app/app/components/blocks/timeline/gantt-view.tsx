@@ -184,8 +184,26 @@ function buildFieldFeatures(
 
   const orphanFeatures: TimelineFeature[] = []
 
-  const findCultivationFor = (date: Date): TimelineFeature | undefined =>
-    cultivationFeatures.find((c) => date >= c.startAt && date <= c.endAt)
+  // Prefer the *tightest-fitting* cultivation containing the date (smallest span), not just the
+  // first one found. Open-ended cultivations (no b_lu_end — e.g. permanent grassland) are
+  // extended all the way to `openCultivationEndAt` and can span many years, overlapping with a
+  // genuinely distinct, narrower cultivation on the same field (e.g. an annual crop grown within
+  // that same period). Picking an arbitrary/first match would attach the event to the wrong bar
+  // and compute its position against the wrong (much larger) date range, visually placing it far
+  // from its real date.
+  const findCultivationFor = (date: Date): TimelineFeature | undefined => {
+    let best: TimelineFeature | undefined
+    let bestSpan = Number.POSITIVE_INFINITY
+    for (const cultivation of cultivationFeatures) {
+      if (date < cultivation.startAt || date > cultivation.endAt) continue
+      const span = cultivation.endAt.getTime() - cultivation.startAt.getTime()
+      if (span < bestSpan) {
+        best = cultivation
+        bestSpan = span
+      }
+    }
+    return best
+  }
 
   const attachOrPush = (
     date: Date,
@@ -298,16 +316,26 @@ function buildFieldFeatures(
   // e.g. two fertilizer applications a few days apart. Left as raw percentages, those render as
   // overlapping icons. Spread them out left-to-right (preserving chronological order) so every
   // icon stays individually clickable and legible.
-  const MIN_EVENT_GAP_PERCENT = 6
+  //
+  // The gap is computed in absolute days, not as a percentage of the cultivation bar's span.
+  // Percent-of-span breaks down once open-ended cultivations (e.g. permanent "blijvend"
+  // grassland, extended all the way to `openCultivationEndAt`) can span many years: a 6%-of-span
+  // nudge is a few days on a one-season bar, but months on a multi-year bar — which visibly
+  // dragged events far from their real date once the timeline started loading a farm's entire
+  // history at once instead of just the browsed year.
+  const MIN_EVENT_GAP_DAYS = 4
+  const MS_PER_DAY = 24 * 60 * 60 * 1000
   for (const cultivation of cultivationFeatures) {
     if (!cultivation.events || cultivation.events.length < 2) continue
+    const spanMs = cultivation.endAt.getTime() - cultivation.startAt.getTime()
+    if (spanMs <= 0) continue
     cultivation.events.sort((a, b) => a.percent - b.percent)
-    for (let index = 1; index < cultivation.events.length; index++) {
-      const previous = cultivation.events[index - 1]
-      const current = cultivation.events[index]
-      if (current.percent - previous.percent < MIN_EVENT_GAP_PERCENT) {
-        current.percent = Math.min(100, previous.percent + MIN_EVENT_GAP_PERCENT)
-      }
+    let previousOffsetMs = Number.NEGATIVE_INFINITY
+    for (const event of cultivation.events) {
+      const rawOffsetMs = (event.percent / 100) * spanMs
+      const offsetMs = Math.max(rawOffsetMs, previousOffsetMs + MIN_EVENT_GAP_DAYS * MS_PER_DAY)
+      event.percent = Math.min(100, (offsetMs / spanMs) * 100)
+      previousOffsetMs = offsetMs
     }
   }
 
@@ -456,6 +484,8 @@ const GROUP_GAP_PX = 8 // Tailwind's `space-y-2`, used both in GanttSidebar and 
 export type TimelineGanttViewHandle = {
   /** Scrolls the timeline horizontally so today's date is in view. */
   scrollToToday: () => void
+  /** Scrolls the timeline horizontally so the given calendar year is in view, centered. */
+  scrollToYear: (year: number) => void
 }
 
 export const TimelineGanttView = forwardRef<
@@ -487,26 +517,34 @@ export const TimelineGanttView = forwardRef<
   const containerRef = useRef<HTMLDivElement>(null)
   useScrollToCalendarYear(containerRef, calendarYear, range)
 
+  const scrollToCenteredOffset = useMemo(
+    () => (offset: number) => {
+      const scrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
+      if (!scrollElement) return
+      const sidebarElement = scrollElement.querySelector<HTMLDivElement>(
+        '[data-roadmap-ui="gantt-sidebar"]',
+      )
+      const sidebarWidth = sidebarElement?.getBoundingClientRect().width ?? 0
+      // The sidebar is sticky and always covers the left edge of the viewport, so center the
+      // target within the visible timeline area to its right, not the full scroll viewport.
+      const visibleTimelineWidth = scrollElement.clientWidth - sidebarWidth
+      const left = Math.max(0, offset - visibleTimelineWidth / 2)
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      scrollElement.scrollTo({ left, behavior: prefersReducedMotion ? "auto" : "smooth" })
+    },
+    [],
+  )
+
   useImperativeHandle(
     ref,
     () => ({
-      scrollToToday: () => {
-        const scrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
-        if (!scrollElement) return
-        const sidebarElement = scrollElement.querySelector<HTMLDivElement>(
-          '[data-roadmap-ui="gantt-sidebar"]',
-        )
-        const sidebarWidth = sidebarElement?.getBoundingClientRect().width ?? 0
-        // The sidebar is sticky and always covers the left edge of the viewport, so center
-        // "today" within the visible timeline area to its right, not the full scroll viewport.
-        const visibleTimelineWidth = scrollElement.clientWidth - sidebarWidth
-        const offset = computeScrollOffset(new Date(), range)
-        const left = Math.max(0, offset - visibleTimelineWidth / 2)
-        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        scrollElement.scrollTo({ left, behavior: prefersReducedMotion ? "auto" : "smooth" })
-      },
+      scrollToToday: () => scrollToCenteredOffset(computeScrollOffset(new Date(), range)),
+      // Center on mid-year (rather than Jan 1) so the jump lands with months of context visible
+      // on both sides, instead of the target date sitting at the very left of what's in view.
+      scrollToYear: (year: number) =>
+        scrollToCenteredOffset(computeScrollOffset(new Date(year, 6, 1), range)),
     }),
-    [range],
+    [range, scrollToCenteredOffset],
   )
 
   const visibleFields = fields
@@ -520,10 +558,10 @@ export const TimelineGanttView = forwardRef<
           <EmptyMedia variant="icon">
             <LandPlot />
           </EmptyMedia>
-          <EmptyTitle>Geen percelen in dit jaar</EmptyTitle>
+          <EmptyTitle>Nog geen percelen om te tonen</EmptyTitle>
           <EmptyDescription>
-            Er zijn voor {calendarYear} nog geen percelen met gewassen, bemestingen, oogsten of
-            bodemmonsters om op de tijdlijn te tonen.
+            Er zijn nog geen percelen met gewassen, bemestingen, oogsten of bodemmonsters gevonden
+            op je bedrijf.
           </EmptyDescription>
         </EmptyHeader>
       </Empty>

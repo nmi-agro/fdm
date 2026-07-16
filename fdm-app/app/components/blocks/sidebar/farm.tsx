@@ -18,7 +18,7 @@ import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState, useEffect } from "react"
 import { NavLink, useLocation, useSearchParams, useNavigate, useFetcher } from "react-router"
 import { getCalendarSelection } from "@/app/lib/calendar"
-import { useCalendarStore } from "@/app/store/calendar"
+import { useCalendarJump, useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
 import { useSelectedFieldStore } from "@/app/store/selected-field"
 import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
@@ -76,6 +76,7 @@ export function SidebarFarm({
 
   const selectedCalendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
+  const jumpToYear = useCalendarJump((state) => state.jumpToYear)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const calendarSelection = getCalendarSelection()
 
@@ -302,7 +303,19 @@ export function SidebarFarm({
                               selectedCalendar === item ? "bg-accent text-accent-foreground" : ""
                             }
                           >
-                            <SidebarMenuSubButton asChild onClick={() => setCalendar(item)}>
+                            <SidebarMenuSubButton
+                              asChild
+                              onClick={(event) => {
+                                // On the timeline page, "jump" by scrolling the already-loaded
+                                // Gantt to that year instead of a full page navigation — every
+                                // other route has no handler registered, so this is a no-op there
+                                // and the NavLink below navigates normally.
+                                if (jumpToYear?.(item)) {
+                                  event.preventDefault()
+                                }
+                                setCalendar(item)
+                              }}
+                            >
                               <NavLink to={newUrl} className="flex items-center">
                                 <span>{item === "all" ? "Alle jaren" : item}</span>
                                 {selectedCalendar === item && <Check className="ml-auto h-4 w-4" />}

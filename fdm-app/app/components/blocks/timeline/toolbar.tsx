@@ -74,7 +74,7 @@ export function TimelineToolbar({
         <PopoverTrigger asChild>
           <Button variant="outline">
             <Filter className="size-4" />
-            Filters
+            Bekijk
             {activeFilterCount > 0 && (
               <Badge
                 className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
@@ -138,7 +138,7 @@ export function TimelineToolbar({
                   onFiltersChange({ ...filters, showSoilSamplings: checked === true })
                 }
               />
-              <Label htmlFor="filter-soil">Bodemmonsters</Label>
+              <Label htmlFor="filter-soil">Bodemanalyses</Label>
             </div>
           </div>
           <div className="space-y-2 border-t pt-3">
