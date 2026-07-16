@@ -285,10 +285,8 @@ export function ImageCropperApp({
       <input type="hidden" name="cropRectY" value={resultFrameRectScaled.y} />
       <input type="hidden" name="cropRectWidth" value={resultFrameRectScaled.width} />
       <input type="hidden" name="cropRectHeight" value={resultFrameRectScaled.height} />
-      <div style={{ aspectRatio: `${appAspectRatio}/1` }}>
+      <div className="w-full" style={{ aspectRatio: `${appAspectRatio}/1` }}>
         <svg
-          width={appAspectRatio * SVG_VIEWBOX_HEIGHT}
-          height={SVG_VIEWBOX_HEIGHT}
           viewBox={`0,0,${appAspectRatio * SVG_VIEWBOX_HEIGHT},${SVG_VIEWBOX_HEIGHT}`}
           className="size-full rounded-md"
           onPointerDown={handlePointerDown}
@@ -296,6 +294,7 @@ export function ImageCropperApp({
           onPointerUp={handlePointerUp}
           onWheel={handleWheel}
         >
+          <title>Trim de profielfoto</title>
           <image href={imageData.src} {...imageRectScaled} />
           <path
             d={`${appSvgCommands} ${frameSvgCommands}`}

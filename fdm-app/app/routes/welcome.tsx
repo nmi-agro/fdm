@@ -1,14 +1,15 @@
 import type { Resolver } from "react-hook-form"
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
+import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { Controller } from "react-hook-form"
 import { Form, redirect, useLoaderData } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
-import { z } from "zod"
 import { AuthCard } from "~/components/blocks/auth/auth-card"
 import { AuthLayout } from "~/components/blocks/auth/auth-layout"
+import { ProfileInfoSchema } from "~/components/blocks/profile/profile-info-schema"
 import { Avatar, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Field, FieldError, FieldLabel } from "~/components/ui/field"
@@ -29,25 +30,6 @@ export const meta: MetaFunction = () => {
     },
   ]
 }
-
-const FormSchema = z.object({
-  firstname: z
-    .string({
-      error: (issue) => (issue.input === undefined ? "Vul je voornaam in" : undefined),
-    })
-    .trim()
-    .min(1, {
-      error: "Vul je voornaam in",
-    }),
-  surname: z
-    .string({
-      error: (issue) => (issue.input === undefined ? "Vul je achternaam in" : undefined),
-    })
-    .trim()
-    .min(1, {
-      error: "Vul je achternaam in",
-    }),
-})
 
 /**
  * Checks for an existing user session and redirects authenticated users.
@@ -90,9 +72,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function Welcome() {
   const loaderData = useLoaderData<typeof loader>()
 
-  const form = useRemixForm<z.infer<typeof FormSchema>>({
+  const form = useRemixForm<z.infer<typeof ProfileInfoSchema>>({
     mode: "onTouched",
-    resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
+    resolver: zodResolver(ProfileInfoSchema) as Resolver<z.infer<typeof ProfileInfoSchema>>,
     defaultValues: {
       firstname: loaderData.firstname || "",
       surname: loaderData.surname || "",
@@ -170,7 +152,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const safeRedirectTo = isValidRedirect ? redirectTo : "/farm"
 
     // Get form values
-    const formValues = await extractFormValuesFromRequest(request, FormSchema)
+    const formValues = await extractFormValuesFromRequest(request, ProfileInfoSchema)
     const { firstname, surname } = formValues
 
     // Get the current user profile

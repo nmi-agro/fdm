@@ -1,6 +1,7 @@
-import { type LoaderFunctionArgs, type MetaFunction, Outlet, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, NavLink, useLoaderData } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
+import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
@@ -49,9 +50,14 @@ export default function UserSettingsProfile() {
       <FarmTitle title="Profiel" description="Jouw accountgegevens." />
       <div className="space-y-6 px-4 pb-8 md:px-8">
         <Card>
-          <CardHeader>
-            <CardTitle>Jouw gegevens</CardTitle>
-            <CardDescription>Hieronder vind je jouw accountgegevens.</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="space-y-2">
+              <CardTitle>Jouw gegevens</CardTitle>
+              <CardDescription>Hieronder vind je jouw accountgegevens.</CardDescription>
+            </div>
+            <Button asChild>
+              <NavLink to="/user/settings/profile/edit">Bijwerken</NavLink>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">
@@ -78,7 +84,6 @@ export default function UserSettingsProfile() {
           </CardContent>
         </Card>
       </div>
-      <Outlet />
     </>
   )
 }
