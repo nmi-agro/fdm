@@ -1,4 +1,4 @@
-import { Filter, Locate } from "lucide-react"
+import { Eye, Locate } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { Badge } from "~/components/ui/badge"
@@ -73,8 +73,8 @@ export function TimelineToolbar({
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="outline">
-            <Filter className="size-4" />
-            Bekijk
+            <Eye className="size-4" />
+            Weergave
             {activeFilterCount > 0 && (
               <Badge
                 className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
@@ -88,7 +88,7 @@ export function TimelineToolbar({
         </PopoverTrigger>
         <PopoverContent align="end" className="w-64 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-muted-foreground text-xs font-medium">Actieve filters</p>
+            <p className="text-muted-foreground text-xs font-medium">Zichtbare onderdelen</p>
             {activeFilterCount > 0 && (
               <Button
                 className="h-auto p-0 text-xs"
