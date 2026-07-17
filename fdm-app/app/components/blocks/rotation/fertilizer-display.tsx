@@ -1,7 +1,7 @@
 import type { Row } from "@tanstack/react-table"
 import React from "react"
 import { NavLink } from "react-router"
-import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
+import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import type { FieldRow, RotationExtended } from "./columns"

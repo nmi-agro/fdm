@@ -3,7 +3,7 @@ import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Trash } from "lucide-react"
-import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
+import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Button } from "~/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import {

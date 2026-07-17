@@ -3,9 +3,9 @@ import { nl } from "date-fns/locale"
 import { LandPlot, TestTube2, Wheat } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react"
 import { NavLink, useNavigate } from "react-router"
-import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
 import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import {
   computeGanttSubRowCount,
   type GanttFeature,

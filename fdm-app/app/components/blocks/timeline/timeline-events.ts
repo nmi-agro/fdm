@@ -1,4 +1,4 @@
-import { format } from "date-fns"
+import { format, startOfDay } from "date-fns"
 import { nl } from "date-fns/locale"
 import type {
   TimelineCultivation,
@@ -308,7 +308,7 @@ export type ActiveCultivation = {
 }
 
 export function getActiveCultivations(fields: TimelineField[]): ActiveCultivation[] {
-  const today = new Date()
+  const today = startOfDay(new Date())
   const active: ActiveCultivation[] = []
 
   for (const field of fields) {

@@ -4,7 +4,6 @@ import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import type { TimelineField, TimelineFilters } from "~/components/blocks/timeline/gantt-view"
-import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
 import {
   EVENT_TYPE_COLOR,
   getFertilizerKindColor,
@@ -23,6 +22,7 @@ import {
 } from "~/components/blocks/timeline/timeline-events"
 import { TimelineFiltersPopover } from "~/components/blocks/timeline/timeline-filters"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
@@ -140,27 +140,29 @@ function ActiveCultivationBar({
   if (cultivations.length === 0) return null
 
   return (
-    <div className="bg-background sticky top-0 z-20 -mx-4 [scrollbar-width:none] overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex w-max gap-2">
-        {cultivations.map((cultivation) => {
-          const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
-          return (
-            <button
-              className="focus-visible:ring-ring/50 flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs outline-none focus-visible:ring-[3px]"
-              key={`${cultivation.fieldId}-${cultivation.b_lu}`}
-              onClick={() => onSelect(cultivation.fieldId)}
-              type="button"
-            >
-              <span
-                aria-hidden="true"
-                className="inline-block size-2 rounded-sm"
-                style={{ backgroundColor: color }}
-              />
-              <span className="text-muted-foreground">{cultivation.fieldName}:</span>
-              <span className="font-medium">{cultivation.b_lu_name ?? "Onbekend"}</span>
-            </button>
-          )
-        })}
+    <div className="bg-background sticky top-0 z-20 -mx-4 px-4 py-2">
+      <div className="scrollbar-none overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex w-max gap-2">
+          {cultivations.map((cultivation) => {
+            const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
+            return (
+              <button
+                className="focus-visible:ring-ring/50 flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs outline-none focus-visible:ring-[3px]"
+                key={`${cultivation.fieldId}-${cultivation.b_lu}`}
+                onClick={() => onSelect(cultivation.fieldId)}
+                type="button"
+              >
+                <span
+                  aria-hidden="true"
+                  className="inline-block size-2 rounded-sm"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-muted-foreground">{cultivation.fieldName}:</span>
+                <span className="font-medium">{cultivation.b_lu_name ?? "Onbekend"}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

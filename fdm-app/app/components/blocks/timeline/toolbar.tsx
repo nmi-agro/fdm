@@ -24,10 +24,8 @@ const defaultFilters: TimelineFilters = {
   showFertilizers: true,
   showHarvests: true,
   showSoilSamplings: true,
-  showBufferStrips: true,
-  // Desktop's Gantt always renders the full range — this mobile-only flag has no toolbar
-  // control here, so it must never be counted as an "active" filter on this surface.
-  showFutureEvents: true,
+  showBufferStrips: false,
+  showFutureEvents: false,
 }
 
 export function TimelineToolbar({
@@ -43,9 +41,9 @@ export function TimelineToolbar({
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
 }) {
-  const activeFilterCount =
-    Object.values(filters).filter(Boolean).length -
-    Object.values(defaultFilters).filter(Boolean).length
+  const activeFilterCount = Object.entries(filters).filter(
+    ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
+  ).length
 
   return (
     <div className="flex flex-wrap items-center gap-2">
