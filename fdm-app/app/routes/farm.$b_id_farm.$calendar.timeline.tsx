@@ -37,7 +37,7 @@ export const meta: MetaFunction = () => {
     {
       name: "description",
       content:
-        "Bekijk in één overzicht alle gewassen, bemestingen, oogsten en bodemmonsters van je bedrijf op een tijdlijn.",
+        "Bekijk in één overzicht alle gewassen, bemestingen, oogsten en bodemanalyses van je bedrijf op een tijdlijn.",
     },
   ]
 }
@@ -193,7 +193,7 @@ export default function TimelinePage() {
           <>
             <FarmTitle
               title={`Tijdlijn van ${currentFarmName}`}
-              description="Overzicht van alle gewassen, bemestingen, oogsten en bodemmonsters over de percelen."
+              description="Overzicht van alle gewassen, bemestingen, oogsten en bodemanalyses over de percelen."
               rightNode={
                 <TimelineToolbar
                   filters={filters}

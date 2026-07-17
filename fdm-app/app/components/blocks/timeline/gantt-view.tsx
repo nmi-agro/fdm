@@ -130,7 +130,7 @@ const fertilizerStatus: GanttStatus = {
 const harvestStatus: GanttStatus = { id: "harvest", name: "Oogst", color: EVENT_TYPE_COLOR.harvest }
 const soilStatus: GanttStatus = {
   id: "soil",
-  name: "Bodemmonster",
+  name: "Bodemanalyse",
   color: EVENT_TYPE_COLOR.soil_sampling,
 }
 
@@ -302,7 +302,7 @@ function buildFieldFeatures(
   if (filters.showSoilSamplings) {
     for (const analysis of field.soilAnalyses) {
       if (!analysis.b_sampling_date) continue
-      const name = "Bodemmonster"
+      const name = "Bodemanalyse"
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil`
       const detail = `${name}${analysis.a_source ? ` — ${analysis.a_source}` : ""}\n${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
       attachOrPush(
@@ -572,7 +572,7 @@ export const TimelineGanttView = forwardRef<
           </EmptyMedia>
           <EmptyTitle>Nog geen percelen om te tonen</EmptyTitle>
           <EmptyDescription>
-            Er zijn nog geen percelen met gewassen, bemestingen, oogsten of bodemmonsters gevonden
+            Er zijn nog geen percelen met gewassen, bemestingen, oogsten of bodemanalyses gevonden
             op je bedrijf.
           </EmptyDescription>
         </EmptyHeader>

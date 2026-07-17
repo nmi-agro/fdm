@@ -13,6 +13,11 @@ import {
 } from "~/components/ui/select"
 import type { TimelineFilters } from "./gantt-view"
 
+// Radix's Select.Item doesn't support an empty string as its value (that's reserved internally
+// for "no selection"), so the "show everything" period option — which is modeled as value ""
+// everywhere else in the timeline — needs a non-empty stand-in only at this Select boundary.
+const ALL_PERIOD_VALUE = "__all__"
+
 export const defaultTimelineFilters: TimelineFilters = {
   showBufferStrips: false,
   showCultivations: true,
@@ -50,7 +55,7 @@ export function TimelineFiltersPopover({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline">
+        <Button size="lg" variant="outline">
           <Filter className="size-4" />
           {isPeriodFiltered ? periodLabel : "Filters"}
           {activeFilterCount > 0 && (
@@ -79,13 +84,19 @@ export function TimelineFiltersPopover({
                 </Button>
               )}
             </div>
-            <Select onValueChange={period.onChange} value={period.value}>
+            <Select
+              onValueChange={(value) => period.onChange(value === ALL_PERIOD_VALUE ? "" : value)}
+              value={period.value === "" ? ALL_PERIOD_VALUE : period.value}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {period.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem
+                    key={option.value}
+                    value={option.value === "" ? ALL_PERIOD_VALUE : option.value}
+                  >
                     {option.label}
                   </SelectItem>
                 ))}
@@ -145,7 +156,7 @@ export function TimelineFiltersPopover({
                   onFiltersChange({ ...filters, showSoilSamplings: checked === true })
                 }
               />
-              <Label htmlFor="filter-soil">Bodemmonsters</Label>
+              <Label htmlFor="filter-soil">Bodemanalyses</Label>
             </div>
           </div>
         </div>

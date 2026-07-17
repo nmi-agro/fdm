@@ -36,7 +36,7 @@ const GROUPS_PER_LOAD = 10
 const eventTypeLabel: Record<TimelineEventType, string> = {
   fertilizer: "Bemesting",
   harvest: "Oogst",
-  soil_sampling: "Bodemmonster",
+  soil_sampling: "Bodemanalyse",
   cultivation_start: "Gewas gestart",
   cultivation_end: "Gewas beëindigd",
 }
@@ -85,6 +85,7 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
 
   return (
     <div
+      aria-hidden="true"
       className="flex size-9 shrink-0 items-center justify-center rounded-md"
       style={{ backgroundColor: bg, color }}
     >
@@ -93,39 +94,39 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
   )
 }
 
-function EventCard({
-  event,
-  firstForFieldRef,
-}: {
-  event: TimelineEvent
-  firstForFieldRef?: React.Ref<HTMLDivElement>
-}) {
+function EventCard({ event }: { event: TimelineEvent }) {
   const navigate = useNavigate()
 
   return (
-    <div ref={firstForFieldRef}>
-      <Card className="overflow-hidden">
-        <CardContent className="p-0">
-          <button
-            className="flex w-full items-start gap-3 p-3 text-left"
-            onClick={() => void navigate(event.href)}
-            type="button"
-          >
-            <EventTypeIcon event={event} />
-            <div className="min-w-0 flex-1 space-y-0.5">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">
-                  {event.fieldName}
-                </Badge>
-                <span className="text-muted-foreground text-xs">{eventTypeLabel[event.type]}</span>
-              </div>
-              <p className="text-sm font-medium">{event.label}</p>
-              {event.sublabel && <p className="text-muted-foreground text-sm">{event.sublabel}</p>}
+    <Card className="overflow-hidden">
+      <CardContent className="p-0">
+        <button
+          className="focus-visible:ring-ring/50 flex w-full items-start gap-3 p-3 text-left outline-none focus-visible:ring-[3px]"
+          onClick={() => void navigate(event.href)}
+          type="button"
+        >
+          <EventTypeIcon event={event} />
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="flex items-center gap-2">
+              <Badge
+                className="max-w-[60%] truncate text-xs"
+                title={event.fieldName}
+                variant="secondary"
+              >
+                {event.fieldName}
+              </Badge>
+              <span className="text-muted-foreground shrink-0 text-xs">
+                {eventTypeLabel[event.type]}
+              </span>
             </div>
-          </button>
-        </CardContent>
-      </Card>
-    </div>
+            <p className="text-sm font-medium break-words">{event.label}</p>
+            {event.sublabel && (
+              <p className="text-muted-foreground text-sm break-words">{event.sublabel}</p>
+            )}
+          </div>
+        </button>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -145,12 +146,16 @@ function ActiveCultivationBar({
           const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
           return (
             <button
-              className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs"
+              className="focus-visible:ring-ring/50 flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs outline-none focus-visible:ring-[3px]"
               key={`${cultivation.fieldId}-${cultivation.b_lu}`}
               onClick={() => onSelect(cultivation.fieldId)}
               type="button"
             >
-              <span className="inline-block size-2 rounded-sm" style={{ backgroundColor: color }} />
+              <span
+                aria-hidden="true"
+                className="inline-block size-2 rounded-sm"
+                style={{ backgroundColor: color }}
+              />
               <span className="text-muted-foreground">{cultivation.fieldName}:</span>
               <span className="font-medium">{cultivation.b_lu_name ?? "Onbekend"}</span>
             </button>
@@ -163,15 +168,11 @@ function ActiveCultivationBar({
 
 function DateGroupedFeed({
   groups,
-  onFirstEventRef,
   stickyOffset,
 }: {
   groups: ReturnType<typeof groupEventsByDate>
-  onFirstEventRef: (fieldId: string, element: HTMLDivElement | null) => void
   stickyOffset: number
 }) {
-  const seenFields = new Set<string>()
-
   return (
     <div className="space-y-4">
       {groups.map((group) => {
@@ -189,21 +190,9 @@ function DateGroupedFeed({
                 : formatEventDateHeader(group.date)}
             </h3>
             <div className="space-y-2">
-              {group.events.map((event) => {
-                const isFirstForField = !seenFields.has(event.fieldId)
-                if (isFirstForField) seenFields.add(event.fieldId)
-                return (
-                  <EventCard
-                    event={event}
-                    key={event.id}
-                    firstForFieldRef={
-                      isFirstForField
-                        ? (element) => onFirstEventRef(event.fieldId, element)
-                        : undefined
-                    }
-                  />
-                )
-              })}
+              {group.events.map((event) => (
+                <EventCard event={event} key={event.id} />
+              ))}
             </div>
           </section>
         )
@@ -242,15 +231,19 @@ function FieldGroupedView({
             >
               <CollapsibleTrigger asChild>
                 <button
-                  className="bg-card flex w-full items-center justify-between rounded-lg border p-3 text-left"
+                  className="focus-visible:ring-ring/50 bg-card flex w-full items-center justify-between rounded-lg border p-3 text-left outline-none focus-visible:ring-[3px]"
                   type="button"
                 >
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold tracking-wide uppercase">
+                      <span
+                        className="min-w-0 flex-1 truncate text-xs font-semibold tracking-wide uppercase"
+                        title={field.b_name}
+                      >
                         {field.b_name}
                       </span>
                       <ChevronRight
+                        aria-hidden="true"
                         className={`text-muted-foreground size-4 shrink-0 transition-transform ${
                           isOpen ? "rotate-90" : ""
                         }`}
@@ -271,17 +264,18 @@ function FieldGroupedView({
                             : `${format(cultivation.b_lu_start, "d MMM yyyy", { locale: nl })} - heden`
                           return (
                             <div
-                              className="flex items-center gap-1.5 text-xs"
+                              className="flex min-w-0 items-center gap-1.5 text-xs"
                               key={cultivation.b_lu}
                             >
                               <span
-                                className="inline-block h-4 w-1 rounded-full"
+                                aria-hidden="true"
+                                className="inline-block h-4 w-1 shrink-0 rounded-full"
                                 style={{ backgroundColor: color }}
                               />
-                              <span className="font-medium">
+                              <span className="max-w-40 truncate font-medium">
                                 {cultivation.b_lu_name ?? "Onbekend"}
                               </span>
-                              <span className="text-muted-foreground">({period})</span>
+                              <span className="text-muted-foreground shrink-0">({period})</span>
                             </div>
                           )
                         })}
@@ -336,8 +330,13 @@ export function TimelineMobileView({
 
   const sentinelRef = useRef<HTMLDivElement>(null)
   const cultivationBarRef = useRef<HTMLDivElement>(null)
-  const fieldEventRefs = useRef(new Map<string, HTMLDivElement | null>())
   const fieldHeaderRefs = useRef(new Map<string, HTMLDivElement | null>())
+  const scrollToFieldTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const skipNextPaginationResetRef = useRef(false)
+
+  useEffect(() => {
+    return () => clearTimeout(scrollToFieldTimeoutRef.current)
+  }, [])
 
   useEffect(() => {
     const node = cultivationBarRef.current
@@ -371,7 +370,7 @@ export function TimelineMobileView({
 
   const monthYearOptions = useMemo(() => {
     const options = getMonthYearOptions(events)
-    return [{ value: "", label: "Alle gebeurtenissen", date: today }, ...options]
+    return [{ value: "", label: "Alles", date: today }, ...options]
   }, [events, today])
 
   const filteredEvents = useMemo(() => {
@@ -386,11 +385,21 @@ export function TimelineMobileView({
   )
 
   useEffect(() => {
+    if (skipNextPaginationResetRef.current) {
+      skipNextPaginationResetRef.current = false
+      return
+    }
     setVisibleGroupCount(INITIAL_GROUPS)
   }, [viewMode, monthYear, filters])
 
   const visibleDateGroups = dateGroups.slice(0, visibleGroupCount)
-  const hasMore = visibleGroupCount < dateGroups.length
+  const visibleFieldGroups = fieldGroups.slice(0, visibleGroupCount)
+  // Only one of the two group lists is on screen at a time (viewMode), but a large farm can
+  // have as many fields as it has days with events — without this, switching to "Perceel" would
+  // render every field's Collapsible at once instead of loading them incrementally like the
+  // date feed already does.
+  const currentGroupCount = viewMode === "date" ? dateGroups.length : fieldGroups.length
+  const hasMore = visibleGroupCount < currentGroupCount
 
   useEffect(() => {
     const sentinel = sentinelRef.current
@@ -399,7 +408,7 @@ export function TimelineMobileView({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting && hasMore) {
-          setVisibleGroupCount((count) => Math.min(count + GROUPS_PER_LOAD, dateGroups.length))
+          setVisibleGroupCount((count) => Math.min(count + GROUPS_PER_LOAD, currentGroupCount))
         }
       },
       { rootMargin: "100px" },
@@ -407,11 +416,12 @@ export function TimelineMobileView({
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [hasMore, dateGroups.length])
+  }, [hasMore, currentGroupCount])
 
   const activeCultivations = useMemo(() => getActiveCultivations(visibleFields), [visibleFields])
 
   function handleSelectCultivation(fieldId: string) {
+    skipNextPaginationResetRef.current = true
     setViewMode("field")
     setMonthYear("")
     setExpandedFields((prev) => {
@@ -419,7 +429,13 @@ export function TimelineMobileView({
       next.add(fieldId)
       return next
     })
-    setTimeout(() => {
+    const targetIndex = fieldGroups.findIndex((group) => group.field.b_id === fieldId)
+    if (targetIndex >= 0) {
+      const pageContaining = Math.ceil((targetIndex + 1) / GROUPS_PER_LOAD) * GROUPS_PER_LOAD
+      setVisibleGroupCount((count) => Math.max(count, pageContaining))
+    }
+    clearTimeout(scrollToFieldTimeoutRef.current)
+    scrollToFieldTimeoutRef.current = setTimeout(() => {
       const header = fieldHeaderRefs.current.get(fieldId)
       header?.scrollIntoView({ behavior: "smooth", block: "start" })
     }, 100)
@@ -434,12 +450,6 @@ export function TimelineMobileView({
     })
   }
 
-  function setFirstEventRef(fieldId: string, element: HTMLDivElement | null) {
-    if (element) {
-      fieldEventRefs.current.set(fieldId, element)
-    }
-  }
-
   const showEmpty = filteredEvents.length === 0
 
   return (
@@ -450,6 +460,7 @@ export function TimelineMobileView({
           onValueChange={(value) => {
             if (value) setViewMode(value as "date" | "field")
           }}
+          size="lg"
           type="single"
           value={viewMode}
           variant="outline"
@@ -495,11 +506,7 @@ export function TimelineMobileView({
         </Empty>
       ) : viewMode === "date" ? (
         <>
-          <DateGroupedFeed
-            groups={visibleDateGroups}
-            onFirstEventRef={setFirstEventRef}
-            stickyOffset={cultivationBarHeight}
-          />
+          <DateGroupedFeed groups={visibleDateGroups} stickyOffset={cultivationBarHeight} />
           {hasMore ? (
             <div aria-hidden className="h-8" ref={sentinelRef} />
           ) : (
@@ -509,12 +516,21 @@ export function TimelineMobileView({
           )}
         </>
       ) : (
-        <FieldGroupedView
-          expandedFields={expandedFields}
-          fieldHeaderRefs={fieldHeaderRefs}
-          groups={fieldGroups}
-          onToggleField={toggleField}
-        />
+        <>
+          <FieldGroupedView
+            expandedFields={expandedFields}
+            fieldHeaderRefs={fieldHeaderRefs}
+            groups={visibleFieldGroups}
+            onToggleField={toggleField}
+          />
+          {hasMore ? (
+            <div aria-hidden className="h-8" ref={sentinelRef} />
+          ) : (
+            fieldGroups.length > INITIAL_GROUPS && (
+              <p className="text-muted-foreground py-2 text-center text-xs">Alles geladen</p>
+            )
+          )}
+        </>
       )}
     </div>
   )
