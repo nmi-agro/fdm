@@ -45,6 +45,16 @@ describe("createFdmAuth", () => {
     fdm = createFdmServer(host, port, user, password, database)
   })
 
+  it("should generate a 6-digit numeric magic-link OTP", () => {
+    fdmAuth = createFdmAuth(fdm, googleAuth, microsoftAuth)
+
+    const magicLinkPlugin = fdmAuth.options.plugins?.find((p: any) => p.id === "magic-link") as any
+    expect(magicLinkPlugin).toBeDefined()
+
+    const token = magicLinkPlugin?.options?.generateToken?.()
+    expect(token).toMatch(/^\d{6}$/)
+  })
+
   it("should create an auth instance with the correct database adapter", () => {
     // Create the auth server using the mock FdmServer instance
     fdmAuth = createFdmAuth(fdm, googleAuth, microsoftAuth)

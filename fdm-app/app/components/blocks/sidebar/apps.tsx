@@ -294,7 +294,8 @@ export function SidebarApps({
                         onClick={() =>
                           openFarmPicker(
                             "de balansen",
-                            (b_id_farm) => `/farm/${b_id_farm}/${selectedCalendar}/balance/nitrogen`,
+                            (b_id_farm) =>
+                              `/farm/${b_id_farm}/${selectedCalendar}/balance/nitrogen`,
                           )
                         }
                       >

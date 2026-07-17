@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   BookOpenText,
+  ChevronDown,
   ChevronUp,
   CloudDownload,
   CloudUpload,
@@ -37,6 +38,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { toast } from "sonner"
+import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -52,15 +54,31 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
+
+// Cap on simultaneous cultivation-suggestion lookups per farm, so farms with many fields
+// missing a main cultivation don't overload the external NMI API with unbounded parallel
+// requests (same concurrency-limiting approach as the nutrient advice overview loader).
+const CULTIVATION_SUGGESTION_CONCURRENCY = 4
+
+/** Splits an array into consecutive chunks of at most `size` items each. */
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size))
+  }
+  return chunks
+}
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -119,8 +137,37 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
     })
     const fieldsMissingCultivation = fields.filter(
-      (field) => !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
-    ).length
+      (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
+    )
+
+    // For fields missing a main cultivation, look up an NMI-estimate-based suggestion (BRP guess)
+    // so the user can accept it instead of searching for the crop from scratch. Silently omitted
+    // (never blocks the dashboard) when no NMI API key is configured or no estimate is available.
+    // Looked up in small concurrency-limited batches so a farm with many affected fields doesn't
+    // fire unbounded parallel requests at the external NMI API.
+    const nmiApiKey = getNmiApiKey()
+    const fieldsMissingCultivationDetails: {
+      b_id: string
+      b_name: string
+      result: Awaited<ReturnType<typeof getCultivationSuggestionResult>>
+    }[] = []
+    for (const fieldsChunk of chunk(fieldsMissingCultivation, CULTIVATION_SUGGESTION_CONCURRENCY)) {
+      const chunkResults = await Promise.all(
+        fieldsChunk.map(async (field) => ({
+          b_id: field.b_id,
+          b_name: field.b_name,
+          result: await getCultivationSuggestionResult(
+            fdm,
+            session.principal_id,
+            b_id_farm,
+            field.b_id,
+            activeYear,
+            nmiApiKey,
+          ),
+        })),
+      )
+      fieldsMissingCultivationDetails.push(...chunkResults)
+    }
 
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, session.principal_id)
@@ -153,7 +200,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_name_farm: farm.b_name_farm,
       fieldsNumber: fields.length,
       farmArea: Math.round(farmArea),
-      fieldsMissingCultivation,
+      fieldsMissingCultivation: fieldsMissingCultivation.length,
+      fieldsMissingCultivationDetails,
       cultivationYear: activeYear,
       farmOptions: farmOptions,
       roles: roles,
@@ -219,6 +267,7 @@ export default function FarmDashboardIndex() {
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const years = getCalendarSelection()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
 
   const handleDownloadPdf = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -517,21 +566,58 @@ export default function FarmDashboardIndex() {
                       </div>
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (
-                      <NavLink
-                        to={`${loaderData.cultivationYear}/field`}
-                        className="border-destructive/30 bg-destructive/5 hover:bg-destructive/10 flex items-start gap-2 rounded-lg border p-3 transition-colors"
-                      >
-                        <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
-                        <p className="text-sm">
-                          <span className="font-medium">
-                            {loaderData.fieldsMissingCultivation}{" "}
-                            {loaderData.fieldsMissingCultivation === 1
-                              ? "perceel mist"
-                              : "percelen missen"}
-                          </span>{" "}
-                          een hoofdteelt voor dit jaar. Bekijk de percelen om dit aan te vullen.
-                        </p>
-                      </NavLink>
+                      <div className="border-destructive/30 bg-destructive/5 rounded-lg border">
+                        <button
+                          type="button"
+                          onClick={() => setShowMissingCultivationDetails((prev) => !prev)}
+                          className="hover:bg-destructive/10 flex w-full items-start gap-2 rounded-t-lg p-3 text-left transition-colors"
+                        >
+                          <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                          <p className="flex-1 text-sm">
+                            <span className="font-medium">
+                              {loaderData.fieldsMissingCultivation}{" "}
+                              {loaderData.fieldsMissingCultivation === 1
+                                ? "perceel mist"
+                                : "percelen missen"}
+                            </span>{" "}
+                            een hoofdteelt voor dit jaar.
+                          </p>
+                          {showMissingCultivationDetails ? (
+                            <ChevronUp className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                          ) : (
+                            <ChevronDown className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                          )}
+                        </button>
+                        <NavLink
+                          to={`${loaderData.cultivationYear}/field`}
+                          className="text-muted-foreground hover:text-foreground block px-3 pb-3 text-sm underline"
+                        >
+                          Bekijk de percelen om dit aan te vullen
+                        </NavLink>
+                        {showMissingCultivationDetails && (
+                          <div className="space-y-2 border-t p-3">
+                            {loaderData.fieldsMissingCultivationDetails.map((field) => (
+                              <div key={field.b_id} className="space-y-1">
+                                <CultivationSuggestionStatusBanner
+                                  b_id_farm={loaderData.b_id_farm}
+                                  calendar={loaderData.cultivationYear}
+                                  b_id={field.b_id}
+                                  b_name={field.b_name}
+                                  result={field.result}
+                                />
+                                {field.result.status !== "suggested" && (
+                                  <NavLink
+                                    to={`${loaderData.cultivationYear}/field/${field.b_id}/cultivation`}
+                                    className="text-muted-foreground hover:text-foreground block text-sm underline"
+                                  >
+                                    {field.b_name}: hoofdteelt handmatig toevoegen
+                                  </NavLink>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )}
                     <Separator />
                     {/* Role + Year */}

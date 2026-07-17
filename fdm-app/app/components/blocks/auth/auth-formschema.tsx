@@ -6,11 +6,14 @@ export const FormSchema = z.object({
       error: "Vul de verificatiecode in",
     })
     .trim()
-    .min(8, {
-      message: "De code moet uit 8 tekens bestaan",
+    .min(6, {
+      error: "De code moet uit 6 cijfers bestaan",
     })
-    .max(8, {
-      message: "De code moet uit 8 tekens bestaan",
+    .max(6, {
+      error: "De code moet uit 6 cijfers bestaan",
+    })
+    .regex(/^\d+$/, {
+      error: "De code mag alleen cijfers bevatten",
     }),
   redirectTo: z.string().optional(),
 })

@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
+import { HeaderFieldPicker } from "~/components/blocks/header/field-picker"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ export function HeaderBalance({
   const location = useLocation()
   const currentPath = String(location.pathname)
   const calendar = useCalendarStore((state) => state.calendar)
+  const balanceKind = currentPath.includes("/balance/nitrogen") ? "nitrogen" : "organic-matter"
 
   return (
     <>
@@ -59,28 +61,13 @@ export function HeaderBalance({
         <>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
-                <span className="truncate">
-                  {fieldOptions
-                    ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ??
-                      "Unknown field")
-                    : "Kies een perceel"}
-                </span>
-                <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {fieldOptions.map((option) => (
-                  <DropdownMenuCheckboxItem checked={b_id === option.b_id} key={option.b_id}>
-                    <NavLink
-                      to={`/farm/${b_id_farm}/${calendar}/balance/${currentPath.includes("nitrogen") ? "nitrogen" : "organic-matter"}/${option.b_id}`}
-                    >
-                      {option.b_name}
-                    </NavLink>
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <HeaderFieldPicker
+              b_id={b_id}
+              fieldOptions={fieldOptions}
+              buildHref={(optionId) =>
+                `/farm/${b_id_farm}/${calendar}/balance/${balanceKind}/${optionId}`
+              }
+            />
           </BreadcrumbItem>
         </>
       ) : null}

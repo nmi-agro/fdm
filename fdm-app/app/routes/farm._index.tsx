@@ -4,16 +4,7 @@ import {
   getFarms,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
-import {
-  ArrowRight,
-  Check,
-  House,
-  Layers,
-  LifeBuoy,
-  MapIcon,
-  Mountain,
-  Plus,
-} from "lucide-react"
+import { ArrowRight, Check, House, Layers, LifeBuoy, MapIcon, Mountain, Plus } from "lucide-react"
 import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
@@ -338,21 +329,30 @@ export default function AppIndex() {
                     <CardContent className="text-muted-foreground grow text-left text-sm">
                       <ul className="space-y-3">
                         <li className="flex items-start gap-3">
-                          <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             <b>Balansen:</b> Uw bodemgezondheid zichtbaar via stikstof- en
                             organische stofbalansen.
                           </span>
                         </li>
                         <li className="flex items-start gap-3">
-                          <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             <b>Bemestingsadvies:</b> Adviezen afgestemd op uw bodemanalyse en
                             gewassen.
                           </span>
                         </li>
                         <li className="flex items-start gap-3">
-                          <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             <b>Gebruiksruimte:</b> Stikstof, dierlijke mest en fosfaat altijd
                             inzichtelijk.
@@ -386,28 +386,37 @@ export default function AppIndex() {
                       </div>
                       <CardTitle className="text-left text-2xl">Atlas verkennen</CardTitle>
                       <CardDescription className="text-left text-base">
-                        Verken openbare kaartdata over percelen, bodem en hoogte in Nederland —
-                        geen bedrijf nodig.
+                        Verken openbare kaartdata over percelen, bodem en hoogte in Nederland — geen
+                        bedrijf nodig.
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="text-muted-foreground grow text-left text-sm">
                       <ul className="space-y-3">
                         <li className="flex items-start gap-3">
-                          <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             <b>Percelen:</b> Gewashistorie en ruimtelijke kenmerken van alle
                             percelen in Nederland.
                           </span>
                         </li>
                         <li className="flex items-start gap-3">
-                          <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             <b>Hoogtekaart:</b> AHN4-data voor inzicht in het microreliëf van uw
                             percelen.
                           </span>
                         </li>
                         <li className="flex items-start gap-3">
-                          <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
                           <span>
                             <b>Bodemkaart:</b> Bodemtype en grondwatertrappen op perceel niveau.
                           </span>

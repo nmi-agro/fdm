@@ -156,17 +156,35 @@ export default function FarmFieldIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const calendar = useCalendarStore((state) => state.calendar)
   const location = useLocation()
+  const isDashboardRoute =
+    location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}` ||
+    location.pathname === `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}/`
 
   if (location.pathname.includes("fertilizer/manage")) return <Outlet />
+
+  const fieldDashboardHref = `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}`
+  const isSoilAnalysisRoute = location.pathname.includes(`/field/${loaderData.b_id}/soil/analysis`)
+  const backAction = isDashboardRoute
+    ? {
+        to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,
+        label: "Terug naar percelen",
+        disabled: false,
+      }
+    : isSoilAnalysisRoute
+      ? {
+          to: `${fieldDashboardHref}/soil`,
+          label: "Terug naar bodemanalyses",
+          disabled: false,
+        }
+      : {
+          to: fieldDashboardHref,
+          label: "Terug naar overzicht",
+          disabled: false,
+        }
+
   return (
     <SidebarInset>
-      <Header
-        action={{
-          to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,
-          label: "Terug naar percelen",
-          disabled: false,
-        }}
-      >
+      <Header action={backAction}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <HeaderField
           b_id_farm={loaderData.b_id_farm}
@@ -177,7 +195,11 @@ export default function FarmFieldIndex() {
       <main>
         <FarmTitle
           title={loaderData.field?.b_name}
-          description={"Beheer hier de gegevens van dit perceel"}
+          description={
+            isDashboardRoute
+              ? "Overzicht van dit perceel"
+              : "Beheer hier de gegevens van dit perceel"
+          }
         />
         <FarmContent>
           <Outlet />

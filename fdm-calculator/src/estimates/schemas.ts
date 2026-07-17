@@ -1,0 +1,60 @@
+import { z } from "zod"
+
+/**
+ * Zod schema validating the raw JSON payload returned by `GET /estimates`,
+ * moved verbatim from the original `fdm-app`-local implementation.
+ */
+export const soilParameterEstimatesSchema = z.object({
+  a_al_ox: z.number(),
+  a_ca_co: z.number(),
+  a_ca_co_po: z.number(),
+  a_caco3_if: z.number(),
+  a_cec_co: z.number(),
+  a_clay_mi: z.number(),
+  a_cn_fr: z.number(),
+  a_com_fr: z.number(),
+  a_cu_cc: z.number(),
+  a_fe_ox: z.number(),
+  a_k_cc: z.number(),
+  a_k_co: z.number(),
+  a_k_co_po: z.number(),
+  a_mg_cc: z.number(),
+  a_mg_co: z.number(),
+  a_mg_co_po: z.number(),
+  a_n_pmn: z.number(),
+  a_n_rt: z.number(),
+  a_p_al: z.number(),
+  a_p_cc: z.number(),
+  a_p_ox: z.number(),
+  a_p_rt: z.number(),
+  a_p_sg: z.number(),
+  a_p_wa: z.number(),
+  a_ph_cc: z.number(),
+  a_s_rt: z.number(),
+  a_sand_mi: z.number(),
+  a_silt_mi: z.number(),
+  a_som_loi: z.number(),
+  a_zn_cc: z.number(),
+  b_soiltype_agr: z.string(),
+  b_gwl_class: z.string(),
+  b_gwl_ghg: z.number(),
+  b_gwl_glg: z.number(),
+  b_c_st03: z.number(),
+  b_som_potential: z.number(),
+  b_c_st03_potential: z.number(),
+  b_c_delta: z.number(),
+  cultivations: z.array(z.object({ year: z.number(), b_lu_brp: z.number() })),
+  cultivations_advanced: z.array(
+    z.object({
+      year: z.number(),
+      fields: z.array(
+        z.object({
+          b_lu_brp: z.number(),
+          b_area: z.number(),
+          b_area_overlap: z.number(),
+        }),
+      ),
+    }),
+  ),
+  a_source: z.string(),
+})

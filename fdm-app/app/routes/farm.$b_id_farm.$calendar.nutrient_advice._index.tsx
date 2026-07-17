@@ -28,7 +28,8 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { cn } from "~/lib/utils"
@@ -151,10 +152,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               }
             }
 
-            const activeCultivation =
-              getDefaultCultivation(cultivations, calendar) ?? cultivations[0]
+            const activeCultivation = getMainCultivation(cultivations, calendar)
+            const hasDefaultCultivation = !!activeCultivation
             const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
             const currentSoilData = soilDataByField.get(field.b_id) ?? []
+
+            const cultivationSuggestion = hasDefaultCultivation
+              ? undefined
+              : await getCultivationSuggestion(
+                  fdm,
+                  session.principal_id,
+                  b_id_farm,
+                  field.b_id,
+                  calendar,
+                  nmiApiKey,
+                )
+
+            if (!activeCultivation) {
+              return {
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area,
+                mainCultivation: null,
+                cultivationSuggestion,
+                errorMessage: "Geen hoofdteelt bepaald voor dit jaar.",
+                values: {},
+              }
+            }
 
             const mainCultivation = {
               b_lu: activeCultivation.b_lu,
@@ -187,6 +211,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_name: field.b_name,
                 b_area,
                 mainCultivation,
+                cultivationSuggestion,
                 values,
               }
             } catch (error) {
@@ -195,6 +220,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_name: field.b_name,
                 b_area,
                 mainCultivation,
+                cultivationSuggestion,
                 errorMessage: toFriendlyAdviceError(error),
                 values: {},
               }
@@ -299,5 +325,12 @@ function NutrientAdviceOverview({
   loaderData: Awaited<ReturnType<typeof loader>>
 }) {
   const { rows } = use(loaderData.asyncData)
-  return <NutrientAdviceOverviewTable data={rows} nutrients={loaderData.nutrientsDescription} />
+  return (
+    <NutrientAdviceOverviewTable
+      data={rows}
+      nutrients={loaderData.nutrientsDescription}
+      b_id_farm={loaderData.b_id_farm}
+      calendar={loaderData.calendar}
+    />
+  )
 }

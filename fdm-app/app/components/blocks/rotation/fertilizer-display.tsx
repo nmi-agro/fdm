@@ -43,24 +43,21 @@ const fertilizerIconClassMap = {
 
 export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({ row }) => {
   const fertilizerDisplay = React.useMemo(() => {
-    const fields =
+    const fields: FieldRow[] =
       row.original.type === "field"
         ? [row.original]
-        : (row.subRows ?? []).map((fieldRow) => fieldRow.original as FieldRow)
+        : (row.subRows ?? [])
+            .map((fieldRow) => fieldRow.original)
+            .filter((fieldRow): fieldRow is FieldRow => fieldRow.type === "field")
     const fertilizers = fields.flatMap((field) => field.fertilizers)
     const uniqueFertilizers = Array.from(new Map(fertilizers.map((f) => [f.p_id, f])).values())
-    const fieldIds =
-      row.original.type === "field"
-        ? [row.original.b_id]
-        : row.subRows.map((fieldRow) => (fieldRow.original as FieldRow).b_id)
+    const fieldIds = fields.map((field) => field.b_id)
     return (
       <div className="flex flex-col items-start space-y-2">
         {uniqueFertilizers.map((fertilizer) => {
           const isFertilizerUsedOnAllFieldsForThisCultivation =
             row.original.type === "field" ||
-            (row.subRows as Row<FieldRow>[]).every((fieldRow) =>
-              fieldRow.original.fertilizers.some((f) => f.p_id === fertilizer.p_id),
-            )
+            fields.every((field) => field.fertilizers.some((f) => f.p_id === fertilizer.p_id))
           const fertilizerIconFillShade = isFertilizerUsedOnAllFieldsForThisCultivation
             ? "600"
             : "300"

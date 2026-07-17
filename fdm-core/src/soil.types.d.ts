@@ -6,6 +6,7 @@ export interface SoilAnalysis {
   a_depth_upper: schema.soilSamplingTypeSelect["a_depth_upper"]
   a_depth_lower: schema.soilSamplingTypeSelect["a_depth_lower"]
   a_source: schema.soilAnalysisTypeSelect["a_source"]
+  a_file_path: schema.soilAnalysisTypeSelect["a_file_path"]
   a_al_ox: schema.soilAnalysisTypeSelect["a_al_ox"]
   a_c_of: schema.soilAnalysisTypeSelect["a_c_of"]
   a_ca_co: schema.soilAnalysisTypeSelect["a_ca_co"]
@@ -53,6 +54,7 @@ export interface SoilAnalysis {
   a_c_bcs: schema.soilAnalysisTypeSelect["a_c_bcs"]
   a_rt_bcs: schema.soilAnalysisTypeSelect["a_rt_bcs"]
   b_id_sampling: schema.soilSamplingTypeSelect["b_id_sampling"]
+  b_id: schema.soilSamplingTypeSelect["b_id"]
   b_sampling_date: schema.soilSamplingTypeSelect["b_sampling_date"]
   b_sampling_geometry?: schema.soilSamplingTypeSelect["b_sampling_geometry"]
 }

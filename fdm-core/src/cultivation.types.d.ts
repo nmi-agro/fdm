@@ -9,6 +9,7 @@ export interface Cultivation {
   b_lu_hcat3: schema.cultivationsCatalogueTypeSelect["b_lu_hcat3"]
   b_lu_hcat3_name: schema.cultivationsCatalogueTypeSelect["b_lu_hcat3_name"]
   b_lu_croprotation: schema.cultivationsCatalogueTypeSelect["b_lu_croprotation"]
+  b_lu_rest_oravib: schema.cultivationsCatalogueTypeSelect["b_lu_rest_oravib"]
   b_lu_eom: schema.cultivationsCatalogueTypeSelect["b_lu_eom"]
   b_lu_eom_residue: schema.cultivationsCatalogueTypeSelect["b_lu_eom_residue"]
   b_lu_harvestcat: schema.cultivationsCatalogueTypeSelect["b_lu_harvestcat"]

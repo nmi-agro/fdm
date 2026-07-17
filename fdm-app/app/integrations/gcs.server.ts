@@ -1,4 +1,5 @@
-import { Storage } from "@google-cloud/storage"
+import type { Readable } from "node:stream"
+import { SaveData, Storage } from "@google-cloud/storage"
 
 let _storage: Storage | null = null
 
@@ -49,6 +50,19 @@ function getBucketName(): string {
     throw new Error("GCS_BUCKET_NAME environment variable is not set")
   }
   return bucket
+}
+
+/**
+ * Returns a consistently formatted GCS object key.
+ * Example: buildObjectKey("soil_analysis", a_id, "pdf") → "soil_analysis/{a_id}.pdf"
+ *
+ * @param prefix - The prefix or folder in GCS (e.g. "soil_analysis")
+ * @param id - The unique identifier for the object (e.g. a_id)
+ * @param ext - The file extension (e.g. "pdf", "jpg")
+ * @returns The full GCS object key
+ */
+export function buildObjectKey(prefix: string, id: string, ext: string): string {
+  return `${prefix}/${id}.${ext}`
 }
 
 /**
@@ -175,7 +189,7 @@ export async function deleteObject(objectKey: string): Promise<void> {
  */
 export async function uploadObject(
   objectKey: string,
-  buffer: Buffer,
+  buffer: SaveData,
   contentType: string,
 ): Promise<void> {
   const storage = getStorage()
@@ -185,4 +199,31 @@ export async function uploadObject(
     contentType,
     resumable: false,
   })
+}
+
+/**
+ * Opens a readable stream for a GCS object, along with its content type and
+ * size (when known). Used to proxy file contents through the app server
+ * instead of redirecting the client to a signed GCS URL, so downloads and
+ * inline views stay same-origin.
+ *
+ * @param objectKey - The GCS object path
+ * @returns The object's readable stream plus content type / size metadata
+ */
+export async function getObjectStream(objectKey: string): Promise<{
+  stream: Readable
+  contentType?: string
+  size?: number
+}> {
+  const storage = getStorage()
+  const bucket = getBucketName()
+  const file = storage.bucket(bucket).file(objectKey)
+
+  const [metadata] = await file.getMetadata()
+
+  return {
+    stream: file.createReadStream(),
+    contentType: metadata.contentType ?? undefined,
+    size: metadata.size !== undefined ? Number(metadata.size) : undefined,
+  }
 }

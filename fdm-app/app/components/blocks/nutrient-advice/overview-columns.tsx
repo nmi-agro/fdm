@@ -1,6 +1,7 @@
 import type { Column, ColumnDef, RowData } from "@tanstack/react-table"
 import { ArrowDown, ArrowUp } from "lucide-react"
 import { NavLink } from "react-router"
+import { CultivationSuggestionBadge } from "~/components/blocks/cultivation/suggestion"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
@@ -244,7 +245,7 @@ function FieldColumnHeader({ column }: { column: Column<FieldNutrientRow, unknow
   )
 }
 
-export function buildFieldColumn(): ColumnDef<FieldNutrientRow> {
+export function buildFieldColumn(b_id_farm: string, calendar: string): ColumnDef<FieldNutrientRow> {
   return {
     id: "field",
     accessorKey: "b_name",
@@ -255,36 +256,50 @@ export function buildFieldColumn(): ColumnDef<FieldNutrientRow> {
       const field = row.original
       const cultivation = field.mainCultivation
       return (
-        <NavLink
-          to={`./${field.b_id}${cultivation ? `?cultivation=${cultivation.b_lu}` : ""}`}
-          className="group block max-w-[16rem]"
-        >
-          <span
-            title={field.b_name}
-            className="group-hover:text-foreground/80 block truncate font-medium underline-offset-4 group-hover:underline"
+        <div>
+          <NavLink
+            to={`./${field.b_id}${cultivation ? `?cultivation=${cultivation.b_lu}` : ""}`}
+            className="group block max-w-[16rem]"
           >
-            {field.b_name}
-          </span>
-          <span className="mt-1 flex min-w-0 items-center gap-2">
-            <span className="text-muted-foreground shrink-0 text-xs">
-              {field.b_area < 0.1 ? "< 0.1 ha" : `${field.b_area.toFixed(1)} ha`}
+            <span
+              title={field.b_name}
+              className="group-hover:text-foreground/80 block truncate font-medium underline-offset-4 group-hover:underline"
+            >
+              {field.b_name}
             </span>
-            {cultivation ? (
-              <Badge
-                title={cultivation.b_lu_name}
-                style={{
-                  backgroundColor: getCultivationColor(cultivation.b_lu_croprotation ?? undefined),
-                }}
-                className="min-w-0 truncate text-white"
-                variant="default"
-              >
-                {cultivation.b_lu_name}
-              </Badge>
-            ) : (
-              <span className="text-muted-foreground truncate text-xs italic">Geen gewas</span>
-            )}
-          </span>
-        </NavLink>
+            <span className="mt-1 flex min-w-0 items-center gap-2">
+              <span className="text-muted-foreground shrink-0 text-xs">
+                {field.b_area < 0.1 ? "< 0.1 ha" : `${field.b_area.toFixed(1)} ha`}
+              </span>
+              {cultivation ? (
+                <Badge
+                  title={cultivation.b_lu_name}
+                  style={{
+                    backgroundColor: getCultivationColor(
+                      cultivation.b_lu_croprotation ?? undefined,
+                    ),
+                  }}
+                  className="min-w-0 truncate text-white"
+                  variant="default"
+                >
+                  {cultivation.b_lu_name}
+                </Badge>
+              ) : (
+                <span className="text-muted-foreground truncate text-xs italic">Geen gewas</span>
+              )}
+            </span>
+          </NavLink>
+          {field.cultivationSuggestion && (
+            <div className="mt-1" data-prevent-row-click="true">
+              <CultivationSuggestionBadge
+                b_id_farm={b_id_farm}
+                calendar={calendar}
+                b_id={field.b_id}
+                suggestion={field.cultivationSuggestion}
+              />
+            </div>
+          )}
+        </div>
       )
     },
     footer: () => <span className="font-medium">Bedrijfstotaal</span>,
@@ -300,6 +315,8 @@ export function buildFieldColumn(): ColumnDef<FieldNutrientRow> {
 export function buildOverviewColumns(
   nutrients: NutrientDescription[],
   unitMode: UnitMode,
+  b_id_farm: string,
+  calendar: string,
 ): ColumnDef<FieldNutrientRow>[] {
   const order: NutrientDescription["type"][] = ["primary", "secondary", "trace"]
   const orderedNutrients = order.flatMap((type) =>
@@ -313,5 +330,5 @@ export function buildOverviewColumns(
     return buildNutrientColumn(nutrient, unitMode, isGroupStart)
   })
 
-  return [buildFieldColumn(), ...nutrientColumns]
+  return [buildFieldColumn(b_id_farm, calendar), ...nutrientColumns]
 }

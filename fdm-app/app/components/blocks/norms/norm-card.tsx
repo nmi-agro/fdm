@@ -1,36 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-
-const getProgressColorClass = ({ percentage, type }: ProgressBarProps) => {
-  if (percentage > 100 && type === "farm") return "bg-red-500"
-  if (percentage > 100 && type === "field") return "bg-orange-500"
-  return "bg-green-500"
-}
-
-interface ProgressBarProps {
-  percentage: number
-  type: "farm" | "field"
-}
-
-const ProgressBar = ({ percentage, type }: ProgressBarProps) => (
-  <div className="bg-muted h-2 w-full rounded-full">
-    <div
-      className={`h-full rounded-full ${getProgressColorClass({ percentage, type })}`}
-      style={{ width: `${Math.min(percentage, 100)}%` }}
-    />
-  </div>
-)
+import { computeNormProgress, NormProgressBar } from "./progress-bar"
 
 interface NormCardProps {
   title: string
-  type: "farm" | "field"
   norm: number
   filling: number | undefined
   unit: string
 }
 
-export function NormCard({ title, type, norm, filling, unit }: NormCardProps) {
+export function NormCard({ title, norm, filling, unit }: NormCardProps) {
   const fillingpercentage = filling || 0
-  const percentage = norm > 0 ? (fillingpercentage / norm) * 100 : 0
+  const { percentage } = computeNormProgress(fillingpercentage, norm)
 
   return (
     <Card>
@@ -56,7 +36,7 @@ export function NormCard({ title, type, norm, filling, unit }: NormCardProps) {
         </div>
         {filling !== undefined && (
           <div className="mt-4">
-            <ProgressBar percentage={percentage} type={type} />
+            <NormProgressBar used={fillingpercentage} limit={norm} />
             <p className="text-muted-foreground mt-1 text-right text-sm">
               {percentage.toFixed(0)}%
             </p>

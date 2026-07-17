@@ -49,7 +49,10 @@ export function FarmPickerDialog({
         </DialogHeader>
         {farms.length > 0 ? (
           <Command>
-            <CommandInput placeholder="Zoek bedrijf..." className="border-none focus:ring-0 focus-visible:ring-0" />
+            <CommandInput
+              placeholder="Zoek bedrijf..."
+              className="border-none focus:ring-0 focus-visible:ring-0"
+            />
             <CommandList className="max-h-[300px] overflow-y-auto p-2">
               <CommandEmpty>Geen bedrijven gevonden.</CommandEmpty>
               <CommandGroup heading="Bedrijven">

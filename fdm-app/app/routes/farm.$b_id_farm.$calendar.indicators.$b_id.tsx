@@ -1,6 +1,7 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import { type CultivationForHoofdteelt, findHoofdteelt } from "@nmi-agro/fdm-calculator"
 import {
+  checkPermission,
   getCultivations,
   getField,
   getFields,
@@ -51,7 +52,7 @@ import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS, scoreToDisplay } from "~/lib/indicators"
@@ -195,23 +196,39 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations, BRP catalogue
     // Cultivations are fetched without timeframe to cover multi-year history (for display)
-    const [field, fields, bln3Result, fieldMeasures, cultivations, brpCatalogue] =
-      await Promise.all([
-        getField(fdm, session.principal_id, b_id),
-        getFields(fdm, session.principal_id, b_id_farm, timeframe),
-        getIndicatorsForField({
-          principal_id: session.principal_id,
-          b_id,
-          timeframe,
-        }),
-        getFieldMeasuresForIndicators({
-          principal_id: session.principal_id,
-          b_id,
-          timeframe,
-        }),
-        getCultivations(fdm, session.principal_id, b_id),
-        getCultivationCatalogue("brp"),
-      ])
+    const [
+      field,
+      fields,
+      bln3Result,
+      fieldMeasures,
+      cultivations,
+      brpCatalogue,
+      fieldWritePermission,
+    ] = await Promise.all([
+      getField(fdm, session.principal_id, b_id),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getIndicatorsForField({
+        principal_id: session.principal_id,
+        b_id,
+        timeframe,
+      }),
+      getFieldMeasuresForIndicators({
+        principal_id: session.principal_id,
+        b_id,
+        timeframe,
+      }),
+      getCultivations(fdm, session.principal_id, b_id),
+      getCultivationCatalogue("brp"),
+      checkPermission(
+        fdm,
+        "field",
+        "write",
+        b_id,
+        session.principal_id,
+        "routes/farm.$b_id_farm.$calendar.indicators.$b_id",
+        false,
+      ),
+    ])
     const fieldScore = bln3Result.score
     const bln3Inputs = bln3Result.inputs
 
@@ -308,8 +325,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       ]
     })
 
-    // Derive the current cultivation (FarmTitle badge) using the May 15th point check.
-    const currentCultivation = getDefaultCultivation(cultivations, calendar ?? "")
+    // Derive the current cultivation (FarmTitle badge) using the hoofdteelt rule.
+    const currentCultivation = getMainCultivation(cultivations, calendar ?? "")
 
     // Build cultivation display list using findHoofdteelt (May 15–July 15 duration
     // window) — exactly consistent with what is submitted to the BLN3 API.
@@ -364,6 +381,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id: f.b_id,
         b_name: f.b_name ?? null,
       })),
+      fieldWritePermission,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)

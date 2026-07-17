@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import {
   type ActionFunctionArgs,
   Form,
+  Link,
   type LoaderFunctionArgs,
   type MetaFunction,
   redirect,
@@ -24,6 +25,7 @@ import { serverConfig } from "~/lib/config.server"
 import { handleLoaderError } from "~/lib/error"
 import { FormSchema } from "../components/blocks/auth/auth-formschema"
 import { extractFormValuesFromRequest } from "../lib/form"
+import { modifySearchParams } from "../lib/url-utils"
 
 export const meta: MetaFunction = () => {
   return [
@@ -73,34 +75,58 @@ export default function Verify() {
 
   const hasAnimated = useRef(false)
 
-  // Capture code failure when actionData signals an error
+  // Capture code failure when actionData signals an error, and move focus
+  // back to the code field so the failure and its recovery link are announced.
   useEffect(() => {
     if (actionData?.errors?.code) {
       const reason = actionData.errors.code.includes("Te veel") ? "rate_limited" : "invalid_code"
       capture("signin_code_failed", { reason })
+      form.setFocus("code")
     }
-  }, [actionData])
+  }, [actionData, capture, form])
 
-  // Typing animation effect
+  // Reveal the emailed code character by character so the user sees it was
+  // received and is about to be verified, rather than jumping straight to a
+  // spinner. Fills instantly when the user prefers reduced motion.
   useEffect(() => {
-    if (code && code.length === 8 && !hasAnimated.current) {
-      hasAnimated.current = true
-      const chars = code.toUpperCase().split("")
-      let current = ""
-      chars.forEach((char, index) => {
-        setTimeout(() => {
-          current += char
-          form.setValue("code", current)
-        }, index * 75) // 75ms delay between keystrokes
-      })
+    if (!(code && code.length === 6 && !hasAnimated.current)) {
+      return
+    }
+    hasAnimated.current = true
+    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+
+    if (prefersReducedMotion) {
+      form.setValue("code", code)
+      return
+    }
+
+    const chars = code.split("")
+    let current = ""
+    // Track every scheduled timeout so we can clear them all on cleanup,
+    // preventing form.setValue from firing after the component unmounts.
+    const timeoutIds = chars.map((char, index) =>
+      setTimeout(() => {
+        current += char
+        form.setValue("code", current)
+      }, index * 75),
+    ) // 75ms delay between keystrokes
+
+    return () => {
+      for (const id of timeoutIds) {
+        clearTimeout(id)
+      }
     }
   }, [code, form])
+
+  const requestNewCodeUrl = modifySearchParams("/signin/check-your-email", (params) => {
+    params.set("redirectTo", redirectTo || "/farm")
+  })
 
   return (
     <AuthLayout>
       <AuthCard
         title="Verifieer je code"
-        description="Vul de 8-cijferige code in die je per e-mail hebt ontvangen."
+        description="Vul de 6-cijferige code in die je per e-mail hebt ontvangen."
       >
         <Form
           onSubmit={(e) => {
@@ -124,6 +150,17 @@ export default function Verify() {
               "Verifiëren en aanmelden"
             )}
           </Button>
+
+          {actionData?.errors?.code && (
+            <Button asChild variant="link" className="w-full">
+              <Link
+                to={requestNewCodeUrl}
+                onClick={() => capture("signin_request_new_code_clicked")}
+              >
+                Nieuwe code aanvragen
+              </Link>
+            </Button>
+          )}
         </Form>
       </AuthCard>
     </AuthLayout>
@@ -131,7 +168,9 @@ export default function Verify() {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  // Artificial delay to ensure the loading state is visible to the user
+  // Deliberate delay: makes the verification step feel checked/deliberate
+  // rather than instantaneous, and adds friction against brute-force/bot
+  // code-guessing attempts.
   await new Promise((resolve) => setTimeout(resolve, 700))
 
   const formValues = await extractFormValuesFromRequest(request, FormSchema)

@@ -8,7 +8,7 @@ import {
 import { getCultivations, getCurrentSoilData, getFertilizers, getFields } from "@nmi-agro/fdm-core"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { fdm } from "~/lib/fdm.server"
 import PostHogClient from "~/posthog.server"
 
@@ -98,7 +98,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
               getCultivations(fdm, session.principal_id, field.b_id, timeframe),
               getCurrentSoilData(fdm, session.principal_id, field.b_id),
             ])
-            const mainCultivation = getDefaultCultivation(cultivations, calendar)
+            const mainCultivation = getMainCultivation(cultivations, calendar)
             const getSoilParam = (param: string) =>
               soilData.find((d) => d.parameter === param)?.value ?? null
             return {

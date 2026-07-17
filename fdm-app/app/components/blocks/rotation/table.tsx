@@ -45,7 +45,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
-import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import type { CropRow, RotationExtended } from "./columns"
 import { FieldFilterToggle } from "../../custom/field-filter-toggle"
 
 interface DataTableProps<TData, TValue> {
@@ -98,10 +98,11 @@ export function DataTable<TData extends RotationExtended, TValue>({
         .rows.map((row) => [
           row.original.b_lu_catalogue,
           Object.fromEntries(
-            row.subRows.map((fieldRow) => [
-              (fieldRow.original as FieldRow).b_id,
-              rowSelection[fieldRow.id],
-            ]),
+            row.subRows.flatMap((fieldRow) =>
+              fieldRow.original.type === "field"
+                ? [[fieldRow.original.b_id, rowSelection[fieldRow.id]]]
+                : [],
+            ),
           ),
         ]),
     )
@@ -212,9 +213,10 @@ export function DataTable<TData extends RotationExtended, TValue>({
       }
     })
   }, [data])
-  type MemoizedTData =
-    | (typeof memoizedData)[number] // Memoized CropRow
-    | (typeof memoizedData)[number]["fields"][number] // Memoized FieldRow
+  type MemoizedCropRow = (typeof memoizedData)[number]
+  type MemoizedFieldRow = MemoizedCropRow["fields"][number]
+  type MemoizedTData = MemoizedCropRow | MemoizedFieldRow
+  const isMemoizedFieldRow = (row: MemoizedTData): row is MemoizedFieldRow => row.type === "field"
 
   const fuzzySearchAndProductivityFilter = (
     data: MemoizedTData,
@@ -311,11 +313,10 @@ export function DataTable<TData extends RotationExtended, TValue>({
   }, [table, rowSelection])
 
   const selectedFields = useMemo(() => {
-    return (
-      table
-        .getFilteredSelectedRowModel()
-        .flatRows.filter((row) => row.original.type === "field") as Row<FieldRow>[]
-    ).map((row) => row.original)
+    return table
+      .getFilteredSelectedRowModel()
+      .flatRows.map((row) => row.original)
+      .filter(isMemoizedFieldRow)
   }, [table, rowSelection])
 
   const selectedCultivationIds = selectedCultivations.map(

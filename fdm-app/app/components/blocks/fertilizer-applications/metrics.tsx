@@ -10,6 +10,8 @@ import { CircleAlert, CircleCheck, CircleX, Sprout } from "lucide-react"
 import { Suspense } from "react"
 import { Await, NavLink } from "react-router"
 import { MissingParametersWarning } from "~/components/blocks/balance/missing-parameters-warning"
+import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
+import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -29,7 +31,6 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "~/components/ui/item"
-import { Progress } from "~/components/ui/progress"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
@@ -78,22 +79,6 @@ export function FertilizerApplicationMetricsCard({
   fertilizerApplicationMetricsData,
   isSubmitting,
 }: FertilizerApplicationMetricsCardProps) {
-  const getNormsProgressColor = (current: number, total: number) => {
-    if (total === 0) return "gray-500"
-    const percentage = (current / total) * 100
-    if (percentage > 100) return "red-500"
-    return "green-500"
-  }
-
-  const getAdviceProgressColor = (current: number, total: number) => {
-    if (total === 0) return "gray-500"
-    const percentage = (current / total) * 100
-    if (percentage < 80) return "orange-500"
-    if (percentage >= 80 && percentage <= 105) return "green-500"
-    if (percentage > 105) return "orange-500"
-    return "gray-500" // Default or error color
-  }
-
   const {
     norms,
     nitrogenBalance,
@@ -190,19 +175,9 @@ export function FertilizerApplicationMetricsCard({
                                     {Math.round(resolvedNorms.value.nitrogen.normValue)} kg N
                                   </span>
                                 </div>
-                                <Progress
-                                  value={
-                                    resolvedNorms.value.nitrogen.normValue === 0
-                                      ? 0
-                                      : (resolvedNorms.filling.nitrogen.normFilling /
-                                          resolvedNorms.value.nitrogen.normValue) *
-                                        100
-                                  }
-                                  colorBar={getNormsProgressColor(
-                                    resolvedNorms.filling.nitrogen.normFilling,
-                                    resolvedNorms.value.nitrogen.normValue,
-                                  )}
-                                  className="h-2"
+                                <NormProgressBar
+                                  used={resolvedNorms.filling.nitrogen.normFilling}
+                                  limit={resolvedNorms.value.nitrogen.normValue}
                                 />
                               </div>
 
@@ -223,19 +198,9 @@ export function FertilizerApplicationMetricsCard({
                                     {Math.round(resolvedNorms.value.phosphate.normValue)} kg P₂O₅
                                   </span>
                                 </div>
-                                <Progress
-                                  value={
-                                    resolvedNorms.value.phosphate.normValue === 0
-                                      ? 0
-                                      : (resolvedNorms.filling.phosphate.normFilling /
-                                          resolvedNorms.value.phosphate.normValue) *
-                                        100
-                                  }
-                                  colorBar={getNormsProgressColor(
-                                    resolvedNorms.filling.phosphate.normFilling,
-                                    resolvedNorms.value.phosphate.normValue,
-                                  )}
-                                  className="h-2"
+                                <NormProgressBar
+                                  used={resolvedNorms.filling.phosphate.normFilling}
+                                  limit={resolvedNorms.value.phosphate.normValue}
                                 />
                               </div>
 
@@ -256,19 +221,9 @@ export function FertilizerApplicationMetricsCard({
                                     {Math.round(resolvedNorms.value.manure.normValue)} kg N
                                   </span>
                                 </div>
-                                <Progress
-                                  value={
-                                    resolvedNorms.value.manure.normValue === 0
-                                      ? 0
-                                      : (resolvedNorms.filling.manure.normFilling /
-                                          resolvedNorms.value.manure.normValue) *
-                                        100
-                                  }
-                                  colorBar={getNormsProgressColor(
-                                    resolvedNorms.filling.manure.normFilling,
-                                    resolvedNorms.value.manure.normValue,
-                                  )}
-                                  className="h-2"
+                                <NormProgressBar
+                                  used={resolvedNorms.filling.manure.normFilling}
+                                  limit={resolvedNorms.value.manure.normValue}
                                 />
                               </div>
                             </div>
@@ -432,18 +387,10 @@ export function FertilizerApplicationMetricsCard({
                                     {Math.round(resolvedNutrientAdvice.d_n_req)} kg N
                                   </span>
                                 </div>
-                                <Progress
+                                <AdviceProgressBar
                                   key={`n-${dose.p_dose_n}`}
-                                  value={
-                                    resolvedNutrientAdvice.d_n_req === 0
-                                      ? 0
-                                      : (dose.p_dose_n / resolvedNutrientAdvice.d_n_req) * 100
-                                  }
-                                  colorBar={getAdviceProgressColor(
-                                    dose.p_dose_n,
-                                    resolvedNutrientAdvice.d_n_req,
-                                  )}
-                                  className="h-2"
+                                  current={dose.p_dose_n}
+                                  target={resolvedNutrientAdvice.d_n_req}
                                 />
                               </div>
 
@@ -457,18 +404,10 @@ export function FertilizerApplicationMetricsCard({
                                     {Math.round(resolvedNutrientAdvice.d_p_req)} kg P₂O₅
                                   </span>
                                 </div>
-                                <Progress
+                                <AdviceProgressBar
                                   key={`p-${dose.p_dose_p}`}
-                                  value={
-                                    resolvedNutrientAdvice.d_p_req === 0
-                                      ? 0
-                                      : (dose.p_dose_p / resolvedNutrientAdvice.d_p_req) * 100
-                                  }
-                                  colorBar={getAdviceProgressColor(
-                                    dose.p_dose_p,
-                                    resolvedNutrientAdvice.d_p_req,
-                                  )}
-                                  className="h-2"
+                                  current={dose.p_dose_p}
+                                  target={resolvedNutrientAdvice.d_p_req}
                                 />
                               </div>
 
@@ -482,18 +421,10 @@ export function FertilizerApplicationMetricsCard({
                                     {Math.round(resolvedNutrientAdvice.d_k_req)} kg K₂O
                                   </span>
                                 </div>
-                                <Progress
+                                <AdviceProgressBar
                                   key={`k-${dose.p_dose_k}`}
-                                  value={
-                                    resolvedNutrientAdvice.d_k_req === 0
-                                      ? 0
-                                      : (dose.p_dose_k / resolvedNutrientAdvice.d_k_req) * 100
-                                  }
-                                  colorBar={getAdviceProgressColor(
-                                    dose.p_dose_k,
-                                    resolvedNutrientAdvice.d_k_req,
-                                  )}
-                                  className="h-2"
+                                  current={dose.p_dose_k}
+                                  target={resolvedNutrientAdvice.d_k_req}
                                 />
                               </div>
                             </div>

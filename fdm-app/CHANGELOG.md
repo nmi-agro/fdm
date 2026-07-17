@@ -1,5 +1,19 @@
 # Changelog fdm-app
 
+## 0.33.2
+
+### Patch Changes
+
+- [#701](https://github.com/nmi-agro/fdm/pull/701) [`be15738`](https://github.com/nmi-agro/fdm/commit/be1573826986a3fb735ac735f64765783cd33253) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now users see an error message inline in the form also when trying to create a cultivation, whose end date is before the start date. This used to only work for updating a cultivation.
+
+## 0.33.1
+
+### Patch Changes
+
+- [#699](https://github.com/nmi-agro/fdm/pull/699) [`b90c742`](https://github.com/nmi-agro/fdm/commit/b90c742e014944112e66e057131011d1a14ae147) Thanks [@SvenVw](https://github.com/SvenVw)! - Use at BLN3 the updated name for `CR_CSEQ` instead of `C_SEQ`
+
+- [#699](https://github.com/nmi-agro/fdm/pull/699) [`e1ae81a`](https://github.com/nmi-agro/fdm/commit/e1ae81aafdb5308b53cf7574eb7df4b7661c3684) Thanks [@SvenVw](https://github.com/SvenVw)! - Use at BLN3 the updated name for `GW_WHC` instead of `P_WRET`
+
 ## 0.33.0
 
 ### Minor Changes
