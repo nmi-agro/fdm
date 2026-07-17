@@ -163,9 +163,7 @@ export default function FarmFieldIndex() {
   if (location.pathname.includes("fertilizer/manage")) return <Outlet />
 
   const fieldDashboardHref = `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}`
-  const isSoilAnalysisRoute = location.pathname.includes(
-    `/field/${loaderData.b_id}/soil/analysis`,
-  )
+  const isSoilAnalysisRoute = location.pathname.includes(`/field/${loaderData.b_id}/soil/analysis`)
   const backAction = isDashboardRoute
     ? {
         to: `/farm/${loaderData.b_id_farm}/${calendar}/field/`,

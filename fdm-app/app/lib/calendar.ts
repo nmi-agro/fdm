@@ -40,6 +40,22 @@ export function getTimeframe(params: Params): Timeframe {
 }
 
 /**
+ * Builds a `Timeframe` spanning multiple whole calendar years (inclusive), clamped to the app's
+ * supported range (`yearStart`..`yearEnd`, the same bounds `getCalendarSelection` offers). Used
+ * by views that need more than one year of data at once (e.g. the farm timeline, which lets users
+ * scroll across years rather than viewing one at a time).
+ */
+export function getTimeframeForYears(startYear: number, endYear: number): Timeframe {
+  const clampedStart = Math.min(Math.max(startYear, yearStart), yearEnd)
+  const clampedEnd = Math.min(Math.max(endYear, yearStart), yearEnd)
+
+  return {
+    start: new Date(`${clampedStart}-01-01T00:00:00.000Z`),
+    end: new Date(`${clampedEnd}-12-31T23:59:59.999Z`),
+  }
+}
+
+/**
  * Returns a context-aware default date based on the active cultivation calendar year.
  *
  * - If the calendar year matches the current real-world year, returns today's date.

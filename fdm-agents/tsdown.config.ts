@@ -9,6 +9,7 @@ export default defineConfig({
   entry: ["src/index.ts"],
   format: "esm",
   outDir: "dist",
+  tsconfig: "./tsconfig.build.json",
   dts: true,
   sourcemap: true,
   target: "node24",

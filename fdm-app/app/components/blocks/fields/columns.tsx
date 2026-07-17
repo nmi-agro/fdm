@@ -87,10 +87,7 @@ export function buildColumns(b_id_farm: string, calendar: string): ColumnDef<Fie
         const field = row.original
 
         return (
-          <NavLink
-            to={`./${field.b_id}`}
-            className="group flex w-fit items-center hover:underline"
-          >
+          <NavLink to={`./${field.b_id}`} className="group flex w-fit items-center hover:underline">
             {field.b_name}
             <ArrowUpRightFromSquare className="ml-2 h-4 w-4 text-gray-500 opacity-0 transition-opacity group-hover:opacity-100" />
           </NavLink>

@@ -57,9 +57,7 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({ row }) => 
         {uniqueFertilizers.map((fertilizer) => {
           const isFertilizerUsedOnAllFieldsForThisCultivation =
             row.original.type === "field" ||
-            fields.every((field) =>
-              field.fertilizers.some((f) => f.p_id === fertilizer.p_id),
-            )
+            fields.every((field) => field.fertilizers.some((f) => f.p_id === fertilizer.p_id))
           const fertilizerIconFillShade = isFertilizerUsedOnAllFieldsForThisCultivation
             ? "600"
             : "300"

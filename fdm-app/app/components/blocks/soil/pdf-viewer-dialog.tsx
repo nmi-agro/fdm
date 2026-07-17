@@ -84,14 +84,16 @@ export function PdfViewerDialogContent({
           />
         )}
         {(status === "checking" || status === "loading") && (
-          <div className="absolute inset-0 flex items-center justify-center gap-2 rounded-md border bg-background">
+          <div className="bg-background absolute inset-0 flex items-center justify-center gap-2 rounded-md border">
             <Spinner />
             <span className="text-muted-foreground text-sm">PDF wordt geladen…</span>
           </div>
         )}
         {status === "error" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-md border text-center">
-            <p className="text-muted-foreground text-sm">Het PDF-bestand kon niet worden geladen.</p>
+            <p className="text-muted-foreground text-sm">
+              Het PDF-bestand kon niet worden geladen.
+            </p>
             <Button variant="outline" size="sm" asChild>
               <a href={downloadUrl} download={filename} rel="noopener noreferrer">
                 <Download className="mr-2 h-4 w-4" aria-hidden="true" />

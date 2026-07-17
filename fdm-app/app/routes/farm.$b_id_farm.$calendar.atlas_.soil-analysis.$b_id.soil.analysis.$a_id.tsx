@@ -1,6 +1,9 @@
 import { getField, getSoilAnalysis, getSoilParametersDescription } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, useLoaderData } from "react-router"
-import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "~/components/blocks/soil/download"
+import {
+  getSoilAnalysisDownloadName,
+  getSoilAnalysisTitle,
+} from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { Separator } from "~/components/ui/separator"

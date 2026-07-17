@@ -5,17 +5,15 @@ import {
   getSoilParametersDescription,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import {
-  type ActionFunctionArgs,
-  data,
-  type LoaderFunctionArgs,
-  useLoaderData,
-} from "react-router"
+import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
-import { getSoilAnalysisDownloadName, getSoilAnalysisTitle } from "~/components/blocks/soil/download"
+import {
+  getSoilAnalysisDownloadName,
+  getSoilAnalysisTitle,
+} from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
-import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { FormSchema } from "~/components/blocks/soil/formschema"
+import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
