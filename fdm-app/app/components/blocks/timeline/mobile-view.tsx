@@ -4,7 +4,7 @@ import { ChevronRight, Circle, Square, Triangle } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import type { TimelineField, TimelineFilters } from "~/components/blocks/timeline/gantt-view"
-import { FertilizerIcon } from "~/components/blocks/gerrit/fertilizer-icon"
+import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
 import {
   filterEventsByType,
   flattenEvents,

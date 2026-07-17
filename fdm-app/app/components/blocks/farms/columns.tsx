@@ -1,14 +1,8 @@
 import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import type { CellContext, ColumnDef } from "@tanstack/react-table"
-import {
-  ArrowUpRightFromSquare,
-  ChevronRight,
-  Circle,
-  Diamond,
-  Square,
-  Triangle,
-} from "lucide-react"
+import { ArrowUpRightFromSquare, ChevronRight } from "lucide-react"
 import { NavLink, useParams } from "react-router"
+import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
 import { cn } from "@/app/lib/utils"
 import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -140,15 +134,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
           {fertilizers.map((fertilizer) => (
             <Badge key={fertilizer.p_id} variant="outline" className="text-muted-foreground gap-1">
               <span>
-                {fertilizer.p_type === "manure" ? (
-                  <Square className="size-3 fill-yellow-600 text-yellow-600" />
-                ) : fertilizer.p_type === "mineral" ? (
-                  <Circle className="size-3 fill-sky-600 text-sky-600" />
-                ) : fertilizer.p_type === "compost" ? (
-                  <Triangle className="size-3 fill-green-600 text-green-600" />
-                ) : (
-                  <Diamond className="size-3 fill-gray-600 text-gray-600" />
-                )}
+                <FertilizerIcon p_type={fertilizer.p_type ?? "other"} />
               </span>
               {fertilizer.p_name_nl}
             </Badge>

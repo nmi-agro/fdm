@@ -3,7 +3,7 @@ import { nl } from "date-fns/locale"
 import { LandPlot, TestTube2, Wheat } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react"
 import { NavLink, useNavigate } from "react-router"
-import { FertilizerIcon } from "~/components/blocks/gerrit/fertilizer-icon"
+import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import {
   computeGanttSubRowCount,

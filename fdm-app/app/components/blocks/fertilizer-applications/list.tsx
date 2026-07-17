@@ -2,7 +2,8 @@ import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { Circle, Diamond, Square, Trash, Triangle } from "lucide-react"
+import { Trash } from "lucide-react"
+import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
 import { Button } from "~/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import {
@@ -56,15 +57,7 @@ export function FertilizerApplicationsList({
                   <ItemContent>
                     <ItemTitle className="flex flex-row flex-wrap items-center gap-x-2">
                       <span>
-                        {fertilizer.p_type === "manure" ? (
-                          <Square className="size-3 fill-yellow-600 text-yellow-600" />
-                        ) : fertilizer.p_type === "mineral" ? (
-                          <Circle className="size-3 fill-sky-600 text-sky-600" />
-                        ) : fertilizer.p_type === "compost" ? (
-                          <Triangle className="size-3 fill-green-600 text-green-600" />
-                        ) : (
-                          <Diamond className="size-3 fill-gray-600 text-gray-600" />
-                        )}
+                        <FertilizerIcon p_type={fertilizer.p_type ?? "other"} />
                       </span>
                       <Button
                         variant="link"
