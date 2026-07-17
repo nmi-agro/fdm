@@ -1,7 +1,6 @@
-import { Eye, Locate } from "lucide-react"
+import { Badge, Eye, Locate } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
-import { TimelineFiltersPopover } from "~/components/blocks/timeline/timeline-filters"
 import { Button } from "~/components/ui/button"
 import {
   Select,
@@ -10,11 +9,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { Checkbox } from "~/components/ui/checkbox"
+import { PopoverTrigger, PopoverContent, Popover } from "~/components/ui/popover"
+import { Label } from "~/components/ui/label"
 
 const rangeLabels: Record<Range, string> = {
   daily: "Dagelijks",
   monthly: "Maandelijks",
   quarterly: "Kwartaal",
+}
+
+const defaultFilters: TimelineFilters = {
+  showCultivations: true,
+  showFertilizers: true,
+  showHarvests: true,
+  showSoilSamplings: true,
+  showBufferStrips: true,
 }
 
 export function TimelineToolbar({
@@ -30,6 +40,10 @@ export function TimelineToolbar({
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
 }) {
+  const activeFilterCount =
+    Object.values(filters).filter(Boolean).length -
+    Object.values(defaultFilters).filter(Boolean).length
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>
@@ -59,7 +73,6 @@ export function TimelineToolbar({
               <Badge
                 className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
                 key={activeFilterCount}
-                variant="secondary"
               >
                 {activeFilterCount}
               </Badge>

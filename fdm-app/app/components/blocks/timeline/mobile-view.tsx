@@ -24,7 +24,6 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
-import { ScrollArea } from "~/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -148,7 +147,7 @@ function ActiveCultivationBar({
   if (cultivations.length === 0) return null
 
   return (
-    <ScrollArea className="bg-background sticky top-0 z-20 w-full py-2">
+    <div className="bg-background sticky top-0 z-20 -mx-4 overflow-x-auto px-4 py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <div className="flex w-max gap-2">
         {cultivations.map((cultivation) => {
           const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
@@ -166,7 +165,7 @@ function ActiveCultivationBar({
           )
         })}
       </div>
-    </ScrollArea>
+    </div>
   )
 }
 
@@ -411,18 +410,16 @@ export function TimelineMobileView({
   const activeCultivations = useMemo(() => getActiveCultivations(visibleFields), [visibleFields])
 
   function handleSelectCultivation(fieldId: string) {
-    if (viewMode === "field") {
-      setExpandedFields((prev) => {
-        const next = new Set(prev)
-        next.add(fieldId)
-        return next
-      })
+    setViewMode("field")
+    setExpandedFields((prev) => {
+      const next = new Set(prev)
+      next.add(fieldId)
+      return next
+    })
+    setTimeout(() => {
       const header = fieldHeaderRefs.current.get(fieldId)
       header?.scrollIntoView({ behavior: "smooth", block: "start" })
-    } else {
-      const eventCard = fieldEventRefs.current.get(fieldId)
-      eventCard?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }
+    }, 100)
   }
 
   function toggleField(fieldId: string) {
@@ -443,25 +440,29 @@ export function TimelineMobileView({
   const showEmpty = filteredEvents.length === 0
 
   return (
-    <div className="space-y-4 px-4 py-4 md:hidden">
-      <div className="flex flex-wrap items-center gap-2">
-        <Select onValueChange={setMonthYear} value={monthYear}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="Alle gebeurtenissen" />
-          </SelectTrigger>
-          <SelectContent>
-            {monthYearOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.value === "" ? option.label : option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="space-y-4 px-4 py-4">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <Select onValueChange={setMonthYear} value={monthYear}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Alle gebeurtenissen" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthYearOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.value === "" ? option.label : option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <TimelineFiltersPopover align="start" filters={filters} onFiltersChange={onFiltersChange} />
+          <TimelineFiltersPopover align="end" filters={filters} onFiltersChange={onFiltersChange} />
+        </div>
 
         <ToggleGroup
-          className="ml-auto"
+          className="w-full"
           onValueChange={(value) => {
             if (value) setViewMode(value as "date" | "field")
           }}
@@ -469,11 +470,11 @@ export function TimelineMobileView({
           value={viewMode}
           variant="outline"
         >
-          <ToggleGroupItem className="text-xs" value="date">
+          <ToggleGroupItem className="flex-1 text-xs" value="date">
             Datum
           </ToggleGroupItem>
-          <ToggleGroupItem className="text-xs" value="field">
-            Veld
+          <ToggleGroupItem className="flex-1 text-xs" value="field">
+            Perceel
           </ToggleGroupItem>
         </ToggleGroup>
       </div>

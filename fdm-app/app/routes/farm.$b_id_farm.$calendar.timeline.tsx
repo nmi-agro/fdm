@@ -1,15 +1,8 @@
 import {
   checkPermission,
-  getCultivationsForFarm,
   getFarms,
-  getFertilizerApplicationsForFarm,
   getFertilizers,
-  getFields,
-  getParametersForHarvestCat,
-  getHarvestsForFarm,
-  getSoilAnalysesForFarm,
 } from "@nmi-agro/fdm-core"
-import { Smartphone } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useLoaderData, useParams } from "react-router"
 import type {
@@ -111,6 +104,22 @@ export default function TimelinePage() {
   const loaderData = useLoaderData<typeof loader>()
   const { calendar } = useParams()
   const isMobile = useIsMobile()
+  const [isLandscape, setIsLandscape] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return
+    }
+    const mql = window.matchMedia("(max-width: 1024px) and (orientation: landscape)")
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsLandscape(e.matches)
+    }
+    mql.addEventListener("change", onChange)
+    setIsLandscape(mql.matches)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
+
+  const showMobileView = isMobile || isLandscape
   const ganttRef = useRef<TimelineGanttViewHandle>(null)
   const registerJumpToYear = useCalendarJump((state) => state.registerJumpToYear)
 
@@ -168,7 +177,7 @@ export default function TimelinePage() {
         <BreadcrumbItem className="hidden md:block">Tijdlijn</BreadcrumbItem>
       </Header>
       <main className="min-w-0">
-        {isMobile ? (
+        {showMobileView ? (
           <>
             <FarmTitle
               title={`Tijdlijn van ${currentFarmName}`}
