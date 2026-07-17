@@ -1,12 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Building, X } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { Controller } from "react-hook-form"
 import { useFetcher, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
 import type { ParsedOrganization } from "~/lib/organization-helpers"
 import {
+  cropProfilePicture,
   MAX_SIZE_BYTES,
   ProfilePictureInput,
 } from "~/components/blocks/profile/profile-picture-manager"
@@ -45,6 +46,8 @@ export function OrganizationSettingsForm({
 
   const [profilePictureFiles, setProfilePictureFiles] = useState<File[]>([])
 
+  const [isProcessingForm, processForm] = useTransition()
+
   const formRef = useRef<HTMLFormElement>(null)
   const form = useRemixForm({
     mode: "onTouched",
@@ -52,13 +55,16 @@ export function OrganizationSettingsForm({
     fetcher: fetcher,
     stringifyAllValues: false,
     submitHandlers: {
-      onValid() {
-        if (formRef.current) {
-          fetcher.submit(new FormData(formRef.current), {
+      async onValid() {
+        processForm(async () => {
+          if (!formRef.current) return
+          const formData = new FormData(formRef.current)
+          const formDataWithCroppedPic = await cropProfilePicture(formData)
+          fetcher.submit(formDataWithCroppedPic, {
             method: "post",
             encType: "multipart/form-data",
           })
-        }
+        })
       },
     },
     defaultValues: {
@@ -100,7 +106,7 @@ export function OrganizationSettingsForm({
     }
   }, [organizationName, form.getValues, form.setValue])
 
-  const isSubmitting = fetcher.state !== "idle"
+  const isSubmitting = isProcessingForm || fetcher.state !== "idle"
   const disabled = !canModify || isSubmitting
   return (
     <Card className={className}>

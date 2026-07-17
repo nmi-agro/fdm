@@ -1,7 +1,6 @@
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import crypto from "node:crypto"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
-import sharp from "sharp"
 import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
@@ -9,6 +8,7 @@ import { OrganizationInfoSchema } from "~/components/blocks/organization/schema"
 import {
   ALLOWED_MIME_TYPES,
   MAX_SIZE_BYTES,
+  MIME_TO_EXT,
 } from "~/components/blocks/profile/profile-picture-manager"
 import {
   ProfilePictureFields,
@@ -101,34 +101,12 @@ export async function action({ request }: Route.ActionArgs) {
     }
     const formValues = actionSchemaResult.data
 
-    let organizationImage: { buffer: Uint8Array; hash: string } | null = null
+    let organizationImage: { buffer: Uint8Array; hash: string; detectedMime: string } | null = null
 
-    if (fileBuffer) {
-      const { cropRectX, cropRectY, cropRectWidth, cropRectHeight } = actionSchemaResult.data
-      let cropped = sharp(fileBuffer)
+    if (fileBuffer && detectedMime) {
+      const hash = crypto.createHash("md5", { outputLength: 16 }).update(fileBuffer).digest("hex")
 
-      if (
-        typeof cropRectX === "number" &&
-        typeof cropRectY === "number" &&
-        typeof cropRectWidth === "number" &&
-        typeof cropRectHeight === "number"
-      ) {
-        cropped.extract({
-          left: cropRectX,
-          top: cropRectY,
-          width: cropRectWidth,
-          height: cropRectHeight,
-        })
-      }
-
-      const croppedBuffer = await cropped.resize(200, 200, { fit: "cover" }).webp().toUint8Array()
-
-      const hash = crypto
-        .createHash("md5", { outputLength: 16 })
-        .update(croppedBuffer.data)
-        .digest("hex")
-
-      organizationImage = { buffer: croppedBuffer.data, hash: hash }
+      organizationImage = { buffer: fileBuffer, hash: hash, detectedMime: detectedMime }
     }
 
     const name = formValues.name
@@ -149,16 +127,18 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Try to add the profile picture, fail entirely if this fails
     if (organizationImage) {
-      const objectKey = buildObjectKey("profile_picture_organization", organization.id, "webp")
+      const detectedExt = MIME_TO_EXT[organizationImage.detectedMime]
+
+      const objectKey = buildObjectKey("profile_picture_organization", organization.id, detectedExt)
       try {
-        await uploadObject(objectKey, organizationImage.hash, "image/webp")
+        await uploadObject(objectKey, organizationImage.hash, organizationImage.detectedMime)
 
         await auth.api.updateOrganization({
           headers: request.headers,
           body: {
             organizationId: organization.id,
             data: {
-              logo: `/api/profile-picture/organization/${organization.id}.webp?hash=${organizationImage.hash}`,
+              logo: `/api/profile-picture/organization/${organization.id}.${detectedExt}?hash=${organizationImage.hash}`,
             },
           },
         })

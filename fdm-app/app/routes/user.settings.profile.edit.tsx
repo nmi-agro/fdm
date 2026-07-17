@@ -4,7 +4,6 @@ import { User } from "lucide-react"
 import crypto from "node:crypto"
 import { type MetaFunction, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
-import sharp from "sharp"
 import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { ProfileInfoForm } from "~/components/blocks/profile/profile-info-form"
@@ -12,6 +11,7 @@ import { ProfileInfoSchema } from "~/components/blocks/profile/profile-info-sche
 import {
   ProfilePictureManager,
   ALLOWED_MIME_TYPES,
+  MIME_TO_EXT,
   MAX_SIZE_BYTES,
 } from "~/components/blocks/profile/profile-picture-manager"
 import { ProfilePictureSchema } from "~/components/blocks/profile/profile-picture-schema"
@@ -23,6 +23,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 import type { Route } from "./+types/user.settings.profile.edit"
+import { detectExistingProfilePictureObjectKey } from "../components/blocks/profile/detect-existing.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -134,35 +135,32 @@ export async function action({ request }: Route.ActionArgs) {
       return Response.json({ errors: actionSchemaResult.error }, { status: 400 })
     }
 
-    if (actionSchemaResult.data.intent === "update_profile_picture") {
-      const cropRect = actionSchemaResult.data
+    const oldProfilePictureObjectKey = detectExistingProfilePictureObjectKey(session.user.image)
 
+    if (actionSchemaResult.data.intent === "update_profile_picture") {
       if (!fileBuffer || !detectedMime) {
         return Response.json({ error: "No valid image file provided" }, { status: 400 })
       }
 
-      const cropped = await sharp(fileBuffer)
-        .extract({
-          left: cropRect.cropRectX,
-          top: cropRect.cropRectY,
-          width: cropRect.cropRectWidth,
-          height: cropRect.cropRectHeight,
-        })
-        .resize(200, 200, { fit: "cover" })
-        .webp()
-        .toUint8Array()
+      const detectedExt = MIME_TO_EXT[detectedMime]
 
-      const hash = crypto.createHash("md5", { outputLength: 16 }).update(cropped.data).digest("hex")
+      const hash = crypto.createHash("md5", { outputLength: 16 }).update(fileBuffer).digest("hex")
 
-      const objectKey = buildObjectKey("profile_picture_user", session.principal_id, "webp")
+      const objectKey = buildObjectKey("profile_picture_user", session.principal_id, detectedExt)
 
       await auth.api.updateUser({
         headers: request.headers,
-        body: { image: `/api/profile-picture/user/${session.principal_id}.webp?hash=${hash}` },
+        body: {
+          image: `/api/profile-picture/user/${session.principal_id}.${detectedExt}?hash=${hash}`,
+        },
       })
 
       try {
-        await uploadObject(objectKey, cropped.data, "image/webp")
+        await uploadObject(objectKey, fileBuffer, detectedMime)
+
+        if (oldProfilePictureObjectKey && oldProfilePictureObjectKey !== objectKey) {
+          await deleteObject(oldProfilePictureObjectKey)
+        }
       } catch (err) {
         try {
           await auth.api.updateUser({
@@ -183,21 +181,21 @@ export async function action({ request }: Route.ActionArgs) {
 
     if (actionSchemaResult.data.intent === "delete_profile_picture") {
       // Delete the object from the GCS. Will fail silently if not found.
-      const objectKey = buildObjectKey("profile_picture_user", session.principal_id, "webp")
-
       await auth.api.updateUser({
         headers: request.headers,
         body: { image: null },
       })
 
-      try {
-        await deleteObject(objectKey)
-      } catch (err) {
-        handleActionError(err)
-        await auth.api.updateUser({
-          headers: request.headers,
-          body: { image: session.user.image },
-        })
+      if (oldProfilePictureObjectKey) {
+        try {
+          await deleteObject(oldProfilePictureObjectKey)
+        } catch (err) {
+          handleActionError(err)
+          await auth.api.updateUser({
+            headers: request.headers,
+            body: { image: session.user.image },
+          })
+        }
       }
     }
 

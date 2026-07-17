@@ -87,7 +87,6 @@
     "remix-hook-form": "7.2.0",
     "remix-toast": "^4.0.0",
     "remix-utils": "^10.0.0",
-    "sharp": "^0.35.3",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "tailwindcss-animate": "^1.0.7",

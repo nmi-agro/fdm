@@ -1,7 +1,10 @@
-import type { ReactNode, Ref } from "react"
+import type { ReactNode, Ref, SubmitEventHandler } from "react"
+import imageCompression from "browser-image-compression"
 import { LucideImage } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { useFetcher } from "react-router"
+import { compressAvatar } from "@/app/lib/image-upload.client"
+import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
 import { ImageCropperApp, type ImageData } from "~/components/custom/image-cropper"
 import {
@@ -18,7 +21,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
+
+const DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME = "file"
 
 export const MAX_SIZE_BYTES = 5 * 1024 * 1024
 
@@ -45,6 +49,7 @@ type ProfilePictureManagerProps = { avatarFallback: ReactNode } & (
 
 export function ProfilePictureInput({
   ref: propRef,
+  name,
   files,
   onFilesChange,
   currentPicture,
@@ -57,6 +62,7 @@ export function ProfilePictureInput({
   required,
 }: ProfilePictureManagerProps & {
   ref?: Ref<HTMLInputElement>
+  name?: string
   files: File[]
   onFilesChange: (files: File[]) => void
   maxFileSize: number
@@ -67,8 +73,13 @@ export function ProfilePictureInput({
 }) {
   const [imageData, setImageData] = useState<ImageData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [cropFramePosition, setCropFramePosition] = useState({ x: 0, y: 0, scale: 1 })
+  const [cropFrameRectangle, setCropFrameRectangle] = useState({
+    x: 0,
+    y: 0,
+    width: 100,
+    height: 100,
+  })
 
   // Take the input file, first convert it into a data URL, then read its width and height using an Image object, making up two asynchronous passes.
   useEffect(() => {
@@ -100,17 +111,14 @@ export function ProfilePictureInput({
 
   return (
     <>
+      <input type="hidden" name="cropRectX" value={cropFrameRectangle.x} />
+      <input type="hidden" name="cropRectY" value={cropFrameRectangle.y} />
+      <input type="hidden" name="cropRectWidth" value={cropFrameRectangle.width} />
+      <input type="hidden" name="cropRectHeight" value={cropFrameRectangle.height} />
       <div className={cn("relative", imageData && "hidden")}>
         <Dropzone
-          ref={(element) => {
-            fileInputRef.current = element
-            if (typeof propRef === "function") {
-              propRef(element)
-            } else if (propRef) {
-              propRef.current = element
-            }
-          }}
-          name="file"
+          ref={propRef}
+          name={name ?? DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME}
           accept={Object.values(MIME_TO_EXT).map((ext) => `.${ext}`)}
           maxSize={maxFileSize}
           multiple={false}
@@ -159,6 +167,9 @@ export function ProfilePictureInput({
           onClear={() => {
             onFilesChange([])
           }}
+          framePosition={cropFramePosition}
+          onFramePositionChange={setCropFramePosition}
+          onFrameRectangleChange={setCropFrameRectangle}
         />
       )}
     </>
@@ -178,19 +189,36 @@ export function ProfilePictureManager({
   const frameRelativeSize = 0.6
   const [files, setFiles] = useState<File[]>([])
 
-  const isUploading = uploadFetcher.state !== "idle"
+  const [isProcessingForm, processForm] = useTransition()
+
+  const isUploading = isProcessingForm || uploadFetcher.state !== "idle"
   const isDeleting = deleteFetcher.state !== "idle"
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const handleSubmit: SubmitEventHandler<HTMLFormElement> = (e) => {
+    e.preventDefault()
+    processForm(async () => {
+      uploadFetcher.submit(await cropProfilePicture(new FormData(e.currentTarget)), {
+        method: "post",
+        encType: "multipart/form-data",
+      })
+    })
+  }
+
   return (
-    <uploadFetcher.Form method="post" encType="multipart/form-data" className="space-y-4">
+    <uploadFetcher.Form
+      method="post"
+      encType="multipart/form-data"
+      className="space-y-4"
+      onSubmit={handleSubmit}
+    >
       <input type="hidden" name="intent" value="update_profile_picture" />
       <ProfilePictureInput
         ref={fileInputRef}
         avatarFallback={avatarFallback}
-        currentPicture={currentPicture}
-        currentAlt={currentAlt}
+        currentPicture={currentPicture as string}
+        currentAlt={currentAlt as string}
         files={files}
         onFilesChange={setFiles}
         aspectRatio={aspectRatio}
@@ -252,4 +280,80 @@ export function ProfilePictureManager({
       </div>
     </uploadFetcher.Form>
   )
+}
+
+/**
+ * Crops the file field found in the form data, and leaves the rest of the fields alone,
+ * including those that define the cropping rectangle. It returns a new FormData object.
+ *
+ * Cropping rectangle is expected to be defined in the cropRectX, cropRectY, cropRectWidth,
+ * and cropRectHeight form fields.
+ *
+ * @param formData Form data object to get the values from.
+ * @param fileFieldName Name of the field that contains the image file that should be cropped.
+ * @returns
+ */
+export async function cropProfilePicture(
+  formData: FormData,
+  fileFieldName = DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME,
+) {
+  const result = new FormData()
+  console.log(formData)
+
+  const cropRectX = formData.get("cropRectX")
+  const cropRectY = formData.get("cropRectY")
+  const cropRectWidth = formData.get("cropRectWidth")
+  const cropRectHeight = formData.get("cropRectHeight")
+  const file = formData.get(fileFieldName)
+
+  const parsed = {
+    x: typeof cropRectX === "string" ? Number.parseFloat(cropRectX) : Number.NaN,
+    y: typeof cropRectY === "string" ? Number.parseFloat(cropRectY) : Number.NaN,
+    width: typeof cropRectWidth === "string" ? Number.parseFloat(cropRectWidth) : Number.NaN,
+    height: typeof cropRectHeight === "string" ? Number.parseFloat(cropRectHeight) : Number.NaN,
+  }
+
+  console.log(file)
+  if (
+    window?.document &&
+    typeof file === "object" &&
+    file !== null &&
+    Number.isFinite(parsed.x) &&
+    Number.isFinite(parsed.y) &&
+    Number.isFinite(parsed.width) &&
+    Number.isFinite(parsed.height)
+  ) {
+    const croppedFile = await new Promise<File>((resolve, reject) => {
+      imageCompression
+        .getDataUrlFromFile(file)
+        .then((url) => {
+          const image = new Image()
+          image.addEventListener("error", (e) => reject(e.error))
+          image.src = url
+          image.addEventListener("load", () => {
+            const canvas = document.createElement("canvas")
+            canvas.width = parsed.width
+            canvas.height = parsed.height
+            const ctx = canvas.getContext("2d")
+            ctx?.drawImage(image, -parsed.x, -parsed.y)
+            imageCompression.canvasToFile(canvas, "image/webp", "avatar", Date.now()).then(resolve)
+          })
+        })
+        .catch(reject)
+    })
+
+    const compressedFile = await compressAvatar(croppedFile)
+
+    result.append(fileFieldName, compressedFile)
+  } else if (file !== null) {
+    result.append(fileFieldName, file)
+  }
+
+  for (const [key, value] of formData.entries()) {
+    if (key !== fileFieldName) {
+      result.append(key, value)
+    }
+  }
+
+  return result
 }

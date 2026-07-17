@@ -3,15 +3,16 @@ import { Building } from "lucide-react"
 import crypto from "node:crypto"
 import { data, useLoaderData } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
-import sharp from "sharp"
 import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
 import { OrganizationInfoSchema } from "~/components/blocks/organization/schema"
+import { detectExistingProfilePictureObjectKey } from "~/components/blocks/profile/detect-existing.server"
 import {
   ProfilePictureManager,
   ALLOWED_MIME_TYPES,
   MAX_SIZE_BYTES,
+  MIME_TO_EXT,
 } from "~/components/blocks/profile/profile-picture-manager"
 import { ProfilePictureSchema } from "~/components/blocks/profile/profile-picture-schema"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -171,30 +172,23 @@ export async function action({ params, request }: Route.ActionArgs) {
       })
     }
 
-    if (actionSchemaResult.data.intent === "update_profile_picture") {
-      const cropRect = actionSchemaResult.data
+    const oldProfilePictureObjectKey = detectExistingProfilePictureObjectKey(
+      currentOrganization.logo,
+    )
 
+    if (actionSchemaResult.data.intent === "update_profile_picture") {
       if (!fileBuffer || !detectedMime) {
         return Response.json({ error: "No valid image file provided" }, { status: 400 })
       }
 
-      const cropped = await sharp(fileBuffer)
-        .extract({
-          left: cropRect.cropRectX,
-          top: cropRect.cropRectY,
-          width: cropRect.cropRectWidth,
-          height: cropRect.cropRectHeight,
-        })
-        .resize(200, 200, { fit: "cover" })
-        .webp()
-        .toUint8Array()
+      const detectedExt = MIME_TO_EXT[detectedMime]
 
-      const hash = crypto.createHash("md5", { outputLength: 16 }).update(cropped.data).digest("hex")
+      const hash = crypto.createHash("md5", { outputLength: 16 }).update(fileBuffer).digest("hex")
 
       const objectKey = buildObjectKey(
         "profile_picture_organization",
         currentOrganization.id,
-        "webp",
+        detectedExt,
       )
 
       await auth.api.updateOrganization({
@@ -202,13 +196,17 @@ export async function action({ params, request }: Route.ActionArgs) {
         body: {
           organizationId: currentOrganization.id,
           data: {
-            logo: `/api/profile-picture/organization/${currentOrganization.id}.webp?hash=${hash}`,
+            logo: `/api/profile-picture/organization/${currentOrganization.id}.${detectedExt}?hash=${hash}`,
           },
         },
       })
 
       try {
-        await uploadObject(objectKey, cropped.data, "image/webp")
+        await uploadObject(objectKey, fileBuffer, detectedMime)
+
+        if (oldProfilePictureObjectKey && oldProfilePictureObjectKey !== objectKey) {
+          await deleteObject(oldProfilePictureObjectKey)
+        }
       } catch (err) {
         try {
           await auth.api.updateOrganization({
@@ -233,12 +231,6 @@ export async function action({ params, request }: Route.ActionArgs) {
     }
 
     if (actionSchemaResult.data.intent === "delete_profile_picture") {
-      const objectKey = buildObjectKey(
-        "profile_picture_organization",
-        currentOrganization.id,
-        "webp",
-      )
-
       await auth.api.updateOrganization({
         headers: request.headers,
         body: {
@@ -249,26 +241,28 @@ export async function action({ params, request }: Route.ActionArgs) {
         },
       })
 
-      try {
-        await deleteObject(objectKey)
-      } catch (err) {
+      if (oldProfilePictureObjectKey) {
         try {
-          if (currentOrganization.metadata.data) {
-            await auth.api.updateOrganization({
-              headers: request.headers,
-              body: {
-                organizationId: currentOrganization.id,
-                data: {
-                  logo: currentOrganization.logo,
+          await deleteObject(oldProfilePictureObjectKey)
+        } catch (err) {
+          try {
+            if (currentOrganization.metadata.data) {
+              await auth.api.updateOrganization({
+                headers: request.headers,
+                body: {
+                  organizationId: currentOrganization.id,
+                  data: {
+                    logo: currentOrganization.logo,
+                  },
                 },
-              },
-            })
+              })
+            }
+          } catch (revertErr) {
+            handleActionError(revertErr)
           }
-        } catch (revertErr) {
-          handleActionError(revertErr)
+          // Caught by the outer try catch block
+          throw err
         }
-        // Caught by the outer try catch block
-        throw err
       }
 
       return redirectWithSuccess(`/organization/${params.slug}`, {

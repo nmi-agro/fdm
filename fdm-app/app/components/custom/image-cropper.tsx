@@ -1,6 +1,6 @@
-import { PointerEventHandler, useEffect, useRef, useState } from "react"
+import { PointerEventHandler, useEffect, useMemo, useRef } from "react"
 import { Slider } from "~/components/ui/slider"
-interface Rectangle {
+export interface Rectangle {
   x: number
   y: number
   width: number
@@ -11,15 +11,6 @@ export interface ImageData {
   src: string
   imageWidth: number
   imageHeight: number
-}
-
-interface ImageCropperAppProps {
-  aspectRatio?: number
-  appAspectRatio?: number
-  frameShape?: "ellipse" | "rectangle"
-  frameRelativeSize?: number
-  imageData: ImageData
-  onClear: () => void
 }
 
 /**
@@ -140,23 +131,41 @@ const SVG_VIEWBOX_HEIGHT = 500
 const MAX_SCALE = 1
 const MIN_SCALE = 1 / 10
 
+interface ImageCropperAppProps {
+  aspectRatio?: number
+  appAspectRatio?: number
+  frameShape?: "ellipse" | "rectangle"
+  frameRelativeSize?: number
+  imageData: ImageData
+  onClear: () => void
+  framePosition: ImageCropperFramePosition
+  onFramePositionChange: (framePosition: ImageCropperFramePosition) => void
+  onFrameRectangleChange?: (rectangle: Rectangle) => void
+}
+
+interface ImageCropperFramePosition {
+  x: number
+  y: number
+  scale: number
+}
+
 export function ImageCropperApp({
   aspectRatio = 1 / 1,
   imageData,
   frameRelativeSize = 0.6,
   appAspectRatio = 1 / 1,
   frameShape = "ellipse",
+  framePosition,
+  onFramePositionChange,
+  onFrameRectangleChange,
 }: ImageCropperAppProps) {
   const svgRef = useRef<SVGSVGElement>(null)
 
   // x and y are relative to the center of the image, in image pixel units.
-  const [x, setX] = useState(0)
-  const [y, setY] = useState(0)
-
   // Scaling happens around the center of the frame rectangle / ellipse.
-  // Tracking it as an array is more convenient in order to be able to use with the shadcn slider.
-  const [scaleSliderValue, setScaleSliderValue] = useState([1])
-  const scale = scaleSliderValue[0]
+  const { x, y, scale } = framePosition
+
+  const scaleSliderValue = useMemo(() => [scale], [scale])
 
   const dragState = useRef({
     dragging: false,
@@ -165,9 +174,7 @@ export function ImageCropperApp({
   })
 
   useEffect(() => {
-    setX(0)
-    setY(0)
-    setScaleSliderValue([1])
+    onFramePositionChange({ x: 0, y: 0, scale: 0 })
     dragState.current.dragging = false
   }, [imageData])
 
@@ -206,8 +213,6 @@ export function ImageCropperApp({
       ? getEllipseSvgCommands(frameRectScaled).join(" ")
       : getRectangleSvgCommands(frameRectScaled).join(" ")
 
-  const resultFrameRectScaled = getResultFrameRect(imageData, aspectRatio, x, y, scale)
-
   /**
    * Adjusts the new state values so that the frame rectangle stays inside the image rectangle,
    * then actually sets the state.
@@ -227,9 +232,10 @@ export function ImageCropperApp({
     if (newRect.y + newRect.height > imageData.imageHeight)
       nextY = (imageData.imageHeight - newRect.height) / 2
 
-    setX(nextX)
-    setY(nextY)
-    setScaleSliderValue([nextScale])
+    onFramePositionChange({ x: nextX, y: nextY, scale: nextScale })
+    if (onFrameRectangleChange) {
+      onFrameRectangleChange(getResultFrameRect(imageData, aspectRatio, x, y, scale))
+    }
   }
 
   const handlePointerDown: PointerEventHandler = (e) => {
@@ -303,10 +309,6 @@ export function ImageCropperApp({
 
   return (
     <div className="flex flex-col items-stretch gap-4">
-      <input type="hidden" name="cropRectX" value={resultFrameRectScaled.x} />
-      <input type="hidden" name="cropRectY" value={resultFrameRectScaled.y} />
-      <input type="hidden" name="cropRectWidth" value={resultFrameRectScaled.width} />
-      <input type="hidden" name="cropRectHeight" value={resultFrameRectScaled.height} />
       <div className="w-full" style={{ aspectRatio: `${appAspectRatio}/1` }}>
         <svg
           ref={svgRef}
