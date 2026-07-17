@@ -1,6 +1,7 @@
-import { Badge, Eye, Locate } from "lucide-react"
+import { Eye, Locate } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
+import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Label } from "~/components/ui/label"
@@ -25,6 +26,7 @@ const defaultFilters: TimelineFilters = {
   showHarvests: true,
   showSoilSamplings: true,
   showBufferStrips: false,
+  // Intentionally not exposed as a toolbar checkbox: showFutureEvents only affects the mobile list view's client-side date filtering
   showFutureEvents: false,
 }
 
