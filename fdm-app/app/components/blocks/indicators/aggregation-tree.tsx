@@ -140,11 +140,15 @@ export function AggregationTree({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Info className="text-muted-foreground/60 h-3.5 w-3.5 shrink-0 cursor-help" />
+                <Info
+                  className="text-muted-foreground/60 h-3.5 w-3.5 shrink-0 cursor-help"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                />
               </TooltipTrigger>
               <TooltipContent
                 side="top"
-                className="bg-popover text-popover-foreground max-w-[280px] border p-2 text-xs shadow-md"
+                className="bg-popover text-popover-foreground max-w-70 border p-2 text-xs shadow-md"
               >
                 <p className="text-foreground mb-1 font-semibold">{info.name}</p>
                 <p className="text-muted-foreground">{info.description}</p>
