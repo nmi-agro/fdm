@@ -26,6 +26,8 @@ const DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME = "file"
 
 export const MAX_SIZE_BYTES = 5 * 1024 * 1024
 
+export const MAX_DIMENSIONS = 500
+
 export const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",

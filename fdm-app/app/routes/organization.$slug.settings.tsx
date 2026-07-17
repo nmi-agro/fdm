@@ -1,4 +1,5 @@
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import imageSize from "image-size"
 import { Building } from "lucide-react"
 import crypto from "node:crypto"
 import { data, useLoaderData } from "react-router"
@@ -13,6 +14,7 @@ import {
   ALLOWED_MIME_TYPES,
   MAX_SIZE_BYTES,
   MIME_TO_EXT,
+  MAX_DIMENSIONS,
 } from "~/components/blocks/profile/profile-picture-manager"
 import { ProfilePictureSchema } from "~/components/blocks/profile/profile-picture-schema"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -141,6 +143,11 @@ export async function action({ params, request }: Route.ActionArgs) {
       const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
       fileBuffer = result.buffer
       detectedMime = result.mime
+
+      const imagePixelSize = imageSize(fileBuffer)
+      if (imagePixelSize.width > MAX_DIMENSIONS || imagePixelSize.height > MAX_DIMENSIONS) {
+        throw new Error("De foto is te groot of te breed.")
+      }
 
       return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
         type: detectedMime,

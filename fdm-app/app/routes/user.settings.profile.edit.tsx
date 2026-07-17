@@ -1,11 +1,13 @@
 import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import imageSize from "image-size"
 import { User } from "lucide-react"
 import crypto from "node:crypto"
 import { type MetaFunction, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { detectExistingProfilePictureObjectKey } from "~/components/blocks/profile/detect-existing.server"
 import { ProfileInfoForm } from "~/components/blocks/profile/profile-info-form"
 import { ProfileInfoSchema } from "~/components/blocks/profile/profile-info-schema"
 import {
@@ -13,6 +15,7 @@ import {
   ALLOWED_MIME_TYPES,
   MIME_TO_EXT,
   MAX_SIZE_BYTES,
+  MAX_DIMENSIONS,
 } from "~/components/blocks/profile/profile-picture-manager"
 import { ProfilePictureSchema } from "~/components/blocks/profile/profile-picture-schema"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -23,7 +26,6 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 import type { Route } from "./+types/user.settings.profile.edit"
-import { detectExistingProfilePictureObjectKey } from "../components/blocks/profile/detect-existing.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -115,6 +117,11 @@ export async function action({ request }: Route.ActionArgs) {
       const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
       fileBuffer = result.buffer
       detectedMime = result.mime
+
+      const imagePixelSize = imageSize(fileBuffer)
+      if (imagePixelSize.width > MAX_DIMENSIONS || imagePixelSize.height > MAX_DIMENSIONS) {
+        throw new Error("De foto is te groot of te breed.")
+      }
 
       return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
         type: detectedMime,

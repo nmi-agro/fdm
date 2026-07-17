@@ -174,7 +174,7 @@ export function ImageCropperApp({
   })
 
   useEffect(() => {
-    onFramePositionChange({ x: 0, y: 0, scale: 0 })
+    onFramePositionChange({ x: 0, y: 0, scale: 1 })
     dragState.current.dragging = false
   }, [imageData])
 

@@ -1,4 +1,5 @@
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import imageSize from "image-size"
 import crypto from "node:crypto"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import z from "zod"
@@ -7,6 +8,7 @@ import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
 import { OrganizationInfoSchema } from "~/components/blocks/organization/schema"
 import {
   ALLOWED_MIME_TYPES,
+  MAX_DIMENSIONS,
   MAX_SIZE_BYTES,
   MIME_TO_EXT,
 } from "~/components/blocks/profile/profile-picture-manager"
@@ -80,6 +82,11 @@ export async function action({ request }: Route.ActionArgs) {
       const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
       fileBuffer = result.buffer
       detectedMime = result.mime
+
+      const imagePixelSize = imageSize(fileBuffer)
+      if (imagePixelSize.width > MAX_DIMENSIONS || imagePixelSize.height > MAX_DIMENSIONS) {
+        throw new Error("De foto is te groot of te breed.")
+      }
 
       return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
         type: detectedMime,

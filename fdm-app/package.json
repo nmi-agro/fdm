@@ -60,6 +60,7 @@
     "flatgeobuf": "^4.4.0",
     "framer-motion": "^12.42.2",
     "fuzzysort": "^3.1.0",
+    "image-size": "^2.0.2",
     "input-otp": "^1.4.2",
     "isbot": "^5.2.0",
     "konva": "^10.3.0",
