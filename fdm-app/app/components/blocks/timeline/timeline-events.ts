@@ -210,9 +210,13 @@ export function filterEventsByType(
     showFertilizers: boolean
     showHarvests: boolean
     showSoilSamplings: boolean
+    showFutureEvents: boolean
   },
+  now: Date,
 ): TimelineEvent[] {
   return events.filter((event) => {
+    if (!filters.showFutureEvents && event.date > now) return false
+
     switch (event.type) {
       case "cultivation_start":
       case "cultivation_end":

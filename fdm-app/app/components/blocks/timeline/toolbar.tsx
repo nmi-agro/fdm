@@ -2,6 +2,9 @@ import { Badge, Eye, Locate } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { Button } from "~/components/ui/button"
+import { Checkbox } from "~/components/ui/checkbox"
+import { Label } from "~/components/ui/label"
+import { PopoverTrigger, PopoverContent, Popover } from "~/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -9,9 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { Checkbox } from "~/components/ui/checkbox"
-import { PopoverTrigger, PopoverContent, Popover } from "~/components/ui/popover"
-import { Label } from "~/components/ui/label"
 
 const rangeLabels: Record<Range, string> = {
   daily: "Dagelijks",
@@ -25,6 +25,9 @@ const defaultFilters: TimelineFilters = {
   showHarvests: true,
   showSoilSamplings: true,
   showBufferStrips: true,
+  // Desktop's Gantt always renders the full range — this mobile-only flag has no toolbar
+  // control here, so it must never be counted as an "active" filter on this surface.
+  showFutureEvents: true,
 }
 
 export function TimelineToolbar({

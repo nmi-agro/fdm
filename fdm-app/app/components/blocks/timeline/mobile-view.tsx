@@ -28,13 +28,6 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
 
 const INITIAL_GROUPS = 10
@@ -373,18 +366,12 @@ export function TimelineMobileView({
 
   const events = useMemo(() => {
     const all = flattenEvents(visibleFields, fertilizerTypeById, b_id_farm, calendar)
-    return filterEventsByType(all, filters)
-  }, [visibleFields, fertilizerTypeById, b_id_farm, calendar, filters])
+    return filterEventsByType(all, filters, today)
+  }, [visibleFields, fertilizerTypeById, b_id_farm, calendar, filters, today])
 
   const monthYearOptions = useMemo(() => {
     const options = getMonthYearOptions(events)
     return [{ value: "", label: "Alle gebeurtenissen", date: today }, ...options]
-  }, [events, today])
-
-  useEffect(() => {
-    const currentKey = format(today, "yyyy-MM")
-    const hasCurrent = events.some((event) => isInMonthYear(event.date, currentKey))
-    setMonthYear(hasCurrent ? currentKey : "")
   }, [events, today])
 
   const filteredEvents = useMemo(() => {
@@ -457,28 +444,9 @@ export function TimelineMobileView({
 
   return (
     <div className="space-y-4 px-4 py-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <Select onValueChange={setMonthYear} value={monthYear}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Alle gebeurtenissen" />
-              </SelectTrigger>
-              <SelectContent>
-                {monthYearOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.value === "" ? option.label : option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <TimelineFiltersPopover align="end" filters={filters} onFiltersChange={onFiltersChange} />
-        </div>
-
+      <div className="flex items-center gap-2">
         <ToggleGroup
-          className="w-full"
+          className="flex-1"
           onValueChange={(value) => {
             if (value) setViewMode(value as "date" | "field")
           }}
@@ -493,13 +461,22 @@ export function TimelineMobileView({
             Perceel
           </ToggleGroupItem>
         </ToggleGroup>
+
+        <TimelineFiltersPopover
+          align="end"
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+          period={{ value: monthYear, options: monthYearOptions, onChange: setMonthYear }}
+        />
       </div>
 
       <div ref={cultivationBarRef}>
-        <ActiveCultivationBar
-          cultivations={activeCultivations}
-          onSelect={handleSelectCultivation}
-        />
+        {viewMode === "date" && (
+          <ActiveCultivationBar
+            cultivations={activeCultivations}
+            onSelect={handleSelectCultivation}
+          />
+        )}
       </div>
 
       {showEmpty ? (

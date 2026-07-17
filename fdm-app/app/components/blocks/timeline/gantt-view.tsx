@@ -91,6 +91,8 @@ export type TimelineFilters = {
   showFertilizers: boolean
   showHarvests: boolean
   showSoilSamplings: boolean
+  /** Mobile-only: desktop's Gantt always shows the full range regardless of this flag. */
+  showFutureEvents: boolean
 }
 
 type PointEventKind = "cultivation" | "fertilizer" | "harvest" | "soil"
