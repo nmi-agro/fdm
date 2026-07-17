@@ -1,4 +1,4 @@
-import { PointerEventHandler, useEffect, useRef, useState, WheelEventHandler } from "react"
+import { PointerEventHandler, useEffect, useRef, useState } from "react"
 import { Slider } from "~/components/ui/slider"
 interface Rectangle {
   x: number
@@ -147,6 +147,8 @@ export function ImageCropperApp({
   appAspectRatio = 1 / 1,
   frameShape = "ellipse",
 }: ImageCropperAppProps) {
+  const svgRef = useRef<SVGSVGElement>(null)
+
   // x and y are relative to the center of the image, in image pixel units.
   const [x, setX] = useState(0)
   const [y, setY] = useState(0)
@@ -271,13 +273,33 @@ export function ImageCropperApp({
     moveIntoRectAndSet(x, y, nextScale)
   }
 
-  const handleWheel: WheelEventHandler = (e) => {
-    if (e.deltaY > 0) {
-      handleZoomInput([scale * 1.05])
-    } else {
-      handleZoomInput([scale * 0.95])
+  useEffect(() => {
+    const svgElement = svgRef.current
+    if (!svgElement) {
+      return
     }
-  }
+
+    // React wheel listeners can be passive in some environments.
+    // Register a native non-passive listener so preventDefault always works.
+    const nativeWheelHandler = (e: WheelEvent) => {
+      if (e.cancelable) {
+        e.preventDefault()
+      }
+      e.stopPropagation()
+
+      if (e.deltaY > 0) {
+        handleZoomInput([scale * 1.05])
+      } else {
+        handleZoomInput([scale * 0.95])
+      }
+    }
+
+    svgElement.addEventListener("wheel", nativeWheelHandler, { passive: false })
+
+    return () => {
+      svgElement.removeEventListener("wheel", nativeWheelHandler)
+    }
+  }, [scale, x, y])
 
   return (
     <div className="flex flex-col items-stretch gap-4">
@@ -287,12 +309,13 @@ export function ImageCropperApp({
       <input type="hidden" name="cropRectHeight" value={resultFrameRectScaled.height} />
       <div className="w-full" style={{ aspectRatio: `${appAspectRatio}/1` }}>
         <svg
+          ref={svgRef}
           viewBox={`0,0,${appAspectRatio * SVG_VIEWBOX_HEIGHT},${SVG_VIEWBOX_HEIGHT}`}
           className="size-full rounded-md"
+          style={{ touchAction: "none" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onWheel={handleWheel}
         >
           <title>Trim de profielfoto</title>
           <image href={imageData.src} {...imageRectScaled} />
@@ -312,7 +335,6 @@ export function ImageCropperApp({
         </svg>
       </div>
       <Slider
-        id="slider-demo-temperature"
         value={scaleSliderValue}
         onValueChange={handleZoomInput}
         min={MIN_SCALE}

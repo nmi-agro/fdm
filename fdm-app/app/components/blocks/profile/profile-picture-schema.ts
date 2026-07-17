@@ -15,9 +15,12 @@ const SizeSchema = z.preprocess(
     .gt(-0.001)
     .transform((x) => Math.max(1, Math.floor(x))),
 )
-export const ProfilePictureSchema = z.object({
+
+export const ProfilePictureFields = {
   cropRectX: PositionSchema,
   cropRectY: PositionSchema,
   cropRectWidth: SizeSchema,
   cropRectHeight: SizeSchema,
-})
+}
+
+export const ProfilePictureSchema = z.object(ProfilePictureFields)

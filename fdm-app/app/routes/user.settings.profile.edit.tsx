@@ -1,5 +1,6 @@
 import { updateUserProfile } from "@nmi-agro/fdm-core"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import { User } from "lucide-react"
 import crypto from "node:crypto"
 import { type MetaFunction, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
@@ -8,7 +9,8 @@ import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { ProfileInfoForm } from "~/components/blocks/profile/profile-info-form"
 import { ProfileInfoSchema } from "~/components/blocks/profile/profile-info-schema"
-import ProfilePictureManager, {
+import {
+  ProfilePictureManager,
   ALLOWED_MIME_TYPES,
   MAX_SIZE_BYTES,
 } from "~/components/blocks/profile/profile-picture-manager"
@@ -71,7 +73,7 @@ export default function UserProfileEditor() {
           </CardHeader>
           <CardContent>
             <ProfilePictureManager
-              initials={initials}
+              avatarFallback={initials ?? <User />}
               currentPicture={user.image}
               currentAlt={`Profielfoto van ${user.displayUsername}`}
             />
@@ -150,19 +152,29 @@ export async function action({ request }: Route.ActionArgs) {
         .webp()
         .toUint8Array()
 
-      const hash = crypto
-        .createHash("sha1", { outputLength: 16 })
-        .update(cropped.data)
-        .digest("base64")
+      const hash = crypto.createHash("md5", { outputLength: 16 }).update(cropped.data).digest("hex")
 
       const objectKey = buildObjectKey("profile_picture_user", session.principal_id, "webp")
 
-      await uploadObject(objectKey, cropped.data, "image/webp")
-
       await auth.api.updateUser({
         headers: request.headers,
-        body: { image: `/api/profile-picture/${session.principal_id}.webp?hash=${hash}` },
+        body: { image: `/api/profile-picture/user/${session.principal_id}.webp?hash=${hash}` },
       })
+
+      try {
+        await uploadObject(objectKey, cropped.data, "image/webp")
+      } catch (err) {
+        try {
+          await auth.api.updateUser({
+            headers: request.headers,
+            body: { image: session.user.image },
+          })
+        } catch (revertErr) {
+          handleActionError(revertErr)
+        }
+        // Caught by the outer try catch block
+        throw err
+      }
 
       return redirectWithSuccess(redirectUrl, {
         message: "Profielfoto is succesvol geüpload.",
@@ -172,12 +184,21 @@ export async function action({ request }: Route.ActionArgs) {
     if (actionSchemaResult.data.intent === "delete_profile_picture") {
       // Delete the object from the GCS. Will fail silently if not found.
       const objectKey = buildObjectKey("profile_picture_user", session.principal_id, "webp")
-      await deleteObject(objectKey)
 
       await auth.api.updateUser({
         headers: request.headers,
         body: { image: null },
       })
+
+      try {
+        await deleteObject(objectKey)
+      } catch (err) {
+        handleActionError(err)
+        await auth.api.updateUser({
+          headers: request.headers,
+          body: { image: session.user.image },
+        })
+      }
     }
 
     if (actionSchemaResult.data.intent === "update_profile_info") {

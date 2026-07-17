@@ -5,21 +5,25 @@ import { buildObjectKey, generateSignedReadUrl } from "~/integrations/gcs.server
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { Route } from "./+types/api.profile-picture.$principal_id[.]webp"
+import { Route } from "./+types/api.profile-picture.$type.$principal_id[.]webp"
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   try {
+    if (params.type !== "user" && params.type !== "organization") {
+      return data("Invalid type", { status: 400 })
+    }
+
     // Only logged-in users should be able to access profile pictures
     await getSession(request)
 
     try {
       const principal = await getPrincipal(fdm, params.principal_id)
-      if (!principal) {
+      if (!principal || principal.type !== params.type) {
         return data("Not found", { status: 404 })
       }
 
       const folderName =
-        principal.type === "user" ? "profile_picture_user" : "profile_picture_organization"
+        params.type === "user" ? "profile_picture_user" : "profile_picture_organization"
 
       const url = await generateSignedReadUrl(buildObjectKey(folderName, principal.id, "webp"))
 

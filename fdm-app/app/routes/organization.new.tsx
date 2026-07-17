@@ -1,11 +1,24 @@
+import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import crypto from "node:crypto"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
+import sharp from "sharp"
+import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
-import { FormSchema } from "~/components/blocks/organization/schema"
+import { OrganizationInfoSchema } from "~/components/blocks/organization/schema"
+import {
+  ALLOWED_MIME_TYPES,
+  MAX_SIZE_BYTES,
+} from "~/components/blocks/profile/profile-picture-manager"
+import {
+  ProfilePictureFields,
+  ProfilePictureSchema,
+} from "~/components/blocks/profile/profile-picture-schema"
+import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { extractFormValuesFromRequest } from "~/lib/form"
+import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 import type { Route } from "./+types/organization.new"
 
 export const meta: Route.MetaFunction = () => {
@@ -36,50 +49,153 @@ export default function AddOrganizationPage() {
         }
       />
       <div className="mx-auto max-w-3xl px-4">
-        <OrganizationSettingsForm method="post" canModify={true} />
+        <OrganizationSettingsForm method="post" canModify={true} profilePictureField={true} />
       </div>
     </main>
   )
 }
 
+const ActionSchema = OrganizationInfoSchema.extend(
+  Object.fromEntries(
+    Object.entries(ProfilePictureFields).map(([k, v]) => [k, v.optional()]),
+  ) as Partial<z.infer<typeof ProfilePictureSchema>>,
+)
+
 export async function action({ request }: Route.ActionArgs) {
   try {
-    // Get the session
-    await getSession(request)
+    const session = await getSession(request)
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
-    // Get the form values
-    const formValues = await extractFormValuesFromRequest(request, FormSchema)
+    let fileBuffer: Buffer | null = null
+    let detectedMime: string | null = null
+
+    const uploadHandler = async (fileUpload: FileUpload) => {
+      if (fileUpload.fieldName !== "file") return undefined
+
+      // The file submission will be empty if the user hasn't added a profile picture
+      if (fileUpload.name === "" && fileUpload.size === 0) return
+
+      const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+      fileBuffer = result.buffer
+      detectedMime = result.mime
+
+      return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
+        type: detectedMime,
+      })
+    }
+
+    let formData: FormData
+    try {
+      formData = await parseFormData(request, { maxFileSize: MAX_SIZE_BYTES }, uploadHandler)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid upload"
+      return Response.json({ error: message }, { status: 400 })
+    }
+
+    const actionSchemaResult = ActionSchema.safeParse(Object.fromEntries(formData.entries()))
+
+    if (actionSchemaResult.error) {
+      return Response.json({ errors: actionSchemaResult.error }, { status: 400 })
+    }
+    const formValues = actionSchemaResult.data
+
+    let organizationImage: { buffer: Uint8Array; hash: string } | null = null
+
+    if (fileBuffer) {
+      const { cropRectX, cropRectY, cropRectWidth, cropRectHeight } = actionSchemaResult.data
+      let cropped = sharp(fileBuffer)
+
+      if (
+        typeof cropRectX === "number" &&
+        typeof cropRectY === "number" &&
+        typeof cropRectWidth === "number" &&
+        typeof cropRectHeight === "number"
+      ) {
+        cropped.extract({
+          left: cropRectX,
+          top: cropRectY,
+          width: cropRectWidth,
+          height: cropRectHeight,
+        })
+      }
+
+      const croppedBuffer = await cropped.resize(200, 200, { fit: "cover" }).webp().toUint8Array()
+
+      const hash = crypto
+        .createHash("md5", { outputLength: 16 })
+        .update(croppedBuffer.data)
+        .digest("hex")
+
+      organizationImage = { buffer: croppedBuffer.data, hash: hash }
+    }
+
     const name = formValues.name
     const slug = formValues.slug
     const description = formValues.description || ""
 
-    try {
-      // Create the organization
-      await auth.api.createOrganization({
-        headers: request.headers,
-        body: {
-          name,
-          slug,
-          metadata: {
-            description,
-          },
+    // Create the organization
+    const organization = await auth.api.createOrganization({
+      headers: request.headers,
+      body: {
+        name,
+        slug,
+        metadata: {
+          description,
         },
-      })
+      },
+    })
 
-      return redirectWithSuccess(`/organization/${formValues.slug}`, {
-        message: `Organisatie ${formValues.name} is aangemaakt! 🎉`,
-      })
-    } catch (e) {
-      if (e && (e as any).body?.code === "ORGANIZATION_ALREADY_EXISTS") {
-        return dataWithError(
-          null,
-          "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
-        )
+    // Try to add the profile picture, fail entirely if this fails
+    if (organizationImage) {
+      const objectKey = buildObjectKey("profile_picture_organization", organization.id, "webp")
+      try {
+        await uploadObject(objectKey, organizationImage.hash, "image/webp")
+
+        await auth.api.updateOrganization({
+          headers: request.headers,
+          body: {
+            organizationId: organization.id,
+            data: {
+              logo: `/api/profile-picture/organization/${organization.id}.webp?hash=${organizationImage.hash}`,
+            },
+          },
+        })
+      } catch (err) {
+        try {
+          await deleteObject(objectKey)
+        } catch (revertError) {
+          handleActionError(revertError)
+        }
+        try {
+          await auth.api.deleteOrganization({
+            headers: request.headers,
+            body: {
+              organizationId: organization.id,
+            },
+          })
+        } catch (revertError) {
+          handleActionError(revertError)
+        }
+        throw err
       }
-
-      throw e
     }
+
+    return redirectWithSuccess(`/organization/${formValues.slug}`, {
+      message: `Organisatie ${formValues.name} is aangemaakt! 🎉`,
+    })
   } catch (error) {
+    if (
+      error &&
+      (error as { body?: { code?: string } }).body?.code === "ORGANIZATION_SLUG_ALREADY_TAKEN"
+    ) {
+      return dataWithError(
+        null,
+        "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
+      )
+    }
+
     throw handleActionError(error)
   }
 }
