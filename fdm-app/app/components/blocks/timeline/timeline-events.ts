@@ -90,7 +90,7 @@ function pushCultivationEvents(
       })
     }
 
-    if (cultivation.b_lu_end) {
+    if (cultivation.b_lu_end && cultivation.b_lu_harvestable !== "once") {
       events.push({
         ...base,
         id: `cultivation-end-${cultivation.b_lu}`,
@@ -262,14 +262,12 @@ export function groupEventsByField(
     eventsByField.set(event.fieldId, list)
   }
 
-  return fields
-    .map((field) => ({
-      field,
-      events: (eventsByField.get(field.b_id) ?? []).sort(
-        (a, b) => b.date.getTime() - a.date.getTime(),
-      ),
-    }))
-    .filter((group) => group.events.length > 0)
+  return fields.map((field) => ({
+    field,
+    events: (eventsByField.get(field.b_id) ?? []).sort(
+      (a, b) => b.date.getTime() - a.date.getTime(),
+    ),
+  }))
 }
 
 export function getMonthYearOptions(events: TimelineEvent[]): MonthYearOption[] {

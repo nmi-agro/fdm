@@ -1,10 +1,14 @@
 import { format, isToday } from "date-fns"
 import { nl } from "date-fns/locale"
-import { ChevronRight, Circle, Square, Triangle } from "lucide-react"
+import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import type { TimelineField, TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
+import {
+  EVENT_TYPE_COLOR,
+  getFertilizerKindColor,
+} from "~/components/blocks/timeline/timeline-colors"
 import {
   filterEventsByType,
   flattenEvents,
@@ -53,21 +57,14 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-function fertilizerColor(p_type: "manure" | "mineral" | "compost" | null | undefined): string {
-  if (p_type === "manure") return "#ca8a04"
-  if (p_type === "mineral") return "#0284c7"
-  if (p_type === "compost") return "#16a34a"
-  return "#6b7280"
-}
-
 function eventColor(event: TimelineEvent): string {
   switch (event.type) {
     case "fertilizer":
-      return fertilizerColor(event.p_type)
+      return getFertilizerKindColor(event.p_type)
     case "harvest":
-      return "#eab308"
+      return EVENT_TYPE_COLOR.harvest
     case "soil_sampling":
-      return "#2563eb"
+      return EVENT_TYPE_COLOR.soil_sampling
     case "cultivation_start":
     case "cultivation_end":
       return getCultivationColor(event.cultivationType ?? undefined)
@@ -84,11 +81,13 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
   if (event.type === "fertilizer") {
     icon = <FertilizerIcon p_type={event.p_type ?? "other"} />
   } else if (event.type === "harvest") {
-    icon = <Triangle className="size-4 rotate-180 fill-current" />
+    icon = <Wheat className="size-4 fill-current" />
   } else if (event.type === "soil_sampling") {
-    icon = <Circle className="size-4 fill-current" />
+    icon = <TestTube2 className="size-4 fill-current" />
+  } else if (event.type === "cultivation_start") {
+    icon = <Sprout className="size-4 fill-current" />
   } else {
-    icon = <Square className="size-4 fill-current" />
+    icon = <CircleStop className="size-4" />
   }
 
   return (
@@ -147,7 +146,7 @@ function ActiveCultivationBar({
   if (cultivations.length === 0) return null
 
   return (
-    <div className="bg-background sticky top-0 z-20 -mx-4 overflow-x-auto px-4 py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="bg-background sticky top-0 z-20 -mx-4 [scrollbar-width:none] overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <div className="flex w-max gap-2">
         {cultivations.map((cultivation) => {
           const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
@@ -172,9 +171,11 @@ function ActiveCultivationBar({
 function DateGroupedFeed({
   groups,
   onFirstEventRef,
+  stickyOffset,
 }: {
   groups: ReturnType<typeof groupEventsByDate>
   onFirstEventRef: (fieldId: string, element: HTMLDivElement | null) => void
+  stickyOffset: number
 }) {
   const seenFields = new Set<string>()
 
@@ -185,9 +186,10 @@ function DateGroupedFeed({
         return (
           <section className="space-y-2" key={group.key}>
             <h3
-              className={`bg-background sticky top-10 z-10 py-2 text-sm font-semibold ${
+              className={`bg-background sticky z-10 py-2 text-sm font-semibold ${
                 isTodayGroup ? "text-primary" : "text-muted-foreground"
               }`}
+              style={{ top: stickyOffset }}
             >
               {isTodayGroup
                 ? `Vandaag - ${formatEventDateHeader(group.date)}`
@@ -337,10 +339,23 @@ export function TimelineMobileView({
   const [expandedFields, setExpandedFields] = useState<Set<string>>(
     () => new Set(fields.map((field) => field.b_id)),
   )
+  const [cultivationBarHeight, setCultivationBarHeight] = useState(0)
 
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const cultivationBarRef = useRef<HTMLDivElement>(null)
   const fieldEventRefs = useRef(new Map<string, HTMLDivElement | null>())
   const fieldHeaderRefs = useRef(new Map<string, HTMLDivElement | null>())
+
+  useEffect(() => {
+    const node = cultivationBarRef.current
+    if (!node || typeof ResizeObserver === "undefined") return
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) setCultivationBarHeight(entry.contentRect.height)
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
 
   const today = useMemo(() => new Date(), [])
 
@@ -411,6 +426,7 @@ export function TimelineMobileView({
 
   function handleSelectCultivation(fieldId: string) {
     setViewMode("field")
+    setMonthYear("")
     setExpandedFields((prev) => {
       const next = new Set(prev)
       next.add(fieldId)
@@ -443,7 +459,7 @@ export function TimelineMobileView({
     <div className="space-y-4 px-4 py-4">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <Select onValueChange={setMonthYear} value={monthYear}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Alle gebeurtenissen" />
@@ -479,7 +495,12 @@ export function TimelineMobileView({
         </ToggleGroup>
       </div>
 
-      <ActiveCultivationBar cultivations={activeCultivations} onSelect={handleSelectCultivation} />
+      <div ref={cultivationBarRef}>
+        <ActiveCultivationBar
+          cultivations={activeCultivations}
+          onSelect={handleSelectCultivation}
+        />
+      </div>
 
       {showEmpty ? (
         <Empty>
@@ -497,8 +518,18 @@ export function TimelineMobileView({
         </Empty>
       ) : viewMode === "date" ? (
         <>
-          <DateGroupedFeed groups={visibleDateGroups} onFirstEventRef={setFirstEventRef} />
-          {hasMore && <div aria-hidden className="h-8" ref={sentinelRef} />}
+          <DateGroupedFeed
+            groups={visibleDateGroups}
+            onFirstEventRef={setFirstEventRef}
+            stickyOffset={cultivationBarHeight}
+          />
+          {hasMore ? (
+            <div aria-hidden className="h-8" ref={sentinelRef} />
+          ) : (
+            dateGroups.length > INITIAL_GROUPS && (
+              <p className="text-muted-foreground py-2 text-center text-xs">Alles geladen</p>
+            )
+          )}
         </>
       ) : (
         <FieldGroupedView

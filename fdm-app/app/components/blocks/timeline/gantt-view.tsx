@@ -4,6 +4,7 @@ import { LandPlot, TestTube2, Wheat } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react"
 import { NavLink, useNavigate } from "react-router"
 import { FertilizerIcon } from "@/app/components/custom/fertilizer-icon"
+import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import {
   computeGanttSubRowCount,
@@ -70,6 +71,7 @@ export type TimelineCultivation = {
   b_lu_croprotation: string | null
   b_lu_start: Date | null
   b_lu_end: Date | null
+  b_lu_harvestable: "none" | "once" | "multiple"
 }
 
 export type TimelineField = {
@@ -118,9 +120,17 @@ const cultivationStatus = (b_lu_croprotation: string | null): GanttStatus => ({
   color: getCultivationColor(b_lu_croprotation ?? undefined),
 })
 
-const fertilizerStatus: GanttStatus = { id: "fertilizer", name: "Bemesting", color: "#ea580c" }
-const harvestStatus: GanttStatus = { id: "harvest", name: "Oogst", color: "#eab308" }
-const soilStatus: GanttStatus = { id: "soil", name: "Bodemmonster", color: "#2563eb" }
+const fertilizerStatus: GanttStatus = {
+  id: "fertilizer",
+  name: "Bemesting",
+  color: EVENT_TYPE_COLOR.fertilizer,
+}
+const harvestStatus: GanttStatus = { id: "harvest", name: "Oogst", color: EVENT_TYPE_COLOR.harvest }
+const soilStatus: GanttStatus = {
+  id: "soil",
+  name: "Bodemmonster",
+  color: EVENT_TYPE_COLOR.soil_sampling,
+}
 
 const formatNl = (date: Date) => format(date, "d MMM yyyy", { locale: nl })
 
@@ -343,8 +353,9 @@ function buildFieldFeatures(
 
 function EventIcon({ kind, p_type }: { kind: AttachedEvent["kind"]; p_type?: string | null }) {
   if (kind === "fertilizer") return <FertilizerIcon p_type={p_type ?? "other"} />
-  if (kind === "harvest") return <Wheat className="size-3 shrink-0 text-yellow-600" />
-  return <TestTube2 className="size-3 shrink-0 text-blue-600" />
+  if (kind === "harvest")
+    return <Wheat className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.harvest }} />
+  return <TestTube2 className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.soil_sampling }} />
 }
 
 function EventOverlay({ event }: { event: AttachedEvent }) {
