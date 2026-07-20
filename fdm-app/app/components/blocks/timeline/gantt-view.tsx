@@ -492,6 +492,7 @@ function useScrollToCalendarYear(
 // stacking it above the content) so farms with 100+ fields show far more of them at once.
 const ROW_HEIGHT_PX = 32
 const GROUP_GAP_PX = 8 // Tailwind's `space-y-2`, used both in GanttSidebar and GanttFeatureList
+const GANTT_HEADER_HEIGHT_PX = 60
 
 export type TimelineGanttViewHandle = {
   /** Scrolls the timeline horizontally so today's date is in view. */
@@ -632,6 +633,7 @@ export const TimelineGanttView = forwardRef<
   // even though the sidebar (which sizes itself from real content) keeps scrolling correctly.
   // Fix: give it an explicit pixel height computed from the actual content, overriding `h-full`.
   const totalTimelineHeight =
+    GANTT_HEADER_HEIGHT_PX +
     fieldsWithFeatures.reduce((sum, { maxSubRows }) => sum + maxSubRows * ROW_HEIGHT_PX, 0) +
     Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
 
