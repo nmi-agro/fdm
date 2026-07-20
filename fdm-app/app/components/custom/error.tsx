@@ -1,10 +1,81 @@
 import * as Sentry from "@sentry/react-router"
-import { ArrowLeft, Copy, Home } from "lucide-react"
+import { ArrowLeft, Copy, Home, LifeBuoy } from "lucide-react"
 import { useEffect, useState } from "react"
 import { NavLink, useNavigate } from "react-router"
 import { Button } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import { normalizePage } from "~/lib/url-utils"
+
+/**
+ * Displays a full-screen, deliberately generic error page for client errors
+ * (HTTP 400/403/404).
+ *
+ * All of these cases share one neutral message so that the page never reveals
+ * whether a resource is missing (404) or the user simply lacks access to it
+ * (403). This prevents an authenticated user from probing resource IDs by
+ * distinguishing "does not exist" from "no permission". No raw status text,
+ * error data, stack traces, or resource identifiers are rendered.
+ *
+ * @param page - The page where the error occurred (used for observability only).
+ */
+export function ClientErrorPage({ page }: { page: string }) {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (clientConfig.analytics.sentry) {
+      Sentry.withScope((scope) => {
+        // Intentionally record a generic status so client errors are not
+        // distinguishable from one another in the UI.
+        scope.setTag("status", "client_error")
+        scope.setTag("page", normalizePage(page))
+        Sentry.metrics.count("error_block.shown", 1)
+      })
+    }
+  }, [page])
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 px-4 dark:bg-gray-900">
+      <div className="mb-8 w-full max-w-md overflow-hidden rounded-lg">
+        <img
+          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/giphy-zaMc9sEWI1lqXlXSKSKR164AvQCUjf.webp"
+          alt="A red tractor doing a wheelie"
+          className="w-full rounded-lg"
+        />
+      </div>
+      <h1 className="mb-2 text-4xl font-bold text-gray-900 dark:text-gray-100">
+        Deze pagina is niet beschikbaar
+      </h1>
+      <p className="mb-8 max-w-xl text-center text-xl text-gray-600 dark:text-gray-400">
+        Deze pagina bestaat niet of is niet voor u beschikbaar. Controleer de link of ga terug naar
+        uw bedrijven. Neem contact op met Ondersteuning als u denkt dat dit niet klopt.
+      </p>
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <Button asChild>
+          <NavLink to="/farm">
+            <Home className="mr-2 h-4 w-4" /> Naar mijn bedrijven
+          </NavLink>
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (window.history.length > 1) {
+              void navigate(-1)
+            } else {
+              void navigate("/farm")
+            }
+          }}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Vorige pagina
+        </Button>
+        <Button variant="outline" asChild>
+          <NavLink to="/support/new">
+            <LifeBuoy className="mr-2 h-4 w-4" /> Ondersteuning
+          </NavLink>
+        </Button>
+      </div>
+    </div>
+  )
+}
 
 /**
  * Displays a full-screen error block with tailored messaging and navigation options.

@@ -19,7 +19,7 @@ import {
 import { getToast } from "remix-toast"
 import { toast as notify } from "sonner"
 import { Banner } from "~/components/custom/banner"
-import { ErrorBlock } from "~/components/custom/error"
+import { ClientErrorPage, ErrorBlock } from "~/components/custom/error"
 import { NavigationProgress } from "~/components/custom/navigation-progress"
 import { Toaster } from "~/components/ui/sonner"
 import { auth } from "~/lib/auth.server"
@@ -216,7 +216,8 @@ export default function App() {
  * This component distinguishes between route error responses and generic errors:
  * - For route errors:
  *   - Redirects to the signin page if the error status is 401.
- *   - Renders a 404 error block for client errors with status 400, 403, or 404.
+ *   - Renders a single neutral client-error page for status 400, 403, or 404, so it never
+ *     reveals whether a resource is missing or the user lacks access to it.
  *   - Logs other route errors to the error tracking service and renders an error block reflecting the specific status.
  * - For generic Error instances, it logs the error and renders a 500 error block with the error message and stack trace.
  * - If the error is null, no error UI is rendered.
@@ -240,17 +241,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       throw redirect(signInUrl)
     }
 
+    // Collapse all client errors (missing resource, forbidden, bad request)
+    // into a single neutral page so we never disclose whether a resource does
+    // not exist or the user simply lacks access to it. No raw status text,
+    // error data, or resource IDs are rendered.
     const clientErrors = [400, 403, 404]
     if (clientErrors.includes(error.status)) {
-      return (
-        <ErrorBlock
-          status={404} // Show 404 in case user is not authorized to access page
-          message={error.statusText}
-          stacktrace={error.data}
-          page={page}
-          timestamp={timestamp}
-        />
-      )
+      return <ClientErrorPage page={page} />
     }
 
     // Server-side errors are already captured in Sentry via handleError / reportError.
