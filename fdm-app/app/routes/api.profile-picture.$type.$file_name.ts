@@ -27,7 +27,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     await getSession(request)
 
     try {
-      const principal = await getPrincipal(fdm, params.principal_id)
+      const principal = await getPrincipal(fdm, fileNameParts[0])
       if (!principal || principal.type !== params.type) {
         return data("Not found", { status: 404 })
       }
