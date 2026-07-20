@@ -6,7 +6,12 @@ import { useFetcher } from "react-router"
 import { compressAvatar } from "@/app/lib/image-upload.client"
 import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
-import { ImageCropperApp, type ImageData } from "~/components/custom/image-cropper"
+import {
+  ImageCropperApp,
+  ImageCropperCropBounds,
+  ImageCropperFrameShape,
+  type ImageData,
+} from "~/components/custom/image-cropper"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +49,12 @@ export const MIME_TO_EXT: Record<string, string> = {
   "image/heif": "heif",
 }
 
-type ProfilePictureManagerProps = { avatarFallback: ReactNode; currentTitle?: string } & (
+type ProfilePictureManagerProps = {
+  avatarFallback: ReactNode
+  currentTitle?: string
+  frameShape?: ImageCropperFrameShape
+  cropBounds?: ImageCropperCropBounds
+} & (
   | { currentPicture: string; currentAlt: string }
   | { currentPicture?: null | undefined; currentAlt?: any }
 )
@@ -61,7 +71,9 @@ export function ProfilePictureInput({
   maxFileSize,
   appAspectRatio,
   aspectRatio,
+  frameShape,
   frameRelativeSize,
+  cropBounds,
   required,
 }: ProfilePictureManagerProps & {
   ref?: Ref<HTMLInputElement>
@@ -173,7 +185,9 @@ export function ProfilePictureInput({
           onClear={() => {
             onFilesChange([])
           }}
+          frameShape={frameShape}
           framePosition={cropFramePosition}
+          cropBounds={cropBounds}
           onFramePositionChange={setCropFramePosition}
           onFrameRectangleChange={setCropFrameRectangle}
         />
@@ -187,6 +201,8 @@ export function ProfilePictureManager({
   currentPicture,
   currentAlt,
   avatarFallback,
+  frameShape,
+  cropBounds,
 }: ProfilePictureManagerProps) {
   const uploadFetcher = useFetcher()
   const deleteFetcher = useFetcher()
@@ -232,6 +248,8 @@ export function ProfilePictureManager({
         aspectRatio={aspectRatio}
         appAspectRatio={appAspectRatio}
         frameRelativeSize={frameRelativeSize}
+        frameShape={frameShape}
+        cropBounds={cropBounds}
         maxFileSize={maxFileSize}
         required={true}
       />
@@ -293,6 +311,8 @@ export function ProfilePictureManager({
 /**
  * Crops the file field found in the form data, and leaves the rest of the fields alone,
  * including those that define the cropping rectangle. It returns a new FormData object.
+ *
+ * Out of bounds of the image will be rendered as transparent pixels.
  *
  * Cropping rectangle is expected to be defined in the cropRectX, cropRectY, cropRectWidth,
  * and cropRectHeight form fields.

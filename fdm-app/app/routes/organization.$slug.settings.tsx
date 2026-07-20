@@ -110,6 +110,8 @@ export default function OrganizationSettingsBlock() {
                 currentTitle="Huidige logo"
                 currentPicture={loaderData.organization.logo}
                 currentAlt={`Logo van ${loaderData.organization.name}`}
+                cropBounds="outer"
+                frameShape="rectangle"
                 avatarFallback={<Building className="text-muted-foreground size-3/4" />}
               />
             ) : (

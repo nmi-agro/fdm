@@ -1,4 +1,4 @@
-import { PointerEventHandler, useEffect, useMemo, useRef } from "react"
+import { PointerEventHandler, useEffect, useMemo, useRef, useState } from "react"
 import { Slider } from "~/components/ui/slider"
 export interface Rectangle {
   x: number
@@ -12,6 +12,10 @@ export interface ImageData {
   imageWidth: number
   imageHeight: number
 }
+
+export type ImageCropperFrameShape = "ellipse" | "rectangle"
+
+export type ImageCropperCropBounds = "inner" | "outer"
 
 /**
  * Computes the largest rectangle with the given aspect ratio that will fit into the outer rectangle.
@@ -77,6 +81,15 @@ function fitRectangleOut(innerRect: Rectangle, outerAspectRatio: number): Rectan
   }
 }
 
+/**
+ * Scales the rectangle around the given center point.
+ *
+ * @param rect Rectangle to transform.
+ * @param centerX X coordinate of the scale origin.
+ * @param centerY Y coordinate of the scale origin.
+ * @param scale Amount to scale relative to the rectangle's current size.
+ * @returns A new rectangle object.
+ */
 function scaleAroundCenter(rect: Rectangle, centerX: number, centerY: number, scale: number) {
   return {
     x: (rect.x - centerX) * scale + centerX,
@@ -86,10 +99,22 @@ function scaleAroundCenter(rect: Rectangle, centerX: number, centerY: number, sc
   }
 }
 
+/**
+ * Get the geometric center point of a rectangle as a tuple of two numbers.
+ *
+ * @param rect Rectangle to get the center of.
+ * @returns A tuple of two numbers for the X and Y positions respectively.
+ */
 function getRectangleCenter(rect: Rectangle): [number, number] {
   return [rect.x + rect.width / 2, rect.y + rect.height / 2]
 }
 
+/**
+ * Gets a list of SVG path commands that would produce a rectangle.
+ *
+ * @param rect Rectangle to realize as a SVG path.
+ * @returns An array of SVG commands like "M 3,3" or "L 5,7".
+ */
 function getRectangleSvgCommands(rect: Rectangle) {
   return [
     `M ${rect.x},${rect.y}`,
@@ -100,6 +125,12 @@ function getRectangleSvgCommands(rect: Rectangle) {
   ]
 }
 
+/**
+ * Gets a list of SVG path commands that would produce an ellipse that fits into the rectangle.
+ *
+ * @param rect Rectangle to realize as an ellipse.
+ * @returns An array of SVG commands like "M 3,3" or "A 5,7 0 1,0 2,4".
+ */
 function getEllipseSvgCommands(rect: Rectangle) {
   const cx = rect.x + rect.width / 2
   const cy = rect.y + rect.height / 2
@@ -113,6 +144,17 @@ function getEllipseSvgCommands(rect: Rectangle) {
   ]
 }
 
+/**
+ * Calculates the cropped part out of the image. 0,0 is the top left corner of the image and units are
+ * in image pixels.
+ *
+ * @param imageData Image to crop.
+ * @param aspectRatio Crop frame aspect ratio.
+ * @param x X coordinate relative to the center of the image.
+ * @param y Y coordinate relative to the center of the image.
+ * @param scale Scale of the crop rectangle compared to how it was initially.
+ * @returns The rectangle to crop the image pixels with.
+ */
 function getResultFrameRect(
   imageData: ImageData,
   aspectRatio: number,
@@ -128,14 +170,14 @@ function getResultFrameRect(
 }
 
 const SVG_VIEWBOX_HEIGHT = 500
-const MAX_SCALE = 1
 const MIN_SCALE = 1 / 10
 
 interface ImageCropperAppProps {
   aspectRatio?: number
   appAspectRatio?: number
-  frameShape?: "ellipse" | "rectangle"
+  frameShape?: ImageCropperFrameShape
   frameRelativeSize?: number
+  cropBounds?: ImageCropperCropBounds
   imageData: ImageData
   onClear: () => void
   framePosition: ImageCropperFramePosition
@@ -153,6 +195,7 @@ export function ImageCropperApp({
   aspectRatio = 1 / 1,
   imageData,
   frameRelativeSize = 0.6,
+  cropBounds = "inner",
   appAspectRatio = 1 / 1,
   frameShape = "ellipse",
   framePosition,
@@ -160,6 +203,7 @@ export function ImageCropperApp({
   onFrameRectangleChange,
 }: ImageCropperAppProps) {
   const svgRef = useRef<SVGSVGElement>(null)
+  const [maxScale, setMaxScale] = useState(1)
 
   // x and y are relative to the center of the image, in image pixel units.
   // Scaling happens around the center of the frame rectangle / ellipse.
@@ -173,11 +217,21 @@ export function ImageCropperApp({
     lastY: 0,
   })
 
+  // Reset crop rectangle
   useEffect(() => {
-    onFramePositionChange({ x: 0, y: 0, scale: 1 })
-    onFrameRectangleChange?.(getResultFrameRect(imageData, aspectRatio, 0, 0, 1))
+    let nextMaxScale = 1
+
+    if (cropBounds === "outer") {
+      const imageRect = { x: 0, y: 0, width: imageData.imageWidth, height: imageData.imageHeight }
+      nextMaxScale =
+        fitRectangleOut(imageRect, aspectRatio).width / fitRectangleIn(imageRect, aspectRatio).width
+    }
+
+    setMaxScale(nextMaxScale)
+    onFramePositionChange({ x: 0, y: 0, scale: nextMaxScale })
+    onFrameRectangleChange?.(getResultFrameRect(imageData, aspectRatio, 0, 0, nextMaxScale))
     dragState.current.dragging = false
-  }, [imageData, aspectRatio])
+  }, [imageData, aspectRatio, cropBounds])
 
   // all other rectangles are fit onto this
   const appRect = {
@@ -225,13 +279,18 @@ export function ImageCropperApp({
   function moveIntoRectAndSet(nextX: number, nextY: number, nextScale: number) {
     const newRect = getResultFrameRect(imageData, aspectRatio, nextX, nextY, nextScale)
 
-    if (newRect.x < 0) nextX = (newRect.width - imageData.imageWidth) / 2
-    if (newRect.x + newRect.width > imageData.imageWidth)
-      nextX = (imageData.imageWidth - newRect.width) / 2
+    const boundsLeft = Math.min(0, imageData.imageWidth - newRect.width)
+    const boundsRight = Math.max(imageData.imageWidth, newRect.width)
+    const boundsTop = Math.min(0, imageData.imageHeight - newRect.height)
+    const boundsBottom = Math.max(imageData.imageHeight, newRect.height)
 
-    if (newRect.y < 0) nextY = (newRect.height - imageData.imageHeight) / 2
-    if (newRect.y + newRect.height > imageData.imageHeight)
-      nextY = (imageData.imageHeight - newRect.height) / 2
+    if (newRect.x < boundsLeft) nextX = boundsLeft + newRect.width / 2 - imageData.imageWidth / 2
+    if (newRect.x + newRect.width > boundsRight)
+      nextX = boundsRight - newRect.width / 2 - imageData.imageWidth / 2
+
+    if (newRect.y < boundsTop) nextY = boundsTop + newRect.height / 2 - imageData.imageHeight / 2
+    if (newRect.y + newRect.height > boundsBottom)
+      nextY = boundsBottom - newRect.height / 2 - imageData.imageHeight / 2
 
     onFramePositionChange({ x: nextX, y: nextY, scale: nextScale })
     if (onFrameRectangleChange) {
@@ -275,7 +334,7 @@ export function ImageCropperApp({
   }
 
   function handleZoomInput(value: number[]) {
-    const nextScale = value[0] > MAX_SCALE ? MAX_SCALE : value[0] < MIN_SCALE ? MIN_SCALE : value[0]
+    const nextScale = value[0] > maxScale ? maxScale : value[0] < MIN_SCALE ? MIN_SCALE : value[0]
 
     moveIntoRectAndSet(x, y, nextScale)
   }
@@ -341,7 +400,7 @@ export function ImageCropperApp({
         value={scaleSliderValue}
         onValueChange={handleZoomInput}
         min={MIN_SCALE}
-        max={MAX_SCALE}
+        max={maxScale}
         step={0.05}
         dir="rtl"
       />

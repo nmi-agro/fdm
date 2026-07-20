@@ -169,6 +169,8 @@ export function OrganizationSettingsForm({
                   <div className="relative mx-auto max-w-sm">
                     <ProfilePictureInput
                       appAspectRatio={3 / 2}
+                      frameShape="rectangle"
+                      cropBounds="outer"
                       files={profilePictureFiles}
                       onFilesChange={setProfilePictureFiles}
                       maxFileSize={MAX_SIZE_BYTES}
