@@ -1,8 +1,6 @@
 import { checkHelpdeskPermission, setAssignmentTier } from "@nmi-agro/fdm-helpdesk"
 import {
   getAgent,
-  reassignAgentTickets,
-  setAgentStatus,
   setMaxTickets,
   setWorkDays,
   type TicketReassignment,
@@ -64,16 +62,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         "routes/support.settings.agents.$agent_id",
       )
 
-      const agent = await getAgent(tx, session.principal_id, params.agent_id)
-
       await updateAgent(tx, session.principal_id, params.agent_id, agentUpdate.display_name)
-
-      await setAgentStatus(
-        tx,
-        session.principal_id,
-        params.agent_id,
-        agentUpdate.availability_status,
-      )
 
       await setWorkDays(tx, session.principal_id, params.agent_id, agentUpdate.work_days)
 
@@ -91,16 +80,6 @@ export async function action({ params, request }: Route.ActionArgs) {
           params.agent_id,
           agentUpdate.assignment_tier,
         )
-      }
-
-      // Only after updating the agent to the latest state, try to reassign their tickets
-      if (
-        agentUpdate.reassign_tickets &&
-        agentUpdate.availability_status !== agent.availability_status &&
-        agentUpdate.availability_status === "out-of-office"
-      ) {
-        const reassignment = await reassignAgentTickets(tx, params.agent_id, session.principal_id)
-        newAssignments = reassignment.reassigned
       }
     })
 

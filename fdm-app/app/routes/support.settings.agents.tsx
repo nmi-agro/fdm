@@ -73,7 +73,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       return {
         ...makeHelpdeskUser(agent, principals),
         absence: agentAbsences.get(agent.agent_id) ?? null,
-        availability_status: agent.availability_status,
         assignment_tier: agent.assignment_tier,
         role: agent.role,
         isActive: agent.is_active,

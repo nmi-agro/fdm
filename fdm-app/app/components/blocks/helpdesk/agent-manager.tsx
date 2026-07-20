@@ -31,7 +31,6 @@ import { SubmitButtonWithReassignmentConfirmation } from "./reassignment-confirm
 export type HelpdeskUserExtended = HelpdeskUser & {
   absence: AgentAbsence | null
   assignment_tier: number
-  availability_status: string
   role: string
   isInvitation: boolean
   isActive: boolean
@@ -190,10 +189,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       </TableCell>
       <TableCell width="99%" className="align-middle">
         {principal.displayUserName}
-        <AgentAvailabilityDisplay
-          availability_status={principal.availability_status}
-          absence={principal.absence}
-        />
+        <AgentAvailabilityDisplay absence={principal.absence} />
       </TableCell>
       {canModify && (
         <TableCell>

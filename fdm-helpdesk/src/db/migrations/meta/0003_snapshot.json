@@ -1,5 +1,5 @@
 {
-  "id": "3d270bf5-526d-425c-bec3-d015abac2261",
+  "id": "26e212a8-6ffe-44f3-ae3c-bc9fd5ee73f3",
   "prevId": "331d4634-1bfa-440a-adaf-d919f947138c",
   "version": "7",
   "dialect": "postgresql",
@@ -152,13 +152,6 @@
           "notNull": true,
           "default": true
         },
-        "availability_status": {
-          "name": "availability_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'online'"
-        },
         "assignment_tier": {
           "name": "assignment_tier",
           "type": "integer",
@@ -200,21 +193,6 @@
           "columns": [
             {
               "expression": "is_active",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "agent_availability_idx": {
-          "name": "agent_availability_idx",
-          "columns": [
-            {
-              "expression": "availability_status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

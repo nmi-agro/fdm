@@ -1,3 +1,4 @@
+import { eq, sql } from "drizzle-orm"
 import { describe, expect } from "vitest"
 import { addAdminAgent, addAgent, getAgent, setAgentActiveStatus } from "./agent"
 import {
@@ -12,10 +13,10 @@ import {
   setAssignmentTier,
   setMaxTickets,
   setWorkDays,
-  setAgentStatus,
   autoAssignTicket,
   reassignAgentTickets,
 } from "./agent-availability"
+import * as schema from "./db/schema-helpdesk"
 import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { test, truncateAllTables } from "./test-util"
@@ -129,26 +130,6 @@ describe("Agent availability CRUD", () => {
     ).rejects.toThrow("Exception for setAssignmentTier")
     const agent = await getAgent(fdm, admin_id, agent_id)
     expect(agent.assignment_tier).toEqual(1)
-  })
-
-  test("should let a regular agent set their own availability status", async ({ fdm }) => {
-    await setAgentStatus(fdm, agent_id, agent_id, "away")
-    const agent = await getAgent(fdm, admin_id, agent_id)
-    expect(agent.availability_status).toEqual("away")
-  })
-
-  test("should let an admin set an agent's availability status", async ({ fdm }) => {
-    await setAgentStatus(fdm, admin_id, agent_id, "away")
-    const agent = await getAgent(fdm, admin_id, agent_id)
-    expect(agent.availability_status).toEqual("away")
-  })
-
-  test("should not let regular agents set each other's availability status", async ({ fdm }) => {
-    await expect(setAgentStatus(fdm, agent_id, admin_id, "away")).rejects.toThrow(
-      "Principal does not have permission to perform this action",
-    )
-    const agent = await getAgent(fdm, admin_id, agent_id)
-    expect(agent.availability_status).toEqual("online")
   })
 
   test("should not allow getting an absence that doesn't exist", async ({ fdm }) => {
@@ -499,15 +480,6 @@ describe("Agent availability", () => {
     ).toBe(false)
   })
 
-  test("should not get an agent who is not online", async ({ fdm }) => {
-    await setAgentStatus(fdm, agent_id, agent_id, "out-of-office")
-    const available = await getAvailableAgents(fdm, new Date())
-    expect(
-      available.some((agent) => agent.agent_id === agent_id),
-      "Agent who is out of the office should not have been listed as available.",
-    ).toBe(false)
-  })
-
   test("should not get an agent who is absent", async ({ fdm }) => {
     const absenceStart = new Date("2023-03-03T08:51:08.545Z")
     const absenceEnd = new Date("2023-03-05T23:59:59.999Z")
@@ -645,7 +617,10 @@ describe("reassignAgentTickets", () => {
     await addAdminAgent(fdm, admin_id, "Admin Agent")
     // Keep the admin out of the pool of auto-assignment candidates, so it doesn't shadow the
     // agents under test that we explicitly make available below.
-    await setAgentStatus(fdm, admin_id, admin_id, "out-of-office")
+    await fdm
+      .update(schema.agents)
+      .set({ work_days: [], updated: sql`now()` })
+      .where(eq(schema.agents.agent_id, admin_id))
     departing_agent_id = createId()
     await addAgent(fdm, admin_id, departing_agent_id, "Leaving Agent")
     const ticket_id = await createTicket(fdm, createId(), "Ticket to Assign")
@@ -667,7 +642,6 @@ describe("reassignAgentTickets", () => {
         ticket: ticket,
         agent_id: agent_id,
         display_name: "Available Agent",
-        availability_status: "online",
         is_primary: true,
       },
     ])
@@ -696,7 +670,6 @@ describe("reassignAgentTickets", () => {
         ticket: baseTicket,
         agent_id: agent_id,
         display_name: "Available Agent",
-        availability_status: "online",
         is_primary: true,
       },
     ])

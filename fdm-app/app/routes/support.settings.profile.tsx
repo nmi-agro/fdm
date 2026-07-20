@@ -1,8 +1,6 @@
 import {
   checkHelpdeskPermission,
   getAgent,
-  reassignAgentTickets,
-  setAgentStatus,
   setAssignmentTier,
   setMaxTickets,
   setWorkDays,
@@ -69,16 +67,7 @@ export async function action({ request }: Route.ActionArgs) {
     let newAssignments: TicketReassignment[] = []
 
     await fdm.transaction(async (tx) => {
-      const agent = await getAgent(tx, session.principal_id, session.principal_id)
-
       await updateAgent(tx, session.principal_id, session.principal_id, agentUpdate.display_name)
-
-      await setAgentStatus(
-        tx,
-        session.principal_id,
-        session.principal_id,
-        agentUpdate.availability_status,
-      )
 
       await setWorkDays(tx, session.principal_id, session.principal_id, agentUpdate.work_days)
 
@@ -108,20 +97,6 @@ export async function action({ request }: Route.ActionArgs) {
             agentUpdate.assignment_tier,
           )
         }
-      }
-
-      // Only after updating the agent to the latest state, try to reassign their tickets
-      if (
-        agentUpdate.reassign_tickets &&
-        agentUpdate.availability_status !== agent.availability_status &&
-        agentUpdate.availability_status === "out-of-office"
-      ) {
-        const reassignment = await reassignAgentTickets(
-          tx,
-          session.principal_id,
-          session.principal_id,
-        )
-        newAssignments = reassignment.reassigned
       }
     })
 

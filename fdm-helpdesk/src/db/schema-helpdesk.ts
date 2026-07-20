@@ -68,7 +68,6 @@ export const agents = fdmHelpdeskSchema.table(
     display_name: text().notNull(),
     role: text().notNull().default("agent"), // 'admin', 'agent'
     is_active: boolean().notNull().default(true),
-    availability_status: text().notNull().default("online"), // 'online', 'away', 'out_of_office'
     assignment_tier: integer().notNull().default(1), // 1=first-line, 2=second-line, 3=escalation-only (last resort)
     work_days: jsonb().notNull().default([1, 2, 3, 4, 5]), // same as Date.getDay(): 0=Sun, 1=Mon, 2=Tue, ..., 6=Sat
     max_tickets: integer().default(20), // Max concurrent assignments
@@ -77,7 +76,6 @@ export const agents = fdmHelpdeskSchema.table(
   },
   (table) => [
     index("agent_active_idx").on(table.is_active),
-    index("agent_availability_idx").on(table.availability_status),
     index("agent_tier_idx").on(table.assignment_tier),
   ],
 )

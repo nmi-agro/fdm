@@ -19,7 +19,6 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import {
   Select,
   SelectContent,
@@ -28,8 +27,6 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
-import { Switch } from "~/components/ui/switch"
-import { AGENT_AVAILABILITY_STATUSES } from "./agent-availability"
 import { AssignmentTierOptions, UpdateAgentSchema } from "./agent-schema"
 import { SubmitButtonWithReassignmentConfirmation } from "./reassignment-confirmation"
 
@@ -45,11 +42,6 @@ function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
   return {
     ...agent,
     display_name: agent.display_name ?? "",
-    availability_status: (["online", "away", "out-of-office"].includes(
-      agent.availability_status ?? "",
-    )
-      ? agent.availability_status
-      : "online") as AgentFormValues["availability_status"],
     work_days: work_days,
     reassign_tickets: false,
     assignment_tier: AssignmentTierOptions.some((o) => o.value === agent.assignment_tier)
@@ -72,15 +64,9 @@ export function useAgentForm({
     fetcher: fetcher,
   })
 
-  const availability_status = useWatch({ control: form.control, name: "availability_status" })
-
   useEffect(() => {
     form.reset(getFormDefaults(agent))
   }, [form.reset, agent])
-
-  useEffect(() => {
-    form.setValue("reassign_tickets", availability_status === "out-of-office")
-  }, [availability_status])
 
   return form
 }
@@ -104,20 +90,9 @@ export function AgentFormFields({
   isAdmin: boolean
   person: AgentFormPerson
 }) {
-  const statusOnlineId = useId()
-  const statusAwayId = useId()
-  const statusOutOfOfficeId = useId()
-  const radioIds: Record<(typeof AGENT_AVAILABILITY_STATUSES)[number]["value"], string> = {
-    online: statusOnlineId,
-    away: statusAwayId,
-    "out-of-office": statusOutOfOfficeId,
-  }
-  const availability_status = useWatch({ name: "availability_status" })
-
   const nameId = useId()
   const assignmentTierId = useId()
   const workDaysIds = [useId(), useId(), useId(), useId(), useId(), useId(), useId()]
-  const reassignTicketsId = useId()
 
   return (
     <>
@@ -162,67 +137,6 @@ export function AgentFormFields({
           </Field>
         )}
       />
-      <Controller
-        name="availability_status"
-        render={({ field, fieldState }) => (
-          <div className="space-y-2">
-            <Field>
-              <FieldLabel>Status</FieldLabel>
-              <FieldDescription>
-                De beschikbaarheid op dit moment om tickets te behandelen.
-              </FieldDescription>
-              <RadioGroup
-                value={field.value}
-                onValueChange={(newValue) => field.onChange(newValue)}
-              >
-                {AGENT_AVAILABILITY_STATUSES.map((status) => (
-                  <Field orientation="horizontal" key={status.value}>
-                    <RadioGroupItem id={radioIds[status.value]} value={status.value} />
-                    <FieldLabel htmlFor={radioIds[status.value]}>
-                      <span>
-                        {status.label}:{" "}
-                        <span className="text-muted-foreground">{status.description[person]}</span>
-                      </span>
-                    </FieldLabel>
-                  </Field>
-                ))}
-              </RadioGroup>
-              {fieldState.error && <FieldError errors={[fieldState.error]} />}
-              <input {...field} type="hidden" />
-            </Field>
-          </div>
-        )}
-      />
-      {availability_status === "out-of-office" && (
-        <Controller
-          name="reassign_tickets"
-          render={({ field, fieldState }) => (
-            <div>
-              <Card className="inline-block p-2">
-                <Field orientation="horizontal">
-                  {person === "second" && (
-                    <FieldLabel htmlFor={reassignTicketsId}>
-                      Mijn tickets opnieuw toewijzen
-                    </FieldLabel>
-                  )}
-                  {person === "third" && (
-                    <FieldLabel htmlFor={reassignTicketsId}>
-                      De tickets opnieuw toewijzen
-                    </FieldLabel>
-                  )}
-                  <Switch
-                    id={reassignTicketsId}
-                    checked={field.value}
-                    onCheckedChange={(checked) => field.onChange(checked)}
-                  />
-                </Field>
-                {fieldState.error && <FieldError errors={[fieldState.error]} />}
-                <input {...field} type="hidden" />
-              </Card>
-            </div>
-          )}
-        />
-      )}
       <Controller
         name="work_days"
         render={({ field, fieldState }) => (

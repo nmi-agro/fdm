@@ -20,7 +20,6 @@ const agentSummaryColumns = {
   display_name: schema.agents.display_name,
   role: schema.agents.role,
   is_active: schema.agents.is_active,
-  availability_status: schema.agents.availability_status,
   assignment_tier: schema.agents.assignment_tier,
   work_days: schema.agents.work_days,
   max_tickets: schema.agents.max_tickets,
@@ -78,8 +77,6 @@ and ${inArray(sql`t.status`, ACTIVE_TICKET_STATUSES)})`,
         and(
           // Is the agent active?
           eq(schema.agents.is_active, true),
-          // Is the agent online?
-          eq(schema.agents.availability_status, "online"),
           // Is the agent free on this day of the week?
           sql`${schema.agents.work_days} @> ${date.getDay().toString()}::jsonb`,
           // Is the agent absent on this day?
@@ -149,7 +146,6 @@ export async function autoAssignTicket(
         assigned: true,
         agent_id: agentToAssign.agent_id,
         display_name: agentToAssign.display_name,
-        availability_status: agentToAssign.availability_status,
         is_primary: true,
       } as const
     }
@@ -219,7 +215,6 @@ export async function reassignAgentTickets(
             ticket: baseTicket,
             agent_id: otherAssignee.agent_id,
             display_name: otherAssignee.display_name,
-            availability_status: otherAssignee.availability_status,
             is_primary: true,
           })
         }
@@ -232,7 +227,6 @@ export async function reassignAgentTickets(
           ticket: ticket,
           agent_id: result.agent_id,
           display_name: result.display_name,
-          availability_status: result.availability_status,
           is_primary: result.is_primary,
         })
       } else {
@@ -244,39 +238,6 @@ export async function reassignAgentTickets(
     throw handleError(err, "Exception for reassignAgentTickets", {
       departing_agent_id,
       reassigned_by,
-    })
-  }
-}
-
-/**
- * Sets the agent status.
- *
- * @param fdm The FDM instance providing the connection to the database. The instance can be created with
- * {@link createFdmServer} of fdm-core.
- * @param principal_id The principal identifier(s); supports a single ID or an array.
- * @param agent_id ID of the agent whose status is being set.
- * @param status The new status of the agent.
- */
-export async function setAgentStatus(
-  fdm: FdmHelpdeskType,
-  principal_id: string,
-  agent_id: string,
-  status: string,
-) {
-  try {
-    await checkHelpdeskPermission(fdm, "agent", "write", agent_id, principal_id, "setAgentStatus")
-
-    await fdm
-      .update(schema.agents)
-      .set({
-        availability_status: status,
-        updated: sql`now()`,
-      })
-      .where(eq(schema.agents.agent_id, agent_id))
-  } catch (err) {
-    throw handleError(err, "Exception for setAgentStatus", {
-      agent_id,
-      status,
     })
   }
 }

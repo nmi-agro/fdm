@@ -287,11 +287,7 @@ function AssigneeSelectItem({
         <HelpdeskUserAvatar user={makeHelpdeskUser(agent, principalLookup)} type="agent" />
         <div className="text-start">
           <span className="grow text-start group-hover:underline">{agent.display_name}</span>
-          <AgentAvailabilityDisplay
-            availability_status={agent.availability_status}
-            absence={agentAbsence}
-            className="text-[11px]"
-          />
+          <AgentAvailabilityDisplay absence={agentAbsence} className="text-[11px]" />
         </div>
       </Button>
 

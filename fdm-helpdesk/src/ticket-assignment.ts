@@ -13,13 +13,11 @@ import { createId } from "./id"
 export type TicketAssignmentSummary = {
   agent_id: schema.TicketAssignmentTypeSelect["agent_id"]
   display_name: schema.AgentTypeSelect["display_name"]
-  availability_status: schema.AgentTypeSelect["availability_status"]
   is_primary: schema.TicketAssignmentTypeSelect["is_primary"]
 }
 const ticketAssignmentSummaryColumns = {
   agent_id: schema.ticketAssignments.agent_id,
   display_name: schema.agents.display_name,
-  availability_status: schema.agents.availability_status,
   is_primary: schema.ticketAssignments.is_primary,
 }
 
