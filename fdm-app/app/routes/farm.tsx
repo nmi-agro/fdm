@@ -336,13 +336,21 @@ export default function App() {
  * The farm/calendar context is synced from `loaderData.farm` and the URL just like in {@link App},
  * so e.g. an invalid field id under a perfectly valid farm still shows that farm as active in the
  * sidebar instead of falling back to "no farm selected".
+ *
+ * If instead this route's *own* loader threw (an unexpected error, not the handled
+ * `farmAccessDenied` case), `useLoaderData()` has nothing to return — there's no session/farm
+ * data to build the sidebar from, so fall back to the bare, shell-less page rather than crash.
  */
 export function ErrorBoundary() {
-  const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>() as FarmLoaderData | undefined
   const params = useParams()
   const calendar = params.calendar
 
-  useFarmContextSync(loaderData.farm?.b_id_farm, calendar)
+  useFarmContextSync(loaderData?.farm?.b_id_farm, calendar)
+
+  if (!loaderData) {
+    return <ClientErrorPage />
+  }
 
   return (
     <FarmShell loaderData={loaderData} activeFieldId={undefined} fieldWritePermission={false}>

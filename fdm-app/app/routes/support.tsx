@@ -161,9 +161,16 @@ export default function App() {
  * Renders when a descendant route throws. This route's own loader already succeeded, so the
  * sidebar/header shell can render normally via {@link SupportShell}; only the content pane is
  * replaced with the generic, friendly {@link ClientErrorPage}.
+ *
+ * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
+ * back to the bare, shell-less page rather than crash on undefined loader data.
  */
 export function ErrorBoundary() {
-  const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>() as SupportLoaderData | undefined
+
+  if (!loaderData) {
+    return <ClientErrorPage />
+  }
 
   return (
     <SupportShell loaderData={loaderData}>

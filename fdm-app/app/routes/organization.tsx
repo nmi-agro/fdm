@@ -209,9 +209,16 @@ export default function App() {
  * resource that doesn't exist). This route's own loader already succeeded, so the sidebar/header
  * shell can render normally via {@link OrganizationShell}; only the content pane is replaced with
  * the generic, friendly {@link ClientErrorPage} — the app never appears to have been "left".
+ *
+ * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
+ * back to the bare, shell-less page rather than crash on undefined loader data.
  */
 export function ErrorBoundary() {
-  const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>() as OrganizationLoaderData | undefined
+
+  if (!loaderData) {
+    return <ClientErrorPage />
+  }
 
   return (
     <OrganizationShell loaderData={loaderData}>
