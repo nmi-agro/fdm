@@ -1,6 +1,6 @@
 import { ApiError } from "@google-cloud/storage"
 import { getPrincipal } from "@nmi-agro/fdm-core"
-import { data } from "react-router"
+import { data, redirect } from "react-router"
 import { MIME_TO_EXT } from "~/components/blocks/profile/profile-picture-manager"
 import { buildObjectKey, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
@@ -40,10 +40,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       )
 
       const headers = new Headers({
-        "Cache-Control": "public, max-age=1800",
+        "Cache-Control": "private, max-age=1800",
       })
 
-      return new Response(url, { status: 301, headers })
+      return redirect(url, { status: 302, headers })
     } catch (gcsError) {
       if (gcsError instanceof ApiError && gcsError.code === 404) {
         return data("Not Found", { status: 404 })

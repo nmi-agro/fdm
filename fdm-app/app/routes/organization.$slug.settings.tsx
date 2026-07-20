@@ -105,7 +105,7 @@ export default function OrganizationSettingsBlock() {
           </CardHeader>
           <CardContent>
             <ProfilePictureManager
-              currentPicture={loaderData.organization.metadata.data?.image}
+              currentPicture={loaderData.organization.logo}
               currentAlt={`Profielfoto van ${loaderData.organization.name}`}
               avatarFallback={<Building />}
             />
@@ -185,7 +185,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
     if (actionSchemaResult.data.intent === "update_profile_picture") {
       if (!fileBuffer || !detectedMime) {
-        return Response.json({ error: "No valid image file provided" }, { status: 400 })
+        return Response.json({ error: "Er is geen geldig afbeelding toegevoegd." }, { status: 400 })
       }
 
       const detectedExt = MIME_TO_EXT[detectedMime]
@@ -253,17 +253,15 @@ export async function action({ params, request }: Route.ActionArgs) {
           await deleteObject(oldProfilePictureObjectKey)
         } catch (err) {
           try {
-            if (currentOrganization.metadata.data) {
-              await auth.api.updateOrganization({
-                headers: request.headers,
-                body: {
-                  organizationId: currentOrganization.id,
-                  data: {
-                    logo: currentOrganization.logo,
-                  },
+            await auth.api.updateOrganization({
+              headers: request.headers,
+              body: {
+                organizationId: currentOrganization.id,
+                data: {
+                  logo: currentOrganization.logo,
                 },
-              })
-            }
+              },
+            })
           } catch (revertErr) {
             handleActionError(revertErr)
           }

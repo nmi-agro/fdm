@@ -324,13 +324,14 @@ export async function action({ request }: ActionFunctionArgs) {
     // Update the user profile
     await updateUserProfile(fdm, session.user.id, firstname, surname)
 
+    const oldProfilePictureKey = detectExistingProfilePictureObjectKey(session.user.image)
     if (profilePicture) {
       const detectedExt = MIME_TO_EXT[profilePicture.detectedMime]
 
       const objectKey = buildObjectKey("profile_picture_user", session.user.id, detectedExt)
 
       try {
-        await uploadObject(objectKey, profilePicture.hash, profilePicture.detectedMime)
+        await uploadObject(objectKey, profilePicture.buffer, profilePicture.detectedMime)
 
         await auth.api.updateUser({
           headers: request.headers,
@@ -338,6 +339,10 @@ export async function action({ request }: ActionFunctionArgs) {
             image: `/api/profile-picture/user/${session.user.id}.${detectedExt}?hash=${profilePicture.hash}`,
           },
         })
+
+        if (oldProfilePictureKey && oldProfilePictureKey !== objectKey) {
+          await deleteObject(oldProfilePictureKey)
+        }
       } catch (err) {
         try {
           await deleteObject(objectKey)
@@ -347,8 +352,6 @@ export async function action({ request }: ActionFunctionArgs) {
         throw err
       }
     } else if (doNotUseSocialImage) {
-      const oldProfilePictureKey = detectExistingProfilePictureObjectKey(session.user.image)
-
       await auth.api.updateUser({ headers: request.headers, body: { image: null } })
 
       if (oldProfilePictureKey) {

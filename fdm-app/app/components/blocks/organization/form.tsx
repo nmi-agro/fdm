@@ -177,6 +177,7 @@ export function OrganizationSettingsForm({
                     {profilePictureFiles.length > 0 ? (
                       <Button
                         variant="ghost"
+                        type="button"
                         onClick={() => setProfilePictureFiles([])}
                         className="hover:text-destructive absolute top-2 right-2 size-auto text-gray-100 has-[>svg]:px-1 has-[>svg]:py-1"
                         title="Logo verwijderen"

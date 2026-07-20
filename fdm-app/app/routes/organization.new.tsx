@@ -138,7 +138,7 @@ export async function action({ request }: Route.ActionArgs) {
 
       const objectKey = buildObjectKey("profile_picture_organization", organization.id, detectedExt)
       try {
-        await uploadObject(objectKey, organizationImage.hash, organizationImage.detectedMime)
+        await uploadObject(objectKey, organizationImage.buffer, organizationImage.detectedMime)
 
         await auth.api.updateOrganization({
           headers: request.headers,

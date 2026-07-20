@@ -32,8 +32,6 @@ export function ProfileInfoForm({
     },
   })
 
-  console.log(form.formState.errors)
-
   useEffect(() => {
     form.reset({
       intent: "update_profile_info" as const,
@@ -69,9 +67,6 @@ export function ProfileInfoForm({
           />
         </fieldset>
         <div className="flex flex-row items-center justify-end gap-2">
-          <Button type="submit" disabled={isSubmitting}>
-            Verwijderen{isSubmitting && <Spinner />}
-          </Button>
           <Button type="submit" disabled={isSubmitting}>
             Opslaan{isSubmitting && <Spinner />}
           </Button>

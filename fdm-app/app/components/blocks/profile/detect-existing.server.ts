@@ -15,7 +15,8 @@ export function detectExistingProfilePictureObjectKey(imageUrl: string | null | 
   for (const type of types) {
     const prefix = `/api/profile-picture/${type}/`
     if (imageUrl.startsWith(prefix)) {
-      return `profile_picture_${type}/${imageUrl.substring(prefix.length)}`
+      const fileName = imageUrl.substring(prefix.length).split("?")[0]
+      return `profile_picture_${type}/${fileName}`
     }
   }
 

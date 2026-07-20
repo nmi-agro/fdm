@@ -175,8 +175,9 @@ export function ImageCropperApp({
 
   useEffect(() => {
     onFramePositionChange({ x: 0, y: 0, scale: 1 })
+    onFrameRectangleChange?.(getResultFrameRect(imageData, aspectRatio, 0, 0, 1))
     dragState.current.dragging = false
-  }, [imageData])
+  }, [imageData, aspectRatio])
 
   // all other rectangles are fit onto this
   const appRect = {
@@ -234,7 +235,7 @@ export function ImageCropperApp({
 
     onFramePositionChange({ x: nextX, y: nextY, scale: nextScale })
     if (onFrameRectangleChange) {
-      onFrameRectangleChange(getResultFrameRect(imageData, aspectRatio, x, y, scale))
+      onFrameRectangleChange(getResultFrameRect(imageData, aspectRatio, nextX, nextY, nextScale))
     }
   }
 

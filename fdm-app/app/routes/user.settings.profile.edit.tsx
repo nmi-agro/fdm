@@ -155,25 +155,22 @@ export async function action({ request }: Route.ActionArgs) {
 
       const objectKey = buildObjectKey("profile_picture_user", session.principal_id, detectedExt)
 
-      await auth.api.updateUser({
-        headers: request.headers,
-        body: {
-          image: `/api/profile-picture/user/${session.principal_id}.${detectedExt}?hash=${hash}`,
-        },
-      })
+      await uploadObject(objectKey, fileBuffer, detectedMime)
 
       try {
-        await uploadObject(objectKey, fileBuffer, detectedMime)
+        await auth.api.updateUser({
+          headers: request.headers,
+          body: {
+            image: `/api/profile-picture/user/${session.principal_id}.${detectedExt}?hash=${hash}`,
+          },
+        })
 
         if (oldProfilePictureObjectKey && oldProfilePictureObjectKey !== objectKey) {
           await deleteObject(oldProfilePictureObjectKey)
         }
       } catch (err) {
         try {
-          await auth.api.updateUser({
-            headers: request.headers,
-            body: { image: session.user.image },
-          })
+          await deleteObject(objectKey)
         } catch (revertErr) {
           handleActionError(revertErr)
         }
@@ -204,6 +201,10 @@ export async function action({ request }: Route.ActionArgs) {
           })
         }
       }
+
+      return redirectWithSuccess(redirectUrl, {
+        message: "Profielfoto is succesvol verwijderd.",
+      })
     }
 
     if (actionSchemaResult.data.intent === "update_profile_info") {
