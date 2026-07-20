@@ -3,8 +3,9 @@ import { nl } from "date-fns/locale"
 import { LandPlot, TestTube2, Wheat } from "lucide-react"
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react"
 import { NavLink, useNavigate } from "react-router"
-import { FertilizerIcon } from "~/components/blocks/gerrit/fertilizer-icon"
+import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import {
   computeGanttSubRowCount,
   type GanttFeature,
@@ -70,6 +71,7 @@ export type TimelineCultivation = {
   b_lu_croprotation: string | null
   b_lu_start: Date | null
   b_lu_end: Date | null
+  b_lu_harvestable: "none" | "once" | "multiple"
 }
 
 export type TimelineField = {
@@ -89,6 +91,8 @@ export type TimelineFilters = {
   showFertilizers: boolean
   showHarvests: boolean
   showSoilSamplings: boolean
+  /** Mobile-only: desktop's Gantt always shows the full range regardless of this flag. */
+  showFutureEvents: boolean
 }
 
 type PointEventKind = "cultivation" | "fertilizer" | "harvest" | "soil"
@@ -118,9 +122,17 @@ const cultivationStatus = (b_lu_croprotation: string | null): GanttStatus => ({
   color: getCultivationColor(b_lu_croprotation ?? undefined),
 })
 
-const fertilizerStatus: GanttStatus = { id: "fertilizer", name: "Bemesting", color: "#ea580c" }
-const harvestStatus: GanttStatus = { id: "harvest", name: "Oogst", color: "#eab308" }
-const soilStatus: GanttStatus = { id: "soil", name: "Bodemmonster", color: "#2563eb" }
+const fertilizerStatus: GanttStatus = {
+  id: "fertilizer",
+  name: "Bemesting",
+  color: EVENT_TYPE_COLOR.fertilizer,
+}
+const harvestStatus: GanttStatus = { id: "harvest", name: "Oogst", color: EVENT_TYPE_COLOR.harvest }
+const soilStatus: GanttStatus = {
+  id: "soil",
+  name: "Bodemanalyse",
+  color: EVENT_TYPE_COLOR.soil_sampling,
+}
 
 const formatNl = (date: Date) => format(date, "d MMM yyyy", { locale: nl })
 
@@ -290,7 +302,7 @@ function buildFieldFeatures(
   if (filters.showSoilSamplings) {
     for (const analysis of field.soilAnalyses) {
       if (!analysis.b_sampling_date) continue
-      const name = "Bodemmonster"
+      const name = "Bodemanalyse"
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil`
       const detail = `${name}${analysis.a_source ? ` — ${analysis.a_source}` : ""}\n${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
       attachOrPush(
@@ -343,8 +355,9 @@ function buildFieldFeatures(
 
 function EventIcon({ kind, p_type }: { kind: AttachedEvent["kind"]; p_type?: string | null }) {
   if (kind === "fertilizer") return <FertilizerIcon p_type={p_type ?? "other"} />
-  if (kind === "harvest") return <Wheat className="size-3 shrink-0 text-yellow-600" />
-  return <TestTube2 className="size-3 shrink-0 text-blue-600" />
+  if (kind === "harvest")
+    return <Wheat className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.harvest }} />
+  return <TestTube2 className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.soil_sampling }} />
 }
 
 function EventOverlay({ event }: { event: AttachedEvent }) {
@@ -479,6 +492,7 @@ function useScrollToCalendarYear(
 // stacking it above the content) so farms with 100+ fields show far more of them at once.
 const ROW_HEIGHT_PX = 32
 const GROUP_GAP_PX = 8 // Tailwind's `space-y-2`, used both in GanttSidebar and GanttFeatureList
+const GANTT_HEADER_HEIGHT_PX = 60
 
 export type TimelineGanttViewHandle = {
   /** Scrolls the timeline horizontally so today's date is in view. */
@@ -559,7 +573,7 @@ export const TimelineGanttView = forwardRef<
           </EmptyMedia>
           <EmptyTitle>Nog geen percelen om te tonen</EmptyTitle>
           <EmptyDescription>
-            Er zijn nog geen percelen met gewassen, bemestingen, oogsten of bodemmonsters gevonden
+            Er zijn nog geen percelen met gewassen, bemestingen, oogsten of bodemanalyses gevonden
             op je bedrijf.
           </EmptyDescription>
         </EmptyHeader>
@@ -619,6 +633,7 @@ export const TimelineGanttView = forwardRef<
   // even though the sidebar (which sizes itself from real content) keeps scrolling correctly.
   // Fix: give it an explicit pixel height computed from the actual content, overriding `h-full`.
   const totalTimelineHeight =
+    GANTT_HEADER_HEIGHT_PX +
     fieldsWithFeatures.reduce((sum, { maxSubRows }) => sum + maxSubRows * ROW_HEIGHT_PX, 0) +
     Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
 

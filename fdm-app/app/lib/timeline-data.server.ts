@@ -79,6 +79,7 @@ export async function fetchTimelineFields(
           b_lu_croprotation: cultivation.b_lu_croprotation,
           b_lu_start: cultivation.b_lu_start,
           b_lu_end: cultivation.b_lu_end,
+          b_lu_harvestable: cultivation.b_lu_harvestable,
         })),
         fertilizerApplications: fertilizerApplicationsByField.get(field.b_id) ?? [],
         harvests,
