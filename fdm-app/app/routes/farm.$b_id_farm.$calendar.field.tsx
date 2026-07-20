@@ -36,7 +36,7 @@ import { isBcsAnalysis } from "~/lib/bcs"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -254,7 +254,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // doesn't fire unbounded parallel requests at the external NMI API (same approach as the
     // farm dashboard and nutrient advice overview loaders).
     const fieldsMissingCultivation = fieldsExtended.filter(
-      (field) => !getDefaultCultivation(field.cultivations, calendar),
+      (field) => !getMainCultivation(field.cultivations, calendar),
     )
     for (const fieldsChunk of chunk(fieldsMissingCultivation, CULTIVATION_SUGGESTION_CONCURRENCY)) {
       await Promise.all(

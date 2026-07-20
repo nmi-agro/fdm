@@ -20,7 +20,7 @@ import type { ParsedPlan } from "~/components/blocks/gerrit/types"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { fdm } from "~/lib/fdm.server"
 import { countGerritRequestsToday, getGerritDailyLimit } from "~/lib/gerrit-limit.server"
 import { computePlanMetrics, repairTruncatedJson } from "~/lib/gerrit.server"
@@ -172,7 +172,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
               getCultivations(fdm, session.principal_id, field.b_id, timeframe),
               getCurrentSoilData(fdm, session.principal_id, field.b_id),
             ])
-            const mainCultivation = getDefaultCultivation(cultivations, calendar)
+            const mainCultivation = getMainCultivation(cultivations, calendar)
             const getSoilParam = (param: string) =>
               soilData.find((d) => d.parameter === param)?.value ?? null
             return {

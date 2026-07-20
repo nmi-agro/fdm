@@ -28,7 +28,7 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -152,9 +152,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
               }
             }
 
-            const hasDefaultCultivation = !!getDefaultCultivation(cultivations, calendar)
-            const activeCultivation =
-              getDefaultCultivation(cultivations, calendar) ?? cultivations[0]
+            const activeCultivation = getMainCultivation(cultivations, calendar)
+            const hasDefaultCultivation = !!activeCultivation
             const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
             const currentSoilData = soilDataByField.get(field.b_id) ?? []
 
@@ -168,6 +167,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                   calendar,
                   nmiApiKey,
                 )
+
+            if (!activeCultivation) {
+              return {
+                b_id: field.b_id,
+                b_name: field.b_name,
+                b_area,
+                mainCultivation: null,
+                cultivationSuggestion,
+                errorMessage: "Geen hoofdteelt bepaald voor dit jaar.",
+                values: {},
+              }
+            }
 
             const mainCultivation = {
               b_lu: activeCultivation.b_lu,

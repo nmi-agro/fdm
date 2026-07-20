@@ -27,10 +27,28 @@ export const GROENE_BRAAK = "nl_6794"
  *
  * @param cultivations - List of cultivations to evaluate.
  * @param year - The calendar year to evaluate.
- * @returns The `b_lu_catalogue` of the hoofdteelt, or `GROENE_BRAAK` (`"nl_6794"`)
- *          if no cultivation overlaps with the May 15–July 15 window.
+ * @param returnNull - When `true`, returns `null` instead of `GROENE_BRAAK` if no
+ *   cultivation overlaps the window. Defaults to `false`, preserving the regulatory
+ *   fallback behaviour required for compliance calculations.
+ * @returns The `b_lu_catalogue` of the hoofdteelt. If no cultivation overlaps with the
+ *          May 15–July 15 window, returns `GROENE_BRAAK` (`"nl_6794"`) by default, or
+ *          `null` when `returnNull` is `true`.
  */
-export function findHoofdteelt(cultivations: CultivationForHoofdteelt[], year: number): string {
+export function findHoofdteelt(
+  cultivations: CultivationForHoofdteelt[],
+  year: number,
+  returnNull?: false,
+): string
+export function findHoofdteelt(
+  cultivations: CultivationForHoofdteelt[],
+  year: number,
+  returnNull: true,
+): string | null
+export function findHoofdteelt(
+  cultivations: CultivationForHoofdteelt[],
+  year: number,
+  returnNull = false,
+): string | null {
   const windowStart = new Date(`${year}-05-15`)
   const windowEnd = new Date(`${year}-07-15`)
 
@@ -58,5 +76,8 @@ export function findHoofdteelt(cultivations: CultivationForHoofdteelt[], year: n
     }
   }
 
-  return result ?? GROENE_BRAAK
+  if (result !== null) {
+    return result
+  }
+  return returnNull ? null : GROENE_BRAAK
 }

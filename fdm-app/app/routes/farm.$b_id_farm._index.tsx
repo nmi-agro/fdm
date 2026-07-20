@@ -59,7 +59,7 @@ import { getRvoCredentials } from "~/integrations/rvo.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -137,7 +137,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
     })
     const fieldsMissingCultivation = fields.filter(
-      (field) => !getDefaultCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
+      (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
     )
 
     // For fields missing a main cultivation, look up an NMI-estimate-based suggestion (BRP guess)

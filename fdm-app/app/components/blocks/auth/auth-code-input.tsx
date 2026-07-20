@@ -14,7 +14,11 @@ interface AuthCodeInputProps {
   "aria-invalid"?: boolean
 }
 
-export function AuthCodeInput({ field, onComplete, "aria-invalid": ariaInvalid }: AuthCodeInputProps) {
+export function AuthCodeInput({
+  field,
+  onComplete,
+  "aria-invalid": ariaInvalid,
+}: AuthCodeInputProps) {
   return (
     <div className="flex justify-center">
       <InputOTP
