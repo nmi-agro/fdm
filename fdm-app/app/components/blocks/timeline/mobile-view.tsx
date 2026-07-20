@@ -141,28 +141,36 @@ function ActiveCultivationBar({
 
   return (
     <div className="bg-background sticky top-0 z-20 -mx-4 px-4 py-2">
-      <div className="scrollbar-none overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex w-max gap-2">
-          {cultivations.map((cultivation) => {
-            const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
-            return (
-              <button
-                className="focus-visible:ring-ring/50 flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs outline-none focus-visible:ring-[3px]"
-                key={`${cultivation.fieldId}-${cultivation.b_lu}`}
-                onClick={() => onSelect(cultivation.fieldId)}
-                type="button"
-              >
-                <span
-                  aria-hidden="true"
-                  className="inline-block size-2 rounded-sm"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-muted-foreground">{cultivation.fieldName}:</span>
-                <span className="font-medium">{cultivation.b_lu_name ?? "Onbekend"}</span>
-              </button>
-            )
-          })}
+      {/* Fades the right edge so the pill row visibly hints there's more content to scroll to,
+      instead of looking like a fixed, fully-visible list. */}
+      <div className="relative">
+        <div className="scrollbar-none overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max gap-2">
+            {cultivations.map((cultivation) => {
+              const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
+              return (
+                <button
+                  className="focus-visible:ring-ring/50 flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs outline-none focus-visible:ring-[3px]"
+                  key={`${cultivation.fieldId}-${cultivation.b_lu}`}
+                  onClick={() => onSelect(cultivation.fieldId)}
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="inline-block size-2 rounded-sm"
+                    style={{ backgroundColor: color }}
+                  />
+                  <span className="text-muted-foreground">{cultivation.fieldName}:</span>
+                  <span className="font-medium">{cultivation.b_lu_name ?? "Onbekend"}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
+        <div
+          aria-hidden="true"
+          className="from-background pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l to-transparent"
+        />
       </div>
     </div>
   )
