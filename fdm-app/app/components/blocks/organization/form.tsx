@@ -56,9 +56,9 @@ export function OrganizationSettingsForm({
     stringifyAllValues: false,
     submitHandlers: {
       async onValid() {
+        if (!formRef.current) return
+        const formData = new FormData(formRef.current)
         processForm(async () => {
-          if (!formRef.current) return
-          const formData = new FormData(formRef.current)
           const formDataWithCroppedPic = await cropProfilePicture(formData)
           fetcher.submit(formDataWithCroppedPic, {
             method: "post",

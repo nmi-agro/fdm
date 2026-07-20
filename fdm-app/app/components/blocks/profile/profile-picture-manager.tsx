@@ -44,7 +44,7 @@ export const MIME_TO_EXT: Record<string, string> = {
   "image/heif": "heif",
 }
 
-type ProfilePictureManagerProps = { avatarFallback: ReactNode } & (
+type ProfilePictureManagerProps = { avatarFallback: ReactNode; currentTitle?: string } & (
   | { currentPicture: string; currentAlt: string }
   | { currentPicture?: null | undefined; currentAlt?: any }
 )
@@ -54,6 +54,7 @@ export function ProfilePictureInput({
   name,
   files,
   onFilesChange,
+  currentTitle,
   currentPicture,
   currentAlt,
   avatarFallback,
@@ -65,6 +66,7 @@ export function ProfilePictureInput({
 }: ProfilePictureManagerProps & {
   ref?: Ref<HTMLInputElement>
   name?: string
+  title?: string
   files: File[]
   onFilesChange: (files: File[]) => void
   maxFileSize: number
@@ -136,7 +138,9 @@ export function ProfilePictureInput({
             <Spinner className="text-muted-foreground absolute top-1/2 left-1/2 mb-2 h-8 w-8 -translate-1/2" />
           ) : currentPicture && currentAlt ? (
             <div className="flex h-full flex-col items-center justify-center gap-2">
-              <span className="text-muted-foreground text-sm">Huidige profielfoto.</span>
+              {currentTitle ? (
+                <span className="text-muted-foreground text-sm">{currentTitle}</span>
+              ) : undefined}
               <Avatar className="aspect-square w-auto grow">
                 <AvatarImage src={currentPicture} alt={currentAlt} />
                 <AvatarFallback>{avatarFallback}</AvatarFallback>
@@ -179,6 +183,7 @@ export function ProfilePictureInput({
 }
 
 export function ProfilePictureManager({
+  currentTitle = "Huidige profielfoto",
   currentPicture,
   currentAlt,
   avatarFallback,
@@ -219,6 +224,7 @@ export function ProfilePictureManager({
       <ProfilePictureInput
         ref={fileInputRef}
         avatarFallback={avatarFallback}
+        currentTitle={currentTitle}
         currentPicture={currentPicture as string}
         currentAlt={currentAlt as string}
         files={files}
@@ -300,7 +306,6 @@ export async function cropProfilePicture(
   fileFieldName = DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME,
 ) {
   const result = new FormData()
-  console.log(formData)
 
   const cropRectX = formData.get("cropRectX")
   const cropRectY = formData.get("cropRectY")
@@ -315,11 +320,10 @@ export async function cropProfilePicture(
     height: typeof cropRectHeight === "string" ? Number.parseFloat(cropRectHeight) : Number.NaN,
   }
 
-  console.log(file)
   if (
     window?.document &&
-    typeof file === "object" &&
-    file !== null &&
+    file instanceof File &&
+    file.size > 0 &&
     Number.isFinite(parsed.x) &&
     Number.isFinite(parsed.y) &&
     Number.isFinite(parsed.width) &&
@@ -330,7 +334,9 @@ export async function cropProfilePicture(
         .getDataUrlFromFile(file)
         .then((url) => {
           const image = new Image()
-          image.addEventListener("error", (e) => reject(e.error))
+          image.addEventListener("error", (e) =>
+            reject(e.error ?? new Error("Afbeelding kon niet worden geladen")),
+          )
           image.src = url
           image.addEventListener("load", () => {
             const canvas = document.createElement("canvas")
