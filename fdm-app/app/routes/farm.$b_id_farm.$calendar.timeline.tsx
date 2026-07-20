@@ -15,6 +15,7 @@ import { TimelineMobileView } from "~/components/blocks/timeline/mobile-view"
 import { TimelineToolbar } from "~/components/blocks/timeline/toolbar"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { getSession } from "~/lib/auth.server"
 import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
@@ -101,6 +102,7 @@ export default function TimelinePage() {
   const { calendar } = useParams()
   const isMobile = useIsMobile()
   const [isLandscape, setIsLandscape] = useState(false)
+  const { capture } = useAnalytics()
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) {
@@ -116,6 +118,23 @@ export default function TimelinePage() {
   }, [])
 
   const showMobileView = isMobile || isLandscape
+  const showMobileViewRef = useRef(showMobileView)  
+  useEffect(() => {
+    showMobileViewRef.current = showMobileView
+  }, [showMobileView])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const id = window.requestAnimationFrame(() => {
+      capture("timeline_viewed", {
+        b_id_farm: loaderData.b_id_farm,
+        calendar,
+        view: showMobileViewRef.current ? "mobile" : "gantt",
+      })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [])
+
   const ganttRef = useRef<TimelineGanttViewHandle>(null)
   const registerJumpToYear = useCalendarJump((state) => state.registerJumpToYear)
 
