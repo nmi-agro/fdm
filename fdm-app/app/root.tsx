@@ -19,7 +19,7 @@ import {
 import { getToast } from "remix-toast"
 import { toast as notify } from "sonner"
 import { Banner } from "~/components/custom/banner"
-import { ErrorBlock } from "~/components/custom/error"
+import { CLIENT_ERROR_STATUSES, ErrorBlock } from "~/components/custom/error"
 import { NavigationProgress } from "~/components/custom/navigation-progress"
 import { Toaster } from "~/components/ui/sonner"
 import { auth } from "~/lib/auth.server"
@@ -216,7 +216,9 @@ export default function App() {
  * This component distinguishes between route error responses and generic errors:
  * - For route errors:
  *   - Redirects to the signin page if the error status is 401.
- *   - Renders a 404 error block for client errors with status 400, 403, or 404.
+ *   - Renders one unified, generic "page unavailable" error block for client errors with status
+ *     400, 403, or 404 — deliberately without the specific message/data, so a user can never tell
+ *     whether a resource doesn't exist or they simply lack permission for it.
  *   - Logs other route errors to the error tracking service and renders an error block reflecting the specific status.
  * - For generic Error instances, it logs the error and renders a 500 error block with the error message and stack trace.
  * - If the error is null, no error UI is rendered.
@@ -240,13 +242,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       throw redirect(signInUrl)
     }
 
-    const clientErrors = [400, 403, 404]
-    if (clientErrors.includes(error.status)) {
+    if (CLIENT_ERROR_STATUSES.includes(error.status)) {
       return (
         <ErrorBlock
-          status={404} // Show 404 in case user is not authorized to access page
-          message={error.statusText}
-          stacktrace={error.data}
+          status={error.status}
+          message={null}
+          stacktrace={null}
           page={page}
           timestamp={timestamp}
         />

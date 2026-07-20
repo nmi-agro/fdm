@@ -8,6 +8,12 @@ const errorIdSize = 8 // Number of characters in ID
 
 export const createErrorId = customAlphabet(customErrorAlphabet, errorIdSize)
 
+// Thrown by fdm-core's checkPermission for any resource the principal can't access, whether it
+// exists or not. Shared here so route loaders that need to distinguish this specific failure
+// (e.g. to keep the app shell up and show a friendly in-app message instead of throwing) don't
+// duplicate the string.
+export const PERMISSION_DENIED_MESSAGE = "Principal does not have permission to perform this action"
+
 /**
  * Extracts a human-readable error message from any thrown value.
  *
@@ -120,7 +126,7 @@ export function handleLoaderError(error: unknown) {
   }
 
   // Permission denied error
-  if (containsErrorMessage(error, "Principal does not have permission to perform this action")) {
+  if (containsErrorMessage(error, PERMISSION_DENIED_MESSAGE)) {
     console.warn("Permission denied: ", error)
     return data(
       {
@@ -183,7 +189,7 @@ export function handleLoaderError(error: unknown) {
  * Recursively checks whether an error or any error in its cause chain
  * contains the given substring in its message.
  */
-function containsErrorMessage(error: unknown, message: string): boolean {
+export function containsErrorMessage(error: unknown, message: string): boolean {
   if (!(error instanceof Error)) return false
   if (error.message.includes(message)) return true
   return containsErrorMessage(error.cause, message)
@@ -267,7 +273,7 @@ export function handleActionError(error: unknown) {
   }
 
   // Permission denied error
-  if (containsErrorMessage(error, "Principal does not have permission to perform this action")) {
+  if (containsErrorMessage(error, PERMISSION_DENIED_MESSAGE)) {
     console.warn("Permission denied: ", error)
     return dataWithWarning(
       {
