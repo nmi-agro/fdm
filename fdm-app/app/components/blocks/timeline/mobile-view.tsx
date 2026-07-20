@@ -137,14 +137,37 @@ function ActiveCultivationBar({
   cultivations: ReturnType<typeof getActiveCultivations>
   onSelect: (fieldId: string) => void
 }) {
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  useEffect(() => {
+    const el = scrollerRef.current
+    if (!el) return
+    const updateFades = () => {
+      setCanScrollLeft(el.scrollLeft > 0)
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
+    }
+    updateFades()
+    el.addEventListener("scroll", updateFades)
+    window.addEventListener("resize", updateFades)
+    return () => {
+      el.removeEventListener("scroll", updateFades)
+      window.removeEventListener("resize", updateFades)
+    }
+  }, [cultivations])
+
   if (cultivations.length === 0) return null
 
   return (
     <div className="bg-background sticky top-0 z-20 -mx-4 px-4 py-2">
-      {/* Fades the right edge so the pill row visibly hints there's more content to scroll to,
+      {/* Fades the edges so the pill row visibly hints there's more content to scroll to,
       instead of looking like a fixed, fully-visible list. */}
       <div className="relative">
-        <div className="scrollbar-none overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          className="scrollbar-none overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          ref={scrollerRef}
+        >
           <div className="flex w-max gap-2">
             {cultivations.map((cultivation) => {
               const color = getCultivationColor(cultivation.b_lu_croprotation ?? undefined)
@@ -167,10 +190,18 @@ function ActiveCultivationBar({
             })}
           </div>
         </div>
-        <div
-          aria-hidden="true"
-          className="from-background pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l to-transparent"
-        />
+        {canScrollLeft && (
+          <div
+            aria-hidden="true"
+            className="from-background pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r to-transparent"
+          />
+        )}
+        {canScrollRight && (
+          <div
+            aria-hidden="true"
+            className="from-background pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l to-transparent"
+          />
+        )}
       </div>
     </div>
   )
