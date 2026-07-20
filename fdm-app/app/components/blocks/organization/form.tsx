@@ -172,7 +172,7 @@ export function OrganizationSettingsForm({
                       files={profilePictureFiles}
                       onFilesChange={setProfilePictureFiles}
                       maxFileSize={MAX_SIZE_BYTES}
-                      avatarFallback={<Building />}
+                      avatarFallback={<Building className="text-muted-foreground size-3/4" />}
                     />
                     {profilePictureFiles.length > 0 ? (
                       <Button

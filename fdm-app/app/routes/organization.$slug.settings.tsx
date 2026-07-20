@@ -17,6 +17,7 @@ import {
   MAX_DIMENSIONS,
 } from "~/components/blocks/profile/profile-picture-manager"
 import { ProfilePictureSchema } from "~/components/blocks/profile/profile-picture-schema"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
 import { auth, getSession } from "~/lib/auth.server"
@@ -101,14 +102,26 @@ export default function OrganizationSettingsBlock() {
       <div className="flex flex-col gap-4 px-4 pb-8 md:flex-row md:px-8">
         <Card className="md:min-w-sm">
           <CardHeader>
-            <CardTitle>Profielfoto wijzigen</CardTitle>
+            <CardTitle>Logo</CardTitle>
           </CardHeader>
           <CardContent>
-            <ProfilePictureManager
-              currentPicture={loaderData.organization.logo}
-              currentAlt={`Profielfoto van ${loaderData.organization.name}`}
-              avatarFallback={<Building />}
-            />
+            {loaderData.organizationEditPermission ? (
+              <ProfilePictureManager
+                currentTitle="Huidige logo"
+                currentPicture={loaderData.organization.logo}
+                currentAlt={`Logo van ${loaderData.organization.name}`}
+                avatarFallback={<Building className="text-muted-foreground size-3/4" />}
+              />
+            ) : (
+              <div className="aspect-4/3 w-full px-6">
+                <Avatar className="mx-auto aspect-square h-full w-auto">
+                  <AvatarImage src="" alt="Huidige logo" />
+                  <AvatarFallback className="text-muted-foreground">
+                    <Building className="text-muted-foreground size-3/4" />
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            )}
           </CardContent>
         </Card>
         <OrganizationSettingsForm
