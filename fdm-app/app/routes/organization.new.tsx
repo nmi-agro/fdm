@@ -137,9 +137,11 @@ export async function action({ request }: Route.ActionArgs) {
       const detectedExt = MIME_TO_EXT[organizationImage.detectedMime]
 
       const objectKey = buildObjectKey("profile_picture_organization", organization.id, detectedExt)
+
+      let uploaded = true
       try {
         await uploadObject(objectKey, organizationImage.buffer, organizationImage.detectedMime)
-
+        uploaded = true
         await auth.api.updateOrganization({
           headers: request.headers,
           body: {
@@ -150,10 +152,12 @@ export async function action({ request }: Route.ActionArgs) {
           },
         })
       } catch (err) {
-        try {
-          await deleteObject(objectKey)
-        } catch (revertError) {
-          handleActionError(revertError)
+        if (uploaded) {
+          try {
+            await deleteObject(objectKey)
+          } catch (revertError) {
+            handleActionError(revertError)
+          }
         }
         try {
           await auth.api.deleteOrganization({

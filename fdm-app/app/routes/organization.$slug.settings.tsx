@@ -213,33 +213,25 @@ export async function action({ params, request }: Route.ActionArgs) {
         detectedExt,
       )
 
-      await auth.api.updateOrganization({
-        headers: request.headers,
-        body: {
-          organizationId: currentOrganization.id,
-          data: {
-            logo: `/api/profile-picture/organization/${currentOrganization.id}.${detectedExt}?hash=${hash}`,
-          },
-        },
-      })
+      await uploadObject(objectKey, fileBuffer, detectedMime)
 
       try {
-        await uploadObject(objectKey, fileBuffer, detectedMime)
+        await auth.api.updateOrganization({
+          headers: request.headers,
+          body: {
+            organizationId: currentOrganization.id,
+            data: {
+              logo: `/api/profile-picture/organization/${currentOrganization.id}.${detectedExt}?hash=${hash}`,
+            },
+          },
+        })
 
         if (oldProfilePictureObjectKey && oldProfilePictureObjectKey !== objectKey) {
           await deleteObject(oldProfilePictureObjectKey)
         }
       } catch (err) {
         try {
-          await auth.api.updateOrganization({
-            headers: request.headers,
-            body: {
-              organizationId: currentOrganization.id,
-              data: {
-                logo: currentOrganization.logo,
-              },
-            },
-          })
+          await deleteObject(objectKey)
         } catch (revertErr) {
           handleActionError(revertErr)
         }

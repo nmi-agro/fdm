@@ -14,12 +14,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       return data("Invalid type", { status: 400 })
     }
 
-    const fileNameParts = params.file_name.split(".")
-    if (fileNameParts.length !== 2) {
+    const separatorIndex = params.file_name.lastIndexOf(".")
+    if (separatorIndex <= 0 || separatorIndex === params.file_name.length - 1) {
       return data("Invalid file name", { status: 400 })
     }
 
-    if (!Object.values(MIME_TO_EXT).includes(fileNameParts[1])) {
+    const principalId = params.file_name.slice(0, separatorIndex)
+    const extension = params.file_name.slice(separatorIndex + 1).toLowerCase()
+
+    if (!Object.values(MIME_TO_EXT).includes(extension)) {
       return data("Invalid file name", { status: 400 })
     }
 
@@ -27,7 +30,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     await getSession(request)
 
     try {
-      const principal = await getPrincipal(fdm, fileNameParts[0])
+      const principal = await getPrincipal(fdm, principalId)
       if (!principal || principal.type !== params.type) {
         return data("Not found", { status: 404 })
       }
@@ -35,9 +38,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       const folderName =
         params.type === "user" ? "profile_picture_user" : "profile_picture_organization"
 
-      const url = await generateSignedReadUrl(
-        buildObjectKey(folderName, fileNameParts[0], fileNameParts[1]),
-      )
+      const url = await generateSignedReadUrl(buildObjectKey(folderName, principalId, extension))
 
       const headers = new Headers({
         "Cache-Control": "private, max-age=1800",

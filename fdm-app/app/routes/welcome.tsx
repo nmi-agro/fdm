@@ -330,9 +330,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
       const objectKey = buildObjectKey("profile_picture_user", session.user.id, detectedExt)
 
+      let uploaded = false
       try {
         await uploadObject(objectKey, profilePicture.buffer, profilePicture.detectedMime)
-
+        uploaded = true
         await auth.api.updateUser({
           headers: request.headers,
           body: {
@@ -344,10 +345,12 @@ export async function action({ request }: ActionFunctionArgs) {
           await deleteObject(oldProfilePictureKey)
         }
       } catch (err) {
-        try {
-          await deleteObject(objectKey)
-        } catch (revertError) {
-          handleActionError(revertError)
+        if (uploaded) {
+          try {
+            await deleteObject(objectKey)
+          } catch (revertError) {
+            handleActionError(revertError)
+          }
         }
         throw err
       }
