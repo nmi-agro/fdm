@@ -276,10 +276,7 @@ export function TicketViewer({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex h-[calc(100vh-16*calc(var(--spacing)))] flex-row"
-    >
+    <div ref={containerRef} className="relative flex h-full min-h-0 flex-row">
       {/* Static sidebar — only rendered on xl+ screens */}
       {isXl && (
         <aside className="border-sidebar-border bg-background flex w-100 shrink-0 flex-col border-r">
