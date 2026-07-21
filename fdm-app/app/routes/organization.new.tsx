@@ -80,6 +80,6 @@ export async function action({ request }: Route.ActionArgs) {
       throw e
     }
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

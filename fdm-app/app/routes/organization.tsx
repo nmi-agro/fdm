@@ -15,12 +15,13 @@ import { SidebarOrganizationApps } from "~/components/blocks/sidebar/organizatio
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
-import { ClientErrorPage } from "~/components/custom/error"
+import { RouteErrorFallback } from "~/components/custom/error"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { auth, checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import type { Route } from "./+types/organization"
 
 type OrganizationLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
 
@@ -205,24 +206,25 @@ export default function App() {
 }
 
 /**
- * Renders when a descendant route throws (e.g. a farm/settings page the user can't access, or a
- * resource that doesn't exist). This route's own loader already succeeded, so the sidebar/header
- * shell can render normally via {@link OrganizationShell}; only the content pane is replaced with
- * the generic, friendly {@link ClientErrorPage} — the app never appears to have been "left".
+ * Renders when a descendant route throws (e.g. a farm/settings page the user can't access, a
+ * resource that doesn't exist, or a genuine component bug). This route's own loader already
+ * succeeded, so the sidebar/header shell can render normally via {@link OrganizationShell}; only
+ * the content pane is replaced with the classified {@link RouteErrorFallback} — the app never
+ * appears to have been "left".
  *
  * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
- * back to the bare, shell-less page rather than crash on undefined loader data.
+ * back to the bare, shell-less fallback rather than crash on undefined loader data.
  */
-export function ErrorBoundary() {
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const loaderData = useLoaderData<typeof loader>() as OrganizationLoaderData | undefined
 
   if (!loaderData) {
-    return <ClientErrorPage />
+    return <RouteErrorFallback error={error} />
   }
 
   return (
     <OrganizationShell loaderData={loaderData}>
-      <ClientErrorPage />
+      <RouteErrorFallback error={error} />
     </OrganizationShell>
   )
 }

@@ -71,7 +71,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
     return dataWithError({}, `Het is niet gelukt derogatie voor ${year} aan te passen.`)
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 

@@ -388,7 +388,7 @@ export async function action({ params, request }: Args) {
       }
     }
 
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 

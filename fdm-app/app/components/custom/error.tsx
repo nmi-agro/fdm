@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/react-router"
 import { ArrowLeft, Compass, Copy, Home, LifeBuoy } from "lucide-react"
 import { useEffect, useState } from "react"
-import { NavLink, useNavigate } from "react-router"
+import { isRouteErrorResponse, NavLink, redirect, useLocation, useNavigate } from "react-router"
 import { Button } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
 import { normalizePage } from "~/lib/url-utils"
@@ -70,26 +70,12 @@ export function ClientErrorPage() {
 }
 
 /**
- * Displays a full-screen error block with tailored messaging and navigation options.
- *
- * Depending on the provided error status, this component renders:
- * - One unified, generic "page unavailable" message for client error statuses (400, 403, 404),
- *   via {@link ClientErrorPage}. This deliberately never reveals whether a specific resource
- *   exists or the user simply lacks permission for it — both cases look identical to the user.
- * - A visually distinct, diagnostic error message for other (server/unexpected) errors, along
- *   with a button to copy the formatted error details (including status, message, stack trace,
- *   page, and timestamp) to the clipboard.
- *
- * If an error message is available, the component also displays the error details formatted as
- * pretty-printed JSON for the non-client-error case.
- *
- * @param status - HTTP status code of the error or null.
- * @param message - Detailed error message, or null if not available.
- * @param stacktrace - Optional stack trace providing additional error context.
- * @param page - The page where the error occurred.
- * @param timestamp - The timestamp when the error was recorded.
+ * Full-screen diagnostic UI for genuinely unexpected errors: server 5xx route-error responses,
+ * thrown `Error` instances (e.g. a component that throws while rendering), or any other unknown
+ * thrown value. Deliberately distinct from {@link ClientErrorPage} — this *is* a bug, so it shows
+ * the tractor illustration, the raw error details, and a way to copy them for a support request.
  */
-export function ErrorBlock({
+export function UnexpectedErrorPage({
   status,
   message,
   stacktrace,
@@ -120,12 +106,6 @@ export function ErrorBlock({
       return () => clearTimeout(timer)
     }
   }, [copyState])
-
-  const isClientError = status !== null && CLIENT_ERROR_STATUSES.includes(status)
-
-  if (isClientError) {
-    return <ClientErrorPage />
-  }
 
   const errorDetails = JSON.stringify(
     {
@@ -202,5 +182,119 @@ export function ErrorBlock({
         </p>
       )}
     </div>
+  )
+}
+
+/**
+ * Displays a full-screen error block with tailored messaging and navigation options.
+ *
+ * Depending on the provided error status, this component renders:
+ * - One unified, generic "page unavailable" message for client error statuses (400, 403, 404),
+ *   via {@link ClientErrorPage}. This deliberately never reveals whether a specific resource
+ *   exists or the user simply lacks permission for it — both cases look identical to the user.
+ * - The diagnostic {@link UnexpectedErrorPage} for anything else.
+ *
+ * @param status - HTTP status code of the error or null.
+ * @param message - Detailed error message, or null if not available.
+ * @param stacktrace - Optional stack trace providing additional error context.
+ * @param page - The page where the error occurred.
+ * @param timestamp - The timestamp when the error was recorded.
+ */
+export function ErrorBlock({
+  status,
+  message,
+  stacktrace,
+  page,
+  timestamp,
+}: {
+  status: number | null
+  message: string | null
+  stacktrace: string | null | undefined
+  page: string
+  timestamp: string
+}) {
+  const isClientError = status !== null && CLIENT_ERROR_STATUSES.includes(status)
+
+  if (isClientError) {
+    return <ClientErrorPage />
+  }
+
+  return (
+    <UnexpectedErrorPage
+      status={status}
+      message={message}
+      stacktrace={stacktrace}
+      page={page}
+      timestamp={timestamp}
+    />
+  )
+}
+
+/**
+ * Classifies the current route error and renders the right UI for it. Meant to be used from a
+ * route module's `ErrorBoundary` export (pass its `error` prop straight through) — including
+ * ones nested under a layout route that wants to keep its own shell (sidebar/header) around this
+ * component rather than losing it entirely, as `root.tsx`'s top-level boundary would.
+ *
+ * - Redirects to sign-in for a `401` route error response.
+ * - Renders the generic, friendly {@link ClientErrorPage} for expected client errors (400, 403,
+ *   404) — a route/resource that doesn't exist or one the user lacks permission for.
+ * - Renders the diagnostic {@link UnexpectedErrorPage} for everything else: `5xx` route error
+ *   responses, thrown `Error` instances (e.g. a component that throws while rendering — a real
+ *   bug, not an expected state), or any other unknown thrown value. Client-side errors that
+ *   weren't already captured server-side are reported to Sentry here.
+ */
+export function RouteErrorFallback({ error }: { error: unknown }) {
+  const location = useLocation()
+  const page = location.pathname
+  const timestamp = new Date().toISOString()
+
+  if (isRouteErrorResponse(error)) {
+    // Redirect to signin page if authentication is not provided
+    if (error.status === 401) {
+      const currentPath = location.pathname + location.search + location.hash
+      const signInUrl = `./signin?redirectTo=${encodeURIComponent(currentPath)}`
+      throw redirect(signInUrl)
+    }
+
+    if (CLIENT_ERROR_STATUSES.includes(error.status)) {
+      return <ClientErrorPage />
+    }
+
+    // Server-side errors are already captured in Sentry via handleError / reportError.
+    // No need to capture again client-side.
+    return (
+      <UnexpectedErrorPage
+        status={error.status}
+        message={error.statusText}
+        stacktrace={error.data}
+        page={page}
+        timestamp={timestamp}
+      />
+    )
+  }
+
+  if (error instanceof Error) {
+    // Client-side JS error (e.g. a component that threw while rendering) — not captured
+    // server-side, so capture here.
+    Sentry.captureException(error)
+    return (
+      <UnexpectedErrorPage
+        status={500}
+        message={error.message}
+        stacktrace={error.stack}
+        page={page}
+        timestamp={timestamp}
+      />
+    )
+  }
+
+  if (error === null) {
+    return null
+  }
+
+  Sentry.captureException(error)
+  return (
+    <UnexpectedErrorPage status={500} message="Unknown Error" stacktrace={null} page={page} timestamp={timestamp} />
   )
 }

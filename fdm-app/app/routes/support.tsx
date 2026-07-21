@@ -13,7 +13,7 @@ import { SidebarAdminHelpdesk } from "~/components/blocks/sidebar/admin-helpdesk
 import { SidebarHelpdesk } from "~/components/blocks/sidebar/helpdesk"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
-import { ClientErrorPage } from "~/components/custom/error"
+import { RouteErrorFallback } from "~/components/custom/error"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -125,7 +125,10 @@ function SupportShell({
         <Header action={undefined}>
           <HeaderHelpdesk />
         </Header>
-        <div className="grow">{children}</div>
+        {/* min-h-0 lets this flex child actually shrink to its fair share of the available
+            height (the flexbox "min-height: auto" default otherwise lets tall descendants —
+            e.g. TicketViewer's own h-full split-pane — stretch this box past the viewport). */}
+        <div className="min-h-0 grow">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )
@@ -158,23 +161,24 @@ export default function App() {
 }
 
 /**
- * Renders when a descendant route throws. This route's own loader already succeeded, so the
- * sidebar/header shell can render normally via {@link SupportShell}; only the content pane is
- * replaced with the generic, friendly {@link ClientErrorPage}.
+ * Renders when a descendant route throws (e.g. a ticket that doesn't exist or can't be accessed,
+ * or a genuine component bug). This route's own loader already succeeded, so the sidebar/header
+ * shell can render normally via {@link SupportShell}; only the content pane is replaced with the
+ * classified {@link RouteErrorFallback}.
  *
  * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
- * back to the bare, shell-less page rather than crash on undefined loader data.
+ * back to the bare, shell-less fallback rather than crash on undefined loader data.
  */
-export function ErrorBoundary() {
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const loaderData = useLoaderData<typeof loader>() as SupportLoaderData | undefined
 
   if (!loaderData) {
-    return <ClientErrorPage />
+    return <RouteErrorFallback error={error} />
   }
 
   return (
     <SupportShell loaderData={loaderData}>
-      <ClientErrorPage />
+      <RouteErrorFallback error={error} />
     </SupportShell>
   )
 }

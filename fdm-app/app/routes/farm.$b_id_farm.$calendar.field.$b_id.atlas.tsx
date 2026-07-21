@@ -15,7 +15,7 @@ import { Skeleton } from "~/components/ui/skeleton"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleActionError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 export const meta: MetaFunction = () => {
@@ -90,7 +90,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       mapStyle: mapStyle,
     }
   } catch (error) {
-    throw handleActionError(error)
+    throw handleLoaderError(error)
   }
 }
 
@@ -175,6 +175,6 @@ export async function action({ params }: ActionFunctionArgs) {
       throw new Error("Missing field ID.")
     }
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

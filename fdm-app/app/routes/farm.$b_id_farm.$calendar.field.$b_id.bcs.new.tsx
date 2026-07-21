@@ -265,6 +265,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     // arbitrary objects. Orphaned GCS uploads from failed saves are acceptable; a
     // separate cleanup job can remove them.
 
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

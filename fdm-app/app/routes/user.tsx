@@ -6,11 +6,12 @@ import { SidebarPlatform } from "~/components/blocks/sidebar/platform"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
-import { ClientErrorPage } from "~/components/custom/error"
+import { RouteErrorFallback } from "~/components/custom/error"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import type { Route } from "./+types/user"
 
 type UserLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
 
@@ -107,23 +108,24 @@ export default function App() {
 }
 
 /**
- * Renders when a descendant route throws. This route's own loader already succeeded, so the
- * sidebar shell can render normally via {@link UserShell}; only the content pane is replaced
- * with the generic, friendly {@link ClientErrorPage}.
+ * Renders when a descendant route throws (e.g. a settings sub-page that fails, or a genuine
+ * component bug). This route's own loader already succeeded, so the sidebar shell can render
+ * normally via {@link UserShell}; only the content pane is replaced with the classified
+ * {@link RouteErrorFallback}.
  *
  * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
- * back to the bare, shell-less page rather than crash on undefined loader data.
+ * back to the bare, shell-less fallback rather than crash on undefined loader data.
  */
-export function ErrorBoundary() {
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const loaderData = useLoaderData<typeof loader>() as UserLoaderData | undefined
 
   if (!loaderData) {
-    return <ClientErrorPage />
+    return <RouteErrorFallback error={error} />
   }
 
   return (
     <UserShell loaderData={loaderData}>
-      <ClientErrorPage />
+      <RouteErrorFallback error={error} />
     </UserShell>
   )
 }

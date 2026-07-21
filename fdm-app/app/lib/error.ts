@@ -15,6 +15,49 @@ export const createErrorId = customAlphabet(customErrorAlphabet, errorIdSize)
 export const PERMISSION_DENIED_MESSAGE = "Principal does not have permission to perform this action"
 
 /**
+ * Extracts `{ status, statusText }` from a thrown/returned route error, if it has one.
+ *
+ * Route modules in this codebase almost always use `throw data(message, { status, statusText })`
+ * rather than `throw new Response(...)`. `data()` returns a `DataWithResponseInit` instance whose
+ * `status`/`statusText` live under `.init`, NOT as direct properties — so a naive
+ * `"status" in error` check (which only matches a real `Response`) silently fails for it, and the
+ * error falls through to the generic 500 branch below regardless of the status it was thrown
+ * with. This helper checks both shapes so callers don't need to know which one they're dealing
+ * with.
+ */
+function getThrownStatus(
+  error: unknown,
+): { status: number; statusText: string | undefined } | null {
+  if (typeof error !== "object" || error === null) return null
+
+  // `data(value, init)` — status/statusText live under `.init`.
+  if (
+    "type" in error &&
+    error.type === "DataWithResponseInit" &&
+    "init" in error &&
+    typeof error.init === "object" &&
+    error.init !== null &&
+    "status" in error.init &&
+    typeof error.init.status === "number"
+  ) {
+    const statusText =
+      "statusText" in error.init && typeof error.init.statusText === "string"
+        ? error.init.statusText
+        : undefined
+    return { status: error.init.status, statusText }
+  }
+
+  // A real thrown `Response` (or Response-like object) — status/statusText are direct properties.
+  if ("status" in error && typeof error.status === "number") {
+    const statusText =
+      "statusText" in error && typeof error.statusText === "string" ? error.statusText : undefined
+    return { status: error.status, statusText }
+  }
+
+  return null
+}
+
+/**
  * Extracts a human-readable error message from any thrown value.
  *
  * React Router loaders/actions can throw `Response` objects (e.g. via
@@ -89,40 +132,39 @@ export function reportError(
 }
 
 export function handleLoaderError(error: unknown) {
-  // Handle 'data' thrown errors
-  if (typeof error === "object" && error !== null && "status" in error && "statusText" in error) {
-    // Type guard to check if it's a 'data' object
-    if (typeof error.status === "number" && typeof error.statusText === "string") {
-      console.warn(`Loader error: ${error.status} - ${error.statusText}`)
+  // Handle 'data' thrown errors (and real thrown `Response` objects)
+  const thrownStatus = getThrownStatus(error)
+  if (thrownStatus) {
+    const { status, statusText } = thrownStatus
+    console.warn(`Loader error: ${status} - ${statusText}`, error)
 
-      // Customize the user-facing message based on the status code
-      let userMessage: string
-      switch (error.status) {
-        case 400:
-          userMessage = error.statusText
-          break
-        case 401:
-          return redirect("/signin")
-        case 403:
-          userMessage = "U heeft geen rechten om deze actie uit te voeren."
-          break
-        case 404:
-          userMessage = "De gevraagde data kon niet worden gevonden."
-          break
-        // case 500:
-        default: {
-          const errorId = reportError(error, { scope: "loader" })
-          userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
-          break
-        }
+    // Customize the user-facing message based on the status code
+    let userMessage: string
+    switch (status) {
+      case 400:
+        userMessage = statusText ?? "Ongeldige waarde"
+        break
+      case 401:
+        return redirect("/signin")
+      case 403:
+        userMessage = "U heeft geen rechten om deze actie uit te voeren."
+        break
+      case 404:
+        userMessage = "De gevraagde data kon niet worden gevonden."
+        break
+      // case 500:
+      default: {
+        const errorId = reportError(error, { scope: "loader" })
+        userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
+        break
       }
-      return data(
-        {
-          warning: error,
-        },
-        { status: error.status, statusText: userMessage },
-      )
     }
+    return data(
+      {
+        warning: error,
+      },
+      { status, statusText: userMessage },
+    )
   }
 
   // Permission denied error
@@ -144,7 +186,7 @@ export function handleLoaderError(error: unknown) {
     error instanceof Error &&
     (error.message.startsWith("missing: ") || error.message.startsWith("invalid: "))
   ) {
-    console.warn(error.message)
+    console.warn(error.message, error)
     return data(
       {
         warning: error,
@@ -157,7 +199,7 @@ export function handleLoaderError(error: unknown) {
   }
   // Not found errors
   if (error instanceof Error && error.message.startsWith("not found")) {
-    console.warn(error.message)
+    console.warn(error.message, error)
     return data(
       {
         warning: error,
@@ -195,7 +237,23 @@ export function containsErrorMessage(error: unknown, message: string): boolean {
   return containsErrorMessage(error.cause, message)
 }
 
-export function handleActionError(error: unknown) {
+/**
+ * Handles an error thrown/caught inside a route `action`, returning a toast-bearing response for
+ * expected failures (permission denied, validation, not found), or a generic error toast for
+ * anything else.
+ *
+ * Always use `return handleActionError(error)` — never `throw` it. The `dataWithWarning` /
+ * `dataWithError` responses this produces are meant to keep the user on the same page with a
+ * toast notification (and any inline, action-data-driven UI still rendering), not to trigger the
+ * route's `ErrorBoundary`. Throwing it instead would replace the whole page with the generic
+ * error/no-access screen and the user would never see the toast.
+ *
+ * This function is `async` because several branches delegate to `remix-toast`'s
+ * `dataWithWarning` / `dataWithError` (which read/write a flash-message cookie and are themselves
+ * `async`) — but callers don't need to `await` it themselves: returning a `Promise` from an
+ * `async` action function is automatically awaited by the caller.
+ */
+export async function handleActionError(error: unknown) {
   // Spam prevention: inviter exceeded hourly limit
   if (containsErrorMessage(error, "Rate limit exceeded")) {
     console.warn("Invitation rate limit hit:", error)
@@ -223,53 +281,53 @@ export function handleActionError(error: unknown) {
     )
   }
 
-  // Handle 'data' thrown errors
-  if (typeof error === "object" && error !== null && "status" in error && "statusText" in error) {
-    // Type guard to check if it's a 'data' object
-    if (typeof error.status === "number" && typeof error.statusText === "string") {
-      console.warn(`Action error: ${error.status} - ${error.statusText}`)
+  // Handle 'data' thrown errors (and real thrown `Response` objects)
+  const thrownStatus = getThrownStatus(error)
+  if (thrownStatus) {
+    const { status, statusText } = thrownStatus
+    console.warn(`Action error: ${status} - ${statusText}`, error)
 
-      // Customize the user-facing message based on the status code
-      let userMessage: string
-      let dataStatus = "error"
-      switch (error.status) {
-        case 400:
-          userMessage = error.statusText
-          dataStatus = "warning"
-          break
-        case 401:
-          return redirect("/signin")
-        case 403:
-          userMessage = "U heeft geen rechten om deze actie uit te voeren."
-          dataStatus = "warning"
-          break
-        case 404:
-          userMessage = "De gevraagde data kon niet worden gevonden."
-          dataStatus = "warning"
-          break
-        // case 500:
-        default: {
-          const errorId = reportError(error, { scope: "action" })
-          userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
-          dataStatus = "error"
-          break
-        }
+    let userMessage: string
+    let dataStatus = "error"
+    let errorId: string | undefined
+    switch (status) {
+      case 400:
+        userMessage =
+          "Ongeldige invoergegevens. Controleer de ingevoerde gegevens en probeer het opnieuw."
+        dataStatus = "warning"
+        break
+      case 401:
+        return redirect("/signin")
+      case 403:
+        userMessage = "U heeft geen rechten om deze actie uit te voeren."
+        dataStatus = "warning"
+        break
+      case 404:
+        userMessage = "De gevraagde data kon niet worden gevonden."
+        dataStatus = "warning"
+        break
+      // case 500:
+      default: {
+        errorId = reportError(error, { scope: "action" })
+        userMessage = `Er is een onverwachte fout opgetreden. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`
+        dataStatus = "error"
+        break
       }
-      if (dataStatus === "warning") {
-        return dataWithWarning(
-          {
-            warning: error,
-          },
-          userMessage,
-        )
-      }
-      return dataWithError(
+    }
+    if (dataStatus === "warning") {
+      return dataWithWarning(
         {
           warning: error,
         },
         userMessage,
       )
     }
+    return dataWithError(
+      {
+        warning: error,
+      },
+      { message: userMessage, status, errorId },
+    )
   }
 
   // Permission denied error
@@ -283,17 +341,21 @@ export function handleActionError(error: unknown) {
     )
   }
 
-  // Missing or invalid parameters errors
   if (
     error instanceof Error &&
     (error.message.startsWith("missing: ") || error.message.startsWith("invalid: "))
   ) {
-    console.warn(error.message)
-    return dataWithWarning(
+    console.warn(error.message, error)
+    const errorId = reportError(error, { scope: "action" })
+    return dataWithError(
       {
         warning: error,
       },
-      error.message,
+      {
+        message: `Er is helaas iets misgegaan. Vernieuw de pagina en probeer het opnieuw. Blijft dit gebeuren, neem dan contact op met Ondersteuning en meld de volgende foutcode: ${errorId}.`,
+        status: 400,
+        errorId,
+      },
     )
   }
 
@@ -301,8 +363,9 @@ export function handleActionError(error: unknown) {
   const errorId = reportError(error, {
     scope: "action",
   })
-  return dataWithError(
-    error instanceof Error ? error.message : "Unknown error",
-    `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
-  )
+  return dataWithError(error instanceof Error ? error.message : "Unknown error", {
+    message: `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
+    status: 500,
+    errorId,
+  })
 }

@@ -1,16 +1,13 @@
 import type { LinksFunction, LoaderFunctionArgs } from "react-router"
 import { withAuditContext } from "@nmi-agro/fdm-core"
-import * as Sentry from "@sentry/react-router"
 import mapLibreStyle from "maplibre-gl/dist/maplibre-gl.css?url"
 import posthog from "posthog-js"
 import { useEffect } from "react"
 import {
   data,
-  isRouteErrorResponse,
   Links,
   Meta,
   Outlet,
-  redirect,
   Scripts,
   ScrollRestoration,
   useLoaderData,
@@ -19,7 +16,7 @@ import {
 import { getToast } from "remix-toast"
 import { toast as notify } from "sonner"
 import { Banner } from "~/components/custom/banner"
-import { CLIENT_ERROR_STATUSES, ErrorBlock } from "~/components/custom/error"
+import { RouteErrorFallback } from "~/components/custom/error"
 import { NavigationProgress } from "~/components/custom/navigation-progress"
 import { Toaster } from "~/components/ui/sonner"
 import { auth } from "~/lib/auth.server"
@@ -138,8 +135,35 @@ export function Layout() {
   // Hook to show the toasts
   useEffect(() => {
     if (toast && toast.type === "error") {
+      const status = typeof toast.status === "number" ? toast.status : null
+      const errorId = typeof toast.errorId === "string" ? toast.errorId : null
+
       notify.error(toast.message, {
         duration: 30000,
+        action: {
+          label: "Kopieer",
+          onClick: () => {
+            const errorDetails = JSON.stringify(
+              {
+                status,
+                message: toast.message,
+                stacktrace: errorId ? `ErrorId: ${errorId}` : null,
+                page: window.location.pathname,
+                timestamp: new Date().toISOString(),
+              },
+              null,
+              2,
+            )
+            navigator.clipboard
+              .writeText(errorDetails)
+              .then(() => notify.success("Foutmelding gekopieerd naar klembord"))
+              .catch(() =>
+                notify.error(
+                  `Kopiëren niet gelukt. Stuur foutcode ${errorId} op naar Ondersteuning.`,
+                ),
+              )
+          },
+        },
       })
     }
     if (toast && toast.type === "warning") {
@@ -211,86 +235,13 @@ export default function App() {
 }
 
 /**
- * Renders an error boundary that handles and displays error information based on the provided error.
- *
- * This component distinguishes between route error responses and generic errors:
- * - For route errors:
- *   - Redirects to the signin page if the error status is 401.
- *   - Renders one unified, generic "page unavailable" error block for client errors with status
- *     400, 403, or 404 — deliberately without the specific message/data, so a user can never tell
- *     whether a resource doesn't exist or they simply lack permission for it.
- *   - Logs other route errors to the error tracking service and renders an error block reflecting the specific status.
- * - For generic Error instances, it logs the error and renders a 500 error block with the error message and stack trace.
- * - If the error is null, no error UI is rendered.
- * - For any other cases, it logs the error and displays an error block with a 500 status and a generic message.
+ * Renders an error boundary that classifies and displays the current route error. Delegates all
+ * classification to {@link RouteErrorFallback} (redirect for 401, the friendly, generic page for
+ * client errors 400/403/404, or the diagnostic page for anything else, including a `null` error
+ * — this component is also rendered unconditionally inside `Layout` below with `error={null}`).
  *
  * @param error - The error encountered during route processing, either as a route error response or a generic Error.
  */
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  const location = useLocation()
-  const page = location.pathname
-  const timestamp = new Date().toISOString()
-
-  if (isRouteErrorResponse(error)) {
-    // Redirect to signin page if authentication is not provided
-    if (error.status === 401) {
-      // Get the current path the user tried to access
-      const currentPath = location.pathname + location.search + location.hash
-      // Construct the sign-in URL with the redirectTo parameter
-      const signInUrl = `./signin?redirectTo=${encodeURIComponent(currentPath)}`
-      // Throw the redirect response to be caught by React Router
-      throw redirect(signInUrl)
-    }
-
-    if (CLIENT_ERROR_STATUSES.includes(error.status)) {
-      return (
-        <ErrorBlock
-          status={error.status}
-          message={null}
-          stacktrace={null}
-          page={page}
-          timestamp={timestamp}
-        />
-      )
-    }
-
-    // Server-side errors are already captured in Sentry via handleError / reportError.
-    // No need to capture again client-side.
-    return (
-      <ErrorBlock
-        status={error.status}
-        message={error.statusText}
-        stacktrace={error.data}
-        page={page}
-        timestamp={timestamp}
-      />
-    )
-  }
-  if (error instanceof Error) {
-    // Client-side JS error — not captured server-side, so capture here.
-    Sentry.captureException(error)
-    return (
-      <ErrorBlock
-        status={500}
-        message={error.message}
-        stacktrace={error.stack}
-        page={page}
-        timestamp={timestamp}
-      />
-    )
-  }
-  if (error === null) {
-    return null
-  }
-
-  Sentry.captureException(error)
-  return (
-    <ErrorBlock
-      status={500}
-      message="Unknown Error"
-      stacktrace={null}
-      page={page}
-      timestamp={timestamp}
-    />
-  )
+  return <RouteErrorFallback error={error} />
 }

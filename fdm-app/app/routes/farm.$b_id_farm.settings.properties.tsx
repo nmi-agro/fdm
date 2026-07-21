@@ -281,7 +281,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       message: `${formValues.b_name_farm} is bijgewerkt! 🎉`,
     })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 

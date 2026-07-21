@@ -14,7 +14,7 @@ import { SidebarFarm, SidebarLabs } from "~/components/blocks/sidebar/farm"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
-import { ClientErrorPage } from "~/components/custom/error"
+import { ClientErrorPage, RouteErrorFallback } from "~/components/custom/error"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { checkSession, getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -24,6 +24,7 @@ import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 import { useFarmStore } from "~/store/farm"
 import { useSelectedFieldStore } from "~/store/selected-field"
+import type { Route } from "./+types/farm"
 
 type FarmLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
 
@@ -328,10 +329,11 @@ export default function App() {
 
 /**
  * Renders when a descendant route throws (e.g. a field, cultivation, or other resource that
- * doesn't exist or can't be accessed). This route's own loader already succeeded — the requested
- * farm itself is fine — so the sidebar shell can render normally via {@link FarmShell}; only the
- * content pane is replaced with the generic, friendly {@link ClientErrorPage}. The app never
- * appears to have been "left".
+ * doesn't exist or can't be accessed — or a genuine component bug). This route's own loader
+ * already succeeded — the requested farm itself is fine — so the sidebar shell can render
+ * normally via {@link FarmShell}; only the content pane is replaced with the classified
+ * {@link RouteErrorFallback} (the friendly page for an expected client error, or the diagnostic
+ * page for a real bug). The app never appears to have been "left".
  *
  * The farm/calendar context is synced from `loaderData.farm` and the URL just like in {@link App},
  * so e.g. an invalid field id under a perfectly valid farm still shows that farm as active in the
@@ -339,9 +341,9 @@ export default function App() {
  *
  * If instead this route's *own* loader threw (an unexpected error, not the handled
  * `farmAccessDenied` case), `useLoaderData()` has nothing to return — there's no session/farm
- * data to build the sidebar from, so fall back to the bare, shell-less page rather than crash.
+ * data to build the sidebar from, so fall back to the bare, shell-less fallback rather than crash.
  */
-export function ErrorBoundary() {
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   const loaderData = useLoaderData<typeof loader>() as FarmLoaderData | undefined
   const params = useParams()
   const calendar = params.calendar
@@ -349,12 +351,12 @@ export function ErrorBoundary() {
   useFarmContextSync(loaderData?.farm?.b_id_farm, calendar)
 
   if (!loaderData) {
-    return <ClientErrorPage />
+    return <RouteErrorFallback error={error} />
   }
 
   return (
     <FarmShell loaderData={loaderData} activeFieldId={undefined} fieldWritePermission={false}>
-      <ClientErrorPage />
+      <RouteErrorFallback error={error} />
     </FarmShell>
   )
 }
