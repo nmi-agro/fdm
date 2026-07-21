@@ -31,6 +31,7 @@ import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "~/components/blocks/helpdesk/assignee-schema"
 import { makeHelpdeskUser } from "~/components/blocks/helpdesk/helpdesk-user"
 import { MessageSchema } from "~/components/blocks/helpdesk/message-schema"
+import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
 import { TagSchema, TicketTagsSchema } from "~/components/blocks/helpdesk/tag-schema"
 import { Ticket } from "~/components/blocks/helpdesk/ticket"
 import {
@@ -201,7 +202,7 @@ export async function action({ params, request }: Args) {
     }
 
     if (formValues.intent === "change_assignment") {
-      return await fdm.transaction(async (tx) => {
+      const result = await fdm.transaction(async (tx) => {
         const currentAssignees =
           (await getAssigneesForTickets(tx, session.principal_id, [params.ticket_id])).get(
             params.ticket_id,
@@ -244,15 +245,43 @@ export async function action({ params, request }: Args) {
           )
         ).length
 
-        if (unassigned > 0 || assigned > 0) {
-          return dataWithSuccess("Toewijzing succesvol verandert!", {
-            message: "Toewijzing succesvol verandert!",
-          })
-        }
+        // Agents who weren't assigned before this change; used below to email only genuinely new
+        // assignees, not agents who were already on the ticket and just had `is_primary` toggled.
+        const newlyAssignedAgentIds = formValues.assignees.filter(
+          (agent_id) => !currentAssignment.has(agent_id),
+        )
 
-        // Have not done anything
-        return null
+        return { unassigned, assigned, newlyAssignedAgentIds }
       })
+
+      if (result.newlyAssignedAgentIds.length > 0) {
+        try {
+          const [ticket, assigneeSummaries] = await Promise.all([
+            getTicket(fdm, session.principal_id, params.ticket_id),
+            getAssigneesForTickets(fdm, session.principal_id, [params.ticket_id]),
+          ])
+          const newAssignees = (assigneeSummaries.get(params.ticket_id) ?? []).filter((assignee) =>
+            result.newlyAssignedAgentIds.includes(assignee.agent_id),
+          )
+
+          await notifyAboutReassignments(
+            session.principal_id,
+            newAssignees.map((assignee) => ({ ...assignee, ticket })),
+          )
+        } catch (err) {
+          // A failed notification email shouldn't fail the assignment itself.
+          handleActionError(err)
+        }
+      }
+
+      if (result.unassigned > 0 || result.assigned > 0) {
+        return dataWithSuccess("Toewijzing succesvol verandert!", {
+          message: "Toewijzing succesvol verandert!",
+        })
+      }
+
+      // Have not done anything
+      return null
     }
 
     if (formValues.intent === "create_tag") {
