@@ -322,7 +322,7 @@ export default function App() {
       activeFieldId={activeFieldId}
       fieldWritePermission={fieldWritePermission}
     >
-      {loaderData.farmAccessDenied ? <ClientErrorPage /> : <Outlet />}
+      {loaderData.farmAccessDenied ? <ClientErrorPage status={403} /> : <Outlet />}
     </FarmShell>
   )
 }

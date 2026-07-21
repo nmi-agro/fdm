@@ -3,6 +3,7 @@ import { ArrowLeft, Compass, Copy, Home, LifeBuoy } from "lucide-react"
 import { useEffect, useState } from "react"
 import { isRouteErrorResponse, NavLink, redirect, useLocation, useNavigate } from "react-router"
 import { Button } from "~/components/ui/button"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { clientConfig } from "~/lib/config"
 import { normalizePage } from "~/lib/url-utils"
 
@@ -17,9 +18,20 @@ export const CLIENT_ERROR_STATUSES = [400, 403, 404]
  * surfaces (a solid `#122023` badge) to give the moment real presence, with a short reassuring
  * message and a clearly prioritized set of next steps, none of which reveal whether the specific
  * page/resource exists or the user simply lacks permission for it.
+ *
+ * @param status - The real HTTP-like status (400/403/404), for analytics only — never rendered,
+ * so the page itself still never reveals to the *user* which case they hit.
  */
-export function ClientErrorPage() {
+export function ClientErrorPage({ status }: { status?: number | null } = {}) {
   const navigate = useNavigate()
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    capture("client_error_page_viewed", {
+      status: status ?? null,
+      page: normalizePage(window.location.pathname),
+    })
+  }, [capture, status])
 
   return (
     <div className="bg-background flex min-h-screen items-center justify-center px-4">
@@ -89,6 +101,7 @@ export function UnexpectedErrorPage({
   timestamp: string
 }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle")
+  const { capture } = useAnalytics()
 
   useEffect(() => {
     if (clientConfig.analytics.sentry) {
@@ -98,7 +111,11 @@ export function UnexpectedErrorPage({
         Sentry.metrics.count("error_block.shown", 1)
       })
     }
-  }, [status, page])
+    capture("unexpected_error_page_viewed", {
+      status: status ?? null,
+      page: normalizePage(page),
+    })
+  }, [status, page, capture])
 
   useEffect(() => {
     if (copyState !== "idle") {
@@ -216,7 +233,7 @@ export function ErrorBlock({
   const isClientError = status !== null && CLIENT_ERROR_STATUSES.includes(status)
 
   if (isClientError) {
-    return <ClientErrorPage />
+    return <ClientErrorPage status={status} />
   }
 
   return (
@@ -258,7 +275,7 @@ export function RouteErrorFallback({ error }: { error: unknown }) {
     }
 
     if (CLIENT_ERROR_STATUSES.includes(error.status)) {
-      return <ClientErrorPage />
+      return <ClientErrorPage status={error.status} />
     }
 
     // Server-side errors are already captured in Sentry via handleError / reportError.

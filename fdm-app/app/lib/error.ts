@@ -319,7 +319,7 @@ export async function handleActionError(error: unknown) {
         {
           warning: error,
         },
-        userMessage,
+        { message: userMessage, status },
       )
     }
     return dataWithError(
@@ -337,7 +337,7 @@ export async function handleActionError(error: unknown) {
       {
         warning: error,
       },
-      "U heeft helaas geen rechten om dit te doen.",
+      { message: "U heeft helaas geen rechten om dit te doen.", status: 403 },
     )
   }
 

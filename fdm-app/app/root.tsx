@@ -138,6 +138,14 @@ export function Layout() {
       const status = typeof toast.status === "number" ? toast.status : null
       const errorId = typeof toast.errorId === "string" ? toast.errorId : null
 
+      if (clientConfig.analytics.posthog) {
+        posthog.capture("unexpected_error_toast_shown", {
+          status,
+          errorId,
+          page: window.location.pathname,
+        })
+      }
+
       notify.error(toast.message, {
         duration: 30000,
         action: {
@@ -167,6 +175,13 @@ export function Layout() {
       })
     }
     if (toast && toast.type === "warning") {
+      const status = typeof toast.status === "number" ? toast.status : null
+      if (status !== null && clientConfig.analytics.posthog) {
+        posthog.capture("client_error_toast_shown", {
+          status,
+          page: window.location.pathname,
+        })
+      }
       notify.warning(toast.message)
     }
     if (toast && toast.type === "success") {
