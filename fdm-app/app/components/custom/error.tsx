@@ -276,7 +276,7 @@ export function RouteErrorFallback({ error }: { error: unknown }) {
   useEffect(() => {
     if (isUnauthorized) {
       const currentPath = location.pathname + location.search + location.hash
-      const signInUrl = `./signin?redirectTo=${encodeURIComponent(currentPath)}`
+      const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
       void navigate(signInUrl, { replace: true })
     }
   }, [isUnauthorized, location, navigate])

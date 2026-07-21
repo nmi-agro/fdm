@@ -167,7 +167,9 @@ export function Layout() {
               .then(() => notify.success("Foutmelding gekopieerd naar klembord"))
               .catch(() =>
                 notify.error(
-                  `Kopiëren niet gelukt. Stuur foutcode ${errorId} op naar Ondersteuning.`,
+                  errorId
+                    ? `Kopiëren niet gelukt. Stuur foutcode ${errorId} op naar Ondersteuning.`
+                    : "Kopiëren niet gelukt. Neem contact op met Ondersteuning.",
                 ),
               )
           },
