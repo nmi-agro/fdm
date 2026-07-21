@@ -206,7 +206,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       </TableCell>
       <TableCell width="99%" className="align-middle">
         {principal.displayUserName}
-        <AgentAvailabilityDisplay availability={principal.availability} />
+        {principal.isActive && <AgentAvailabilityDisplay availability={principal.availability} />}
       </TableCell>
       {canModify && (
         <TableCell>

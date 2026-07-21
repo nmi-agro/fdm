@@ -48,7 +48,7 @@ export async function loader({ params, request }: Args) {
     const session = await getSession(request)
 
     const ticket = await getTicket(fdm, session.principal_id, params.ticket_id)
-    const [messages, availableTags, canAddMessages, isAgent] = await Promise.all([
+    const [messages, availableTags, canAddMessages, isAgent, isAdmin] = await Promise.all([
       getMessagesForTicket(fdm, session.principal_id, params.ticket_id),
       getTags(fdm),
       checkHelpdeskPermission(
@@ -65,6 +65,15 @@ export async function loader({ params, request }: Args) {
         "ticket-agent-side",
         "write",
         params.ticket_id,
+        session.principal_id,
+        "_ticketviewer.ticket.$ticket_id",
+        false,
+      ),
+      checkHelpdeskPermission(
+        fdm,
+        "helpdesk",
+        "write",
+        "",
         session.principal_id,
         "_ticketviewer.ticket.$ticket_id",
         false,
@@ -97,6 +106,24 @@ export async function loader({ params, request }: Args) {
     const otherAgentIds = new Set(
       messages.filter((msg) => msg.sender_type === "agent").map((msg) => msg.sender_id),
     )
+
+    if (isAdmin) {
+      const unresolvedAgentIds = [...otherAgentIds].filter(
+        (id): id is string => typeof id === "string" && !agentInfo.has(id),
+      )
+      if (unresolvedAgentIds.length > 0) {
+        // No `isActive` filter: as an admin, `getAgents` returns active and inactive agents alike.
+        const allAgents = await getAgents(fdm, session.principal_id)
+        for (const agent of allAgents) {
+          if (unresolvedAgentIds.includes(agent.agent_id)) {
+            agentInfo.set(agent.agent_id, {
+              agent_id: agent.agent_id,
+              display_name: agent.display_name,
+            })
+          }
+        }
+      }
+    }
 
     const principalsSummarized = [...principals.values()].map((principal) => {
       // Agents should appear with their helpdesk display name

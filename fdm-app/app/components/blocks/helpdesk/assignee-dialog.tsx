@@ -69,6 +69,7 @@ export function AssignmentSelector({
   const selectedUnavailableAgents = unavailableAgents.filter((agent) =>
     selectedAssignees.includes(agent.agent_id),
   )
+  const activeAgentIds = new Set(agents.map((agent) => agent.agent_id))
 
   function setSelected(agentId: string, selected: boolean) {
     setSelectedAssignees((current) => {
@@ -192,7 +193,11 @@ export function AssignmentSelector({
                   <AssigneeSelectItem
                     key={assignee.agent_id}
                     agent={assignee}
-                    availability={agentAvailability?.get(assignee.agent_id) ?? null}
+                    availability={
+                      activeAgentIds.has(assignee.agent_id)
+                        ? agentAvailability?.get(assignee.agent_id) ?? null
+                        : undefined
+                    }
                     isSelected={selectedAssignees.includes(assignee.agent_id)}
                     isPrimary={primaryAssignees.includes(assignee.agent_id)}
                     principalLookup={principalLookup}
@@ -293,7 +298,7 @@ function AssigneeSelectItem({
   onIsPrimaryClick,
 }: {
   agent: AgentSummary
-  availability: AgentAvailabilityStatus | null
+  availability: AgentAvailabilityStatus | null | undefined
   isPrimary: boolean
   isSelected: boolean
   principalLookup: Map<string, HelpdeskUser>
@@ -330,7 +335,9 @@ function AssigneeSelectItem({
         <HelpdeskUserAvatar user={makeHelpdeskUser(agent, principalLookup)} type="agent" />
         <div className="text-start">
           <span className="grow text-start group-hover:underline">{agent.display_name}</span>
-          <AgentAvailabilityDisplay availability={availability} className="text-[11px]" />
+          {availability !== undefined && (
+            <AgentAvailabilityDisplay availability={availability} className="text-[11px]" />
+          )}
         </div>
       </Button>
 
