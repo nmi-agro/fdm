@@ -44,7 +44,6 @@ export const UpdateAgentSchema = z.object({
       z.union(AssignmentTierOptions.map((opt) => z.literal(opt.value))),
     )
     .optional(),
-  reassign_tickets: z.boolean(),
 })
 
 export const SetAgentActiveStatusSchema = z.object({

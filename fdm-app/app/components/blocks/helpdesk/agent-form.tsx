@@ -2,7 +2,7 @@ import type { Agent } from "@nmi-agro/fdm-helpdesk"
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useId } from "react"
-import { Controller, useWatch, type Resolver } from "react-hook-form"
+import { Controller, type Resolver } from "react-hook-form"
 import { FetcherWithComponents, useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Button } from "~/components/ui/button"
@@ -28,7 +28,6 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { AssignmentTierOptions, UpdateAgentSchema } from "./agent-schema"
-import { SubmitButtonWithReassignmentConfirmation } from "./reassignment-confirmation"
 
 type AgentFormDefaults = Partial<Agent> & { agent_id: string }
 type AgentFormValues = z.infer<typeof UpdateAgentSchema>
@@ -43,7 +42,6 @@ function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
     ...agent,
     display_name: agent.display_name ?? "",
     work_days: work_days,
-    reassign_tickets: false,
     assignment_tier: AssignmentTierOptions.some((o) => o.value === agent.assignment_tier)
       ? (agent.assignment_tier as (typeof AssignmentTierOptions)[number]["value"])
       : (1 as (typeof AssignmentTierOptions)[number]["value"]),
@@ -189,8 +187,6 @@ export function AgentForm({
 
   const isSubmitting = form.formState.isSubmitting
 
-  const reassignTickets = useWatch({ control: form.control, name: "reassign_tickets" })
-
   return (
     <Card className="mx-auto max-w-2xl p-6">
       <RemixFormProvider {...form}>
@@ -199,14 +195,9 @@ export function AgentForm({
             <AgentFormFields agent={agent} isAdmin={isAdmin} person={person} />
           </fieldset>
           <div className="text-end">
-            <SubmitButtonWithReassignmentConfirmation
-              type="submit"
-              needsConfirmation={reassignTickets}
-              person={person}
-              disabled={isSubmitting}
-            >
+            <Button type="submit" disabled={isSubmitting}>
               Opslaan{isSubmitting && <Spinner />}
-            </SubmitButtonWithReassignmentConfirmation>
+            </Button>
           </div>
         </fetcher.Form>
       </RemixFormProvider>
@@ -233,8 +224,6 @@ export function AgentFormDialog({
 
   const isSubmitting = fetcher.state !== "idle"
 
-  const reassignTickets = useWatch({ control: form.control, name: "reassign_tickets" })
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -259,14 +248,9 @@ export function AgentFormDialog({
                   Sluiten
                 </Button>
               </DialogClose>
-              <SubmitButtonWithReassignmentConfirmation
-                type="submit"
-                needsConfirmation={reassignTickets}
-                person={person}
-                disabled={isSubmitting}
-              >
+              <Button type="submit" disabled={isSubmitting}>
                 Opslaan{isSubmitting && <Spinner />}
-              </SubmitButtonWithReassignmentConfirmation>
+              </Button>
             </DialogFooter>
           </fetcher.Form>
         </RemixFormProvider>
