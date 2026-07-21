@@ -168,7 +168,13 @@ export default function App() {
         />
       </Sidebar>
       <SidebarInset className="min-w-0">
-        <Header action={undefined}>
+        <Header
+          action={{
+            to: "/organization",
+            label: "Terug naar organisaties",
+            disabled: false,
+          }}
+        >
           <HeaderOrganization
             selectedOrganizationSlug={loaderData.selectedOrganizationSlug}
             organizationOptions={loaderData.organizations}
