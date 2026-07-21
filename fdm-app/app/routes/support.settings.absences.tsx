@@ -7,6 +7,7 @@ import {
   updateAbsence,
 } from "@nmi-agro/fdm-helpdesk"
 import { endOfDay } from "date-fns/endOfDay"
+import { Plus } from "lucide-react"
 import { Suspense, useState } from "react"
 import { Await, useLoaderData } from "react-router"
 import { dataWithSuccess } from "remix-toast"
@@ -22,6 +23,7 @@ import {
   ScheduleAbsenceSchema,
   UpdateAbsenceSchema,
 } from "~/components/blocks/helpdesk/absence-schema"
+import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -164,8 +166,17 @@ export default function SupportSettingsAbsences() {
         title="Afwezigheid"
         description={
           isAdmin
-            ? "Bekijk en beheer de afwezigheid van alle medewerkers. Sleep op de kalender om een nieuwe afwezigheid in te plannen."
-            : "Bekijk de afwezigheid van alle medewerkers en beheer je eigen afwezigheid. Sleep op de kalender om een nieuwe afwezigheid in te plannen."
+            ? "Bekijk en beheer de afwezigheid van alle medewerkers. Klik op 'Afwezigheid plannen' of sleep op de kalender om een periode te selecteren."
+            : "Bekijk de afwezigheid van alle medewerkers en beheer je eigen afwezigheid. Klik op 'Afwezigheid plannen' of sleep op de kalender om een periode te selecteren."
+        }
+        rightNode={
+          <Button
+            onClick={() => openForCreate({ start: new Date(), end: new Date() })}
+            className="gap-2"
+          >
+            <Plus className="size-4" />
+            Afwezigheid plannen
+          </Button>
         }
       />
       <Suspense

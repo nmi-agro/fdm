@@ -21,7 +21,7 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
-import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
 import type { HelpdeskUser } from "./types"
 import { AgentAvailabilityDisplay } from "./agent-availability"
 import { AddAgentSchema } from "./agent-schema"
@@ -79,6 +79,23 @@ export function HelpdeskAgentManager({
           <FieldLabel htmlFor={onlyActiveId}>Toon alleen beschikbare mederwerkers</FieldLabel>
         </Field>
         <Table className="w-full">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-0" aria-hidden="true" />
+              <TableHead>Medewerker</TableHead>
+              {canModify && <TableHead aria-hidden="true" />}
+              <TableHead>Linie</TableHead>
+              {canModify ? (
+                <>
+                  <TableHead aria-hidden="true" />
+                  <TableHead>Rol</TableHead>
+                  <TableHead className="text-end">Acties</TableHead>
+                </>
+              ) : (
+                <TableHead>Rol</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
           <TableBody>
             {filteredHelpdeskUsers.map((principal) => (
               <PrincipalRow

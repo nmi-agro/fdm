@@ -6,7 +6,7 @@ import { cn } from "@/app/lib/utils"
 
 const ABSENCE_MESSAGE = {
   holiday: "Op vakantie",
-  day_off: "Heeft een dagje uit",
+  day_off: "Heeft een vrije dag",
   sick: "Is ziek",
   other: "Afwezig",
 }
@@ -23,7 +23,7 @@ export function AgentAvailabilityDisplay({
       className={cn("text-muted-foreground flex flex-row items-center gap-1 text-sm", className)}
     >
       {absence ? (
-        <CircleArrowLeft className="size-[1.2em] text-purple-700" />
+        <CircleArrowLeft className="size-[1.2em] text-amber-600" />
       ) : (
         <CircleCheck className="size-[1.2em] text-green-600" />
       )}
