@@ -95,9 +95,9 @@ export default function OrganizationSettingsBlock() {
   return (
     <main>
       <FarmTitle
-        title={"Organisatie-instellingen"}
+        title={"Organisatie instellingen"}
         description={"Werk de gegevens bij van deze organisatie."}
-        action={{ to: "./..", label: "Terug naar dashboard" }}
+        action={{ to: "./..", label: "Terug" }}
       />
       <div className="flex flex-col gap-4 px-4 pb-8 md:flex-row md:px-8">
         <Card className="md:min-w-sm">
@@ -247,7 +247,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         throw err
       }
 
-      return redirectWithSuccess(`/organization/${params.slug}`, {
+      return redirectWithSuccess(`/organization/${params.slug}/settings`, {
         message: "Profielfoto is succesvol geüpload.",
       })
     }
@@ -285,7 +285,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         }
       }
 
-      return redirectWithSuccess(`/organization/${params.slug}`, {
+      return redirectWithSuccess(`/organization/${params.slug}/settings`, {
         message: "Profielfoto is succesvol verwijderd.",
       })
     }
@@ -312,7 +312,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         },
       })
 
-      return redirectWithSuccess(`/organization/${slug}`, {
+      return redirectWithSuccess(`/organization/${slug}/settings`, {
         message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
       })
     }

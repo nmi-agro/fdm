@@ -253,7 +253,7 @@ export function ProfilePictureManager({
         maxFileSize={maxFileSize}
         required={true}
       />
-      <div className="flex flex-row items-center justify-end gap-2">
+      <div className="flex flex-row items-center justify-center gap-2">
         {files.length > 0 ? (
           <>
             <Button variant="outline" type="button" onClick={() => setFiles([])}>
@@ -268,8 +268,9 @@ export function ProfilePictureManager({
           <>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={isDeleting}>
+                <Button type="button" variant="destructive" disabled={isDeleting}>
                   Verwijderen
+                  {isDeleting ? <Spinner /> : undefined}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
