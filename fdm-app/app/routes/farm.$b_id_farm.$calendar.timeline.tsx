@@ -1,5 +1,4 @@
 import { checkPermission, getFarms, getFertilizers } from "@nmi-agro/fdm-core"
-import { Smartphone } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useLoaderData, useParams } from "react-router"
 import type {
@@ -12,10 +11,11 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
+import { TimelineMobileView } from "~/components/blocks/timeline/mobile-view"
 import { TimelineToolbar } from "~/components/blocks/timeline/toolbar"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { getSession } from "~/lib/auth.server"
 import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
@@ -38,7 +38,7 @@ export const meta: MetaFunction = () => {
     {
       name: "description",
       content:
-        "Bekijk in één overzicht alle gewassen, bemestingen, oogsten en bodemmonsters van je bedrijf op een tijdlijn.",
+        "Bekijk in één overzicht alle gewassen, bemestingen, oogsten en bodemanalyses van je bedrijf op een tijdlijn.",
     },
   ]
 }
@@ -101,6 +101,40 @@ export default function TimelinePage() {
   const loaderData = useLoaderData<typeof loader>()
   const { calendar } = useParams()
   const isMobile = useIsMobile()
+  const [isLandscape, setIsLandscape] = useState(false)
+  const { capture } = useAnalytics()
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return
+    }
+    const mql = window.matchMedia("(max-width: 1024px) and (orientation: landscape)")
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsLandscape(e.matches)
+    }
+    mql.addEventListener("change", onChange)
+    setIsLandscape(mql.matches)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
+
+  const showMobileView = isMobile || isLandscape
+  const showMobileViewRef = useRef(showMobileView)  
+  useEffect(() => {
+    showMobileViewRef.current = showMobileView
+  }, [showMobileView])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const id = window.requestAnimationFrame(() => {
+      capture("timeline_viewed", {
+        b_id_farm: loaderData.b_id_farm,
+        calendar,
+        view: showMobileViewRef.current ? "mobile" : "gantt",
+      })
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [])
+
   const ganttRef = useRef<TimelineGanttViewHandle>(null)
   const registerJumpToYear = useCalendarJump((state) => state.registerJumpToYear)
 
@@ -111,6 +145,7 @@ export default function TimelinePage() {
     showFertilizers: true,
     showHarvests: true,
     showSoilSamplings: true,
+    showFutureEvents: false,
   })
 
   const currentFarmName =
@@ -158,32 +193,26 @@ export default function TimelinePage() {
         <BreadcrumbItem className="hidden md:block">Tijdlijn</BreadcrumbItem>
       </Header>
       <main className="min-w-0">
-        {isMobile ? (
+        {showMobileView ? (
           <>
             <FarmTitle
               title={`Tijdlijn van ${currentFarmName}`}
               description="Overzicht van alle gebeurtenissen op je bedrijf."
             />
-            <div className="flex flex-1 flex-col items-center justify-center p-6">
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <Smartphone className="text-muted-foreground h-10 w-10" />
-                  </EmptyMedia>
-                  <EmptyTitle>Tijdlijn binnenkort beschikbaar op mobiel</EmptyTitle>
-                  <EmptyDescription>
-                    De tijdlijn is momenteel alleen beschikbaar op een groter scherm. We werken aan
-                    een mobiele weergave.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            </div>
+            <TimelineMobileView
+              b_id_farm={loaderData.b_id_farm}
+              calendar={calendar ?? ""}
+              fertilizerTypeById={fertilizerTypeById}
+              fields={loaderData.fields}
+              filters={filters}
+              onFiltersChange={setFilters}
+            />
           </>
         ) : (
           <>
             <FarmTitle
               title={`Tijdlijn van ${currentFarmName}`}
-              description="Overzicht van alle gewassen, bemestingen, oogsten en bodemmonsters over de percelen."
+              description="Overzicht van alle gewassen, bemestingen, oogsten en bodemanalyses over de percelen."
               rightNode={
                 <TimelineToolbar
                   filters={filters}

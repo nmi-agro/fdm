@@ -5,7 +5,7 @@ import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Label } from "~/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { PopoverTrigger, PopoverContent, Popover } from "~/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -20,19 +20,14 @@ const rangeLabels: Record<Range, string> = {
   quarterly: "Kwartaal",
 }
 
-/** Filters that are "on" by default; a filter counts as active once it deviates from that default. */
 const defaultFilters: TimelineFilters = {
-  showBufferStrips: false,
   showCultivations: true,
   showFertilizers: true,
   showHarvests: true,
   showSoilSamplings: true,
-}
-
-function countActiveFilters(filters: TimelineFilters): number {
-  return Object.entries(filters).filter(
-    ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
-  ).length
+  showBufferStrips: false,
+  // Intentionally not exposed as a toolbar checkbox: showFutureEvents only affects the mobile list view's client-side date filtering
+  showFutureEvents: false,
 }
 
 export function TimelineToolbar({
@@ -48,7 +43,9 @@ export function TimelineToolbar({
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
 }) {
-  const activeFilterCount = countActiveFilters(filters)
+  const activeFilterCount = Object.entries(filters).filter(
+    ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
+  ).length
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -79,7 +76,6 @@ export function TimelineToolbar({
               <Badge
                 className="motion-safe:animate-in motion-safe:zoom-in-50 ml-1 px-1.5 motion-safe:duration-200 motion-safe:ease-out"
                 key={activeFilterCount}
-                variant="secondary"
               >
                 {activeFilterCount}
               </Badge>

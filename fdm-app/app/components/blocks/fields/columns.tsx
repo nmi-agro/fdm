@@ -1,17 +1,11 @@
 import type { Cultivation, Fertilizer } from "@nmi-agro/fdm-core"
 import type { ColumnDef } from "@tanstack/react-table"
-import {
-  ArrowUpRightFromSquare,
-  Circle,
-  Diamond,
-  MoreHorizontal,
-  Square,
-  Triangle,
-} from "lucide-react"
+import { ArrowUpRightFromSquare, MoreHorizontal } from "lucide-react"
 import { NavLink } from "react-router"
 import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
@@ -162,15 +156,7 @@ export function buildColumns(b_id_farm: string, calendar: string): ColumnDef<Fie
               >
                 <Badge variant="outline" className="text-muted-foreground gap-1">
                   <span>
-                    {fertilizer.p_type === "manure" ? (
-                      <Square className="size-3 fill-yellow-600 text-yellow-600" />
-                    ) : fertilizer.p_type === "mineral" ? (
-                      <Circle className="size-3 fill-sky-600 text-sky-600" />
-                    ) : fertilizer.p_type === "compost" ? (
-                      <Triangle className="size-3 fill-green-600 text-green-600" />
-                    ) : (
-                      <Diamond className="size-3 fill-gray-600 text-gray-600" />
-                    )}
+                    <FertilizerIcon p_type={fertilizer.p_type ?? "other"} />
                   </span>
                   {fertilizer.p_name_nl}
                 </Badge>
