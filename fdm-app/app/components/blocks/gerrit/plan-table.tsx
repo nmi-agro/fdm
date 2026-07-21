@@ -24,8 +24,8 @@ import {
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import type { ParsedPlan, PlanRow } from "./types"
+import { FertilizerIcon } from "../../custom/fertilizer-icon"
 import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
-import { FertilizerIcon } from "./fertilizer-icon"
 
 const columnHelper = createColumnHelper<PlanRow>()
 
