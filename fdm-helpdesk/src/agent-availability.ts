@@ -64,12 +64,16 @@ export async function getAvailableAgents(
       ON ta.ticket_id = t.ticket_id
     WHERE
         ta.agent_id = ${schema.agents.agent_id}
+      AND ta.unassigned_at IS NULL
+      AND ta.is_primary
       AND ${inArray(sql`t.status`, ACTIVE_TICKET_STATUSES)})`,
         // Number of active tickets that this agent is assigned to
         num_assigned_tickets: sql`(select count(*)
 from ${schema.ticketAssignments} ta
 inner join ${schema.tickets} t on ta.ticket_id = t.ticket_id
 where ta.agent_id = ${schema.agents.agent_id}
+and ta.is_primary
+and ta.unassigned_at is null
 and ${inArray(sql`t.status`, ACTIVE_TICKET_STATUSES)})`,
       })
       .from(schema.agents)

@@ -21,7 +21,7 @@ import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
 import { test, truncateAllTables } from "./test-util"
 import { createTicket, getTicket, type Ticket } from "./ticket"
-import { assignTicket } from "./ticket-assignment"
+import { assignTicket, unassignTicket } from "./ticket-assignment"
 
 test.beforeEach(async ({ fdm }) => {
   await truncateAllTables(fdm)
@@ -517,7 +517,7 @@ describe("Agent prioritization", () => {
     const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
     const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
     expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
-    expect(agent1_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(agent2_idx, "Agent 2 is available.").not.toBe(-1)
     expect(
       agent2_idx < agent1_idx,
       "Agent 2 has a lower priority ticket assigned than Agent 1.",
@@ -535,7 +535,7 @@ describe("Agent prioritization", () => {
     const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
     const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
     expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
-    expect(agent1_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(agent2_idx, "Agent 2 is available.").not.toBe(-1)
     expect(
       agent2_idx < agent1_idx,
       "Agent 2 has a lower priority ticket assigned than Agent 1.",
@@ -549,8 +549,41 @@ describe("Agent prioritization", () => {
     const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
     const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
     expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
-    expect(agent1_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(agent2_idx, "Agent 2 is available.").not.toBe(-1)
     expect(agent2_idx < agent1_idx, "Agent 2 has a lower assignment tier than Agent 1.").toBe(true)
+  })
+
+  test("should prioritize an agent according to primary assignments only", async ({ fdm }) => {
+    const ticket_1 = await createTicket(fdm, agent1_id, agent1_id, { priority: "normal" })
+    const ticket_2 = await createTicket(fdm, agent2_id, agent2_id, { priority: "normal" })
+    await assignTicket(fdm, ticket_1, agent1_id, agent1_id, true)
+    await assignTicket(fdm, ticket_2, agent2_id, agent2_id, false)
+    const available = await getAvailableAgents(fdm, new Date())
+    const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
+    const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
+    expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
+    expect(agent2_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(
+      agent2_idx < agent1_idx,
+      "Agent 2 has a lower priority ticket assigned than Agent 1.",
+    ).toBe(true)
+  })
+
+  test("should prioritize an agent according to active assignments only", async ({ fdm }) => {
+    const ticket_1 = await createTicket(fdm, agent1_id, agent1_id, { priority: "normal" })
+    const ticket_2 = await createTicket(fdm, agent2_id, agent2_id, { priority: "normal" })
+    await assignTicket(fdm, ticket_1, agent1_id, agent1_id, true)
+    await assignTicket(fdm, ticket_2, agent2_id, agent2_id, true)
+    await unassignTicket(fdm, ticket_2, agent2_id, agent2_id)
+    const available = await getAvailableAgents(fdm, new Date())
+    const agent1_idx = available.findIndex((agent) => agent.agent_id === agent1_id)
+    const agent2_idx = available.findIndex((agent) => agent.agent_id === agent2_id)
+    expect(agent1_idx, "Agent 1 is available.").not.toBe(-1)
+    expect(agent2_idx, "Agent 2 is available.").not.toBe(-1)
+    expect(
+      agent2_idx < agent1_idx,
+      "Agent 2 has a lower priority ticket assigned than Agent 1.",
+    ).toBe(true)
   })
 })
 
