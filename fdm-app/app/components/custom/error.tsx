@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/react-router"
 import { ArrowLeft, Compass, Copy, Home, LifeBuoy } from "lucide-react"
 import { useEffect, useState } from "react"
-import { isRouteErrorResponse, NavLink, redirect, useLocation, useNavigate } from "react-router"
+import { isRouteErrorResponse, NavLink, useLocation, useNavigate } from "react-router"
 import { Button } from "~/components/ui/button"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { clientConfig } from "~/lib/config"
@@ -45,7 +45,7 @@ export function ClientErrorPage({ status }: { status?: number | null } = {}) {
         </h1>
         <p className="text-muted-foreground mt-4 text-lg text-pretty">
           Het lijkt erop dat deze pagina niet bestaat, of dat je er geen toegang tot hebt.
-          Controleer het adres en of je toegang hebt, of neem contact op als je denkt dat dit niet
+          Controleer het webadres en of je toegang hebt, of neem contact op als je denkt dat dit niet
           klopt.
         </p>
 
@@ -263,17 +263,29 @@ export function ErrorBlock({
  */
 export function RouteErrorFallback({ error }: { error: unknown }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const page = location.pathname
   const timestamp = new Date().toISOString()
 
-  if (isRouteErrorResponse(error)) {
-    // Redirect to signin page if authentication is not provided
-    if (error.status === 401) {
+  const isUnauthorized = isRouteErrorResponse(error) && error.status === 401
+
+  // Redirect to signin page if authentication is not provided. Navigation must happen after
+  // render (in an effect), not by throwing `redirect()` here — this component renders inside an
+  // `ErrorBoundary`, not a loader/action, so a thrown redirect isn't a supported navigation
+  // mechanism in that position.
+  useEffect(() => {
+    if (isUnauthorized) {
       const currentPath = location.pathname + location.search + location.hash
       const signInUrl = `./signin?redirectTo=${encodeURIComponent(currentPath)}`
-      throw redirect(signInUrl)
+      void navigate(signInUrl, { replace: true })
     }
+  }, [isUnauthorized, location, navigate])
 
+  if (isUnauthorized) {
+    return null
+  }
+
+  if (isRouteErrorResponse(error)) {
     if (CLIENT_ERROR_STATUSES.includes(error.status)) {
       return <ClientErrorPage status={error.status} />
     }

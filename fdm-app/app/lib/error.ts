@@ -288,7 +288,7 @@ export async function handleActionError(error: unknown) {
     console.warn(`Action error: ${status} - ${statusText}`, error)
 
     let userMessage: string
-    let dataStatus = "error"
+    let dataStatus: "error" | "warning"
     let errorId: string | undefined
     switch (status) {
       case 400:
@@ -306,6 +306,10 @@ export async function handleActionError(error: unknown) {
         userMessage = "De gevraagde data kon niet worden gevonden."
         dataStatus = "warning"
         break
+      case 405:
+        userMessage = "Deze actie is niet toegestaan."
+        dataStatus = "warning"
+        break
       // case 500:
       default: {
         errorId = reportError(error, { scope: "action" })
@@ -319,14 +323,17 @@ export async function handleActionError(error: unknown) {
         {
           warning: error,
         },
-        { message: userMessage, status },
+        userMessage,
+        { status },
       )
     }
     return dataWithError(
       {
         warning: error,
+        errorId,
       },
-      { message: userMessage, status, errorId },
+      userMessage,
+      { status },
     )
   }
 
@@ -363,9 +370,9 @@ export async function handleActionError(error: unknown) {
   const errorId = reportError(error, {
     scope: "action",
   })
-  return dataWithError(error instanceof Error ? error.message : "Unknown error", {
-    message: `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
-    status: 500,
-    errorId,
-  })
+  return dataWithError(
+    { warning: error instanceof Error ? error.message : "Unknown error", errorId },
+    `Er is helaas iets fout gegaan. Probeer het later opnieuw of neem contact op met Ondersteuning en meldt de volgende foutcode: ${errorId}.`,
+    { status: 500 },
+  )
 }
