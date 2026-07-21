@@ -76,7 +76,7 @@ export function HelpdeskAgentManager({
             checked={agentManagerFilter.activeOnly}
             onCheckedChange={(value) => agentManagerFilter.setActiveOnly(value)}
           />
-          <FieldLabel htmlFor={onlyActiveId}>Toon alleen actief</FieldLabel>
+          <FieldLabel htmlFor={onlyActiveId}>Toon alleen beschikbare mederwerkers</FieldLabel>
         </Field>
         <Table className="w-full">
           <TableBody>
@@ -196,7 +196,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
           <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
         </TableCell>
       )}
-      <TableCell className="text-muted-foreground whitespace-nowrap">{`${principal.assignment_tier}e linie`}</TableCell>
+      <TableCell className="text-muted-foreground whitespace-nowrap">{`${principal.assignment_tier}e lijns`}</TableCell>
       {canModify ? (
         <>
           <TableCell>

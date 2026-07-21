@@ -1,9 +1,9 @@
 import z from "zod"
 
 export const AssignmentTierOptions = [
-  { value: 1, label: "1e linie - voorkeur voor toewijzing" },
-  { value: 2, label: "2e linie" },
-  { value: 3, label: "3e linie - escalatie" },
+  { value: 1, label: "Eerstelijns - aanspreekpunt" },
+  { value: 2, label: "Tweedelijns" },
+  { value: 3, label: "Derdelijns - achtervang" },
 ] as const
 
 const AgentRoleSchema = z.enum(["agent", "admin"])

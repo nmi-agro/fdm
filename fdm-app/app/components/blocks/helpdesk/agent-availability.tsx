@@ -29,7 +29,7 @@ export function AgentAvailabilityDisplay({
       )}
       {absence
         ? `${ABSENCE_MESSAGE[absence.reason as keyof typeof ABSENCE_MESSAGE] ?? absence.reason} t/m ${formatDate(absence.end_date, "PP", { locale: nl })}${absence.note ? `: ${absence.note}` : ""}`
-        : "Online"}
+        : "Beschikbaar"}
     </div>
   )
 }

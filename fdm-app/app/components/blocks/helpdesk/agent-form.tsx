@@ -110,9 +110,9 @@ export function AgentFormFields({
         name="assignment_tier"
         render={({ field, fieldState }) => (
           <Field>
-            <FieldLabel htmlFor={assignmentTierId}>Rang</FieldLabel>
+            <FieldLabel htmlFor={assignmentTierId}>Ondersteuningsniveau</FieldLabel>
             <FieldDescription>
-              De rang van de agent tijdens het toewijzen van tickets.
+              Het ondersteuningsniveau van de medewerker. Dit bepaalt hoe tickets worden toegewezen en wie de eerste aanspreekpunt is.
             </FieldDescription>
             <Select
               value={field.value?.toString() ?? "1"}
