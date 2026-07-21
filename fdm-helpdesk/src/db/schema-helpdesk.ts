@@ -69,7 +69,7 @@ export const agents = fdmHelpdeskSchema.table(
     role: text().notNull().default("agent"), // 'admin', 'agent'
     is_active: boolean().notNull().default(true),
     assignment_tier: integer().notNull().default(1), // 1=first-line, 2=second-line, 3=escalation-only (last resort)
-    work_days: jsonb().notNull().default([1, 2, 3, 4, 5]), // same as Date.getDay(): 0=Sun, 1=Mon, 2=Tue, ..., 6=Sat
+    work_days: jsonb().notNull().default([1, 2, 3, 4, 5]).$type<number[]>(), // same as Date.getDay(): 0=Sun, 1=Mon, 2=Tue, ..., 6=Sat
     max_tickets: integer().default(20), // Max concurrent assignments
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),

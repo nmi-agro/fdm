@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { AgentAbsence } from "@nmi-agro/fdm-helpdesk"
+import type { AgentAvailabilityStatus } from "@nmi-agro/fdm-helpdesk"
 import { Pencil, User, Users } from "lucide-react"
 import { useId, useMemo, type ComponentProps } from "react"
 import { Controller } from "react-hook-form"
@@ -29,7 +29,7 @@ import { HelpdeskUserAvatar } from "./helpdesk-user"
 import { SubmitButtonWithReassignmentConfirmation } from "./reassignment-confirmation"
 
 export type HelpdeskUserExtended = HelpdeskUser & {
-  absence: AgentAbsence | null
+  availability: AgentAvailabilityStatus
   assignment_tier: number
   role: string
   isInvitation: boolean
@@ -206,7 +206,7 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       </TableCell>
       <TableCell width="99%" className="align-middle">
         {principal.displayUserName}
-        <AgentAvailabilityDisplay absence={principal.absence} />
+        <AgentAvailabilityDisplay availability={principal.availability} />
       </TableCell>
       {canModify && (
         <TableCell>

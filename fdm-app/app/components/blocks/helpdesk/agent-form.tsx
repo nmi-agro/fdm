@@ -34,6 +34,9 @@ type AgentFormValues = z.infer<typeof UpdateAgentSchema>
 type AgentFormPerson = "second" | "third"
 
 function getFormDefaults(agent: AgentFormDefaults): AgentFormValues {
+  // Client-side component: keep this a plain, local check rather than importing a runtime value
+  // from @nmi-agro/fdm-helpdesk, which would pull the whole server-only package (incl. Node APIs
+  // like Buffer) into the browser bundle and break route loading.
   const work_days = Array.isArray(agent.work_days)
     ? agent.work_days.filter((d: unknown) => typeof d === "number")
     : [1, 2, 3, 4, 5]

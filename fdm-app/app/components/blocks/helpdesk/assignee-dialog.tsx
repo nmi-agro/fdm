@@ -1,4 +1,4 @@
-import type { AgentSummary, AgentAbsence, TicketAssignmentSummary } from "@nmi-agro/fdm-helpdesk"
+import type { AgentSummary, AgentAvailabilityStatus, TicketAssignmentSummary } from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown, UserPlus, Users } from "lucide-react"
 import { type MouseEventHandler, useEffect, useId, useState } from "react"
 import { useFetcher } from "react-router"
@@ -32,7 +32,7 @@ export function AssignmentSelector({
   canModify = true,
   assignees,
   agents,
-  agentAbsences,
+  agentAvailability,
   principalLookup,
 }: {
   triggerId?: string
@@ -40,7 +40,7 @@ export function AssignmentSelector({
   canModify?: boolean
   assignees: TicketAssignmentSummary[]
   agents: AgentSummary[]
-  agentAbsences?: Map<string, AgentAbsence>
+  agentAvailability?: Map<string, AgentAvailabilityStatus>
   principalLookup: Map<string, HelpdeskUser>
 }) {
   const fetcher = useFetcher()
@@ -59,12 +59,14 @@ export function AssignmentSelector({
   const alreadyAssigned = new Set(assignees.map((assignee) => assignee.agent_id))
 
   const unassignedAgents = agents.filter((agent) => !alreadyAssigned.has(agent.agent_id))
-  // Split unassigned agents by real availability, so "Beschikbaar" only ever lists agents
-  // who are actually available. Absent agents get their own group instead of being hidden
-  // inside "Beschikbaar", where they could be assigned by mistake during fast triage.
-  const availableAgents = unassignedAgents.filter((agent) => !agentAbsences?.get(agent.agent_id))
-  const absentAgents = unassignedAgents.filter((agent) => agentAbsences?.get(agent.agent_id))
-  const selectedAbsentAgents = absentAgents.filter((agent) =>
+  // Split unassigned agents by real availability, so "Beschikbaar" only ever lists agents who
+  // are actually available. Absent agents and agents not scheduled to work today get their own
+  // group instead of being hidden inside "Beschikbaar", where they could be assigned by mistake
+  // during fast triage.
+  const isAvailable = (agentId: string) => agentAvailability?.get(agentId)?.available ?? true
+  const availableAgents = unassignedAgents.filter((agent) => isAvailable(agent.agent_id))
+  const unavailableAgents = unassignedAgents.filter((agent) => !isAvailable(agent.agent_id))
+  const selectedUnavailableAgents = unavailableAgents.filter((agent) =>
     selectedAssignees.includes(agent.agent_id),
   )
 
@@ -190,7 +192,7 @@ export function AssignmentSelector({
                   <AssigneeSelectItem
                     key={assignee.agent_id}
                     agent={assignee}
-                    agentAbsence={agentAbsences?.get(assignee.agent_id) ?? null}
+                    availability={agentAvailability?.get(assignee.agent_id) ?? null}
                     isSelected={selectedAssignees.includes(assignee.agent_id)}
                     isPrimary={primaryAssignees.includes(assignee.agent_id)}
                     principalLookup={principalLookup}
@@ -213,7 +215,7 @@ export function AssignmentSelector({
                   <AssigneeSelectItem
                     key={agent.agent_id}
                     agent={agent}
-                    agentAbsence={null}
+                    availability={agentAvailability?.get(agent.agent_id) ?? null}
                     isSelected={selectedAssignees.includes(agent.agent_id)}
                     isPrimary={primaryAssignees.includes(agent.agent_id)}
                     principalLookup={principalLookup}
@@ -225,20 +227,20 @@ export function AssignmentSelector({
               </>
             )}
 
-            {availableAgents.length > 0 && absentAgents.length > 0 && (
+            {availableAgents.length > 0 && unavailableAgents.length > 0 && (
               <Separator className="my-2" />
             )}
 
-            {absentAgents.length > 0 && (
+            {unavailableAgents.length > 0 && (
               <>
                 <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
-                  Afwezig
+                  Niet beschikbaar
                 </p>
-                {absentAgents.map((agent) => (
+                {unavailableAgents.map((agent) => (
                   <AssigneeSelectItem
                     key={agent.agent_id}
                     agent={agent}
-                    agentAbsence={agentAbsences?.get(agent.agent_id) ?? null}
+                    availability={agentAvailability?.get(agent.agent_id) ?? null}
                     isSelected={selectedAssignees.includes(agent.agent_id)}
                     isPrimary={primaryAssignees.includes(agent.agent_id)}
                     principalLookup={principalLookup}
@@ -251,11 +253,11 @@ export function AssignmentSelector({
             )}
           </Field>
 
-          {selectedAbsentAgents.length > 0 && (
+          {selectedUnavailableAgents.length > 0 && (
             <p className="border-amber-200 bg-amber-50 text-amber-900 rounded-md border px-3 py-2 text-sm">
-              {selectedAbsentAgents.length === 1
-                ? `${selectedAbsentAgents[0].display_name} is afwezig. Weet je zeker dat je dit ticket aan deze medewerker wilt toewijzen?`
-                : "Een of meer geselecteerde medewerkers zijn afwezig. Weet je zeker dat je dit ticket aan hen wilt toewijzen?"}
+              {selectedUnavailableAgents.length === 1
+                ? `${selectedUnavailableAgents[0].display_name} is niet beschikbaar. Weet je zeker dat je dit ticket aan deze medewerker wilt toewijzen?`
+                : "Een of meer geselecteerde medewerkers zijn niet beschikbaar. Weet je zeker dat je dit ticket aan hen wilt toewijzen?"}
             </p>
           )}
 
@@ -282,7 +284,7 @@ export function AssignmentSelector({
 
 function AssigneeSelectItem({
   agent,
-  agentAbsence,
+  availability,
   isPrimary,
   isSelected,
   principalLookup,
@@ -291,7 +293,7 @@ function AssigneeSelectItem({
   onIsPrimaryClick,
 }: {
   agent: AgentSummary
-  agentAbsence: AgentAbsence | null
+  availability: AgentAvailabilityStatus | null
   isPrimary: boolean
   isSelected: boolean
   principalLookup: Map<string, HelpdeskUser>
@@ -328,7 +330,7 @@ function AssigneeSelectItem({
         <HelpdeskUserAvatar user={makeHelpdeskUser(agent, principalLookup)} type="agent" />
         <div className="text-start">
           <span className="grow text-start group-hover:underline">{agent.display_name}</span>
-          <AgentAvailabilityDisplay absence={agentAbsence} className="text-[11px]" />
+          <AgentAvailabilityDisplay availability={availability} className="text-[11px]" />
         </div>
       </Button>
 

@@ -15,6 +15,86 @@ export type TicketReassignment = TicketAssignmentSummary & {
   ticket: Omit<Ticket, "assignees" | "viewed_at">
 }
 
+const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5]
+
+/**
+ * Normalizes a `work_days` value into a safe array of weekday numbers (0 = Sunday, 6 = Saturday).
+ * `work_days` is stored as jsonb, so this also guards against unexpected/corrupt stored data.
+ */
+export function normalizeWorkDays(work_days: unknown): number[] {
+  return Array.isArray(work_days)
+    ? work_days.filter((day): day is number => typeof day === "number")
+    : DEFAULT_WORK_DAYS
+}
+
+/**
+ * Whether an agent with the given `work_days` is scheduled to work on the given date.
+ * This is the single source of truth for that rule: {@link getAvailableAgents} applies the same
+ * rule server-side (as a SQL predicate) when picking agents for auto-assignment, so any caller
+ * showing an agent's availability (e.g. in the UI) should use this instead of re-deriving it, to
+ * avoid the two going out of sync.
+ */
+export function isAgentScheduledOn(work_days: unknown, date: Date): boolean {
+  return normalizeWorkDays(work_days).includes(date.getDay())
+}
+
+/**
+ * Full availability status for a single agent on a given date, combining their configured work
+ * days and any registered absence.
+ */
+export type AgentAvailabilityStatus = {
+  agent_id: string
+  /** True only when the agent is scheduled to work today AND has no absence covering today. */
+  available: boolean
+  /** Whether the agent is scheduled to work today, per their configured work days. */
+  worksToday: boolean
+  /** The agent's absence covering the given date, or null if they aren't absent. */
+  absence: AgentAbsence | null
+}
+
+/**
+ * Gets the full availability status (configured work days + any registered absence) for each of
+ * the given agents on a date. This is the canonical way for display/UI code to determine whether
+ * an agent reads as available: it applies the exact same rules {@link getAvailableAgents} applies
+ * server-side for auto-assignment, so display and assignment logic can never drift apart.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param agents The agents to compute availability for (only `agent_id` and `work_days` are read).
+ * @param date Date to check availability on. Defaults to now.
+ * @returns Map of agent ID to their {@link AgentAvailabilityStatus} on the given date.
+ * @throws if the principal does not have permission to read the helpdesk.
+ */
+export async function getAgentAvailabilityStatuses(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  agents: Pick<schema.AgentTypeSelect, "agent_id" | "work_days">[],
+  date = new Date(),
+): Promise<Map<string, AgentAvailabilityStatus>> {
+  try {
+    const absences = await getAbsencesForAgentsOnDate(fdm, principal_id, date)
+
+    return new Map(
+      agents.map((agent) => {
+        const absence = absences.get(agent.agent_id) ?? null
+        const worksToday = isAgentScheduledOn(agent.work_days, date)
+        const status: AgentAvailabilityStatus = {
+          agent_id: agent.agent_id,
+          absence,
+          worksToday,
+          available: !absence && worksToday,
+        }
+        return [agent.agent_id, status]
+      }),
+    )
+  } catch (err) {
+    throw handleError(err, "Exception for getAgentAvailabilityStatuses", {
+      date: date.toISOString(),
+    })
+  }
+}
+
 const agentSummaryColumns = {
   agent_id: schema.agents.agent_id,
   display_name: schema.agents.display_name,

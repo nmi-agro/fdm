@@ -5,7 +5,7 @@ import {
   assignTicket,
   checkHelpdeskPermission,
   createTag,
-  getAbsencesForAgentsOnDate,
+  getAgentAvailabilityStatuses,
   getAgents,
   getAssigneesForTickets,
   getMessagesForTicket,
@@ -72,8 +72,10 @@ export async function loader({ params, request }: Args) {
 
     // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
     const agents = isAgent ? await getAgents(fdm, session.principal_id, { isActive: true }) : []
-    const agentAbsences = isAgent
-      ? await getAbsencesForAgentsOnDate(fdm, session.principal_id, new Date())
+    // Combines absence + configured work days into one availability status per agent, so the UI
+    // can never show an agent as available on a day they're absent or not scheduled to work.
+    const agentAvailability = isAgent
+      ? await getAgentAvailabilityStatuses(fdm, session.principal_id, agents)
       : undefined
 
     // Message sender's profile pictures are shown
@@ -126,7 +128,7 @@ export async function loader({ params, request }: Args) {
       isAgent: isAgent,
       principals: principalsSummarized,
       agents: agents,
-      agentAbsences: agentAbsences,
+      agentAvailability: agentAvailability,
       // To prevent hydration failed errors
       todayDate: new Date(),
       contextFarmName: ticket.context_farm_id
