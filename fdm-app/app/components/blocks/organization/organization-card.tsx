@@ -11,7 +11,7 @@ import { OrganizationAvatar } from "./organization-avatar"
 type OrganizationRole = "owner" | "admin" | "member"
 export interface OrganizationWithRoles {
   slug: string
-  name: string | null
+  name: string
   logo?: string | null | undefined
   metadata: ParseOrganizationMetadataResult
   userRoles: OrganizationRole[]
