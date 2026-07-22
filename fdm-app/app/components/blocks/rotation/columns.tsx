@@ -69,6 +69,7 @@ export type FieldRow = {
     p_name_nl: string | null
     p_id: string
     p_type: string | null
+    p_type_rvo?: string | null
   }[]
   fields?: undefined
 }

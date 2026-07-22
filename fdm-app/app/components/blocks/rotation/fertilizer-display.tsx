@@ -38,6 +38,7 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({ row }) => 
                   <FertilizerIcon
                     dimmed={!isFertilizerUsedOnAllFieldsForThisCultivation}
                     p_type={fertilizer.p_type ?? "other"}
+                    p_type_rvo={fertilizer.p_type_rvo}
                   />
                 </span>
                 {fertilizer.p_name_nl}

@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table"
-import { Hexagon, Pencil } from "lucide-react"
+import { Pencil } from "lucide-react"
 import { isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
 import { Badge } from "~/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
@@ -277,6 +277,7 @@ export const columns: ColumnDef<Fertilizer>[] = [
         return null
       }
       const p_type = fertilizer.p_type
+      const isRenure = isRenureRvoCode(fertilizer.p_type_rvo)
       const rawLabel = fertilizer.p_type_rvo_label?.trim() ?? ""
       const displayLabel = rawLabel || fertilizer.p_type_rvo || "Onbekend"
       const MAX_LABEL_LEN = 48
@@ -288,13 +289,15 @@ export const columns: ColumnDef<Fertilizer>[] = [
       const badge = (
         <Badge
           className={
-            p_type === "manure"
-              ? "bg-amber-600 text-white hover:bg-amber-700"
-              : p_type === "compost"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : p_type === "mineral"
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-gray-600 text-white hover:bg-gray-700"
+            isRenure
+              ? "bg-purple-600 text-white hover:bg-purple-700"
+              : p_type === "manure"
+                ? "bg-amber-600 text-white hover:bg-amber-700"
+                : p_type === "compost"
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : p_type === "mineral"
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-gray-600 text-white hover:bg-gray-700"
           }
           variant="outline"
         >
@@ -315,24 +318,6 @@ export const columns: ColumnDef<Fertilizer>[] = [
             </TooltipProvider>
           ) : (
             badge
-          )}
-          {isRenureRvoCode(fertilizer.p_type_rvo) && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge
-                    variant="outline"
-                    className="gap-1 border-transparent bg-purple-600 text-white hover:bg-purple-700"
-                  >
-                    <Hexagon className="h-3 w-3" />
-                    Renure
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Renure: telt niet mee voor de 170 kg dierlijke-mest norm (vanaf 2026)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           )}
         </span>
       )

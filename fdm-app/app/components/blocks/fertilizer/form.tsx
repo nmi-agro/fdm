@@ -3,7 +3,7 @@ import type {
   FertilizerParameterDescriptionItem,
 } from "@nmi-agro/fdm-core"
 import type { z } from "zod"
-import { Copy, Hexagon, InfoIcon } from "lucide-react"
+import { Copy, InfoIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useLocation, useParams } from "react-router"
@@ -322,28 +322,21 @@ export function FertilizerForm({
                       variant="outline"
                       className={cn(
                         "border-transparent text-white",
-                        currentType === "manure"
-                          ? "bg-amber-600 hover:bg-amber-700"
-                          : currentType === "compost"
-                            ? "bg-green-600 hover:bg-green-700"
-                            : currentType === "mineral"
-                              ? "bg-blue-600 hover:bg-blue-700"
-                              : "bg-gray-600 hover:bg-gray-700",
+                        isRenureRvoCode(formValues.p_type_rvo)
+                          ? "bg-purple-600 hover:bg-purple-700"
+                          : currentType === "manure"
+                            ? "bg-amber-600 hover:bg-amber-700"
+                            : currentType === "compost"
+                              ? "bg-green-600 hover:bg-green-700"
+                              : currentType === "mineral"
+                                ? "bg-blue-600 hover:bg-blue-700"
+                                : "bg-gray-600 hover:bg-gray-700",
                       )}
                     >
                       {rvoLabels?.[formValues.p_type_rvo] || formValues.p_type_rvo}
                     </Badge>
                   ) : (
                     <Badge variant="secondary">Geen RVO code</Badge>
-                  )}
-                  {isRenureRvoCode(formValues.p_type_rvo) && (
-                    <Badge
-                      variant="outline"
-                      className="gap-1 border-transparent bg-purple-600 text-white hover:bg-purple-700"
-                    >
-                      <Hexagon className="h-3 w-3" />
-                      Renure
-                    </Badge>
                   )}
                 </div>
               </div>

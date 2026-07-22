@@ -1,6 +1,7 @@
 import { format, startOfDay } from "date-fns"
 import { nl } from "date-fns/locale"
 import type {
+  FertilizerTypeInfo,
   TimelineCultivation,
   TimelineField,
   TimelineFertilizerApplication,
@@ -26,6 +27,7 @@ export type TimelineEvent = {
   sublabel?: string
   href: string
   p_type?: "manure" | "mineral" | "compost" | null
+  p_type_rvo?: string | null
   cultivationType?: string | null
 }
 
@@ -107,11 +109,12 @@ function pushFertilizerEvents(
   events: TimelineEvent[],
   field: TimelineField,
   applications: TimelineFertilizerApplication[],
-  fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>,
+  fertilizerTypeById: Map<string, FertilizerTypeInfo>,
   b_id_farm: string,
   calendar: string,
 ) {
   for (const app of applications) {
+    const fertilizerInfo = fertilizerTypeById.get(app.p_id)
     events.push({
       id: `fertilizer-${app.p_app_id}`,
       date: app.p_app_date,
@@ -122,7 +125,8 @@ function pushFertilizerEvents(
       label: app.p_name_nl ?? "Bemesting",
       sublabel: formatAmount(app.p_app_amount_display, app.p_app_amount_unit) ?? undefined,
       href: fertilizerHref(b_id_farm, calendar, field.b_id),
-      p_type: fertilizerTypeById.get(app.p_id) ?? null,
+      p_type: fertilizerInfo?.p_type ?? null,
+      p_type_rvo: fertilizerInfo?.p_type_rvo ?? null,
     })
   }
 }
@@ -180,7 +184,7 @@ function pushSoilEvents(
 
 export function flattenEvents(
   fields: TimelineField[],
-  fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>,
+  fertilizerTypeById: Map<string, FertilizerTypeInfo>,
   b_id_farm: string,
   calendar: string,
 ): TimelineEvent[] {

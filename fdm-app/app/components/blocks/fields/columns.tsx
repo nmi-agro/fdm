@@ -156,7 +156,10 @@ export function buildColumns(b_id_farm: string, calendar: string): ColumnDef<Fie
               >
                 <Badge variant="outline" className="text-muted-foreground gap-1">
                   <span>
-                    <FertilizerIcon p_type={fertilizer.p_type ?? "other"} />
+                    <FertilizerIcon
+                      p_type={fertilizer.p_type ?? "other"}
+                      p_type_rvo={fertilizer.p_type_rvo}
+                    />
                   </span>
                   {fertilizer.p_name_nl}
                 </Badge>
