@@ -349,10 +349,10 @@ function GerritReasoning({
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {plain.slice(firstLineIndex + 1).map((line, index) => (
+                {plain.slice(firstLineIndex + 1).map((line, index, array) => (
                   <span key={`reasoning-line-${index}`}>
                     {line}
-                    {index !== plain.length - 1 && <br />}
+                    {index !== array.length - 1 && <br />}
                   </span>
                 ))}
                 <CollapsibleTrigger asChild>
