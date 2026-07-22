@@ -36,6 +36,10 @@ import {
   collectNL2026InputForFertilizerApplicationFillingForFarm,
 } from "./nl/2026/filling/input"
 import {
+  calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+  getNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+} from "./nl/2026/filling/renure-gebruiksnorm"
+import {
   calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
   getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
 } from "./nl/2026/filling/stikstofgebruiksnorm"
@@ -45,6 +49,7 @@ import {
   collectNL2026InputForNorms,
   collectNL2026InputForNormsForFarm,
 } from "./nl/2026/value/input"
+import { getNL2026RenureGebruiksNorm } from "./nl/2026/value/renure-gebruiksnorm"
 import { getNL2026StikstofGebruiksNorm } from "./nl/2026/value/stikstofgebruiksnorm"
 
 type Years = "2025" | "2026"
@@ -69,6 +74,7 @@ export function createFunctionsForNorms(b_region: Regions, year: Years) {
         calculateNormForNitrogen: getNL2026StikstofGebruiksNorm,
         calculateNormForManure: getNL2026DierlijkeMestGebruiksNorm,
         calculateNormForPhosphate: getNL2026FosfaatGebruiksNorm,
+        calculateNormForRenure: getNL2026RenureGebruiksNorm,
         aggregateNormsToFarmLevel: aggregateNormsToFarmLevel,
       }
     }
@@ -106,6 +112,8 @@ export function createFunctionsForFertilizerApplicationFilling(b_region: Regions
           getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
         calculateFertilizerApplicationFillingForPhosphate:
           getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        calculateFertilizerApplicationFillingForRenure:
+          getNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
         aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
       }
     }
@@ -149,6 +157,8 @@ export function createUncachedFunctionsForFertilizerApplicationFilling(
           calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
         calculateFertilizerApplicationFillingForPhosphate:
           calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        calculateFertilizerApplicationFillingForRenure:
+          calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
         aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
       }
     }
