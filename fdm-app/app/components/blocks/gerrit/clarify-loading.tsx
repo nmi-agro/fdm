@@ -124,7 +124,7 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
                 <div
                   ref={scrollRef}
                   onScroll={handleScroll}
-                  className="text-italic size-full overflow-y-auto px-3 py-2 text-sm"
+                  className="text-italic size-full space-y-2 overflow-y-auto px-3 py-2 text-sm"
                 >
                   {reasoning}
                 </div>
