@@ -3,12 +3,13 @@ import type {
   FertilizerParameterDescriptionItem,
 } from "@nmi-agro/fdm-core"
 import type { z } from "zod"
-import { Copy, InfoIcon } from "lucide-react"
+import { Copy, Hexagon, InfoIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useLocation, useParams } from "react-router"
 import { RemixFormProvider, type useRemixForm } from "remix-hook-form"
 import type { FormSchema } from "~/components/blocks/fertilizer/formschema"
+import { isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -334,6 +335,15 @@ export function FertilizerForm({
                     </Badge>
                   ) : (
                     <Badge variant="secondary">Geen RVO code</Badge>
+                  )}
+                  {isRenureRvoCode(formValues.p_type_rvo) && (
+                    <Badge
+                      variant="outline"
+                      className="gap-1 border-transparent bg-purple-600 text-white hover:bg-purple-700"
+                    >
+                      <Hexagon className="h-3 w-3" />
+                      Renure
+                    </Badge>
                   )}
                 </div>
               </div>

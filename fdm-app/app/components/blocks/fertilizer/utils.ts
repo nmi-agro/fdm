@@ -3,6 +3,20 @@ import type { z } from "zod"
 import type { FormSchema } from "./formschema"
 
 /**
+ * RVO mestcodes for Renure ("REcovered Nitrogen from manURE") products: processed
+ * animal-manure fractions that behave like artificial fertilizer and are exempt
+ * from the 170 kg N/ha dierlijke-mest ceiling from 2026 onwards.
+ */
+export const RENURE_RVO_CODES = ["130", "131", "132", "133", "134"]
+
+/**
+ * Whether the given RVO mestcode identifies a Renure product.
+ */
+export function isRenureRvoCode(p_type_rvo?: string | null): boolean {
+  return !!p_type_rvo && RENURE_RVO_CODES.includes(p_type_rvo)
+}
+
+/**
  * Builds the default values for the fertilizer form based on an existing fertilizer object.
  * Maps null values to undefined to match Zod schema expectations (string | undefined, number | undefined).
  */
