@@ -29,7 +29,11 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
     for (const e of events) {
       if (e.type === "reasoning") reasoning += e.data?.chunk ?? ""
     }
-    const reasoningElements = reasoning.replace(/[*#`]/g, "").split("\n").filter((line) => line.trim() !== "").map((line, index) => <p key={index}>{line}</p>)
+    const reasoningElements = reasoning
+      .replace(/[*#`]/g, "")
+      .split("\n")
+      .filter((line) => line.trim() !== "")
+      .map((line, index) => <p key={index}>{line}</p>)
     setReasoning(reasoningElements)
   }, [events])
 
