@@ -95,10 +95,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
         })
 
         // Get pending farm invitations for this user
-        const pendingInvitations = await listPendingInvitationsForUser(
+        const pendingInvitationsRaw = await listPendingInvitationsForUser(
             fdm,
             session.user.id,
+            true,
         )
+        const pendingInvitations = [
+            ...pendingInvitationsRaw.filter(
+                (invitation) => invitation.can_accept,
+            ),
+            ...pendingInvitationsRaw.filter(
+                (invitation) => !invitation.can_accept,
+            ),
+        ]
 
         const rawOrganizations = await auth.api.listOrganizations({
             headers: request.headers,
@@ -476,6 +485,9 @@ export default function AppIndex() {
                                                         invitation.invitation_id
                                                     }
                                                     invitation={invitation}
+                                                    canAccept={
+                                                        invitation.can_accept
+                                                    }
                                                 />
                                             ),
                                         )}
@@ -535,6 +547,9 @@ export default function AppIndex() {
                                             <PendingInvitationCard
                                                 key={invitation.invitation_id}
                                                 invitation={invitation}
+                                                canAccept={
+                                                    invitation.can_accept
+                                                }
                                             />
                                         ),
                                     )}

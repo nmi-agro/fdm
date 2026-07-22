@@ -105,6 +105,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         const allPendingInvitations = await listPendingInvitationsForUser(
             fdm,
             session.principal_id,
+            true,
         )
         const pendingInvitations = allPendingInvitations.filter(
             (invitation) => invitation.target_principal_id === organization.id,
@@ -272,6 +273,9 @@ export default function AppIndex() {
                                                     }
                                                     principalType="organization"
                                                     invitation={invitation}
+                                                    canAccept={
+                                                        invitation.can_accept
+                                                    }
                                                 />
                                             ),
                                         )}

@@ -790,14 +790,17 @@ export async function listPendingInvitationsForFarm(
  *
  * @param fdm - The FDM instance providing the connection to the database.
  * @param user_id - The ID of the user to retrieve invitations for.
+ * @param include_readonly - Whether to include the invitations that the user's organization has
+ * received but the user themselves can't accept.
  *
  * @returns A Promise that resolves to an array of pending invitation records enriched with farm_name and org_name.
  */
 export async function listPendingInvitationsForUser(
     fdm: FdmType,
     user_id: string,
+    include_readonly?: boolean,
 ): Promise<
-    (authZSchema.invitationTypeSelect & {
+    (Awaited<ReturnType<typeof listPendingInvitationsForPrincipal>>[number] & {
         farm_name: string | null
         org_name: string | null
     })[]
@@ -807,6 +810,7 @@ export async function listPendingInvitationsForUser(
             const pending = await listPendingInvitationsForPrincipal(
                 tx,
                 user_id,
+                include_readonly,
             )
 
             if (pending.length === 0) {

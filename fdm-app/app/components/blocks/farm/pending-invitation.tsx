@@ -24,6 +24,7 @@ type PendingInvitation = {
 type Props = {
     invitation: PendingInvitation
     principalType?: "user" | "organization"
+    canAccept?: boolean
 }
 
 function getRoleLabel(role: string): string {
@@ -36,6 +37,7 @@ function getRoleLabel(role: string): string {
 export function PendingInvitationCard({
     invitation,
     principalType = "user",
+    canAccept = true,
 }: Props) {
     const farmLabel = invitation.farm_name ?? invitation.resource_id
     const expiresText = formatDistanceToNow(new Date(invitation.expires), {
@@ -70,13 +72,13 @@ export function PendingInvitationCard({
                         {invitation.org_name}
                     </span>
                 )}{" "}
-                Je kunt deze uitnodiging accepteren of weigeren.
+                {canAccept ? "Je kunt deze uitnodiging accepteren of weigeren." : "Een beheerder van de organisatie kan deze uitnodiging accepteren of weigeren."}
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground/80">
                     <Clock className="h-3 w-3" />
                     <span>Verloopt {expiresText}</span>
                 </div>
             </CardContent>
-            <CardFooter className="flex gap-2 pt-2">
+            {canAccept && <CardFooter className="flex gap-2 pt-2">
                 <Form method="post" className="flex-1">
                     <input
                         type="hidden"
@@ -114,7 +116,7 @@ export function PendingInvitationCard({
                         Weigeren
                     </Button>
                 </Form>
-            </CardFooter>
+            </CardFooter>}
         </Card>
     )
 }
