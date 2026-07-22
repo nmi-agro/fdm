@@ -169,7 +169,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
 
   useLayoutEffect(() => {
     handleScroll()
-  }, [scrollRef.current, scrollContainerRef.current])
+  }, [handleScroll])
 
   const elapsedStr = elapsed >= 60 ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s` : `${elapsed}s`
 
