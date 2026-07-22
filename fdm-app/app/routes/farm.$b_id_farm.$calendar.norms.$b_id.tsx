@@ -49,11 +49,13 @@ interface FieldNormData {
     manure: GebruiksnormResult
     phosphate: GebruiksnormResult
     nitrogen: GebruiksnormResult
+    renure?: GebruiksnormResult
   }
   normsFilling?: {
     manure: NormFilling
     phosphate: NormFilling
     nitrogen: NormFilling
+    renure?: NormFilling
   }
   fertilizerApplications?: Awaited<ReturnType<typeof getFertilizerApplications>>
   errorMessage?: string
@@ -260,12 +262,15 @@ interface FertilizerApplicationCardProps {
     manure: NormFilling
     phosphate: NormFilling
     nitrogen: NormFilling
+    renure?: NormFilling
   }
+  showRenure: boolean
 }
 
 const FertilizerApplicationCard = ({
   application,
   normsFilling,
+  showRenure,
 }: FertilizerApplicationCardProps) => {
   const applicationFilling = {
     nitrogen: normsFilling.nitrogen.applicationFilling?.find(
@@ -275,6 +280,9 @@ const FertilizerApplicationCard = ({
       (d: { p_app_id: string }) => d.p_app_id === application.p_app_id,
     ),
     manure: normsFilling.manure.applicationFilling?.find(
+      (d: { p_app_id: string }) => d.p_app_id === application.p_app_id,
+    ),
+    renure: normsFilling.renure?.applicationFilling?.find(
       (d: { p_app_id: string }) => d.p_app_id === application.p_app_id,
     ),
   }
@@ -328,6 +336,12 @@ const FertilizerApplicationCard = ({
           {renderApplicationContributionForNorm(
             "Stikstof uit dierlijke mest",
             applicationFilling.manure,
+          )}
+          {showRenure && (
+            <>
+              <ItemSeparator />
+              {renderApplicationContributionForNorm("Renure", applicationFilling.renure)}
+            </>
           )}
         </ItemGroup>
       </CardContent>
@@ -407,6 +421,7 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
   }
 
   const { norms, normsFilling, fertilizerApplications } = fieldNormData
+  const showRenure = Number.parseInt(loaderData.calendar, 10) >= 2026
 
   return (
     <FarmContent>
@@ -442,6 +457,14 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
               filling={normsFilling?.manure.normFilling}
               unit="kg N"
             />
+            {showRenure && (
+              <NormCard
+                title="Renure"
+                norm={norms?.renure?.normValue ?? 0}
+                filling={normsFilling?.renure?.normFilling}
+                unit="kg N"
+              />
+            )}
           </div>
 
           <Separator className="my-8" />
@@ -461,6 +484,7 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
                   key={app.p_app_id}
                   application={app}
                   normsFilling={normsFilling}
+                  showRenure={showRenure}
                 />
               ))}
           </div>
