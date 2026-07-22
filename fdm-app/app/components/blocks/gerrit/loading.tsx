@@ -11,7 +11,15 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react"
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
@@ -60,6 +68,7 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
   // Track insertion order for tools and the current reasoning entry
   const toolIndex = new Map<string, number>() // toolName → index in entries
   let reasoningIndex = -1
+  let toolsDoneUpTo = 0
 
   for (const event of events) {
     if (event.type === "start" || event.type === "status") {
@@ -70,6 +79,10 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
     } else if (event.type === "on_tool_start") {
       const name = event.data?.name
       if (!name) continue
+      // Mark reasoning inactive once any tool fires after it
+      if (reasoningIndex !== -1) {
+        ;(entries[reasoningIndex] as Extract<TimelineEntry, { kind: "reasoning" }>).isActive = false
+      }
       const existing = toolIndex.get(name)
       if (existing !== undefined) {
         // Tool fired again — increment counter, reset to running
@@ -102,21 +115,24 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
         reasoningIndex = entries.length
         entries.push({ kind: "reasoning", id: "reasoning", text: chunk, isActive: true })
       } else {
+        ;(entries[reasoningIndex] as Extract<TimelineEntry, { kind: "reasoning" }>).isActive = true
         ;(entries[reasoningIndex] as Extract<TimelineEntry, { kind: "reasoning" }>).text += chunk
       }
+      // We assume that all the tool calls have ended when the agent starts reasoning.
+      while (toolsDoneUpTo < entries.length) {
+        const entry = entries[toolsDoneUpTo]
+        if (entry.kind === "tool") {
+          entry.status = "done"
+        }
+        toolsDoneUpTo++
+      }
     }
-  }
-
-  // Mark reasoning inactive once any tool fires after it, or on finalize
-  const lastToolIdx = Math.max(...toolIndex.values(), -1)
-  if (reasoningIndex !== -1 && lastToolIdx > reasoningIndex) {
-    ;(entries[reasoningIndex] as Extract<TimelineEntry, { kind: "reasoning" }>).isActive = false
   }
 
   return entries
 }
 
-const AUTO_SCROLL_THRESHOLD = 50 // px from bottom of reasoning feed to trigger auto-scroll
+const AUTO_SCROLL_THRESHOLD = 100 // px from bottom of reasoning feed to trigger auto-scroll
 
 export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
   const [elapsed, setElapsed] = useState(0)
@@ -137,15 +153,15 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
 
   // Auto-scroll the reasoning feed when it's open and growing.
   useEffect(() => {
-    const element = bottomRef.current
     if (
-      element?.parentElement &&
-      element.parentElement.getBoundingClientRect().bottom + AUTO_SCROLL_THRESHOLD >
-        element.getBoundingClientRect().top
+      bottomRef.current &&
+      scrollRef.current &&
+      scrollRef.current.getBoundingClientRect().bottom + AUTO_SCROLL_THRESHOLD >
+        bottomRef.current.getBoundingClientRect().top
     ) {
-      element?.parentElement.scrollTo({
+      scrollRef.current.scrollTo({
         behavior: "smooth",
-        top: element?.parentElement.scrollHeight,
+        top: scrollRef.current.scrollHeight,
       })
     }
   }, [timeline.length])
@@ -192,7 +208,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
           variant="outline"
           className="absolute top-1 left-1/2 h-auto -translate-x-1/2 opacity-0 transition-opacity duration-200 group-data-scroll-start:opacity-100"
           onClick={() =>
-            bottomRef.current?.parentElement?.scrollTo({
+            scrollRef.current?.scrollTo({
               top: 0,
               behavior: "smooth",
             })
@@ -200,58 +216,63 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         >
           <ChevronUp className="text-muted-foreground my-1 h-4 w-4" />
         </Button>
-        <div
-          ref={scrollRef}
-          className="text-muted-foreground max-h-72 space-y-6 overflow-y-auto p-6 text-sm"
-          onScroll={handleScroll}
-        >
-          {timeline.length === 0 && (
-            <Marker role="status">
-              <MarkerIcon>
-                <Spinner />
-              </MarkerIcon>
-              <MarkerContent>Voorbereiden…</MarkerContent>
-            </Marker>
-          )}
+        <div ref={scrollRef} className="max-h-72 overflow-y-auto" onScroll={handleScroll}>
+          <div className="text-muted-foreground space-y-6 p-6 text-sm">
+            {timeline.length === 0 && (
+              <Marker role="status">
+                <MarkerIcon>
+                  <Spinner />
+                </MarkerIcon>
+                <MarkerContent>Voorbereiden…</MarkerContent>
+              </Marker>
+            )}
 
-          {timeline.map((entry) => {
-            if (entry.kind === "separator") {
-              return (
-                <Marker key={entry.id} variant="separator">
-                  <MarkerContent>{entry.label}</MarkerContent>
-                </Marker>
-              )
-            }
+            {timeline.map((entry) => {
+              if (entry.kind === "separator") {
+                return (
+                  <Marker key={entry.id} variant="separator">
+                    <MarkerContent>{entry.label}</MarkerContent>
+                  </Marker>
+                )
+              }
 
-            if (entry.kind === "tool") {
-              return (
-                <Marker key={entry.id} role="status">
-                  <MarkerIcon>
-                    {
-                      <entry.label.icon
-                        className={cn(entry.status === "running" && "animate-pulse")}
-                      />
-                    }
-                  </MarkerIcon>
-                  <MarkerContent className="space-x-1">{entry.label.name}</MarkerContent>
-                  {entry.count > 1 && (
-                    <Badge variant="outline" className="p-1 text-sm leading-none">
-                      ×{entry.count}
-                    </Badge>
-                  )}
-                  {entry.status === "done" ? (
-                    <Check className="relative top-px text-emerald-400" />
-                  ) : (
-                    <Spinner />
-                  )}
-                </Marker>
-              )
-            }
+              if (entry.kind === "tool") {
+                return (
+                  <Marker key={entry.id} role="status">
+                    <MarkerIcon>
+                      {
+                        <entry.label.icon
+                          className={cn(entry.status === "running" && "animate-pulse")}
+                        />
+                      }
+                    </MarkerIcon>
+                    <MarkerContent className="space-x-1">{entry.label.name}</MarkerContent>
+                    {entry.count > 1 && (
+                      <Badge variant="outline" className="p-1 text-sm leading-none">
+                        ×{entry.count}
+                      </Badge>
+                    )}
+                    {entry.status === "done" ? (
+                      <Check className="relative top-px text-emerald-400" />
+                    ) : (
+                      <Spinner />
+                    )}
+                  </Marker>
+                )
+              }
 
-            if (entry.kind === "reasoning") {
-              return <GerritReasoning key={entry.id} text={entry.text} isActive={entry.isActive} />
-            }
-          })}
+              if (entry.kind === "reasoning") {
+                return (
+                  <GerritReasoning
+                    key={entry.id}
+                    text={entry.text}
+                    isActive={entry.isActive}
+                    scrollRef={scrollRef}
+                  />
+                )
+              }
+            })}
+          </div>
           <div ref={bottomRef} />
         </div>
         <Button
@@ -259,8 +280,8 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
           variant="outline"
           className="absolute bottom-1 left-1/2 h-auto -translate-x-1/2 opacity-0 transition-opacity duration-200 group-data-scroll-end:opacity-100"
           onClick={() =>
-            bottomRef.current?.parentElement?.scrollTo({
-              top: bottomRef.current.parentElement.scrollHeight,
+            scrollRef.current?.scrollTo({
+              top: scrollRef.current?.scrollHeight,
               behavior: "smooth",
             })
           }
@@ -272,7 +293,15 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
   )
 }
 
-function GerritReasoning({ text, isActive }: { text: string; isActive: boolean }) {
+function GerritReasoning({
+  text,
+  isActive,
+  scrollRef,
+}: {
+  text: string
+  isActive: boolean
+  scrollRef: RefObject<HTMLDivElement | null>
+}) {
   const plain = text
     .trim()
     .split("\n")
@@ -295,9 +324,10 @@ function GerritReasoning({ text, isActive }: { text: string; isActive: boolean }
                 onClick={() => {
                   setTimeout(() => {
                     const element = bottomRef.current
+                    const scrollElement = scrollRef.current
 
-                    if (element?.parentElement) {
-                      const containerBottom = element.parentElement.getBoundingClientRect().bottom
+                    if (element && scrollElement) {
+                      const containerBottom = scrollElement.getBoundingClientRect().bottom
                       const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
                       if (
                         myBottom > containerBottom &&

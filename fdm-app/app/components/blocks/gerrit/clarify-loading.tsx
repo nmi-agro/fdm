@@ -61,7 +61,6 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
   const handleScroll = useCallback(() => {
     const scrollElement = scrollRef.current
     const scrollContainerElement = scrollContainerRef.current
-    console.log(scrollElement, scrollContainerElement)
     if (!scrollElement || !scrollContainerElement) return
     if (scrollElement.scrollTop > 5) {
       scrollContainerElement.dataset.scrollStart = ""
