@@ -72,51 +72,61 @@ export function PendingInvitationCard({
                         {invitation.org_name}
                     </span>
                 )}{" "}
-                {canAccept ? "Je kunt deze uitnodiging accepteren of weigeren." : "Een beheerder van de organisatie kan deze uitnodiging accepteren of weigeren."}
+                {canAccept &&
+                    "Je kunt deze uitnodiging accepteren of weigeren."}
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground/80">
                     <Clock className="h-3 w-3" />
                     <span>Verloopt {expiresText}</span>
                 </div>
             </CardContent>
-            {canAccept && <CardFooter className="flex gap-2 pt-2">
-                <Form method="post" className="flex-1">
-                    <input
-                        type="hidden"
-                        name="intent"
-                        value="accept_farm_invitation"
-                    />
-                    <input
-                        type="hidden"
-                        name="invitation_id"
-                        value={invitation.invitation_id}
-                    />
-                    <Button type="submit" size="sm" className="w-full">
-                        <Check className="mr-1 h-3 w-3" />
-                        Accepteren
-                    </Button>
-                </Form>
-                <Form method="post" className="flex-1">
-                    <input
-                        type="hidden"
-                        name="intent"
-                        value="decline_farm_invitation"
-                    />
-                    <input
-                        type="hidden"
-                        name="invitation_id"
-                        value={invitation.invitation_id}
-                    />
-                    <Button
-                        type="submit"
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <X className="mr-1 h-3 w-3" />
-                        Weigeren
-                    </Button>
-                </Form>
-            </CardFooter>}
+            <CardFooter className="flex gap-2 pt-2">
+                {canAccept ? (
+                    <>
+                        <Form method="post" className="flex-1">
+                            <input
+                                type="hidden"
+                                name="intent"
+                                value="accept_farm_invitation"
+                            />
+                            <input
+                                type="hidden"
+                                name="invitation_id"
+                                value={invitation.invitation_id}
+                            />
+                            <Button type="submit" size="sm" className="w-full">
+                                <Check className="mr-1 h-3 w-3" />
+                                Accepteren
+                            </Button>
+                        </Form>
+                        <Form method="post" className="flex-1">
+                            <input
+                                type="hidden"
+                                name="intent"
+                                value="decline_farm_invitation"
+                            />
+                            <input
+                                type="hidden"
+                                name="invitation_id"
+                                value={invitation.invitation_id}
+                            />
+                            <Button
+                                type="submit"
+                                size="sm"
+                                variant="outline"
+                                className="w-full"
+                            >
+                                <X className="mr-1 h-3 w-3" />
+                                Weigeren
+                            </Button>
+                        </Form>
+                    </>
+                ) : (
+                    <div className="text-xs text-muted-foreground">
+                        Een beheerder van de organisatie kan deze uitnodiging
+                        accepteren of weigeren.
+                    </div>
+                )}
+            </CardFooter>
         </Card>
     )
 }
