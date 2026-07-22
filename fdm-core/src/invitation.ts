@@ -597,6 +597,7 @@ export async function listPendingInvitationsForPrincipal(
                 ...invitation,
                 can_accept:
                     invitation.target_principal_id === user_id ||
+                    invitation.target_email === userEmail ||
                     !!(
                         invitation.target_principal_id &&
                         orgMap.get(invitation.target_principal_id)?.can_invite

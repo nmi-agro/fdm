@@ -834,6 +834,7 @@ describe("listPendingInvitationsForPrincipal", () => {
         const emailInv = invitations.find((i) => i.resource_id === emailFarmId)
         expect(emailInv).toBeDefined()
         expect(emailInv?.status).toBe("pending")
+        expect(emailInv?.can_accept).toBe(true)
     })
 
     it("should include org-targeted invitations for a user who is an org admin", async () => {
@@ -887,6 +888,7 @@ describe("listPendingInvitationsForPrincipal", () => {
         const orgInv = invitations.find((i) => i.target_principal_id === orgId)
         expect(orgInv).toBeDefined()
         expect(orgInv?.status).toBe("pending")
+        expect(orgInv?.can_accept).toBe(true)
     })
 
     it("should not include org-targeted invitations for a user who is a regular org member", async () => {
