@@ -265,6 +265,11 @@ export const typeRvoOptions = [
   { value: "116", label: "Overige mestsoorten" },
   { value: "117", label: "Gescheiden champost" },
   { value: "120", label: "Mineralenconcentraat" },
+  { value: "130", label: "Ammoniumsulfaat (Renure)" },
+  { value: "131", label: "Ammoniumnitraat (Renure)" },
+  { value: "132", label: "Mineralenconcentraat (Renure)" },
+  { value: "133", label: "Struviet (Renure)" },
+  { value: "134", label: "Ander ammoniumzout (Renure)" },
 ]
 export const typeRvoEnum = fdmSchema.enum(
   "p_type_rvo",
