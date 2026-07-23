@@ -8,6 +8,7 @@ import { createTicket } from "./ticket"
 import {
   assignTicket,
   assignTicketToAnAdmin,
+  assignTicketUnchecked,
   getAssigneesForTickets,
   getAssigneesForTicketsUnchecked,
   getAssignmentHistoryForTicket,
@@ -269,6 +270,27 @@ describe("assignTicket", () => {
     const assignmentHistory = await getAssignmentHistoryForTicket(fdm, admin_id, ticket_id)
     expect(assignmentHistory).toHaveLength(2)
   })
+
+  test("should update the existing assignment row if it exists", async ({ fdm }) => {
+    await assignTicket(fdm, ticket_id, agent_id, admin_id, true)
+    await assignTicket(fdm, ticket_id, agent_id, admin_id, false)
+
+    const assignmentHistory = await getAssignmentHistoryForTicket(fdm, admin_id, ticket_id)
+    expect(assignmentHistory).toHaveLength(1)
+  })
+})
+
+describe("assignTicketUnchecked", () => {
+  test("should throw when the database connection fails", async () => {
+    const fdm = {
+      select() {
+        throw new Error("Database connection failed")
+      },
+    } as unknown as FdmHelpdeskType
+    await expect(assignTicketUnchecked(fdm, createId(), createId(), createId())).rejects.toThrow(
+      "Exception for assignTicketUnchecked",
+    )
+  })
 })
 
 describe("unassignTicket", () => {
@@ -326,6 +348,19 @@ describe("assignTicketToAnAdmin", () => {
     await updateAgentRole(fdm, admin_id_1, admin_id_2, "admin")
 
     expect(await assignTicketToAnAdmin(fdm, ticket_id)).toBe(admin_id_1)
+  })
+
+  test("should not assign and return null if the ticket is already assigned to a primary assignee", async ({
+    fdm,
+  }) => {
+    const admin_id_1 = createId()
+    await addAdminAgent(fdm, admin_id_1, "Admin Agent")
+
+    const admin_id_2 = createId()
+    await addAgent(fdm, admin_id_1, admin_id_2, "Regular Agent")
+    await assignTicket(fdm, ticket_id, admin_id_2, admin_id_2, true)
+
+    expect(await assignTicketToAnAdmin(fdm, ticket_id)).toBeNull()
   })
 
   test("should fail and return null if the ticket cannot be assigned to an admin", async ({
