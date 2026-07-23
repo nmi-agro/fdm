@@ -2,11 +2,16 @@ import { getPrincipal, getPrincipals } from "@nmi-agro/fdm-core"
 import {
   addAgent,
   checkHelpdeskPermission,
+  getAgent,
+  getAgentAvailabilityStatuses,
   getAgents,
+  reassignAgentTickets,
   setAgentActiveStatus,
+  TicketReassignment,
   updateAgentRole,
 } from "@nmi-agro/fdm-helpdesk"
-import { useLoaderData } from "react-router"
+import { Outlet, useLoaderData } from "react-router"
+import { dataWithSuccess } from "remix-toast"
 import z from "zod"
 import { makeHelpdeskUser } from "@/app/components/blocks/helpdesk/helpdesk-user"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -20,6 +25,7 @@ import {
   SetAgentActiveStatusSchema,
   UpdateAgentRoleSchema,
 } from "~/components/blocks/helpdesk/agent-schema"
+import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -61,9 +67,18 @@ export async function loader({ request }: Route.LoaderArgs) {
       false,
     )
 
+    const agentAvailability = await getAgentAvailabilityStatuses(fdm, session.principal_id, agents)
+
     const helpdeskUsers: HelpdeskUserExtended[] = agents.map((agent) => {
       return {
         ...makeHelpdeskUser(agent, principals),
+        availability: agentAvailability.get(agent.agent_id) ?? {
+          agent_id: agent.agent_id,
+          available: true,
+          worksToday: true,
+          absence: null,
+        },
+        assignment_tier: agent.assignment_tier,
         role: agent.role,
         isActive: agent.is_active,
         isInvitation: false,
@@ -109,11 +124,52 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (formValues.intent === "set_agent_active_status") {
-      await setAgentActiveStatus(
-        fdm,
-        session.principal_id,
-        formValues.principal_id,
-        Boolean(formValues.is_active),
+      let newAssignments: TicketReassignment[] = []
+      await fdm.transaction(async (tx) => {
+        const agent = await getAgent(tx, session.principal_id, formValues.principal_id)
+
+        if (agent.is_active !== formValues.is_active) {
+          await setAgentActiveStatus(
+            tx,
+            session.principal_id,
+            formValues.principal_id,
+            Boolean(formValues.is_active),
+          )
+        }
+
+        if (agent.is_active && !formValues.is_active) {
+          const reassignment = await reassignAgentTickets(
+            tx,
+            formValues.principal_id,
+            session.principal_id,
+          )
+          newAssignments = reassignment.reassigned
+        }
+      })
+
+      if (newAssignments.length > 0) {
+        try {
+          await notifyAboutReassignments(session.principal_id, newAssignments)
+
+          return dataWithSuccess(
+            "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
+            {
+              message: "De medewerker is gedeactiveerd en de tickets zijn opnieuw toegewezen.",
+            },
+          )
+        } catch (err) {
+          handleActionError(err)
+        }
+      }
+
+      // Code will reach here also when notifying the new assignees fails
+      return dataWithSuccess(
+        { is_active: formValues.is_active },
+        {
+          message: formValues.is_active
+            ? "De medewerker is geactiveerd."
+            : "De medewerker is gedeactiveerd.",
+        },
       )
     }
   } catch (err) {
@@ -139,6 +195,7 @@ export default function HelpdeskAgentSettings() {
         roles={agentRoles}
         canModify={helpdeskWritePermission}
       />
+      <Outlet />
     </main>
   )
 }

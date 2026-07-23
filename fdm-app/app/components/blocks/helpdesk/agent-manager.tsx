@@ -1,15 +1,17 @@
-import type { ComponentProps } from "react"
-import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { User, Users } from "lucide-react"
+import type { AgentAvailabilityStatus } from "@nmi-agro/fdm-helpdesk"
+import { Pencil, User, Users } from "lucide-react"
+import { useId, useMemo, type ComponentProps } from "react"
 import { Controller } from "react-hook-form"
-import { Form, useFetcher, useNavigation } from "react-router"
-import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import { NavLink, useFetcher } from "react-router"
+import { useRemixForm, RemixFormProvider } from "remix-hook-form"
+import z from "zod"
 import { cn } from "@/app/lib/utils"
+import { useAgentManagerFilterStore } from "@/app/store/agent-manager-filter"
 import { AutoComplete } from "~/components/custom/autocomplete"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
-import { Field, FieldContent } from "~/components/ui/field"
+import { Field, FieldContent, FieldLabel } from "~/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -18,12 +20,17 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
-import { Table, TableBody, TableCell, TableRow } from "~/components/ui/table"
+import { Switch } from "~/components/ui/switch"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
 import type { HelpdeskUser } from "./types"
+import { AgentAvailabilityDisplay } from "./agent-availability"
 import { AddAgentSchema } from "./agent-schema"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
+import { SubmitButtonWithReassignmentConfirmation } from "./reassignment-confirmation"
 
 export type HelpdeskUserExtended = HelpdeskUser & {
+  availability: AgentAvailabilityStatus
+  assignment_tier: number
   role: string
   isInvitation: boolean
   isActive: boolean
@@ -46,6 +53,15 @@ export function HelpdeskAgentManager({
   roles,
   canModify,
 }: HelpdeskAgentManagerProps) {
+  const onlyActiveId = useId()
+  const agentManagerFilter = useAgentManagerFilterStore()
+
+  const filteredHelpdeskUsers = useMemo(
+    () =>
+      agentManagerFilter.activeOnly ? helpdeskUsers.filter((user) => user.isActive) : helpdeskUsers,
+    [helpdeskUsers, agentManagerFilter.activeOnly],
+  )
+
   return (
     <Card className="mx-auto max-w-5xl">
       {canModify && (
@@ -53,10 +69,35 @@ export function HelpdeskAgentManager({
           <AddAgentForm helpdeskUsers={helpdeskUsers} roles={roles} />
         </CardHeader>
       )}
-      <CardContent className="first:pt-6">
+      <CardContent className="space-y-4 first:pt-6">
+        <Field orientation="horizontal">
+          <Switch
+            id={onlyActiveId}
+            checked={agentManagerFilter.activeOnly}
+            onCheckedChange={(value) => agentManagerFilter.setActiveOnly(value)}
+          />
+          <FieldLabel htmlFor={onlyActiveId}>Toon alleen beschikbare mederwerkers</FieldLabel>
+        </Field>
         <Table className="w-full">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-0" aria-hidden="true" />
+              <TableHead>Medewerker</TableHead>
+              {canModify && <TableHead aria-hidden="true" />}
+              <TableHead>Linie</TableHead>
+              {canModify ? (
+                <>
+                  <TableHead aria-hidden="true" />
+                  <TableHead>Rol</TableHead>
+                  <TableHead className="text-end">Acties</TableHead>
+                </>
+              ) : (
+                <TableHead>Rol</TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
           <TableBody>
-            {helpdeskUsers.map((principal) => (
+            {filteredHelpdeskUsers.map((principal) => (
               <PrincipalRow
                 key={principal.principal_id}
                 principal={principal}
@@ -76,15 +117,16 @@ export interface AddAgentFormProps {
   roles: readonly RoleDescription[]
 }
 
-const FormSchema = AddAgentSchema.extend({ intent: "add_agent" })
+const FormSchema = AddAgentSchema.extend({ intent: z.literal("add_agent") })
 export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
-  const navigation = useNavigation()
-  const isSubmitting = navigation.state !== "idle"
+  const fetcher = useFetcher()
+  const isSubmitting = fetcher.state !== "idle"
 
   const defaultRole = roles[0].name
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onSubmit",
     resolver: zodResolver(FormSchema),
+    fetcher: fetcher,
     defaultValues: {
       intent: "add_agent",
       role: defaultRole,
@@ -96,7 +138,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
 
   return (
     <RemixFormProvider {...form}>
-      <Form method="post" onSubmit={form.handleSubmit}>
+      <fetcher.Form method="post" onSubmit={form.handleSubmit}>
         <fieldset disabled={isSubmitting} className="flex items-center justify-between space-x-4">
           {/* For uncontrolled form - intent is injected in Javascript in submitHandlers, see above. */}
           <input type="hidden" name="intent" value="add_agent" />
@@ -142,7 +184,7 @@ export function AddAgentForm({ helpdeskUsers, roles }: AddAgentFormProps) {
             Toevoegen{isSubmitting && <Spinner />}
           </Button>
         </fieldset>
-      </Form>
+      </fetcher.Form>
     </RemixFormProvider>
   )
 }
@@ -162,13 +204,27 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
       <TableCell className="align-middle">
         <HelpdeskUserAvatar user={principal} type="agent" />
       </TableCell>
-      <TableCell className="align-middle" width="99%">
+      <TableCell width="99%" className="align-middle">
         {principal.displayUserName}
+        {principal.isActive && <AgentAvailabilityDisplay availability={principal.availability} />}
       </TableCell>
+      {canModify && (
+        <TableCell>
+          <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
+        </TableCell>
+      )}
+      <TableCell className="text-muted-foreground whitespace-nowrap">{`${principal.assignment_tier}e lijns`}</TableCell>
       {canModify ? (
         <>
           <TableCell>
-            <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground" asChild>
+              <NavLink
+                to={`/support/settings/agents/${principal.principal_id}`}
+                aria-label={`Bewerk medewerker ${principal.displayUserName}`}
+              >
+                <Pencil />
+              </NavLink>
+            </Button>
           </TableCell>
           <TableCell className="align-middle">
             {principal.isActive ? (
@@ -189,26 +245,30 @@ export function PrincipalRow({ principal, roles, canModify }: PrincipalRowProps)
             )}
           </TableCell>
           <TableCell className="text-end align-middle">
-            <Button
+            <SubmitButtonWithReassignmentConfirmation
               type="button"
               variant={principal.isActive ? "destructive" : "outline"}
-              onClick={() => {
+              disabled={isSubmitting}
+              needsConfirmation={principal.isActive}
+              person="third"
+              onConfirmation={() => {
                 const formData = new FormData()
                 formData.append("intent", "set_agent_active_status")
                 formData.append("principal_id", principal.principal_id)
                 formData.append("is_active", principal.isActive ? "false" : "true")
                 void fetcher.submit(formData, { method: "post" })
               }}
-              disabled={isSubmitting}
             >
               {principal.isActive ? "Deactiveren" : "Activeren"}
-            </Button>
+            </SubmitButtonWithReassignmentConfirmation>
           </TableCell>
         </>
       ) : (
-        <TableCell>
-          {roles.find((role) => role.name === principal.role)?.label ?? "Gebruiker"}
-        </TableCell>
+        <>
+          <TableCell>
+            {roles.find((role) => role.name === principal.role)?.label ?? "Gebruiker"}
+          </TableCell>
+        </>
       )}
     </TableRow>
   )
