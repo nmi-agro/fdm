@@ -1,9 +1,16 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
+import { Building, X } from "lucide-react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { Controller } from "react-hook-form"
-import { Form, type HTMLFormMethod } from "react-router"
+import { useFetcher, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import z from "zod"
 import type { ParsedOrganization } from "~/lib/organization-helpers"
+import {
+  cropProfilePicture,
+  MAX_SIZE_BYTES,
+  ProfilePictureInput,
+} from "~/components/blocks/profile/profile-picture-manager"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -17,23 +24,51 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
-import { FormSchema } from "./schema"
+import { OrganizationInfoSchema } from "./schema"
 
+const FormSchema = OrganizationInfoSchema.extend({ intent: z.literal("update_organization_info") })
 export function OrganizationSettingsForm({
+  className,
   organization,
   action,
   method = "POST",
   canModify,
+  profilePictureField,
 }: {
+  className?: string
   organization?: ParsedOrganization
   action?: string
   method?: HTMLFormMethod
   canModify: boolean
+  profilePictureField: boolean
 }) {
+  const fetcher = useFetcher()
+
+  const [profilePictureFiles, setProfilePictureFiles] = useState<File[]>([])
+
+  const [isProcessingForm, processForm] = useTransition()
+
+  const formRef = useRef<HTMLFormElement>(null)
   const form = useRemixForm({
     mode: "onTouched",
     resolver: zodResolver(FormSchema),
+    fetcher: fetcher,
+    stringifyAllValues: false,
+    submitHandlers: {
+      async onValid() {
+        if (!formRef.current) return
+        const formData = new FormData(formRef.current)
+        processForm(async () => {
+          const formDataWithCroppedPic = await cropProfilePicture(formData)
+          fetcher.submit(formDataWithCroppedPic, {
+            method: "post",
+            encType: "multipart/form-data",
+          })
+        })
+      },
+    },
     defaultValues: {
+      intent: "update_organization_info" as const,
       name: organization?.name,
       slug: organization?.slug,
       description: organization?.metadata?.data?.description,
@@ -52,10 +87,12 @@ export function OrganizationSettingsForm({
   // Reset the form when the organization changes
   useEffect(() => {
     form.reset({
+      intent: "update_organization_info" as const,
       name: organization?.name,
       slug: organization?.slug,
       description: organization?.metadata?.data?.description,
     })
+    setProfilePictureFiles([])
   }, [form.reset, !!organization, organization?.slug])
 
   // Update slug when name changes
@@ -69,24 +106,26 @@ export function OrganizationSettingsForm({
     }
   }, [organizationName, form.getValues, form.setValue])
 
-  const disabled = !canModify || form.formState.isSubmitting
+  const isSubmitting = isProcessingForm || fetcher.state !== "idle"
+  const disabled = !canModify || isSubmitting
   return (
-    <Card className="mx-auto max-w-3xl">
+    <Card className={className}>
       <RemixFormProvider {...form}>
-        <Form action={action} method={method} onSubmit={form.handleSubmit}>
+        <fetcher.Form ref={formRef} action={action} method={method} onSubmit={form.handleSubmit}>
           <CardHeader>
             <CardTitle>Organisatiegegevens</CardTitle>
             <CardDescription>Voer de gegevens van je organisatie in.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <fieldset disabled={disabled} className="space-y-4">
+              <input type="hidden" name="intent" value="update_organization_info" />
               <Controller
                 name="name"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
                     <FieldLabel>Naam organisatie</FieldLabel>
-                    <Input {...field} type="text" required />
+                    <Input {...field} value={field.value ?? ""} type="text" required />
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </Field>
                 )}
@@ -97,7 +136,13 @@ export function OrganizationSettingsForm({
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
                     <FieldLabel>Organisatie ID</FieldLabel>
-                    <Input {...field} type="text" disabled />
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                      readOnly
+                      className="text-muted-foreground pointer-events-none"
+                    />
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </Field>
                 )}
@@ -112,20 +157,49 @@ export function OrganizationSettingsForm({
                       placeholder="Een korte toelichting op je organisatie zodat andere gebruikers er meer te weten over komen."
                       className="resize-none"
                       {...field}
+                      value={field.value ?? ""}
                     />
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </Field>
                 )}
               />
+              {profilePictureField && (
+                <Field>
+                  <FieldLabel>Logo (optioneel)</FieldLabel>
+                  <div className="relative mx-auto max-w-sm">
+                    <ProfilePictureInput
+                      appAspectRatio={3 / 2}
+                      frameShape="rectangle"
+                      cropBounds="outer"
+                      files={profilePictureFiles}
+                      onFilesChange={setProfilePictureFiles}
+                      maxFileSize={MAX_SIZE_BYTES}
+                      avatarFallback={<Building className="text-muted-foreground size-3/4" />}
+                    />
+                    {profilePictureFiles.length > 0 ? (
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        onClick={() => setProfilePictureFiles([])}
+                        className="hover:text-destructive absolute top-2 right-2 size-auto text-gray-100 has-[>svg]:px-1 has-[>svg]:py-1"
+                        title="Logo verwijderen"
+                        aria-label="Logo verwijderen"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </div>
+                </Field>
+              )}
             </fieldset>
           </CardContent>
           <CardFooter className="flex-row justify-end">
             <Button type="submit" disabled={disabled}>
-              {form.formState.isSubmitting && <Spinner />}
+              {isSubmitting && <Spinner />}
               {organization ? "Bijwerken" : "Aanmaken"}
             </Button>
           </CardFooter>
-        </Form>
+        </fetcher.Form>
       </RemixFormProvider>
     </Card>
   )
