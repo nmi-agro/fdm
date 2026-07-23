@@ -515,6 +515,6 @@ export async function action({ params, request }: Route.ActionArgs) {
       message: "Succesvol bijgewerkt.",
     })
   } catch (e) {
-    throw handleActionError(e)
+    return handleActionError(e)
   }
 }

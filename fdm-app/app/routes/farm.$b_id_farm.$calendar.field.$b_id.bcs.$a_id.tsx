@@ -262,6 +262,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       message: "BodemConditieScore is verwijderd!",
     })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

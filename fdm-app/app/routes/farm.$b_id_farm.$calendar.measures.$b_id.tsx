@@ -293,7 +293,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     return dataWithError("unknown intent", "Onbekende actie.")
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 

@@ -2,7 +2,7 @@ import { getFarm } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs, type MetaFunction } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleActionError } from "~/lib/error"
+import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 // Meta
@@ -51,6 +51,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       session,
     }
   } catch (error) {
-    throw handleActionError(error)
+    throw handleLoaderError(error)
   }
 }

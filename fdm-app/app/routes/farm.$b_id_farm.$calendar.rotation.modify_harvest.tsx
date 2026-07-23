@@ -361,6 +361,6 @@ export async function action({ request, params }: Route.ActionArgs) {
       statusText: "Method Not Allowed",
     })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

@@ -320,6 +320,6 @@ export async function action({ params, request }: Route.ActionArgs) {
       )
     }
 
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

@@ -900,7 +900,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (error instanceof z.ZodError) {
       return dataWithWarning(null, "Invoer is ongeldig. Controleer het formulier.")
     }
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 

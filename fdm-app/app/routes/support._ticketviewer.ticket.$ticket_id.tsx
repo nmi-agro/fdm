@@ -442,16 +442,21 @@ export async function action({ params, request }: Args) {
       })
     }
   } catch (err) {
-    // extractFormValuesFromRequest calls handleActionError itself, so if that is detected to be the case,
-    // return the response returned from it directly.
-    if (err instanceof Promise) {
-      const awaited = await (err as Promise<any>).catch(() => {})
-      if (awaited?.type === "DataWithResponseInit") {
-        return awaited
-      }
+    // extractFormValuesFromRequest awaits handleActionError before throwing (see
+    // fdm-app/app/lib/form.ts), so `err` here is already a resolved `DataWithResponseInit`
+    // toast-bearing response, not an Error. Return it directly instead of re-classifying it
+    // through handleActionError, which would overwrite its specific validation message with a
+    // generic one.
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "type" in err &&
+      (err as { type: unknown }).type === "DataWithResponseInit"
+    ) {
+      return err
     }
 
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 

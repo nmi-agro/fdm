@@ -127,7 +127,7 @@ export async function action({ request }: Route.ActionArgs) {
       "We hebben uw vraag ontvangen. Een collega neemt binnenkort contact met u op.",
     )
   } catch (err) {
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 

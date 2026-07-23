@@ -1,7 +1,7 @@
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import imageSize from "image-size"
 import crypto from "node:crypto"
-import { dataWithError, redirectWithSuccess } from "remix-toast"
+import { redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
@@ -177,16 +177,6 @@ export async function action({ request }: Route.ActionArgs) {
       message: `Organisatie ${formValues.name} is aangemaakt! 🎉`,
     })
   } catch (error) {
-    if (
-      error &&
-      (error as { body?: { code?: string } }).body?.code === "ORGANIZATION_SLUG_ALREADY_TAKEN"
-    ) {
-      return dataWithError(
-        null,
-        "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
-      )
-    }
-
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
