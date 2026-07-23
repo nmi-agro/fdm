@@ -229,6 +229,12 @@ export function ProfilePictureManager({
     })
   }
 
+  useEffect(() => {
+    if (uploadFetcher.state === "idle") {
+      setFiles([])
+    }
+  }, [uploadFetcher.state])
+
   return (
     <uploadFetcher.Form
       method="post"
