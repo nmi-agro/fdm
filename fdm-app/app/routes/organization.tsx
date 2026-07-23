@@ -170,8 +170,10 @@ export default function App() {
       <SidebarInset className="min-w-0">
         <Header
           action={{
-            to: "/organization",
-            label: "Terug naar organisaties",
+            to: loaderData.selectedOrganizationSlug
+              ? `/organization/${loaderData.selectedOrganizationSlug}`
+              : "/organization",
+            label: "Terug naar organisatie",
             disabled: false,
           }}
         >

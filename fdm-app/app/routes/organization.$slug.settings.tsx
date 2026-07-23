@@ -97,7 +97,6 @@ export default function OrganizationSettingsBlock() {
       <FarmTitle
         title={"Organisatie instellingen"}
         description={"Werk de gegevens bij van deze organisatie."}
-        action={{ to: "./..", label: "Terug" }}
       />
       <div className="flex flex-col gap-4 px-4 pb-8 md:flex-row md:px-8">
         <Card className="md:min-w-sm">
