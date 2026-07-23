@@ -7,7 +7,7 @@ import { handleError } from "./error"
 import { createId } from "./id"
 
 export type SavedReply = schema.SavedReplyTypeSelect
-export type SavedReplySummary = Pick<SavedReply, "reply_id" | "title">
+export type SavedReplySummary = Omit<SavedReply, "body">
 export type SavedReplyVariable = string
 export type SavedReplyContext = Partial<{ [k in SavedReplyVariable]: string }>
 
@@ -40,6 +40,74 @@ export async function createSavedReply(
   }
 }
 
+export async function updateSavedReply(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  reply_id: schema.SavedReplyTypeSelect["reply_id"],
+  title?: schema.SavedReplyTypeInsert["title"],
+  body?: schema.SavedReplyTypeInsert["body"],
+  category?: schema.SavedReplyTypeInsert["category"],
+  is_shared?: schema.SavedReplyTypeInsert["is_shared"],
+) {
+  try {
+    await fdm.transaction(async (tx) => {
+      await checkHelpdeskPermission(
+        tx,
+        "saved_reply",
+        "write",
+        reply_id,
+        principal_id,
+        "updateSavedReply",
+      )
+
+      await tx
+        .update(schema.savedReplies)
+        .set({
+          title: title,
+          body: body,
+          category: category,
+          is_shared: is_shared,
+          updated: sql`now()`,
+        })
+        .where(eq(schema.savedReplies.reply_id, reply_id))
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateSavedReply", {
+      principal_id,
+      reply_id,
+      title,
+      category,
+      is_shared,
+    })
+  }
+}
+
+export async function deleteSavedReply(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  reply_id: schema.SavedReplyTypeSelect["reply_id"],
+) {
+  try {
+    await fdm.transaction(async (tx) => {
+      await checkHelpdeskPermission(
+        tx,
+        "saved_reply",
+        "write",
+        reply_id,
+        principal_id,
+        "updateSavedReply",
+      )
+
+      await tx.delete(schema.savedReplies).where(eq(schema.savedReplies.reply_id, reply_id))
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for deleteSavedReply", {
+      principal_id,
+      reply_id,
+    })
+  }
+}
+
 export async function getSavedReplies(
   fdm: FdmHelpdeskType,
   principal_id: HelpdeskPrincipalId,
@@ -63,6 +131,12 @@ export async function getSavedReplies(
       .select({
         reply_id: schema.savedReplies.reply_id,
         title: schema.savedReplies.title,
+        category: schema.savedReplies.category,
+        created_by: schema.savedReplies.created_by,
+        is_shared: schema.savedReplies.is_shared,
+        usage_count: schema.savedReplies.usage_count,
+        created: schema.savedReplies.created,
+        updated: schema.savedReplies.updated,
       })
       .from(schema.savedReplies)
       .where(
@@ -82,7 +156,11 @@ export async function getSavedReplies(
   }
 }
 
-export async function getSavedReply(fdm: FdmHelpdeskType, principal_id: string, reply_id: string) {
+export async function getSavedReply(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+  reply_id: string,
+) {
   try {
     await checkHelpdeskPermission(
       fdm,

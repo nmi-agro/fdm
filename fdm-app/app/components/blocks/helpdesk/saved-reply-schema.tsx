@@ -23,3 +23,8 @@ export const CreateSavedReplySchema = z.object({
   body: z.string().min(1),
   is_shared: z.boolean().optional(),
 })
+
+export const DeleteSavedReplySchema = z.object({
+  intent: z.literal("delete_saved_reply"),
+  reply_id: z.string(),
+})
