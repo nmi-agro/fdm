@@ -4,7 +4,7 @@ import imageSize from "image-size"
 import { User } from "lucide-react"
 import crypto from "node:crypto"
 import { type MetaFunction, useLoaderData } from "react-router"
-import { redirectWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { detectExistingProfilePictureObjectKey } from "~/components/blocks/profile/detect-existing.server"
@@ -132,21 +132,23 @@ export async function action({ request }: Route.ActionArgs) {
     try {
       formData = await parseFormData(request, { maxFileSize: MAX_SIZE_BYTES }, uploadHandler)
     } catch (error) {
+      console.error("Failed to parse form data for profile picture upload:", error)
       const message = error instanceof Error ? error.message : "Invalid upload"
-      return Response.json({ error: message }, { status: 400 })
+      return dataWithError(null, message)
     }
 
     const actionSchemaResult = ActionSchema.safeParse(Object.fromEntries(formData.entries()))
 
     if (actionSchemaResult.error) {
-      return Response.json({ errors: actionSchemaResult.error }, { status: 400 })
+      console.error("Action validation failed for user profile settings:", actionSchemaResult.error)
+      return dataWithError(null, "De ingevoerde gegevens zijn ongeldig.")
     }
 
     const oldProfilePictureObjectKey = detectExistingProfilePictureObjectKey(session.user.image)
 
     if (actionSchemaResult.data.intent === "update_profile_picture") {
       if (!fileBuffer || !detectedMime) {
-        return Response.json({ error: "No valid image file provided" }, { status: 400 })
+        return dataWithError(null, "Er is geen geldige afbeelding toegevoegd.")
       }
 
       const detectedExt = MIME_TO_EXT[detectedMime]

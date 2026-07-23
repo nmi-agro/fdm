@@ -367,10 +367,28 @@ export async function cropProfilePicture(
           image.src = url
           image.addEventListener("load", () => {
             const canvas = document.createElement("canvas")
-            canvas.width = parsed.width
-            canvas.height = parsed.height
+            const maxDim = MAX_DIMENSIONS
+            let targetWidth = parsed.width
+            let targetHeight = parsed.height
+            if (targetWidth > maxDim || targetHeight > maxDim) {
+              const ratio = Math.min(maxDim / targetWidth, maxDim / targetHeight)
+              targetWidth = Math.round(targetWidth * ratio)
+              targetHeight = Math.round(targetHeight * ratio)
+            }
+            canvas.width = targetWidth
+            canvas.height = targetHeight
             const ctx = canvas.getContext("2d")
-            ctx?.drawImage(image, -parsed.x, -parsed.y)
+            ctx?.drawImage(
+              image,
+              parsed.x,
+              parsed.y,
+              parsed.width,
+              parsed.height,
+              0,
+              0,
+              targetWidth,
+              targetHeight,
+            )
             imageCompression.canvasToFile(canvas, "image/webp", "avatar", Date.now()).then(resolve)
           })
         })

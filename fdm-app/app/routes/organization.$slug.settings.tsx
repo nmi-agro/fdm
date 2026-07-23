@@ -173,14 +173,16 @@ export async function action({ params, request }: Route.ActionArgs) {
     try {
       formData = await parseFormData(request, { maxFileSize: MAX_SIZE_BYTES }, uploadHandler)
     } catch (error) {
+      console.error("Failed to parse form data for profile picture/logo upload:", error)
       const message = error instanceof Error ? error.message : "Invalid upload"
-      return Response.json({ error: message }, { status: 400 })
+      return dataWithError(null, message)
     }
 
     const actionSchemaResult = ActionSchema.safeParse(Object.fromEntries(formData.entries()))
 
     if (actionSchemaResult.error) {
-      return Response.json({ errors: actionSchemaResult.error }, { status: 400 })
+      console.error("Action validation failed for organization settings:", actionSchemaResult.error)
+      return dataWithError(null, "De ingevoerde gegevens zijn ongeldig.")
     }
 
     const currentOrganization = (
@@ -200,7 +202,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
     if (actionSchemaResult.data.intent === "update_profile_picture") {
       if (!fileBuffer || !detectedMime) {
-        return Response.json({ error: "Er is geen geldig afbeelding toegevoegd." }, { status: 400 })
+        return dataWithError(null, "Er is geen geldige afbeelding toegevoegd.")
       }
 
       const detectedExt = MIME_TO_EXT[detectedMime]
