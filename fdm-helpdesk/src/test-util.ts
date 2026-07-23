@@ -9,9 +9,10 @@ import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
  * dependent tables. Use this in a beforeEach hook when a test needs a clean isolated state.
  */
 export async function truncateAllTables(fdm: FdmHelpdeskType) {
-    await fdm.execute(sql`
+  await fdm.execute(sql`
         TRUNCATE TABLE
             "fdm-helpdesk"."agents",
+            "fdm-helpdesk"."blocked_emails",
             "fdm-helpdesk"."tickets",
             "fdm-helpdesk"."tags",
             "fdm-helpdesk"."saved_replies"
@@ -28,29 +29,29 @@ export async function truncateAllTables(fdm: FdmHelpdeskType) {
  * @returns a FDM instance
  */
 export const test = baseTest.extend(
-    "fdm",
-    { scope: "worker" },
-    // biome-ignore lint/correctness/noEmptyPattern: vitest fixtures require using object destructuring for arguments due to reflection
-    async ({}, { onCleanup }) => {
-        const client = postgres({
-            host: inject("host"),
-            port: inject("port"),
-            user: inject("user"),
-            password: inject("password"),
-            database: inject("database"),
-            max: 1,
-            onnotice(item) {
-                // Do not log truncation warnings (truncation happens a lot due to how some tests are set up)
-                if (item?.message?.startsWith("truncate cascades to")) {
-                    return
-                }
+  "fdm",
+  { scope: "worker" },
+  // eslint-disable-next-line no-empty-pattern -- Vitest uses object destructuring reflection to register fixtures, necessitating an empty pattern placeholder for unused initial arguments.
+  async ({}, { onCleanup }) => {
+    const client = postgres({
+      host: inject("host"),
+      port: inject("port"),
+      user: inject("user"),
+      password: inject("password"),
+      database: inject("database"),
+      max: 1,
+      onnotice(item) {
+        // Do not log truncation warnings (truncation happens a lot due to how some tests are set up)
+        if (item?.message?.startsWith("truncate cascades to")) {
+          return
+        }
 
-                console.log(item)
-            },
-        })
+        console.log(item)
+      },
+    })
 
-        const fdm = drizzle(client)
-        onCleanup(() => client.end())
-        return fdm
-    },
+    const fdm = drizzle(client)
+    onCleanup(() => client.end())
+    return fdm
+  },
 )

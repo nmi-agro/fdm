@@ -1,870 +1,673 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
+import type { UseRemixFormReturn } from "remix-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
 import { type MouseEventHandler, useEffect, useMemo, useState } from "react"
 import { Controller, type Resolver } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
-import type { UseRemixFormReturn } from "remix-hook-form"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
 import { cn } from "@/app/lib/utils"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from "~/components/ui/collapsible"
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "~/components/ui/dialog"
-import {
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-    FieldSet,
-} from "~/components/ui/field"
+import { Field, FieldError, FieldGroup, FieldLabel, FieldSet } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { useCalendarStore } from "~/store/calendar"
+import { HarvestModeSwitchAlert } from "./mode-switch"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
 import { getHarvestCapitalizedTerm, getHarvestDateTerm, getHarvestTerm } from "./utils"
-import { HarvestModeSwitchAlert } from "./mode-switch"
 
 function toDate(value: Date | string) {
-    return value instanceof Date ? value : new Date(value)
+  return value instanceof Date ? value : new Date(value)
 }
 
 type HarvestFormDialogProps = {
-    b_lu_croprotation?: string
-    harvestParameters: HarvestParameters
-    exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
-    example_b_lu_harvest_date?: Date | null
-    b_lu_harvest_date: Date | string | null | undefined // Changed to allow Date or string
-    b_date_harvest_default?: string | null // MM-dd format from cultivation catalogue
-    b_lu_yield: number | undefined
-    b_lu_yield_fresh: number | undefined
-    b_lu_yield_bruto: number | undefined
-    b_lu_tarra: number | undefined
-    b_lu_uww: number | undefined
-    b_lu_moist: number | undefined
-    b_lu_dm: number | undefined
-    b_lu_cp: number | undefined
-    b_lu_n_harvestable: number | undefined
-    b_lu_harvestable: "once" | "multiple" | "none"
-    b_lu_start: Date | undefined | null
-    b_lu_end: Date | undefined | null
-    action?: string
-    handleConfirmation?: (data: HarvestFormValues) => Promise<boolean>
-    editable?: boolean
-    allowBatch?: boolean
-    onBatchClick?: MouseEventHandler
+  b_lu_croprotation?: string
+  harvestParameters: HarvestParameters
+  exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
+  example_b_lu_harvest_date?: Date | null
+  b_lu_harvest_date: Date | string | null | undefined // Changed to allow Date or string
+  b_date_harvest_default?: string | null // MM-dd format from cultivation catalogue
+  b_lu_yield: number | undefined
+  b_lu_yield_fresh: number | undefined
+  b_lu_yield_bruto: number | undefined
+  b_lu_tarra: number | undefined
+  b_lu_uww: number | undefined
+  b_lu_moist: number | undefined
+  b_lu_dm: number | undefined
+  b_lu_cp: number | undefined
+  b_lu_n_harvestable: number | undefined
+  b_lu_harvestable: "once" | "multiple" | "none"
+  b_lu_start: Date | undefined | null
+  b_lu_end: Date | undefined | null
+  action?: string
+  handleConfirmation?: (data: HarvestFormValues) => Promise<boolean>
+  editable?: boolean
+  allowBatch?: boolean
+  onBatchClick?: MouseEventHandler
 }
 
 const SchemaWithIntent = FormSchema.extend({
-    intent: z.literal("single_harvest"),
+  intent: z.literal("single_harvest"),
 })
 
 type HarvestFormValues = z.infer<typeof SchemaWithIntent>
 
 function useHarvestRemixForm({
-    harvestParameters,
-    b_lu_harvest_date,
-    b_date_harvest_default,
-    b_lu_yield,
-    b_lu_yield_fresh,
-    b_lu_yield_bruto,
-    b_lu_tarra,
-    b_lu_uww,
-    b_lu_moist,
-    b_lu_dm,
-    b_lu_cp,
-    b_lu_n_harvestable,
-    b_lu_harvestable,
-    b_lu_start,
-    b_lu_end,
-    example_b_lu_harvest_date,
-    handleConfirmation,
+  harvestParameters,
+  b_lu_harvest_date,
+  b_date_harvest_default,
+  b_lu_yield,
+  b_lu_yield_fresh,
+  b_lu_yield_bruto,
+  b_lu_tarra,
+  b_lu_uww,
+  b_lu_moist,
+  b_lu_dm,
+  b_lu_cp,
+  b_lu_n_harvestable,
+  b_lu_harvestable,
+  b_lu_start,
+  b_lu_end,
+  example_b_lu_harvest_date,
+  handleConfirmation,
 }: HarvestFormDialogProps) {
-    const { calendar } = useCalendarStore()
-    const currentYear = new Date().getFullYear()
-    const parsedCalendar = calendar ? Number(calendar) : Number.NaN
-    const calendarYear = Number.isNaN(parsedCalendar)
-        ? currentYear
-        : parsedCalendar
+  const { calendar } = useCalendarStore()
+  const currentYear = new Date().getFullYear()
+  const parsedCalendar = calendar ? Number(calendar) : Number.NaN
+  const calendarYear = Number.isNaN(parsedCalendar) ? currentYear : parsedCalendar
 
-    // Compute default harvest date from catalogue's MM-dd + calendar year
-    // Only apply when creating a new harvest (no existing date) and not in current year
-    const defaultHarvestDate = useMemo(() => {
-        if (b_lu_harvest_date) {
-            return toDate(b_lu_harvest_date)
-        }
-        if (example_b_lu_harvest_date) {
-            // Bulk edit: leave empty
-            return null
-        }
-        if (calendarYear === currentYear) {
-            // Current year: leave empty (calendar opens at today)
-            return null
-        }
-        if (b_date_harvest_default) {
-            // Parse MM-dd and combine with calendar year
-            const [month, day] = b_date_harvest_default.split("-").map(Number)
-            if (month && day) {
-                return new Date(calendarYear, month - 1, day)
-            }
-        }
-        return null
-    }, [
-        b_lu_harvest_date,
-        example_b_lu_harvest_date,
-        b_date_harvest_default,
-        calendarYear,
-        currentYear,
-    ])
+  // Compute default harvest date from catalogue's MM-dd + calendar year
+  // Only apply when creating a new harvest (no existing date) and not in current year
+  const defaultHarvestDate = useMemo(() => {
+    if (b_lu_harvest_date) {
+      return toDate(b_lu_harvest_date)
+    }
+    if (example_b_lu_harvest_date) {
+      // Bulk edit: leave empty
+      return null
+    }
+    if (calendarYear === currentYear) {
+      // Current year: leave empty (calendar opens at today)
+      return null
+    }
+    if (b_date_harvest_default) {
+      // Parse MM-dd and combine with calendar year
+      const [month, day] = b_date_harvest_default.split("-").map(Number)
+      if (month && day) {
+        return new Date(calendarYear, month - 1, day)
+      }
+    }
+    return null
+  }, [
+    b_lu_harvest_date,
+    example_b_lu_harvest_date,
+    b_date_harvest_default,
+    calendarYear,
+    currentYear,
+  ])
 
-    const form = useRemixForm<HarvestFormValues>({
-        mode: "onSubmit",
-        resolver: (async (values, bypass, options) => {
-            // Do the validation using Zod
-            const validation = (
-                zodResolver(SchemaWithIntent) as Resolver<HarvestFormValues>
-            )(values, bypass, options) as any
-            // If there are validation errors anyways, just return them
-            if (
-                validation.errors &&
-                Object.keys(validation.errors).length > 0
-            ) {
-                return validation
-            }
-            // If this was not a partial update and there were mandatory fields missing
-            if (!example_b_lu_harvest_date) {
-                if (!values.b_lu_harvest_date) {
-                    return {
-                        errors: {
-                            b_lu_harvest_date: "Selecteer een oogstdatum",
-                        },
-                    }
-                }
-            }
-            // If submitting, handle the confirmation procedure
-            // (it might just return true without a dialog)
-            if (
-                form.formState.isSubmitting &&
-                handleConfirmation &&
-                !(await handleConfirmation(values))
-            ) {
-                return { values: {}, errors: true }
-            }
-            return validation as any
-        }) as Resolver<HarvestFormValues>,
-        defaultValues: {
-            intent: "single_harvest",
-            b_lu_harvest_date: defaultHarvestDate,
-            b_lu_yield: harvestParameters.includes("b_lu_yield")
-                ? b_lu_yield
-                : undefined,
-            b_lu_yield_fresh: harvestParameters.includes("b_lu_yield_fresh")
-                ? b_lu_yield_fresh
-                : undefined,
-            b_lu_yield_bruto: harvestParameters.includes("b_lu_yield_bruto")
-                ? b_lu_yield_bruto
-                : undefined,
-            b_lu_tarra: harvestParameters.includes("b_lu_tarra")
-                ? b_lu_tarra
-                : undefined,
-            b_lu_dm: harvestParameters.includes("b_lu_dm")
-                ? b_lu_dm
-                : undefined,
-            b_lu_uww: harvestParameters.includes("b_lu_uww")
-                ? b_lu_uww
-                : undefined,
-            b_lu_moist: harvestParameters.includes("b_lu_moist")
-                ? b_lu_moist
-                : undefined,
-            b_lu_cp: harvestParameters.includes("b_lu_cp")
-                ? b_lu_cp
-                : undefined,
-            b_lu_n_harvestable: harvestParameters.includes("b_lu_n_harvestable")
-                ? b_lu_n_harvestable
-                : undefined,
-            b_lu_start: b_lu_start,
-            b_lu_end: b_lu_end,
-            b_lu_harvestable: b_lu_harvestable,
-        },
-    })
-
-    // When the calendar store is populated after initial render, re-evaluate the
-    // default harvest date, but only if the user has not already entered a value.
-    useEffect(() => {
-        const currentValue = form.getValues("b_lu_harvest_date")
-        const { isDirty } = form.getFieldState("b_lu_harvest_date")
-        if (
-            !b_lu_harvest_date &&
-            !example_b_lu_harvest_date &&
-            !currentValue &&
-            !isDirty
-        ) {
-            form.setValue("b_lu_harvest_date", defaultHarvestDate ?? null)
+  const form = useRemixForm<HarvestFormValues>({
+    mode: "onSubmit",
+    resolver: (async (values, bypass, options) => {
+      // Do the validation using Zod
+      const validation = (zodResolver(SchemaWithIntent) as Resolver<HarvestFormValues>)(
+        values,
+        bypass,
+        options,
+      ) as any
+      // If there are validation errors anyways, just return them
+      if (validation.errors && Object.keys(validation.errors).length > 0) {
+        return validation
+      }
+      // If this was not a partial update and there were mandatory fields missing
+      if (!example_b_lu_harvest_date) {
+        if (!values.b_lu_harvest_date) {
+          return {
+            errors: {
+              b_lu_harvest_date: "Selecteer een oogstdatum",
+            },
+          }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        form.setValue,
-        example_b_lu_harvest_date,
-        defaultHarvestDate,
-        form.getFieldState,
-        form.getValues,
-        b_lu_harvest_date,
-    ])
+      }
+      // If submitting, handle the confirmation procedure
+      // (it might just return true without a dialog)
+      if (
+        form.formState.isSubmitting &&
+        handleConfirmation &&
+        !(await handleConfirmation(values))
+      ) {
+        return { values: {}, errors: true }
+      }
+      return validation as any
+    }) as Resolver<HarvestFormValues>,
+    defaultValues: {
+      intent: "single_harvest",
+      b_lu_harvest_date: defaultHarvestDate,
+      b_lu_yield: harvestParameters.includes("b_lu_yield") ? b_lu_yield : undefined,
+      b_lu_yield_fresh: harvestParameters.includes("b_lu_yield_fresh")
+        ? b_lu_yield_fresh
+        : undefined,
+      b_lu_yield_bruto: harvestParameters.includes("b_lu_yield_bruto")
+        ? b_lu_yield_bruto
+        : undefined,
+      b_lu_tarra: harvestParameters.includes("b_lu_tarra") ? b_lu_tarra : undefined,
+      b_lu_dm: harvestParameters.includes("b_lu_dm") ? b_lu_dm : undefined,
+      b_lu_uww: harvestParameters.includes("b_lu_uww") ? b_lu_uww : undefined,
+      b_lu_moist: harvestParameters.includes("b_lu_moist") ? b_lu_moist : undefined,
+      b_lu_cp: harvestParameters.includes("b_lu_cp") ? b_lu_cp : undefined,
+      b_lu_n_harvestable: harvestParameters.includes("b_lu_n_harvestable")
+        ? b_lu_n_harvestable
+        : undefined,
+      b_lu_start: b_lu_start,
+      b_lu_end: b_lu_end,
+      b_lu_harvestable: b_lu_harvestable,
+    },
+  })
 
-    return form
+  // When the calendar store is populated after initial render, re-evaluate the
+  // default harvest date, but only if the user has not already entered a value.
+  useEffect(() => {
+    const currentValue = form.getValues("b_lu_harvest_date")
+    const { isDirty } = form.getFieldState("b_lu_harvest_date")
+    if (!b_lu_harvest_date && !example_b_lu_harvest_date && !currentValue && !isDirty) {
+      form.setValue("b_lu_harvest_date", defaultHarvestDate ?? null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    form.setValue,
+    example_b_lu_harvest_date,
+    defaultHarvestDate,
+    form.getFieldState,
+    form.getValues,
+    b_lu_harvest_date,
+  ])
+
+  return form
 }
 
 function HarvestFields({
-    form,
-    className,
-    b_lu_croprotation,
-    harvestParameters,
-    exampleHarvestableAnalysis,
-    example_b_lu_harvest_date,
-    b_lu_harvest_date,
+  form,
+  className,
+  b_lu_croprotation,
+  harvestParameters,
+  exampleHarvestableAnalysis,
+  example_b_lu_harvest_date,
+  b_lu_harvest_date,
 }: HarvestFormDialogProps & {
-    form: UseRemixFormReturn<HarvestFormValues, any, any>
-    className?: React.ComponentProps<typeof FieldGroup>["className"]
+  form: UseRemixFormReturn<HarvestFormValues, any, any>
+  className?: React.ComponentProps<typeof FieldGroup>["className"]
 }) {
-    const formatted_b_lu_harvest_date = example_b_lu_harvest_date
-        ? format(example_b_lu_harvest_date, "PP", { locale: nl })
-        : undefined
-    return (
-        <FieldGroup className={cn("gap-5", className)}>
-            <input type="hidden" name="intent" value="single_harvest" />
-            <Controller
-                name="b_lu_harvest_date"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <DatePicker
-                        label={getHarvestDateTerm(b_lu_croprotation)}
-                        placeholder={
-                            example_b_lu_harvest_date !== undefined &&
-                            example_b_lu_harvest_date !== null
-                                ? `Er zijn verschillende waarden ingevuld, bv: ${formatted_b_lu_harvest_date}`
-                                : undefined
-                        }
-                        defaultValue={
-                            b_lu_harvest_date
-                                ? toDate(b_lu_harvest_date)
-                                : undefined
-                        }
-                        field={{
-                            ...field,
-                            value: field.value,
-                        }}
-                        fieldState={fieldState}
-                        required={true}
-                    />
-                )}
+  const formatted_b_lu_harvest_date = example_b_lu_harvest_date
+    ? format(example_b_lu_harvest_date, "PP", { locale: nl })
+    : undefined
+  return (
+    <FieldGroup className={cn("gap-5", className)}>
+      <input type="hidden" name="intent" value="single_harvest" />
+      <Controller
+        name="b_lu_harvest_date"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <DatePicker
+            label={getHarvestDateTerm(b_lu_croprotation)}
+            placeholder={
+              example_b_lu_harvest_date !== undefined && example_b_lu_harvest_date !== null
+                ? `Er zijn verschillende waarden ingevuld, bv: ${formatted_b_lu_harvest_date}`
+                : undefined
+            }
+            defaultValue={b_lu_harvest_date ? toDate(b_lu_harvest_date) : undefined}
+            field={{
+              ...field,
+              value: field.value,
+            }}
+            fieldState={fieldState}
+            required={true}
+          />
+        )}
+      />
+      <Controller
+        name="b_lu_yield"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_yield)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield} kg / ha`
+                  : "Bv. 37500 kg / ha"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_yield"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_yield,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield} kg / ha`
-                                    : "Bv. 37500 kg / ha"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
-            />
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
 
-            <Controller
-                name="b_lu_yield_fresh"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_yield_fresh,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield_fresh} kg / ha`
-                                    : "Bv. 37500 kg / ha"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+      <Controller
+        name="b_lu_yield_fresh"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_yield_fresh)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield_fresh} kg / ha`
+                  : "Bv. 37500 kg / ha"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_yield_bruto"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_yield_bruto,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield_bruto} kg / ha`
-                                    : "Bv. 37500 kg / ha"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_yield_bruto"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_yield_bruto)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_yield_bruto} kg / ha`
+                  : "Bv. 37500 kg / ha"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_tarra"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {" "}
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_tarra,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_tarra} %`
-                                    : "Bv. 5 %"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_tarra"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel> {getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_tarra)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_tarra} %`
+                  : "Bv. 5 %"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_dm"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_dm,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_dm} g / kg`
-                                    : "Bv. 850 g / kg"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_dm"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_dm)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_dm} g / kg`
+                  : "Bv. 850 g / kg"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_uww"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_uww,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_uww} g / 5 kg`
-                                    : "Bv. 350 g / 5 kg"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_uww"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_uww)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_uww} g / 5 kg`
+                  : "Bv. 350 g / 5 kg"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_moist"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_moist,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_moist} %`
-                                    : "Bv. 15 %"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_moist"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_moist)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_moist} %`
+                  : "Bv. 15 %"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_n_harvestable"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_n_harvestable,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_n_harvestable} g / kg`
-                                    : "Bv. 850 g / kg"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_n_harvestable"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_n_harvestable)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_n_harvestable} g / kg`
+                  : "Bv. 850 g / kg"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-            <Controller
-                name="b_lu_cp"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                    <Field
-                        data-invalid={fieldState.invalid}
-                        className={cn(
-                            "gap-1",
-                            harvestParameters.includes(field.name)
-                                ? ""
-                                : "hidden",
-                        )}
-                    >
-                        <FieldLabel>
-                            {getHarvestParameterLabel(field.name)}
-                        </FieldLabel>
-                        <Input
-                            {...field}
-                            placeholder={
-                                Number.isFinite(
-                                    exampleHarvestableAnalysis?.b_lu_cp,
-                                )
-                                    ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_cp} g RE / kg DS`
-                                    : "Bv. 170 g RE / kg DS"
-                            }
-                            aria-required="true"
-                            aria-invalid={fieldState.invalid}
-                            type="number"
-                            value={field.value ?? ""}
-                        />
-                        {fieldState.invalid && (
-                            <FieldError errors={[fieldState.error]} />
-                        )}
-                    </Field>
-                )}
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_cp"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_cp)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_cp} g RE / kg DS`
+                  : "Bv. 170 g RE / kg DS"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              value={field.value ?? ""}
             />
-        </FieldGroup>
-    )
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+    </FieldGroup>
+  )
 }
 
 export function HarvestFormExplainer() {
-    const [hostname, setHostname] = useState("")
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            setHostname(window.location.hostname)
-        }
-    }, [])
+  const [hostname, setHostname] = useState("")
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setHostname(window.location.hostname)
+    }
+  }, [])
 
-    return (
-        <FieldGroup>
-            <Collapsible className="space-y-2">
-                <CollapsibleTrigger
-                    type="button"
-                    className="flex flex-row gap-1 items-center text-xs text-muted-foreground hover:underline"
-                >
-                    <CircleQuestionMark className="h-4" />
-                    <p>Waarom zie ik deze oogstparameters?</p>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="flex flex-row gap-1 items-center text-xs text-muted-foreground">
-                    <p>
-                        De getoonde oogstparameters zijn gebaseerd op de meest
-                        gangbare praktijkgegevens voor dit gewas. Deze waarden
-                        zijn nodig voor een nauwkeurige
-                        stikstofbalansberekening. Komen deze niet overeen met uw
-                        eigen metingen? Stuur dan een e-mail naar{" "}
-                        <a
-                            href={`mailto:support@${hostname}`}
-                            className="underline"
-                        >
-                            support@
-                            {hostname}
-                        </a>{" "}
-                        met welke parameters volgens u gemeten worden voor dit
-                        gewas. Alvast bedankt!
-                    </p>
-                </CollapsibleContent>
-            </Collapsible>
-        </FieldGroup>
-    )
+  return (
+    <FieldGroup>
+      <Collapsible className="space-y-2">
+        <CollapsibleTrigger
+          type="button"
+          className="text-muted-foreground flex flex-row items-center gap-1 text-xs hover:underline"
+        >
+          <CircleQuestionMark className="h-4" />
+          <p>Waarom zie ik deze oogstparameters?</p>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="text-muted-foreground flex flex-row items-center gap-1 text-xs">
+          <p>
+            De getoonde oogstparameters zijn gebaseerd op de meest gangbare praktijkgegevens voor
+            dit gewas. Deze waarden zijn nodig voor een nauwkeurige stikstofbalansberekening. Komen
+            deze niet overeen met uw eigen metingen? Stuur dan een e-mail naar{" "}
+            <a href={`mailto:support@${hostname}`} className="underline">
+              support@
+              {hostname}
+            </a>{" "}
+            met welke parameters volgens u gemeten worden voor dit gewas. Alvast bedankt!
+          </p>
+        </CollapsibleContent>
+      </Collapsible>
+    </FieldGroup>
+  )
 }
 export function HarvestFormDialog(props: HarvestFormDialogProps) {
-    const { b_lu_harvest_date, action, editable = true } = props
-    const navigate = useNavigate()
-    const fetcher = useFetcher()
-    const form = useHarvestRemixForm(props)
+  const { b_lu_harvest_date, action, editable = true } = props
+  const navigate = useNavigate()
+  const fetcher = useFetcher()
+  const form = useHarvestRemixForm(props)
 
-    const handleDeleteHarvest = () => {
-        return fetcher.submit(null, { method: "DELETE", action: action })
-    }
+  const handleDeleteHarvest = () => {
+    return fetcher.submit(null, { method: "DELETE", action: action })
+  }
 
-    // Check if this is a new harvest or is has already values
-    const isHarvestUpdate = b_lu_harvest_date !== undefined
+  // Check if this is a new harvest or is has already values
+  const isHarvestUpdate = b_lu_harvest_date !== undefined
 
-    return (
-        <Dialog open={true} onOpenChange={() => navigate("..")}>
-            <RemixFormProvider {...form}>
-                <Form
-                    id="formHarvest"
-                    onSubmit={form.handleSubmit}
-                    method="post"
-                    action={action}
+  return (
+    <Dialog open={true} onOpenChange={() => navigate("..")}>
+      <RemixFormProvider {...form}>
+        <Form id="formHarvest" onSubmit={form.handleSubmit} method="post" action={action}>
+          <DialogContent className="gap-6">
+            <DialogHeader>
+              <DialogTitle>
+                {isHarvestUpdate
+                  ? `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} bijwerken`
+                  : `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} toevoegen`}
+              </DialogTitle>
+              <DialogDescription>
+                {isHarvestUpdate
+                  ? `Werk de ${getHarvestTerm(props.b_lu_croprotation)} bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`
+                  : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
+              </DialogDescription>
+            </DialogHeader>
+            {props.allowBatch && props.onBatchClick && (
+              <HarvestModeSwitchAlert
+                isBatchMode={false}
+                b_lu_croprotation={props.b_lu_croprotation}
+                onSwitch={props.onBatchClick}
+              />
+            )}
+            <FieldSet
+              disabled={!editable || form.formState.isSubmitting || fetcher.state !== "idle"}
+            >
+              <HarvestFields
+                {...props}
+                form={form as unknown as UseRemixFormReturn<HarvestFormValues, any, any>}
+              />
+            </FieldSet>
+            <HarvestFormExplainer />
+            <DialogFooter>
+              <Field orientation="horizontal">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDeleteHarvest}
+                  disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
+                  className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
                 >
-                    <DialogContent className="gap-6">
-                        <DialogHeader>
-                            <DialogTitle>
-                                {isHarvestUpdate
-                                    ? `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} bijwerken`
-                                    : `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} toevoegen`}
-                            </DialogTitle>
-                            <DialogDescription>
-                                {isHarvestUpdate
-                                    ? `Werk de ${getHarvestTerm(props.b_lu_croprotation)} bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`
-                                    : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
-                            </DialogDescription>
-                        </DialogHeader>
-                        {props.allowBatch && props.onBatchClick && (
-                            <HarvestModeSwitchAlert 
-                                isBatchMode={false} 
-                                b_lu_croprotation={props.b_lu_croprotation} 
-                                onSwitch={props.onBatchClick} 
-                            />
-                        )}
-                        <FieldSet
-                            disabled={
-                                !editable ||
-                                form.formState.isSubmitting ||
-                                fetcher.state !== "idle"
-                            }
-                        >
-                            <HarvestFields
-                                {...props}
-                                form={
-                                    form as unknown as UseRemixFormReturn<
-                                        HarvestFormValues,
-                                        any,
-                                        any
-                                    >
-                                }
-                            />
-                        </FieldSet>
-                        <HarvestFormExplainer />
-                        <DialogFooter>
-                            <Field orientation="horizontal">
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    onClick={handleDeleteHarvest}
-                                    disabled={
-                                        form.formState.isSubmitting ||
-                                        fetcher.state !== "idle"
-                                    }
-                                    className={cn(
-                                        "mr-auto",
-                                        !editable || !isHarvestUpdate
-                                            ? "invisible"
-                                            : "",
-                                    )}
-                                >
-                                    {fetcher.state !== "idle" ? (
-                                        <div className="flex items-center space-x-2">
-                                            <Spinner />
-                                        </div>
-                                    ) : null}
-                                    Verwijderen
-                                </Button>
-                                <DialogClose asChild>
-                                    <Button
-                                        variant="outline"
-                                        disabled={
-                                            form.formState.isSubmitting ||
-                                            fetcher.state !== "idle"
-                                        }
-                                    >
-                                        Sluiten
-                                    </Button>
-                                </DialogClose>
-                                <Button
-                                    type="submit"
-                                    form="formHarvest"
-                                    disabled={
-                                        form.formState.isSubmitting ||
-                                        fetcher.state !== "idle"
-                                    }
-                                    className={cn(!editable ? "invisible" : "")}
-                                >
-                                    {form.formState.isSubmitting ? (
-                                        <div className="flex items-center space-x-2">
-                                            <Spinner />
-                                            <p>Opslaan...</p>
-                                        </div>
-                                    ) : isHarvestUpdate ? (
-                                        "Bijwerken"
-                                    ) : (
-                                        "Toevoegen"
-                                    )}
-                                </Button>
-                            </Field>
-                        </DialogFooter>
-                    </DialogContent>
-                </Form>
-            </RemixFormProvider>
-        </Dialog>
-    )
+                  {fetcher.state !== "idle" ? (
+                    <div className="flex items-center space-x-2">
+                      <Spinner />
+                    </div>
+                  ) : null}
+                  Verwijderen
+                </Button>
+                <DialogClose asChild>
+                  <Button
+                    variant="outline"
+                    disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
+                  >
+                    Sluiten
+                  </Button>
+                </DialogClose>
+                <Button
+                  type="submit"
+                  form="formHarvest"
+                  disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
+                  className={cn(!editable ? "invisible" : "")}
+                >
+                  {form.formState.isSubmitting ? (
+                    <div className="flex items-center space-x-2">
+                      <Spinner />
+                      <p>Opslaan...</p>
+                    </div>
+                  ) : isHarvestUpdate ? (
+                    "Bijwerken"
+                  ) : (
+                    "Toevoegen"
+                  )}
+                </Button>
+              </Field>
+            </DialogFooter>
+          </DialogContent>
+        </Form>
+      </RemixFormProvider>
+    </Dialog>
+  )
 }
 
 export function HarvestForm(props: HarvestFormDialogProps) {
-    const { b_lu_harvest_date, action, editable = true } = props
-    const fetcher = useFetcher()
+  const { b_lu_harvest_date, action, editable = true } = props
+  const fetcher = useFetcher()
 
-    const form = useHarvestRemixForm(props)
+  const form = useHarvestRemixForm(props)
 
-    const handleDeleteHarvest = () => {
-        return fetcher.submit(null, { method: "DELETE", action: action })
-    }
+  const handleDeleteHarvest = () => {
+    return fetcher.submit(null, { method: "DELETE", action: action })
+  }
 
-    // Check if this is a new harvest or is has already values
-    const isHarvestUpdate = b_lu_harvest_date !== undefined
+  // Check if this is a new harvest or is has already values
+  const isHarvestUpdate = b_lu_harvest_date !== undefined
 
-    return (
-        <div className="space-y-6">
-            {props.allowBatch && props.onBatchClick && (
-                <HarvestModeSwitchAlert 
-                    isBatchMode={false} 
-                    b_lu_croprotation={props.b_lu_croprotation} 
-                    onSwitch={props.onBatchClick} 
-                />
-            )}
-            <RemixFormProvider {...form}>
-                <Form
-                    id="formHarvest"
-                    onSubmit={form.handleSubmit}
-                    method="post"
-                    action={action}
-                >
-                    <fieldset
-                        disabled={
-                            !editable ||
-                            form.formState.isSubmitting ||
-                            fetcher.state !== "idle"
-                        }
-                        className="space-y-8"
-                    >
-                        <HarvestFields
-                            {...props}
-                            form={
-                                form as unknown as UseRemixFormReturn<
-                                    HarvestFormValues,
-                                    any,
-                                    any
-                                >
-                            }
-                            className="grid lg:grid-cols-2 items-center gap-y-6 gap-x-8"
-                        />
-                        <HarvestFormExplainer />
-                        <div className="grid grid-cols-2 items">
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                onClick={handleDeleteHarvest}
-                                disabled={
-                                    form.formState.isSubmitting ||
-                                    fetcher.state !== "idle"
-                                }
-                                className={cn(
-                                    "mr-auto",
-                                    !editable || !isHarvestUpdate
-                                        ? "invisible"
-                                        : "",
-                                )}
-                            >
-                                {form.formState.isSubmitting ||
-                                fetcher.state !== "idle" ? (
-                                    <div className="flex items-center space-x-2">
-                                        <Spinner />
-                                    </div>
-                                ) : null}
-                                Verwijderen
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="ml-auto"
-                                disabled={
-                                    form.formState.isSubmitting ||
-                                    fetcher.state !== "idle"
-                                }
-                            >
-                                {form.formState.isSubmitting ? (
-                                    <div className="flex items-center space-x-2">
-                                        <Spinner />
-                                        <span>Opslaan...</span>
-                                    </div>
-                                ) : isHarvestUpdate ? (
-                                    "Bijwerken"
-                                ) : (
-                                    "Toevoegen"
-                                )}
-                            </Button>
-                        </div>
-                    </fieldset>
-                </Form>
-            </RemixFormProvider>
-        </div>
-    )
+  return (
+    <div className="space-y-6">
+      {props.allowBatch && props.onBatchClick && (
+        <HarvestModeSwitchAlert
+          isBatchMode={false}
+          b_lu_croprotation={props.b_lu_croprotation}
+          onSwitch={props.onBatchClick}
+        />
+      )}
+      <RemixFormProvider {...form}>
+        <Form id="formHarvest" onSubmit={form.handleSubmit} method="post" action={action}>
+          <fieldset
+            disabled={!editable || form.formState.isSubmitting || fetcher.state !== "idle"}
+            className="space-y-8"
+          >
+            <HarvestFields
+              {...props}
+              form={form as unknown as UseRemixFormReturn<HarvestFormValues, any, any>}
+              className="grid items-center gap-x-8 gap-y-6 lg:grid-cols-2"
+            />
+            <HarvestFormExplainer />
+            <div className="items grid grid-cols-2">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteHarvest}
+                disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
+                className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
+              >
+                {form.formState.isSubmitting || fetcher.state !== "idle" ? (
+                  <div className="flex items-center space-x-2">
+                    <Spinner />
+                  </div>
+                ) : null}
+                Verwijderen
+              </Button>
+              <Button
+                type="submit"
+                className="ml-auto"
+                disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
+              >
+                {form.formState.isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <Spinner />
+                    <span>Opslaan...</span>
+                  </div>
+                ) : isHarvestUpdate ? (
+                  "Bijwerken"
+                ) : (
+                  "Toevoegen"
+                )}
+              </Button>
+            </div>
+          </fieldset>
+        </Form>
+      </RemixFormProvider>
+    </div>
+  )
 }

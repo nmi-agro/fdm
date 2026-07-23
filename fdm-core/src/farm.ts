@@ -1,32 +1,25 @@
 import { and, asc, eq, gt, inArray } from "drizzle-orm"
+import type { PrincipalId, PrincipalWithRoles, Role } from "./authorization.types"
+import type { FdmType } from "./fdm.types"
+import type { Principal } from "./principal.types"
 import {
-    checkPermission,
-    getRolesOfPrincipalForResource,
-    grantRole,
-    listPrincipalsForResource,
-    listResources,
-    revokePrincipal,
-    updateRole,
-    writeAuditEntry,
+  checkPermission,
+  getRolesOfPrincipalForResource,
+  grantRole,
+  listPrincipalsForResource,
+  listResources,
+  revokePrincipal,
+  updateRole,
+  writeAuditEntry,
 } from "./authorization"
-import type {
-    PrincipalId,
-    PrincipalWithRoles,
-    Role,
-} from "./authorization.types"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm.types"
 import { removeField } from "./field"
 import { createId } from "./id"
-import {
-    createInvitation,
-    listPendingInvitationsForPrincipal,
-} from "./invitation"
+import { createInvitation, listPendingInvitationsForPrincipal } from "./invitation"
 import { identifyPrincipal } from "./principal"
-import type { Principal } from "./principal.types"
 
 /**
  * Creates a new farm record and assigns the "owner" role to the specified principal.
@@ -48,40 +41,40 @@ import type { Principal } from "./principal.types"
  * @alpha
  */
 export async function addFarm(
-    fdm: FdmType,
-    principal_id: string,
-    b_name_farm: schema.farmsTypeInsert["b_name_farm"],
-    b_businessid_farm: schema.farmsTypeInsert["b_businessid_farm"],
-    b_address_farm: schema.farmsTypeInsert["b_address_farm"],
-    b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"],
+  fdm: FdmType,
+  principal_id: string,
+  b_name_farm: schema.farmsTypeInsert["b_name_farm"],
+  b_businessid_farm: schema.farmsTypeInsert["b_businessid_farm"],
+  b_address_farm: schema.farmsTypeInsert["b_address_farm"],
+  b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"],
 ): Promise<schema.farmsTypeInsert["b_id_farm"]> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            // Generate an ID for the farm
-            const b_id_farm = createId()
-            // Insert the farm in the db
-            const farmData = {
-                b_id_farm,
-                b_name_farm,
-                b_businessid_farm,
-                b_address_farm,
-                b_postalcode_farm,
-            }
-            await tx.insert(schema.farms).values(farmData)
+  try {
+    return await fdm.transaction(async (tx) => {
+      // Generate an ID for the farm
+      const b_id_farm = createId()
+      // Insert the farm in the db
+      const farmData = {
+        b_id_farm,
+        b_name_farm,
+        b_businessid_farm,
+        b_address_farm,
+        b_postalcode_farm,
+      }
+      await tx.insert(schema.farms).values(farmData)
 
-            // Grant owner role to farm
-            await grantRole(tx, "farm", "owner", b_id_farm, principal_id)
+      // Grant owner role to farm
+      await grantRole(tx, "farm", "owner", b_id_farm, principal_id)
 
-            return b_id_farm
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for addFarm", {
-            b_name_farm,
-            b_businessid_farm,
-            b_address_farm,
-            b_postalcode_farm,
-        })
-    }
+      return b_id_farm
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for addFarm", {
+      b_name_farm,
+      b_businessid_farm,
+      b_address_farm,
+      b_postalcode_farm,
+    })
+  }
 }
 
 /**
@@ -97,70 +90,54 @@ export async function addFarm(
  * @alpha
  */
 export async function getFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<{
-    b_id_farm: schema.farmsTypeSelect["b_id_farm"]
-    b_name_farm: schema.farmsTypeSelect["b_name_farm"]
-    b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
-    b_address_farm: schema.farmsTypeSelect["b_address_farm"]
-    b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
-    b_id_principal: PrincipalId
-    b_id_principal_owner: PrincipalId
-    roles: PrincipalWithRoles[]
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"]
+  b_name_farm: schema.farmsTypeSelect["b_name_farm"]
+  b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
+  b_address_farm: schema.farmsTypeSelect["b_address_farm"]
+  b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
+  b_id_principal: PrincipalId
+  b_id_principal_owner: PrincipalId
+  roles: PrincipalWithRoles[]
 }> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "read",
-                b_id_farm,
-                principal_id,
-                "getFarm",
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "farm", "read", b_id_farm, principal_id, "getFarm")
 
-            const results = await tx
-                .select({
-                    b_id_farm: schema.farms.b_id_farm,
-                    b_name_farm: schema.farms.b_name_farm,
-                    b_businessid_farm: schema.farms.b_businessid_farm,
-                    b_address_farm: schema.farms.b_address_farm,
-                    b_postalcode_farm: schema.farms.b_postalcode_farm,
-                })
-                .from(schema.farms)
-                .where(eq(schema.farms.b_id_farm, b_id_farm))
-                .limit(1)
-
-            // Get roles on farm
-            const roles = await getRolesOfPrincipalForResource(
-                tx,
-                "farm",
-                b_id_farm,
-                principal_id,
-            )
-
-            // Get all principals for the farm to find the owner
-            const allPrincipals = await listPrincipalsForResource(
-                tx,
-                "farm",
-                b_id_farm,
-            )
-            const ownerPrincipal = allPrincipals.find((p) => p.role === "owner")
-
-            const farm = {
-                ...results[0],
-                b_id_principal: principal_id,
-                b_id_principal_owner: ownerPrincipal?.principal_id || "", // Fallback if no owner is found
-                roles: roles,
-            }
-
-            return farm
+      const results = await tx
+        .select({
+          b_id_farm: schema.farms.b_id_farm,
+          b_name_farm: schema.farms.b_name_farm,
+          b_businessid_farm: schema.farms.b_businessid_farm,
+          b_address_farm: schema.farms.b_address_farm,
+          b_postalcode_farm: schema.farms.b_postalcode_farm,
         })
-    } catch (err) {
-        throw handleError(err, "Exception for getFarm", { b_id_farm })
-    }
+        .from(schema.farms)
+        .where(eq(schema.farms.b_id_farm, b_id_farm))
+        .limit(1)
+
+      // Get roles on farm
+      const roles = await getRolesOfPrincipalForResource(tx, "farm", b_id_farm, principal_id)
+
+      // Get all principals for the farm to find the owner
+      const allPrincipals = await listPrincipalsForResource(tx, "farm", b_id_farm)
+      const ownerPrincipal = allPrincipals.find((p) => p.role === "owner")
+
+      const farm = {
+        ...results[0],
+        b_id_principal: principal_id,
+        b_id_principal_owner: ownerPrincipal?.principal_id || "", // Fallback if no owner is found
+        roles: roles,
+      }
+
+      return farm
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for getFarm", { b_id_farm })
+  }
 }
 
 /**
@@ -174,93 +151,88 @@ export async function getFarm(
  * @alpha
  */
 export async function getFarms(
-    fdm: FdmType,
-    principal_id: PrincipalId,
+  fdm: FdmType,
+  principal_id: PrincipalId,
 ): Promise<
-    {
-        b_id_farm: schema.farmsTypeSelect["b_id_farm"]
-        b_name_farm: schema.farmsTypeSelect["b_name_farm"]
-        b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
-        b_address_farm: schema.farmsTypeSelect["b_address_farm"]
-        b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
-        roles: {
-            principal_id: string
-            principal_type: "user" | "organization"
-            role: Role
-        }[]
+  {
+    b_id_farm: schema.farmsTypeSelect["b_id_farm"]
+    b_name_farm: schema.farmsTypeSelect["b_name_farm"]
+    b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
+    b_address_farm: schema.farmsTypeSelect["b_address_farm"]
+    b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
+    roles: {
+      principal_id: string
+      principal_type: "user" | "organization"
+      role: Role
     }[]
+  }[]
 > {
-    try {
-        const start = performance.now()
-        const resolvedPrincipalId = Array.isArray(principal_id)
-            ? principal_id[0] || "unknown"
-            : principal_id || "unknown"
-        return await fdm.transaction(async (tx) => {
-            const resources = await listResources(
-                tx,
-                "farm",
-                "read",
-                principal_id,
-            )
+  try {
+    const start = performance.now()
+    const resolvedPrincipalId = Array.isArray(principal_id)
+      ? principal_id[0] || "unknown"
+      : principal_id || "unknown"
+    return await fdm.transaction(async (tx) => {
+      const resources = await listResources(tx, "farm", "read", principal_id)
 
-            if (resources.length === 0) {
-                await writeAuditEntry(
-                    tx,
-                    "getFarms",
-                    "farm",
-                    "list",
-                    principal_id,
-                    "user",
-                    resolvedPrincipalId,
-                    Math.round(performance.now() - start),
-                )
-                return []
-            }
+      if (resources.length === 0) {
+        await writeAuditEntry(
+          tx,
+          "getFarms",
+          "farm",
+          "list",
+          principal_id,
+          "user",
+          resolvedPrincipalId,
+          Math.round(performance.now() - start),
+        )
+        return []
+      }
 
-            const results = await tx
-                .select({
-                    b_id_farm: schema.farms.b_id_farm,
-                    b_name_farm: schema.farms.b_name_farm,
-                    b_businessid_farm: schema.farms.b_businessid_farm,
-                    b_address_farm: schema.farms.b_address_farm,
-                    b_postalcode_farm: schema.farms.b_postalcode_farm,
-                })
-                .from(schema.farms)
-                .where(inArray(schema.farms.b_id_farm, resources))
-                .orderBy(asc(schema.farms.b_name_farm))
-
-            const farms = await Promise.all(
-                results.map(async (farm) => {
-                    // Get roles on farm
-                    const roles = await getRolesOfPrincipalForResource(
-                        tx,
-                        "farm",
-                        farm.b_id_farm,
-                        principal_id,
-                    )
-
-                    return {
-                        ...farm,
-                        roles: roles,
-                    }
-                }),
-            )
-
-            await writeAuditEntry(
-                tx,
-                "getFarms",
-                "farm",
-                "list",
-                principal_id,
-                "user",
-                resolvedPrincipalId,
-                Math.round(performance.now() - start),
-            )
-            return farms
+      const results = await tx
+        .select({
+          b_id_farm: schema.farms.b_id_farm,
+          b_name_farm: schema.farms.b_name_farm,
+          b_businessid_farm: schema.farms.b_businessid_farm,
+          b_address_farm: schema.farms.b_address_farm,
+          b_postalcode_farm: schema.farms.b_postalcode_farm,
         })
-    } catch (err) {
-        throw handleError(err, "Exception for getFarms")
-    }
+        .from(schema.farms)
+        .where(inArray(schema.farms.b_id_farm, resources))
+        .orderBy(asc(schema.farms.b_name_farm))
+
+      const farms = await Promise.all(
+        results.map(async (farm) => {
+          // Get roles on farm
+          const roles = await getRolesOfPrincipalForResource(
+            tx,
+            "farm",
+            farm.b_id_farm,
+            principal_id,
+          )
+
+          return {
+            ...farm,
+            roles: roles,
+          }
+        }),
+      )
+
+      await writeAuditEntry(
+        tx,
+        "getFarms",
+        "farm",
+        "list",
+        principal_id,
+        "user",
+        resolvedPrincipalId,
+        Math.round(performance.now() - start),
+      )
+      return farms
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for getFarms")
+  }
 }
 
 /**
@@ -283,53 +255,46 @@ export async function getFarms(
  * @alpha
  */
 export async function updateFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
-    b_name_farm: schema.farmsTypeInsert["b_name_farm"],
-    b_businessid_farm: schema.farmsTypeInsert["b_businessid_farm"],
-    b_address_farm: schema.farmsTypeInsert["b_address_farm"],
-    b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  b_name_farm: schema.farmsTypeInsert["b_name_farm"],
+  b_businessid_farm: schema.farmsTypeInsert["b_businessid_farm"],
+  b_address_farm: schema.farmsTypeInsert["b_address_farm"],
+  b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"],
 ): Promise<schema.farmsTypeSelect> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "write",
-            b_id_farm,
-            principal_id,
-            "updateFarm",
-        )
-        const updatedFarm = await fdm
-            .update(schema.farms)
-            .set({
-                b_name_farm,
-                b_businessid_farm,
-                b_address_farm,
-                b_postalcode_farm,
-                updated: new Date(),
-            })
-            .where(eq(schema.farms.b_id_farm, b_id_farm))
-            .returning({
-                b_id_farm: schema.farms.b_id_farm,
-                b_name_farm: schema.farms.b_name_farm,
-                b_businessid_farm: schema.farms.b_businessid_farm,
-                b_address_farm: schema.farms.b_address_farm,
-                b_postalcode_farm: schema.farms.b_postalcode_farm,
-                created: schema.farms.created,
-                updated: schema.farms.updated,
-            })
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "updateFarm")
+    const updatedFarm = await fdm
+      .update(schema.farms)
+      .set({
+        b_name_farm,
+        b_businessid_farm,
+        b_address_farm,
+        b_postalcode_farm,
+        updated: new Date(),
+      })
+      .where(eq(schema.farms.b_id_farm, b_id_farm))
+      .returning({
+        b_id_farm: schema.farms.b_id_farm,
+        b_name_farm: schema.farms.b_name_farm,
+        b_businessid_farm: schema.farms.b_businessid_farm,
+        b_address_farm: schema.farms.b_address_farm,
+        b_postalcode_farm: schema.farms.b_postalcode_farm,
+        created: schema.farms.created,
+        updated: schema.farms.updated,
+      })
 
-        return updatedFarm[0]
-    } catch (err) {
-        throw handleError(err, "Exception for updateFarm", {
-            b_id_farm,
-            b_name_farm,
-            b_businessid_farm,
-            b_address_farm,
-            b_postalcode_farm,
-        })
-    }
+    return updatedFarm[0]
+  } catch (err) {
+    throw handleError(err, "Exception for updateFarm", {
+      b_id_farm,
+      b_name_farm,
+      b_businessid_farm,
+      b_address_farm,
+      b_postalcode_farm,
+    })
+  }
 }
 
 /**
@@ -347,38 +312,24 @@ export async function updateFarm(
  * @throws {Error} If the acting principal does not have 'share' permission, or if any other error occurs.
  */
 export async function grantRoleToFarm(
-    fdm: FdmType,
-    principal_id: string,
-    target: string,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
-    role: "owner" | "advisor" | "researcher",
+  fdm: FdmType,
+  principal_id: string,
+  target: string,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  role: "owner" | "advisor" | "researcher",
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "share",
-                b_id_farm,
-                principal_id,
-                "grantRoleToFarm",
-            )
-            return await createInvitation(
-                tx,
-                "farm",
-                b_id_farm,
-                principal_id,
-                target,
-                role,
-            )
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for grantRoleToFarm", {
-            b_id_farm,
-            target,
-            role,
-        })
-    }
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "farm", "share", b_id_farm, principal_id, "grantRoleToFarm")
+      return await createInvitation(tx, "farm", b_id_farm, principal_id, target, role)
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for grantRoleToFarm", {
+      b_id_farm,
+      target,
+      role,
+    })
+  }
 }
 
 /**
@@ -395,48 +346,44 @@ export async function grantRoleToFarm(
  * @throws {Error} If the acting principal does not have 'share' permission, or if any other error occurs during the operation.
  */
 export async function updateRoleOfPrincipalAtFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    target: string,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
-    role: "owner" | "advisor" | "researcher",
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  target: string,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  role: "owner" | "advisor" | "researcher",
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "share",
-                b_id_farm,
-                principal_id,
-                "updateRoleOfPrincipalAtFarm",
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(
+        tx,
+        "farm",
+        "share",
+        b_id_farm,
+        principal_id,
+        "updateRoleOfPrincipalAtFarm",
+      )
 
-            const targetDetails = await identifyPrincipal(tx, target)
-            if (!targetDetails) {
-                throw new Error("Target not found")
-            }
+      const targetDetails = await identifyPrincipal(tx, target)
+      if (!targetDetails) {
+        throw new Error("Target not found")
+      }
 
-            await updateRole(tx, "farm", role, b_id_farm, targetDetails.id)
+      await updateRole(tx, "farm", role, b_id_farm, targetDetails.id)
 
-            // Check if at least 1 owner is still prestent on this farm
-            const owners = await listPrincipalsForResource(
-                tx,
-                "farm",
-                b_id_farm,
-            )
-            const ownerCount = owners.filter((x) => x.role === "owner").length
-            if (ownerCount === 0) {
-                throw new Error("Farm should have at least 1 owner")
-            }
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for updateRoleOfPrincipalAtFarm", {
-            b_id_farm,
-            target,
-            role,
-        })
-    }
+      // Check if at least 1 owner is still prestent on this farm
+      const owners = await listPrincipalsForResource(tx, "farm", b_id_farm)
+      const ownerCount = owners.filter((x) => x.role === "owner").length
+      if (ownerCount === 0) {
+        throw new Error("Farm should have at least 1 owner")
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateRoleOfPrincipalAtFarm", {
+      b_id_farm,
+      target,
+      role,
+    })
+  }
 }
 
 /**
@@ -452,45 +399,34 @@ export async function updateRoleOfPrincipalAtFarm(
  * @throws {Error} If the acting principal does not have 'share' permission, or if any other error occurs during the operation.
  */
 export async function revokePrincipalFromFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    target: string,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  target: string,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "share",
-                b_id_farm,
-                principal_id,
-                "revokePrincipalFromFarm",
-            )
-            const targetDetails = await identifyPrincipal(tx, target)
-            if (!targetDetails) {
-                throw new Error("Target not found")
-            }
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "farm", "share", b_id_farm, principal_id, "revokePrincipalFromFarm")
+      const targetDetails = await identifyPrincipal(tx, target)
+      if (!targetDetails) {
+        throw new Error("Target not found")
+      }
 
-            await revokePrincipal(tx, "farm", b_id_farm, targetDetails.id)
+      await revokePrincipal(tx, "farm", b_id_farm, targetDetails.id)
 
-            // Check if at least 1 owner is still prestent on this farm
-            const owners = await listPrincipalsForResource(
-                tx,
-                "farm",
-                b_id_farm,
-            )
-            const ownerCount = owners.filter((x) => x.role === "owner").length
-            if (ownerCount === 0) {
-                throw new Error("Farm should have at least 1 owner")
-            }
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for revokePrincipalFromFarm", {
-            b_id_farm,
-            target,
-        })
-    }
+      // Check if at least 1 owner is still prestent on this farm
+      const owners = await listPrincipalsForResource(tx, "farm", b_id_farm)
+      const ownerCount = owners.filter((x) => x.role === "owner").length
+      if (ownerCount === 0) {
+        throw new Error("Farm should have at least 1 owner")
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for revokePrincipalFromFarm", {
+      b_id_farm,
+      target,
+    })
+  }
 }
 
 /**
@@ -507,233 +443,208 @@ export async function revokePrincipalFromFarm(
  * @throws {Error} If the acting principal does not have 'read' permission, or if any other error occurs during the operation.
  */
 export async function listPrincipalsForFarm(
-    fdm: FdmType,
-    principal_id: string,
-    b_id_farm: string,
+  fdm: FdmType,
+  principal_id: string,
+  b_id_farm: string,
 ): Promise<
-    (Principal & {
-        role: string
-        status: "active" | "pending"
-        invitation_id?: string
-        invitation_expires_at?: Date
-    })[]
+  (Principal & {
+    role: string
+    status: "active" | "pending"
+    invitation_id?: string
+    invitation_expires_at?: Date
+  })[]
 > {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "read",
-                b_id_farm,
-                principal_id,
-                "listPrincipalsForFarm",
-            )
-            const principals = await listPrincipalsForResource(
-                tx,
-                "farm",
-                b_id_farm,
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "farm", "read", b_id_farm, principal_id, "listPrincipalsForFarm")
+      const principals = await listPrincipalsForResource(tx, "farm", b_id_farm)
 
-            // Collect all principal IDs to fetch (active + pending with principal target)
-            const now = new Date()
-            const pendingInvitations = await tx
-                .select()
-                .from(authZSchema.invitation)
-                .where(
-                    and(
-                        eq(authZSchema.invitation.resource, "farm"),
-                        eq(authZSchema.invitation.resource_id, b_id_farm),
-                        eq(authZSchema.invitation.status, "pending"),
-                        gt(authZSchema.invitation.expires, now),
-                    ),
-                )
+      // Collect all principal IDs to fetch (active + pending with principal target)
+      const now = new Date()
+      const pendingInvitations = await tx
+        .select()
+        .from(authZSchema.invitation)
+        .where(
+          and(
+            eq(authZSchema.invitation.resource, "farm"),
+            eq(authZSchema.invitation.resource_id, b_id_farm),
+            eq(authZSchema.invitation.status, "pending"),
+            gt(authZSchema.invitation.expires, now),
+          ),
+        )
 
-            const activeIds = principals.map((p) => p.principal_id)
-            const pendingIdsWithPrincipal: string[] = (
-                pendingInvitations as authZSchema.invitationTypeSelect[]
-            )
-                .map((i) => i.target_principal_id)
-                .filter((id): id is string => id !== null)
+      const activeIds = principals.map((p) => p.principal_id)
+      const pendingIdsWithPrincipal: string[] = (
+        pendingInvitations as authZSchema.invitationTypeSelect[]
+      )
+        .map((i) => i.target_principal_id)
+        .filter((id): id is string => id !== null)
 
-            const allPrincipalIds = [
-                ...new Set([...activeIds, ...pendingIdsWithPrincipal]),
-            ]
+      const allPrincipalIds = [...new Set([...activeIds, ...pendingIdsWithPrincipal])]
 
-            // Bulk fetch details for all principals
-            const principalsMap = new Map<string, Principal>()
+      // Bulk fetch details for all principals
+      const principalsMap = new Map<string, Principal>()
 
-            if (allPrincipalIds.length > 0) {
-                // Fetch Users
-                const users = await tx
-                    .select({
-                        id: authNSchema.user.id,
-                        username: authNSchema.user.username,
-                        displayUserName: authNSchema.user.displayUsername,
-                        image: authNSchema.user.image,
-                        isVerified: authNSchema.user.emailVerified,
-                        firstname: authNSchema.user.firstname,
-                        surname: authNSchema.user.surname,
-                        email: authNSchema.user.email,
-                        name: authNSchema.user.name,
-                    })
-                    .from(authNSchema.user)
-                    .where(inArray(authNSchema.user.id, allPrincipalIds))
+      if (allPrincipalIds.length > 0) {
+        // Fetch Users
+        const users = await tx
+          .select({
+            id: authNSchema.user.id,
+            username: authNSchema.user.username,
+            displayUserName: authNSchema.user.displayUsername,
+            image: authNSchema.user.image,
+            isVerified: authNSchema.user.emailVerified,
+            firstname: authNSchema.user.firstname,
+            surname: authNSchema.user.surname,
+            email: authNSchema.user.email,
+            name: authNSchema.user.name,
+          })
+          .from(authNSchema.user)
+          .where(inArray(authNSchema.user.id, allPrincipalIds))
 
-                for (const u of users) {
-                    let initials = u.email?.charAt(0) ?? "U"
-                    if (u.firstname && u.surname) {
-                        initials = u.firstname.charAt(0).toUpperCase()
-                        const surnameParts = u.surname.split(/\s+/)
-                        let firstCap = ""
-                        for (const part of surnameParts) {
-                            if (part.length > 0) {
-                                const char = part.charAt(0)
-                                if (
-                                    char === char.toUpperCase() &&
-                                    char.match(/[a-zA-Z]/)
-                                ) {
-                                    firstCap = char.toUpperCase()
-                                    break
-                                }
-                            }
-                        }
-                        initials += firstCap
-                    } else if (u.firstname) {
-                        initials = u.firstname[0]
-                    } else if (u.name) {
-                        initials = u.name[0]
-                    }
-
-                    principalsMap.set(u.id, {
-                        id: u.id,
-                        username: u.username ?? "unknown",
-                        email: u.email,
-                        initials: initials.toUpperCase(),
-                        displayUserName: u.displayUserName,
-                        image: u.image,
-                        type: "user",
-                        isVerified: u.isVerified,
-                    })
+        for (const u of users) {
+          let initials = u.email?.charAt(0) ?? "U"
+          if (u.firstname && u.surname) {
+            initials = u.firstname.charAt(0).toUpperCase()
+            const surnameParts = u.surname.split(/\s+/)
+            let firstCap = ""
+            for (const part of surnameParts) {
+              if (part.length > 0) {
+                const char = part.charAt(0)
+                if (char === char.toUpperCase() && char.match(/[a-zA-Z]/)) {
+                  firstCap = char.toUpperCase()
+                  break
                 }
-
-                // Fetch Organizations (for IDs not found in users)
-                const remainingIds = allPrincipalIds.filter(
-                    (id) => !principalsMap.has(id),
-                )
-                if (remainingIds.length > 0) {
-                    const orgs = await tx
-                        .select({
-                            id: authNSchema.organization.id,
-                            name: authNSchema.organization.name,
-                            slug: authNSchema.organization.slug,
-                            logo: authNSchema.organization.logo,
-                            metadata: authNSchema.organization.metadata,
-                        })
-                        .from(authNSchema.organization)
-                        .where(
-                            inArray(authNSchema.organization.id, remainingIds),
-                        )
-
-                    for (const o of orgs) {
-                        const metadata = o.metadata
-                            ? JSON.parse(o.metadata)
-                            : null
-                        principalsMap.set(o.id, {
-                            id: o.id,
-                            username: o.slug,
-                            email: null,
-                            initials: o.name.charAt(0).toUpperCase(),
-                            displayUserName: o.name,
-                            image: o.logo,
-                            type: "organization",
-                            isVerified: metadata ? metadata.isVerified : false,
-                        })
-                    }
-                }
+              }
             }
+            initials += firstCap
+          } else if (u.firstname) {
+            initials = u.firstname[0]
+          } else if (u.name) {
+            initials = u.name[0]
+          }
 
-            // Map active principals
-            const principalsDetails = principals.map((p) => {
-                const details = principalsMap.get(p.principal_id)
-                return {
-                    ...details,
-                    id: p.principal_id,
-                    username: details?.username ?? "unknown",
-                    initials: details?.initials ?? "?",
-                    displayUserName: details?.displayUserName ?? null,
-                    image: details?.image ?? null,
-                    type: details?.type ?? "user",
-                    isVerified: details?.isVerified ?? false,
-                    email: details?.email ?? null,
-                    role: p.role,
-                    status: "active" as const,
-                }
+          principalsMap.set(u.id, {
+            id: u.id,
+            username: u.username ?? "unknown",
+            email: u.email,
+            initials: initials.toUpperCase(),
+            displayUserName: u.displayUserName,
+            image: u.image,
+            type: "user",
+            isVerified: u.isVerified,
+          })
+        }
+
+        // Fetch Organizations (for IDs not found in users)
+        const remainingIds = allPrincipalIds.filter((id) => !principalsMap.has(id))
+        if (remainingIds.length > 0) {
+          const orgs = await tx
+            .select({
+              id: authNSchema.organization.id,
+              name: authNSchema.organization.name,
+              slug: authNSchema.organization.slug,
+              logo: authNSchema.organization.logo,
+              metadata: authNSchema.organization.metadata,
             })
+            .from(authNSchema.organization)
+            .where(inArray(authNSchema.organization.id, remainingIds))
 
-            // Map pending invitations
-            const pendingDetails = pendingInvitations.map(
-                (invitation: authZSchema.invitationTypeSelect) => {
-                    if (invitation.target_principal_id) {
-                        const details = principalsMap.get(
-                            invitation.target_principal_id,
-                        )
-                        return {
-                            ...details,
-                            id: invitation.target_principal_id,
-                            username: details?.username ?? "unknown",
-                            initials: details?.initials ?? "?",
-                            displayUserName: details?.displayUserName ?? null,
-                            image: details?.image ?? null,
-                            type: details?.type ?? "user",
-                            isVerified: details?.isVerified ?? false,
-                            email: details?.email ?? null,
-                            role: invitation.role,
-                            status: "pending" as const,
-                            invitation_id: invitation.invitation_id,
-                            invitation_expires_at: invitation.expires,
-                        }
-                    }
+          for (const o of orgs) {
+            const metadata = o.metadata ? JSON.parse(o.metadata) : null
+            principalsMap.set(o.id, {
+              id: o.id,
+              username: o.slug,
+              email: null,
+              initials: o.name.charAt(0).toUpperCase(),
+              displayUserName: o.name,
+              image: o.logo,
+              type: "organization",
+              isVerified: metadata ? metadata.isVerified : false,
+            })
+          }
+        }
+      }
 
-                    // Email-based invitation (unregistered user)
-                    const email = invitation.target_email ?? "unknown"
-                    return {
-                        id: `pending-${invitation.invitation_id}`,
-                        username: email,
-                        email: email,
-                        initials: email.charAt(0).toUpperCase(),
-                        displayUserName: email,
-                        image: null,
-                        type: "user" as const,
-                        isVerified: false,
-                        role: invitation.role,
-                        status: "pending" as const,
-                        invitation_id: invitation.invitation_id,
-                        invitation_expires_at: invitation.expires,
-                    }
-                },
-            )
+      // Map active principals
+      const principalsDetails = principals.map((p) => {
+        const details = principalsMap.get(p.principal_id)
+        return {
+          ...details,
+          id: p.principal_id,
+          username: details?.username ?? "unknown",
+          initials: details?.initials ?? "?",
+          displayUserName: details?.displayUserName ?? null,
+          image: details?.image ?? null,
+          type: details?.type ?? "user",
+          isVerified: details?.isVerified ?? false,
+          email: details?.email ?? null,
+          role: p.role,
+          status: "active" as const,
+        }
+      })
 
-            // Deduplicate by principal_id, preferring "active" over "pending"
-            const deduped = new Map<
-                string,
-                | (typeof principalsDetails)[number]
-                | (typeof pendingDetails)[number]
-            >()
-            for (const entry of principalsDetails) {
-                deduped.set(entry.id, entry)
+      // Map pending invitations
+      const pendingDetails = pendingInvitations.map(
+        (invitation: authZSchema.invitationTypeSelect) => {
+          if (invitation.target_principal_id) {
+            const details = principalsMap.get(invitation.target_principal_id)
+            return {
+              ...details,
+              id: invitation.target_principal_id,
+              username: details?.username ?? "unknown",
+              initials: details?.initials ?? "?",
+              displayUserName: details?.displayUserName ?? null,
+              image: details?.image ?? null,
+              type: details?.type ?? "user",
+              isVerified: details?.isVerified ?? false,
+              email: details?.email ?? null,
+              role: invitation.role,
+              status: "pending" as const,
+              invitation_id: invitation.invitation_id,
+              invitation_expires_at: invitation.expires,
             }
-            for (const entry of pendingDetails) {
-                if (!deduped.has(entry.id)) {
-                    deduped.set(entry.id, entry)
-                }
-            }
-            return Array.from(deduped.values())
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for listPrincipalsForFarm", {
-            b_id_farm,
-        })
-    }
+          }
+
+          // Email-based invitation (unregistered user)
+          const email = invitation.target_email ?? "unknown"
+          return {
+            id: `pending-${invitation.invitation_id}`,
+            username: email,
+            email: email,
+            initials: email.charAt(0).toUpperCase(),
+            displayUserName: email,
+            image: null,
+            type: "user" as const,
+            isVerified: false,
+            role: invitation.role,
+            status: "pending" as const,
+            invitation_id: invitation.invitation_id,
+            invitation_expires_at: invitation.expires,
+          }
+        },
+      )
+
+      // Deduplicate by principal_id, preferring "active" over "pending"
+      const deduped = new Map<
+        string,
+        (typeof principalsDetails)[number] | (typeof pendingDetails)[number]
+      >()
+      for (const entry of principalsDetails) {
+        deduped.set(entry.id, entry)
+      }
+      for (const entry of pendingDetails) {
+        if (!deduped.has(entry.id)) {
+          deduped.set(entry.id, entry)
+        }
+      }
+      return Array.from(deduped.values())
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for listPrincipalsForFarm", {
+      b_id_farm,
+    })
+  }
 }
 
 /**
@@ -748,39 +659,39 @@ export async function listPrincipalsForFarm(
  * @returns A Promise that resolves to an array of pending invitation records for this farm.
  */
 export async function listPendingInvitationsForFarm(
-    fdm: FdmType,
-    principal_id: string,
-    b_id_farm: string,
+  fdm: FdmType,
+  principal_id: string,
+  b_id_farm: string,
 ): Promise<authZSchema.invitationTypeSelect[]> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await checkPermission(
-                tx,
-                "farm",
-                "share",
-                b_id_farm,
-                principal_id,
-                "listPendingInvitationsForFarm",
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(
+        tx,
+        "farm",
+        "share",
+        b_id_farm,
+        principal_id,
+        "listPendingInvitationsForFarm",
+      )
 
-            const now = new Date()
-            return await tx
-                .select()
-                .from(authZSchema.invitation)
-                .where(
-                    and(
-                        eq(authZSchema.invitation.resource, "farm"),
-                        eq(authZSchema.invitation.resource_id, b_id_farm),
-                        eq(authZSchema.invitation.status, "pending"),
-                        gt(authZSchema.invitation.expires, now),
-                    ),
-                )
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for listPendingInvitationsForFarm", {
-            b_id_farm,
-        })
-    }
+      const now = new Date()
+      return await tx
+        .select()
+        .from(authZSchema.invitation)
+        .where(
+          and(
+            eq(authZSchema.invitation.resource, "farm"),
+            eq(authZSchema.invitation.resource_id, b_id_farm),
+            eq(authZSchema.invitation.status, "pending"),
+            gt(authZSchema.invitation.expires, now),
+          ),
+        )
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for listPendingInvitationsForFarm", {
+      b_id_farm,
+    })
+  }
 }
 
 /**
@@ -790,93 +701,84 @@ export async function listPendingInvitationsForFarm(
  *
  * @param fdm - The FDM instance providing the connection to the database.
  * @param user_id - The ID of the user to retrieve invitations for.
+ * @param include_readonly - Whether to include the invitations that the user's organization has
+ * received but the user themselves can't accept.
  *
  * @returns A Promise that resolves to an array of pending invitation records enriched with farm_name and org_name.
  */
 export async function listPendingInvitationsForUser(
-    fdm: FdmType,
-    user_id: string,
+  fdm: FdmType,
+  user_id: string,
+  include_readonly?: boolean,
 ): Promise<
-    (authZSchema.invitationTypeSelect & {
-        farm_name: string | null
-        org_name: string | null
-    })[]
+  (Awaited<ReturnType<typeof listPendingInvitationsForPrincipal>>[number] & {
+    farm_name: string | null
+    org_name: string | null
+  })[]
 > {
-    try {
-        return await fdm.transaction(async (tx) => {
-            const pending = await listPendingInvitationsForPrincipal(
-                tx,
-                user_id,
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      const pending = await listPendingInvitationsForPrincipal(tx, user_id, include_readonly)
 
-            if (pending.length === 0) {
-                return []
-            }
+      if (pending.length === 0) {
+        return []
+      }
 
-            // Enrich with farm names for farm-resource invitations
-            const farmIds = [
-                ...new Set(
-                    pending
-                        .filter((i) => i.resource === "farm")
-                        .map((i) => i.resource_id),
-                ),
-            ]
+      // Enrich with farm names for farm-resource invitations
+      const farmIds = [
+        ...new Set(pending.filter((i) => i.resource === "farm").map((i) => i.resource_id)),
+      ]
 
-            const farmNames = new Map<string, string | null>()
-            if (farmIds.length > 0) {
-                const farms = await tx
-                    .select({
-                        b_id_farm: schema.farms.b_id_farm,
-                        b_name_farm: schema.farms.b_name_farm,
-                    })
-                    .from(schema.farms)
-                    .where(inArray(schema.farms.b_id_farm, farmIds))
+      const farmNames = new Map<string, string | null>()
+      if (farmIds.length > 0) {
+        const farms = await tx
+          .select({
+            b_id_farm: schema.farms.b_id_farm,
+            b_name_farm: schema.farms.b_name_farm,
+          })
+          .from(schema.farms)
+          .where(inArray(schema.farms.b_id_farm, farmIds))
 
-                for (const f of farms) {
-                    farmNames.set(f.b_id_farm, f.b_name_farm)
-                }
-            }
+        for (const f of farms) {
+          farmNames.set(f.b_id_farm, f.b_name_farm)
+        }
+      }
 
-            // Collect org IDs from principal-targeted invitations
-            const orgTargetIds = [
-                ...new Set(
-                    pending
-                        .filter((i) => i.target_principal_id !== null)
-                        .map((i) => i.target_principal_id as string),
-                ),
-            ]
+      // Collect org IDs from principal-targeted invitations
+      const orgTargetIds = [
+        ...new Set(
+          pending
+            .filter((i) => i.target_principal_id !== null)
+            .map((i) => i.target_principal_id as string),
+        ),
+      ]
 
-            const orgNames = new Map<string, string | null>()
-            if (orgTargetIds.length > 0) {
-                const orgs = await tx
-                    .select({
-                        id: authNSchema.organization.id,
-                        name: authNSchema.organization.name,
-                    })
-                    .from(authNSchema.organization)
-                    .where(inArray(authNSchema.organization.id, orgTargetIds))
+      const orgNames = new Map<string, string | null>()
+      if (orgTargetIds.length > 0) {
+        const orgs = await tx
+          .select({
+            id: authNSchema.organization.id,
+            name: authNSchema.organization.name,
+          })
+          .from(authNSchema.organization)
+          .where(inArray(authNSchema.organization.id, orgTargetIds))
 
-                for (const o of orgs) {
-                    orgNames.set(o.id, o.name)
-                }
-            }
+        for (const o of orgs) {
+          orgNames.set(o.id, o.name)
+        }
+      }
 
-            return pending.map((i) => ({
-                ...i,
-                farm_name:
-                    i.resource === "farm"
-                        ? (farmNames.get(i.resource_id) ?? null)
-                        : null,
-                org_name: i.target_principal_id
-                    ? (orgNames.get(i.target_principal_id) ?? null)
-                    : null,
-            }))
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for listPendingInvitationsForUser", {
-            user_id,
-        })
-    }
+      return pending.map((i) => ({
+        ...i,
+        farm_name: i.resource === "farm" ? (farmNames.get(i.resource_id) ?? null) : null,
+        org_name: i.target_principal_id ? (orgNames.get(i.target_principal_id) ?? null) : null,
+      }))
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for listPendingInvitationsForUser", {
+      user_id,
+    })
+  }
 }
 
 /**
@@ -890,23 +792,16 @@ export async function listPendingInvitationsForUser(
  * @returns A Promise that resolves to true if the principal has 'share' permission, false otherwise.
  */
 export async function isAllowedToShareFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<boolean> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "share",
-            b_id_farm,
-            principal_id,
-            "isAllowedToShareFarm",
-        )
-        return true
-    } catch (_err) {
-        return false
-    }
+  try {
+    await checkPermission(fdm, "farm", "share", b_id_farm, principal_id, "isAllowedToShareFarm")
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -919,47 +814,47 @@ export async function isAllowedToShareFarm(
  * @throws Error if invitation not found, not pending, expired, or permission denied.
  */
 async function getAndValidatePendingFarmInvitation(
-    tx: FdmType,
-    invitation_id: string,
-    principal_id: PrincipalId,
+  tx: FdmType,
+  invitation_id: string,
+  principal_id: PrincipalId,
 ): Promise<authZSchema.invitationTypeSelect> {
-    const invitations = await tx
-        .select()
-        .from(authZSchema.invitation)
-        .where(
-            and(
-                eq(authZSchema.invitation.invitation_id, invitation_id),
-                eq(authZSchema.invitation.resource, "farm"),
-            ),
-        )
-        .limit(1)
-
-    if (invitations.length === 0) {
-        throw new Error("Invitation not found")
-    }
-
-    const invitation = invitations[0]
-
-    if (invitation.status !== "pending") {
-        throw new Error(`Invitation is already ${invitation.status}`)
-    }
-
-    if (invitation.expires <= new Date()) {
-        throw new Error("Invitation has expired")
-    }
-
-    const b_id_farm = invitation.resource_id
-
-    await checkPermission(
-        tx,
-        "farm",
-        "share",
-        b_id_farm,
-        principal_id,
-        "getAndValidatePendingFarmInvitation",
+  const invitations = await tx
+    .select()
+    .from(authZSchema.invitation)
+    .where(
+      and(
+        eq(authZSchema.invitation.invitation_id, invitation_id),
+        eq(authZSchema.invitation.resource, "farm"),
+      ),
     )
+    .limit(1)
 
-    return invitation
+  if (invitations.length === 0) {
+    throw new Error("Invitation not found")
+  }
+
+  const invitation = invitations[0]
+
+  if (invitation.status !== "pending") {
+    throw new Error(`Invitation is already ${invitation.status}`)
+  }
+
+  if (invitation.expires <= new Date()) {
+    throw new Error("Invitation has expired")
+  }
+
+  const b_id_farm = invitation.resource_id
+
+  await checkPermission(
+    tx,
+    "farm",
+    "share",
+    b_id_farm,
+    principal_id,
+    "getAndValidatePendingFarmInvitation",
+  )
+
+  return invitation
 }
 
 /**
@@ -973,40 +868,36 @@ async function getAndValidatePendingFarmInvitation(
  * @param invitation_id - The identifier of the invitation to cancel.
  */
 export async function cancelInvitationForFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    invitation_id: string,
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  invitation_id: string,
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await getAndValidatePendingFarmInvitation(
-                tx,
-                invitation_id,
-                principal_id,
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await getAndValidatePendingFarmInvitation(tx, invitation_id, principal_id)
 
-            const result = await tx
-                .update(authZSchema.invitation)
-                .set({ status: "declined" })
-                .where(
-                    and(
-                        eq(authZSchema.invitation.invitation_id, invitation_id),
-                        eq(authZSchema.invitation.status, "pending"),
-                    ),
-                )
-                .returning({
-                    invitation_id: authZSchema.invitation.invitation_id,
-                })
+      const result = await tx
+        .update(authZSchema.invitation)
+        .set({ status: "declined" })
+        .where(
+          and(
+            eq(authZSchema.invitation.invitation_id, invitation_id),
+            eq(authZSchema.invitation.status, "pending"),
+          ),
+        )
+        .returning({
+          invitation_id: authZSchema.invitation.invitation_id,
+        })
 
-            if (result.length === 0) {
-                throw new Error("Invitation is no longer pending")
-            }
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for cancelInvitationForFarm", {
-            invitation_id,
-        })
-    }
+      if (result.length === 0) {
+        throw new Error("Invitation is no longer pending")
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for cancelInvitationForFarm", {
+      invitation_id,
+    })
+  }
 }
 
 /**
@@ -1021,42 +912,38 @@ export async function cancelInvitationForFarm(
  * @param role - The new role to assign.
  */
 export async function updateRoleOfInvitationForFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    invitation_id: string,
-    role: "owner" | "advisor" | "researcher",
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  invitation_id: string,
+  role: "owner" | "advisor" | "researcher",
 ): Promise<void> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            await getAndValidatePendingFarmInvitation(
-                tx,
-                invitation_id,
-                principal_id,
-            )
+  try {
+    return await fdm.transaction(async (tx) => {
+      await getAndValidatePendingFarmInvitation(tx, invitation_id, principal_id)
 
-            const result = await tx
-                .update(authZSchema.invitation)
-                .set({ role })
-                .where(
-                    and(
-                        eq(authZSchema.invitation.invitation_id, invitation_id),
-                        eq(authZSchema.invitation.status, "pending"),
-                    ),
-                )
-                .returning({
-                    invitation_id: authZSchema.invitation.invitation_id,
-                })
+      const result = await tx
+        .update(authZSchema.invitation)
+        .set({ role })
+        .where(
+          and(
+            eq(authZSchema.invitation.invitation_id, invitation_id),
+            eq(authZSchema.invitation.status, "pending"),
+          ),
+        )
+        .returning({
+          invitation_id: authZSchema.invitation.invitation_id,
+        })
 
-            if (result.length === 0) {
-                throw new Error("Invitation is no longer pending")
-            }
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for updateRoleOfInvitationForFarm", {
-            invitation_id,
-            role,
-        })
-    }
+      if (result.length === 0) {
+        throw new Error("Invitation is no longer pending")
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateRoleOfInvitationForFarm", {
+      invitation_id,
+      role,
+    })
+  }
 }
 
 /**
@@ -1071,23 +958,16 @@ export async function updateRoleOfInvitationForFarm(
  * @returns A Promise that resolves to true if the principal has 'write' permission, false otherwise.
  */
 export async function isAllowedToDeleteFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeInsert["b_id_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeInsert["b_id_farm"],
 ): Promise<boolean> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "write",
-            b_id_farm,
-            principal_id,
-            "isAllowedToDeleteFarm",
-        )
-        return true
-    } catch (_err) {
-        return false
-    }
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "isAllowedToDeleteFarm")
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -1108,226 +988,167 @@ export async function isAllowedToDeleteFarm(
  * @alpha
  */
 export async function removeFarm(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
 ): Promise<void> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "write",
-            b_id_farm,
-            principal_id,
-            "removeFarm",
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "removeFarm")
+
+    await fdm.transaction(async (tx) => {
+      // Step 1: Get all fields for the given farm
+      const fields = await tx
+        .select({ b_id: schema.fieldAcquiring.b_id })
+        .from(schema.fieldAcquiring)
+        .where(eq(schema.fieldAcquiring.b_id_farm, b_id_farm))
+
+      // Step 2: Remove each field and its associated data
+      if (fields.length > 0) {
+        const fieldIds = fields.map((f: { b_id: schema.fieldsTypeSelect["b_id"] }) => f.b_id)
+        for (const fieldId of fieldIds) {
+          await removeField(tx, principal_id, fieldId)
+        }
+      }
+
+      // Step 3: Delete farm-specific data
+      // Get all fertilizer IDs associated with this farm
+      const fertilizerIdsToDelete = await tx
+        .select({ p_id: schema.fertilizerAcquiring.p_id })
+        .from(schema.fertilizerAcquiring)
+        .where(eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm))
+
+      // Delete fertilizer acquiring records
+      await tx
+        .delete(schema.fertilizerAcquiring)
+        .where(eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm))
+
+      // Delete fertilizer picking records associated with this farm's custom fertilizers
+      await tx
+        .delete(schema.fertilizerPicking)
+        .where(eq(schema.fertilizerPicking.p_id_catalogue, b_id_farm))
+
+      // Delete fertilizer picking records associated with acquired fertilizers of this farm
+      if (fertilizerIdsToDelete.length > 0) {
+        const pIds = fertilizerIdsToDelete.map(
+          (f: { p_id: schema.fertilizersTypeSelect["p_id"] }) => f.p_id,
+        )
+        await tx
+          .delete(schema.fertilizerPicking)
+          .where(inArray(schema.fertilizerPicking.p_id, pIds))
+      }
+
+      // Get all derogation IDs associated with this farm
+      const derogationIdsToDelete = await tx
+        .select({
+          b_id_derogation: schema.derogationApplying.b_id_derogation,
+        })
+        .from(schema.derogationApplying)
+        .where(eq(schema.derogationApplying.b_id_farm, b_id_farm))
+
+      // Delete derogation applying records
+      await tx
+        .delete(schema.derogationApplying)
+        .where(eq(schema.derogationApplying.b_id_farm, b_id_farm))
+
+      // Delete derogations that were associated with this farm
+      if (derogationIdsToDelete.length > 0) {
+        const bIdsDerogation = derogationIdsToDelete.map(
+          (d: { b_id_derogation: schema.derogationsTypeSelect["b_id_derogation"] }) =>
+            d.b_id_derogation,
+        )
+        await tx
+          .delete(schema.derogations)
+          .where(inArray(schema.derogations.b_id_derogation, bIdsDerogation))
+      }
+
+      // Get all organic certification IDs associated with this farm
+      const organicCertificationIdsToDelete = await tx
+        .select({
+          b_id_organic: schema.organicCertificationsHolding.b_id_organic,
+        })
+        .from(schema.organicCertificationsHolding)
+        .where(eq(schema.organicCertificationsHolding.b_id_farm, b_id_farm))
+
+      // Delete organic certifications holding records
+      await tx
+        .delete(schema.organicCertificationsHolding)
+        .where(eq(schema.organicCertificationsHolding.b_id_farm, b_id_farm))
+
+      // Delete organic certifications that were associated with this farm
+      if (organicCertificationIdsToDelete.length > 0) {
+        const bIdsOrganic = organicCertificationIdsToDelete.map(
+          (o: { b_id_organic: schema.organicCertificationsTypeSelect["b_id_organic"] }) =>
+            o.b_id_organic,
+        )
+        await tx
+          .delete(schema.organicCertifications)
+          .where(inArray(schema.organicCertifications.b_id_organic, bIdsOrganic))
+      }
+
+      await tx
+        .delete(schema.intendingGrazing)
+        .where(eq(schema.intendingGrazing.b_id_farm, b_id_farm))
+      await tx
+        .delete(schema.fertilizerCatalogueEnabling)
+        .where(eq(schema.fertilizerCatalogueEnabling.b_id_farm, b_id_farm))
+      await tx
+        .delete(schema.cultivationCatalogueSelecting)
+        .where(eq(schema.cultivationCatalogueSelecting.b_id_farm, b_id_farm))
+      await tx
+        .delete(schema.measureCatalogueEnabling)
+        .where(eq(schema.measureCatalogueEnabling.b_id_farm, b_id_farm))
+
+      // Delete custom fertilizers from the catalogue that belong to this farm
+      await tx
+        .delete(schema.fertilizersCatalogue)
+        .where(eq(schema.fertilizersCatalogue.p_source, b_id_farm))
+
+      // Delete fertilizers if they are no longer associated with any farm
+      if (fertilizerIdsToDelete.length > 0) {
+        const pIds = fertilizerIdsToDelete.map(
+          (f: { p_id: schema.fertilizersTypeSelect["p_id"] }) => f.p_id,
+        )
+        const stillReferencedFertilizers = await tx
+          .select({ p_id: schema.fertilizerAcquiring.p_id })
+          .from(schema.fertilizerAcquiring)
+          .where(inArray(schema.fertilizerAcquiring.p_id, pIds))
+
+        const referencedPIds = new Set(
+          stillReferencedFertilizers.map(
+            (f: { p_id: schema.fertilizersTypeSelect["p_id"] }) => f.p_id,
+          ),
+        )
+        const fertilizersToRemove = pIds.filter(
+          (p_id: schema.fertilizersTypeSelect["p_id"]) => !referencedPIds.has(p_id),
         )
 
-        await fdm.transaction(async (tx) => {
-            // Step 1: Get all fields for the given farm
-            const fields = await tx
-                .select({ b_id: schema.fieldAcquiring.b_id })
-                .from(schema.fieldAcquiring)
-                .where(eq(schema.fieldAcquiring.b_id_farm, b_id_farm))
+        if (fertilizersToRemove.length > 0) {
+          await tx
+            .delete(schema.fertilizers)
+            .where(inArray(schema.fertilizers.p_id, fertilizersToRemove))
+        }
+      }
 
-            // Step 2: Remove each field and its associated data
-            if (fields.length > 0) {
-                const fieldIds = fields.map(
-                    (f: { b_id: schema.fieldsTypeSelect["b_id"] }) => f.b_id,
-                )
-                for (const fieldId of fieldIds) {
-                    await removeField(tx, principal_id, fieldId)
-                }
-            }
+      // Step 4: Revoke all principals from the farm
+      const principals = await listPrincipalsForResource(tx, "farm", b_id_farm)
+      for (const principal of principals) {
+        await revokePrincipal(tx, "farm", b_id_farm, principal.principal_id)
+      }
 
-            // Step 3: Delete farm-specific data
-            // Get all fertilizer IDs associated with this farm
-            const fertilizerIdsToDelete = await tx
-                .select({ p_id: schema.fertilizerAcquiring.p_id })
-                .from(schema.fertilizerAcquiring)
-                .where(eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm))
+      // Step 4b: Delete all invitations for this farm
+      await tx
+        .delete(authZSchema.invitation)
+        .where(
+          and(
+            eq(authZSchema.invitation.resource, "farm"),
+            eq(authZSchema.invitation.resource_id, b_id_farm),
+          ),
+        )
 
-            // Delete fertilizer acquiring records
-            await tx
-                .delete(schema.fertilizerAcquiring)
-                .where(eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm))
-
-            // Delete fertilizer picking records associated with this farm's custom fertilizers
-            await tx
-                .delete(schema.fertilizerPicking)
-                .where(eq(schema.fertilizerPicking.p_id_catalogue, b_id_farm))
-
-            // Delete fertilizer picking records associated with acquired fertilizers of this farm
-            if (fertilizerIdsToDelete.length > 0) {
-                const pIds = fertilizerIdsToDelete.map(
-                    (f: { p_id: schema.fertilizersTypeSelect["p_id"] }) =>
-                        f.p_id,
-                )
-                await tx
-                    .delete(schema.fertilizerPicking)
-                    .where(inArray(schema.fertilizerPicking.p_id, pIds))
-            }
-
-            // Get all derogation IDs associated with this farm
-            const derogationIdsToDelete = await tx
-                .select({
-                    b_id_derogation: schema.derogationApplying.b_id_derogation,
-                })
-                .from(schema.derogationApplying)
-                .where(eq(schema.derogationApplying.b_id_farm, b_id_farm))
-
-            // Delete derogation applying records
-            await tx
-                .delete(schema.derogationApplying)
-                .where(eq(schema.derogationApplying.b_id_farm, b_id_farm))
-
-            // Delete derogations that were associated with this farm
-            if (derogationIdsToDelete.length > 0) {
-                const bIdsDerogation = derogationIdsToDelete.map(
-                    (d: {
-                        b_id_derogation: schema.derogationsTypeSelect["b_id_derogation"]
-                    }) => d.b_id_derogation,
-                )
-                await tx
-                    .delete(schema.derogations)
-                    .where(
-                        inArray(
-                            schema.derogations.b_id_derogation,
-                            bIdsDerogation,
-                        ),
-                    )
-            }
-
-            // Get all organic certification IDs associated with this farm
-            const organicCertificationIdsToDelete = await tx
-                .select({
-                    b_id_organic:
-                        schema.organicCertificationsHolding.b_id_organic,
-                })
-                .from(schema.organicCertificationsHolding)
-                .where(
-                    eq(
-                        schema.organicCertificationsHolding.b_id_farm,
-                        b_id_farm,
-                    ),
-                )
-
-            // Delete organic certifications holding records
-            await tx
-                .delete(schema.organicCertificationsHolding)
-                .where(
-                    eq(
-                        schema.organicCertificationsHolding.b_id_farm,
-                        b_id_farm,
-                    ),
-                )
-
-            // Delete organic certifications that were associated with this farm
-            if (organicCertificationIdsToDelete.length > 0) {
-                const bIdsOrganic = organicCertificationIdsToDelete.map(
-                    (o: {
-                        b_id_organic: schema.organicCertificationsTypeSelect["b_id_organic"]
-                    }) => o.b_id_organic,
-                )
-                await tx
-                    .delete(schema.organicCertifications)
-                    .where(
-                        inArray(
-                            schema.organicCertifications.b_id_organic,
-                            bIdsOrganic,
-                        ),
-                    )
-            }
-
-            await tx
-                .delete(schema.intendingGrazing)
-                .where(eq(schema.intendingGrazing.b_id_farm, b_id_farm))
-            await tx
-                .delete(schema.fertilizerCatalogueEnabling)
-                .where(
-                    eq(schema.fertilizerCatalogueEnabling.b_id_farm, b_id_farm),
-                )
-            await tx
-                .delete(schema.cultivationCatalogueSelecting)
-                .where(
-                    eq(
-                        schema.cultivationCatalogueSelecting.b_id_farm,
-                        b_id_farm,
-                    ),
-                )
-            await tx
-                .delete(schema.measureCatalogueEnabling)
-                .where(eq(schema.measureCatalogueEnabling.b_id_farm, b_id_farm))
-
-            // Delete custom fertilizers from the catalogue that belong to this farm
-            await tx
-                .delete(schema.fertilizersCatalogue)
-                .where(eq(schema.fertilizersCatalogue.p_source, b_id_farm))
-
-            // Delete fertilizers if they are no longer associated with any farm
-            if (fertilizerIdsToDelete.length > 0) {
-                const pIds = fertilizerIdsToDelete.map(
-                    (f: { p_id: schema.fertilizersTypeSelect["p_id"] }) =>
-                        f.p_id,
-                )
-                const stillReferencedFertilizers = await tx
-                    .select({ p_id: schema.fertilizerAcquiring.p_id })
-                    .from(schema.fertilizerAcquiring)
-                    .where(inArray(schema.fertilizerAcquiring.p_id, pIds))
-
-                const referencedPIds = new Set(
-                    stillReferencedFertilizers.map(
-                        (f: { p_id: schema.fertilizersTypeSelect["p_id"] }) =>
-                            f.p_id,
-                    ),
-                )
-                const fertilizersToRemove = pIds.filter(
-                    (p_id: schema.fertilizersTypeSelect["p_id"]) =>
-                        !referencedPIds.has(p_id),
-                )
-
-                if (fertilizersToRemove.length > 0) {
-                    await tx
-                        .delete(schema.fertilizers)
-                        .where(
-                            inArray(
-                                schema.fertilizers.p_id,
-                                fertilizersToRemove,
-                            ),
-                        )
-                }
-            }
-
-            // Step 4: Revoke all principals from the farm
-            const principals = await listPrincipalsForResource(
-                tx,
-                "farm",
-                b_id_farm,
-            )
-            for (const principal of principals) {
-                await revokePrincipal(
-                    tx,
-                    "farm",
-                    b_id_farm,
-                    principal.principal_id,
-                )
-            }
-
-            // Step 4b: Delete all invitations for this farm
-            await tx
-                .delete(authZSchema.invitation)
-                .where(
-                    and(
-                        eq(authZSchema.invitation.resource, "farm"),
-                        eq(authZSchema.invitation.resource_id, b_id_farm),
-                    ),
-                )
-
-            // Step 5: Finally, delete the farm itself
-            await tx
-                .delete(schema.farms)
-                .where(eq(schema.farms.b_id_farm, b_id_farm))
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for removeFarm", { b_id_farm })
-    }
+      // Step 5: Finally, delete the farm itself
+      await tx.delete(schema.farms).where(eq(schema.farms.b_id_farm, b_id_farm))
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for removeFarm", { b_id_farm })
+  }
 }

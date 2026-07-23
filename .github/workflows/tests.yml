@@ -53,13 +53,13 @@ jobs:
       - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm i
@@ -131,13 +131,13 @@ jobs:
       - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm i
@@ -192,13 +192,13 @@ jobs:
       - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm i
@@ -264,13 +264,13 @@ jobs:
       - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm i
@@ -325,13 +325,13 @@ jobs:
       - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm i
@@ -382,13 +382,13 @@ jobs:
       - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm i
@@ -403,7 +403,7 @@ jobs:
           flags: fdm-api
           token: ${{ secrets.CODECOV_TOKEN }}
 
-# Label of the container job for fdm-helpdesk
+  # Label of the container job for fdm-helpdesk
   test-helpdesk:
     name: helpdesk
     # Containers must run in Linux based operating systems
@@ -454,13 +454,13 @@ jobs:
       - name: Setup pnpm 11
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm i

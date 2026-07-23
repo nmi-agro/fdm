@@ -1,162 +1,206 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
+import { Building, X } from "lucide-react"
+import { useEffect, useRef, useState, useTransition } from "react"
 import { Controller } from "react-hook-form"
-import { Form, type HTMLFormMethod } from "react-router"
+import { useFetcher, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import z from "zod"
+import type { ParsedOrganization } from "~/lib/organization-helpers"
+import {
+  cropProfilePicture,
+  MAX_SIZE_BYTES,
+  ProfilePictureInput,
+} from "~/components/blocks/profile/profile-picture-manager"
 import { Button } from "~/components/ui/button"
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "~/components/ui/card"
 import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
-import type { ParsedOrganization } from "~/lib/organization-helpers"
-import { FormSchema } from "./schema"
+import { OrganizationInfoSchema } from "./schema"
 
+const FormSchema = OrganizationInfoSchema.extend({ intent: z.literal("update_organization_info") })
 export function OrganizationSettingsForm({
-    organization,
-    action,
-    method = "POST",
-    canModify,
+  className,
+  organization,
+  action,
+  method = "POST",
+  canModify,
+  profilePictureField,
 }: {
-    organization?: ParsedOrganization
-    action?: string
-    method?: HTMLFormMethod
-    canModify: boolean
+  className?: string
+  organization?: ParsedOrganization
+  action?: string
+  method?: HTMLFormMethod
+  canModify: boolean
+  profilePictureField: boolean
 }) {
-    const form = useRemixForm({
-        mode: "onTouched",
-        resolver: zodResolver(FormSchema),
-        defaultValues: {
-            name: organization?.name,
-            slug: organization?.slug,
-            description: organization?.metadata?.data?.description,
-        },
-    })
+  const fetcher = useFetcher()
 
-    // Function to convert text to a slug
-    const convertToSlug = (text: string) => {
-        return text
-            .toLowerCase()
-            .replace(/[^a-z0-9-]+/g, "-") // Replace non-alphanumeric with -
-            .replace(/--+/g, "-") // Replace multiple - with single -
-            .replace(/^-|-$/g, "") // Trim - from start and end
-    }
+  const [profilePictureFiles, setProfilePictureFiles] = useState<File[]>([])
 
-    // Reset the form when the organization changes
-    // biome-ignore lint/correctness/useExhaustiveDependencies: organization.slug is the key
-    useEffect(() => {
-        form.reset({
-            name: organization?.name,
-            slug: organization?.slug,
-            description: organization?.metadata?.data?.description,
+  const [isProcessingForm, processForm] = useTransition()
+
+  const formRef = useRef<HTMLFormElement>(null)
+  const form = useRemixForm({
+    mode: "onTouched",
+    resolver: zodResolver(FormSchema),
+    fetcher: fetcher,
+    stringifyAllValues: false,
+    submitHandlers: {
+      async onValid() {
+        if (!formRef.current) return
+        const formData = new FormData(formRef.current)
+        processForm(async () => {
+          const formDataWithCroppedPic = await cropProfilePicture(formData)
+          fetcher.submit(formDataWithCroppedPic, {
+            method: "post",
+            encType: "multipart/form-data",
+          })
         })
-    }, [form.reset, !!organization, organization?.slug])
+      },
+    },
+    defaultValues: {
+      intent: "update_organization_info" as const,
+      name: organization?.name,
+      slug: organization?.slug,
+      description: organization?.metadata?.data?.description,
+    },
+  })
 
-    // Update slug when name changes
-    const organizationName = form.getValues("name")
+  // Function to convert text to a slug
+  const convertToSlug = (text: string) => {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-") // Replace non-alphanumeric with -
+      .replace(/--+/g, "-") // Replace multiple - with single -
+      .replace(/^-|-$/g, "") // Trim - from start and end
+  }
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: convertToSlug changes on every re-render and should not be used as a hook dependency
-    useEffect(() => {
-        if (!organizationName) return
-        const newSlug = convertToSlug(organizationName)
-        if (form.getValues("slug") !== newSlug) {
-            form.setValue("slug", newSlug)
-        }
-    }, [organizationName, form.getValues, form.setValue])
+  // Reset the form when the organization changes
+  useEffect(() => {
+    form.reset({
+      intent: "update_organization_info" as const,
+      name: organization?.name,
+      slug: organization?.slug,
+      description: organization?.metadata?.data?.description,
+    })
+    setProfilePictureFiles([])
+  }, [form.reset, !!organization, organization?.slug])
 
-    const disabled = !canModify || form.formState.isSubmitting
-    return (
-        <Card className="max-w-3xl mx-auto">
-            <RemixFormProvider {...form}>
-                <Form
-                    action={action}
-                    method={method}
-                    onSubmit={form.handleSubmit}
-                >
-                    <CardHeader>
-                        <CardTitle>Organisatiegegevens</CardTitle>
-                        <CardDescription>
-                            Voer de gegevens van je organisatie in.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <fieldset disabled={disabled} className="space-y-4">
-                            <Controller
-                                name="name"
-                                control={form.control}
-                                render={({ field, fieldState }) => (
-                                    <Field data-invalid={fieldState.invalid}>
-                                        <FieldLabel>
-                                            Naam organisatie
-                                        </FieldLabel>
-                                        <Input
-                                            {...field}
-                                            type="text"
-                                            required
-                                        />
-                                        {fieldState.invalid && (
-                                            <FieldError
-                                                errors={[fieldState.error]}
-                                            />
-                                        )}
-                                    </Field>
-                                )}
-                            />
-                            <Controller
-                                name="slug"
-                                control={form.control}
-                                render={({ field, fieldState }) => (
-                                    <Field data-invalid={fieldState.invalid}>
-                                        <FieldLabel>Organisatie ID</FieldLabel>
-                                        <Input
-                                            {...field}
-                                            type="text"
-                                            disabled
-                                        />
-                                        {fieldState.invalid && (
-                                            <FieldError
-                                                errors={[fieldState.error]}
-                                            />
-                                        )}
-                                    </Field>
-                                )}
-                            />
-                            <Controller
-                                name="description"
-                                control={form.control}
-                                render={({ field, fieldState }) => (
-                                    <Field data-invalid={fieldState.invalid}>
-                                        <FieldLabel>Beschrijving</FieldLabel>
-                                        <Textarea
-                                            placeholder="Een korte toelichting op je organisatie zodat andere gebruikers er meer te weten over komen."
-                                            className="resize-none"
-                                            {...field}
-                                        />
-                                        {fieldState.invalid && (
-                                            <FieldError
-                                                errors={[fieldState.error]}
-                                            />
-                                        )}
-                                    </Field>
-                                )}
-                            />
-                        </fieldset>
-                    </CardContent>
-                    <CardFooter className="flex-row justify-end">
-                        <Button type="submit" disabled={disabled}>
-                            {form.formState.isSubmitting && <Spinner />}
-                            {organization ? "Bijwerken" : "Aanmaken"}
-                        </Button>
-                    </CardFooter>
-                </Form>
-            </RemixFormProvider>
-        </Card>
-    )
+  // Update slug when name changes
+  const organizationName = form.getValues("name")
+
+  useEffect(() => {
+    if (!organizationName) return
+    const newSlug = convertToSlug(organizationName)
+    if (form.getValues("slug") !== newSlug) {
+      form.setValue("slug", newSlug)
+    }
+  }, [organizationName, form.getValues, form.setValue])
+
+  const isSubmitting = isProcessingForm || fetcher.state !== "idle"
+  const disabled = !canModify || isSubmitting
+  return (
+    <Card className={className}>
+      <RemixFormProvider {...form}>
+        <fetcher.Form ref={formRef} action={action} method={method} onSubmit={form.handleSubmit}>
+          <CardHeader>
+            <CardTitle>Organisatiegegevens</CardTitle>
+            <CardDescription>Voer de gegevens van je organisatie in.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <fieldset disabled={disabled} className="space-y-4">
+              <input type="hidden" name="intent" value="update_organization_info" />
+              <Controller
+                name="name"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Naam organisatie</FieldLabel>
+                    <Input {...field} value={field.value ?? ""} type="text" required />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Controller
+                name="slug"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Organisatie ID</FieldLabel>
+                    <Input
+                      {...field}
+                      value={field.value ?? ""}
+                      type="text"
+                      readOnly
+                      className="text-muted-foreground pointer-events-none"
+                    />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Controller
+                name="description"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Beschrijving</FieldLabel>
+                    <Textarea
+                      placeholder="Een korte toelichting op je organisatie zodat andere gebruikers er meer te weten over komen."
+                      className="resize-none"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              {profilePictureField && (
+                <Field>
+                  <FieldLabel>Logo (optioneel)</FieldLabel>
+                  <div className="relative mx-auto max-w-sm">
+                    <ProfilePictureInput
+                      appAspectRatio={3 / 2}
+                      frameShape="rectangle"
+                      cropBounds="outer"
+                      files={profilePictureFiles}
+                      onFilesChange={setProfilePictureFiles}
+                      maxFileSize={MAX_SIZE_BYTES}
+                      avatarFallback={<Building className="text-muted-foreground size-3/4" />}
+                    />
+                    {profilePictureFiles.length > 0 ? (
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        onClick={() => setProfilePictureFiles([])}
+                        className="hover:text-destructive absolute top-2 right-2 size-auto text-gray-100 has-[>svg]:px-1 has-[>svg]:py-1"
+                        title="Logo verwijderen"
+                        aria-label="Logo verwijderen"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </div>
+                </Field>
+              )}
+            </fieldset>
+          </CardContent>
+          <CardFooter className="flex-row justify-end">
+            <Button type="submit" disabled={disabled}>
+              {isSubmitting && <Spinner />}
+              {organization ? "Bijwerken" : "Aanmaken"}
+            </Button>
+          </CardFooter>
+        </fetcher.Form>
+      </RemixFormProvider>
+    </Card>
+  )
 }

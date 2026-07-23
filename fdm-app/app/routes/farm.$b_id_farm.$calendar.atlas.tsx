@@ -1,10 +1,5 @@
 import { getFarm, getFarms } from "@nmi-agro/fdm-core"
-import {
-    type LoaderFunctionArgs,
-    type MetaFunction,
-    Outlet,
-    useLoaderData,
-} from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, Outlet, useLoaderData } from "react-router"
 import { ClientOnly } from "remix-utils/client-only"
 import { HeaderAtlas } from "~/components/blocks/header/atlas"
 import { Header } from "~/components/blocks/header/base"
@@ -19,13 +14,13 @@ import { fdm } from "~/lib/fdm.server"
 
 // Meta
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Atlas | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: "Bekijk informatie op de kaart.",
-        },
-    ]
+  return [
+    { title: `Atlas | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: "Bekijk informatie op de kaart.",
+    },
+  ]
 }
 
 /**
@@ -39,40 +34,40 @@ export const meta: MetaFunction = () => {
  * @throws {Response} If the farm ID is missing (400), the specified farm is not found (404), or an error occurs while fetching farm details (500).
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
+  try {
+    // Get the farm id
+    const b_id_farm = params.b_id_farm
 
-        // Get the session
-        const session = await getSession(request)
+    // Get the session
+    const session = await getSession(request)
 
-        // Get the calendar
-        const calendar = getCalendar(params)
+    // Get the calendar
+    const calendar = getCalendar(params)
 
-        // Check if the b_id_farm is valid and accessible by the user
-        if (b_id_farm && b_id_farm !== "undefined") {
-            await getFarm(fdm, session.principal_id, b_id_farm)
-        }
-
-        // Get a list of possible farms of the user
-        const farms = await getFarms(fdm, session.principal_id)
-
-        const farmOptions = farms.map((farm) => {
-            return {
-                b_id_farm: farm.b_id_farm,
-                b_name_farm: farm.b_name_farm,
-            }
-        })
-
-        // Return user information from loader
-        return {
-            b_id_farm: b_id_farm,
-            calendar: calendar,
-            farmOptions: farmOptions,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+    // Check if the b_id_farm is valid and accessible by the user
+    if (b_id_farm && b_id_farm !== "undefined") {
+      await getFarm(fdm, session.principal_id, b_id_farm)
     }
+
+    // Get a list of possible farms of the user
+    const farms = await getFarms(fdm, session.principal_id)
+
+    const farmOptions = farms.map((farm) => {
+      return {
+        b_id_farm: farm.b_id_farm,
+        b_name_farm: farm.b_name_farm,
+      }
+    })
+
+    // Return user information from loader
+    return {
+      b_id_farm: b_id_farm,
+      calendar: calendar,
+      farmOptions: farmOptions,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -86,24 +81,27 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * @returns The React element representing the farm atlas content block.
  */
 export default function FarmContentBlock() {
-    const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
 
-    return (
-        <SidebarInset>
-            <Header action={undefined}>
-                <HeaderFarm
-                    b_id_farm={loaderData.b_id_farm}
-                    farmOptions={loaderData.farmOptions}
-                />
-                <HeaderAtlas b_id_farm={loaderData.b_id_farm} />
-            </Header>
-            <main>
-                <ClientOnly
-                    fallback={<Skeleton className="h-full w-full rounded-xl" />}
-                >
-                    {() => <Outlet />}
-                </ClientOnly>
-            </main>
-        </SidebarInset>
-    )
+  const isValidFarm = loaderData.b_id_farm && loaderData.b_id_farm !== "undefined"
+
+  const action = {
+    to: isValidFarm ? `/farm/${loaderData.b_id_farm}` : "/farm",
+    label: "Terug naar bedrijf",
+    disabled: !isValidFarm,
+  }
+
+  return (
+    <SidebarInset>
+      <Header action={action}>
+        <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
+        <HeaderAtlas b_id_farm={loaderData.b_id_farm} />
+      </Header>
+      <main>
+        <ClientOnly fallback={<Skeleton className="h-full w-full rounded-xl" />}>
+          {() => <Outlet />}
+        </ClientOnly>
+      </main>
+    </SidebarInset>
+  )
 }

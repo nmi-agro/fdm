@@ -1,5 +1,36 @@
 # Changelog fdm-core
 
+## 0.35.0
+
+### Minor Changes
+
+- [#711](https://github.com/nmi-agro/fdm/pull/711) [`845197e`](https://github.com/nmi-agro/fdm/commit/845197e28776b331f6d44e0eb64dc144e786f8f3) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now users are able to see farm invitations for their organization even if they are just a member. This is handled through the new `include_readonly` flag that can be passed to the fdm-core `listPendingInvitationsForUser` and `listPendingInvitationsForPrincipal` methods. In fdm-app the users see no accept and decline buttons, and a message that says their admin can accept or decline the invitation, if they can't accept or decline the invitation themselves.
+
+## 0.34.1
+
+### Patch Changes
+
+- Updated dependencies [[`af91940`](https://github.com/nmi-agro/fdm/commit/af91940e7b683741787b6c37ed53580a815bfd2c), [`2a169b4`](https://github.com/nmi-agro/fdm/commit/2a169b467d8bd3900fae8f85bf19ff807312f1ce)]:
+  - @nmi-agro/fdm-data@0.22.0
+
+## 0.34.0
+
+### Minor Changes
+
+- [#636](https://github.com/nmi-agro/fdm/pull/636) [`98e0127`](https://github.com/nmi-agro/fdm/commit/98e0127bd3f02e193ad57a1cfef18fc10df40c67) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch to use certificates for sign-in with Microsoft instead of using a client secret to improve security
+
+- [#632](https://github.com/nmi-agro/fdm/pull/632) [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9) Thanks [@SvenVw](https://github.com/SvenVw)! - Add visual soil analysis (BCS) data model and CRUD functions.
+  - BCS indicator scores (`a_ss_bcs` … `a_rt_bcs`) added directly to `soil_analysis` table; soil sampling links analysis to field via `b_id_sampling`
+  - New tables: `soil_image` (stores GCS path, type, order, caption per sampling event) and `soil_image_annotating` (pins, circles, arrows, freehand drawings with optional BCS indicator link)
+  - Column naming follows FDM conventions: `a_image_path`, `a_image_type`, `a_image_order`, `a_image_caption`; annotation columns `a_image_annotation_type`, `a_image_annotation_coordinates` (jsonb), `a_image_annotation`, `a_image_annotation_bcs`, `a_image_annotation_order`
+  - New functions: `addSoilImage`, `getSoilImages`, `removeSoilImage`, `addSoilImageAnnotation`, `updateSoilImageAnnotation`, `removeSoilImageAnnotation`
+  - Authorization: `soil_image` added as a named resource in the chain (farm → field → soil_image via `b_id_sampling`)
+  - Database migration included (`0030_graceful_hawkeye.sql`)
+
+### Patch Changes
+
+- [#634](https://github.com/nmi-agro/fdm/pull/634) [`afdd78f`](https://github.com/nmi-agro/fdm/commit/afdd78f16fad2aef17e03e4eace48628ef7a2d51) Thanks [@SvenVw](https://github.com/SvenVw)! - Resolve all TypeScript errors in `fdm-app`, making it fully type-safe. Includes `MultiPolygon` support in `fdm-core` schema types and geometry fixes in `fdm-rvo`.
+
 ## 0.33.0
 
 ### Minor Changes

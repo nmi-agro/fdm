@@ -1,46 +1,55 @@
 # Koolgewassen (brassicas)
 
-All brassicas share common fertilizer themes (high S demand, B/Mo sensitivity, pH management
-for knolvoet). The crop-specific notes below highlight where N management and timing differ.
+Alle brassicas hebben gemeenschappelijke bemestingsthema's (hoge S-behoefte, gevoeligheid
+voor B/Mo, pH-beheer voor knolvoet). De gewasspecifieke opmerkingen hieronder geven aan
+waar N-beheer en timing verschillen.
 
-## Common rules for all koolgewassen
+## Algemene regels voor alle koolgewassen
 
-**Prefer:**
-- Sulphur: all brassicas are glucosinolate producers and have a high S demand. **Always**
-  include S to meet `advice.d_s_req`.
-- Boron: B deficiency causes hollow stem in broccoli and bloemkool. Include B to meet
-  `advice.d_b_req`.
-- Split N: brassicas generally benefit from split N (at planting + 1–2 top-dresses). Single
-  large N doses cause rank vegetative growth and uneven head/sprout development.
+**Voorkeur:**
 
-**Avoid:**
-- Acid soils: knolvoet (club root, *Plasmodiophora brassicae*) thrives in acid conditions.
-  Treat low pH-KCl as a risk flag for any brassica field — knolvoetrisico rises substantially
-  on clay below pH-KCl ~7.0 and on sand below pH-KCl ~6.0–6.5. Consult `advice.d_ca_req` and
-  soil pH data before recommending liming. The previous internal target of pH > 5.8 on sand
-  is too low to suppress knolvoet effectively.
-- Single large N dose at planting — causes rank vegetative growth and delayed maturity.
+- Zwavel: alle brassicas vormen glucosinolaten en hebben een hoge S-behoefte. Neem
+  **altijd** S op om aan `advice.d_s_req` te voldoen.
+- Borium: B-gebrek veroorzaakt holle stengel in broccoli en bloemkool. Neem B op om aan
+  `advice.d_b_req` te voldoen.
+- Gedeelde N-gift: brassicas profiteren doorgaans van gedeelde N (bij planten + 1–2
+  bijbemestingen). Eén grote N-gift veroorzaakt weelderige vegetatieve groei en
+  ongelijkmatige kop-/spruitontwikkeling.
 
-**Extra attention:**
-- Molybdenum: bloemkool and broccoli are sensitive to Mo deficiency on acid soils
-  ("zweepstaart" / whiptail in bloemkool). Consult `advice.d_mo_req`.
-- Calcium: important for tip-burn prevention in bloemkool and for storage quality in
-  sluitkool. Consult `advice.d_ca_req`.
+**Vermijden:**
+
+- Zure gronden: knolvoet (clubroot, _Plasmodiophora brassicae_) gedijt onder zure
+  omstandigheden. Behandel een lage pH-KCl als risicosignaal voor elk perceel met
+  brassicas — het knolvoetrisico stijgt sterk op klei beneden pH-KCl ~7.0 en op zand
+  beneden pH-KCl ~6.0–6.5. Raadpleeg `advice.d_ca_req` en de bodem-pH-gegevens voordat
+  bekalking wordt aanbevolen. Het eerdere interne doel van pH > 5.8 op zand is te laag
+  om knolvoet effectief te onderdrukken.
+- Eén grote N-gift bij planten — veroorzaakt weelderige vegetatieve groei en vertraagde
+  afrijping.
+
+**Extra aandacht:**
+
+- Molybdeen: bloemkool en broccoli zijn gevoelig voor Mo-gebrek op zure gronden
+  ("zweepstaart" / whiptail in bloemkool). Raadpleeg `advice.d_mo_req`.
+- Calcium: belangrijk om tipburn in bloemkool te voorkomen en voor bewaarkwaliteit in
+  sluitkool. Raadpleeg `advice.d_ca_req`.
 
 ## Spruitkool (Brussels sprouts) — nl_2777
 
-- Very long growing season (April–January) and among the highest N-demanding field crops in
-  NL. Follow `advice.d_n_req` and split over 3–4 applications throughout the season.
-- Late N top-dress (September–October) is acceptable and necessary for spruitkool — unlike
-  most crops, spruitkool is still actively growing in autumn.
+- Zeer lang groeiseizoen (april–januari) en behoort tot de akkerbouw-/vollegrondsgroentegewassen
+  met de hoogste N-behoefte in NL. Volg `advice.d_n_req` en verdeel over 3–4 toepassingen
+  gedurende het seizoen.
+- Late N-bijbemesting (september–oktober) is acceptabel en noodzakelijk voor spruitkool —
+  anders dan de meeste gewassen groeit spruitkool in de herfst nog actief door.
 
 ## Bloemkool / Broccoli — nl_2713, nl_2719, nl_2795, nl_2797
 
-- High N demand but shorter growing season than spruitkool. Follow `advice.d_n_req` with
-  2–3 splits.
-- Winterbloemkool (nl_2795): overwintering crop — ensure adequate K for winter hardiness.
+- Hoge N-behoefte, maar korter groeiseizoen dan spruitkool. Volg `advice.d_n_req` met
+  2–3 deelgiften.
+- Winterbloemkool (nl_2795): overwinterend gewas — zorg voor voldoende K voor winterhardheid.
 
 ## Sluitkool (rodekool, wittekool, savooiekool, spitskool) — nl_2759, nl_2761, nl_2775, nl_2789
 
-- Moderate to high N demand. Follow `advice.d_n_req` with 2 splits (at planting + 1 top-dress).
-- Storage quality (especially rodekool, wittekool) benefits from K₂SO₄ over KCl.
+- Matige tot hoge N-behoefte. Volg `advice.d_n_req` met 2 deelgiften (bij planten + 1
+  bijbemesting).
+- Bewaarkwaliteit (vooral rodekool, wittekool) profiteert van K₂SO₄ in plaats van KCl.

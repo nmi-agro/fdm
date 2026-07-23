@@ -1,5 +1,33 @@
 # @nmi-agro/fdm-api
 
+## 0.2.3
+
+### Patch Changes
+
+- Updated dependencies [[`845197e`](https://github.com/nmi-agro/fdm/commit/845197e28776b331f6d44e0eb64dc144e786f8f3)]:
+  - @nmi-agro/fdm-core@0.35.0
+  - @nmi-agro/fdm-calculator@0.17.1
+
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [[`d4e5c73`](https://github.com/nmi-agro/fdm/commit/d4e5c73fad558934c30a1534972cd6118ff2886a)]:
+  - @nmi-agro/fdm-calculator@0.17.0
+  - @nmi-agro/fdm-core@0.34.1
+
+## 0.2.1
+
+### Patch Changes
+
+- [#656](https://github.com/nmi-agro/fdm/pull/656) [`7957f3a`](https://github.com/nmi-agro/fdm/commit/7957f3a40a9c9fe582f40b686444f0bea92cd2f9) Thanks [@SvenVw](https://github.com/SvenVw)! - Return 404 for all paths that don't match a registered route, before authentication runs.
+
+  Previously, requests to non-existent paths (e.g. from bot scanners hitting `/credentials.json`) would trigger the auth middleware — including a database lookup — and generate a `console.warn` log entry with `status=401`. Now a new `createPathExistenceGuard` middleware short-circuits these requests with a 404 RFC 9457 response and a `console.debug` log, with no auth DB lookup.
+
+- Updated dependencies [[`98e0127`](https://github.com/nmi-agro/fdm/commit/98e0127bd3f02e193ad57a1cfef18fc10df40c67), [`afdd78f`](https://github.com/nmi-agro/fdm/commit/afdd78f16fad2aef17e03e4eace48628ef7a2d51), [`c07e18c`](https://github.com/nmi-agro/fdm/commit/c07e18c7bc178a7c052fcdde0db30a56d508587a), [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9), [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9)]:
+  - @nmi-agro/fdm-core@0.34.0
+  - @nmi-agro/fdm-calculator@0.16.0
+
 ## 0.2.0
 
 ### Minor Changes

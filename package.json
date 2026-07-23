@@ -1,28 +1,32 @@
 {
-    "name": "@nmi-agro/fdm-source",
-    "version": "0.0.0",
-    "description": "Monorepo for fdm",
-    "homepage": "https://github.com/nmi-agro/fdm",
-    "bugs": "https://github.com/nmi-agro/fdm/issues/new",
-    "type": "module",
-    "private": true,
-    "scripts": {
-        "test": "turbo run test-coverage",
-        "build": "turbo run build",
-        "build-docs": "turbo run build-docs",
-        "dev": "turbo run dev",
-        "watch": "turbo run watch",
-        "changeset": "changeset",
-        "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents && changeset publish ",
-        "format-and-lint": "biome check .",
-        "format-and-lint:fix": "biome check . --write",
-        "format-and-lint:fix-unsafe": "biome check . --write --unsafe"
-    },
-    "devDependencies": {
-        "@biomejs/biome": "^2.5.0",
-        "@changesets/changelog-github": "^0.7.0",
-        "@changesets/cli": "^2.31.0",
-        "turbo": "^2.9.18"
-    },
-    "packageManager": "pnpm@11.7.0"
+  "name": "@nmi-agro/fdm-source",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for fdm",
+  "homepage": "https://github.com/nmi-agro/fdm",
+  "bugs": "https://github.com/nmi-agro/fdm/issues/new",
+  "type": "module",
+  "scripts": {
+    "test": "turbo run test-coverage",
+    "build": "turbo run build",
+    "build-docs": "turbo run build-docs",
+    "dev": "turbo run dev",
+    "watch": "turbo run watch",
+    "changeset": "changeset",
+    "prerelease": "turbo build --filter=@nmi-agro/fdm-core --filter=@nmi-agro/fdm-data --filter=@nmi-agro/fdm-calculator --filter=@nmi-agro/fdm-agents && changeset publish ",
+    "lint": "oxlint --type-aware",
+    "lint:fix": "oxlint --type-aware --fix",
+    "lint:fix-suggest": "oxlint --type-aware --fix-suggestions",
+    "lint:fix-suggest-unsafe": "oxlint --type-aware --fix --fix-suggestions",
+    "format": "oxfmt"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/cli": "^2.31.0",
+    "oxfmt": "^0.58.0",
+    "oxlint": "^1.73.0",
+    "oxlint-tsgolint": "^0.24.0",
+    "turbo": "^2.10.4"
+  },
+  "packageManager": "pnpm@11.12.0"
 }

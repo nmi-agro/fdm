@@ -1,28 +1,31 @@
-# Wintertarwe / Zomertarwe (winter wheat / spring wheat) — nl_233, nl_234
+# Wintertarwe / Zomertarwe (wintertarwe / zomertarwe) — nl_233, nl_234
 
-**Prefer:**
-- Split N applications: typically 3 splits for wintertarwe — tillering (start growth), stem
-  extension (GS31), and flag leaf (GS37–39). The flag-leaf application is key for grain
-  protein. Zomertarwe typically 2 splits (sowing + GS31).
-- Kalkammonsalpeter (KAS / CAN) as the main N source. Ureum can be used but must be
-  incorporated within 4 hours of application or applied with a urease inhibitor (NBPT) to
-  comply with the Besluit emissiearme aanwending. Do not broadcast ureum without
-  incorporation.
-- Sulphur: winter wheat is sensitive to S deficiency since EU sulphur emission reductions.
-  Use a tarwe-appropriate S source — KAS+S, ammoniumsulfaatsalpeter (ASS), ammoniumsulfaat,
-  or an NPS-blend — at stem extension to meet `advice.d_s_req`. Kieseriet is a Mg product
-  and is *not* the right S source for tarwe.
+**Voorkeur:**
 
-**Avoid:**
-- Chloride-heavy fertilizers close to harvest — Cl at high rates marginally reduces grain
-  quality (hectolitregewicht).
-- Very early spring N on waterlogged soils — leads to denitrification and leaching without
-  crop uptake.
+- Gesplitste N-giften: bij wintertarwe meestal 3 giften — uitstoeling (begin groei), stengelstrekking
+  (GS31) en vlagblad (GS37–39). De vlagbladgift is belangrijk voor het eiwitgehalte van de korrel.
+  Zomertarwe krijgt meestal 2 giften (zaai + GS31).
+- Kalkammonsalpeter (KAS / CAN) als belangrijkste N-bron. Ureum kan worden gebruikt, maar moet
+  binnen 4 uur na toediening worden ingewerkt of met een ureaseremmer (NBPT) worden toegediend om
+  te voldoen aan het Besluit emissiearme aanwending. Strooi ureum niet breedwerpig zonder
+  inwerking.
+- Zwavel: wintertarwe is gevoelig voor S-gebrek sinds de vermindering van zwavelemissies in de EU.
+  Gebruik bij stengelstrekking een voor tarwe passende S-bron — KAS+S, ammoniumsulfaatsalpeter (ASS), ammoniumsulfaat,
+  of een NPS-blend — om aan `advice.d_s_req` te voldoen. Kieseriet is een Mg-product
+  en is _niet_ de juiste S-bron voor tarwe.
 
-**Extra attention:**
-- Manganese: Mn deficiency is common in wintertarwe on calcareous/high-pH clay soils
-  (especially Zeeland, Flevoland). Symptoms appear in tillering–stem extension. Check
-  `advice.d_mn_req`; foliar Mn application (MnSO₄) is standard practice in affected regions.
-  Dose to meet `advice.d_mn_req`.
-- Copper: on organic/peaty soils with low Cu availability, check `advice.d_cu_req` — Cu
-  deficiency causes white tip symptoms and poor grain set.
+**Vermijden:**
+
+- Chloriderijke meststoffen kort voor de oogst — Cl in hoge doseringen verlaagt de korrelkwaliteit
+  (hectolitregewicht) licht.
+- Zeer vroege N-giften in het voorjaar op waterverzadigde bodems — dit leidt tot denitrificatie en uitspoeling zonder
+  opname door het gewas.
+
+**Extra aandacht:**
+
+- Mangaan: Mn-gebrek komt vaak voor in wintertarwe op kalkrijke kleigronden of kleigronden met hoge pH
+  (vooral Zeeland, Flevoland). Symptomen verschijnen tussen uitstoeling en stengelstrekking. Controleer
+  `advice.d_mn_req`; bladtoediening van Mn (MnSO₄) is standaardpraktijk in risicogebieden.
+  Doseer om aan `advice.d_mn_req` te voldoen.
+- Koper: controleer op organische/veenachtige gronden met lage Cu-beschikbaarheid `advice.d_cu_req` — Cu-
+  gebrek veroorzaakt witte-puntsymptomen en een slechte korrelzetting.

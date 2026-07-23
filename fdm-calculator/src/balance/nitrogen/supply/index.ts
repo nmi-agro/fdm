@@ -1,10 +1,10 @@
 import type {
-    CultivationDetail,
-    FertilizerDetail,
-    FieldInput,
-    NitrogenBalanceInput,
-    NitrogenSupply,
-    SoilAnalysisPicked,
+  CultivationDetail,
+  FertilizerDetail,
+  FieldInput,
+  NitrogenBalanceInput,
+  NitrogenSupply,
+  SoilAnalysisPicked,
 } from "../types"
 import { calculateNitrogenSupplyByFertilizers } from "./fertilizers"
 import { calculateNitrogenFixation } from "./fixation"
@@ -27,59 +27,53 @@ import { calculateNitrogenSupplyBySoilMineralization } from "./mineralization"
  *  as well as a breakdown by source (fertilizers, fixation, deposition, and mineralization).
  */
 export function calculateNitrogenSupply(
-    cultivations: FieldInput["cultivations"],
-    fertilizerApplications: FieldInput["fertilizerApplications"],
-    soilAnalysis: SoilAnalysisPicked,
-    cultivationDetailsMap: Map<string, CultivationDetail>,
-    fertilizerDetailsMap: Map<string, FertilizerDetail>,
-    depositionSupply: NitrogenSupply["deposition"] | undefined,
-    timeFrame: NitrogenBalanceInput["timeFrame"],
+  cultivations: FieldInput["cultivations"],
+  fertilizerApplications: FieldInput["fertilizerApplications"],
+  soilAnalysis: SoilAnalysisPicked,
+  cultivationDetailsMap: Map<string, CultivationDetail>,
+  fertilizerDetailsMap: Map<string, FertilizerDetail>,
+  depositionSupply: NitrogenSupply["deposition"] | undefined,
+  timeFrame: NitrogenBalanceInput["timeFrame"],
 ): NitrogenSupply {
-    try {
-        // Guard: deposition data must be present; silently defaulting to zero would mask missing data
-        if (depositionSupply === undefined) {
-            throw new Error(
-                "Missing deposition supply data for nitrogen balance calculation",
-            )
-        }
-
-        // Calculate the amount of Nitrogen supplied by fertilizers
-        const fertilizersSupply = calculateNitrogenSupplyByFertilizers(
-            fertilizerApplications,
-            fertilizerDetailsMap,
-        )
-
-        // Calculate the amount of Nitrogen fixated by the cultivations
-        const fixationSupply = calculateNitrogenFixation(
-            cultivations,
-            cultivationDetailsMap,
-        )
-
-        // Calculate the amount of Nitrogen supplied by mineralization from the soil
-        const mineralisationSupply =
-            calculateNitrogenSupplyBySoilMineralization(
-                cultivations,
-                soilAnalysis,
-                cultivationDetailsMap,
-                timeFrame,
-            )
-        // Calculate the total amount of Nitrogen supplied
-        const totalSupply = fertilizersSupply.total
-            .add(fixationSupply.total)
-            .add(depositionSupply.total)
-            .add(mineralisationSupply.total)
-
-        return {
-            total: totalSupply,
-            fertilizers: fertilizersSupply,
-            fixation: fixationSupply,
-            deposition: depositionSupply,
-            mineralisation: mineralisationSupply,
-        }
-    } catch (error) {
-        console.error("Error calculating nitrogen supply:", error)
-        throw new Error(
-            `Failed to calculate nitrogen supply: ${error instanceof Error ? error.message : "Unknown error"}`,
-        )
+  try {
+    // Guard: deposition data must be present; silently defaulting to zero would mask missing data
+    if (depositionSupply === undefined) {
+      throw new Error("Missing deposition supply data for nitrogen balance calculation")
     }
+
+    // Calculate the amount of Nitrogen supplied by fertilizers
+    const fertilizersSupply = calculateNitrogenSupplyByFertilizers(
+      fertilizerApplications,
+      fertilizerDetailsMap,
+    )
+
+    // Calculate the amount of Nitrogen fixated by the cultivations
+    const fixationSupply = calculateNitrogenFixation(cultivations, cultivationDetailsMap)
+
+    // Calculate the amount of Nitrogen supplied by mineralization from the soil
+    const mineralisationSupply = calculateNitrogenSupplyBySoilMineralization(
+      cultivations,
+      soilAnalysis,
+      cultivationDetailsMap,
+      timeFrame,
+    )
+    // Calculate the total amount of Nitrogen supplied
+    const totalSupply = fertilizersSupply.total
+      .add(fixationSupply.total)
+      .add(depositionSupply.total)
+      .add(mineralisationSupply.total)
+
+    return {
+      total: totalSupply,
+      fertilizers: fertilizersSupply,
+      fixation: fixationSupply,
+      deposition: depositionSupply,
+      mineralisation: mineralisationSupply,
+    }
+  } catch (error) {
+    console.error("Error calculating nitrogen supply:", error)
+    throw new Error(
+      `Failed to calculate nitrogen supply: ${error instanceof Error ? error.message : "Unknown error"}`,
+    )
+  }
 }

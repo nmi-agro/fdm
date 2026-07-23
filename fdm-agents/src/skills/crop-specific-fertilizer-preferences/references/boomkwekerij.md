@@ -1,76 +1,80 @@
 # Tree nursery and perennial nursery stock (boomkwekerij en vaste planten)
 
-Includes:
-- **Open-ground tree nursery / perennials**: nl_229, nl_3806.
-- **Pot and container fields**: nl_294, nl_1090.
-- **Forcing and berry shrubs (trek- en besheesters)**: nl_1076 (open ground), nl_1090
-  (pot / container).
-- **Christmas trees**: nl_796.
-- **Solitary trees / tree groups / pollard trees / windbreak hedges / standard
-  orchard**: nl_2617, nl_2628, nl_2640, nl_2641, nl_2643, nl_2644, nl_2618.
+Omvat:
 
-Tree nursery is a **highly heterogeneous** segment (avenue trees, ornamental shrubs,
-perennials, roses, fruit-tree rootstocks, Christmas trees) with widely varying
-fertilizer needs. Species-specific guidelines are out of scope for this skill — refer
-the grower to the relevant sector fertilizer guidance and to their own internal feeding
-schedules. Only the general envelope is given below.
+- **Vollegrond boomkwekerij / vaste planten**: nl_229, nl_3806.
+- **Pot- en containervelden**: nl_294, nl_1090.
+- **Trek- en besheesters**: nl_1076 (vollegrond), nl_1090 (pot / container).
+- **Kerstbomen**: nl_796.
+- **Solitaire bomen / boomgroepen / knotbomen / windsingels / hoogstamboomgaard**:
+  nl_2617, nl_2628, nl_2640, nl_2641, nl_2643, nl_2644, nl_2618.
 
-## Open ground — avenue trees, ornamental shrubs, perennials (nl_229, nl_3806, nl_1076)
+Boomkwekerij is een **zeer heterogeen** segment (laanbomen, sierheesters, vaste planten,
+rozen, onderstammen voor fruitbomen, kerstbomen) met sterk uiteenlopende
+bemestingsbehoeften. Soortspecifieke richtlijnen vallen buiten de scope van deze skill —
+verwijs de teler naar de relevante sectorbemestingsrichtlijnen en naar de eigen interne
+voedingsschema's. Hieronder wordt alleen de algemene bandbreedte gegeven.
 
-**Prefer:**
-- Conservative base NPK before planting / at the start of the growing season, followed
-  by 1–3 top-dresses or fertigation during the season. Total according to
-  `advice.d_n_req` — for young plantings this is clearly lower than for productive
-  arable crops.
-- K as K₂SO₄ / patentkali for Cl-sensitive species (rhododendron, azalea, conifer,
-  boxwood, maple). KCl in avenue-tree production on sand is acceptable.
-- Magnesium per `advice.d_mg_req` — ornamental shrubs and conifers on sand are
-  Mg-sensitive.
-- B and Mn per `advice.d_b_req` / `advice.d_mn_req` on acid and calcareous soils
-  respectively.
-- Well-matured organic matter (compost, well-rotted farmyard manure) in spring or
-  autumn — builds structure in a multi-year system.
+## Vollegrond — laanbomen, sierheesters, vaste planten (nl_229, nl_3806, nl_1076)
 
-**Avoid:**
-- High N after mid-July — extends growth into autumn, weakens hardening-off, gives
-  frost-prone shoots and poor lifting quality.
-- Fresh slurry between young plants — root damage and salt stress.
-- KCl on rhododendron / azalea / heather / conifer — strong leaf-margin scorch and
-  growth suppression.
-- Liming on acid-loving species (rhododendron, azalea, blueberry rootstocks, Japanese
-  maple) — flag in the plan and respect the pH target of the assortment.
+**Voorkeur:**
 
-## Pot and container production (nl_294, nl_1090)
+- Behoudende basisgift NPK vóór planten / aan het begin van het groeiseizoen, gevolgd
+  door 1–3 bijbemestingen of fertigatie gedurende het seizoen. Totaal volgens
+  `advice.d_n_req` — voor jonge aanplant is dit duidelijk lager dan voor productieve
+  akkerbouwgewassen.
+- K als K₂SO₄ / patentkali voor Cl-gevoelige soorten (rhododendron, azalea, conifeer,
+  buxus, esdoorn). KCl in laanboomteelt op zand is acceptabel.
+- Magnesium volgens `advice.d_mg_req` — sierheesters en coniferen op zand zijn
+  Mg-gevoelig.
+- B en Mn volgens `advice.d_b_req` / `advice.d_mn_req` op respectievelijk zure en
+  kalkrijke gronden.
+- Goed uitgerijpte organische stof (compost, goed verteerde stalmest) in voorjaar of
+  herfst — bouwt structuur op in een meerjarig systeem.
 
-Fertilization in pot / container production is almost always via **CRF (controlled-
-release fertilizer)** in the potting medium and / or fertigation. The advice from
-`advice.d_*_req` is **not** directly applicable — it is based on a field-soil model.
-Flag this in the plan and refer to the grower's own / supplier feeding schedules.
+**Vermijden:**
 
-## Christmas trees (nl_796)
+- Hoge N na half juli — verlengt de groei tot in de herfst, verzwakt de afharding, geeft
+  vorstgevoelige scheuten en slechte rooikwaliteit.
+- Verse drijfmest tussen jonge planten — wortelschade en zoutstress.
+- KCl op rhododendron / azalea / heide / conifeer — sterke bladrandverbranding en
+  groeiremming.
+- Bekalking bij zuurminnende soorten (rhododendron, azalea, blauwe-bessenonderstammen,
+  Japanse esdoorn) — markeer dit in het plan en respecteer de pH-doelstelling van het
+  assortiment.
 
-Christmas trees (mainly *Picea abies* and *Abies nordmanniana*) grow on sand with low
+## Pot- en containerteelt (nl_294, nl_1090)
+
+Bemesting in pot- / containerteelt verloopt vrijwel altijd via **CRF (controlled-release
+fertilizer)** in het potmedium en / of fertigatie. Het advies uit `advice.d_*_req` is
+**niet** rechtstreeks toepasbaar — het is gebaseerd op een veldbodemmodel. Markeer dit
+in het plan en verwijs naar de eigen voedingsschema's van de teler / leverancier.
+
+## Kerstbomen (nl_796)
+
+Kerstbomen (vooral _Picea abies_ en _Abies nordmanniana_) groeien op zand met lage
 inputs:
 
-- N moderate to low, early in the season; no autumn application.
-- K, Mg and S per advice — Mg deficiency causes the typical yellowing of older needles.
-- Liming with care: Nordmann tolerates slightly higher pH than Norway spruce; consult
+- N matig tot laag, vroeg in het seizoen; geen herfsttoepassing.
+- K, Mg en S volgens advies — Mg-gebrek veroorzaakt de typische vergeling van oudere
+  naalden.
+- Bekalken met zorg: Nordmann verdraagt een iets hogere pH dan fijnspar; raadpleeg
   `advice.d_ca_req`.
-- No fresh slurry in established plantings.
+- Geen verse drijfmest in gevestigde aanplant.
 
-## Solitary trees, pollard trees, standard orchard (nl_2617, nl_2628, nl_2640–nl_2644)
+## Solitaire bomen, knotbomen, hoogstamboomgaard (nl_2617, nl_2628, nl_2640–nl_2644)
 
-No production fertilization; usually only maintenance (liming, possibly a small N / K
-application in spring). Follow `advice.d_*_req` strictly; in a typical landscape
-element fertilization is often unnecessary or even undesirable (loss of characteristic
-soil flora).
+Geen productiebemesting; meestal alleen onderhoud (bekalking, mogelijk een kleine N / K-
+gift in het voorjaar). Volg `advice.d_*_req` strikt; in een typisch landschapselement is
+bemesting vaak onnodig of zelfs ongewenst (verlies van karakteristieke bodemflora).
 
-## General / extra attention
+## Algemeen / extra aandacht
 
-- **Fertilizer advice in tree nursery is strongly species-specific**; using general
-  arable or field-vegetable guidelines leads to errors. When the grower runs a specific
-  assortment, ask for their own feeding schedules and flag this in the plan.
-- Acid-loving and lime-loving assortments differ sharply in pH targets; always use both
-  soil and leaf analysis.
-- Slurry is unusual in tree nursery because of salt load, disease introduction, and
-  uneven nutrient release; if used at all, only before planting or between crops.
+- **Bemestingsadvies in boomkwekerij is sterk soortspecifiek**; algemene akkerbouw- of
+  vollegrondsgroenterichtlijnen gebruiken leidt tot fouten. Wanneer de teler een specifiek
+  assortiment teelt, vraag naar de eigen voedingsschema's en markeer dit in het plan.
+- Zuurminnende en kalkminnende assortimenten verschillen sterk in pH-doelen; gebruik
+  altijd zowel bodem- als bladanalyse.
+- Drijfmest is ongebruikelijk in de boomkwekerij vanwege zoutbelasting, insleep van
+  ziekten en ongelijkmatige nutriëntenafgifte; indien al gebruikt, dan alleen vóór
+  planten of tussen teelten.

@@ -1,32 +1,35 @@
 # Grasland (productiegrasland) — nl_265, nl_266
 
-**Prefer:**
-- Rundveedrijfmest as the primary manure product — matches the typical dairy farm system and
-  has a favourable N/P ratio for grassland.
-- Multiple N applications aligned with growth cuts: typically 4–6 applications split across
-  cutting/grazing cycles from February to August.
-- KCl (kali-60) is acceptable for **maaigrasland** (cutting) — chloride sensitivity is not a
-  concern for grass.
-- Sulphur: grassland often responds to S, especially in first cut. Include S if
+**Voorkeur:**
+
+- Rundveedrijfmest als belangrijkste mestproduct — past bij het typische melkveebedrijfssysteem en
+  heeft een gunstige N/P-verhouding voor grasland.
+- Meerdere N-giften afgestemd op groeisneden: meestal 4–6 giften verdeeld over
+  maai-/beweidingscycli van februari tot augustus.
+- KCl (kali-60) is acceptabel voor **maaigrasland** (maaien) — chloridegevoeligheid is geen
+  aandachtspunt voor gras.
+- Zwavel: grasland reageert vaak op S, vooral in de eerste snede. Neem S op als
   `advice.d_s_req > 0`.
-- Bekalking (liming): grass and grass/clover mixtures are pH-sensitive (clover persistence
-  declines at low pH). Treat low pH-KCl as a risk flag and consult `advice.d_ca_req` and soil
-  pH data before recommending liming.
+- Bekalking (bekalken): gras en gras/klavermengsels zijn pH-gevoelig (klaver houdt minder stand
+  bij lage pH). Behandel een lage pH-KCl als risicosignaal en raadpleeg `advice.d_ca_req` en bodem-
+  pH-gegevens voordat bekalking wordt geadviseerd.
 
-**Avoid:**
-- Varkensdrijfmest in high single doses on grassland — the high P content risks P run-off on
-  saturated soils and can push farm P balance beyond legal limits.
-- Late-summer / autumn N: respect the legal closing dates for kunstmest-N en drijfmest op
-  grasland set by RVO (closing dates differ by product, soil type and year — verify the
-  current dates rather than assuming them). Late N also risks luxury N uptake without biomass
-  removal and increased nitrate leaching in autumn.
+**Vermijden:**
 
-**Extra attention — weidegrasland (grazing):**
-- **Kopziekte (grass tetany / hypomagnesaemia)**: on weidegrasland grazed by dairy cattle in
-  spring, avoid high K applications in the first grazing cut. High K in grass suppresses Mg
-  uptake by cattle (K/Mg antagonism), increasing kopziekte risk. Prefer to apply K-rich
-  fertilizers (including KCl) after the first grazing rotation, or on cutting-only fields.
-  Ensure adequate Mg in the fertilizer plan (kieseriet, MgO) when K levels are high.
-- Selenium (Se) and Cobalt (Co): not part of standard CBGV grasland fertilization advice in
-  NL — usually addressed via animal feed supplementation. Only mention as a fertilizer-side
-  option if the farmer raises the concern explicitly.
+- Varkensdrijfmest in hoge eenmalige giften op grasland — het hoge P-gehalte geeft risico op P-afspoeling op
+  verzadigde bodems en kan de bedrijfs-P-balans boven wettelijke grenzen brengen.
+- N in nazomer / herfst: respecteer de wettelijke sluitingsdata voor kunstmest-N en drijfmest op
+  grasland zoals vastgesteld door RVO (sluitingsdata verschillen per product, grondsoort en jaar — controleer de
+  actuele data in plaats van ze aan te nemen). Late N geeft ook risico op luxe N-opname zonder afvoer van biomassa
+  en verhoogde nitraatuitspoeling in de herfst.
+
+**Extra aandacht — weidegrasland (begrazing):**
+
+- **Kopziekte (grastetanie / hypomagnesiëmie)**: vermijd op weidegrasland dat in het voorjaar door melkvee wordt beweid
+  hoge K-giften in de eerste weidesnede. Veel K in gras remt de Mg-opname
+  door runderen (K/Mg-antagonisme), waardoor het risico op kopziekte toeneemt. Dien K-rijke
+  meststoffen (inclusief KCl) bij voorkeur toe na de eerste beweidingsronde, of op percelen die alleen worden gemaaid.
+  Zorg voor voldoende Mg in het bemestingsplan (kieseriet, MgO) wanneer K-niveaus hoog zijn.
+- Selenium (Se) en Cobalt (Co): geen onderdeel van het standaard CBGV-bemestingsadvies voor grasland in
+  NL — meestal geregeld via aanvulling in het veevoer. Noem dit alleen als optie aan de meststofkant
+  als de veehouder dit punt expliciet aanhaalt.

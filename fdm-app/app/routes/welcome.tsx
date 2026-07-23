@@ -1,72 +1,50 @@
+import type { Resolver } from "react-hook-form"
+import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { updateUserProfile } from "@nmi-agro/fdm-core"
-import { Cookie } from "lucide-react"
-import type { Resolver } from "react-hook-form"
-import type {
-    ActionFunctionArgs,
-    LoaderFunctionArgs,
-    MetaFunction,
-} from "react-router"
-import { Form, redirect, useLoaderData } from "react-router"
-import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import imageSize from "image-size"
+import { User } from "lucide-react"
+import crypto from "node:crypto"
+import { useRef, useState, useTransition } from "react"
+import { Controller } from "react-hook-form"
+import { Form, redirect, useLoaderData, useNavigation, useSubmit } from "react-router"
+import { useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
-import { Avatar, AvatarImage } from "~/components/ui/avatar"
+import { AuthCard } from "~/components/blocks/auth/auth-card"
+import { AuthLayout } from "~/components/blocks/auth/auth-layout"
+import { ProfileInfoSchema } from "~/components/blocks/profile/profile-info-schema"
+import {
+  ALLOWED_MIME_TYPES,
+  cropProfilePicture,
+  MAX_DIMENSIONS,
+  MAX_SIZE_BYTES,
+  MIME_TO_EXT,
+  ProfilePictureInput,
+} from "~/components/blocks/profile/profile-picture-manager"
 import { Button } from "~/components/ui/button"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
-import {
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "~/components/ui/form"
+import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
+import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { extractFormValuesFromRequest } from "../lib/form"
+import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
+import { cn } from "~/lib/utils"
+import { detectExistingProfilePictureObjectKey } from "../components/blocks/profile/detect-existing.server"
 
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Welkom | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: `Welkom bij ${clientConfig.name}. Maak je profiel compleet om door te gaan.`,
-        },
-    ]
+  return [
+    { title: `Welkom | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: `Welkom bij ${clientConfig.name}. Maak je profiel compleet om door te gaan.`,
+    },
+  ]
 }
-
-const FormSchema = z.object({
-    firstname: z
-        .string({
-            error: (issue) =>
-                issue.input === undefined ? "Vul je voornaam in" : undefined,
-        })
-        .trim()
-        .min(1, {
-            error: "Vul je voornaam in",
-        }),
-    surname: z
-        .string({
-            error: (issue) =>
-                issue.input === undefined ? "Vul je achternaam in" : undefined,
-        })
-        .trim()
-        .min(1, {
-            error: "Vul je achternaam in",
-        }),
-})
 
 /**
  * Checks for an existing user session and redirects authenticated users.
@@ -83,21 +61,27 @@ const FormSchema = z.object({
  * @throws {Error} If session retrieval fails, the error processed by {@link handleLoaderError} is thrown.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
-    try {
-        // Get the session
-        const session = await getSession(request)
+  try {
+    // Get the session
+    const session = await getSession(request)
 
-        // Return user information from loader
-        return {
-            firstname: session.user.firstname,
-            surname: session.user.surname,
-            image: session.user.image,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+    // Return user information from loader
+    return {
+      firstname: session.user.firstname,
+      surname: session.user.surname,
+      image: session.user.image,
     }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
+const WelcomeSchema = ProfileInfoSchema.extend({
+  doNotUseSocialImage: z.coerce
+    .string()
+    .optional()
+    .transform((val) => (val === undefined ? undefined : val === "true")),
+})
 /**
  * Renders the welcome page for profile completion.
  *
@@ -107,197 +91,294 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * @returns A React element representing the profile completion page.
  */
 export default function Welcome() {
-    const loaderData = useLoaderData<typeof loader>()
-    const openCookieSettings = () => {
-        if (window?.openCookieSettings) {
-            window.openCookieSettings()
+  const loaderData = useLoaderData<typeof loader>()
+  const navigation = useNavigation()
+  const submit = useSubmit()
+
+  const [isProcessingForm, processForm] = useTransition()
+
+  const formRef = useRef<HTMLFormElement>(null)
+  const form = useRemixForm<z.infer<typeof WelcomeSchema>>({
+    mode: "onTouched",
+    resolver: zodResolver(WelcomeSchema) as Resolver<z.infer<typeof WelcomeSchema>>,
+    stringifyAllValues: false,
+    defaultValues: {
+      doNotUseSocialImage: false,
+      firstname: loaderData.firstname || "",
+      surname: loaderData.surname || "",
+    },
+    submitHandlers: {
+      async onValid() {
+        if (!formRef.current) return
+        const formData = new FormData(formRef.current)
+        processForm(async () => {
+          const formDataWithCroppedPic = await cropProfilePicture(formData)
+          submit(formDataWithCroppedPic, {
+            action: "/welcome",
+            method: "post",
+            encType: "multipart/form-data",
+          })
+        })
+      },
+    },
+  })
+
+  const doNotUseSocialImage = form.watch("doNotUseSocialImage")
+
+  const profilePictureInputRef = useRef<HTMLInputElement>(null)
+  const [profilePictureFiles, setProfilePictureFiles] = useState<File[]>([])
+
+  const profilePictureMode = profilePictureFiles.length
+    ? "toBeUploaded"
+    : doNotUseSocialImage
+      ? "toBeRemoved"
+      : "noOperation"
+
+  const isSubmitting =
+    (navigation.state !== "idle" && navigation.formMethod === "POST") || isProcessingForm
+
+  return (
+    <AuthLayout showCookieSettings={true}>
+      <AuthCard
+        title="Profiel voltooien"
+        description={`Welkom bij ${clientConfig.name}. Vul je naam aan om direct te starten met je percelen, bemesting en bodemdata.`}
+        footer={
+          <p className="text-muted-foreground text-center text-xs">
+            Je kunt dit later altijd aanpassen via je profielinstellingen.
+          </p>
         }
-    }
-    const onOpenCookieSettings = () => {
-        openCookieSettings()
-    }
-
-    const form = useRemixForm<z.infer<typeof FormSchema>>({
-        mode: "onTouched",
-        resolver: zodResolver(FormSchema) as Resolver<z.infer<typeof FormSchema>>,
-        defaultValues: {
-            firstname: loaderData.firstname || "",
-            surname: loaderData.surname || "",
-        },
-    })
-
-    return (
-        <div className="w-full h-screen lg:grid lg:grid-cols-2 overflow-hidden">
-            <div className="flex h-full items-start justify-center overflow-y-auto py-6">
-                <div className="mx-auto grid w-[350px] gap-6">
-                    <Card className="shadow-xl">
-                        <CardHeader className="text-center">
-                            <div className="flex justify-center mb-2">
-                                <div className="flex aspect-square size-16 items-center justify-center rounded-lg bg-[#122023]">
-                                    <img
-                                        className="size-12"
-                                        src={clientConfig.logomark}
-                                        alt={clientConfig.name}
-                                    />
-                                </div>
-                            </div>
-                            <h2 className="text-lg font-semibold tracking-tight text-muted-foreground mb-2">
-                                {clientConfig.name}
-                            </h2>
-                            <CardTitle className="text-xl">
-                                Profiel voltooien
-                            </CardTitle>
-                            <CardDescription>
-                                {`Welkom bij ${clientConfig.name}. Om verder te gaan maken we eerst je profiel compleet.`}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <RemixFormProvider {...form}>
-                                <Form
-                                    id="formWelcome"
-                                    onSubmit={form.handleSubmit}
-                                    method="post"
-                                >
-                                    <fieldset
-                                        disabled={form.formState.isSubmitting}
-                                    >
-                                        <div className="grid w-full items-center gap-4">
-                                            {loaderData.image ? (
-                                                <div className="flex flex-col justify-self-center">
-                                                    <Avatar className="h-12 w-12 rounded-lg">
-                                                        <AvatarImage
-                                                            src={
-                                                                loaderData.image
-                                                            }
-                                                        />
-                                                    </Avatar>
-                                                </div>
-                                            ) : null}
-                                            <div className="flex flex-col space-y-1.5">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="firstname"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>
-                                                                Voornaam
-                                                            </FormLabel>
-                                                            <FormControl>
-                                                                <Input
-                                                                    placeholder="bv. Jan"
-                                                                    aria-required="true"
-                                                                    required
-                                                                    {...field}
-                                                                />
-                                                            </FormControl>
-                                                            <FormDescription />
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-                                            <div className="flex flex-col space-y-1.5">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="surname"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>
-                                                                Achternaam
-                                                            </FormLabel>
-                                                            <FormControl>
-                                                                <Input
-                                                                    placeholder="bv. de Vries"
-                                                                    aria-required="true"
-                                                                    required
-                                                                    {...field}
-                                                                />
-                                                            </FormControl>
-                                                            <FormDescription />
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-                                            <Button
-                                                type="submit"
-                                                className="w-full"
-                                            >
-                                                {form.formState.isSubmitting ? (
-                                                    <div className="flex items-center space-x-2">
-                                                        <Spinner />
-                                                        <span>Opslaan...</span>
-                                                    </div>
-                                                ) : (
-                                                    "Doorgaan"
-                                                )}
-                                            </Button>
-                                        </div>
-                                    </fieldset>
-                                </Form>
-                            </RemixFormProvider>
-                        </CardContent>
-                        <CardFooter className="flex justify-center" />
-                    </Card>
-                </div>
-            </div>
-            <div className="hidden bg-muted lg:block">
-                <img
-                    src="https://images.unsplash.com/photo-1625565570971-e6b404974366?q=80&w=1930&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                    alt="Herd of cows on green grass field during daytime by Rickie-Tom Schünemann on Unsplash"
-                    width="1920"
-                    height="1080"
-                    loading="lazy"
-                    className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-                />
-            </div>
-            <div className="fixed bottom-3 left-3 z-50">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs flex items-center gap-1 opacity-70 hover:opacity-100 bg-card/80 hover:bg-card border border-border"
-                    onClick={onOpenCookieSettings}
+      >
+        <Form ref={formRef} id="formWelcome" onSubmit={form.handleSubmit} method="post">
+          <fieldset disabled={isSubmitting}>
+            <div className="grid w-full items-center gap-4">
+              <input type="hidden" name="doNotUseSocialImage" value={String(doNotUseSocialImage)} />
+              <Controller
+                control={form.control}
+                name="firstname"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Voornaam</FieldLabel>
+                    <Input placeholder="bv. Jan" aria-required="true" required {...field} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="surname"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Achternaam</FieldLabel>
+                    <Input placeholder="bv. de Vries" aria-required="true" required {...field} />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+              <Field className="mx-auto max-w-75">
+                <FieldLabel>
+                  {profilePictureMode === "toBeRemoved"
+                    ? "Foto niet te gebruiken"
+                    : loaderData.image
+                      ? "Foto"
+                      : "Foto (optioneel)"}
+                </FieldLabel>
+                <div
+                  className={cn("space-y-2", profilePictureMode === "toBeRemoved" && "opacity-50")}
                 >
-                    <Cookie className="h-3 w-3" />
-                    <span>Cookie instellingen</span>
-                </Button>
+                  <ProfilePictureInput
+                    ref={profilePictureInputRef}
+                    appAspectRatio={3 / 2}
+                    files={profilePictureFiles}
+                    onFilesChange={setProfilePictureFiles}
+                    maxFileSize={MAX_SIZE_BYTES}
+                    currentPicture={loaderData.image}
+                    currentAlt="Huidige profielfoto"
+                    cropBounds="outer"
+                    frameShape="rectangle"
+                    avatarFallback={<User className="text-muted-foreground size-full" />}
+                  />
+                </div>
+                <div className="flex justify-center gap-2 overflow-visible">
+                  {profilePictureMode === "toBeRemoved" ? (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => form.setValue("doNotUseSocialImage", false)}
+                    >
+                      Gebruiken
+                    </Button>
+                  ) : profilePictureMode === "toBeUploaded" ? (
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => setProfilePictureFiles([])}
+                    >
+                      {loaderData.image ? "Gebruik geïmporteerd" : "Verwijderen"}
+                    </Button>
+                  ) : (
+                    <>
+                      {loaderData.image && (
+                        <Button
+                          variant="outline"
+                          type="button"
+                          onClick={() => form.setValue("doNotUseSocialImage", true)}
+                        >
+                          Niet gebruiken
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          profilePictureInputRef.current?.click()
+                        }}
+                      >
+                        {loaderData.image ? "Kies andere afbeelding" : "Kies een afbeelding"}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </Field>
+              <Button type="submit" className="w-full">
+                {isSubmitting ? (
+                  <div className="flex items-center space-x-2">
+                    <Spinner />
+                    <span>Opslaan...</span>
+                  </div>
+                ) : (
+                  "Doorgaan"
+                )}
+              </Button>
             </div>
-        </div>
-    )
+          </fieldset>
+        </Form>
+      </AuthCard>
+    </AuthLayout>
+  )
 }
 
 export async function action({ request }: ActionFunctionArgs) {
+  try {
+    // Get the URL object to extract search params
+    const url = new URL(request.url)
+    const redirectTo = url.searchParams.get("redirectTo") || "/farm"
+    // Validate redirectTo to prevent open redirect
+    const isValidRedirect = redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+    const safeRedirectTo = isValidRedirect ? redirectTo : "/farm"
+
+    let fileBuffer: Buffer | null = null
+    let detectedMime: string | null = null
+
+    const uploadHandler = async (fileUpload: FileUpload) => {
+      if (fileUpload.fieldName !== "file") return undefined
+
+      // The file submission will be empty if the user hasn't added a profile picture
+      if (fileUpload.name === "" && fileUpload.size === 0) return
+
+      const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+      fileBuffer = result.buffer
+      detectedMime = result.mime
+
+      const imagePixelSize = imageSize(fileBuffer)
+      if (imagePixelSize.width > MAX_DIMENSIONS || imagePixelSize.height > MAX_DIMENSIONS) {
+        throw new Error("De foto is te groot of te breed.")
+      }
+
+      return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
+        type: detectedMime,
+      })
+    }
+
+    let formData: FormData
     try {
-        // Get the URL object to extract search params
-        const url = new URL(request.url)
-        const redirectTo = url.searchParams.get("redirectTo") || "/farm"
-        // Validate redirectTo to prevent open redirect
-        const isValidRedirect =
-            redirectTo.startsWith("/") && !redirectTo.startsWith("//")
-        const safeRedirectTo = isValidRedirect ? redirectTo : "/farm"
+      formData = await parseFormData(request, { maxFileSize: MAX_SIZE_BYTES }, uploadHandler)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid upload"
+      return Response.json({ error: message }, { status: 400 })
+    }
 
-        // Get form values
-        const formValues = await extractFormValuesFromRequest(
-            request,
-            FormSchema,
-        )
-        const { firstname, surname } = formValues
+    const actionSchemaResult = WelcomeSchema.safeParse(Object.fromEntries(formData.entries()))
 
-        // Get the current user profile
-        const session = await auth.api.getSession({
-            headers: request.headers,
+    if (actionSchemaResult.error) {
+      return Response.json({ errors: actionSchemaResult.error }, { status: 400 })
+    }
+    const formValues = actionSchemaResult.data
+
+    let profilePicture: { buffer: Uint8Array; hash: string; detectedMime: string } | null = null
+
+    if (fileBuffer && detectedMime) {
+      const hash = crypto.createHash("md5", { outputLength: 16 }).update(fileBuffer).digest("hex")
+
+      profilePicture = { buffer: fileBuffer, hash: hash, detectedMime: detectedMime }
+    }
+
+    const { firstname, surname, doNotUseSocialImage } = formValues
+
+    // Get the current user profile
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    })
+
+    if (!session) {
+      return redirect("/signin")
+    }
+
+    // Update the user profile
+    await updateUserProfile(fdm, session.user.id, firstname, surname)
+
+    const oldProfilePictureKey = detectExistingProfilePictureObjectKey(session.user.image)
+    if (profilePicture) {
+      const detectedExt = MIME_TO_EXT[profilePicture.detectedMime]
+
+      const objectKey = buildObjectKey("profile_picture_user", session.user.id, detectedExt)
+
+      let uploaded = false
+      try {
+        await uploadObject(objectKey, profilePicture.buffer, profilePicture.detectedMime)
+        uploaded = true
+        await auth.api.updateUser({
+          headers: request.headers,
+          body: {
+            image: `/api/profile-picture/user/${session.user.id}.${detectedExt}?hash=${profilePicture.hash}`,
+          },
         })
 
-        if (!session) {
-            return redirect("/signin")
+        if (oldProfilePictureKey && oldProfilePictureKey !== objectKey) {
+          await deleteObject(oldProfilePictureKey)
         }
+      } catch (err) {
+        if (uploaded) {
+          try {
+            await deleteObject(objectKey)
+          } catch (revertError) {
+            handleActionError(revertError)
+          }
+        }
+        throw err
+      }
+    } else if (doNotUseSocialImage) {
+      await auth.api.updateUser({ headers: request.headers, body: { image: null } })
 
-        // Update the user profile
-        await updateUserProfile(fdm, session.user.id, firstname, surname)
-
-        return redirectWithSuccess(safeRedirectTo, "Je profiel is voltooid!")
-    } catch (error) {
-        console.error("Error updating user profile")
-        return handleActionError(error)
+      if (oldProfilePictureKey) {
+        try {
+          await deleteObject(oldProfilePictureKey)
+        } catch (err) {
+          try {
+            await auth.api.updateUser({
+              headers: request.headers,
+              body: { image: session.user.image },
+            })
+          } catch (revertErr) {
+            handleActionError(revertErr)
+          }
+          throw err
+        }
+      }
     }
+
+    return redirectWithSuccess(safeRedirectTo, "Je profiel is voltooid!")
+  } catch (error) {
+    console.error("Error updating user profile")
+    return handleActionError(error)
+  }
 }

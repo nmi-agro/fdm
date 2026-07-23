@@ -1,9 +1,5 @@
 import { useEffect } from "react"
-import {
-    type LoaderFunctionArgs,
-    type MetaFunction,
-    useLoaderData,
-} from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { HeaderAbout } from "~/components/blocks/header/about"
 import { Header } from "~/components/blocks/header/base"
 import { Changelog1, type ChangelogEntry } from "~/components/import/changelog1"
@@ -13,301 +9,316 @@ import { handleLoaderError } from "~/lib/error"
 import { useChangelogStore } from "~/store/changelog"
 
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Wat is er nieuw? | ${clientConfig.name}` },
-        {
-            name: "description",
-            content: `Blijf op de hoogte van de laatste ontwikkelingen en verbeteringen van ${clientConfig.name}.`,
-        },
-    ]
+  return [
+    { title: `Wat is er nieuw? | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: `Blijf op de hoogte van de laatste ontwikkelingen en verbeteringen van ${clientConfig.name}.`,
+    },
+  ]
 }
 
 export const changelogEntries: ChangelogEntry[] = [
-    {
-        version: "v0.31.0",
-        date: "28 mei 2026",
-        title: `BLN3 indicatoren en maatregelen, bodemanalyses in Atlas en ${clientConfig.name} API`,
-        description: `BLN3 bodemindicatoren en maatregelen zijn nu beschikbaar, bodemanalyses kunnen ruimtelijk worden verkend in Atlas en de ${clientConfig.name} API is beschikbaar voor koppelingen met externe systemen.`,
-        items: [
-            "BLN3 bodemindicatoren: Op de nieuwe indicatorenpagina ziet u de BLN3-scores voor uw bedrijf. Per perceel kunt u de individuele indicatorscores bekijken om inzicht in de bodemkwaliteit te krijgen.",
-            "BLN3 maatregelen: Bij de indicatoren kunt u maatregelen bekijken die bijdragen aan het verbeteren van de bodemkwaliteit. U kunt aangeven welke maatregelen u nu kiest.",
-            "Bodemanalyse in Atlas: De Atlas bevat nu een weergave voor bodemanalyses. Hiermee kunt u de resultaten van uw bodemanalyses ruimtelijk verkennen over uw percelen.",
-            "Hoofgewas naast perceelsnaam bij bedrijfsbalans: De perceelslijst op de balanspagina toont nu een badge met het hoofdgewas per perceel, zodat u in één oogopslag ziet welk gewas op welk perceel staat.",
-            `${clientConfig.name} API en ontwikkelaarsinstellingen: De ${clientConfig.name} API is beschikbaar voor koppelingen met externe systemen. Via de nieuwe ontwikkelaarsinstellingen kunt u API-sleutels aanmaken en beheren voor programmatische toegang tot uw gegevens.`,
-            "Bodemparameters bij alleen-lezen toegang: Gebruikers met alleen leestoegang zien bij bodemparameters nu een link naar de bodemanalyse in plaats van een bewerkknop, zodat duidelijker is dat de waarden niet bewerkt kunnen worden.",
-            "Waarschuwing bij ontbrekende normen: Wanneer voor een perceel geen gebruiksnormen bepaald kunnen worden, wordt dit nu duidelijk gemeld zodat u weet waarom bepaalde berekeningen niet beschikbaar zijn.",
-        ],
-    },
-    {
-        version: "v0.30.0",
-        date: "1 mei 2026",
-        title: "Percelen ophalen bij RVO, bemesting in de eenheid die past bij de meststof en meer",
-        description:
-            "Het ophalen van percelen bij RVO is nu mogelijk door middel van eHerkenning en KvK nummer. Een bemesting wordt nu ingevoerd en weergegeven in de eenheid die past bij de meststof. Shapefiles kunt u nu ook uploaden nadat een bedrijf is aangemaakt.",
-        items: [
-            "Percelen ophalen vanuit RVO: Het ophalen van percelen vanuit RVO via eHerkenning is nu beschikbaar. Hiermee kunt u wanneer u gemachtigd bent en het KvK nummer hebt ingveuld de percelen ophalen die bij RVO zijn opgegeven voor de Gecombineerde Opgave. Dit kan zowel voor bestaande bedrijven in de applicatie als ook voor bij het aanmaken van een nieuw bedrijf.",
-            "Bemesting in de eenheid die past bij de meststof: U hoeft een bemesting niet meer altijd in kg/ha in te voeren. Vloeibare meststoffen voert u nu in m³/ha in, compost in ton/ha, enzovoort. De ingevoerde en getoonde eenheid sluit aan bij de meststof, zodat u niet meer hoeft om te rekenen.",
-            "Shapefiles uploaden bij een bestaand bedrijf: Het uploaden van een shapefile met percelen is niet langer alleen mogelijk bij het aanmaken van een nieuw bedrijf, maar ook daarna via de bedrijfspagina. In een vergelijkingstabel ziet u welke percelen worden toegevoegd, gewijzigd of verwijderd, zodat u de wijzigingen kunt beoordelen voordat u ze samenvoegt. De werkwijze sluit aan bij die van het ophalen van percelen via RVO.",
-            "Uitgebreide gewashistorie in Atlas: Op de detailpagina van een perceel in de Atlas kunt u nu kiezen tussen het tabblad 'Eenvoudig' en het tabblad 'Uitgebreid'. Het uitgebreide tabblad toont in een ruimtelijk stroomdiagram welke teelten in eerdere jaren op de geometrie van het huidige perceel hebben gelegen. Omdat percelen in voorgaande jaren anders ingedeeld kunnen zijn geweest (bijvoorbeeld als één groter perceel of juist als meerdere kleinere), maakt deze weergave inzichtelijk welke teelten op welk deel van de huidige geometrie hebben gestaan. Uw keuze van tabblad blijft tijdens de sessie bewaard.",
-            "Filter op bufferstroken: Het filter voor bufferstroken in de bouwplantabel werkt weer. De zoekterm en de keuze van dit filter worden nu gedeeld tussen de bouwplan- en perceelstabel, zodat de tabellen consistent met elkaar blijven.",
-            "Sortering meerdere sneden: De sortering van sneden binnen een jaar wordt nu correct weergegeven in de bouwplantabel.",
-            "Gewashistorie op jaar gesorteerd: De gewashistorie van een perceel in de Atlas wordt nu aflopend op jaar gesorteerd weergegeven.",
-            "Gewasresten achterlaten alleen bij granen: Het invulveld 'Gewasresten achterlaten' wordt alleen getoond wanneer dit relevant is voor het geselecteerde gewas, namelijk bij granen.",
-            "Atlas-perceelselectie scrollbaar: Op pagina's waar u percelen op de kaart selecteert is de lijst met geselecteerde gewassen nu scrollbaar wanneer er veel gewassen in zitten. Hierdoor blijft de knop 'Sla geselecteerde percelen op' altijd bereikbaar.",
-            "Inloggen met Microsoft zonder e-mailadres: Als Microsoft bij het aanmelden geen e-mailadres deelt met FDM, wordt u nu gevraagd in te loggen via een aanmeldlink in plaats van een onduidelijke foutmelding te krijgen.",
-            "Foutmelding 'Not a FlatGeobuf file' in Atlas: Een hardnekkige foutmelding die kon optreden door een verouderde browsercache wordt nu automatisch hersteld zonder dat u zelf actie hoeft te ondernemen.",
-            "Correctie organische stofbalans bij gewasresten: De organische stofbalans rekent nu ook correct met gewasresten waarvan niet expliciet is vastgelegd dat ze van het perceel zijn afgevoerd; eerder werd in dat geval ten onrechte geen aanvoer berekend.",
-            "Prestatieverbeteringen voor grote bedrijven: Pagina's en berekeningen voor bedrijven met veel percelen laden sneller en betrouwbaarder. De databasequery's voor verschillende overzichten zijn versneld door aanvullende indexen, de stikstofbalans had last van vergrendeling op de berekeningscache en dat is opgelost, het ophalen van depositiegegevens vindt nu plaats buiten de databasetransactie en de tijdslimiet voor het samenstellen van pagina's is verruimd.",
-        ],
-    },
-    {
-        version: "v0.29.0",
-        date: "2 april 2026",
-        title: "Verbeterd meststoffenbeheer, balansoverzicht per organisatie en bufferstrook in perceelstabel",
-        description:
-            "Deze release vernieuwt de weergave en het beheer van meststoffen, voegt een stikstof- en organische stofbalansoverzicht op organisatieniveau toe en maakt het instellen van bufferstroken per perceel eenvoudiger.",
-        items: [
-            "Verbeterd meststoffenbeheer: De meststoffenpagina en het formulier voor het toevoegen van een meststof zijn vernieuwd. De tabel toont nu aanvullende nutriënten en eigenschappen zoals DS, OS, MgO, CaO, Na₂O, SO₃ en sporenelementen. Via de knop 'Kolommen' kiest u zelf welke kolommen u wilt zien. Het selecteren van een catalogusmeststof gaat nu via een doorzoekbare lijst in plaats van een grid van meststoffen. Standaard- en eigen meststoffen zijn visueel van elkaar onderscheiden. De invoervelden in het formulier zijn overzichtelijker ingedeeld. De zijbalk berekent de werkzame stikstof direct terwijl u gegevens invult.",
-            "Meststof als sjabloon gebruiken: Via de optie 'Gebruik als sjabloon' maakt u direct een nieuwe meststof aan op basis van een bestaande meststof vanuit de detailpagina. De rijen in de meststoftabel zijn nu klikbaar en brengen u direct naar de detailpagina.",
-            "Balansoverzicht op organisatieniveau: De stikstofbalans en organische stofbalans zijn nu ook beschikbaar op organisatieniveau. In één overzicht ziet u de resultaten voor alle bedrijven in de organisatie. U kunt individuele bedrijven uitsluiten van het overzicht.",
-            "Bufferstrook instellen per perceel: In de perceelstabel is een kolom met aankruisvakjes toegevoegd waarmee u per perceel kunt aangeven of het een bufferstrook is, zonder naar de afzonderlijke perceelspagina te navigeren.",
-            "Gewasresten: De optie om gewasresten in te voeren is niet zichtbaar als dat niet relevant voor het het geselecteerde gewas is. Dit voorkomt het invoeren van gegevens die geen effect hebben op de organische stofbalans.",
-            "Focusknop in Atlas: Er is een knop toegevoegd waarmee u de kaart in de Atlas direct kunt centreren op de percelen van uw bedrijf. Tijdens het toevoegen van percelen wordt het focusgebied automatisch bijgewerkt wanneer u een nieuw perceel selecteert.",
-            "Correctie stikstofafvoer gewasresten: Een fout in de stikstofbalans is hersteld. Gewasresten die op het perceel achterblijven worden niet langer als afgevoerde stikstof meegenomen; gewasresten die worden afgevoerd worden nu meegenomen in de afvoer.",
-            "Prestatieverbeteringen: Pagina's en berekeningen voor grote bedrijven laden sneller doordat gegevens per bedrijf in één databasequery worden opgehaald in plaats van per perceel.",
-        ],
-    },
-    {
-        version: "v0.28.0",
-        date: "4 maart 2026",
-        title: "Meerdere bodemanalyses uploaden, direct bewerken in bouwplantabel en uitnodigingen",
-        description:
-            "U kunt nu meerdere bodemanalyse-PDF's tegelijk uploaden en direct beoordelen voordat u ze koppelt aan een perceel. Oogsten en mestgiften zijn direct in de bouwplantabel te bewerken. Daarnaast kunt u mensen uitnodigen voor een bedrijf, ook als ze nog geen account hebben.",
-        items: [
-            "Meerdere bodemanalyses tegelijk uploaden: Bij het toevoegen van percelen kunt u meerdere PDF's van bodemanalyses tegelijk uploaden. De gegevens worden in een tabel getoond zodat u kunt controleren welke waarden worden ingeladen voordat u ze koppelt aan een perceel. Op de pagina staat nu ook duidelijk vermeld dat de ingeladen waarden schattingen zijn.",
-            "Direct bewerken van oogsten in het bouwplan: U kunt de oogstdatum en oogstparameters nu direct aanpassen vanuit de bouwplantabel, zonder naar een aparte pagina te navigeren.",
-            "Bemestingen bekijken en bewerken via het bouwplan en perceelstabel: Door op een meststof in de bouwplan of perceelstabel te klikken ziet u een overzicht van alle bemestingen met die meststof op het geselecteerde gewas of perceel. U kunt de giften direct vanuit dit overzicht aanpassen.",
-            "Uitnodigingen voor toegang tot bedrijven: Wanneer iemand u toegang geeft tot een bedrijf, ontvangt u voortaan een e-mail met een uitnodiging. U kunt deze uitnodiging zelf accepteren of weigeren via de overzichtspagina. Uitnodigingen zijn 7 dagen geldig. Ook gebruikers die nog geen account hebben kunnen worden uitgenodigd; zij krijgen automatisch toegang zodra zij zich registreren met hetzelfde e-mailadres.",
-            "Uitnodigingen beheren: Als eigenaar of beheerder van een bedrijf kunt u uitstaande uitnodigingen inzien, annuleren of de rol van een uitnodiging aanpassen, rechtstreeks vanuit de instellingenpagina van het bedrijf.",
-            "Bodemanalyses van eerdere jaren: De lijst met bodemanalyses bij een perceel toont nu ook analyses van vóór het geselecteerde jaar, zodat u eerdere metingen niet meer kwijt bent als u een ander jaar selecteert.",
-            "Bodemparameters overzichtelijker ingedeeld: De bodemparameters op de perceelspagina zijn nu gegroepeerd en in een logischere volgorde geplaatst voor een beter overzicht.",
-            "Koolstofvastlegging in Atlas: Op de detailpagina van een perceel in de Atlas is een nieuw blok toegevoegd met informatie over koolstofvastlegging. U ziet de huidige schatting van het koolstofgehalte in de bodem, het maximaal haalbare niveau en cijfers om de waarden in perspectief te plaatsen voor bijvoorbeeld extra mineralisatie en watervasthouden vermogen.",
-            "Verbeterd ontwerp perceeldetails in Atlas: De detailpagina van een perceel in de Atlas is overzichtelijker ingedeeld en werkt nu ook goed op kleinere schermen.",
-            "Terugknop op perceeldetails in Atlas: Er is een zwevende terugknop toegevoegd onderaan de perceeldetailpagina in de Atlas, zodat u eenvoudig terug naar de kaart kunt navigeren.",
-            "Organisatiegegevens bewerken en leden toevoegen: Via de instellingenpagina van uw organisatie kunt u nu de gegevens van uw organisatie bewerken en nieuwe leden uitnodigen.",
-            "Overzicht van bedrijven per organisatie: In het organisatieoverzicht is een nieuwe tabel toegevoegd met alle bedrijven waar uw organisatie toegang toe heeft. De tabel is doorzoekbaar.",
-            "Verbeterd aanmaken van bedrijf: Bij het aanmaken van een nieuw bedrijf vraagt het formulier nu ook naar het KvK-nummer, de beweidingsintentie en de biologische certificering. Aan het begin van het stappenproces staat een toelichting op de te doorlopen stappen. De vraag over derogatie wordt alleen nog getoond voor jaren vóór 2026.",
-            "Laadmelding bij trage paginaovergangen: Als een pagina langer dan 300 milliseconden nodig heeft om te laden, verschijnt er een laadsymbool en wordt de pagina licht vervaagd. Dit voorkomt verwarring over of een actie is geregistreerd.",
-        ],
-    },
-    {
-        version: "v0.27.0",
-        date: "29 januari 2026",
-        title: "Bemestingsplan als pdf, Bodemkaart in Atlas en uitklapbaar bouwplan",
-        description:
-            "De eerste release van 2026 maakt het mogelijk om het bemestingsplan als pdf te downloaden, voegt de bodemkaart toe aan de Atlas en maakt de bouwplantabel uitklapbaar voor meer detail. Daarnaast is er verbeterde ondersteuning voor bufferstroken.",
-        items: [
-            "Bemestingsplan als PDF: Met één druk op de knop genereert u nu een 'Bemestingsplan'. Dit PDF-bestand geeft een compleet overzicht van de bedrijfssituatie, inclusief gebruiksruimte, bemestingsadviezen en geplande bemestingen op zowel bedrijfs- als perceelsniveau.",
-            "Bodemkaart in Atlas: De Bodemkaart van Nederland (BRO) is nu beschikbaar als kaartlaag in de Atlas. Hiermee ziet u direct de bodemtype bij de percelen.",
-            "Uitklapbaar bouwplan: In de tabel voor bouwplan kunt u nu rijen uitklappen om direct te zien welke percelen bij een teelt horen. Op deze manier kunt u bijvoorbeeld perceel uitluiten van bemesting toevoegen als u het gewas heeft geselecteerd.",
-            "Bufferstroken: U kunt nu aangeven of een perceel een bufferstrook is. Deze percelen worden automatisch uitgesloten van de stikstof- en organische stofbalans op bedrijfsniveau. De gebruiksruimte en het bemestingsadvies worden voor deze stroken op nul gezet.",
-            "Meerdere percelen toevoegen: Het is nu mogelijk om meerdere percelen aan een bestaand bedrijf toe te voegen.",
-            "Gewashistorie kopiëren: Bij de gewashistorie van een perceel in Atlas is nu een knop toegevoegd om de historie direct naar het klembord te kopiëren, zodat u ze eenvoudig kunt plakken in bijvoorbeeld Excel.",
-            "Graslandvernieuwing 2025/2026: De specifieke regels voor stikstofkorting bij het scheuren of vernieuwen van grasland zijn toegevoegd voor de jaren 2025 en 2026.",
-            "Verbeteringen voor kleine schermen: De app werkt nu nog prettiger op mobiele apparaten. Tabellen, headers en de zijbalk zijn geoptimaliseerd voor kleinere schermen.",
-        ],
-    },
-    {
-        version: "v0.26.0",
-        date: "22 december 2025",
-        title: "Hoogtekaart in Atlas, meer details in stikstofbalans, 2026 is beschikbaar",
-        description: `Deze update bereidt ${clientConfig.name} voor op 2026 met de voorlopige gebruiksnormen en voegt de AHN4 hoogtekaart toe in de Atlas. De stikstofbalans biedt nu diepgaand inzicht met interactieve grafieken en details per mestgift.`,
-        items: [
-            "AHN4 Hoogtekaart in Atlas: De AHN4 hoogtekaart is nu beschikbaar in Atlas. Hiermee kunt u tot in detail het microreliëf op uw percelen analyseren, wat waardevolle inzichten geeft voor bijvoorbeeld waterhuishouding.",
-            "Voorbereiding op 2026: U kunt nu alvast aan de slag met het aanmaken van uw bedrijf en bouwplan voor 2026. De gebruiksnormen zijn voorlopig gebaseerd op de regels van 2025 (zonder derogatie), in afwachting van definitieve politieke besluitvorming.",
-            "Interactieve stikstofbalans: De grafieken voor de stikstofbalans zijn vernieuwd en interactief. Door over de balken te bewegen ziet u direct hoeveel elke bron bijdraagt aan de stikstofbalance. Ook hebben posten zoals bemesiting, oogt en depositie nu duidelijke, onderscheidende kleuren.",
-            "Bijdrage van bemesting in stikstofbalans: De stikstofbalans op perceelsniveau toont nu de bijdrage van elke individuele mestgift. Door in de grafiek over de balken te bewegen, ziet u direct details zoals hoeveel stikstof deze bemesting bijdraagt, maar ook de naam van de meststof en de datum van toediening.",
-            "Inloggen met een code: Het inloggen via de aanmeldlink is verbeterd. In de email die u dan ontvangt staat een code die u kunt gebruiken om in te loggen. Daarnaast bevat de mail nog steeds een knop om te inloggen en wordt de code al voor u ingevuld.",
-            "Bemestingsadvies per gewas: Het bemestingsadvies is nu duidelijker gespecificeerd per gewas. U kunt nu zelf het gewas selecteren waarvoor u het advies wilt inzien, wat vooral bij percelen met meerdere teelten direct inzicht geeft.",
-            "Vernieuwde homepage: De homepage is vernieuwd en uitgebreid met meer informatie over de mogelijkheden. Ook is de weergave op mobiele apparaten verder verbeterd.",
-            "Overstap naar MapTiler: We zijn overgestapt van Mapbox naar MapTiler als leverancier voor onze kaarten en zoekfuncties. MapTiler verzamelt minder gebruikersdata (geen tracking/telemetrie) en host de data binnen de EU.",
-        ],
-    },
-    {
-        version: "v0.25.0",
-        date: "27 november 2025",
-        title: "Nieuw: Bouwplan & OS Balans. Oogstregistratie is verbeterd",
-        description:
-            "Deze update introduceert de Organische stofbalans voor inzicht in bodemgezondheid, een nieuw Bouwplan pagina voor efficiënt gewasbeheer, en voegt nitraatuitspoeling toe aan de stikstofbalans.",
-        items: [
-            "Bouwplan & Bulkacties: De nieuwe bouwplanpagina biedt een centraal overzicht van alle teelten op uw bedrijf. U kunt hier niet alleen uw bouwplan inzien, maar ook direct acties uitvoeren voor meerdere percelen tegelijk, zoals het toevoegen van een bemesting of oogst voor alle percelen met hetzelfde gewas.",
-            "OS Balans: Met de nieuwe 'Organische stofbalans' krijgt u inzicht in de aanvoer van effectieve organische stof (EOS) uit gewassen, gewasresten en meststoffen, en de afbraak van organische stof. Dit helpt u bij het maken van plannen voor een gezonde bodem op de lange termijn.",
-            "Verbeterde Oogstregistratie: Het registreren van oogsten is slimmer en nauwkeuriger geworden. Het formulier vraagt nu specifiek om de parameters die relevant zijn voor het gekozen gewas (zoals vers opbrengst, tarra, droge stof, etc.). Voor niet-oogstbare gewassen (zoals groene braak) wordt de optie om te oogsten verborgen.",
-            "Nitraatuitspoeling in Stikstofbalans: De stikstofbalans geeft nu een completer beeld door ook nitraatuitspoeling (NO3) inzichtelijk te maken, naast de al bestaande ammoniakemissie (NH3). De grafiek maakt nu ook onderscheid tussen deze twee emissiestromen.",
-            "Kaartlagen Beheren: Op de kaarten is een nieuwe knop toegevoegd waarmee u de perceelslaag eenvoudig kunt verbergen of tonen, zodat u de basiskaart eronder beter kunt zien als u dat wilt.",
-            "Verbeterde Zijbalk: De navigatie is verbeterd: de actieve pagina is nu duidelijk zichtbaar in de zijbalk, en u ziet direct welk bedrijf geselecteerd is en wat uw rol daarbij is.",
-        ],
-    },
-    {
-        version: "v0.24.0",
-        date: "3 november 2025",
-        title: "Inzicht in bemesting, invulling van gebruiksruimte en meer",
-        description:
-            "Deze update introduceert een nieuw overzicht van gebruiksruimte, stikstofbalans en bemestingsadvies op de bemestingspagina, voegt de mogelijkheid toe om biologische certificering en beweidingsintentie vast te leggen, en verbetert de weergave van meststoffen.",
-        items: [
-            "Overzicht van Gebruiksruimte, Stikstofbalans en Bemestingsadvies: Op de pagina met toegediende mestgiften voor een perceel wordt nu een uitgebreid overzicht getoond van de gebruiksruimte, de stikstofbalans en het bemestingsadvies. Dit geeft u in één oogopslag inzicht in de actuele stand van zaken voor uw perceel.",
-            "Opvulling van Gebruiksruimte: Naast het berekenen van de gebruiksruimte voor stikstof, fosfaat en dierlijke mest, wordt nu ook de opvulling via bemesting berekend. Hierbij kunt u nu ook op perceelsniveau voor elke bemesting zien hoeveel deze bijdraagt per norm.",
-            "Biologische bedrijven: U kunt nu vastleggen of een bedrijf een biologisch (Skal) certificaat heeft. Dit heeft namelijk invloed op de invulling van de gebruiksruimte en wordt nu meegenomen in de berekening.",
-            "Beweidingsintentie: Geef per jaar aan of u van plan bent om uw dieren te weiden. Deze informatie wordt gebruikt om de stikstofgebruiksnormen voor grasland correct te berekenen.",
-            "Bewerken van Toegediende Mestgiften: Het is nu mogelijk om eerder ingevoerde mestgiften te bewerken. Hierdoor hoeft u niet eerst een bemesting te verwijderen en daarna toe te voegen, maar kan het eenvoudig worden bijgewerkt.",
-            "Verbeterd Ontwerp van Mestgiften: De weergave van toegediende meststoffen is overzichtelijker gemaakt door het gebruik van iconen voor het type meststof en een betere uitlijning van de gegevens.",
-            "Mestcode (RVO) als Kenmerk van Meststof: Bij het toevoegen van een meststof wordt nu de officiële RVO-mestcode gebruikt in plaats van het algemene 'Meststoftype'. Dit zorgt voor een betere aansluiting bij de regelgeving.",
-            "Verbeterde Weergave van Mestcodes: In de lijst met toegediende meststoffen wordt de RVO-mestcode nu gekleurd weergegeven op basis van het type meststof, wat de leesbaarheid ten goede komt.",
-            "Verbeterde Foutafhandeling Stikstofbalans: Als de berekening van de stikstofbalans voor een specifiek perceel mislukt, worden de resultaten voor de andere percelen en het bedrijfsniveau nog steeds weergegeven.",
-            "Prestatieverbeteringen: De berekeningen voor de gebruiksnormen en de stikstofbalans zijn aanzienlijk versneld door het gebruik van caching. Dit zorgt voor een snellere en soepelere gebruikerservaring.",
-        ],
-    },
-    {
-        version: "v0.23.0",
-        date: "29 September 2025",
-        title: "Nieuw perceelsoverzicht, bedrijf verwijderen en meer",
-        description:
-            "Deze update introduceert een geavanceerde perceelstabel met zoek- en selectiemogelijkheden, maakt het mogelijk om een bedrijf te verwijderen, en diverse verbeteringen voor een efficiënter beheer van uw percelen en bemesting.",
-        items: [
-            "Geavanceerde Perceelstabel: Er is een nieuwe pagina toegevoegd met een geavanceerde tabel voor de percelen van uw bedrijf. Deze tabel biedt uitgebreide zoekmogelijkheden (op perceelnaam, teelten en meststoffen) en de mogelijkheid om meerdere percelen te selecteren voor het toedienen van een mestgift.",
-            "Bedrijf Verwijderen: U kunt nu een bedrijf direct verwijderen vanaf de instellingenpagina van het bedrijf. Dit kan alleen als u de rol Eigenaar hebt voor het bedrijf.",
-            "Nieuw Dashboard: Er is een nieuw dashboard voor uw bedrijf toegevoegd. Hier vindt u een overzicht van uw bedrijf met snelle links naar apps, pagina's en belangrijke acties.",
-            "Bemesting Toepassen op Meerdere Percelen: Een nieuwe, speciale pagina maakt het mogelijk om een mestgift op meerdere percelen tegelijk toe te passen.",
-            "Eenvoudig Toevoegen van Eigen Meststof bij Bemesting Invullen: Vanaf het formulier voor het toedienen van een mestgift kunt u nu eenvoudig navigeren naar een nieuwe pagina om een eigen meststof toe te voegen. Na succesvolle toevoegen wordt u automatisch teruggestuurd naar het bemestingsformulier.",
-            "Filter op Bufferstroken: Een nieuwe schakelaar stelt u in staat om op verschillende pagina's alle percelen of alleen de percelen zonder bufferstrokente tonen, voor een meer gericht overzicht.",
-            "Sortering van Percelen: Percelen worden nu gesorteerd op aflopende oppervlakte in plaats van op alfabetische naam.",
-            "Verbeterde Sortering in Bouwplan: In de wizard voor het aanmaken van een bedrijf worden de teelten in het bouwplan nu gesorteerd op aflopende totale oppervlakte.",
-            "Kaart Centreert op Geselecteerd Perceel: Bij het beoordelen van nieuw aangemaakte percelen of het bekijken van individuele percelen op de kaart, centreert de kaart nu automatisch op het geselecteerde perceel.",
-            "Verbeterde Uitnodigingen voor Organisaties: E-mails met uitnodigingen voor organisaties bevatten nu directe knoppen voor accepteren en weigeren.",
-            "Tijdzone in Magic Links: De tijdstempel in e-mails met een magic link toont nu, indien mogelijk, de eigen tijdzone van de gebruiker voor meer duidelijkheid.",
-            "Verbeterde Foutafhandeling bij Gebruiksnormen: Bij de berekening van de gebruiksnormen tonen percelen met fouten nu specifieke foutmeldingen op hun respectievelijke kaarten, naast een algemene foutmelding voor de hele pagina. Succesvol berekende percelen worden nog steeds weergegeven.",
-            "Gebruiksvriendelijker Uploaden van Shapefiles: Het proces voor het uploaden van shapefiles is gebruiksvriendelijker gemaakt. Wanneer u een nieuw bestand selecteert, blijven de reeds gekozen bestanden behouden, wat het corrigeren van uw selectie vergemakkelijkt.",
-        ],
-    },
-    {
-        version: "v0.22.0",
-        date: "15 Augustus 2025",
-        title: "Atlas is vernieuwd, BRP 2025 en meer",
-        description:
-            "Deze update introduceert een vernieuwde Atlas app, toevoeging van gewasvariëteit, bijgewerkte percelen voor 2025, nieuwe gewassen en een opnieuw ontworpen startpagina voor een betere start.",
-        items: [
-            "Vernieuwde Atlas: De Atlas-app is opnieuw ontworpen voor een beter overzicht en meer gebruiksgemak. U kunt nu direct alle beschikbare percelen zien, zonder eerst een bedrijf te selecteren. Klik op een perceel om direct de details te zien, zoals de gewashistorie, wanneer een rustgewas op het perceel heeft gestaan, bodemtextuur en grondwater.",
-            "Percelen obv geselecteerd jaar: De percelen die op de Atlas worden getoond, zijn nu van het jaar dat u in de kalender heeft geselecteerd. Zo ziet u altijd de juiste percelen voor het juiste jaar. De beschikbare percelen voor 2025 zijn nu ook toegevoegd.",
-            "Percelen gekleurd obv Gewascategorie: De percelen op de kaart zijn gekleurd aan de hand van de gewascategorie. Hiermee wordt de kaart duidelijler leesbaar en ziet u eenvoudig wat voor soort gewassen er staan. De popgeslagen en geselecteerde percelen hebben nu een gekleurde rand in plaats van een gekleurde vulling.",
-            "Verbeterde Wizard voor Bedrijf Aanmaken: De wizard voor het aanmaken van een bedrijf is verbeterd. U kunt nu direct vanuit de wizard terug naar de Atlas om meer percelen te selecteren. De percelen die u al heeft toegevoegd, worden nu ook op de kaart getoond.",
-            "Toevoeging van Variëteit: U kunt nu de variëteit van een gewas selecteren (op dit moment alleen nog voor aardappelen en buitenbloemen). De variëteit wordt nu ook gebruiikt bij het bepalen van de stiksotfgebruiksnorm.",
-            "Nieuwe Gewassen toegevoegd: De nieuwe BRP gewassen voor 2025 zijn toegevoegd.",
-            "Nieuwe Startpagina: De startpagina na het inloggen is opnieuw ontworpen met kaarten die u direct toegang geven tot het aanmaken van een nieuw bedrijf of het verkennen van de Atlas. Nieuwe gebruikers krijgen een uitgebreidere introductie te zien.",
-            "Snellere Pagina's: De pagina's voor de nutriëntenbalans, het nutriëntenadvies en de normen laden nu sneller, zodat u direct aan de slag kunt.",
-            "Bugfixes: Er zijn verschillende bugs opgelost, waaronder een probleem waarbij de kaart voor het toevoegen van een nieuw perceel niet interactief was als er nog geen percelen waren.",
-        ],
-    },
-    {
-        version: "v0.21.0",
-        date: "31 Juli 2025",
-        title: "Juli 2025 Release",
-        description:
-            "Deze update implementeert de 2025 Nederlandse gebruiksnormen voor bemesting, maakt het mogelijk om derogatie te beheren, introduceert de RVO Mijn Percelen importer en verbetert het ontwerp van verschillende pagina's.",
-        items: [
-            "Berekening van Gebruiksnormen: De nieuwe app 'Gebruiksnormen' berekent de wettelijke gebruiksruimte voor stikstof en fosfaat op uw percelen. Voor een zo nauwkeurig mogelijke berekening worden diverse gegevens gebruikt, zoals de hoofdteelt, grondsoort, de ligging van het perceel (bijvoorbeeld in een NV-gebied) en de meest recente bodemanalyse. Voor de transparantie toont de app niet alleen de berekende norm, maar ook de categorie en of er speciale restricties aanwezig zijn. Zo kunt u altijd herleiden hoe de berekening tot stand is gekomen.",
-            "Derogatie per Jaar: Vanaf nu kunt u de derogatiestatus van uw bedrijf per jaar beheren. Dit zorgt voor een correcte berekening van de bijbehorende normen.",
-            "Upload 'Mijn Percelen': In plaats van percelen handmatig op de kaart te selecteren, kunt u nu direct een shapefile van 'Mijn Percelen' (RVO) uploaden. De applicatie leest dit bestand in en importeert automatisch de percelen.",
-            "Opsplitsing Bouwplan: De stappen 'Gewassen' en 'Bemesting' zijn nu opgesplitst in twee aparte pagina's voor meer duidelijkheid.",
-            "Duidelijker Gewassenoverzicht: De lijst met teelten in het bouwplan is overzichtelijker gemaakt en toont nu ook het aantal percelen en de totale oppervlakte per gewas.",
-            "Flexibele Jaarkeuze: U kunt nu een ander jaar dan het huidige selecteren bij het aanmaken van een bedrijf, wat handig is voor het invoeren van historische gegevens.",
-            "Startjaar Derogatie: Er is een optie toegevoegd om het startjaar van de derogatie van een bedrijf op te geven.",
-            "Percelen Verwijderen: Het is nu mogelijk om een perceel direct vanuit de wizard te verwijderen.",
-            "Vernieuwde Teelt- en Oogstpagina's: De pagina's voor het beheren van teelten en oogsten hebben een complete make-over gekregen. U kunt nu sneller een teelt selecteren, details bekijken en direct nieuwe teelten of oogsten toevoegen via een dialoogvenster.",
-            "Overzichtelijkere Bemestingspagina: Het ontwerp van de bemestingspagina's is verbeterd door het ontwerp duidelijker te maken.",
-            "Visuele Feedback bij Berekeningen: Pagina's die berekeningen uitvoeren (zoals nutriëntenadvies, normen en de balans) tonen nu direct een visuele placeholder. Zo weet u dat de pagina laadt en de resultaten binnenkort verschijnen.",
-        ],
-    },
-    {
-        version: "v0.20.0",
-        date: "26 Juni 2025",
-        title: "Juni 2025 Release",
-        description:
-            "Deze update breidt de stikstofbalans uit met ammoniakemissies, verbetert het meststoffenbeheer met sjablonen en toedieningsmethoden, en introduceert gedetailleerd bemestingsadvies.",
-        items: [
-            "Ammoniakemissie in Stikstofbalans: De stikstofbalans is uitgebreid met de berekening van ammoniakemissies. Dit geeft een completer beeld van de stikstofbalans op uw bedrijf en de impact op het milieu. Zowel de totale hoeveelheid uitgestoten ammoniak als de details op perceelsniveau worden nu weergegeven.",
-            "Meststof als Sjabloon: Bij het aanmaken van een nieuwe meststof kunt u nu een bestaande meststof als sjabloon gebruiken. Dit vereenvoudigt het toevoegen van vergelijkbare producten.",
-            "Verbeterd Ontwerp Meststofformulier: Het ontwerp van de pagina voor het beheren van meststoffen is verbeterd, waardoor deze intuïtiever en duidelijker is in het gebruik.",
-            "Toedieningsmethode toevoegen: Het is nu mogelijk om de toedieningsmethode voor elke mestgift te specificeren in het daarvoor bestemde formulier.",
-            "Weergave toedieningsmethode: De gekozen toedieningsmethode voor elke mestgift wordt nu duidelijk weergegeven in de lijst met bemestingen.",
-            "Advies voor NPK, OS, secondaire nutrienten en spoorelelmenten: Voor elk perceel kunt u nu het bemestingsadvies zien voor de verschillende nutriënten op basis van de handboeken van CBAV en CBGV.",
-            "Bijhouden van Bemestingsniveau: Als u uw bemesting heeft ingevuld wordt voor elke nutrient bijgehouden hoeveel er al bemest is. Zie eenvoudig welke nutriënt een tekort heeft en welke al voldoende is toegediend.",
-            "Upload een Bodemanalyse: Vanaf nu kunt u er voor kiezen om een pdf van een van de ondersteunde laba op te sturen en automatisch uit te lezen. Op deze manier kunt u eenvoudig de gegeven van uw bodemanalyse laten invoeren, zonder er veel moeite voor te doen.",
-            "Zoekbalk op Interactieve Kaarten: Er is een zoekbalk toegevoegd aan de interactieve kaarten, waarmee u adressen kunt opzoeken en hier direct naartoe kunt navigeren.",
-            "Nieuwe Datumprikkers: De datumprikkers zijn vervangen door een nieuw, gecombineerde component met uitgebreide functies, zoals een dropdown-selectie voor jaar en maand en de mogelijkheid om direct tekst in te voeren.",
-            "Standaard Meststoffencatalogus: Voor nieuwe bedrijven wordt nu standaard de `baat`-catalogus voor meststoffen gebruikt in plaats van `srm`.",
-        ],
-    },
-    {
-        version: "v0.19.0",
-        date: "27 Mei 2025",
-        title: "Mei 2025 Release",
-        description:
-            "Deze update verbetert de bodemanalyse, introduceert stikstofbalansvisualisaties, en vereenvoudigt organisatie- en toegangsbeheer.",
-        items: [
-            "Meer Bodemparameters Beschikbaar: U kunt nu een nog breder scala aan bodemparameters vastleggen bij uw analyses. Dit omvat belangrijke waarden zoals: `a_nmin_cc` (N-mineraal), `a_n_rt` (totale stikstof), `a_c_of` (organische koolstof), `a_cn_fr` (C/N-verhouding), en `a_density_sa` (bodemdichtheid). Daarnaast is er ondersteuning voor een uitgebreide lijst van specifieke elementen en eigenschappen (zoals `a_al_ox`, `a_ca_co`, `a_cec_co`, etc.), wat een dieper inzicht geeft in de bodemvruchtbaarheid en -samenstelling. Deze gegevens kunnen nu ook direct vanuit NMI-integraties worden overgenomen.",
-            "Keuzelijst voor Analysebron: Bij het invoeren van een bodemanalyse kunt u nu de bron van de analyse selecteren uit een vaste keuzelijst, in plaats van vrije tekstinvoer. Dit zorgt voor meer consistentie in uw data.",
-            "Selectie Type Bodemanalyse: Om het invoerformulier overzichtelijker te maken, kunt u nu een type bodemanalyse selecteren. Afhankelijk van het gekozen type wordt een relevante selectie van parameters getoond.",
-            "Vergelijking met Streefwaarde: Zowel op bedrijfsniveau als op perceelsniveau wordt nu een vergelijking getoond tussen de berekende stikstofbalans en de geldende streefwaarde. Zo ziet u direct hoe u presteert.",
-            "Grafische Weergave: Op de stikstofbalanspagina's (voor bedrijf en percelen) vindt u nu een staafdiagram. Deze grafiek visualiseert de aanvoer, afvoer en emissie van stikstof, wat helpt om de balans beter te begrijpen.",
-            "Organisaties Aanmaken en Beheren: U kunt nu organisaties aanmaken. Dit is handig als u bijvoorbeeld als adviesbureau met meerdere adviseurs voor verschillende klanten werkt.",
-            "Gebruikers Uitnodigen: Nodig eenvoudig andere gebruikers uit om lid te worden van uw organisatie.",
-            "Toegang tot bedrijven delen: Het is nu mogelijk om toegang to een bedrijf te delen met andere gebruikers of zelfs met hele organisaties. U kunt hierbij aangeven welke rol (en dus welke rechten) de ander krijgt op uw bedrijf. Dit maakt het makkelijker om bijvoorbeeld uw adviseur toegang te geven tot uw bedrijfsgegevens.",
-            "Nieuwe Navigatie via Platform Zijbalk: Er is een nieuwe zijbalk toegevoegd voor platform-brede zaken. Hier vindt u nu bijvoorbeeld uw accountinstellingen, organisatiebeheer en de 'Wat is nieuw'-pagina.",
-            "Kaart hernoemd naar Atlas: De functionaliteit die voorheen 'Kaart' heette, is nu hernoemd naar 'Atlas' en verplaatst naar het 'Apps' gedeelte voor een logischere structuur.",
-            "Behouden van Context bij Navigeren: Wanneer u in de paginakop een ander perceel of bedrijf selecteert, blijft u op de huidige pagina (bijvoorbeeld de instellingenpagina van dat perceel/bedrijf) in plaats van teruggestuurd te worden naar de startpagina.",
-            "Betere Afhandeling na Inloggen: Als u werd doorgestuurd naar de inlogpagina, wordt u na succesvol inloggen nu automatisch teruggebracht naar de pagina die u oorspronkelijk wilde bezoeken.",
-            "Vernieuwde Bedrijfsselectiepagina: De pagina waar u een bedrijf selecteert, heeft een nieuw ontwerp gekregen met overzichtelijke kaarten per bedrijf, waarop direct enkele kerngegevens zichtbaar zijn.",
-            "'Wat is er Nieuw' verplaatst: Deze pagina is nu te vinden op '/about' sectie in de nieuwe platform zijbalk.",
-            "Beperking Oogst: Per oogstmoment kan nu slechts één oogstbaar product worden geregistreerd, wat de datastructuur vereenvoudigt.",
-        ],
-    },
-    {
-        version: "v0.18.0",
-        date: "14 April 2025",
-        title: "April 2025 Release",
-        description:
-            "Deze update introduceert nieuwe functies voor meststoffen- en percelenbeheer, een flexibele kalenderfilter, en verbeteringen in de 'Bedrijf Aanmaken' wizard.",
-        items: [
-            "Uitgebreid Meststoffen Beheer: We hebben het beheer van meststoffen aanzienlijk uitgebreid. U kunt nu via een speciale pagina een overzicht krijgen van alle beschikbare meststoffen voor uw bedrijf. Daarnaast kunt u de details van elke meststof bekijken en, belangrijker nog, de waarden van *eigen* meststoffen (die u zelf heeft toegevoegd of aangepast) direct bijwerken. Ook is er een nieuwe pagina om eenvoudig nieuwe, bedrijfsspecifieke meststoffen toe te voegen aan uw catalogus, wat zorgt voor een nauwkeurigere registratie van uw bemesting.",
-            "Vereenvoudigd Percelen Toevoegen: Het toevoegen van nieuwe percelen aan uw bedrijf is gestroomlijnd met een toegewijde nieuwe pagina, wat het proces sneller en intuïtiever maakt.",
-            "Flexibel Filteren met de Kalender: In de zijbalk vindt u nu een 'Kalender' optie. Deze functie stelt u in staat om uw data (zoals percelen, bemestingen, oogsten) te filteren op een specifiek jaar. Dit is ideaal voor jaarlijkse overzichten of analyses. U kunt er ook voor kiezen om alle data ongefilterd te tonen.",
-            "Welkomstmail: Om nieuwe gebruikers welkom te heten, wordt er nu automatisch een welkomstmail verstuurd na succesvolle registratie.",
-            "Direct bodemanalyse Toevoegen: U hoeft de wizard niet meer te verlaten om een nieuwe bodemanalyse toe te voegen. Dit kan nu direct tijdens het configureren van een perceel binnen de wizard, wat tijd bespaart.",
-            "Duidelijker Bodem Component: De manier waarop bodemgegevens worden gepresenteerd en hoe u ermee interacteert op de perceelpagina binnen de wizard, is volledig herzien. Dit zorgt voor een beter overzicht en minder kans op fouten bij het invoeren van bodemdata.",
-            "Overzichtelijker Percelen Pagina: De layout van de pagina voor het beheren van percelen binnen de wizard is verbeterd voor een betere workflow en duidelijkheid.",
-            "Opgeloste Weergaveproblemen Oogst: Eerdere problemen met het correct weergeven van de oogstlijst en de bijbehorende detailpagina's binnen de wizard zijn verholpen.",
-            "Voorkomen van Navigatiefouten: Om te voorkomen dat u per ongeluk de wizard verlaat, worden de links in de zijbalk nu tijdelijk uitgeschakeld (niet klikbaar) terwijl u bezig bent met het aanmaken van een bedrijf.",
-            "Verbeterde Paginatitels en Beschrijvingen: Om de navigatie te vergemakkelijken, hebben veel pagina's nu duidelijkere titels en informatieve beschrijvingen gekregen.",
-            "Professionele Uitstraling met Logo: Het logo wordt nu consistent door de hele applicatie gebruikt, inclusief als website-icoon (favicon) en op plaatsen waar voorheen placeholders stonden.",
-            "Integratie Profielfoto's: Voor een persoonlijkere ervaring worden nu de profielfoto's van uw gekoppelde Microsoft en Google accounts correct weergegeven in uw gebruikersprofiel.",
-            "Transparantie over Ontwikkeling: Een duidelijke melding op de inlogpagina informeert gebruikers dat de applicatie nog actief in ontwikkeling is en er regelmatig updates plaatsvinden.",
-            "Soepelere Sessie Afhandeling: Mocht uw sessie verlopen of ongeldig worden (bijvoorbeeld door een time-out), dan wordt u nu automatisch en zonder foutmeldingen teruggestuurd naar de inlogpagina.",
-            "Consistente Eenheden: De eenheid voor gewasopbrengst ('b_lu_yield') wordt nu overal correct en consistent weergegeven als kilogram droge stof per hectare (kg DS / ha).",
-        ],
-    },
-    {
-        version: "v0.17.0",
-        date: "14 Maart 2025",
-        title: "Lancering 🎉",
-        description:
-            "Vanaf nu kun je bedrijven aanmaken, percelen toevoegen en bemestingen invullen.",
-        items: [
-            "Account aanmaken",
-            "Bedrijven aanmaken",
-            "Percelen toevoegen",
-            "Bemestingen invullen",
-        ],
-    },
+  {
+    version: "v0.32.0",
+    date: "25 juni 2026",
+    title: "BodemConditieScore, vernieuwde BLN3-weergave en een helpdesk",
+    description:
+      "Met de BodemConditieScore (BCS) legt u een visuele bodembeoordeling vast op de perceelpagina, inclusief foto's en notities. De BLN3-bodemkwaliteit is vernieuwd met officiële scores voor ecosysteemdientsten, een uitklapbare structuur en een knelpunten-analyse, en is nu ook op organisatieniveau te bekijken. Daarnaast is er een helpdesk onder Ondersteuning en zijn er verbeteringen rond grasland, het uploaden van shapefiles en de navigatie.",
+    items: [
+      "BodemConditieScore (BCS): Op de perceelpagina kunt u nu een BodemConditieScore vastleggen. Via een stapsgewijze wizard beoordeelt u de bodem aan de hand van visuele kenmerken in het veld en voegt u desgewenst foto's toe. U ziet een totaalscore met een kleur en label (van Slecht tot Zeer goed) en de scores per indicator. Foto's kunt u voorzien van notities. Op mobiel kunt u direct een foto maken of er een uit uw galerij kiezen. Waar bodemanalyses beschikbaar zijn, worden ook pH- en organische-stofscores afgeleid.",
+      "BLN3-bodemkwaliteit vernieuwd: De weergave van de BLN scores is herzien. In plaats van eigen, benaderende gemiddelden worden nu de officiële aggregatiescores van de NMI getoond. Met een uitklapbare structuur klikt u van de hoofdscore door naar onderliggende categorieën tot aan de afzonderlijke indicatoren. Een nieuwe 'Knelpuntenanalyse' laat zien welke onderdelen op uw bedrijf het zwakst scoren en welke percelen daar het meest aan bijdragen, met directe links naar de betreffende percelen. Bij De satellietkaart kunt u nu ook kiezen om de score voor ecosysteemdiensten weer te geven, en de uitgebreide indicatorentabel staat nu onder een uitklapknop.",
+      "BLN3 op organisatieniveau: Organisaties kunnen nu een overzicht zien van de BLN3-indicatoren en -maatregelen van de bedrijven waartoe zij toegang hebben. U ziet de gemiddelde indicatoren per bedrijf en kunt vanuit een perceel doorklikken naar de atlas van dat bedrijf. De organisatie-indicatorenpagina toont de opbouw van de scores en de vijf zwakst scorende bedrijven; de maatregelenpagina toont alle maatregelen van de bedrijven, met snelle navigatie naar het betreffende bedrijf.",
+      "Helpdesk onder Ondersteuning: Onder het tabblad Ondersteuning is een helpdesk toegevoegd voor het stellen van vragen, doorgeven van bugs en het geven van feedback. U kunt tickets aanmaken en terugvinden, en uw eigen tickets doorzoeken en sorteren op onder meer prioriteit, aanmaakdatum en labels. Medewerkers kunnen tickets toewijzen, prioriteren, van labels voorzien en categoriseren.",
+      "Meerdere sneden tegelijk toevoegen: Voor grasland kunt u nu meerdere sneden in één keer invoeren via een nieuwe invoermodus van het oogstformulier. Dit werkt zowel op het tabblad teelten van de perceelpagina als bij het toevoegen van een oogst vanuit de bouwplantabel.",
+      "Aangepaste termen voor grasland: Bij grasland worden nu de passender termen 'snede' en 'maaien' gebruikt in plaats van 'oogst'.",
+      "Foutmeldingen direct bij het oogstformulier: Wanneer een oogst niet kan worden opgeslagen vanwege een controle op de server, ziet u de foutmelding nu direct bij het betreffende veld in het formulier.",
+      "Controle op het jaar bij shapefiles: Als u een shapefile uploadt met percelen waarvan de startdatum na het geselecteerde jaar ligt, krijgt u nu een duidelijke melding dat u waarschijnlijk het verkeerde jaar heeft gekozen, met een knop om direct naar het meest waarschijnlijke jaar te wisselen.",
+      "Knop één niveau omhoog: In de header staat nu een knop waarmee u één niveau omhoog navigeert (bijvoorbeeld van een perceel terug naar het bedrijf), wat het navigeren in geneste pagina's makkelijker maakt.",
+      "Veiliger inloggen met Microsoft: Het inloggen met Microsoft maakt nu gebruik van certificaten in plaats van een wachtwoordsleutel. Dit verbetert de beveiliging en is verder niet merkbaar bij het aanmelden.",
+      "Foutmelding bij wisselen van bedrijf hersteld: Het wisselen van bedrijf op diep geneste pagina's leidt niet langer tot een 404-foutmelding.",
+    ],
+  },
+  {
+    version: "v0.31.0",
+    date: "28 mei 2026",
+    title: `BLN3 indicatoren en maatregelen, bodemanalyses in Atlas en ${clientConfig.name} API`,
+    description: `BLN3 bodemindicatoren en maatregelen zijn nu beschikbaar, bodemanalyses kunnen ruimtelijk worden verkend in Atlas en de ${clientConfig.name} API is beschikbaar voor koppelingen met externe systemen.`,
+    items: [
+      "BLN3 bodemindicatoren: Op de nieuwe indicatorenpagina ziet u de BLN3-scores voor uw bedrijf. Per perceel kunt u de individuele indicatorscores bekijken om inzicht in de bodemkwaliteit te krijgen.",
+      "BLN3 maatregelen: Bij de indicatoren kunt u maatregelen bekijken die bijdragen aan het verbeteren van de bodemkwaliteit. U kunt aangeven welke maatregelen u nu kiest.",
+      "Bodemanalyse in Atlas: De Atlas bevat nu een weergave voor bodemanalyses. Hiermee kunt u de resultaten van uw bodemanalyses ruimtelijk verkennen over uw percelen.",
+      "Hoofdgewas naast perceelsnaam bij bedrijfsbalans: De perceelslijst op de balanspagina toont nu een badge met het hoofdgewas per perceel, zodat u in één oogopslag ziet welk gewas op welk perceel staat.",
+      `${clientConfig.name} API en ontwikkelaarsinstellingen: De ${clientConfig.name} API is beschikbaar voor koppelingen met externe systemen. Via de nieuwe ontwikkelaarsinstellingen kunt u API-sleutels aanmaken en beheren voor programmatische toegang tot uw gegevens.`,
+      "Bodemparameters bij alleen-lezen toegang: Gebruikers met alleen leestoegang zien bij bodemparameters nu een link naar de bodemanalyse in plaats van een bewerkknop, zodat duidelijker is dat de waarden niet bewerkt kunnen worden.",
+      "Waarschuwing bij ontbrekende normen: Wanneer voor een perceel geen gebruiksnormen bepaald kunnen worden, wordt dit nu duidelijk gemeld zodat u weet waarom bepaalde berekeningen niet beschikbaar zijn.",
+    ],
+  },
+  {
+    version: "v0.30.0",
+    date: "1 mei 2026",
+    title: "Percelen ophalen bij RVO, bemesting in de eenheid die past bij de meststof en meer",
+    description:
+      "Het ophalen van percelen bij RVO is nu mogelijk door middel van eHerkenning en KvK nummer. Een bemesting wordt nu ingevoerd en weergegeven in de eenheid die past bij de meststof. Shapefiles kunt u nu ook uploaden nadat een bedrijf is aangemaakt.",
+    items: [
+      "Percelen ophalen vanuit RVO: Het ophalen van percelen vanuit RVO via eHerkenning is nu beschikbaar. Hiermee kunt u wanneer u gemachtigd bent en het KvK nummer hebt ingveuld de percelen ophalen die bij RVO zijn opgegeven voor de Gecombineerde Opgave. Dit kan zowel voor bestaande bedrijven in de applicatie als ook voor bij het aanmaken van een nieuw bedrijf.",
+      "Bemesting in de eenheid die past bij de meststof: U hoeft een bemesting niet meer altijd in kg/ha in te voeren. Vloeibare meststoffen voert u nu in m³/ha in, compost in ton/ha, enzovoort. De ingevoerde en getoonde eenheid sluit aan bij de meststof, zodat u niet meer hoeft om te rekenen.",
+      "Shapefiles uploaden bij een bestaand bedrijf: Het uploaden van een shapefile met percelen is niet langer alleen mogelijk bij het aanmaken van een nieuw bedrijf, maar ook daarna via de bedrijfspagina. In een vergelijkingstabel ziet u welke percelen worden toegevoegd, gewijzigd of verwijderd, zodat u de wijzigingen kunt beoordelen voordat u ze samenvoegt. De werkwijze sluit aan bij die van het ophalen van percelen via RVO.",
+      "Uitgebreide gewashistorie in Atlas: Op de detailpagina van een perceel in de Atlas kunt u nu kiezen tussen het tabblad 'Eenvoudig' en het tabblad 'Uitgebreid'. Het uitgebreide tabblad toont in een ruimtelijk stroomdiagram welke teelten in eerdere jaren op de geometrie van het huidige perceel hebben gelegen. Omdat percelen in voorgaande jaren anders ingedeeld kunnen zijn geweest (bijvoorbeeld als één groter perceel of juist als meerdere kleinere), maakt deze weergave inzichtelijk welke teelten op welk deel van de huidige geometrie hebben gestaan. Uw keuze van tabblad blijft tijdens de sessie bewaard.",
+      "Filter op bufferstroken: Het filter voor bufferstroken in de bouwplantabel werkt weer. De zoekterm en de keuze van dit filter worden nu gedeeld tussen de bouwplan- en perceelstabel, zodat de tabellen consistent met elkaar blijven.",
+      "Sortering meerdere sneden: De sortering van sneden binnen een jaar wordt nu correct weergegeven in de bouwplantabel.",
+      "Gewashistorie op jaar gesorteerd: De gewashistorie van een perceel in de Atlas wordt nu aflopend op jaar gesorteerd weergegeven.",
+      "Gewasresten achterlaten alleen bij granen: Het invulveld 'Gewasresten achterlaten' wordt alleen getoond wanneer dit relevant is voor het geselecteerde gewas, namelijk bij granen.",
+      "Atlas-perceelselectie scrollbaar: Op pagina's waar u percelen op de kaart selecteert is de lijst met geselecteerde gewassen nu scrollbaar wanneer er veel gewassen in zitten. Hierdoor blijft de knop 'Sla geselecteerde percelen op' altijd bereikbaar.",
+      "Inloggen met Microsoft zonder e-mailadres: Als Microsoft bij het aanmelden geen e-mailadres deelt met FDM, wordt u nu gevraagd in te loggen via een aanmeldlink in plaats van een onduidelijke foutmelding te krijgen.",
+      "Foutmelding 'Not a FlatGeobuf file' in Atlas: Een hardnekkige foutmelding die kon optreden door een verouderde browsercache wordt nu automatisch hersteld zonder dat u zelf actie hoeft te ondernemen.",
+      "Correctie organische stofbalans bij gewasresten: De organische stofbalans rekent nu ook correct met gewasresten waarvan niet expliciet is vastgelegd dat ze van het perceel zijn afgevoerd; eerder werd in dat geval ten onrechte geen aanvoer berekend.",
+      "Prestatieverbeteringen voor grote bedrijven: Pagina's en berekeningen voor bedrijven met veel percelen laden sneller en betrouwbaarder. De databasequery's voor verschillende overzichten zijn versneld door aanvullende indexen, de stikstofbalans had last van vergrendeling op de berekeningscache en dat is opgelost, het ophalen van depositiegegevens vindt nu plaats buiten de databasetransactie en de tijdslimiet voor het samenstellen van pagina's is verruimd.",
+    ],
+  },
+  {
+    version: "v0.29.0",
+    date: "2 april 2026",
+    title:
+      "Verbeterd meststoffenbeheer, balansoverzicht per organisatie en bufferstrook in perceelstabel",
+    description:
+      "Deze release vernieuwt de weergave en het beheer van meststoffen, voegt een stikstof- en organische stofbalansoverzicht op organisatieniveau toe en maakt het instellen van bufferstroken per perceel eenvoudiger.",
+    items: [
+      "Verbeterd meststoffenbeheer: De meststoffenpagina en het formulier voor het toevoegen van een meststof zijn vernieuwd. De tabel toont nu aanvullende nutriënten en eigenschappen zoals DS, OS, MgO, CaO, Na₂O, SO₃ en sporenelementen. Via de knop 'Kolommen' kiest u zelf welke kolommen u wilt zien. Het selecteren van een catalogusmeststof gaat nu via een doorzoekbare lijst in plaats van een grid van meststoffen. Standaard- en eigen meststoffen zijn visueel van elkaar onderscheiden. De invoervelden in het formulier zijn overzichtelijker ingedeeld. De zijbalk berekent de werkzame stikstof direct terwijl u gegevens invult.",
+      "Meststof als sjabloon gebruiken: Via de optie 'Gebruik als sjabloon' maakt u direct een nieuwe meststof aan op basis van een bestaande meststof vanuit de detailpagina. De rijen in de meststoftabel zijn nu klikbaar en brengen u direct naar de detailpagina.",
+      "Balansoverzicht op organisatieniveau: De stikstofbalans en organische stofbalans zijn nu ook beschikbaar op organisatieniveau. In één overzicht ziet u de resultaten voor alle bedrijven in de organisatie. U kunt individuele bedrijven uitsluiten van het overzicht.",
+      "Bufferstrook instellen per perceel: In de perceelstabel is een kolom met aankruisvakjes toegevoegd waarmee u per perceel kunt aangeven of het een bufferstrook is, zonder naar de afzonderlijke perceelspagina te navigeren.",
+      "Gewasresten: De optie om gewasresten in te voeren is niet zichtbaar als dat niet relevant voor het het geselecteerde gewas is. Dit voorkomt het invoeren van gegevens die geen effect hebben op de organische stofbalans.",
+      "Focusknop in Atlas: Er is een knop toegevoegd waarmee u de kaart in de Atlas direct kunt centreren op de percelen van uw bedrijf. Tijdens het toevoegen van percelen wordt het focusgebied automatisch bijgewerkt wanneer u een nieuw perceel selecteert.",
+      "Correctie stikstofafvoer gewasresten: Een fout in de stikstofbalans is hersteld. Gewasresten die op het perceel achterblijven worden niet langer als afgevoerde stikstof meegenomen; gewasresten die worden afgevoerd worden nu meegenomen in de afvoer.",
+      "Prestatieverbeteringen: Pagina's en berekeningen voor grote bedrijven laden sneller doordat gegevens per bedrijf in één databasequery worden opgehaald in plaats van per perceel.",
+    ],
+  },
+  {
+    version: "v0.28.0",
+    date: "4 maart 2026",
+    title: "Meerdere bodemanalyses uploaden, direct bewerken in bouwplantabel en uitnodigingen",
+    description:
+      "U kunt nu meerdere bodemanalyse-PDF's tegelijk uploaden en direct beoordelen voordat u ze koppelt aan een perceel. Oogsten en mestgiften zijn direct in de bouwplantabel te bewerken. Daarnaast kunt u mensen uitnodigen voor een bedrijf, ook als ze nog geen account hebben.",
+    items: [
+      "Meerdere bodemanalyses tegelijk uploaden: Bij het toevoegen van percelen kunt u meerdere PDF's van bodemanalyses tegelijk uploaden. De gegevens worden in een tabel getoond zodat u kunt controleren welke waarden worden ingeladen voordat u ze koppelt aan een perceel. Op de pagina staat nu ook duidelijk vermeld dat de ingeladen waarden schattingen zijn.",
+      "Direct bewerken van oogsten in het bouwplan: U kunt de oogstdatum en oogstparameters nu direct aanpassen vanuit de bouwplantabel, zonder naar een aparte pagina te navigeren.",
+      "Bemestingen bekijken en bewerken via het bouwplan en perceelstabel: Door op een meststof in de bouwplan of perceelstabel te klikken ziet u een overzicht van alle bemestingen met die meststof op het geselecteerde gewas of perceel. U kunt de giften direct vanuit dit overzicht aanpassen.",
+      "Uitnodigingen voor toegang tot bedrijven: Wanneer iemand u toegang geeft tot een bedrijf, ontvangt u voortaan een e-mail met een uitnodiging. U kunt deze uitnodiging zelf accepteren of weigeren via de overzichtspagina. Uitnodigingen zijn 7 dagen geldig. Ook gebruikers die nog geen account hebben kunnen worden uitgenodigd; zij krijgen automatisch toegang zodra zij zich registreren met hetzelfde e-mailadres.",
+      "Uitnodigingen beheren: Als eigenaar of beheerder van een bedrijf kunt u uitstaande uitnodigingen inzien, annuleren of de rol van een uitnodiging aanpassen, rechtstreeks vanuit de instellingenpagina van het bedrijf.",
+      "Bodemanalyses van eerdere jaren: De lijst met bodemanalyses bij een perceel toont nu ook analyses van vóór het geselecteerde jaar, zodat u eerdere metingen niet meer kwijt bent als u een ander jaar selecteert.",
+      "Bodemparameters overzichtelijker ingedeeld: De bodemparameters op de perceelspagina zijn nu gegroepeerd en in een logischere volgorde geplaatst voor een beter overzicht.",
+      "Koolstofvastlegging in Atlas: Op de detailpagina van een perceel in de Atlas is een nieuw blok toegevoegd met informatie over koolstofvastlegging. U ziet de huidige schatting van het koolstofgehalte in de bodem, het maximaal haalbare niveau en cijfers om de waarden in perspectief te plaatsen voor bijvoorbeeld extra mineralisatie en watervasthouden vermogen.",
+      "Verbeterd ontwerp perceeldetails in Atlas: De detailpagina van een perceel in de Atlas is overzichtelijker ingedeeld en werkt nu ook goed op kleinere schermen.",
+      "Terugknop op perceeldetails in Atlas: Er is een zwevende terugknop toegevoegd onderaan de perceeldetailpagina in de Atlas, zodat u eenvoudig terug naar de kaart kunt navigeren.",
+      "Organisatiegegevens bewerken en leden toevoegen: Via de instellingenpagina van uw organisatie kunt u nu de gegevens van uw organisatie bewerken en nieuwe leden uitnodigen.",
+      "Overzicht van bedrijven per organisatie: In het organisatieoverzicht is een nieuwe tabel toegevoegd met alle bedrijven waar uw organisatie toegang toe heeft. De tabel is doorzoekbaar.",
+      "Verbeterd aanmaken van bedrijf: Bij het aanmaken van een nieuw bedrijf vraagt het formulier nu ook naar het KvK-nummer, de beweidingsintentie en de biologische certificering. Aan het begin van het stappenproces staat een toelichting op de te doorlopen stappen. De vraag over derogatie wordt alleen nog getoond voor jaren vóór 2026.",
+      "Laadmelding bij trage paginaovergangen: Als een pagina langer dan 300 milliseconden nodig heeft om te laden, verschijnt er een laadsymbool en wordt de pagina licht vervaagd. Dit voorkomt verwarring over of een actie is geregistreerd.",
+    ],
+  },
+  {
+    version: "v0.27.0",
+    date: "29 januari 2026",
+    title: "Bemestingsplan als pdf, Bodemkaart in Atlas en uitklapbaar bouwplan",
+    description:
+      "De eerste release van 2026 maakt het mogelijk om het bemestingsplan als pdf te downloaden, voegt de bodemkaart toe aan de Atlas en maakt de bouwplantabel uitklapbaar voor meer detail. Daarnaast is er verbeterde ondersteuning voor bufferstroken.",
+    items: [
+      "Bemestingsplan als PDF: Met één druk op de knop genereert u nu een 'Bemestingsplan'. Dit PDF-bestand geeft een compleet overzicht van de bedrijfssituatie, inclusief gebruiksruimte, bemestingsadviezen en geplande bemestingen op zowel bedrijfs- als perceelsniveau.",
+      "Bodemkaart in Atlas: De Bodemkaart van Nederland (BRO) is nu beschikbaar als kaartlaag in de Atlas. Hiermee ziet u direct de bodemtype bij de percelen.",
+      "Uitklapbaar bouwplan: In de tabel voor bouwplan kunt u nu rijen uitklappen om direct te zien welke percelen bij een teelt horen. Op deze manier kunt u bijvoorbeeld perceel uitluiten van bemesting toevoegen als u het gewas heeft geselecteerd.",
+      "Bufferstroken: U kunt nu aangeven of een perceel een bufferstrook is. Deze percelen worden automatisch uitgesloten van de stikstof- en organische stofbalans op bedrijfsniveau. De gebruiksruimte en het bemestingsadvies worden voor deze stroken op nul gezet.",
+      "Meerdere percelen toevoegen: Het is nu mogelijk om meerdere percelen aan een bestaand bedrijf toe te voegen.",
+      "Gewashistorie kopiëren: Bij de gewashistorie van een perceel in Atlas is nu een knop toegevoegd om de historie direct naar het klembord te kopiëren, zodat u ze eenvoudig kunt plakken in bijvoorbeeld Excel.",
+      "Graslandvernieuwing 2025/2026: De specifieke regels voor stikstofkorting bij het scheuren of vernieuwen van grasland zijn toegevoegd voor de jaren 2025 en 2026.",
+      "Verbeteringen voor kleine schermen: De app werkt nu nog prettiger op mobiele apparaten. Tabellen, headers en de zijbalk zijn geoptimaliseerd voor kleinere schermen.",
+    ],
+  },
+  {
+    version: "v0.26.0",
+    date: "22 december 2025",
+    title: "Hoogtekaart in Atlas, meer details in stikstofbalans, 2026 is beschikbaar",
+    description: `Deze update bereidt ${clientConfig.name} voor op 2026 met de voorlopige gebruiksnormen en voegt de AHN4 hoogtekaart toe in de Atlas. De stikstofbalans biedt nu diepgaand inzicht met interactieve grafieken en details per mestgift.`,
+    items: [
+      "AHN4 Hoogtekaart in Atlas: De AHN4 hoogtekaart is nu beschikbaar in Atlas. Hiermee kunt u tot in detail het microreliëf op uw percelen analyseren, wat waardevolle inzichten geeft voor bijvoorbeeld waterhuishouding.",
+      "Voorbereiding op 2026: U kunt nu alvast aan de slag met het aanmaken van uw bedrijf en bouwplan voor 2026. De gebruiksnormen zijn voorlopig gebaseerd op de regels van 2025 (zonder derogatie), in afwachting van definitieve politieke besluitvorming.",
+      "Interactieve stikstofbalans: De grafieken voor de stikstofbalans zijn vernieuwd en interactief. Door over de balken te bewegen ziet u direct hoeveel elke bron bijdraagt aan de stikstofbalance. Ook hebben posten zoals bemesiting, oogt en depositie nu duidelijke, onderscheidende kleuren.",
+      "Bijdrage van bemesting in stikstofbalans: De stikstofbalans op perceelsniveau toont nu de bijdrage van elke individuele mestgift. Door in de grafiek over de balken te bewegen, ziet u direct details zoals hoeveel stikstof deze bemesting bijdraagt, maar ook de naam van de meststof en de datum van toediening.",
+      "Inloggen met een code: Het inloggen via de aanmeldlink is verbeterd. In de email die u dan ontvangt staat een code die u kunt gebruiken om in te loggen. Daarnaast bevat de mail nog steeds een knop om te inloggen en wordt de code al voor u ingevuld.",
+      "Bemestingsadvies per gewas: Het bemestingsadvies is nu duidelijker gespecificeerd per gewas. U kunt nu zelf het gewas selecteren waarvoor u het advies wilt inzien, wat vooral bij percelen met meerdere teelten direct inzicht geeft.",
+      "Vernieuwde homepage: De homepage is vernieuwd en uitgebreid met meer informatie over de mogelijkheden. Ook is de weergave op mobiele apparaten verder verbeterd.",
+      "Overstap naar MapTiler: We zijn overgestapt van Mapbox naar MapTiler als leverancier voor onze kaarten en zoekfuncties. MapTiler verzamelt minder gebruikersdata (geen tracking/telemetrie) en host de data binnen de EU.",
+    ],
+  },
+  {
+    version: "v0.25.0",
+    date: "27 november 2025",
+    title: "Nieuw: Bouwplan & OS Balans. Oogstregistratie is verbeterd",
+    description:
+      "Deze update introduceert de Organische stofbalans voor inzicht in bodemgezondheid, een nieuw Bouwplan pagina voor efficiënt gewasbeheer, en voegt nitraatuitspoeling toe aan de stikstofbalans.",
+    items: [
+      "Bouwplan & Bulkacties: De nieuwe bouwplanpagina biedt een centraal overzicht van alle teelten op uw bedrijf. U kunt hier niet alleen uw bouwplan inzien, maar ook direct acties uitvoeren voor meerdere percelen tegelijk, zoals het toevoegen van een bemesting of oogst voor alle percelen met hetzelfde gewas.",
+      "OS Balans: Met de nieuwe 'Organische stofbalans' krijgt u inzicht in de aanvoer van effectieve organische stof (EOS) uit gewassen, gewasresten en meststoffen, en de afbraak van organische stof. Dit helpt u bij het maken van plannen voor een gezonde bodem op de lange termijn.",
+      "Verbeterde Oogstregistratie: Het registreren van oogsten is slimmer en nauwkeuriger geworden. Het formulier vraagt nu specifiek om de parameters die relevant zijn voor het gekozen gewas (zoals vers opbrengst, tarra, droge stof, etc.). Voor niet-oogstbare gewassen (zoals groene braak) wordt de optie om te oogsten verborgen.",
+      "Nitraatuitspoeling in Stikstofbalans: De stikstofbalans geeft nu een completer beeld door ook nitraatuitspoeling (NO3) inzichtelijk te maken, naast de al bestaande ammoniakemissie (NH3). De grafiek maakt nu ook onderscheid tussen deze twee emissiestromen.",
+      "Kaartlagen Beheren: Op de kaarten is een nieuwe knop toegevoegd waarmee u de perceelslaag eenvoudig kunt verbergen of tonen, zodat u de basiskaart eronder beter kunt zien als u dat wilt.",
+      "Verbeterde Zijbalk: De navigatie is verbeterd: de actieve pagina is nu duidelijk zichtbaar in de zijbalk, en u ziet direct welk bedrijf geselecteerd is en wat uw rol daarbij is.",
+    ],
+  },
+  {
+    version: "v0.24.0",
+    date: "3 november 2025",
+    title: "Inzicht in bemesting, invulling van gebruiksruimte en meer",
+    description:
+      "Deze update introduceert een nieuw overzicht van gebruiksruimte, stikstofbalans en bemestingsadvies op de bemestingspagina, voegt de mogelijkheid toe om biologische certificering en beweidingsintentie vast te leggen, en verbetert de weergave van meststoffen.",
+    items: [
+      "Overzicht van Gebruiksruimte, Stikstofbalans en Bemestingsadvies: Op de pagina met toegediende mestgiften voor een perceel wordt nu een uitgebreid overzicht getoond van de gebruiksruimte, de stikstofbalans en het bemestingsadvies. Dit geeft u in één oogopslag inzicht in de actuele stand van zaken voor uw perceel.",
+      "Opvulling van Gebruiksruimte: Naast het berekenen van de gebruiksruimte voor stikstof, fosfaat en dierlijke mest, wordt nu ook de opvulling via bemesting berekend. Hierbij kunt u nu ook op perceelsniveau voor elke bemesting zien hoeveel deze bijdraagt per norm.",
+      "Biologische bedrijven: U kunt nu vastleggen of een bedrijf een biologisch (Skal) certificaat heeft. Dit heeft namelijk invloed op de invulling van de gebruiksruimte en wordt nu meegenomen in de berekening.",
+      "Beweidingsintentie: Geef per jaar aan of u van plan bent om uw dieren te weiden. Deze informatie wordt gebruikt om de stikstofgebruiksnormen voor grasland correct te berekenen.",
+      "Bewerken van Toegediende Mestgiften: Het is nu mogelijk om eerder ingevoerde mestgiften te bewerken. Hierdoor hoeft u niet eerst een bemesting te verwijderen en daarna toe te voegen, maar kan het eenvoudig worden bijgewerkt.",
+      "Verbeterd Ontwerp van Mestgiften: De weergave van toegediende meststoffen is overzichtelijker gemaakt door het gebruik van iconen voor het type meststof en een betere uitlijning van de gegevens.",
+      "Mestcode (RVO) als Kenmerk van Meststof: Bij het toevoegen van een meststof wordt nu de officiële RVO-mestcode gebruikt in plaats van het algemene 'Meststoftype'. Dit zorgt voor een betere aansluiting bij de regelgeving.",
+      "Verbeterde Weergave van Mestcodes: In de lijst met toegediende meststoffen wordt de RVO-mestcode nu gekleurd weergegeven op basis van het type meststof, wat de leesbaarheid ten goede komt.",
+      "Verbeterde Foutafhandeling Stikstofbalans: Als de berekening van de stikstofbalans voor een specifiek perceel mislukt, worden de resultaten voor de andere percelen en het bedrijfsniveau nog steeds weergegeven.",
+      "Prestatieverbeteringen: De berekeningen voor de gebruiksnormen en de stikstofbalans zijn aanzienlijk versneld door het gebruik van caching. Dit zorgt voor een snellere en soepelere gebruikerservaring.",
+    ],
+  },
+  {
+    version: "v0.23.0",
+    date: "29 September 2025",
+    title: "Nieuw perceelsoverzicht, bedrijf verwijderen en meer",
+    description:
+      "Deze update introduceert een geavanceerde perceelstabel met zoek- en selectiemogelijkheden, maakt het mogelijk om een bedrijf te verwijderen, en diverse verbeteringen voor een efficiënter beheer van uw percelen en bemesting.",
+    items: [
+      "Geavanceerde Perceelstabel: Er is een nieuwe pagina toegevoegd met een geavanceerde tabel voor de percelen van uw bedrijf. Deze tabel biedt uitgebreide zoekmogelijkheden (op perceelnaam, teelten en meststoffen) en de mogelijkheid om meerdere percelen te selecteren voor het toedienen van een mestgift.",
+      "Bedrijf Verwijderen: U kunt nu een bedrijf direct verwijderen vanaf de instellingenpagina van het bedrijf. Dit kan alleen als u de rol Eigenaar hebt voor het bedrijf.",
+      "Nieuw Dashboard: Er is een nieuw dashboard voor uw bedrijf toegevoegd. Hier vindt u een overzicht van uw bedrijf met snelle links naar apps, pagina's en belangrijke acties.",
+      "Bemesting Toepassen op Meerdere Percelen: Een nieuwe, speciale pagina maakt het mogelijk om een mestgift op meerdere percelen tegelijk toe te passen.",
+      "Eenvoudig Toevoegen van Eigen Meststof bij Bemesting Invullen: Vanaf het formulier voor het toedienen van een mestgift kunt u nu eenvoudig navigeren naar een nieuwe pagina om een eigen meststof toe te voegen. Na succesvolle toevoegen wordt u automatisch teruggestuurd naar het bemestingsformulier.",
+      "Filter op Bufferstroken: Een nieuwe schakelaar stelt u in staat om op verschillende pagina's alle percelen of alleen de percelen zonder bufferstrokente tonen, voor een meer gericht overzicht.",
+      "Sortering van Percelen: Percelen worden nu gesorteerd op aflopende oppervlakte in plaats van op alfabetische naam.",
+      "Verbeterde Sortering in Bouwplan: In de wizard voor het aanmaken van een bedrijf worden de teelten in het bouwplan nu gesorteerd op aflopende totale oppervlakte.",
+      "Kaart Centreert op Geselecteerd Perceel: Bij het beoordelen van nieuw aangemaakte percelen of het bekijken van individuele percelen op de kaart, centreert de kaart nu automatisch op het geselecteerde perceel.",
+      "Verbeterde Uitnodigingen voor Organisaties: E-mails met uitnodigingen voor organisaties bevatten nu directe knoppen voor accepteren en weigeren.",
+      "Tijdzone in Magic Links: De tijdstempel in e-mails met een magic link toont nu, indien mogelijk, de eigen tijdzone van de gebruiker voor meer duidelijkheid.",
+      "Verbeterde Foutafhandeling bij Gebruiksnormen: Bij de berekening van de gebruiksnormen tonen percelen met fouten nu specifieke foutmeldingen op hun respectievelijke kaarten, naast een algemene foutmelding voor de hele pagina. Succesvol berekende percelen worden nog steeds weergegeven.",
+      "Gebruiksvriendelijker Uploaden van Shapefiles: Het proces voor het uploaden van shapefiles is gebruiksvriendelijker gemaakt. Wanneer u een nieuw bestand selecteert, blijven de reeds gekozen bestanden behouden, wat het corrigeren van uw selectie vergemakkelijkt.",
+    ],
+  },
+  {
+    version: "v0.22.0",
+    date: "15 Augustus 2025",
+    title: "Atlas is vernieuwd, BRP 2025 en meer",
+    description:
+      "Deze update introduceert een vernieuwde Atlas app, toevoeging van gewasvariëteit, bijgewerkte percelen voor 2025, nieuwe gewassen en een opnieuw ontworpen startpagina voor een betere start.",
+    items: [
+      "Vernieuwde Atlas: De Atlas-app is opnieuw ontworpen voor een beter overzicht en meer gebruiksgemak. U kunt nu direct alle beschikbare percelen zien, zonder eerst een bedrijf te selecteren. Klik op een perceel om direct de details te zien, zoals de gewashistorie, wanneer een rustgewas op het perceel heeft gestaan, bodemtextuur en grondwater.",
+      "Percelen obv geselecteerd jaar: De percelen die op de Atlas worden getoond, zijn nu van het jaar dat u in de kalender heeft geselecteerd. Zo ziet u altijd de juiste percelen voor het juiste jaar. De beschikbare percelen voor 2025 zijn nu ook toegevoegd.",
+      "Percelen gekleurd obv Gewascategorie: De percelen op de kaart zijn gekleurd aan de hand van de gewascategorie. Hiermee wordt de kaart duidelijler leesbaar en ziet u eenvoudig wat voor soort gewassen er staan. De popgeslagen en geselecteerde percelen hebben nu een gekleurde rand in plaats van een gekleurde vulling.",
+      "Verbeterde Wizard voor Bedrijf Aanmaken: De wizard voor het aanmaken van een bedrijf is verbeterd. U kunt nu direct vanuit de wizard terug naar de Atlas om meer percelen te selecteren. De percelen die u al heeft toegevoegd, worden nu ook op de kaart getoond.",
+      "Toevoeging van Variëteit: U kunt nu de variëteit van een gewas selecteren (op dit moment alleen nog voor aardappelen en buitenbloemen). De variëteit wordt nu ook gebruiikt bij het bepalen van de stiksotfgebruiksnorm.",
+      "Nieuwe Gewassen toegevoegd: De nieuwe BRP gewassen voor 2025 zijn toegevoegd.",
+      "Nieuwe Startpagina: De startpagina na het inloggen is opnieuw ontworpen met kaarten die u direct toegang geven tot het aanmaken van een nieuw bedrijf of het verkennen van de Atlas. Nieuwe gebruikers krijgen een uitgebreidere introductie te zien.",
+      "Snellere Pagina's: De pagina's voor de nutriëntenbalans, het nutriëntenadvies en de normen laden nu sneller, zodat u direct aan de slag kunt.",
+      "Bugfixes: Er zijn verschillende bugs opgelost, waaronder een probleem waarbij de kaart voor het toevoegen van een nieuw perceel niet interactief was als er nog geen percelen waren.",
+    ],
+  },
+  {
+    version: "v0.21.0",
+    date: "31 Juli 2025",
+    title: "Juli 2025 Release",
+    description:
+      "Deze update implementeert de 2025 Nederlandse gebruiksnormen voor bemesting, maakt het mogelijk om derogatie te beheren, introduceert de RVO Mijn Percelen importer en verbetert het ontwerp van verschillende pagina's.",
+    items: [
+      "Berekening van Gebruiksnormen: De nieuwe app 'Gebruiksnormen' berekent de wettelijke gebruiksruimte voor stikstof en fosfaat op uw percelen. Voor een zo nauwkeurig mogelijke berekening worden diverse gegevens gebruikt, zoals de hoofdteelt, grondsoort, de ligging van het perceel (bijvoorbeeld in een NV-gebied) en de meest recente bodemanalyse. Voor de transparantie toont de app niet alleen de berekende norm, maar ook de categorie en of er speciale restricties aanwezig zijn. Zo kunt u altijd herleiden hoe de berekening tot stand is gekomen.",
+      "Derogatie per Jaar: Vanaf nu kunt u de derogatiestatus van uw bedrijf per jaar beheren. Dit zorgt voor een correcte berekening van de bijbehorende normen.",
+      "Upload 'Mijn Percelen': In plaats van percelen handmatig op de kaart te selecteren, kunt u nu direct een shapefile van 'Mijn Percelen' (RVO) uploaden. De applicatie leest dit bestand in en importeert automatisch de percelen.",
+      "Opsplitsing Bouwplan: De stappen 'Gewassen' en 'Bemesting' zijn nu opgesplitst in twee aparte pagina's voor meer duidelijkheid.",
+      "Duidelijker Gewassenoverzicht: De lijst met teelten in het bouwplan is overzichtelijker gemaakt en toont nu ook het aantal percelen en de totale oppervlakte per gewas.",
+      "Flexibele Jaarkeuze: U kunt nu een ander jaar dan het huidige selecteren bij het aanmaken van een bedrijf, wat handig is voor het invoeren van historische gegevens.",
+      "Startjaar Derogatie: Er is een optie toegevoegd om het startjaar van de derogatie van een bedrijf op te geven.",
+      "Percelen Verwijderen: Het is nu mogelijk om een perceel direct vanuit de wizard te verwijderen.",
+      "Vernieuwde Teelt- en Oogstpagina's: De pagina's voor het beheren van teelten en oogsten hebben een complete make-over gekregen. U kunt nu sneller een teelt selecteren, details bekijken en direct nieuwe teelten of oogsten toevoegen via een dialoogvenster.",
+      "Overzichtelijkere Bemestingspagina: Het ontwerp van de bemestingspagina's is verbeterd door het ontwerp duidelijker te maken.",
+      "Visuele Feedback bij Berekeningen: Pagina's die berekeningen uitvoeren (zoals nutriëntenadvies, normen en de balans) tonen nu direct een visuele placeholder. Zo weet u dat de pagina laadt en de resultaten binnenkort verschijnen.",
+    ],
+  },
+  {
+    version: "v0.20.0",
+    date: "26 Juni 2025",
+    title: "Juni 2025 Release",
+    description:
+      "Deze update breidt de stikstofbalans uit met ammoniakemissies, verbetert het meststoffenbeheer met sjablonen en toedieningsmethoden, en introduceert gedetailleerd bemestingsadvies.",
+    items: [
+      "Ammoniakemissie in Stikstofbalans: De stikstofbalans is uitgebreid met de berekening van ammoniakemissies. Dit geeft een completer beeld van de stikstofbalans op uw bedrijf en de impact op het milieu. Zowel de totale hoeveelheid uitgestoten ammoniak als de details op perceelsniveau worden nu weergegeven.",
+      "Meststof als Sjabloon: Bij het aanmaken van een nieuwe meststof kunt u nu een bestaande meststof als sjabloon gebruiken. Dit vereenvoudigt het toevoegen van vergelijkbare producten.",
+      "Verbeterd Ontwerp Meststofformulier: Het ontwerp van de pagina voor het beheren van meststoffen is verbeterd, waardoor deze intuïtiever en duidelijker is in het gebruik.",
+      "Toedieningsmethode toevoegen: Het is nu mogelijk om de toedieningsmethode voor elke mestgift te specificeren in het daarvoor bestemde formulier.",
+      "Weergave toedieningsmethode: De gekozen toedieningsmethode voor elke mestgift wordt nu duidelijk weergegeven in de lijst met bemestingen.",
+      "Advies voor NPK, OS, secondaire nutrienten en spoorelelmenten: Voor elk perceel kunt u nu het bemestingsadvies zien voor de verschillende nutriënten op basis van de handboeken van CBAV en CBGV.",
+      "Bijhouden van Bemestingsniveau: Als u uw bemesting heeft ingevuld wordt voor elke nutrient bijgehouden hoeveel er al bemest is. Zie eenvoudig welke nutriënt een tekort heeft en welke al voldoende is toegediend.",
+      "Upload een Bodemanalyse: Vanaf nu kunt u er voor kiezen om een pdf van een van de ondersteunde laba op te sturen en automatisch uit te lezen. Op deze manier kunt u eenvoudig de gegeven van uw bodemanalyse laten invoeren, zonder er veel moeite voor te doen.",
+      "Zoekbalk op Interactieve Kaarten: Er is een zoekbalk toegevoegd aan de interactieve kaarten, waarmee u adressen kunt opzoeken en hier direct naartoe kunt navigeren.",
+      "Nieuwe Datumprikkers: De datumprikkers zijn vervangen door een nieuw, gecombineerde component met uitgebreide functies, zoals een dropdown-selectie voor jaar en maand en de mogelijkheid om direct tekst in te voeren.",
+      "Standaard Meststoffencatalogus: Voor nieuwe bedrijven wordt nu standaard de `baat`-catalogus voor meststoffen gebruikt in plaats van `srm`.",
+    ],
+  },
+  {
+    version: "v0.19.0",
+    date: "27 Mei 2025",
+    title: "Mei 2025 Release",
+    description:
+      "Deze update verbetert de bodemanalyse, introduceert stikstofbalansvisualisaties, en vereenvoudigt organisatie- en toegangsbeheer.",
+    items: [
+      "Meer Bodemparameters Beschikbaar: U kunt nu een nog breder scala aan bodemparameters vastleggen bij uw analyses. Dit omvat belangrijke waarden zoals: `a_nmin_cc` (N-mineraal), `a_n_rt` (totale stikstof), `a_c_of` (organische koolstof), `a_cn_fr` (C/N-verhouding), en `a_density_sa` (bodemdichtheid). Daarnaast is er ondersteuning voor een uitgebreide lijst van specifieke elementen en eigenschappen (zoals `a_al_ox`, `a_ca_co`, `a_cec_co`, etc.), wat een dieper inzicht geeft in de bodemvruchtbaarheid en -samenstelling. Deze gegevens kunnen nu ook direct vanuit NMI-integraties worden overgenomen.",
+      "Keuzelijst voor Analysebron: Bij het invoeren van een bodemanalyse kunt u nu de bron van de analyse selecteren uit een vaste keuzelijst, in plaats van vrije tekstinvoer. Dit zorgt voor meer consistentie in uw data.",
+      "Selectie Type Bodemanalyse: Om het invoerformulier overzichtelijker te maken, kunt u nu een type bodemanalyse selecteren. Afhankelijk van het gekozen type wordt een relevante selectie van parameters getoond.",
+      "Vergelijking met Streefwaarde: Zowel op bedrijfsniveau als op perceelsniveau wordt nu een vergelijking getoond tussen de berekende stikstofbalans en de geldende streefwaarde. Zo ziet u direct hoe u presteert.",
+      "Grafische Weergave: Op de stikstofbalanspagina's (voor bedrijf en percelen) vindt u nu een staafdiagram. Deze grafiek visualiseert de aanvoer, afvoer en emissie van stikstof, wat helpt om de balans beter te begrijpen.",
+      "Organisaties Aanmaken en Beheren: U kunt nu organisaties aanmaken. Dit is handig als u bijvoorbeeld als adviesbureau met meerdere adviseurs voor verschillende klanten werkt.",
+      "Gebruikers Uitnodigen: Nodig eenvoudig andere gebruikers uit om lid te worden van uw organisatie.",
+      "Toegang tot bedrijven delen: Het is nu mogelijk om toegang to een bedrijf te delen met andere gebruikers of zelfs met hele organisaties. U kunt hierbij aangeven welke rol (en dus welke rechten) de ander krijgt op uw bedrijf. Dit maakt het makkelijker om bijvoorbeeld uw adviseur toegang te geven tot uw bedrijfsgegevens.",
+      "Nieuwe Navigatie via Platform Zijbalk: Er is een nieuwe zijbalk toegevoegd voor platform-brede zaken. Hier vindt u nu bijvoorbeeld uw accountinstellingen, organisatiebeheer en de 'Wat is nieuw'-pagina.",
+      "Kaart hernoemd naar Atlas: De functionaliteit die voorheen 'Kaart' heette, is nu hernoemd naar 'Atlas' en verplaatst naar het 'Apps' gedeelte voor een logischere structuur.",
+      "Behouden van Context bij Navigeren: Wanneer u in de paginakop een ander perceel of bedrijf selecteert, blijft u op de huidige pagina (bijvoorbeeld de instellingenpagina van dat perceel/bedrijf) in plaats van teruggestuurd te worden naar de startpagina.",
+      "Betere Afhandeling na Inloggen: Als u werd doorgestuurd naar de inlogpagina, wordt u na succesvol inloggen nu automatisch teruggebracht naar de pagina die u oorspronkelijk wilde bezoeken.",
+      "Vernieuwde Bedrijfsselectiepagina: De pagina waar u een bedrijf selecteert, heeft een nieuw ontwerp gekregen met overzichtelijke kaarten per bedrijf, waarop direct enkele kerngegevens zichtbaar zijn.",
+      "'Wat is er Nieuw' verplaatst: Deze pagina is nu te vinden op '/about' sectie in de nieuwe platform zijbalk.",
+      "Beperking Oogst: Per oogstmoment kan nu slechts één oogstbaar product worden geregistreerd, wat de datastructuur vereenvoudigt.",
+    ],
+  },
+  {
+    version: "v0.18.0",
+    date: "14 April 2025",
+    title: "April 2025 Release",
+    description:
+      "Deze update introduceert nieuwe functies voor meststoffen- en percelenbeheer, een flexibele kalenderfilter, en verbeteringen in de 'Bedrijf Aanmaken' wizard.",
+    items: [
+      "Uitgebreid Meststoffen Beheer: We hebben het beheer van meststoffen aanzienlijk uitgebreid. U kunt nu via een speciale pagina een overzicht krijgen van alle beschikbare meststoffen voor uw bedrijf. Daarnaast kunt u de details van elke meststof bekijken en, belangrijker nog, de waarden van *eigen* meststoffen (die u zelf heeft toegevoegd of aangepast) direct bijwerken. Ook is er een nieuwe pagina om eenvoudig nieuwe, bedrijfsspecifieke meststoffen toe te voegen aan uw catalogus, wat zorgt voor een nauwkeurigere registratie van uw bemesting.",
+      "Vereenvoudigd Percelen Toevoegen: Het toevoegen van nieuwe percelen aan uw bedrijf is gestroomlijnd met een toegewijde nieuwe pagina, wat het proces sneller en intuïtiever maakt.",
+      "Flexibel Filteren met de Kalender: In de zijbalk vindt u nu een 'Kalender' optie. Deze functie stelt u in staat om uw data (zoals percelen, bemestingen, oogsten) te filteren op een specifiek jaar. Dit is ideaal voor jaarlijkse overzichten of analyses. U kunt er ook voor kiezen om alle data ongefilterd te tonen.",
+      "Welkomstmail: Om nieuwe gebruikers welkom te heten, wordt er nu automatisch een welkomstmail verstuurd na succesvolle registratie.",
+      "Direct bodemanalyse Toevoegen: U hoeft de wizard niet meer te verlaten om een nieuwe bodemanalyse toe te voegen. Dit kan nu direct tijdens het configureren van een perceel binnen de wizard, wat tijd bespaart.",
+      "Duidelijker Bodem Component: De manier waarop bodemgegevens worden gepresenteerd en hoe u ermee interacteert op de perceelpagina binnen de wizard, is volledig herzien. Dit zorgt voor een beter overzicht en minder kans op fouten bij het invoeren van bodemdata.",
+      "Overzichtelijker Percelen Pagina: De layout van de pagina voor het beheren van percelen binnen de wizard is verbeterd voor een betere workflow en duidelijkheid.",
+      "Opgeloste Weergaveproblemen Oogst: Eerdere problemen met het correct weergeven van de oogstlijst en de bijbehorende detailpagina's binnen de wizard zijn verholpen.",
+      "Voorkomen van Navigatiefouten: Om te voorkomen dat u per ongeluk de wizard verlaat, worden de links in de zijbalk nu tijdelijk uitgeschakeld (niet klikbaar) terwijl u bezig bent met het aanmaken van een bedrijf.",
+      "Verbeterde Paginatitels en Beschrijvingen: Om de navigatie te vergemakkelijken, hebben veel pagina's nu duidelijkere titels en informatieve beschrijvingen gekregen.",
+      "Professionele Uitstraling met Logo: Het logo wordt nu consistent door de hele applicatie gebruikt, inclusief als website-icoon (favicon) en op plaatsen waar voorheen placeholders stonden.",
+      "Integratie Profielfoto's: Voor een persoonlijkere ervaring worden nu de profielfoto's van uw gekoppelde Microsoft en Google accounts correct weergegeven in uw gebruikersprofiel.",
+      "Transparantie over Ontwikkeling: Een duidelijke melding op de inlogpagina informeert gebruikers dat de applicatie nog actief in ontwikkeling is en er regelmatig updates plaatsvinden.",
+      "Soepelere Sessie Afhandeling: Mocht uw sessie verlopen of ongeldig worden (bijvoorbeeld door een time-out), dan wordt u nu automatisch en zonder foutmeldingen teruggestuurd naar de inlogpagina.",
+      "Consistente Eenheden: De eenheid voor gewasopbrengst ('b_lu_yield') wordt nu overal correct en consistent weergegeven als kilogram droge stof per hectare (kg DS / ha).",
+    ],
+  },
+  {
+    version: "v0.17.0",
+    date: "14 Maart 2025",
+    title: "Lancering 🎉",
+    description: "Vanaf nu kun je bedrijven aanmaken, percelen toevoegen en bemestingen invullen.",
+    items: ["Account aanmaken", "Bedrijven aanmaken", "Percelen toevoegen", "Bemestingen invullen"],
+  },
 ]
 
 /**
@@ -320,17 +331,17 @@ export const changelogEntries: ChangelogEntry[] = [
  * @throws {Error} If retrieving the session or fetching the update posts data fails.
  */
 export async function loader({ request }: LoaderFunctionArgs) {
-    try {
-        // Get the session
-        const session = await getSession(request)
+  try {
+    // Get the session
+    const session = await getSession(request)
 
-        // Return user information from loader
-        return {
-            username: session.userName,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+    // Return user information from loader
+    return {
+      username: session.userName,
     }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -340,29 +351,29 @@ export async function loader({ request }: LoaderFunctionArgs) {
  * update posts.
  */
 export default function WhatsNew() {
-    useLoaderData<typeof loader>()
-    const markAllAsSeen = useChangelogStore((state) => state.markAllAsSeen)
+  useLoaderData<typeof loader>()
+  const markAllAsSeen = useChangelogStore((state) => state.markAllAsSeen)
 
-    useEffect(() => {
-        markAllAsSeen()
-    }, [markAllAsSeen])
+  useEffect(() => {
+    markAllAsSeen()
+  }, [markAllAsSeen])
 
-    return (
-        <>
-            <Header action={undefined}>
-                <HeaderAbout />
-            </Header>
-            <main className="mx-auto">
-                <Changelog1
-                    title={`Wat is er nieuw in ${clientConfig.name}? 🚀`}
-                    description={
-                        "Benieuwd naar de laatste updates en nieuwe features van " +
-                        clientConfig.name +
-                        "? Hier vind je een overzicht van alle recente updates en verbeteringen."
-                    }
-                    entries={changelogEntries}
-                />
-            </main>
-        </>
-    )
+  return (
+    <>
+      <Header action={undefined}>
+        <HeaderAbout />
+      </Header>
+      <main className="mx-auto">
+        <Changelog1
+          title={`Wat is er nieuw in ${clientConfig.name}? 🚀`}
+          description={
+            "Benieuwd naar de laatste updates en nieuwe features van " +
+            clientConfig.name +
+            "? Hier vind je een overzicht van alle recente updates en verbeteringen."
+          }
+          entries={changelogEntries}
+        />
+      </main>
+    </>
+  )
 }

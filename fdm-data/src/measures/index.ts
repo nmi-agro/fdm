@@ -1,5 +1,6 @@
-import { getCatalogueBln } from "./catalogues/bln"
 import type { CatalogueMeasure, CatalogueMeasureName } from "./d"
+/* eslint-disable typescript/restrict-template-expressions -- catalogueName is a union of string literals which safely interpolates in template strings. */
+import { getCatalogueBln } from "./catalogues/bln"
 
 /**
  * Retrieves a measures catalogue based on the specified name.
@@ -20,11 +21,11 @@ import type { CatalogueMeasure, CatalogueMeasureName } from "./d"
  * ```
  */
 export async function getMeasuresCatalogue(
-    catalogueName: CatalogueMeasureName,
-    nmiApiKey: string,
+  catalogueName: CatalogueMeasureName,
+  nmiApiKey: string,
 ): Promise<CatalogueMeasure> {
-    if (catalogueName === "bln") {
-        return await getCatalogueBln(nmiApiKey)
-    }
-    throw new Error(`catalogue ${catalogueName} is not recognized`)
+  if (catalogueName === "bln") {
+    return await getCatalogueBln(nmiApiKey)
+  }
+  throw new Error(`catalogue ${catalogueName} is not recognized`)
 }

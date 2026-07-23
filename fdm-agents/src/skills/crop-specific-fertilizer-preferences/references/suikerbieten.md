@@ -1,28 +1,31 @@
-# Suikerbieten (sugar beet) — nl_256
+# Suikerbieten (suikerbiet) — nl_256
 
-**Prefer:**
-- Sodium (Na): suikerbieten respond positively to Na (improved turgidity, partial K
-  replacement, yield increase on Na-deficient soils). **Only apply Na when `advice.d_na_req > 0`
-  or regional Na deficiency is established.** Apply as landbouwzout (NaCl) or Na-containing
-  compound fertilizer to meet the advised amount. Mention explicitly in the plan.
-- KCl (kali-60) is **acceptable** for suikerbieten — unlike aardappelen, beets tolerate Cl
-  and the Na in NaCl is beneficial.
-- Boron: critical for sugar beet; hartrot (heart rot) occurs without adequate B. Include B
-  (borax, solubor) to meet `advice.d_b_req`.
+**Voorkeur:**
 
-**Avoid:**
-- Large single doses of N late in the season: excess N in August–September lowers
-  suikergehalte (sugar content) and raises impurities (amino-N, K, Na in juice — the
-  "winbaarheid"). Keep N timing early (before or at sowing, maximum up to 6-bladstadium).
+- Natrium (Na): suikerbieten reageren positief op Na (verbeterde turgor, gedeeltelijke K-vervanging,
+  opbrengststijging op Na-arme gronden). **Dien Na alleen toe wanneer `advice.d_na_req > 0`
+  of regionale Na-tekorten zijn vastgesteld.** Dien toe als landbouwzout (NaCl) of Na-houdende
+  mengmeststof om aan de geadviseerde hoeveelheid te voldoen. Vermeld dit expliciet in het plan.
+- KCl (kali-60) is **acceptabel** voor suikerbieten — anders dan aardappelen verdragen bieten Cl
+  en de Na in NaCl is gunstig.
+- Borium: cruciaal voor suikerbiet; hartrot treedt op bij onvoldoende B. Neem B
+  (borax, solubor) op om aan `advice.d_b_req` te voldoen.
 
-> **Na — input vs impurity**: Na supplied to the soil based on `advice.d_na_req` improves
-> turgidity and yield without by itself harming winbaarheid. The "Na in juice" issue is
-> driven by *excess* Na supply beyond the advice; respect the advice and do not over-apply.
+**Vermijden:**
 
-**Extra attention:**
-- Manganese: Mn deficiency (mangaangebrek / "moerasziekte") is a well-known problem on
-  calcareous and high-pH soils (especially with high organic matter and in dry springs).
-  Treat as a risk flag and consult `advice.d_mn_req` — apply foliar Mn only when the advice
-  flags it.
-- Magnesium: beets are moderately sensitive to Mg deficiency on light soils. Include Mg
-  (kieseriet, patentkali) if soil Mg is low.
+- Grote enkelvoudige N-giften laat in het seizoen: te veel N in augustus–september verlaagt
+  suikergehalte en verhoogt onzuiverheden (amino-N, K, Na in sap — de
+  "winbaarheid"). Houd de N-timing vroeg (vóór of bij zaai, uiterlijk tot 6-bladstadium).
+
+> **Na — aanvoer versus onzuiverheid**: Na die op basis van `advice.d_na_req` aan de bodem wordt toegediend, verbetert
+> turgor en opbrengst zonder op zichzelf de winbaarheid te schaden. Het probleem van "Na in sap" wordt
+> veroorzaakt door _overmatige_ Na-aanvoer boven het advies; respecteer het advies en dien niet te veel toe.
+
+**Extra aandacht:**
+
+- Mangaan: Mn-gebrek (mangaangebrek / "moerasziekte") is een bekend probleem op
+  kalkrijke gronden en gronden met hoge pH (vooral bij veel organische stof en in droge voorjaren).
+  Behandel dit als risicosignaal en raadpleeg `advice.d_mn_req` — pas blad-Mn alleen toe wanneer het advies
+  dit signaleert.
+- Magnesium: bieten zijn matig gevoelig voor Mg-gebrek op lichte gronden. Neem Mg op
+  (kieseriet, patentkali) als de Mg-toestand van de bodem laag is.

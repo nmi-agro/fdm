@@ -1,5 +1,11 @@
 # fdm-docs
 
+## 0.13.0
+
+### Minor Changes
+
+- [#636](https://github.com/nmi-agro/fdm/pull/636) [`98e0127`](https://github.com/nmi-agro/fdm/commit/98e0127bd3f02e193ad57a1cfef18fc10df40c67) Thanks [@SvenVw](https://github.com/SvenVw)! - Add section about setting up certificates for signing in with Microsoft
+
 ## 0.12.0
 
 ### Minor Changes

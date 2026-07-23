@@ -45,33 +45,33 @@ Create a server route (e.g., `app/routes/auth.rvo.tsx`) that initiates the redir
 
 ```typescript
 // app/routes/auth.rvo.tsx (Server-side)
-import { redirect, type LoaderFunctionArgs } from "react-router";
-import { createRvoClient, generateAuthUrl } from "@nmi-agro/fdm-rvo";
-import { getEnv } from "~/lib/env.server"; // Your server-side env helper
-import { getSession, commitSession } from "~/lib/session.server";
+import { redirect, type LoaderFunctionArgs } from "react-router"
+import { createRvoClient, generateAuthUrl } from "@nmi-agro/fdm-rvo"
+import { getEnv } from "~/lib/env.server" // Your server-side env helper
+import { getSession, commitSession } from "~/lib/session.server"
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const env = getEnv();
-  const { RVO_CLIENT_ID, RVO_CLIENT_NAME, RVO_REDIRECT_URI, RVO_PKIO_PRIVATE_KEY } = env;
+  const env = getEnv()
+  const { RVO_CLIENT_ID, RVO_CLIENT_NAME, RVO_REDIRECT_URI, RVO_PKIO_PRIVATE_KEY } = env
 
   const rvoClient = createRvoClient(
     RVO_CLIENT_ID,
     RVO_CLIENT_NAME,
     RVO_REDIRECT_URI,
-    RVO_PKIO_PRIVATE_KEY
-  );
+    RVO_PKIO_PRIVATE_KEY,
+  )
 
   // 1. Generate a secure random state to prevent CSRF
-  const state = crypto.randomUUID();
-  const authUrl = generateAuthUrl(rvoClient, state);
+  const state = crypto.randomUUID()
+  const authUrl = generateAuthUrl(rvoClient, state)
 
   // 2. Persist state in a secure, server-side session
-  const session = await getSession(request.headers.get("Cookie"));
-  session.set("rvoState", state);
+  const session = await getSession(request.headers.get("Cookie"))
+  session.set("rvoState", state)
 
   return redirect(authUrl, {
     headers: { "Set-Cookie": await commitSession(session) },
-  });
+  })
 }
 ```
 
@@ -81,45 +81,45 @@ Create a callback route (matching your `RVO_REDIRECT_URI`) to exchange the code 
 
 ```typescript
 // app/routes/auth.rvo.callback.tsx (Server-side)
-import { redirect, type LoaderFunctionArgs } from "react-router";
-import { createRvoClient, exchangeToken } from "@nmi-agro/fdm-rvo";
-import { commitSession, getSession } from "~/lib/session.server";
+import { redirect, type LoaderFunctionArgs } from "react-router"
+import { createRvoClient, exchangeToken } from "@nmi-agro/fdm-rvo"
+import { commitSession, getSession } from "~/lib/session.server"
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
+  const url = new URL(request.url)
+  const code = url.searchParams.get("code")
+  const state = url.searchParams.get("state")
 
-  const session = await getSession(request.headers.get("Cookie"));
-  const storedState = session.get("rvoState");
+  const session = await getSession(request.headers.get("Cookie"))
+  const storedState = session.get("rvoState")
 
   // 1. Verify state parameter against stored session state
   if (!state || state !== storedState) {
-    throw new Error("Invalid or missing OAuth state parameter");
+    throw new Error("Invalid or missing OAuth state parameter")
   }
 
   // 2. Clear state from session after successful verification
-  session.unset("rvoState");
+  session.unset("rvoState")
 
-  if (!code) throw new Error("No authorization code received");
+  if (!code) throw new Error("No authorization code received")
 
-  const env = process.env; // Or your env helper
+  const env = process.env // Or your env helper
   const rvoClient = createRvoClient(
     env.RVO_CLIENT_ID!,
     env.RVO_CLIENT_NAME!,
     env.RVO_REDIRECT_URI!,
-    env.RVO_PKIO_PRIVATE_KEY!
-  );
+    env.RVO_PKIO_PRIVATE_KEY!,
+  )
 
   // 3. Exchange the code for an access token securely on the server
-  const accessToken = await exchangeToken(rvoClient, code);
+  const accessToken = await exchangeToken(rvoClient, code)
 
   // 4. Store the accessToken in a secure, HTTP-only session cookie
-  session.set("rvoAccessToken", accessToken);
+  session.set("rvoAccessToken", accessToken)
 
   return redirect("/dashboard", {
     headers: { "Set-Cookie": await commitSession(session) },
-  });
+  })
 }
 ```
 
@@ -129,26 +129,26 @@ Once the `accessToken` is stored in your server session, you can use it in loade
 
 ```typescript
 // app/routes/farm.$id.sync.tsx (Server-side)
-import { fetchRvoFields, compareFields } from "@nmi-agro/fdm-rvo";
-import { getRvoClient } from "~/lib/rvo.server"; // Helper that uses createRvoClient
+import { fetchRvoFields, compareFields } from "@nmi-agro/fdm-rvo"
+import { getRvoClient } from "~/lib/rvo.server" // Helper that uses createRvoClient
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const accessToken = session.get("rvoAccessToken");
-  if (!accessToken) return redirect("/auth/rvo");
+  const session = await getSession(request.headers.get("Cookie"))
+  const accessToken = session.get("rvoAccessToken")
+  if (!accessToken) return redirect("/auth/rvo")
 
-  const rvoClient = getRvoClient();
-  const year = "2024";
-  const kvkNumber = "12345678";
+  const rvoClient = getRvoClient()
+  const year = "2024"
+  const kvkNumber = "12345678"
 
   // Fetch RVO fields (server-side)
-  const rvoFields = await fetchRvoFields(rvoClient, year, kvkNumber);
-  
-  // Fetch local fields (server-side)
-  const localFields = await db.query.fields.findMany({ /* ... */ });
+  const rvoFields = await fetchRvoFields(rvoClient, year, kvkNumber)
 
-  const rvoImportReviewResults = compareFields(localFields, rvoFields, Number(year));
-  return { rvoImportReviewResults };
+  // Fetch local fields (server-side)
+  const localFields = await db.query.fields.findMany({/* ... */})
+
+  const rvoImportReviewResults = compareFields(localFields, rvoFields, Number(year))
+  return { rvoImportReviewResults }
 }
 ```
 

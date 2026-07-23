@@ -1,19 +1,13 @@
 import {
-    getCurrentSoilData,
-    getField,
-    getSoilAnalyses,
-    getSoilParametersDescription,
+  getCurrentSoilData,
+  getField,
+  getSoilAnalyses,
+  getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
-import {
-    data,
-    type LoaderFunctionArgs,
-    useFetcher,
-    useLoaderData,
-} from "react-router"
+import { data, type LoaderFunctionArgs, useFetcher, useLoaderData } from "react-router"
 import { SoilDataCards } from "~/components/blocks/soil/cards"
 import { SoilAnalysesList } from "~/components/blocks/soil/list"
 import { Separator } from "~/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
@@ -36,62 +30,62 @@ import { fdm } from "~/lib/fdm.server"
  * @throws {Error} If the field is not found (HTTP 404).
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw data("Farm ID is required", {
-                status: 400,
-                statusText: "Farm ID is required",
-            })
-        }
-
-        // Get the field id
-        const b_id = params.b_id
-        if (!b_id) {
-            throw data("Field ID is required", {
-                status: 400,
-                statusText: "Field ID is required",
-            })
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        // Get timeframe from calendar store
-        const timeframe = getTimeframe(params)
-
-        // Get details of field
-        const field = await getField(fdm, session.principal_id, b_id)
-        if (!field) {
-            throw data("Field is not found", {
-                status: 404,
-                statusText: "Field is not found",
-            })
-        }
-
-        // Get the current soil data (for the parameters tab) and soil analyses (for the analyses tab)
-        const [soilAnalyses, currentSoilData] = await Promise.all([
-            getSoilAnalyses(fdm, session.principal_id, b_id, {
-                start: null,
-                end: timeframe.end,
-            }),
-            getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
-        ])
-
-        // Get soil parameter descriptions
-        const soilParameterDescription = getSoilParametersDescription()
-
-        // Return user information from loader
-        return {
-            field: field,
-            currentSoilData: currentSoilData,
-            soilParameterDescription: soilParameterDescription,
-            soilAnalyses: soilAnalyses,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+  try {
+    // Get the farm id
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw data("Farm ID is required", {
+        status: 400,
+        statusText: "Farm ID is required",
+      })
     }
+
+    // Get the field id
+    const b_id = params.b_id
+    if (!b_id) {
+      throw data("Field ID is required", {
+        status: 400,
+        statusText: "Field ID is required",
+      })
+    }
+
+    // Get the session
+    const session = await getSession(request)
+
+    // Get timeframe from calendar store
+    const timeframe = getTimeframe(params)
+
+    // Get details of field
+    const field = await getField(fdm, session.principal_id, b_id)
+    if (!field) {
+      throw data("Field is not found", {
+        status: 404,
+        statusText: "Field is not found",
+      })
+    }
+
+    // Get the current soil data (for the parameters tab) and soil analyses (for the analyses tab)
+    const [soilAnalyses, currentSoilData] = await Promise.all([
+      getSoilAnalyses(fdm, session.principal_id, b_id, {
+        start: null,
+        end: timeframe.end,
+      }),
+      getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+    ])
+
+    // Get soil parameter descriptions
+    const soilParameterDescription = getSoilParametersDescription()
+
+    // Return user information from loader
+    return {
+      field: field,
+      currentSoilData: currentSoilData,
+      soilParameterDescription: soilParameterDescription,
+      soilAnalyses: soilAnalyses,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -102,60 +96,55 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  *
  */
 export default function FarmFieldSoilOverviewBlock() {
-    const loaderData = useLoaderData<typeof loader>()
-    const fetcher = useFetcher()
+  const loaderData = useLoaderData<typeof loader>()
+  const fetcher = useFetcher()
 
-    return (
-        <Tabs defaultValue="parameters" className="p-6">
-            <div className="space-y-4">
-                <div className="space-y-0.5">
-                    <h2 className="text-2xl font-bold tracking-tight truncate xl:whitespace-normal">
-                        Bodem - {loaderData.field.b_name}
-                    </h2>
-                    <p className="text-muted-foreground wrap-break-word">
-                        In de gegevens hieronder vind je de meest recente waarde
-                        gemeten voor elke bodemparameter
-                    </p>
-                </div>
-                <div className="flex items-center justify-between">
-                    <TabsList>
-                        <TabsTrigger value="parameters">Parameters</TabsTrigger>
-                        <TabsTrigger value="analyses">Analyses</TabsTrigger>
-                    </TabsList>
-                </div>
-            </div>
-            <Separator className="mt-4 mb-6" />
-            <TabsContent value="parameters">
-                {loaderData.soilAnalyses.length === 0 ? (
-                    <div className="mx-auto flex h-full w-full items-center flex-col justify-center space-y-6 sm:w-[350px]">
-                        <div className="flex flex-col space-y-2 text-center">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                Dit perceel heeft nog geen bodemanalyse
-                            </h1>
-                            <p className="text-sm text-muted-foreground">
-                                Voeg een analyse toe om gegevens over de bodem
-                                bij te houden
-                            </p>
-                        </div>
-                    </div>
-                ) : (
-                    <SoilDataCards
-                        currentSoilData={loaderData.currentSoilData}
-                        soilParameterDescription={
-                            loaderData.soilParameterDescription
-                        }
-                    />
-                )}
-            </TabsContent>
-            <TabsContent value="analyses">
-                <SoilAnalysesList
-                    soilAnalyses={loaderData.soilAnalyses}
-                    soilParameterDescription={
-                        loaderData.soilParameterDescription
-                    }
-                    fetcher={fetcher}
-                />
-            </TabsContent>
-        </Tabs>
-    )
+  return (
+    <div className="p-6">
+      <div className="space-y-4">
+        <div className="space-y-0.5">
+          <h2 className="truncate text-2xl font-bold tracking-tight xl:whitespace-normal">
+            Bodem - {loaderData.field.b_name}
+          </h2>
+          <p className="text-muted-foreground wrap-break-word">
+            In de gegevens hieronder vind je de meest recente waarde gemeten voor elke
+            bodemparameter
+          </p>
+        </div>
+      </div>
+      <Separator className="mt-4 mb-6" />
+      {loaderData.soilAnalyses.length === 0 ? (
+        <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col space-y-2 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Dit perceel heeft nog geen bodemanalyse
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Voeg een analyse toe om gegevens over de bodem bij te houden
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col-reverse gap-6 lg:flex-row lg:items-start">
+          <div className="border-t pt-6 lg:w-2/3 lg:border-t-0 lg:pt-0">
+            <SoilDataCards
+              currentSoilData={loaderData.currentSoilData}
+              soilParameterDescription={loaderData.soilParameterDescription}
+            />
+          </div>
+          <div className="space-y-4 lg:w-1/3 lg:border-l lg:pl-6">
+            <h4 className="text-muted-foreground text-xs font-bold tracking-[0.1em] uppercase">
+              Bodemanalyses
+            </h4>
+            <SoilAnalysesList
+              soilAnalyses={loaderData.soilAnalyses}
+              soilParameterDescription={loaderData.soilParameterDescription}
+              fetcher={fetcher}
+              fieldName={loaderData.field.b_name}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }

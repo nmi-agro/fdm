@@ -1,34 +1,33 @@
-import { randomUUID } from "node:crypto"
-import { isAIMessage } from "@langchain/core/messages"
 import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
+import { isAIMessage } from "@langchain/core/messages"
+import { randomUUID } from "node:crypto"
 import type { AgentGraph } from "../agents/gerrit/agent"
 
 export interface OneShotAgentResult {
-    result: string
-    structuredResponse?: Record<string, unknown>
-    runId: string
-    usage: {
-        inputTokens: number
-        outputTokens: number
-        totalTokens: number
-    } | null
-    toolCalls?: string[]
+  result: string
+  structuredResponse?: Record<string, unknown>
+  runId: string
+  threadId: string
+  usage: {
+    inputTokens: number
+    outputTokens: number
+    totalTokens: number
+  } | null
+  toolCalls?: string[]
 }
 
 export class AgentTimeoutError extends Error {
-    constructor(timeoutMs: number) {
-        super(`Agent timed out after ${timeoutMs / 1000}s`)
-        this.name = "AgentTimeoutError"
-    }
+  constructor(timeoutMs: number) {
+    super(`Agent timed out after ${timeoutMs / 1000}s`)
+    this.name = "AgentTimeoutError"
+  }
 }
 
 export class AgentRecursionLimitError extends Error {
-    constructor() {
-        super(
-            "Agent exceeded the maximum number of steps without producing a final response.",
-        )
-        this.name = "AgentRecursionLimitError"
-    }
+  constructor() {
+    super("Agent exceeded the maximum number of steps without producing a final response.")
+    this.name = "AgentRecursionLimitError"
+  }
 }
 
 /**
@@ -38,44 +37,41 @@ export class AgentRecursionLimitError extends Error {
  * This helper finds the last text part and returns its value.
  */
 function extractTextContent(content: unknown): string {
-    if (typeof content === "string") return content
-    if (Array.isArray(content)) {
-        for (let i = content.length - 1; i >= 0; i--) {
-            const part = content[i] as Record<string, unknown>
-            if (part?.type === "text" && typeof part.text === "string")
-                return part.text
-            if (typeof part === "string") return part
-        }
+  if (typeof content === "string") return content
+  if (Array.isArray(content)) {
+    for (let i = content.length - 1; i >= 0; i--) {
+      const part = content[i] as Record<string, unknown>
+      if (part?.type === "text" && typeof part.text === "string") return part.text
+      if (typeof part === "string") return part
     }
-    return JSON.stringify(content)
+  }
+  return JSON.stringify(content)
 }
 
 function buildCallbacks(
-    posthog?: { client: any; distinctId: string },
-    context?: Record<string, any>,
+  posthog?: { client: any; distinctId: string },
+  context?: Record<string, any>,
 ): LangChainCallbackHandler[] | undefined {
-    if (!posthog?.client) return undefined
-    try {
-        // Dynamic import to avoid hard dep when posthog not configured
-        const { LangChainCallbackHandler } =
-            // eslint-disable-next-line @typescript-eslint/no-require-imports
-            require("@posthog/ai/langchain") as {
-                LangChainCallbackHandler: new (
-                    opts: any,
-                ) => LangChainCallbackHandler
-            }
-        return [
-            new LangChainCallbackHandler({
-                client: posthog.client,
-                distinctId: posthog.distinctId,
-                properties: {
-                    b_id_farm: context?.b_id_farm,
-                },
-            }),
-        ]
-    } catch {
-        return undefined
-    }
+  if (!posthog?.client) return undefined
+  try {
+    // Dynamic import to avoid hard dep when posthog not configured
+    const { LangChainCallbackHandler } =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("@posthog/ai/langchain") as {
+        LangChainCallbackHandler: new (opts: any) => LangChainCallbackHandler
+      }
+    return [
+      new LangChainCallbackHandler({
+        client: posthog.client,
+        distinctId: posthog.distinctId,
+        properties: {
+          b_id_farm: context?.b_id_farm,
+        },
+      }),
+    ]
+  } catch {
+    return undefined
+  }
 }
 
 /**
@@ -89,134 +85,126 @@ function buildCallbacks(
  * @returns The final response and token usage from the agent.
  */
 export async function runOneShotAgent(
-    agent: AgentGraph,
-    input: string,
-    context: Record<string, any> = {},
-    posthog?: { client: any; distinctId: string },
-    timeoutMs = 20 * 60 * 1000,
-    recursionLimit = 100,
+  agent: AgentGraph,
+  input: string,
+  context: Record<string, any> = {},
+  posthog?: { client: any; distinctId: string },
+  timeoutMs = 20 * 60 * 1000,
+  recursionLimit = 100,
 ): Promise<OneShotAgentResult> {
-    const abortController = new AbortController()
-    const callbacks = buildCallbacks(posthog, context)
-    const runId = randomUUID()
+  const abortController = new AbortController()
+  const callbacks = buildCallbacks(posthog, context)
+  const runId = randomUUID()
+  // Unique thread ID per invocation so all LLM and tool runs for this request
+  // are grouped under a single thread in LangSmith.
+  const threadId = randomUUID()
 
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => {
-            abortController.abort()
-            reject(new AgentTimeoutError(timeoutMs))
-        }, timeoutMs)
-    })
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      abortController.abort()
+      reject(new AgentTimeoutError(timeoutMs))
+    }, timeoutMs)
+  })
 
-    const streamPromise = (async (): Promise<OneShotAgentResult> => {
-        let finalResponse = ""
-        let structuredResponse: Record<string, unknown> | undefined
-        let inputTokens = 0
-        let outputTokens = 0
-        const toolCalls: string[] = []
+  const streamPromise = (async (): Promise<OneShotAgentResult> => {
+    let finalResponse = ""
+    let structuredResponse: Record<string, unknown> | undefined
+    let inputTokens = 0
+    let outputTokens = 0
+    const toolCalls: string[] = []
 
-        const stream = (await agent.stream(
-            { messages: [{ role: "user", content: input }] },
-            {
-                configurable: context,
-                recursionLimit,
-                runId,
-                streamMode: ["updates", "custom"],
-                signal: abortController.signal,
-                runName: "gerrit-one-shot",
-                metadata: {
-                    b_id_farm: context.b_id_farm,
-                },
-                ...(callbacks ? { callbacks } : {}),
-            },
-        )) as AsyncIterable<unknown>
+    const stream = (await agent.stream(
+      { messages: [{ role: "user", content: input }] },
+      {
+        configurable: context,
+        recursionLimit,
+        runId,
+        streamMode: ["updates", "custom"],
+        signal: abortController.signal,
+        runName: "gerrit-one-shot",
+        metadata: {
+          b_id_farm: context.b_id_farm,
+          thread_id: threadId,
+        },
+        ...(callbacks ? { callbacks } : {}),
+      },
+    )) as AsyncIterable<unknown>
 
-        for await (const rawChunk of stream) {
-            const chunk = rawChunk as
-                | [string, Record<string, any>]
-                | Record<string, any>
-            // streamMode array yields [mode, data] tuples
-            const [mode, data] = Array.isArray(chunk)
-                ? (chunk as [string, Record<string, any>])
-                : (["updates", chunk] as [string, Record<string, any>])
+    for await (const rawChunk of stream) {
+      const chunk = rawChunk as [string, Record<string, any>] | Record<string, any>
+      // streamMode array yields [mode, data] tuples
+      const [mode, data] = Array.isArray(chunk)
+        ? (chunk as [string, Record<string, any>])
+        : (["updates", chunk] as [string, Record<string, any>])
 
-            if (mode === "updates") {
-                const node = Object.keys(data ?? {})[0]
-                const nodeData = node ? data[node] : data
+      if (mode === "updates") {
+        const node = Object.keys(data ?? {})[0]
+        const nodeData = node ? data[node] : data
 
-                if (
-                    node === "model_request" &&
-                    Array.isArray(nodeData?.messages)
-                ) {
-                    for (const msg of nodeData.messages) {
-                        if (!isAIMessage(msg)) continue
-                        if (msg.usage_metadata) {
-                            inputTokens += msg.usage_metadata.input_tokens ?? 0
-                            outputTokens +=
-                                msg.usage_metadata.output_tokens ?? 0
-                        }
-                        if (msg.tool_calls?.length) {
-                            for (const tc of msg.tool_calls) {
-                                if (tc.name) toolCalls.push(tc.name)
-                            }
-                        }
-                    }
-                    const lastMsg = nodeData.messages.at(-1)
-                    if (isAIMessage(lastMsg) && !lastMsg.tool_calls?.length) {
-                        // No pending tool calls — this is the final response
-                        finalResponse = extractTextContent(lastMsg.content)
-                    }
-                }
-
-                if (node === "tools" && Array.isArray(nodeData?.messages)) {
-                    for (const msg of nodeData.messages) {
-                        if (msg?.name && !toolCalls.includes(msg.name)) {
-                            toolCalls.push(msg.name)
-                        }
-                    }
-                }
-
-                // Capture structured response from responseFormat node
-                if (nodeData?.structuredResponse != null) {
-                    structuredResponse = nodeData.structuredResponse as Record<
-                        string,
-                        unknown
-                    >
-                }
+        if (node === "model_request" && Array.isArray(nodeData?.messages)) {
+          for (const msg of nodeData.messages) {
+            if (!isAIMessage(msg)) continue
+            if (msg.usage_metadata) {
+              inputTokens += msg.usage_metadata.input_tokens ?? 0
+              outputTokens += msg.usage_metadata.output_tokens ?? 0
             }
-            // "custom" mode: progress events from config.writer — consumed by callers
-            // who use the raw stream; ignored here since runOneShotAgent is one-shot.
+            if (msg.tool_calls?.length) {
+              for (const tc of msg.tool_calls) {
+                if (tc.name) toolCalls.push(tc.name)
+              }
+            }
+          }
+          const lastMsg = nodeData.messages.at(-1)
+          if (isAIMessage(lastMsg) && !lastMsg.tool_calls?.length) {
+            // No pending tool calls — this is the final response
+            finalResponse = extractTextContent(lastMsg.content)
+          }
         }
 
-        const uniqueToolCalls = [...new Set(toolCalls)]
-        const totalTokens = inputTokens + outputTokens
-
-        return {
-            result: finalResponse,
-            structuredResponse,
-            runId,
-            usage:
-                totalTokens > 0
-                    ? { inputTokens, outputTokens, totalTokens }
-                    : null,
-            toolCalls: uniqueToolCalls,
+        if (node === "tools" && Array.isArray(nodeData?.messages)) {
+          for (const msg of nodeData.messages) {
+            if (msg?.name && !toolCalls.includes(msg.name)) {
+              toolCalls.push(msg.name)
+            }
+          }
         }
-    })()
 
-    try {
-        return await Promise.race([streamPromise, timeoutPromise])
-    } catch (err: unknown) {
-        // Wrap LangGraph recursion limit errors in a typed error.
-        // Check both the error message and class name (GraphRecursionError) for robustness.
-        if (
-            err instanceof Error &&
-            (err.message?.includes("Recursion limit") ||
-                err.constructor?.name === "GraphRecursionError")
-        ) {
-            throw new AgentRecursionLimitError()
+        // Capture structured response from responseFormat node
+        if (nodeData?.structuredResponse != null) {
+          structuredResponse = nodeData.structuredResponse as Record<string, unknown>
         }
-        throw err
-    } finally {
-        clearTimeout(timeoutHandle)
+      }
+      // "custom" mode: progress events from config.writer — consumed by callers
+      // who use the raw stream; ignored here since runOneShotAgent is one-shot.
     }
+
+    const uniqueToolCalls = [...new Set(toolCalls)]
+    const totalTokens = inputTokens + outputTokens
+
+    return {
+      result: finalResponse,
+      structuredResponse,
+      runId,
+      threadId,
+      usage: totalTokens > 0 ? { inputTokens, outputTokens, totalTokens } : null,
+      toolCalls: uniqueToolCalls,
+    }
+  })()
+
+  try {
+    return await Promise.race([streamPromise, timeoutPromise])
+  } catch (err: unknown) {
+    // Wrap LangGraph recursion limit errors in a typed error.
+    // Check both the error message and class name (GraphRecursionError) for robustness.
+    if (
+      err instanceof Error &&
+      (err.message?.includes("Recursion limit") || err.constructor?.name === "GraphRecursionError")
+    ) {
+      throw new AgentRecursionLimitError()
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutHandle)
+  }
 }

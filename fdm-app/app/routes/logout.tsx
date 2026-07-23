@@ -15,20 +15,20 @@ import { handleActionError } from "~/lib/error"
  * @throws {Error} If an error occurs while retrieving or revoking the session.
  */
 export async function action({ request }: ActionFunctionArgs) {
-    try {
-        // Get the session
-        const session = await getSession(request)
+  try {
+    // Get the session
+    const session = await getSession(request)
 
-        // Revoke the session
-        // Revoke the session
-        await auth.api.revokeSession({
-            headers: request.headers,
-            body: {
-                token: session?.session?.token ?? "",
-            },
-        })
-        return redirect("/signin")
-    } catch (error) {
-        throw handleActionError(error)
-    }
+    // Revoke the session
+    // Revoke the session
+    await auth.api.revokeSession({
+      headers: request.headers,
+      body: {
+        token: session?.session?.token ?? "",
+      },
+    })
+    return redirect("/signin")
+  } catch (error) {
+    throw handleActionError(error)
+  }
 }

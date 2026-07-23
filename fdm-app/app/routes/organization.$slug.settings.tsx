@@ -1,75 +1,88 @@
+import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
+import imageSize from "image-size"
+import { Building } from "lucide-react"
+import crypto from "node:crypto"
 import { data, useLoaderData } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
+import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
-import { FormSchema } from "~/components/blocks/organization/schema"
+import { OrganizationInfoSchema } from "~/components/blocks/organization/schema"
+import { detectExistingProfilePictureObjectKey } from "~/components/blocks/profile/detect-existing.server"
+import {
+  ProfilePictureManager,
+  ALLOWED_MIME_TYPES,
+  MAX_SIZE_BYTES,
+  MIME_TO_EXT,
+  MAX_DIMENSIONS,
+} from "~/components/blocks/profile/profile-picture-manager"
+import { ProfilePictureSchema } from "~/components/blocks/profile/profile-picture-schema"
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { extractFormValuesFromRequest } from "~/lib/form"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
+import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 import type { Route } from "./+types/organization.$slug.settings"
 
 // Meta
 export const meta: Route.MetaFunction = () => {
-    return [
-        {
-            title: `Instellingen - Organisatie | ${clientConfig.name}`,
-        },
-        {
-            name: "description",
-            content: "Bekijk en bewerk de gegevens van jouw organisatie.",
-        },
-    ]
+  return [
+    {
+      title: `Instellingen - Organisatie | ${clientConfig.name}`,
+    },
+    {
+      name: "description",
+      content: "Bekijk en bewerk de gegevens van jouw organisatie.",
+    },
+  ]
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-    try {
-        const session = await getSession(request)
+  try {
+    const session = await getSession(request)
 
-        const organizations = await auth.api.listOrganizations({
-            headers: request.headers,
-        })
+    const organizations = await auth.api.listOrganizations({
+      headers: request.headers,
+    })
 
-        const organizationRaw = organizations.find(
-            (org) => org.slug === params.slug,
-        )
+    const organizationRaw = organizations.find((org) => org.slug === params.slug)
 
-        if (!organizationRaw) {
-            throw data("Organisatie niet gevonden.", {
-                status: 404,
-                statusText: "Organisatie niet gevonden.",
-            })
-        }
-
-        const members = (
-            await auth.api.listMembers({
-                headers: request.headers,
-                query: {
-                    organizationId: organizationRaw.id,
-                },
-            })
-        ).members
-
-        // Determine permissions
-        const currentUserMember = members.find(
-            (m) => m.userId === session.principal_id,
-        )
-        const role = currentUserMember?.role ?? "viewer"
-        const organizationEditPermission = role === "owner" || role === "admin"
-
-        const organization = {
-            ...organizationRaw,
-            metadata: parseOrganizationMetadata(organizationRaw),
-        }
-
-        return {
-            organization: organization,
-            organizationEditPermission: organizationEditPermission,
-        }
-    } catch (e) {
-        throw handleLoaderError(e)
+    if (!organizationRaw) {
+      throw data("Organisatie niet gevonden.", {
+        status: 404,
+        statusText: "Organisatie niet gevonden.",
+      })
     }
+
+    const members = (
+      await auth.api.listMembers({
+        headers: request.headers,
+        query: {
+          organizationId: organizationRaw.id,
+        },
+      })
+    ).members
+
+    // Determine permissions
+    const currentUserMember = members.find((m) => m.userId === session.principal_id)
+    const role = currentUserMember?.role ?? "viewer"
+    const organizationEditPermission = role === "owner" || role === "admin"
+
+    const organization = {
+      ...organizationRaw,
+      metadata: parseOrganizationMetadata(organizationRaw),
+    }
+
+    return {
+      organization: organization,
+      organizationEditPermission: organizationEditPermission,
+    }
+  } catch (e) {
+    throw handleLoaderError(e)
+  }
 }
 
 /**
@@ -78,77 +91,235 @@ export async function loader({ params, request }: Route.LoaderArgs) {
  * This component initializes a form using data loaded from the route loader and sets default values for fields such as organization name (required), slug, and description. It leverages validation with a Zod schema and automatically resets form data when the loader data changes. Upon submission, the form sends a POST request to update the organization settings.
  */
 export default function OrganizationSettingsBlock() {
-    const loaderData = useLoaderData<typeof loader>()
-    return (
-        <main>
-            <FarmTitle
-                title={"Organisatie-instellingen"}
-                description={"Werk de gegevens bij van deze organisatie."}
-                action={{ to: "./..", label: "Terug naar dashboard" }}
-            />
-            <OrganizationSettingsForm
-                organization={loaderData.organization}
-                canModify={loaderData.organizationEditPermission}
-            />
-        </main>
-    )
+  const loaderData = useLoaderData<typeof loader>()
+  return (
+    <main>
+      <FarmTitle
+        title={"Organisatie instellingen"}
+        description={"Werk de gegevens bij van deze organisatie."}
+      />
+      <div className="flex flex-col gap-4 px-4 pb-8 md:flex-row md:px-8">
+        <Card className="md:min-w-sm">
+          <CardHeader>
+            <CardTitle>Logo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loaderData.organizationEditPermission ? (
+              <ProfilePictureManager
+                currentTitle="Huidige logo"
+                currentPicture={loaderData.organization.logo}
+                currentAlt={`Logo van ${loaderData.organization.name}`}
+                cropBounds="outer"
+                frameShape="rectangle"
+                avatarFallback={<Building className="text-muted-foreground size-3/4" />}
+              />
+            ) : (
+              <div className="aspect-4/3 w-full px-6">
+                <Avatar className="mx-auto aspect-square h-full w-auto">
+                  <AvatarImage src="" alt="Huidige logo" />
+                  <AvatarFallback className="text-muted-foreground">
+                    <Building className="text-muted-foreground size-3/4" />
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <OrganizationSettingsForm
+          className="grow"
+          organization={loaderData.organization}
+          canModify={loaderData.organizationEditPermission}
+          profilePictureField={false}
+        />
+      </div>
+    </main>
+  )
 }
 
+const ActionSchema = z.discriminatedUnion("intent", [
+  ProfilePictureSchema.extend({ intent: z.literal("update_profile_picture") }),
+  OrganizationInfoSchema.extend({ intent: z.literal("update_organization_info") }),
+  z.object({ intent: z.literal("delete_profile_picture") }),
+])
+
 export async function action({ params, request }: Route.ActionArgs) {
+  try {
+    const session = await getSession(request)
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    let fileBuffer: Buffer | null = null
+    let detectedMime: string | null = null
+
+    const uploadHandler = async (fileUpload: FileUpload) => {
+      if (fileUpload.fieldName !== "file") return undefined
+      const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+      fileBuffer = result.buffer
+      detectedMime = result.mime
+
+      const imagePixelSize = imageSize(fileBuffer)
+      if (imagePixelSize.width > MAX_DIMENSIONS || imagePixelSize.height > MAX_DIMENSIONS) {
+        throw new Error("De foto is te groot of te breed.")
+      }
+
+      return new File([new Uint8Array(fileBuffer)], fileUpload.name, {
+        type: detectedMime,
+      })
+    }
+
+    let formData: FormData
     try {
-        // Get the session
-        await getSession(request)
+      formData = await parseFormData(request, { maxFileSize: MAX_SIZE_BYTES }, uploadHandler)
+    } catch (error) {
+      console.error("Failed to parse form data for profile picture/logo upload:", error)
+      const message = error instanceof Error ? error.message : "Invalid upload"
+      return dataWithError(null, message)
+    }
 
-        // Get the form values
-        const formValues = await extractFormValuesFromRequest(
-            request,
-            FormSchema,
-        )
-        const currentOrganization = (
-            await auth.api.listOrganizations({ headers: request.headers })
-        ).find((org) => org.slug === params.slug)
+    const actionSchemaResult = ActionSchema.safeParse(Object.fromEntries(formData.entries()))
 
-        if (!currentOrganization) {
-            throw data("Organisatie niet gevonden.", {
-                status: 404,
-                statusText: "Organisatie niet gevonden.",
-            })
-        }
+    if (actionSchemaResult.error) {
+      console.error("Action validation failed for organization settings:", actionSchemaResult.error)
+      return dataWithError(null, "De ingevoerde gegevens zijn ongeldig.")
+    }
 
-        const name = formValues.name
-        const slug = formValues.slug
-        const description = formValues.description || ""
+    const currentOrganization = (
+      await auth.api.listOrganizations({ headers: request.headers })
+    ).find((org) => org.slug === params.slug)
 
-        // Update the organization
+    if (!currentOrganization) {
+      throw data("Organisatie niet gevonden.", {
+        status: 404,
+        statusText: "Organisatie niet gevonden.",
+      })
+    }
+
+    const oldProfilePictureObjectKey = detectExistingProfilePictureObjectKey(
+      currentOrganization.logo,
+    )
+
+    if (actionSchemaResult.data.intent === "update_profile_picture") {
+      if (!fileBuffer || !detectedMime) {
+        return dataWithError(null, "Er is geen geldige afbeelding toegevoegd.")
+      }
+
+      const detectedExt = MIME_TO_EXT[detectedMime]
+
+      const hash = crypto.createHash("md5", { outputLength: 16 }).update(fileBuffer).digest("hex")
+
+      const objectKey = buildObjectKey(
+        "profile_picture_organization",
+        currentOrganization.id,
+        detectedExt,
+      )
+
+      await uploadObject(objectKey, fileBuffer, detectedMime)
+
+      try {
         await auth.api.updateOrganization({
-            headers: request.headers,
-            body: {
+          headers: request.headers,
+          body: {
+            organizationId: currentOrganization.id,
+            data: {
+              logo: `/api/profile-picture/organization/${currentOrganization.id}.${detectedExt}?hash=${hash}`,
+            },
+          },
+        })
+
+        if (oldProfilePictureObjectKey && oldProfilePictureObjectKey !== objectKey) {
+          await deleteObject(oldProfilePictureObjectKey)
+        }
+      } catch (err) {
+        try {
+          await deleteObject(objectKey)
+        } catch (revertErr) {
+          handleActionError(revertErr)
+        }
+        // Caught by the outer try catch block
+        throw err
+      }
+
+      return redirectWithSuccess(`/organization/${params.slug}/settings`, {
+        message: "Profielfoto is succesvol geüpload.",
+      })
+    }
+
+    if (actionSchemaResult.data.intent === "delete_profile_picture") {
+      await auth.api.updateOrganization({
+        headers: request.headers,
+        body: {
+          organizationId: currentOrganization.id,
+          data: {
+            logo: null,
+          },
+        },
+      })
+
+      if (oldProfilePictureObjectKey) {
+        try {
+          await deleteObject(oldProfilePictureObjectKey)
+        } catch (err) {
+          try {
+            await auth.api.updateOrganization({
+              headers: request.headers,
+              body: {
                 organizationId: currentOrganization.id,
                 data: {
-                    name,
-                    slug,
-                    metadata: {
-                        description,
-                    },
+                  logo: currentOrganization.logo,
                 },
-            },
-        })
-
-        return redirectWithSuccess(`/organization/${slug}`, {
-            message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
-        })
-    } catch (error) {
-        if (
-            error &&
-            (error as { body?: { code?: string } }).body?.code ===
-                "ORGANIZATION_SLUG_ALREADY_TAKEN"
-        ) {
-            return dataWithError(
-                null,
-                "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
-            )
+              },
+            })
+          } catch (revertErr) {
+            handleActionError(revertErr)
+          }
+          // Caught by the outer try catch block
+          throw err
         }
+      }
 
-        throw handleActionError(error)
+      return redirectWithSuccess(`/organization/${params.slug}/settings`, {
+        message: "Profielfoto is succesvol verwijderd.",
+      })
     }
+
+    if (actionSchemaResult.data.intent === "update_organization_info") {
+      const formValues = actionSchemaResult.data
+
+      const name = formValues.name
+      const slug = formValues.slug
+      const description = formValues.description || ""
+
+      // Update the organization
+      await auth.api.updateOrganization({
+        headers: request.headers,
+        body: {
+          organizationId: currentOrganization.id,
+          data: {
+            name,
+            slug,
+            metadata: {
+              description,
+            },
+          },
+        },
+      })
+
+      return redirectWithSuccess(`/organization/${slug}/settings`, {
+        message: `Organisatie ${formValues.name} is succesvol bijgewerkt! 🎉`,
+      })
+    }
+  } catch (error) {
+    if (
+      error &&
+      (error as { body?: { code?: string } }).body?.code === "ORGANIZATION_SLUG_ALREADY_TAKEN"
+    ) {
+      return dataWithError(
+        null,
+        "Naam voor organisatie is niet meer beschikbaar. Kies een andere naam",
+      )
+    }
+
+    throw handleActionError(error)
+  }
 }

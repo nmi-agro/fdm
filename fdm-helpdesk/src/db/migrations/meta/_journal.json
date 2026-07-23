@@ -6,7 +6,28 @@
       "idx": 0,
       "version": "7",
       "when": 1781127940911,
-      "tag": "0000_neat_surge",
+      "tag": "0000_v0-1-0-1",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782300615327,
+      "tag": "0001_v0-1-0-2",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783346948212,
+      "tag": "0002_sturdy_mojo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784562834637,
+      "tag": "0003_rapid_chamber",
       "breakpoints": true
     }
   ]

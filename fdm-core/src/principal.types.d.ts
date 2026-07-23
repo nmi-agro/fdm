@@ -10,12 +10,12 @@
  * @property {boolean} isVerified - Indicates whether the principal is verified.
  */
 export type Principal = {
-    id: string
-    username: string
-    email: string | null
-    initials: string
-    displayUserName: string | null
-    image: string | null
-    type: "user" | "organization"
-    isVerified: boolean
+  id: string
+  username: string
+  email: string | null
+  initials: string
+  displayUserName: string | null
+  image: string | null
+  type: "user" | "organization"
+  isVerified: boolean
 }

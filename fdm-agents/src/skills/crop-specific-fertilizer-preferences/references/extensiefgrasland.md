@@ -1,37 +1,41 @@
-# Semi-natural grassland with agricultural use — nl_331
+# Extensief grasland met landbouwkundig gebruik — nl_331
 
-nl_331 is "natuurlijk grasland mét landbouwactiviteiten": semi-natural grassland that is
-still farmed (cutting, sometimes light grazing) but with restricted inputs, often under an
-agri-environmental scheme (ANLb, beheersovereenkomst, or SNL package).
+nl_331 is "natuurlijk grasland mét landbouwactiviteiten": semi-natuurlijk grasland dat nog
+wordt beheerd als landbouwgrond (maaien, soms lichte beweiding), maar met beperkte aanvoer,
+vaak binnen een agrarisch natuurbeheerpakket (ANLb, beheersovereenkomst of SNL-pakket).
 
-**Do not apply intensive grassland rules.** Inputs are deliberately limited to maintain
-botanical diversity, ground-nesting bird habitat, or peat-area groundwater and CO₂ goals.
+**Pas geen regels voor intensief grasland toe.** De aanvoer wordt bewust beperkt om
+botanische diversiteit, leefgebied voor weidevogels of doelen voor grondwater en CO₂ in
+veengebieden te behouden.
 
-## Rules
+## Regels
 
-**Prefer:**
-- Verify the management agreement (beheerpakket / ANLb-overeenkomst) on the field first —
-  many packages have explicit fertilizer restrictions (e.g. "no mineral fertilizer",
-  "solid farmyard manure twice per year", rest-period dates). Respect these limits before
-  applying any agronomic logic.
-- Where inputs are allowed, **cattle slurry at low rates** or **solid farmyard manure
-  (ruige stalmest)** is the typical input. Apply only if the package permits it and the
-  field-specific `advice.d_n_req` supports it.
+**Voorkeur:**
 
-**Avoid:**
-- Mineral N (kunstmest) — generally not permitted under botanical or meadow-bird
-  management packages, and inappropriate for the extensive management goal even where not
-  explicitly forbidden.
-- Multiple split applications across the season.
-- Late N — RVO closing dates apply as for production grassland; many management packages
-  add earlier rest-periods.
-- Liming unless explicitly supported by `advice.d_ca_req` and not blocked by the
-  management package. Many semi-natural grass species depend on lower pH; over-liming
-  damages diversity.
+- Controleer eerst de beheerovereenkomst (beheerpakket / ANLb-overeenkomst) voor het perceel —
+  veel pakketten hebben expliciete bemestingsbeperkingen (bijv. "geen kunstmest",
+  "vaste stalmest twee keer per jaar", rustperiodedata). Respecteer deze grenzen voordat
+  agronomische logica wordt toegepast.
+- Waar aanvoer is toegestaan, is **rundveedrijfmest in lage giften** of **vaste stalmest
+  (ruige stalmest)** de gebruikelijke input. Pas dit alleen toe als het pakket dit toestaat en
+  het perceelspecifieke `advice.d_n_req` dit ondersteunt.
 
-**Extra attention:**
-- If `advice.d_n_req = 0` or no advice is returned, assume zero fertilization.
-- Distinguish from nl_332 ("hoofdfunctie natuur"), which has stricter or zero inputs (see
-  `natuurgrasland.md`), and from nl_265 / nl_266 (production grassland).
-- Note in the plan that the recommendation is constrained by the extensive-management
-  objective and the management agreement, not by agronomic potential alone.
+**Vermijden:**
+
+- Minerale N (kunstmest) — doorgaans niet toegestaan binnen botanische of weidevogelbeheer-
+  pakketten, en niet passend bij het extensieve beheerdoel, zelfs waar dit niet expliciet
+  verboden is.
+- Meerdere gedeelde giften gedurende het seizoen.
+- Late N — RVO-sluitingsdata gelden net als voor productiegrasland; veel beheerpakketten
+  voegen eerdere rustperioden toe.
+- Bekalking, tenzij deze expliciet wordt ondersteund door `advice.d_ca_req` en niet wordt
+  geblokkeerd door het beheerpakket. Veel semi-natuurlijke grassoorten zijn afhankelijk van
+  een lagere pH; overbekalking schaadt de diversiteit.
+
+**Extra aandacht:**
+
+- Als `advice.d_n_req = 0` of er geen advies wordt teruggegeven, ga dan uit van nulbemesting.
+- Onderscheid dit van nl_332 ("hoofdfunctie natuur"), waar strengere of nul-aanvoer geldt (zie
+  `natuurgrasland.md`), en van nl_265 / nl_266 (productiegrasland).
+- Noteer in het plan dat het advies wordt begrensd door het extensieve beheerdoel en de
+  beheerovereenkomst, niet alleen door agronomisch potentieel.

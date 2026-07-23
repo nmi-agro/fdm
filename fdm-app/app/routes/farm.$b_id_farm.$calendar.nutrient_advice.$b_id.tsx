@@ -1,48 +1,46 @@
 import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
 import {
-    getCultivations,
-    getCurrentSoilData,
-    getFertilizerApplications,
-    getFertilizers,
-    getField,
+  getCultivations,
+  getCurrentSoilData,
+  getFertilizerApplications,
+  getFertilizers,
+  getField,
 } from "@nmi-agro/fdm-core"
-import { Suspense, use } from "react"
+import { Suspense, use, useEffect } from "react"
 import {
-    type LoaderFunctionArgs,
-    type MetaFunction,
-    useLoaderData,
-    useLocation,
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  useLoaderData,
+  useLocation,
 } from "react-router"
+import type { NutrientDescription } from "~/components/blocks/nutrient-advice/types"
 import { FieldNutrientAdviceLayout } from "~/components/blocks/nutrient-advice/layout"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
-import {
-    KPISection,
-    NutrientAdviceSection,
-} from "~/components/blocks/nutrient-advice/sections"
+import { KPISection, NutrientAdviceSection } from "~/components/blocks/nutrient-advice/sections"
 import { FieldNutrientAdviceSkeleton } from "~/components/blocks/nutrient-advice/skeletons"
-import type { NutrientDescription } from "~/components/blocks/nutrient-advice/types"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
 import { ErrorBlock } from "~/components/custom/error"
 import { Separator } from "~/components/ui/separator"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getDefaultCultivation } from "~/lib/cultivation-helpers"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getNmiApiKey } from "../integrations/nmi.server"
 
 // Meta
 export const meta: MetaFunction = () => {
-    return [
-        {
-            title: `Bemestingsadvies | ${clientConfig.name}`,
-        },
-        {
-            name: "description",
-            content: "Bekijk je Bemestingsadvies",
-        },
-    ]
+  return [
+    {
+      title: `Bemestingsadvies | ${clientConfig.name}`,
+    },
+    {
+      name: "description",
+      content: "Bekijk je Bemestingsadvies",
+    },
+  ]
 }
 
 /**
@@ -58,156 +56,140 @@ export const meta: MetaFunction = () => {
  * @throws {Error} - Throws an error if any error occurs during the process, handled by `handleLoaderError`.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw new Error("b_id_farm is required")
+  try {
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw new Error("b_id_farm is required")
+    }
+
+    const b_id = params.b_id
+    if (!b_id) {
+      throw new Error("b_id is required")
+    }
+
+    // Get the session
+    const session = await getSession(request)
+
+    // Get timeframe from calendar store
+    const timeframe = getTimeframe(params)
+    const calendar = getCalendar(params)
+
+    const field = await getField(fdm, session.principal_id, b_id)
+
+    const asyncData = (async () => {
+      try {
+        const currentSoilData = getCurrentSoilData(fdm, session.principal_id, b_id)
+
+        const fertilizerApplications = getFertilizerApplications(
+          fdm,
+          session.principal_id,
+          b_id,
+          timeframe,
+        )
+
+        const fertilizers = getFertilizers(fdm, session.principal_id, b_id_farm)
+
+        const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
+
+        if (!cultivations.length) {
+          throw handleLoaderError("missing: cultivations")
         }
 
-        const b_id = params.b_id
-        if (!b_id) {
-            throw new Error("b_id is required")
+        const url = new URL(request.url)
+        const cultivationId = url.searchParams.get("cultivation")
+
+        const activeCultivation = cultivationId
+          ? cultivations.find((c) => c.b_lu === cultivationId)
+          : getMainCultivation(cultivations, calendar)
+
+        if (!activeCultivation) {
+          throw new Error("Geen hoofdteelt gevonden voor dit perceel in dit jaar.")
         }
 
-        // Get the session
-        const session = await getSession(request)
+        const [resolvedCurrentSoilData, resolvedFertilizerApplications, resolvedFertilizers] =
+          await Promise.all([currentSoilData, fertilizerApplications, fertilizers])
 
-        // Get timeframe from calendar store
-        const timeframe = getTimeframe(params)
-        const calendar = getCalendar(params)
+        const b_lu_catalogue = activeCultivation.b_lu_catalogue
 
-        const field = await getField(fdm, session.principal_id, b_id)
+        const doses = calculateDose({
+          applications: resolvedFertilizerApplications,
+          fertilizers: resolvedFertilizers,
+        })
 
-        const asyncData = (async () => {
-            try {
-                const currentSoilData = getCurrentSoilData(
-                    fdm,
-                    session.principal_id,
-                    b_id,
-                )
-
-                const fertilizerApplications = getFertilizerApplications(
-                    fdm,
-                    session.principal_id,
-                    b_id,
-                    timeframe,
-                )
-
-                const fertilizers = getFertilizers(
-                    fdm,
-                    session.principal_id,
-                    b_id_farm,
-                )
-
-                const cultivations = await getCultivations(
-                    fdm,
-                    session.principal_id,
-                    b_id,
-                    timeframe,
-                )
-
-                if (!cultivations.length) {
-                    throw handleLoaderError("missing: cultivations")
-                }
-
-                const url = new URL(request.url)
-                const cultivationId = url.searchParams.get("cultivation")
-
-                const activeCultivation = cultivationId
-                    ? cultivations.find((c) => c.b_lu === cultivationId)
-                    : (getDefaultCultivation(cultivations, calendar) ??
-                      cultivations[0])
-
-                if (!activeCultivation) {
-                    throw handleLoaderError("missing: active cultivation")
-                }
-
-                const [
-                    resolvedCurrentSoilData,
-                    resolvedFertilizerApplications,
-                    resolvedFertilizers,
-                ] = await Promise.all([
-                    currentSoilData,
-                    fertilizerApplications,
-                    fertilizers,
-                ])
-
-                // For now take the first cultivation
-                const b_lu_catalogue = activeCultivation.b_lu_catalogue
-
-                const doses = calculateDose({
-                    applications: resolvedFertilizerApplications,
-                    fertilizers: resolvedFertilizers,
-                })
-
-                // Request nutrient advice
-                const nmiApiKey = getNmiApiKey()
-                const nutrientAdvice = await getNutrientAdvice(fdm, {
-                    b_lu_catalogue,
-                    b_centroid: field.b_centroid,
-                    currentSoilData: resolvedCurrentSoilData,
-                    nmiApiKey: nmiApiKey,
-                    b_bufferstrip: field.b_bufferstrip,
-                })
-
-                return {
-                    nutrientAdvice: nutrientAdvice,
-                    doses: doses,
-                    fertilizerApplications: resolvedFertilizerApplications,
-                    fertilizers: resolvedFertilizers,
-                    errorMessage: undefined,
-                    cultivations,
-                    activeCultivation,
-                }
-            } catch (error) {
-                return { errorMessage: String(error).replace("Error: ", "") }
-            }
-        })()
-
-        const nutrientsDescription = getNutrientsDescription()
+        // Request nutrient advice
+        const nmiApiKey = getNmiApiKey()
+        const nutrientAdvice = await getNutrientAdvice(fdm, {
+          b_lu_catalogue,
+          b_centroid: field.b_centroid,
+          currentSoilData: resolvedCurrentSoilData,
+          nmiApiKey: nmiApiKey,
+          b_bufferstrip: field.b_bufferstrip,
+        })
 
         return {
-            field: field,
-            nutrientsDescription: nutrientsDescription,
-            calendar: calendar,
-            asyncData: asyncData,
+          nutrientAdvice: nutrientAdvice,
+          doses: doses,
+          fertilizerApplications: resolvedFertilizerApplications,
+          fertilizers: resolvedFertilizers,
+          errorMessage: undefined,
+          cultivations,
+          activeCultivation,
         }
-    } catch (error) {
-        throw handleLoaderError(error)
+      } catch (error) {
+        return { errorMessage: String(error).replace("Error: ", "") }
+      }
+    })()
+
+    const nutrientsDescription = getNutrientsDescription()
+
+    return {
+      field: field,
+      nutrientsDescription: nutrientsDescription,
+      calendar: calendar,
+      asyncData: asyncData,
     }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 export default function FieldNutrientAdviceBlock() {
-    const loaderData = useLoaderData<typeof loader>()
-    const { field, nutrientsDescription } = loaderData
+  const loaderData = useLoaderData<typeof loader>()
+  const { field, nutrientsDescription } = loaderData
+  const { capture } = useAnalytics()
 
-    const primaryNutrients = nutrientsDescription.filter(
-        (item: NutrientDescription) => item.type === "primary",
-    )
-    const secondaryNutrients = nutrientsDescription.filter(
-        (item: NutrientDescription) => item.type === "secondary",
-    )
-    const traceNutrients = nutrientsDescription.filter(
-        (item: NutrientDescription) => item.type === "trace",
-    )
+  useEffect(() => {
+    capture("nutrient_advice_field_viewed", {
+      b_id_farm: field.b_id_farm,
+      b_id: field.b_id,
+      calendar: loaderData.calendar,
+    })
+  }, [])
 
-    const splittedNutrients = {
-        primaryNutrients,
-        secondaryNutrients,
-        traceNutrients,
-    }
+  const primaryNutrients = nutrientsDescription.filter(
+    (item: NutrientDescription) => item.type === "primary",
+  )
+  const secondaryNutrients = nutrientsDescription.filter(
+    (item: NutrientDescription) => item.type === "secondary",
+  )
+  const traceNutrients = nutrientsDescription.filter(
+    (item: NutrientDescription) => item.type === "trace",
+  )
 
-    return (
-        <Suspense
-            key={`${field.b_id_farm}#${loaderData.calendar}#${field.b_id}`}
-            fallback={<FieldNutrientAdviceSkeleton {...splittedNutrients} />}
-        >
-            <FieldNutrientAdvice
-                loaderData={loaderData}
-                {...splittedNutrients}
-            />
-        </Suspense>
-    )
+  const splittedNutrients = {
+    primaryNutrients,
+    secondaryNutrients,
+    traceNutrients,
+  }
+
+  return (
+    <Suspense
+      key={`${field.b_id_farm}#${loaderData.calendar}#${field.b_id}`}
+      fallback={<FieldNutrientAdviceSkeleton {...splittedNutrients} />}
+    >
+      <FieldNutrientAdvice loaderData={loaderData} {...splittedNutrients} />
+    </Suspense>
+  )
 }
 
 /**
@@ -220,86 +202,80 @@ export default function FieldNutrientAdviceBlock() {
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
 function FieldNutrientAdvice({
-    loaderData,
-    primaryNutrients,
-    secondaryNutrients,
-    traceNutrients,
+  loaderData,
+  primaryNutrients,
+  secondaryNutrients,
+  traceNutrients,
 }: {
-    loaderData: Awaited<ReturnType<typeof loader>>
-    primaryNutrients: NutrientDescription[]
-    secondaryNutrients: NutrientDescription[]
-    traceNutrients: NutrientDescription[]
+  loaderData: Awaited<ReturnType<typeof loader>>
+  primaryNutrients: NutrientDescription[]
+  secondaryNutrients: NutrientDescription[]
+  traceNutrients: NutrientDescription[]
 }) {
-    const { field, calendar, nutrientsDescription } = loaderData
-    const asyncData = use(loaderData.asyncData)
-    const location = useLocation()
+  const { field, calendar, nutrientsDescription } = loaderData
+  const asyncData = use(loaderData.asyncData)
+  const location = useLocation()
 
-    if (typeof asyncData.errorMessage === "string") {
-        return (
-            <ErrorBlock
-                status={500}
-                message={asyncData.errorMessage}
-                stacktrace={undefined}
-                page={location.pathname}
-                timestamp={new Date().toISOString()}
-            />
-        )
-    }
+  if (typeof asyncData.errorMessage === "string") {
     return (
-        <>
-            <div className="space-y-6 p-10 pb-0">
-                <div className="flex items-center gap-4">
-                    <div className="space-y-0.5 ">
-                        <h2 className="text-2xl font-bold tracking-tight">
-                            Bemestingsadvies voor{" "}
-                            {asyncData.activeCultivation.b_lu_name.toLowerCase()}
-                        </h2>
-                    </div>
-                    <div className="ml-auto">
-                        <CultivationSelector
-                            cultivations={asyncData.cultivations}
-                            selectedCultivationId={
-                                asyncData.activeCultivation.b_lu
-                            }
-                        />
-                    </div>
-                </div>
-                <Separator className="my-6" />
-            </div>
-            <div className="space-y-6 px-10 pb-0">
-                <FieldNutrientAdviceLayout
-                    primaryNutrientsSection={
-                        <NutrientAdviceSection
-                            nutrients={primaryNutrients}
-                            field={field}
-                            calendar={calendar}
-                            asyncData={asyncData}
-                        />
-                    }
-                    kpiSection={
-                        <KPISection
-                            asyncData={asyncData}
-                            nutrientsDescription={nutrientsDescription}
-                        />
-                    }
-                    secondaryNutrientsSection={
-                        <NutrientAdviceSection
-                            nutrients={secondaryNutrients}
-                            field={field}
-                            calendar={calendar}
-                            asyncData={asyncData}
-                        />
-                    }
-                    traceNutrientsSection={
-                        <NutrientAdviceSection
-                            nutrients={traceNutrients}
-                            field={field}
-                            calendar={calendar}
-                            asyncData={asyncData}
-                        />
-                    }
-                />
-            </div>
-        </>
+      <ErrorBlock
+        status={500}
+        message={asyncData.errorMessage}
+        stacktrace={undefined}
+        page={location.pathname}
+        timestamp={new Date().toISOString()}
+      />
     )
+  }
+  return (
+    <>
+      <div className="space-y-6 p-10 pb-0">
+        <div className="flex items-center gap-4">
+          <div className="space-y-0.5 ">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Bemestingsadvies voor {asyncData.activeCultivation.b_lu_name.toLowerCase()}
+            </h2>
+          </div>
+          <div className="ml-auto">
+            <CultivationSelector
+              cultivations={asyncData.cultivations}
+              selectedCultivationId={asyncData.activeCultivation.b_lu}
+            />
+          </div>
+        </div>
+        <Separator className="my-6" />
+      </div>
+      <div className="space-y-6 px-10 pb-0">
+        <FieldNutrientAdviceLayout
+          primaryNutrientsSection={
+            <NutrientAdviceSection
+              nutrients={primaryNutrients}
+              field={field}
+              calendar={calendar}
+              asyncData={asyncData}
+            />
+          }
+          kpiSection={
+            <KPISection asyncData={asyncData} nutrientsDescription={nutrientsDescription} />
+          }
+          secondaryNutrientsSection={
+            <NutrientAdviceSection
+              nutrients={secondaryNutrients}
+              field={field}
+              calendar={calendar}
+              asyncData={asyncData}
+            />
+          }
+          traceNutrientsSection={
+            <NutrientAdviceSection
+              nutrients={traceNutrients}
+              field={field}
+              calendar={calendar}
+              asyncData={asyncData}
+            />
+          }
+        />
+      </div>
+    </>
+  )
 }

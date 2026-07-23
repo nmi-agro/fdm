@@ -29,13 +29,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11.7.0
+          version: 11.12.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: 'pnpm'
+          cache: "pnpm"
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -72,17 +72,17 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=\${NODE_AUTH_TOKEN}" >> .npmrc
           # Build packages
           pnpm build --filter="!@nmi-agro/fdm-app"
-          
+
           # Publish to GitHub Packages
           pnpm changeset publish
-          
+
           # Create git tags locally
           pnpm changeset tag
-          
+
           # Push ONLY the new tags to bypass 'main' branch protection rules
           # (git push --follow-tags can fail if it tries to push the branch ref)
           git tag --points-at HEAD | xargs -r git push origin
-          
+
           # Create GitHub Releases for each updated package
           # This script finds tags created in this commit and creates a GH release for each
           git tag --points-at HEAD | while read tag; do

@@ -25,10 +25,10 @@
 
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import { z } from "zod"
+import type { NSupplyComputeInput, NSupplyResult } from "./types"
 import pkg from "../package"
 import { NmiApiError } from "./errors"
 import { nsupplyResponseSchema } from "./schemas"
-import type { NSupplyComputeInput, NSupplyResult } from "./types"
 
 // ─── API call ─────────────────────────────────────────────────────────────────
 
@@ -54,94 +54,78 @@ import type { NSupplyComputeInput, NSupplyResult } from "./types"
  * @throws {@link NmiApiError} on API or HTTP errors.
  * @throws `Error` if the response body fails Zod validation.
  */
-export async function requestNSupply(
-    input: NSupplyComputeInput,
-): Promise<NSupplyResult> {
-    const { b_id, b_name, area, nmiApiKey, requestBody, method, completeness } =
-        input
+export async function requestNSupply(input: NSupplyComputeInput): Promise<NSupplyResult> {
+  const { b_id, b_name, area, nmiApiKey, requestBody, method, completeness } = input
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
 
-    try {
-        const response = await fetch(
-            "https://api.nmi-agro.nl/bemestingsplan/nsupply",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${nmiApiKey}`,
-                    "NMI-API-Version": "v1",
-                },
-                body: JSON.stringify(requestBody),
-                signal: controller.signal,
-            },
+  try {
+    const response = await fetch("https://api.nmi-agro.nl/bemestingsplan/nsupply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${nmiApiKey}`,
+        "NMI-API-Version": "v1",
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      if (response.status === 422) {
+        throw new NmiApiError(
+          422,
+          `Onvoldoende bodemgegevens voor mineralisatieberekening. ${errorText}`,
         )
-
-        if (!response.ok) {
-            const errorText = await response.text()
-            if (response.status === 422) {
-                throw new NmiApiError(
-                    422,
-                    `Onvoldoende bodemgegevens voor mineralisatieberekening. ${errorText}`,
-                )
-            }
-            if (response.status === 503) {
-                throw new NmiApiError(
-                    503,
-                    "NMI API is tijdelijk niet beschikbaar.",
-                )
-            }
-            if (response.status === 401 || response.status === 403) {
-                throw new NmiApiError(
-                    response.status,
-                    "NMI API-sleutel niet geconfigureerd of verlopen.",
-                )
-            }
-            throw new NmiApiError(
-                response.status,
-                `Er is een fout opgetreden bij het berekenen van de mineralisatie. ${errorText}`,
-            )
-        }
-
-        let json: unknown
-        try {
-            json = await response.json()
-        } catch (_err) {
-            throw new Error("Ongeldig antwoord van NMI API: Geen geldige JSON")
-        }
-
-        const parsed = nsupplyResponseSchema.safeParse(json)
-        if (!parsed.success) {
-            throw new Error(
-                `Ongeldig antwoord van NMI API: ${JSON.stringify(z.treeifyError(parsed.error))}`,
-            )
-        }
-
-        return {
-            b_id,
-            b_name,
-            area,
-            method,
-            data: parsed.data.data,
-            totalAnnualN:
-                parsed.data.data.length > 0
-                    ? (parsed.data.data[parsed.data.data.length - 1]
-                          ?.d_n_supply_actual ?? 0)
-                    : 0,
-            completeness,
-        }
-    } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-            throw new NmiApiError(
-                408,
-                "De aanvraag naar de NMI API is verlopen (timeout).",
-            )
-        }
-        throw err
-    } finally {
-        clearTimeout(timeout)
+      }
+      if (response.status === 503) {
+        throw new NmiApiError(503, "NMI API is tijdelijk niet beschikbaar.")
+      }
+      if (response.status === 401 || response.status === 403) {
+        throw new NmiApiError(response.status, "NMI API-sleutel niet geconfigureerd of verlopen.")
+      }
+      throw new NmiApiError(
+        response.status,
+        `Er is een fout opgetreden bij het berekenen van de mineralisatie. ${errorText}`,
+      )
     }
+
+    let json: unknown
+    try {
+      json = await response.json()
+    } catch {
+      throw new Error("Ongeldig antwoord van NMI API: Geen geldige JSON")
+    }
+
+    const parsed = nsupplyResponseSchema.safeParse(json)
+    if (!parsed.success) {
+      throw new Error(
+        `Ongeldig antwoord van NMI API: ${JSON.stringify(z.treeifyError(parsed.error))}`,
+      )
+    }
+
+    return {
+      b_id,
+      b_name,
+      area,
+      method,
+      data: parsed.data.data,
+      totalAnnualN:
+        parsed.data.data.length > 0
+          ? (parsed.data.data[parsed.data.data.length - 1]?.d_n_supply_actual ?? 0)
+          : 0,
+      completeness,
+    }
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new NmiApiError(408, "De aanvraag naar de NMI API is verlopen (timeout).")
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 // ─── Cached version ───────────────────────────────────────────────────────────
@@ -177,8 +161,8 @@ export async function requestNSupply(
  * ```
  */
 export const getNSupply = withCalculationCache(
-    requestNSupply,
-    "requestNSupply",
-    pkg.calculatorVersion,
-    ["nmiApiKey"],
+  requestNSupply,
+  "requestNSupply",
+  pkg.calculatorVersion,
+  ["nmiApiKey"],
 )

@@ -1,5 +1,46 @@
 # fdm-calculator
 
+## 0.17.1
+
+### Patch Changes
+
+- Updated dependencies [[`845197e`](https://github.com/nmi-agro/fdm/commit/845197e28776b331f6d44e0eb64dc144e786f8f3)]:
+  - @nmi-agro/fdm-core@0.35.0
+
+## 0.17.0
+
+### Minor Changes
+
+- [#674](https://github.com/nmi-agro/fdm/pull/674) [`d4e5c73`](https://github.com/nmi-agro/fdm/commit/d4e5c73fad558934c30a1534972cd6118ff2886a) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the stikstofgebruiksnorms for the new 2026 cultivations
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @nmi-agro/fdm-core@0.34.1
+
+## 0.16.0
+
+### Minor Changes
+
+- [#638](https://github.com/nmi-agro/fdm/pull/638) [`c07e18c`](https://github.com/nmi-agro/fdm/commit/c07e18c7bc178a7c052fcdde0db30a56d508587a) Thanks [@SvenVw](https://github.com/SvenVw)! - Document and expose official BLN3 aggregation results in calculation types.
+  - **Expose Aggregations**: Explicitly documents and types `Bln3AggregationResult` and the `Bln3Score.aggregations` field as fully implemented and returned by the NMI API.
+  - **Reduces Overhead**: Developers consuming this package can now pull pre-computed official hierarchical aggregations (such as OBI subcategories and the S_BLN root score) directly from the API response payload without needing to write or maintain approximate client-side formulas.
+
+- [#632](https://github.com/nmi-agro/fdm/pull/632) [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9) Thanks [@SvenVw](https://github.com/SvenVw)! - Add BCS (BodemConditieScore) calculation functions.
+  - `calculateBcs(scores, labContext?)` — computes D_BCS (weighted total) and I_BCS (normalized 0–1 indicator) using exact Decimal.js arithmetic. Supports all 9 visual field indicators; when the optional `labContext` is provided, also derives and includes lab-based `a_ph_bcs` and `a_som_bcs` scores
+  - `getBcsScoreColor(d_bcs)` — maps a D_BCS value to a colour band: `"red"` (< 10), `"orange"` (< 20), `"yellow"` (< 30), `"green"` (< 40), or `"emerald"` (≥ 40)
+  - `getBcsScoreLabel(d_bcs)` — returns a Dutch label for a D_BCS value (Slecht / Onvoldoende / Matig / Goed / Zeer goed)
+  - `derivePhBcs(d_ph_delta)` — derives a BCS pH score (0–2) from D_PH_DELTA using the OBIC logistic function
+  - `deriveOmBcs(a_som_loi, crop_category, soiltype_n)` — derives a BCS organic matter score (0–2) from an a_som_loi lab measurement using OBIC crop × soil type quantile thresholds
+  - `BCS_INDICATORS` — expanded to 11 entries (9 field + 2 lab-derived) with `source: "field" | "lab"` property, in paper-form order
+  - `calcPhDelta(params)` — ports the OBIC `calc_ph_delta` function using embedded Handboek Bodem en Bemesting lookup tables (5.1, 5.2, 5.3, mh, mh_kl). Accepts soil type, clay%, OM%, crop plan fractions, and measured pH-CaCl₂. Returns D_PH_DELTA = max(0, pH_optimum − pH_measured)
+  - `SoiltypeAgr` and `CalcPhDeltaParams` — exported types for calcPhDelta
+
+### Patch Changes
+
+- Updated dependencies [[`98e0127`](https://github.com/nmi-agro/fdm/commit/98e0127bd3f02e193ad57a1cfef18fc10df40c67), [`afdd78f`](https://github.com/nmi-agro/fdm/commit/afdd78f16fad2aef17e03e4eace48628ef7a2d51), [`98edeca`](https://github.com/nmi-agro/fdm/commit/98edecaebdd50ae8f0e26980cc2fc9c642e3cad9)]:
+  - @nmi-agro/fdm-core@0.34.0
+
 ## 0.15.0
 
 ### Minor Changes

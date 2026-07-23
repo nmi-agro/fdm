@@ -12,57 +12,57 @@ This November release marks a major expansion of the Farm Data Model (FDM) capab
 
 ### FDM Application Enhancements (`@nmi-agro/fdm-app`)
 
-*   **New Module: Organic Matter Balance:**
-    *   We have launched a dedicated **Organic Matter Balance** app. This tool allows farmers and advisors to monitor the effective organic matter (EOM) supply from crops, residues, and fertilizers, ensuring long-term soil health strategy.
-*   **Nitrogen Balance Upgrades:**
-    *   **Nitrate Leaching Added:** Previously, our balance calculations focused primarily on Ammonia (NH3). With this release, we have added **Nitrate (NO3) Leaching**, providing a complete picture of nitrogen losses. Charts and cards now clearly distinguish between these two emission pathways.
-    *   **Field Level:** Nitrate emission specifics are now also visible at the field level.
-*   **Enhanced Harvest Analysis with Crop-Specific Parameters:**
-    *   **Advanced Analysis:** We've expanded the data model to support detailed harvest analysis, including parameters like **Fresh Yield**, **Tare (%)**, **Dry Matter Content**, **Moisture**, **Underwater Weight**, and **Crude Protein**.
-    *   **Smart Forms:** The harvest recording form has been redesigned. It now intelligently requests specific yield and nitrogen parameters based on the crop type.
-    *   **User Experience:** The harvest overview is clearer, showing relevant parameters upfront. The "Add Harvest" button is now smartly hidden for non-harvestable cultivations (e.g., green fallow).
-*   **Powerful Rotation Page for Crop Management:**
-    *   We've introduced the **Rotation Page** that acts as your central command for crop management. It gives a comprehensive overview of all cultivations on your farm. But it's not just for viewing—you can now perform **bulk actions**, such as adding a fertilizer application or a harvest event to *all* fields with a specific crop in one go.
-*   **User Interface & Experience Enhancements:**
-    *   **Map Controls:** Added a toggle to hide or show field layers, reducing clutter when needed.
-    *   **Sidebar:** Improved navigation feedback—active pages are clearly highlighted, and the sidebar now displays the selected farm's name and the user's role.
-    *   **Fertilizers:** Added icons to the fields table for quick fertilizer identification.
-    *   **Drag-and-Drop:** Refined the upload experience with a dedicated `Dropzone` component, reducing clutter.
-*   **Technical:**
-    *   Upgraded to **Node.js v24**.
-    *   Optimized Vite build configuration for better performance.
+- **New Module: Organic Matter Balance:**
+  - We have launched a dedicated **Organic Matter Balance** app. This tool allows farmers and advisors to monitor the effective organic matter (EOM) supply from crops, residues, and fertilizers, ensuring long-term soil health strategy.
+- **Nitrogen Balance Upgrades:**
+  - **Nitrate Leaching Added:** Previously, our balance calculations focused primarily on Ammonia (NH3). With this release, we have added **Nitrate (NO3) Leaching**, providing a complete picture of nitrogen losses. Charts and cards now clearly distinguish between these two emission pathways.
+  - **Field Level:** Nitrate emission specifics are now also visible at the field level.
+- **Enhanced Harvest Analysis with Crop-Specific Parameters:**
+  - **Advanced Analysis:** We've expanded the data model to support detailed harvest analysis, including parameters like **Fresh Yield**, **Tare (%)**, **Dry Matter Content**, **Moisture**, **Underwater Weight**, and **Crude Protein**.
+  - **Smart Forms:** The harvest recording form has been redesigned. It now intelligently requests specific yield and nitrogen parameters based on the crop type.
+  - **User Experience:** The harvest overview is clearer, showing relevant parameters upfront. The "Add Harvest" button is now smartly hidden for non-harvestable cultivations (e.g., green fallow).
+- **Powerful Rotation Page for Crop Management:**
+  - We've introduced the **Rotation Page** that acts as your central command for crop management. It gives a comprehensive overview of all cultivations on your farm. But it's not just for viewing—you can now perform **bulk actions**, such as adding a fertilizer application or a harvest event to _all_ fields with a specific crop in one go.
+- **User Interface & Experience Enhancements:**
+  - **Map Controls:** Added a toggle to hide or show field layers, reducing clutter when needed.
+  - **Sidebar:** Improved navigation feedback—active pages are clearly highlighted, and the sidebar now displays the selected farm's name and the user's role.
+  - **Fertilizers:** Added icons to the fields table for quick fertilizer identification.
+  - **Drag-and-Drop:** Refined the upload experience with a dedicated `Dropzone` component, reducing clutter.
+- **Technical:**
+  - Upgraded to **Node.js v24**.
+  - Optimized Vite build configuration for better performance.
 
 ### FDM Calculator Upgrades (`@nmi-agro/fdm-calculator`)
 
-*   **New Calculations:**
-    *   **Organic Matter:** Added `calculateOrganicMatterBalance` and `getOrganicMatterBalance` to power the new app module.
-    *   **Nitrate Leaching:** Implemented the logic to calculate nitrate leaching, enriching the nitrogen balance model.
-    *   **Emission Split:** The nitrogen balance output now formally separates ammonia and nitrate emissions.
+- **New Calculations:**
+  - **Organic Matter:** Added `calculateOrganicMatterBalance` and `getOrganicMatterBalance` to power the new app module.
+  - **Nitrate Leaching:** Implemented the logic to calculate nitrate leaching, enriching the nitrogen balance model.
+  - **Emission Split:** The nitrogen balance output now formally separates ammonia and nitrate emissions.
 
 ### FDM Core Developments (`@nmi-agro/fdm-core`)
 
-*   **Harvest Logic:**
-    *   **Default Values:** Added `getDefaultsForHarvestParameters` to fetch smart defaults for new harvests.
-    *   **Automation:** When adding a cultivation defined as 'harvest once', the system now automatically generates a corresponding harvest event with default values.
-    *   **New Parameters:** Added `b_lu_dm` (dry matter) and `b_lu_harvestcat` (harvest category) to the cultivation catalogue to standardize calculations.
-*   **Organic Matter:**
-    *   Added `b_lu_eom` (effective organic matter from crop) and `b_lu_eom_residue` (from residues) to the catalogue.
-*   **Auth & Permissions:**
-    *   Fixed an issue where organization members did not correctly inherit roles on a farm.
+- **Harvest Logic:**
+  - **Default Values:** Added `getDefaultsForHarvestParameters` to fetch smart defaults for new harvests.
+  - **Automation:** When adding a cultivation defined as 'harvest once', the system now automatically generates a corresponding harvest event with default values.
+  - **New Parameters:** Added `b_lu_dm` (dry matter) and `b_lu_harvestcat` (harvest category) to the cultivation catalogue to standardize calculations.
+- **Organic Matter:**
+  - Added `b_lu_eom` (effective organic matter from crop) and `b_lu_eom_residue` (from residues) to the catalogue.
+- **Auth & Permissions:**
+  - Fixed an issue where organization members did not correctly inherit roles on a farm.
 
 ### FDM Data Updates (`@nmi-agro/fdm-data`)
 
-*   **Catalogue Enrichment (BRP):**
-    *   **Organic Matter:** Populated `b_lu_eom` and `b_lu_eom_residue` with default values.
-    *   **Harvest Defaults:** Added `b_lu_dm` (dry matter content) and `b_lu_harvestcat` defaults to BRP entries.
-    *   **Corrections:** Fixed `nl_6794` (groene braak) to be correctly marked as non-harvestable. Improved default yield values for nature categories.
+- **Catalogue Enrichment (BRP):**
+  - **Organic Matter:** Populated `b_lu_eom` and `b_lu_eom_residue` with default values.
+  - **Harvest Defaults:** Added `b_lu_dm` (dry matter content) and `b_lu_harvestcat` defaults to BRP entries.
+  - **Corrections:** Fixed `nl_6794` (groene braak) to be correctly marked as non-harvestable. Improved default yield values for nature categories.
 
 ### FDM Docs (`@nmi-agro/fdm-docs`)
 
-*   **Revamped Structure:** We have completely overhauled the documentation structure. Beyond technical API references, we have added more in-depth explanations of core concepts and calculation methodologies.
-*   **New Content:**
-    *   **Organic Matter Balance:** Comprehensive guides on how the balance is calculated and interpreted.
-    *   **Nitrate Leaching:** Detailed explanation of the new leaching calculation method.
+- **Revamped Structure:** We have completely overhauled the documentation structure. Beyond technical API references, we have added more in-depth explanations of core concepts and calculation methodologies.
+- **New Content:**
+  - **Organic Matter Balance:** Comprehensive guides on how the balance is calculated and interpreted.
+  - **Nitrate Leaching:** Detailed explanation of the new leaching calculation method.
 
 ---
 

@@ -1,19 +1,22 @@
-# Prei (leeks) — nl_2749, nl_2799, nl_2801
+# Prei (prei) — nl_2749, nl_2799, nl_2801
 
-**Prefer:**
-- Split N applications: prei has a long growing season (especially winterprei, nl_2799) with
-  sustained N demand. Follow `advice.d_n_req` and split: at planting + 1–2 mineral
-  top-dressings during the growing season.
-- Potassium: important for winter hardiness in winterprei. K₂SO₄ preferred over KCl.
-- Sulphur: prei belongs to the Allium family — S is important for flavour and storability.
-  Include S when `advice.d_s_req > 0`.
+**Voorkeur:**
 
-**Avoid:**
-- Excess N late in season (after September for winterprei): increases Thrips tabaci
-  susceptibility, causes soft tissue, and increases storage rot risk.
-- Fresh manure: risk of Fusarium and bacterial soft rot; use only well-composted organic
-  inputs or mineral fertiliser.
+- Deel N-giften: prei heeft een lang groeiseizoen (vooral winterprei, nl_2799) met een
+  aanhoudende N-behoefte. Volg `advice.d_n_req` en deel: bij planten + 1–2 minerale
+  bijbemestingen tijdens het groeiseizoen.
+- Kalium: belangrijk voor winterhardheid in winterprei. K₂SO₄ heeft de voorkeur boven KCl.
+- Zwavel: prei behoort tot de Allium-familie — S is belangrijk voor smaak en bewaarbaarheid.
+  Neem S op wanneer `advice.d_s_req > 0`.
 
-**Extra attention:**
-- Zomerprei (nl_2801): shorter growing season and lower N advice than winterprei.
-  Front-load N and finish early.
+**Vermijden:**
+
+- Overmaat N laat in het seizoen (na september voor winterprei): verhoogt de gevoeligheid voor
+  Thrips tabaci, veroorzaakt zacht weefsel en verhoogt het risico op bewaarrot.
+- Verse mest: risico op Fusarium en bacterieel zachtrot; gebruik alleen goed gecomposteerde
+  organische inputs of minerale meststof.
+
+**Extra aandacht:**
+
+- Zomerprei (nl_2801): korter groeiseizoen en lager N-advies dan winterprei. Geef N vooral
+  vroeg en rond tijdig af.

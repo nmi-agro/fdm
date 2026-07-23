@@ -265,12 +265,8 @@
           "tableFrom": "messages",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -532,12 +528,8 @@
           "tableFrom": "ticket_activity",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -669,12 +661,8 @@
           "tableFrom": "ticket_assignments",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -683,12 +671,8 @@
           "tableFrom": "ticket_assignments",
           "tableTo": "agents",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "agent_id"
-          ],
-          "columnsTo": [
-            "agent_id"
-          ],
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["agent_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -761,12 +745,8 @@
           "tableFrom": "ticket_tags_map",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -775,12 +755,8 @@
           "tableFrom": "ticket_tags_map",
           "tableTo": "tags",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "tag_id"
-          ],
-          "columnsTo": [
-            "tag_id"
-          ],
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["tag_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -788,10 +764,7 @@
       "compositePrimaryKeys": {
         "ticket_tags_map_pk": {
           "name": "ticket_tags_map_pk",
-          "columns": [
-            "ticket_id",
-            "tag_id"
-          ]
+          "columns": ["ticket_id", "tag_id"]
         }
       },
       "uniqueConstraints": {},
@@ -830,12 +803,8 @@
           "tableFrom": "ticket_views",
           "tableTo": "tickets",
           "schemaTo": "fdm-helpdesk",
-          "columnsFrom": [
-            "ticket_id"
-          ],
-          "columnsTo": [
-            "ticket_id"
-          ],
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -843,10 +812,7 @@
       "compositePrimaryKeys": {
         "ticket_views_pk": {
           "name": "ticket_views_pk",
-          "columns": [
-            "ticket_id",
-            "actor_id"
-          ]
+          "columns": ["ticket_id", "actor_id"]
         }
       },
       "uniqueConstraints": {},

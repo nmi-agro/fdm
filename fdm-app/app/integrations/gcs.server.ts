@@ -1,4 +1,5 @@
-import { Storage } from "@google-cloud/storage"
+import type { Readable } from "node:stream"
+import { SaveData, Storage } from "@google-cloud/storage"
 
 let _storage: Storage | null = null
 
@@ -23,36 +24,45 @@ let _storage: Storage | null = null
  * account email to sign as (required when using Workload Identity Federation).
  */
 function getStorage(): Storage {
-    if (_storage) return _storage
+  if (_storage) return _storage
 
-    const keyBase64 = process.env.GCS_SERVICE_ACCOUNT_KEY
-    const serviceAccountEmail = process.env.GCS_SERVICE_ACCOUNT_EMAIL
+  const keyBase64 = process.env.GCS_SERVICE_ACCOUNT_KEY
+  const serviceAccountEmail = process.env.GCS_SERVICE_ACCOUNT_EMAIL
 
-    if (keyBase64) {
-        // Fallback: inline JSON key (base64-encoded). Not recommended for
-        // production; prefer ADC or Workload Identity Federation instead.
-        const credentials = JSON.parse(
-            Buffer.from(keyBase64, "base64").toString("utf-8"),
-        )
-        _storage = new Storage({ credentials })
-    } else {
-        // Preferred: ADC. The library calls IAM signBlob for signed URLs.
-        // serviceAccountEmail is required for Workload Identity Federation
-        // and optional when the metadata server can resolve it automatically.
-        _storage = serviceAccountEmail
-            ? new Storage({ email: serviceAccountEmail })
-            : new Storage()
-    }
+  if (keyBase64) {
+    // Fallback: inline JSON key (base64-encoded). Not recommended for
+    // production; prefer ADC or Workload Identity Federation instead.
+    const credentials = JSON.parse(Buffer.from(keyBase64, "base64").toString("utf-8"))
+    _storage = new Storage({ credentials })
+  } else {
+    // Preferred: ADC. The library calls IAM signBlob for signed URLs.
+    // serviceAccountEmail is required for Workload Identity Federation
+    // and optional when the metadata server can resolve it automatically.
+    _storage = serviceAccountEmail ? new Storage({ email: serviceAccountEmail }) : new Storage()
+  }
 
-    return _storage
+  return _storage
 }
 
 function getBucketName(): string {
-    const bucket = process.env.GCS_BUCKET_NAME
-    if (!bucket) {
-        throw new Error("GCS_BUCKET_NAME environment variable is not set")
-    }
-    return bucket
+  const bucket = process.env.GCS_BUCKET_NAME
+  if (!bucket) {
+    throw new Error("GCS_BUCKET_NAME environment variable is not set")
+  }
+  return bucket
+}
+
+/**
+ * Returns a consistently formatted GCS object key.
+ * Example: buildObjectKey("soil_analysis", a_id, "pdf") → "soil_analysis/{a_id}.pdf"
+ *
+ * @param prefix - The prefix or folder in GCS (e.g. "soil_analysis")
+ * @param id - The unique identifier for the object (e.g. a_id)
+ * @param ext - The file extension (e.g. "pdf", "jpg")
+ * @returns The full GCS object key
+ */
+export function buildObjectKey(prefix: string, id: string, ext: string): string {
+  return `${prefix}/${id}.${ext}`
 }
 
 /**
@@ -65,28 +75,28 @@ function getBucketName(): string {
  * @returns Signed upload URL
  */
 export async function generateSignedUploadUrl(
-    objectKey: string,
-    contentType: string,
-    maxSizeBytes = 10 * 1024 * 1024,
+  objectKey: string,
+  contentType: string,
+  maxSizeBytes = 10 * 1024 * 1024,
 ): Promise<string> {
-    const storage = getStorage()
-    const bucket = getBucketName()
+  const storage = getStorage()
+  const bucket = getBucketName()
 
-    const [url] = await storage
-        .bucket(bucket)
-        .file(objectKey)
-        .generateSignedPostPolicyV4({
-            expires: Date.now() + 10 * 60 * 1000, // 10 minutes
-            conditions: [
-                ["content-length-range", 1, maxSizeBytes],
-                ["eq", "$Content-Type", contentType],
-            ],
-            fields: {
-                "Content-Type": contentType,
-            },
-        })
+  const [url] = await storage
+    .bucket(bucket)
+    .file(objectKey)
+    .generateSignedPostPolicyV4({
+      expires: Date.now() + 10 * 60 * 1000, // 10 minutes
+      conditions: [
+        ["content-length-range", 1, maxSizeBytes],
+        ["eq", "$Content-Type", contentType],
+      ],
+      fields: {
+        "Content-Type": contentType,
+      },
+    })
 
-    return url.url
+  return url.url
 }
 
 /**
@@ -97,19 +107,19 @@ export async function generateSignedUploadUrl(
  * @returns Signed read URL
  */
 export async function generateSignedReadUrl(objectKey: string): Promise<string> {
-    const storage = getStorage()
-    const bucket = getBucketName()
+  const storage = getStorage()
+  const bucket = getBucketName()
 
-    const [url] = await storage
-        .bucket(bucket)
-        .file(objectKey)
-        .getSignedUrl({
-            version: "v4",
-            action: "read",
-            expires: Date.now() + 60 * 60 * 1000, // 1 hour
-        })
+  const [url] = await storage
+    .bucket(bucket)
+    .file(objectKey)
+    .getSignedUrl({
+      version: "v4",
+      action: "read",
+      expires: Date.now() + 60 * 60 * 1000, // 1 hour
+    })
 
-    return url
+  return url
 }
 
 /**
@@ -121,27 +131,27 @@ export async function generateSignedReadUrl(objectKey: string): Promise<string> 
  * @returns Object with the signed PUT URL and the object key
  */
 export async function generateSignedPutUrl(
-    objectKey: string,
-    contentType: string,
-    maxSizeBytes = 10 * 1024 * 1024,
+  objectKey: string,
+  contentType: string,
+  maxSizeBytes = 10 * 1024 * 1024,
 ): Promise<{ uploadUrl: string; objectKey: string }> {
-    const storage = getStorage()
-    const bucket = getBucketName()
+  const storage = getStorage()
+  const bucket = getBucketName()
 
-    const [uploadUrl] = await storage
-        .bucket(bucket)
-        .file(objectKey)
-        .getSignedUrl({
-            version: "v4",
-            action: "write",
-            expires: Date.now() + 10 * 60 * 1000, // 10 minutes
-            contentType,
-            extensionHeaders: {
-                "X-Goog-Content-Length-Range": `0,${maxSizeBytes}`,
-            },
-        })
+  const [uploadUrl] = await storage
+    .bucket(bucket)
+    .file(objectKey)
+    .getSignedUrl({
+      version: "v4",
+      action: "write",
+      expires: Date.now() + 10 * 60 * 1000, // 10 minutes
+      contentType,
+      extensionHeaders: {
+        "X-Goog-Content-Length-Range": `0,${maxSizeBytes}`,
+      },
+    })
 
-    return { uploadUrl, objectKey }
+  return { uploadUrl, objectKey }
 }
 
 /**
@@ -151,11 +161,11 @@ export async function generateSignedPutUrl(
  * @returns true if the object exists
  */
 export async function objectExists(objectKey: string): Promise<boolean> {
-    const storage = getStorage()
-    const bucket = getBucketName()
+  const storage = getStorage()
+  const bucket = getBucketName()
 
-    const [exists] = await storage.bucket(bucket).file(objectKey).exists()
-    return exists
+  const [exists] = await storage.bucket(bucket).file(objectKey).exists()
+  return exists
 }
 
 /**
@@ -164,10 +174,10 @@ export async function objectExists(objectKey: string): Promise<boolean> {
  * @param objectKey - The GCS object path
  */
 export async function deleteObject(objectKey: string): Promise<void> {
-    const storage = getStorage()
-    const bucket = getBucketName()
+  const storage = getStorage()
+  const bucket = getBucketName()
 
-    await storage.bucket(bucket).file(objectKey).delete({ ignoreNotFound: true })
+  await storage.bucket(bucket).file(objectKey).delete({ ignoreNotFound: true })
 }
 
 /**
@@ -178,15 +188,42 @@ export async function deleteObject(objectKey: string): Promise<void> {
  * @param contentType - MIME type of the file
  */
 export async function uploadObject(
-    objectKey: string,
-    buffer: Buffer,
-    contentType: string,
+  objectKey: string,
+  buffer: SaveData,
+  contentType: string,
 ): Promise<void> {
-    const storage = getStorage()
-    const bucket = getBucketName()
+  const storage = getStorage()
+  const bucket = getBucketName()
 
-    await storage.bucket(bucket).file(objectKey).save(buffer, {
-        contentType,
-        resumable: false,
-    })
+  await storage.bucket(bucket).file(objectKey).save(buffer, {
+    contentType,
+    resumable: false,
+  })
+}
+
+/**
+ * Opens a readable stream for a GCS object, along with its content type and
+ * size (when known). Used to proxy file contents through the app server
+ * instead of redirecting the client to a signed GCS URL, so downloads and
+ * inline views stay same-origin.
+ *
+ * @param objectKey - The GCS object path
+ * @returns The object's readable stream plus content type / size metadata
+ */
+export async function getObjectStream(objectKey: string): Promise<{
+  stream: Readable
+  contentType?: string
+  size?: number
+}> {
+  const storage = getStorage()
+  const bucket = getBucketName()
+  const file = storage.bucket(bucket).file(objectKey)
+
+  const [metadata] = await file.getMetadata()
+
+  return {
+    stream: file.createReadStream(),
+    contentType: metadata.contentType ?? undefined,
+    size: metadata.size !== undefined ? Number(metadata.size) : undefined,
+  }
 }
