@@ -193,6 +193,8 @@ export default function Welcome() {
                     maxFileSize={MAX_SIZE_BYTES}
                     currentPicture={loaderData.image}
                     currentAlt="Huidige profielfoto"
+                    cropBounds="outer"
+                    frameShape="rectangle"
                     avatarFallback={<User className="text-muted-foreground size-full" />}
                   />
                 </div>

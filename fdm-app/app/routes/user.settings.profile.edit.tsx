@@ -79,6 +79,8 @@ export default function UserProfileEditor() {
               avatarFallback={initials ?? <User className="text-muted-foreground size-full" />}
               currentPicture={user.image}
               currentAlt={`Profielfoto van ${user.displayUsername}`}
+              cropBounds="outer"
+              frameShape="rectangle"
             />
           </CardContent>
         </Card>
