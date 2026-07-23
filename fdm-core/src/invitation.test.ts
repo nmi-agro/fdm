@@ -721,6 +721,7 @@ describe("listPendingInvitationsForPrincipal", () => {
     const emailInv = invitations.find((i) => i.resource_id === emailFarmId)
     expect(emailInv).toBeDefined()
     expect(emailInv?.status).toBe("pending")
+    expect(emailInv?.can_accept).toBe(true)
   })
 
   it("should include org-targeted invitations for a user who is an org admin", async () => {
@@ -765,6 +766,94 @@ describe("listPendingInvitationsForPrincipal", () => {
     const orgInv = invitations.find((i) => i.target_principal_id === orgId)
     expect(orgInv).toBeDefined()
     expect(orgInv?.status).toBe("pending")
+    expect(orgInv?.can_accept).toBe(true)
+  })
+
+  it("should not include org-targeted invitations for a user who is a regular org member", async () => {
+    const orgMember = await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: "list_inv_orgmemberrofalse@example.com",
+        name: "list_inv_orgmemberrofalse",
+        username: "list_inv_orgmemberrofalse",
+        password: "password",
+      } as any,
+    })
+
+    // No fdm-core API for org creation — use raw insert (same pattern as authorization.test.ts)
+    const orgId = createId()
+    const orgSlug = `list-inv-org-${orgId.toLowerCase()}`
+    await fdm.insert(authNSchema.organization).values({
+      id: orgId,
+      name: "List Inv Org",
+      slug: orgSlug,
+      createdAt: new Date(),
+    })
+    await fdm.insert(authNSchema.member).values({
+      id: createId(),
+      organizationId: orgId,
+      userId: orgMember.user.id,
+      role: "member",
+      createdAt: new Date(),
+    })
+
+    const orgFarmId = await addFarm(
+      fdm,
+      ownerPrincipalId,
+      "List Inv Org Farm",
+      "LSIORG",
+      "List Inv Org Lane",
+      "10006",
+    )
+    await grantRoleToFarm(fdm, ownerPrincipalId, orgSlug, orgFarmId, "advisor")
+
+    const invitations = await listPendingInvitationsForPrincipal(fdm, orgMember.user.id)
+    expect(invitations.some((i) => i.target_principal_id === orgId)).toBe(false)
+  })
+
+  it("should include org-targeted invitations for a user who is a regular org member when include_readonly is true", async () => {
+    const orgMember = await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: "list_inv_orgmember@example.com",
+        name: "list_inv_orgmember",
+        username: "list_inv_orgmember",
+        password: "password",
+      } as any,
+    })
+
+    // No fdm-core API for org creation — use raw insert (same pattern as authorization.test.ts)
+    const orgId = createId()
+    const orgSlug = `list-inv-org-${orgId.toLowerCase()}`
+    await fdm.insert(authNSchema.organization).values({
+      id: orgId,
+      name: "List Inv Org",
+      slug: orgSlug,
+      createdAt: new Date(),
+    })
+    await fdm.insert(authNSchema.member).values({
+      id: createId(),
+      organizationId: orgId,
+      userId: orgMember.user.id,
+      role: "member",
+      createdAt: new Date(),
+    })
+
+    const orgFarmId = await addFarm(
+      fdm,
+      ownerPrincipalId,
+      "List Inv Org Farm",
+      "LSIORG",
+      "List Inv Org Lane",
+      "10006",
+    )
+    await grantRoleToFarm(fdm, ownerPrincipalId, orgSlug, orgFarmId, "advisor")
+
+    const invitations = await listPendingInvitationsForPrincipal(fdm, orgMember.user.id, true)
+    const orgInv = invitations.find((i) => i.target_principal_id === orgId)
+    expect(orgInv).toBeDefined()
+    expect(orgInv?.status).toBe("pending")
+    expect(orgInv?.can_accept).toBe(false)
   })
 })
 
