@@ -114,4 +114,52 @@ describe("calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm", () 
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling).toEqual([])
   })
+
+  it("should throw an error if a fertilizer is not found in the map", () => {
+    expect(() =>
+      calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
+        applications: [
+          {
+            p_app_id: "app_missing",
+            p_id: "app_missing",
+            p_id_catalogue: "missing_id",
+            p_app_amount: 10,
+          } as unknown as FertilizerApplication,
+        ],
+        fertilizers: mockFertilizers,
+        cultivations: [],
+        has_organic_certification: false,
+        has_grazing_intention: false,
+        fosfaatgebruiksnorm: 0,
+        b_centroid: [0, 0],
+      } as NL2026NormsFillingInput),
+    ).toThrow("Fertilizer missing_id not found for application app_missing")
+  })
+
+  it("should throw an error if a fertilizer has no p_type_rvo", () => {
+    expect(() =>
+      calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
+        applications: [
+          {
+            p_app_id: "app_no_rvo",
+            p_id: "app_no_rvo",
+            p_id_catalogue: "no_rvo_id",
+            p_app_amount: 10,
+          } as unknown as FertilizerApplication,
+        ],
+        fertilizers: [
+          {
+            p_id: "no_rvo_id",
+            p_id_catalogue: "no_rvo_id",
+            p_type_rvo: null,
+          } as unknown as Fertilizer,
+        ],
+        cultivations: [],
+        has_organic_certification: false,
+        has_grazing_intention: false,
+        fosfaatgebruiksnorm: 0,
+        b_centroid: [0, 0],
+      } as NL2026NormsFillingInput),
+    ).toThrow("Fertilizer no_rvo_id has no p_type_rvo")
+  })
 })
