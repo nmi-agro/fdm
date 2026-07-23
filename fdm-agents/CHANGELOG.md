@@ -1,5 +1,13 @@
 # @nmi-agro/fdm-agents
 
+## 0.4.2
+
+### Patch Changes
+
+- Updated dependencies [[`845197e`](https://github.com/nmi-agro/fdm/commit/845197e28776b331f6d44e0eb64dc144e786f8f3)]:
+  - @nmi-agro/fdm-core@0.35.0
+  - @nmi-agro/fdm-calculator@0.17.1
+
 ## 0.4.1
 
 ### Patch Changes

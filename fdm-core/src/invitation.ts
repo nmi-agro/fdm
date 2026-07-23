@@ -435,17 +435,22 @@ export async function declineInvitation(
  * Lists all pending (non-expired) invitations for a given user across all resources.
  *
  * Returns invitations where the target matches the user's principal ID, email address,
- * or an organization for which the user is an admin or owner.
+ * or an organization for which the user is an admin or owner. The `include_readonly`
+ * parameter can be set to true to include the invitations for an organization for
+ * which the user is just a member.
  *
  * @param fdm - The FDM instance providing the connection to the database.
  * @param user_id - The ID of the user to retrieve invitations for.
+ * @param include_readonly - Whether to include the invitations that the user's
+ * organization has received but the user themselves can't accept.
  *
  * @returns A Promise that resolves to an array of pending invitation records.
  */
 export async function listPendingInvitationsForPrincipal(
   fdm: FdmType,
   user_id: string,
-): Promise<authZSchema.invitationTypeSelect[]> {
+  include_readonly = false,
+): Promise<(authZSchema.invitationTypeSelect & { can_accept: boolean })[]> {
   try {
     return await fdm.transaction(async (tx) => {
       const userRecord = await tx
@@ -460,15 +465,16 @@ export async function listPendingInvitationsForPrincipal(
       const userEmail = userRecord[0].email.toLowerCase().trim()
 
       const orgMemberships = await tx
-        .select({ organizationId: authNSchema.member.organizationId })
+        .select({
+          organizationId: authNSchema.member.organizationId,
+          can_invite: inArray(authNSchema.member.role, ["admin", "owner"]),
+        })
         .from(authNSchema.member)
-        .where(
-          and(
-            eq(authNSchema.member.userId, user_id),
-            inArray(authNSchema.member.role, ["admin", "owner"]),
-          ),
+        .where((t) =>
+          and(eq(authNSchema.member.userId, user_id), !include_readonly ? t.can_invite : undefined),
         )
       const orgIds = orgMemberships.map((m: { organizationId: string }) => m.organizationId)
+      const orgMap = new Map(orgMemberships.map((org) => [org.organizationId, org]))
 
       const now = new Date()
 
@@ -495,10 +501,20 @@ export async function listPendingInvitationsForPrincipal(
         )
       }
 
-      return await tx
+      const invitations = await tx
         .select()
         .from(authZSchema.invitation)
         .where(or(...conditions))
+
+      return invitations.map((invitation) => ({
+        ...invitation,
+        can_accept:
+          invitation.target_principal_id === user_id ||
+          invitation.target_email === userEmail ||
+          !!(
+            invitation.target_principal_id && orgMap.get(invitation.target_principal_id)?.can_invite
+          ),
+      }))
     })
   } catch (err) {
     throw handleError(err, "Exception for listPendingInvitationsForPrincipal", {
