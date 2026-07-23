@@ -1,4 +1,5 @@
 export * from "./agent"
+export * from "./agent-availability"
 export * from "./authorization"
 export * from "./blocked-email"
 export * as schemaHelpdesk from "./db/schema-helpdesk"

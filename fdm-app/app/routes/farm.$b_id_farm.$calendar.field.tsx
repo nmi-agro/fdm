@@ -423,6 +423,6 @@ export async function action({ request }: ActionFunctionArgs) {
       message: "Bufferstrook status bijgewerkt.",
     })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
