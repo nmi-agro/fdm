@@ -122,7 +122,7 @@ export function PendingInvitationCard({
                     </>
                 ) : (
                     <div className="text-xs text-muted-foreground">
-                        Een beheerder van de organisatie kan deze uitnodiging
+                        Een beheerder van de organisatie <strong>{invitation.org_name}</strong> kan deze uitnodiging
                         accepteren of weigeren.
                     </div>
                 )}
