@@ -2,6 +2,7 @@ import { getPrincipal, lookupPrincipal } from "@nmi-agro/fdm-core"
 import {
   addMessageFromInboundEmailUnchecked,
   assignTicketToAnAdmin,
+  autoAssignTicket,
   createTicketFromInboundEmail,
   getAssigneesForTicketsUnchecked,
   getMatchingEmailBlock,
@@ -227,8 +228,23 @@ export async function action({ params, request }: Route.ActionArgs) {
       handleActionError(err)
     }
 
+    // Assign the ticket to an agent and send an email to them
     try {
-      const assigned_agent_id = await assignTicketToAnAdmin(fdm, ticket_id)
+      let assigned_agent_id: string | null = null
+
+      // First try to assign based on agent availability
+      try {
+        const auto_assignment_result = await autoAssignTicket(fdm, ticket_id, new Date())
+        assigned_agent_id = auto_assignment_result.assigned ? auto_assignment_result.agent_id : null
+      } catch (autoAssignError) {
+        handleActionError(autoAssignError)
+      }
+
+      // If auto assigning doesn't work due to error or no agent being available, assign to an admin
+      if (!assigned_agent_id) {
+        assigned_agent_id = await assignTicketToAnAdmin(fdm, ticket_id)
+      }
+
       if (assigned_agent_id) {
         const ticket = await getTicket(fdm, assigned_agent_id, ticket_id)
         const messages = await getMessagesForTicket(fdm, assigned_agent_id, ticket_id)

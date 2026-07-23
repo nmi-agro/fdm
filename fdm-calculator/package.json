@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-calculator",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "private": false,
   "description": "Calculate various insights based on the Farm Data Model",
   "homepage": "https://github.com/nmi-agro/fdm",

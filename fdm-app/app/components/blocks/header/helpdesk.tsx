@@ -41,6 +41,14 @@ export function HeaderHelpdesk() {
           <BreadcrumbItem>Inbox</BreadcrumbItem>
         </>
       )}
+      {currentHelpdeskPage === "profile" && (
+        <>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Instellingen</BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Profiel</BreadcrumbItem>
+        </>
+      )}
       {currentHelpdeskPage === "saved_replies" && (
         <>
           <BreadcrumbSeparator />
@@ -55,6 +63,14 @@ export function HeaderHelpdesk() {
           <BreadcrumbItem>Instellingen</BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>Medewerkers</BreadcrumbItem>
+        </>
+      )}
+      {currentHelpdeskPage === "absences" && (
+        <>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Instellingen</BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Afwezigheid</BreadcrumbItem>
         </>
       )}
       {currentHelpdeskPage === "tags" && (

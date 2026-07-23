@@ -21,9 +21,9 @@ import { getMapStyle } from "~/integrations/map"
 import { auth } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import type { Route } from "./+types/organization.$slug.$calendar.measures"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
