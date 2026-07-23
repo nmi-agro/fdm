@@ -20,10 +20,10 @@ import type { ParsedPlan } from "~/components/blocks/gerrit/types"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { fdm } from "~/lib/fdm.server"
 import { countGerritRequestsToday, getGerritDailyLimit } from "~/lib/gerrit-limit.server"
 import { computePlanMetrics, repairTruncatedJson } from "~/lib/gerrit.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import PostHogClient from "~/posthog.server"
 
 export async function loader({ request }: LoaderFunctionArgs) {

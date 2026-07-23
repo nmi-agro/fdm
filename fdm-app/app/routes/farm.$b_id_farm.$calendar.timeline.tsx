@@ -120,7 +120,7 @@ export default function TimelinePage() {
   }, [])
 
   const showMobileView = isMobile || isLandscape
-  const showMobileViewRef = useRef(showMobileView)  
+  const showMobileViewRef = useRef(showMobileView)
   useEffect(() => {
     showMobileViewRef.current = showMobileView
   }, [showMobileView])
