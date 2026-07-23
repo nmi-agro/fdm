@@ -32,11 +32,13 @@ export interface FieldMetrics {
     manure: NormFilling
     nitrogen: NormFilling
     phosphate: NormFilling
+    renure?: NormFilling
   }
   norms: {
     manure: GebruiksnormResult
     nitrogen: GebruiksnormResult
     phosphate: GebruiksnormResult
+    renure?: GebruiksnormResult
   }
   nBalance: Pick<NitrogenBalanceFieldNumeric, "balance" | "target" | "emission"> | null
   omBalance: number | null

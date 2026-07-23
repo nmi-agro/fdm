@@ -574,6 +574,71 @@ describe("tool execute functions", () => {
       )
       expect(result.fertilizers).toHaveLength(1)
     })
+
+    it("should expose p_type_rvo in the returned fertilizer fields", async () => {
+      ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "115" }])
+      const result = await getTool("searchFertilizers").invoke(
+        { b_id_farm: "farm-1" },
+        makeConfigurable(),
+      )
+      expect(result.fertilizers[0].p_type_rvo).toBe("115")
+    })
+
+    it("should exclude Renure products when includeRenure is false for calendar 2026", async () => {
+      ;(getFertilizers as any).mockResolvedValue([
+        { ...mockFertilizer, p_id_catalogue: "fert-mineral", p_type_rvo: "115" },
+        { ...mockFertilizer, p_id_catalogue: "fert-renure", p_type_rvo: "132" },
+      ])
+      const result = await getTool("searchFertilizers").invoke(
+        { b_id_farm: "farm-1" },
+        {
+          configurable: {
+            ...makeConfigurable().configurable,
+            calendar: "2026",
+            includeRenure: false,
+          },
+        },
+      )
+      expect(result.fertilizers.map((f: any) => f.p_id_catalogue)).toEqual(["fert-mineral"])
+    })
+
+    it("should NOT exclude Renure-coded products for years before 2026, even if includeRenure is false", async () => {
+      ;(getFertilizers as any).mockResolvedValue([
+        { ...mockFertilizer, p_id_catalogue: "fert-mineral", p_type_rvo: "115" },
+        { ...mockFertilizer, p_id_catalogue: "fert-renure", p_type_rvo: "132" },
+      ])
+      const result = await getTool("searchFertilizers").invoke(
+        { b_id_farm: "farm-1" },
+        {
+          configurable: {
+            ...makeConfigurable().configurable,
+            calendar: "2025",
+            includeRenure: false,
+          },
+        },
+      )
+      expect(result.fertilizers.map((f: any) => f.p_id_catalogue).sort()).toEqual([
+        "fert-mineral",
+        "fert-renure",
+      ])
+    })
+
+    it("should keep Renure products when includeRenure is true for calendar 2026", async () => {
+      ;(getFertilizers as any).mockResolvedValue([
+        { ...mockFertilizer, p_id_catalogue: "fert-renure", p_type_rvo: "132" },
+      ])
+      const result = await getTool("searchFertilizers").invoke(
+        { b_id_farm: "farm-1" },
+        {
+          configurable: {
+            ...makeConfigurable().configurable,
+            calendar: "2026",
+            includeRenure: true,
+          },
+        },
+      )
+      expect(result.fertilizers).toHaveLength(1)
+    })
   })
 
   // ── getCropFertilizerGuide ────────────────────────────────────────────────
@@ -757,6 +822,34 @@ describe("tool execute functions", () => {
       )
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues.some((i: string) => i.includes("Derogatie"))).toBe(true)
+    })
+
+    it("should report Renure violation when includeRenure is false for calendar 2026", async () => {
+      ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "132" }])
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput({ strategies: { includeRenure: false } }),
+        { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
+      )
+      expect(result.isValid).toBe(false)
+      expect(result.complianceIssues.some((i: string) => i.includes("Renure"))).toBe(true)
+    })
+
+    it("should NOT report a Renure violation for years before 2026, even if includeRenure is false", async () => {
+      ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "132" }])
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput({ strategies: { includeRenure: false } }),
+        { configurable: { ...makeConfigurable().configurable, calendar: "2025" } },
+      )
+      expect(result.complianceIssues.some((i: string) => i.includes("Renure"))).toBe(false)
+    })
+
+    it("should not report a Renure violation when includeRenure is true for calendar 2026", async () => {
+      ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "132" }])
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput({ strategies: { includeRenure: true } }),
+        { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
+      )
+      expect(result.complianceIssues.some((i: string) => i.includes("Renure"))).toBe(false)
     })
 
     it("should warn when nitrogen balance exceeds target", async () => {

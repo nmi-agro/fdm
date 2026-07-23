@@ -55,6 +55,13 @@ export function SummaryCards({
               filling={farmTotals.normsFilling.phosphate}
               norm={farmTotals.norms.phosphate}
             />
+            {farmTotals.norms.renure !== undefined && (
+              <NormBar
+                label="Renure N"
+                filling={farmTotals.normsFilling.renure ?? 0}
+                norm={farmTotals.norms.renure}
+              />
+            )}
             {/* N-balance: agronomic balance vs target */}
             {farmTotals.nBalance && (
               <div className="space-y-1.5 border-t pt-2">

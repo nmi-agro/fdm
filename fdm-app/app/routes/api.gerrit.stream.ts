@@ -62,6 +62,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       url.searchParams.get("keepNitrogenBalanceBelowTarget") === "true",
     workOnRotationLevel: url.searchParams.get("workOnRotationLevel") === "true",
     isDerogation: url.searchParams.get("isDerogation") === "true",
+    includeRenure: url.searchParams.get("includeRenure") === "true",
   }
   const additionalContext = url.searchParams.get("additionalContext") || ""
   const modelName = url.searchParams.get("geminiModel") || "gemini-3.5-flash"

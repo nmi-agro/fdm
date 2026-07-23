@@ -30,6 +30,18 @@ interface AdviceArgs {
   b_ids: string[]
 }
 
+/**
+ * RVO mestcodes for Renure ("REcovered Nitrogen from manURE") products: processed
+ * animal-manure fractions that behave like artificial fertilizer and are exempt
+ * from the 170 kg N/ha dierlijke-mest ceiling from 2026 onwards, but count fully
+ * toward the total-N and phosphate norms (capped at their own 80 kg N/ha norm).
+ */
+const RENURE_RVO_CODES = ["130", "131", "132", "133", "134"]
+
+function isRenureRvoCode(p_type_rvo?: string | null): boolean {
+  return !!p_type_rvo && RENURE_RVO_CODES.includes(p_type_rvo)
+}
+
 export function isValidDutchCropCatalogue(b_lu_catalogue: string | null | undefined) {
   return /^nl_\d+$/.test(b_lu_catalogue ?? "")
 }
@@ -273,6 +285,17 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         results = results.filter((f) => allowedIds.includes(f.p_id_catalogue))
       }
 
+      // Exclude Renure products (RVO mestcodes 130-134) when the user has explicitly opted out
+      // of using them for this plan. Only meaningful from calendar year 2026 onwards — before
+      // then, these codes are legally just regular animal manure with no separate Renure
+      // classification, so the toggle must never filter them out for earlier years.
+      const includeRenure = config?.configurable?.includeRenure as boolean | undefined
+      const calendarForRenure =
+        (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
+      if (includeRenure === false && Number.parseInt(calendarForRenure, 10) >= 2026) {
+        results = results.filter((f) => !isRenureRvoCode(f.p_type_rvo))
+      }
+
       if (args.p_type) {
         results = results.filter((f) => f.p_type === args.p_type)
       }
@@ -292,6 +315,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
           p_id_catalogue: f.p_id_catalogue,
           p_name_nl: f.p_name_nl,
           p_type: f.p_type,
+          p_type_rvo: f.p_type_rvo,
           p_app_method_options: f.p_app_method_options || [],
           p_n_rt: f.p_n_rt,
           p_n_wc: f.p_n_wc,
@@ -723,6 +747,21 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         }
       }
 
+      if (args.strategies?.includeRenure === false && Number.parseInt(calendar, 10) >= 2026) {
+        for (const field of args.fields) {
+          for (const app of field.applications) {
+            const fert = fertilizers.find(
+              (f: Fertilizer) => f.p_id_catalogue === app.p_id_catalogue,
+            )
+            if (isRenureRvoCode(fert?.p_type_rvo)) {
+              complianceIssues.push(
+                `Strategie-overtreding (Renure): Plan bevat een Renure-product (${fert?.p_id_catalogue} op perceel ${field.b_id}, RVO mestcode ${fert?.p_type_rvo}), terwijl de strategie "Renure-producten overwegen" op NEE staat.`,
+              )
+            }
+          }
+        }
+      }
+
       if (args.strategies?.keepNitrogenBalanceBelowTarget) {
         if (
           farmNBalance.balance &&
@@ -883,6 +922,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
             keepNitrogenBalanceBelowTarget: z.boolean().optional(),
             workOnRotationLevel: z.boolean().optional(),
             isDerogation: z.boolean().optional(),
+            includeRenure: z.boolean().optional(),
           })
           .optional()
           .describe("Door de gebruiker in te stellen strategieën voor waarschuwingen"),
@@ -1034,6 +1074,7 @@ interface SimulationArgs {
     keepNitrogenBalanceBelowTarget?: boolean
     workOnRotationLevel?: boolean
     isDerogation?: boolean
+    includeRenure?: boolean
   }
   fields: SimulationField[]
 }

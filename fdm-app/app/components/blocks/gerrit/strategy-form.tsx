@@ -23,6 +23,7 @@ interface FertilizerOption {
   p_id_catalogue: string
   p_name_nl: string
   p_type: "manure" | "mineral" | "compost"
+  p_type_rvo?: string | null
 }
 
 interface StrategyFormProps {
@@ -44,6 +45,7 @@ export function StrategyForm({
 }: StrategyFormProps) {
   const additionalContextLength = additionalContextValue?.length ?? 0
   const showDerogation = Number.parseInt(calendar, 10) < 2026
+  const showRenure = Number.parseInt(calendar, 10) >= 2026
   const [fertOpen, setFertOpen] = useState(false)
   const [fertSearch, setFertSearch] = useState("")
 
@@ -92,6 +94,31 @@ export function StrategyForm({
     if (fertError) setFertOpen(true)
   }, [fertError])
 
+  const includeRenure = form.watch("includeRenure")
+
+  useEffect(() => {
+    const renureCodes = ["130", "131", "132", "133", "134"]
+    if (includeRenure === false) {
+      const currentSelected = (form.getValues("selectedFertilizerIds") as string[] | undefined) ?? allIds
+      const filtered = currentSelected.filter((id) => {
+        const fert = fertilizerOptions.find((f) => f.p_id_catalogue === id)
+        return !fert?.p_type_rvo || !renureCodes.includes(fert.p_type_rvo)
+      })
+      if (filtered.length !== currentSelected.length) {
+        form.setValue("selectedFertilizerIds" as any, filtered as any, { shouldDirty: true })
+      }
+    } else {
+      const currentSelected = (form.getValues("selectedFertilizerIds") as string[] | undefined) ?? allIds
+      const renureProductIds = fertilizerOptions
+        .filter((f) => f.p_type_rvo && renureCodes.includes(f.p_type_rvo))
+        .map((f) => f.p_id_catalogue)
+      const newSelected = [...new Set([...currentSelected, ...renureProductIds])]
+      if (newSelected.length !== currentSelected.length) {
+        form.setValue("selectedFertilizerIds" as any, newSelected as any, { shouldDirty: true })
+      }
+    }
+  }, [includeRenure, form, allIds, fertilizerOptions])
+
   return (
     <Card className="sticky top-6 h-fit">
       <CardHeader>
@@ -119,8 +146,13 @@ export function StrategyForm({
                 "keepNitrogenBalanceBelowTarget",
                 "workOnRotationLevel",
                 "isDerogation",
+                "includeRenure",
               ]
-                .filter((name) => name !== "isDerogation" || showDerogation)
+                .filter((name) => {
+                  if (name === "isDerogation") return showDerogation
+                  if (name === "includeRenure") return showRenure
+                  return true
+                })
                 .map((name) => (
                   <div key={name} className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
@@ -139,6 +171,8 @@ export function StrategyForm({
                           "Percelen met hetzelfde gewas krijgen dezelfde bemesting."}
                         {name === "isDerogation" &&
                           "Geen gebruik van fosfaathoudende minerale meststoffen."}
+                        {name === "includeRenure" &&
+                          "Renure-producten overwegen in het bemestingsplan."}
                       </p>
                     </div>
                     <Controller

@@ -318,6 +318,15 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                         fill: normsFilling.phosphate?.normFilling ?? 0,
                                         norm: norms.phosphate?.normValue ?? 0,
                                       },
+                                      ...(norms.renure !== undefined
+                                        ? [
+                                            {
+                                              label: "Renure N",
+                                              fill: normsFilling.renure?.normFilling ?? 0,
+                                              norm: norms.renure?.normValue ?? 0,
+                                            },
+                                          ]
+                                        : []),
                                     ].map(({ label, fill, norm }) => (
                                       <div key={label} className="space-y-1">
                                         <div className="flex justify-between text-xs">
