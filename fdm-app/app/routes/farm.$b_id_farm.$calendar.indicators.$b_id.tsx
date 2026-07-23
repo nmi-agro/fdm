@@ -52,9 +52,9 @@ import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { type Ecosysteemdienst, INDICATORS, scoreToDisplay } from "~/lib/indicators"
 
 const FieldMap = lazy(() => import("~/components/blocks/indicators/field-map"))
