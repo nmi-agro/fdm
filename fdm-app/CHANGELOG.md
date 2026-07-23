@@ -1,5 +1,19 @@
 # Changelog fdm-app
 
+## 0.34.0
+
+### Minor Changes
+
+- [#711](https://github.com/nmi-agro/fdm/pull/711) [`845197e`](https://github.com/nmi-agro/fdm/commit/845197e28776b331f6d44e0eb64dc144e786f8f3) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now users are able to see farm invitations for their organization even if they are just a member. This is handled through the new `include_readonly` flag that can be passed to the fdm-core `listPendingInvitationsForUser` and `listPendingInvitationsForPrincipal` methods. In fdm-app the users see no accept and decline buttons, and a message that says their admin can accept or decline the invitation, if they can't accept or decline the invitation themselves.
+
+### Patch Changes
+
+- Updated dependencies [[`845197e`](https://github.com/nmi-agro/fdm/commit/845197e28776b331f6d44e0eb64dc144e786f8f3)]:
+  - @nmi-agro/fdm-core@0.35.0
+  - @nmi-agro/fdm-agents@0.4.2
+  - @nmi-agro/fdm-calculator@0.17.1
+  - @nmi-agro/fdm-rvo@0.3.1
+
 ## 0.33.2
 
 ### Patch Changes
