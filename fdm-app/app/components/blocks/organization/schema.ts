@@ -16,7 +16,7 @@ function isValidSlug(slug: string): boolean {
   return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)
 }
 
-export const FormSchema = z.object({
+export const OrganizationInfoFields = {
   name: z
     .string({
       error: (issue) =>
@@ -36,4 +36,6 @@ export const FormSchema = z.object({
       error: "ID moet minimaal 3 karakters bevatten, enkel kleine letters, cijfers of '-'",
     }),
   description: z.string({}).optional(),
-})
+}
+
+export const OrganizationInfoSchema = z.object(OrganizationInfoFields)

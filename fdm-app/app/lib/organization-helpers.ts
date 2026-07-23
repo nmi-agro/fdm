@@ -2,6 +2,7 @@ import type { Organization } from "better-auth/plugins"
 
 export interface OrganizationMetadata {
   description?: string | undefined
+  image?: string | undefined
 }
 
 export type ParseOrganizationMetadataResult = ReturnType<typeof parseOrganizationMetadata>

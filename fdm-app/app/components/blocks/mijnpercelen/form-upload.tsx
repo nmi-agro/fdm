@@ -238,6 +238,7 @@ export function MijnPercelenUploadForm({
                               onBlur={onBlur}
                               onFilesChange={handleFilesSet}
                               className={cn(
+                                "h-32",
                                 hasAllRequiredFiles && "border-green-500 bg-green-50",
                                 uploadState === "error" && "border-red-500 bg-red-50",
                                 uploadState === "success" && "border-green-500 bg-green-50",
