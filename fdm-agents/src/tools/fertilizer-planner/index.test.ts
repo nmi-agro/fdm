@@ -826,6 +826,18 @@ describe("tool execute functions", () => {
 
     it("should report Renure violation when includeRenure is false for calendar 2026", async () => {
       ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "132" }])
+      ;(aggregateNormsToFarmLevel as any).mockReturnValue({
+        manure: 1700,
+        nitrogen: 2300,
+        phosphate: 800,
+        renure: 800,
+      })
+      ;(aggregateNormFillingsToFarmLevel as any).mockReturnValue({
+        manure: 100,
+        nitrogen: 200,
+        phosphate: 50,
+        renure: 100,
+      })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { includeRenure: false } }),
         { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
@@ -836,6 +848,16 @@ describe("tool execute functions", () => {
 
     it("should NOT report a Renure violation for years before 2026, even if includeRenure is false", async () => {
       ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "132" }])
+      ;(aggregateNormsToFarmLevel as any).mockReturnValue({
+        manure: 1700,
+        nitrogen: 2300,
+        phosphate: 800,
+      })
+      ;(aggregateNormFillingsToFarmLevel as any).mockReturnValue({
+        manure: 100,
+        nitrogen: 200,
+        phosphate: 50,
+      })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { includeRenure: false } }),
         { configurable: { ...makeConfigurable().configurable, calendar: "2025" } },
@@ -845,11 +867,45 @@ describe("tool execute functions", () => {
 
     it("should not report a Renure violation when includeRenure is true for calendar 2026", async () => {
       ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "132" }])
+      ;(aggregateNormsToFarmLevel as any).mockReturnValue({
+        manure: 1700,
+        nitrogen: 2300,
+        phosphate: 800,
+        renure: 800,
+      })
+      ;(aggregateNormFillingsToFarmLevel as any).mockReturnValue({
+        manure: 100,
+        nitrogen: 200,
+        phosphate: 50,
+        renure: 500,
+      })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { includeRenure: true } }),
         { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
       )
       expect(result.complianceIssues.some((i: string) => i.includes("Renure"))).toBe(false)
+    })
+
+    it("should report Renure ceiling violation when filling exceeds norm", async () => {
+      ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "132" }])
+      ;(aggregateNormsToFarmLevel as any).mockReturnValue({
+        manure: 1700,
+        nitrogen: 2300,
+        phosphate: 800,
+        renure: 800,
+      })
+      ;(aggregateNormFillingsToFarmLevel as any).mockReturnValue({
+        manure: 100,
+        nitrogen: 200,
+        phosphate: 50,
+        renure: 900, // exceeds 800!
+      })
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput({ strategies: { includeRenure: true } }),
+        { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
+      )
+      expect(result.isValid).toBe(false)
+      expect(result.complianceIssues.some((i: string) => i.includes("Wettelijke normoverschrijding (Renure stikstof)"))).toBe(true)
     })
 
     it("should warn when nitrogen balance exceeds target", async () => {

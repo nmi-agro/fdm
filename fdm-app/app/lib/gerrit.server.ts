@@ -181,7 +181,9 @@ export async function computePlanMetrics(
               fillingFuncs.calculateFertilizerApplicationFillingForPhosphate(fdm, fillingInput),
             ),
             year === "2026"
-              ? (fillingFuncs as any).calculateFertilizerApplicationFillingForRenure(fdm, fillingInput)
+              ? Promise.resolve(
+                  createFunctionsForFertilizerApplicationFilling("NL", "2026").calculateFertilizerApplicationFillingForRenure(fdm, fillingInput)
+                )
               : Promise.resolve(undefined),
           ])
           manureFilling = manureResult

@@ -97,6 +97,7 @@ export function StrategyForm({
   const includeRenure = form.watch("includeRenure")
 
   useEffect(() => {
+    if (!showRenure) return
     const renureCodes = ["130", "131", "132", "133", "134"]
     if (includeRenure === false) {
       const currentSelected = (form.getValues("selectedFertilizerIds") as string[] | undefined) ?? allIds
@@ -107,17 +108,8 @@ export function StrategyForm({
       if (filtered.length !== currentSelected.length) {
         form.setValue("selectedFertilizerIds" as any, filtered as any, { shouldDirty: true })
       }
-    } else {
-      const currentSelected = (form.getValues("selectedFertilizerIds") as string[] | undefined) ?? allIds
-      const renureProductIds = fertilizerOptions
-        .filter((f) => f.p_type_rvo && renureCodes.includes(f.p_type_rvo))
-        .map((f) => f.p_id_catalogue)
-      const newSelected = [...new Set([...currentSelected, ...renureProductIds])]
-      if (newSelected.length !== currentSelected.length) {
-        form.setValue("selectedFertilizerIds" as any, newSelected as any, { shouldDirty: true })
-      }
     }
-  }, [includeRenure, form, allIds, fertilizerOptions])
+  }, [includeRenure, showRenure, form, allIds, fertilizerOptions])
 
   return (
     <Card className="sticky top-6 h-fit">

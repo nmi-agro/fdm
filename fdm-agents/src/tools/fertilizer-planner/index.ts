@@ -441,10 +441,13 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               principalId,
               fieldData.b_id,
             )
-            const [manure, phosphate, nitrogen] = await Promise.all([
+            const [manure, phosphate, nitrogen, renure] = await Promise.all([
               normFuncs.calculateNormForManure(fdm, normsInput as any),
               normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
               normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
+              Number.parseInt(calendar, 10) >= 2026 && (normFuncs as any).calculateNormForRenure
+                ? (normFuncs as any).calculateNormForRenure(fdm, normsInput as any)
+                : Promise.resolve(undefined),
             ])
 
             // Calculate norm fillings using the proper Dutch regulatory logic
@@ -461,7 +464,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               ...collectedFillingInput,
               applications: proposedApps,
             }
-            const [manureFilling, nitrogenFilling, phosphateFilling] = await Promise.all([
+            const [manureFilling, nitrogenFilling, phosphateFilling, renureFilling] = await Promise.all([
               Promise.resolve(
                 fillFuncs.calculateFertilizerApplicationFillingForManure(fillingInput),
               ),
@@ -469,6 +472,9 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               Promise.resolve(
                 fillFuncs.calculateFertilizerApplicationFillingForPhosphate(fillingInput),
               ),
+              Number.parseInt(calendar, 10) >= 2026 && (fillFuncs as any).calculateFertilizerApplicationFillingForRenure
+                ? (fillFuncs as any).calculateFertilizerApplicationFillingForRenure(fillingInput)
+                : Promise.resolve(undefined),
             ])
 
             // Calculate organic matter balance using proposed applications.
@@ -565,12 +571,14 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
                   manure: manureFilling,
                   nitrogen: nitrogenFilling,
                   phosphate: phosphateFilling,
+                  renure: renureFilling,
                 },
                 // Structured for aggregateNormsToFarmLevel
                 norms: {
                   manure,
                   nitrogen,
                   phosphate,
+                  renure,
                 },
                 // Proposed nutrient dose (kg/ha) for comparison with
                 // nutrient advice. p_dose_nw (workable N) is the correct
@@ -626,15 +634,18 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
           .map(async (f) => {
             try {
               const normsInput = await normFuncs.collectInputForNorms(fdm, principalId, f.b_id)
-              const [manure, phosphate, nitrogen] = await Promise.all([
+              const [manure, phosphate, nitrogen, renure] = await Promise.all([
                 normFuncs.calculateNormForManure(fdm, normsInput as any),
                 normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
                 normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
+                Number.parseInt(calendar, 10) >= 2026 && (normFuncs as any).calculateNormForRenure
+                  ? (normFuncs as any).calculateNormForRenure(fdm, normsInput as any)
+                  : Promise.resolve(undefined),
               ])
               return {
                 b_id: f.b_id,
                 b_area: f.b_area as number,
-                norms: { manure, phosphate, nitrogen },
+                norms: { manure, phosphate, nitrogen, renure },
               }
             } catch {
               failedNormFields.push(f.b_id)
@@ -714,6 +725,17 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         const excess = Math.round(farmFillingsKg.phosphate - farmNormsKg.phosphate)
         complianceIssues.push(
           `Wettelijke normoverschrijding (Fosfaat): Bedrijf overschrijdt de grens met ${excess} kg P2O5. Totaal toegediend: ${farmFillingsKg.phosphate} kg, Grens: ${farmNormsKg.phosphate} kg.`,
+        )
+      }
+
+      if (
+        Number.parseInt(calendar, 10) >= 2026 &&
+        farmNormsKg.renure !== undefined &&
+        farmFillingsKg.renure > farmNormsKg.renure
+      ) {
+        const excess = Math.round(farmFillingsKg.renure - farmNormsKg.renure)
+        complianceIssues.push(
+          `Wettelijke normoverschrijding (Renure stikstof): Bedrijf overschrijdt de grens met ${excess} kg N. Totaal toegediend: ${farmFillingsKg.renure} kg, Grens: ${farmNormsKg.renure} kg.`,
         )
       }
 

@@ -21,7 +21,7 @@ export const FERTILIZER_KIND_COLOR: Record<FertilizerKind, string> = {
 }
 
 export function getFertilizerKindColor(
-  p_type: "manure" | "mineral" | "compost" | "renure" | null | undefined,
+  p_type: FertilizerKind | null | undefined,
 ): string {
   return FERTILIZER_KIND_COLOR[p_type ?? "other"]
 }

@@ -337,7 +337,7 @@ const FertilizerApplicationCard = ({
             "Stikstof uit dierlijke mest",
             applicationFilling.manure,
           )}
-          {showRenure && (
+          {showRenure && applicationFilling.renure && (
             <>
               <ItemSeparator />
               {renderApplicationContributionForNorm("Renure", applicationFilling.renure)}

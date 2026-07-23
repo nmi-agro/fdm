@@ -12,6 +12,7 @@ import {
   EVENT_TYPE_COLOR,
   getFertilizerKindColor,
 } from "~/components/blocks/timeline/timeline-colors"
+import { isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
 import {
   filterEventsByType,
   flattenEvents,
@@ -56,8 +57,10 @@ function hexToRgba(hex: string, alpha: number): string {
 
 function eventColor(event: TimelineEvent): string {
   switch (event.type) {
-    case "fertilizer":
-      return getFertilizerKindColor(event.p_type)
+    case "fertilizer": {
+      const isRenure = isRenureRvoCode(event.p_type_rvo)
+      return getFertilizerKindColor(isRenure ? "renure" : event.p_type)
+    }
     case "harvest":
       return EVENT_TYPE_COLOR.harvest
     case "soil_sampling":
