@@ -9,6 +9,7 @@ import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -92,10 +93,10 @@ export function CreateSavedReplyDialog({
         </Button>
       </makeSavedReplyFetcher.Form>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="space-y-4 sm:max-w-lg">
+        <DialogContent className="max-h-screen overflow-y-auto sm:max-w-xl">
           <RemixFormProvider {...form}>
             <Form method="post" onSubmit={form.handleSubmit}>
-              <fieldset disabled={isSubmitting} className="space-y-4">
+              <fieldset disabled={isSubmitting} className="space-y-4 py-4">
                 <DialogHeader>
                   <DialogTitle>Nieuwe sjabloon</DialogTitle>
                   <DialogDescription>
@@ -131,7 +132,7 @@ export function CreateSavedReplyDialog({
                         &#123;&#123;ticket_ref&#125;&#125; kunnen als plaatsaanduidingen voor de
                         corresponderende waarden worden gebruikt.
                       </FieldDescription>
-                      <Textarea {...field} />
+                      <Textarea {...field} rows={10} placeholder="Schrijf hier de sjabloontext." />
                       {fieldState.error ? <FieldError errors={[fieldState.error]} /> : undefined}
                     </Field>
                   )}
@@ -148,6 +149,9 @@ export function CreateSavedReplyDialog({
                 />
               </fieldset>
               <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Sluiten</Button>
+                </DialogClose>
                 <Button type="submit" disabled={isSubmitting}>
                   Opslaan
                   {isSubmitting && <Spinner />}

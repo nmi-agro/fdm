@@ -24,7 +24,7 @@ export function SavedReplyEditor({
   const isSubmitting = fetcher.state !== "idle"
 
   const [savedReplyContext, setSavedReplyContext] = useState<FdmSavedReplyContext>({
-    agent_name: "Agent Smith",
+    agent_name: "Smith",
     customer_name: "John Doe",
     farm_name: "Boerderij",
     ticket_ref: "TK-1B57C9",
@@ -89,7 +89,7 @@ export function SavedReplyEditor({
                         &#123;&#123;ticket_ref&#125;&#125; kunnen als plaatsaanduidingen voor de
                         corresponderende waarden worden gebruikt.
                       </FieldDescription>
-                      <Textarea {...field} />
+                      <Textarea {...field} rows={10} placeholder="Schrijf hier de sjabloontext." />
                       {fieldState.error ? <FieldError errors={[fieldState.error]} /> : undefined}
                     </Field>
                   )}

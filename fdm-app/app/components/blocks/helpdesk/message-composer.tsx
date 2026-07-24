@@ -40,6 +40,7 @@ export function MessageComposer({
   showAgentControls,
   savedReplies,
   savedReplyContext,
+  initialRows = 10,
   defaultValues = { ...formDefaultValues },
   className,
 }: {
@@ -48,6 +49,7 @@ export function MessageComposer({
   showAgentControls?: boolean
   savedReplies?: SavedReplySummary[]
   savedReplyContext?: SavedReplyContext
+  initialRows?: number
   defaultValues?: z.infer<typeof MessageSchema>
   className?: string
 }) {
@@ -223,6 +225,7 @@ export function MessageComposer({
                       className="bg-card"
                       id={messageInputId}
                       placeholder={"Schrijf uw bericht hier..."}
+                      rows={initialRows}
                     />
                     <FieldDescription>
                       {showAgentControls

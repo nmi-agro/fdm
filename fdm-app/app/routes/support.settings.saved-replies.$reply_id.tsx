@@ -15,7 +15,7 @@ import { Route } from "./+types/support.settings.saved-replies.$reply_id"
 export const meta: Route.MetaFunction = () => {
   return [
     {
-      title: `Opgeslagde Antwoord Beheren - Ondersteuning | ${clientConfig.name}`,
+      title: `Opgeslagen reacties beheren - Ondersteuning | ${clientConfig.name}`,
     },
     {
       name: "description",
