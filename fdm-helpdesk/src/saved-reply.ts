@@ -259,6 +259,44 @@ const punct = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
   .map((x) => `\\${x}`)
   .join("")
 
+const savedReplyWordPattern = `([^\\s${punct}]+)`
+const savedReplySeparatorPattern = `(?:\\s|[${punct}])+`
+const maxSavedReplyRegexParts = 128
+const maxSavedReplyRegexPatternLength = 4096
+
+/**
+ * Builds the regex to match a given substitution value in the message body that is converted to a template.
+ *
+ * It tries to ignore whitespace differences and some punctuation in the source text, sometimes yielding more
+ * matches than just exact matching would.
+ *
+ * @param value The value to build the substitution regex for.
+ * @returns A RegExp object if successful, or null if the value cannot be used to build a regex.
+ */
+function buildSavedReplySubstitutionRegex(value: string): RegExp | null {
+  // If the matched expression is like Hello, World, it should match something like Hello\nworld too.
+  const parts = value.toLowerCase().match(new RegExp(savedReplyWordPattern, "ig"))
+  if (!parts) {
+    return null
+  }
+
+  const normalizedParts = parts.filter((x) => x.trim().length > 0)
+  if (normalizedParts.length === 0 || normalizedParts.length > maxSavedReplyRegexParts) {
+    return null
+  }
+
+  const pattern = normalizedParts.join(savedReplySeparatorPattern)
+  if (pattern.length > maxSavedReplyRegexPatternLength) {
+    return null
+  }
+
+  try {
+    return new RegExp(pattern, "ig")
+  } catch {
+    return null
+  }
+}
+
 /**
  * Replaces values found in the saved reply context with saved reply substitution points eagerly using regular
  * expressions.
@@ -277,21 +315,16 @@ export function makeSavedReplyBodySimple(replyBody: string, context: SavedReplyC
   const entries = Object.entries(context)
     .filter((a) => a[1] && a[1].trim().length > 1)
     .map(([expr, value]) => {
-      const re = `([^\\s${punct}]+)`
-      // If the matched expression is like Hello, World, it should match something like Hello\nworld too.
-      const parts = (value as string).toLowerCase().match(new RegExp(re, "ig"))
-      if (!parts) return [expr, null]
-      const regExp = parts.filter((x) => x.trim().length > 0).join(`(\\s|\\n|[${punct}])+`)
-      return [expr, regExp]
+      return [expr, buildSavedReplySubstitutionRegex(value as string)]
     })
-    .filter((a) => a[1] !== null) as [string, string][]
+    .filter((a) => a[1] !== null) as [string, RegExp][]
 
   // Try to find the longest substitutions first
-  entries.sort((a, b) => b[1].length - a[1].length)
+  entries.sort((a, b) => b[1].source.length - a[1].source.length)
 
   let result = replyBody
   for (const [expr, regExp] of entries) {
-    result = result.replaceAll(new RegExp(regExp, "ig"), `{{${expr}}}`)
+    result = result.replaceAll(regExp, `{{${expr}}}`)
   }
 
   return result
@@ -315,7 +348,7 @@ export function applySavedReply(replyBody: string, context: SavedReplyContext): 
     }
     let result = replyBody
     for (const expr in context) {
-      result = result.replaceAll(`{{${expr}}}`, context[expr] ?? `{{${expr}}}`)
+      result = result.replaceAll(`{{${expr}}}`, () => context[expr] ?? `{{${expr}}}`)
     }
     return result
   } catch (err) {

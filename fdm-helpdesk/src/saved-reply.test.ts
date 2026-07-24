@@ -213,7 +213,7 @@ describe("updateSavedReply", () => {
       updateSavedReply(
         fdm,
         other_agent_id,
-        private_reply_id,
+        shared_reply_id,
         "Greeting to the World",
         "Hello, world",
         "humanitarian",
@@ -441,6 +441,17 @@ Sincerely,
     const message = "This is an invalid key: "
 
     expect(() => makeSavedReplyBodySimple(message, context)).toThrow()
+  })
+
+  test("should skip oversized substitution patterns and keep valid substitutions", () => {
+    const context = {
+      customer_name: "Jane Doe",
+      too_long: Array.from({ length: 200 }, (_, i) => `part${i}`).join(" "),
+    }
+
+    const message = "Hello Jane Doe"
+
+    expect(makeSavedReplyBodySimple(message, context)).toBe("Hello {{customer_name}}")
   })
 })
 
