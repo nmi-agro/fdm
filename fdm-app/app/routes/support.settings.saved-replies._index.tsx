@@ -82,7 +82,7 @@ export async function action({ request }: Route.ActionArgs) {
       await deleteSavedReply(fdm, session.principal_id, formValues.reply_id)
 
       return dataWithSuccess(null, {
-        message: "Opgeslagen antwoord is succesvol verwijderd!",
+        message: "Opgeslagen reactie is succesvol verwijderd!",
       })
     }
   } catch (err) {

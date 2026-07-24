@@ -99,7 +99,12 @@ export function SavedReplyEditor({
                   render={({ field, fieldState }) => (
                     <Field orientation="horizontal">
                       <FieldLabel>Deel met andere medewerkers</FieldLabel>
-                      <Checkbox {...field} />
+                      <Checkbox
+                        name={field.name}
+                        onBlur={field.onBlur}
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
                       {fieldState.error ? <FieldError errors={[fieldState.error]} /> : undefined}
                     </Field>
                   )}

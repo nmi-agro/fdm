@@ -5,7 +5,7 @@ import { SavedReplyEditor } from "~/components/blocks/helpdesk/saved-reply-edito
 import { CreateSavedReplySchema } from "~/components/blocks/helpdesk/saved-reply-schema"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { Route } from "./+types/support.settings.saved-replies.new"
@@ -14,11 +14,11 @@ import { Route } from "./+types/support.settings.saved-replies.new"
 export const meta: Route.MetaFunction = () => {
   return [
     {
-      title: `Nieuw Opgeslagen Antwoord - Ondersteuning | ${clientConfig.name}`,
+      title: `Nieuwe opgeslagen reactie - Ondersteuning | ${clientConfig.name}`,
     },
     {
       name: "description",
-      content: "Bekijk de beschikbare tags voor ondersteuningstickets.",
+      content: "Bekijk de beschikbare opgeslagen reacties voor ondersteuningstickets.",
     },
   ]
 }
@@ -59,7 +59,7 @@ export async function action({ request }: Route.ActionArgs) {
       message: "Het sjabloon is succesvol aangemaakt! 🎉",
     })
   } catch (err) {
-    throw handleLoaderError(err)
+    throw handleActionError(err)
   }
 }
 

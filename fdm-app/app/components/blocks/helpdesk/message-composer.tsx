@@ -1,6 +1,6 @@
+import type { SavedReplyContext, SavedReplySummary } from "@nmi-agro/fdm-helpdesk"
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { SavedReplyContext, SavedReplySummary } from "@nmi-agro/fdm-helpdesk"
 import { useEffect, useId, useRef } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { useFetcher } from "react-router"
@@ -184,7 +184,7 @@ export function MessageComposer({
             </fieldset>
           }
         >
-          <fieldset disabled={isSubmitting} className="space-y-4">
+          <fieldset disabled={isDisabled} className="space-y-4">
             {savedReplies && savedReplies.length > 0 ? (
               <Field orientation="horizontal">
                 <FieldLabel>Gebruik een sjabloon: </FieldLabel>

@@ -6,7 +6,7 @@ import { SavedReplyEditor } from "~/components/blocks/helpdesk/saved-reply-edito
 import { CreateSavedReplySchema } from "~/components/blocks/helpdesk/saved-reply-schema"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { Route } from "./+types/support.settings.saved-replies.$reply_id"
@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
     },
     {
       name: "description",
-      content: "Bekijk de beschikbare opgeslagen antwoorden voor ondersteuningsreacties.",
+      content: "Bekijk de beschikbare opgeslagen reacties voor ondersteuningsreacties.",
     },
   ]
 }
@@ -64,7 +64,7 @@ export async function action({ params, request }: Route.ActionArgs) {
       message: "Het sjabloon is bijgewerkt.",
     })
   } catch (err) {
-    throw handleLoaderError(err)
+    throw handleActionError(err)
   }
 }
 
@@ -74,7 +74,9 @@ export default function ExistingSavedReply() {
   return (
     <>
       <FarmTitle
-        title="Sjabloon bijwerken"
+        title={
+          savedReplyWritePermission ? "Opgeslagen reactie bijwerken" : "Opgeslagen reactie bekijken"
+        }
         description={`Hier kun je de titel, tekst en andere instellingen van het sjabloon ${savedReplyWritePermission ? "bijwerken" : "bekijken"}.`}
       />
       <SavedReplyEditor reply={savedReply} canModify={savedReplyWritePermission} />

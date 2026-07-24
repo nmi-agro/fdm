@@ -1,6 +1,6 @@
 import type { SavedReplySummary } from "@nmi-agro/fdm-helpdesk"
 import { Pencil, Trash2 } from "lucide-react"
-import { Form, NavLink, useFetcher } from "react-router"
+import { NavLink, useFetcher } from "react-router"
 import { cn } from "@/app/lib/utils"
 import {
   AlertDialog,
@@ -165,7 +165,7 @@ export function SavedReplyRow({ savedReply, canModify, principalLookup }: SavedR
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel disabled={isSubmitting}>Annuleren</AlertDialogCancel>
-                <Form method="POST">
+                <fetcher.Form method="POST">
                   <input type="hidden" name="reply_id" value={savedReply.reply_id} />
                   <Button
                     type="submit"
@@ -184,7 +184,7 @@ export function SavedReplyRow({ savedReply, canModify, principalLookup }: SavedR
                       "Verwijderen"
                     )}
                   </Button>
-                </Form>
+                </fetcher.Form>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

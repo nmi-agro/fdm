@@ -60,7 +60,7 @@ export function CreateSavedReplyDialog({
     if (navigation.state === "loading") {
       setDialogOpen(false)
     }
-  })
+  }, [navigation.state])
 
   useEffect(() => {
     if (typeof makeSavedReplyFetcher.data?.body === "string") {
@@ -142,7 +142,12 @@ export function CreateSavedReplyDialog({
                   render={({ field, fieldState }) => (
                     <Field orientation="horizontal">
                       <FieldLabel>Deel met andere medewerkers</FieldLabel>
-                      <Checkbox {...field} />
+                      <Checkbox
+                        name={field.name}
+                        onBlur={field.onBlur}
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
                       {fieldState.error ? <FieldError errors={[fieldState.error]} /> : undefined}
                     </Field>
                   )}
