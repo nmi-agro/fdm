@@ -267,7 +267,7 @@ export const typeRvoOptions = [
   {
     value: "120",
     label:
-      "Mineralenconcentraat (alleen geldig voor 2025 en eerder; Kies Renure-variant voor 2026 en later",
+      "Mineralenconcentraat (alleen geldig voor 2025 en eerder; Kies Renure-variant voor 2026 en later)",
   },
   { value: "130", label: "Ammoniumsulfaat (Renure)" },
   { value: "131", label: "Ammoniumnitraat (Renure)" },
