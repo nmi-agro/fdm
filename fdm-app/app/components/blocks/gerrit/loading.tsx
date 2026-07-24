@@ -1,8 +1,30 @@
-import { Bot, Check, ChevronDown, Circle, Sparkles } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  BookOpenText,
+  Bot,
+  Calculator,
+  Check,
+  Search,
+  Landmark,
+  Shapes,
+  Sparkles,
+  Sprout,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react"
+import {
+  type RefObject,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { Badge } from "~/components/ui/badge"
+import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { Progress } from "~/components/ui/progress"
+import { Marker, MarkerContent, MarkerIcon } from "~/components/ui/marker"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
@@ -11,166 +33,132 @@ interface StreamEvent {
   data: any
 }
 
-type PhaseStatus = "pending" | "active" | "done"
+// Tool name → Dutch label (replaces the PHASES array for label lookup only)
+export const TOOL_LABELS: Record<string, { name: string; icon: typeof Check }> = {
+  getFarmFields: { name: "Gegevens verzamelen", icon: Search },
+  getCropFertilizerGuide: { name: "Teelthandleiding raadplegen", icon: Sprout },
+  getFarmNutrientAdvice: { name: "Bemestingsadvies ophalen", icon: BookOpenText },
+  getFarmLegalNorms: { name: "Wettelijke normen berekenen", icon: Landmark },
+  searchFertilizers: { name: "Meststoffen zoeken", icon: Shapes },
+  simulateFarmPlan: { name: "Plan doorrekenen", icon: Calculator },
+}
+
+type TimelineEntry =
+  | { kind: "status"; id: string; label: string }
+  | {
+      kind: "tool"
+      id: string
+      toolName: string
+      label: (typeof TOOL_LABELS)[string]
+      status: "running" | "done"
+      count: number
+    }
+  | { kind: "reasoning"; id: string; text: string; isActive: boolean; isMultiLine: boolean }
 
 /**
- * Ordered phases that describe what Gerrit does. Each phase is tied to one or
- * more agent tools; its state is derived from the live tool events. Phases
- * without tools (connect/finalize) are driven by surrounding progress signals.
+ * Converts the current stream events into timeline entries. Most importantly, it merges tool_start events
+ * that are for the same tool, and handles tool_end events as the completion of an existing timeline tool
+ * entry.
+ *
+ * @param events Events to convert.
+ * @returns Array of timeline entries that should be rendered as markers.
  */
-const PHASES: { id: string; label: string; tools: string[] }[] = [
-  { id: "connect", label: "Gegevens verzamelen", tools: ["getFarmFields"] },
-  {
-    id: "guide",
-    label: "Teelthandleiding raadplegen",
-    tools: ["getCropFertilizerGuide"],
-  },
-  {
-    id: "advice",
-    label: "Bemestingsadvies ophalen",
-    tools: ["getFarmNutrientAdvice"],
-  },
-  {
-    id: "norms",
-    label: "Wettelijke normen berekenen",
-    tools: ["getFarmLegalNorms"],
-  },
-  {
-    id: "fertilizers",
-    label: "Meststoffen zoeken",
-    tools: ["searchFertilizers"],
-  },
-  { id: "simulate", label: "Plan doorrekenen", tools: ["simulateFarmPlan"] },
-  { id: "finalize", label: "Plan afronden", tools: [] },
-]
-
-interface ToolStep {
-  status: "running" | "done"
-  count: number
-}
-
-interface DerivedState {
-  steps: Map<string, ToolStep>
-  reasoning: string
-  statusMessage: string | null
-  hasStarted: boolean
-  finalizing: boolean
-}
-
-function deriveState(events: StreamEvent[]): DerivedState {
-  const steps = new Map<string, ToolStep>()
-  let reasoning = ""
-  let statusMessage: string | null = null
-  let hasStarted = false
-  let finalizing = false
+function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
+  const entries: TimelineEntry[] = []
+  // Track insertion order for tools and the current reasoning entry
+  const toolIndex = new Map<string, number>() // toolName → index in entries
+  let reasoningIndex = -1
+  let toolsDoneUpTo = 0
 
   for (const event of events) {
-    if (event.type === "on_tool_start") {
+    if (event.type === "start" || event.type === "status") {
+      const label = event.data?.message
+      if (label) {
+        entries.push({ kind: "status", id: `sep-${entries.length}`, label })
+      }
+    } else if (event.type === "on_tool_start") {
       const name = event.data?.name
       if (!name) continue
-      hasStarted = true
-      const existing = steps.get(name)
-      if (existing) {
-        existing.count += 1
-        existing.status = "running"
+      // Mark reasoning inactive once any tool fires after it
+      if (reasoningIndex !== -1) {
+        ;(entries[reasoningIndex] as Extract<TimelineEntry, { kind: "reasoning" }>).isActive = false
+      }
+      const existing = toolIndex.get(name)
+      if (existing !== undefined) {
+        // Tool fired again — increment counter, reset to running
+        const entry = entries[existing] as Extract<TimelineEntry, { kind: "tool" }>
+        entry.count += 1
+        entry.status = "running"
       } else {
-        steps.set(name, { status: "running", count: 1 })
+        toolIndex.set(name, entries.length)
+        entries.push({
+          kind: "tool",
+          id: `tool-${name}-${entries.length}`,
+          toolName: name,
+          label: TOOL_LABELS[name] ?? { name: "Onbekend", icon: Calculator },
+          status: "running",
+          count: 1,
+        })
       }
     } else if (event.type === "on_tool_end") {
       const name = event.data?.name
       if (!name) continue
-      const existing = steps.get(name)
-      if (existing) existing.status = "done"
+      const idx = toolIndex.get(name)
+      if (idx !== undefined) {
+        ;(entries[idx] as Extract<TimelineEntry, { kind: "tool" }>).status = "done"
+      }
     } else if (event.type === "reasoning") {
-      reasoning += event.data?.chunk ?? ""
-    } else if (event.type === "status" || event.type === "start") {
-      statusMessage = event.data?.message ?? statusMessage
-      hasStarted = true
-      if (event.data?.phase === "finalize") finalizing = true
+      const chunk: string = event.data?.chunk ?? ""
+      if (!chunk) continue
+
+      if (
+        reasoningIndex === -1 ||
+        entries[reasoningIndex].kind !== "reasoning" ||
+        toolIndex.size > 0
+      ) {
+        reasoningIndex = entries.length
+        entries.push({
+          kind: "reasoning",
+          id: `reasoning-${entries.length}`,
+          text: chunk.trimStart(),
+          isActive: true,
+          isMultiLine: chunk.includes("\n"),
+        })
+      } else {
+        const entry = entries[reasoningIndex]
+        if (entry.kind === "reasoning") {
+          entry.text += chunk
+        }
+      }
+
+      // We assume that all the tool calls have ended when the agent starts reasoning.
+      while (toolsDoneUpTo < entries.length) {
+        const entry = entries[toolsDoneUpTo]
+        if (entry.kind === "tool") {
+          entry.status = "done"
+        }
+        toolsDoneUpTo++
+      }
     }
   }
 
-  return { steps, reasoning, statusMessage, hasStarted, finalizing }
-}
-
-function phaseCount(phase: { tools: string[] }, derived: DerivedState): number {
-  let count = 0
-  for (const tool of phase.tools) {
-    const step = derived.steps.get(tool)
-    if (step) count += step.count
-  }
-  return count
-}
-
-/**
- * Computes monotonic phase statuses from the live events. Progress only ever
- * moves forward: a phase is `done` once a later phase has begun (or once the
- * server signals finalization), the single furthest-reached phase is `active`
- * (it stays active during inter-tool "thinking" gaps so the UI never flickers
- * back to "Plan afronden"), and the rest are `pending`. The `finalize` phase
- * activates only on the explicit server `phase: "finalize"` signal.
- */
-function computePhases(
-  derived: DerivedState,
-): { id: string; label: string; status: PhaseStatus; count: number }[] {
-  const lastToolIndex = PHASES.length - 2
-
-  let reachedIndex = -1
-  for (let i = 1; i <= lastToolIndex; i++) {
-    const reached = PHASES[i].tools.some((t) => derived.steps.has(t))
-    if (reached) reachedIndex = i
+  for (const entry of entries) {
+    if (entry.kind === "reasoning") {
+      entry.text = entry.text.replaceAll("\n\n\n\n\n", "\n\n\n").replaceAll("\n\n\n\n", "\n\n\n")
+    }
   }
 
-  // Thinking gap: at least one tool ran, none is currently running, not yet
-  // finalizing. During this gap the last-reached phase stays "active" so the
-  // UI always shows a spinner while Gerrit is working.
-  const anyToolRunning = [...derived.steps.values()].some((s) => s.status === "running")
-  const isThinkingGap =
-    derived.hasStarted && !anyToolRunning && !derived.finalizing && derived.steps.size > 0
-
-  return PHASES.map((phase, index) => {
-    const count = phaseCount(phase, derived)
-
-    if (index === 0) {
-      if (derived.finalizing || reachedIndex >= 1) {
-        return { ...phase, status: "done" as PhaseStatus, count }
-      }
-      if (derived.hasStarted) {
-        return { ...phase, status: "active" as PhaseStatus, count }
-      }
-      return { ...phase, status: "pending" as PhaseStatus, count }
-    }
-
-    if (index === PHASES.length - 1) {
-      return {
-        ...phase,
-        status: (derived.finalizing ? "active" : "pending") as PhaseStatus,
-        count,
-      }
-    }
-
-    if (derived.finalizing || index < reachedIndex) {
-      return { ...phase, status: "done" as PhaseStatus, count }
-    }
-    if (index === reachedIndex) {
-      const running = phase.tools.some((t) => derived.steps.get(t)?.status === "running")
-      // Stay active during inter-tool thinking gaps so the spinner never
-      // disappears between tool calls.
-      return {
-        ...phase,
-        status: (running || isThinkingGap ? "active" : "done") as PhaseStatus,
-        count,
-      }
-    }
-    return { ...phase, status: "pending" as PhaseStatus, count }
-  })
+  return entries
 }
+
+const AUTO_SCROLL_THRESHOLD = 100 // px from bottom of reasoning feed to trigger auto-scroll
 
 export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
   const [elapsed, setElapsed] = useState(0)
-  const [reasoningOpen, setReasoningOpen] = useState(false)
   const startRef = useRef(Date.now())
-  const reasoningRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const id = setInterval(
@@ -180,35 +168,45 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
     return () => clearInterval(id)
   }, [])
 
-  const derived = useMemo(() => deriveState(events), [events])
+  const timeline = useMemo(() => deriveTimeline(events), [events])
 
   // Auto-scroll the reasoning feed when it's open and growing.
   useEffect(() => {
-    if (reasoningOpen && reasoningRef.current) {
-      reasoningRef.current.scrollTop = reasoningRef.current.scrollHeight
+    if (
+      bottomRef.current &&
+      scrollRef.current &&
+      scrollRef.current.getBoundingClientRect().bottom + AUTO_SCROLL_THRESHOLD >
+        bottomRef.current.getBoundingClientRect().top
+    ) {
+      scrollRef.current.scrollTo({
+        behavior: "smooth",
+        top: scrollRef.current.scrollHeight,
+      })
     }
-  }, [reasoningOpen])
+  }, [timeline.length])
 
-  const phases = useMemo(() => computePhases(derived), [derived])
+  const handleScroll = useCallback(() => {
+    const scrollElement = scrollRef.current
+    const scrollContainerElement = scrollContainerRef.current
+    if (!scrollElement || !scrollContainerElement) return
+    if (scrollElement.scrollTop > 5) {
+      scrollContainerElement.dataset.scrollStart = ""
+    } else {
+      delete scrollContainerElement.dataset.scrollStart
+    }
 
-  const doneCount = phases.filter((p) => p.status === "done").length
-  const progressValue = Math.round((doneCount / phases.length) * 100)
+    if (scrollElement.scrollHeight - scrollElement.scrollTop > 5 + scrollElement.offsetHeight) {
+      scrollContainerElement.dataset.scrollEnd = ""
+    } else {
+      delete scrollContainerElement.dataset.scrollEnd
+    }
+  }, [])
 
-  // Gerrit is "thinking" when at least one tool has run, none is currently
-  // running, and we are not yet finalizing — i.e. an inter-tool reasoning gap.
-  const isThinking =
-    phases.some((p) => p.status === "active") &&
-    [...derived.steps.values()].every((s) => s.status === "done") &&
-    !derived.finalizing
+  useLayoutEffect(() => {
+    handleScroll()
+  }, [handleScroll])
 
   const elapsedStr = elapsed >= 60 ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s` : `${elapsed}s`
-
-  const reasoningPreview = derived.reasoning
-    .trim()
-    .split("\n")
-    .map((l) => l.replace(/[*#`]/g, "").trim())
-    .filter(Boolean)
-    .pop()
 
   return (
     <Card className="flex flex-col shadow-sm">
@@ -223,103 +221,193 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 p-6">
-        {/* Overall progress */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-foreground font-medium">
-              {derived.statusMessage ?? "Voorbereiden…"}
-            </span>
-            <span className="text-muted-foreground tabular-nums">
-              {doneCount}/{phases.length}
-            </span>
-          </div>
-          <Progress value={progressValue} />
-        </div>
-
-        {/* Phase checklist */}
-        <ol className="space-y-1" aria-live="polite">
-          {phases.map((phase) => (
-            <li
-              key={phase.id}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                phase.status === "active" && "bg-primary/5",
-              )}
-            >
-              <span className="shrink-0">
-                {phase.status === "done" ? (
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100">
-                    <Check className="h-3.5 w-3.5 text-green-600" />
-                  </span>
-                ) : phase.status === "active" ? (
-                  <Spinner className="text-primary h-5 w-5" />
-                ) : (
-                  <Circle className="text-muted-foreground/30 h-5 w-5" />
-                )}
-              </span>
-              <span
-                className={cn(
-                  "flex-1",
-                  phase.status === "done" && "text-muted-foreground",
-                  phase.status === "active" && "text-foreground font-medium",
-                  phase.status === "pending" && "text-muted-foreground/60",
-                )}
-              >
-                {phase.label}
-              </span>
-              {phase.count > 1 && (
-                <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
-                  ×{phase.count}
-                </span>
-              )}
-            </li>
-          ))}
-        </ol>
-
-        {/* Reasoning (Gerrit's thinking) — collapsed by default. While
-                    Gerrit reasons between tools the trigger turns into a pulsing
-                    "denkt na" indicator + live preview, doubling as the obvious
-                    click target to reveal the full thoughts. */}
-        {derived.reasoning.trim() && (
-          <Collapsible
-            open={reasoningOpen}
-            onOpenChange={setReasoningOpen}
-            className={cn(
-              "bg-muted/30 rounded-md border",
-              isThinking && "border-primary/40 bg-primary/5",
+      <CardContent ref={scrollContainerRef} className="group relative p-0">
+        <Button
+          type="button"
+          variant="outline"
+          className="absolute top-1 left-1/2 h-auto -translate-x-1/2 opacity-0 transition-opacity duration-200 group-data-scroll-start:opacity-100"
+          onClick={() =>
+            scrollRef.current?.scrollTo({
+              top: 0,
+              behavior: "smooth",
+            })
+          }
+        >
+          <ChevronUp className="text-muted-foreground my-1 h-4 w-4" />
+        </Button>
+        <div ref={scrollRef} className="max-h-full overflow-y-auto" onScroll={handleScroll}>
+          <div className="text-muted-foreground space-y-6 p-6 text-sm">
+            {timeline.length === 0 && (
+              <Marker role="status">
+                <MarkerIcon>
+                  <Spinner />
+                </MarkerIcon>
+                <MarkerContent>Voorbereiden…</MarkerContent>
+              </Marker>
             )}
-          >
-            <CollapsibleTrigger className="hover:bg-muted/50 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm transition-colors">
-              <Sparkles
-                className={cn("text-primary h-4 w-4 shrink-0", isThinking && "animate-pulse")}
-              />
-              <span className="text-foreground shrink-0 font-medium">
-                {isThinking ? "Gerrit denkt na over de resultaten…" : "Gerrit's overwegingen"}
-              </span>
-              {!reasoningOpen && reasoningPreview && (
-                <span className="text-muted-foreground/80 flex-1 truncate italic">
-                  {reasoningPreview}
-                </span>
-              )}
-              <span className="text-primary ml-auto flex shrink-0 items-center gap-1 text-xs">
-                {reasoningOpen ? "Verbergen" : "Bekijken"}
-                <ChevronDown
-                  className={cn("h-4 w-4 transition-transform", reasoningOpen && "rotate-180")}
-                />
-              </span>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <div
-                ref={reasoningRef}
-                className="text-muted-foreground max-h-48 overflow-y-auto border-t px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap"
-              >
-                {derived.reasoning.trim()}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        )}
+
+            {timeline.map((entry) => {
+              if (entry.kind === "status") {
+                return (
+                  <Marker key={entry.id}>
+                    <MarkerContent className="text-muted-foreground text-xs opacity-75">
+                      {entry.label}
+                    </MarkerContent>
+                  </Marker>
+                )
+              }
+
+              if (entry.kind === "tool") {
+                return (
+                  <Marker key={entry.id} role="status">
+                    <MarkerIcon>
+                      {
+                        <entry.label.icon
+                          className={cn(entry.status === "running" && "animate-pulse")}
+                        />
+                      }
+                    </MarkerIcon>
+                    <MarkerContent className="space-x-1">{entry.label.name}</MarkerContent>
+                    {entry.count > 1 && (
+                      <Badge variant="outline" className="p-1 text-sm leading-none">
+                        ×{entry.count}
+                      </Badge>
+                    )}
+                    {entry.status === "done" ? (
+                      <Check className="relative top-px text-emerald-400" />
+                    ) : (
+                      <Spinner />
+                    )}
+                  </Marker>
+                )
+              }
+
+              if (entry.kind === "reasoning") {
+                return (
+                  <GerritReasoning
+                    key={entry.id}
+                    text={entry.text}
+                    isActive={entry.isActive}
+                    isMultiLine={entry.isMultiLine}
+                    scrollRef={scrollRef}
+                  />
+                )
+              }
+            })}
+            <Marker role="status">
+              <MarkerContent className="shimmer text-muted-foreground text-xs opacity-75">
+                Even geduld, Gerrit is nog aan het denken...
+              </MarkerContent>
+            </Marker>
+          </div>
+          <div ref={bottomRef} />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="absolute bottom-1 left-1/2 h-auto -translate-x-1/2 opacity-0 transition-opacity duration-200 group-data-scroll-end:opacity-100"
+          onClick={() =>
+            scrollRef.current?.scrollTo({
+              top: scrollRef.current?.scrollHeight,
+              behavior: "smooth",
+            })
+          }
+        >
+          <ChevronDown className="text-muted-foreground my-1 h-4 w-4" />
+        </Button>
       </CardContent>
     </Card>
+  )
+}
+
+function GerritReasoning({
+  text,
+  isActive,
+  isMultiLine,
+  scrollRef,
+}: {
+  text: string
+  isActive: boolean
+  isMultiLine: boolean
+  scrollRef: RefObject<HTMLDivElement | null>
+}) {
+  const plain = text
+    .trim()
+    .split("\n")
+    .map((l) => l.replace(/[*#`]/g, "").trim())
+  const firstLineIndex = plain.findIndex(Boolean)
+
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  const statusNode = isActive ? (
+    <Spinner className="inline-block" />
+  ) : (
+    <Check className="relative top-px mx-1 inline-block text-emerald-400" />
+  )
+
+  return (
+    <>
+      <Marker className="items-start">
+        <MarkerIcon>
+          <Sparkles className={cn(isActive && "animate-pulse")} />
+        </MarkerIcon>
+        <MarkerContent>
+          {firstLineIndex > -1 && isMultiLine ? (
+            <Collapsible className="group italic">
+              <CollapsibleTrigger
+                className="line-clamp-2 h-auto cursor-pointer text-left group-data-[state=open]:line-clamp-none"
+                onClick={() => {
+                  setTimeout(() => {
+                    const element = bottomRef.current
+                    const scrollElement = scrollRef.current
+
+                    if (element && scrollElement) {
+                      const containerBottom = scrollElement.getBoundingClientRect().bottom
+                      const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
+                      if (
+                        myBottom > containerBottom &&
+                        containerBottom + AUTO_SCROLL_THRESHOLD > myTop
+                      ) {
+                        element?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+                      }
+                    }
+                  }, 50)
+                }}
+              >
+                <span>{plain[firstLineIndex]}</span>
+                <Button
+                  variant="link"
+                  className="h-auto px-2 py-0 leading-none group-data-[state=open]:hidden"
+                  asChild
+                >
+                  <span>Toon meer</span>
+                </Button>
+                <span className="group-data-[state=open]:hidden">{statusNode}</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-2">
+                {plain.slice(firstLineIndex + 1).map((line, index, array) => (
+                  <span key={`reasoning-line-${index}`}>
+                    {line}
+                    {index !== array.length - 1 && <br />}
+                  </span>
+                ))}
+                <CollapsibleTrigger asChild>
+                  <Button variant="link" asChild className="px-0">
+                    <span>Toon minder</span>
+                  </Button>
+                </CollapsibleTrigger>
+                {statusNode}
+              </CollapsibleContent>
+            </Collapsible>
+          ) : (
+            <div className="italic">
+              {firstLineIndex >= -1 ? text : "Redenering"}
+              {statusNode}
+            </div>
+          )}
+        </MarkerContent>
+      </Marker>
+      <div ref={bottomRef} />
+    </>
   )
 }
