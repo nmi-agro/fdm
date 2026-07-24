@@ -93,7 +93,7 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
         toolIndex.set(name, entries.length)
         entries.push({
           kind: "tool",
-          id: `tool-${name}`,
+          id: `tool-${name}-${entries.length}`,
           toolName: name,
           label: TOOL_LABELS[name] ?? { name: "Onbekend", icon: Calculator },
           status: "running",
@@ -119,7 +119,7 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
         reasoningIndex = entries.length
         entries.push({
           kind: "reasoning",
-          id: "reasoning",
+          id: `reasoning-${entries.length}`,
           text: chunk.trimStart(),
           isActive: true,
           isMultiLine: chunk.includes("\n"),
@@ -235,7 +235,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         >
           <ChevronUp className="text-muted-foreground my-1 h-4 w-4" />
         </Button>
-        <div ref={scrollRef} className="max-h-72 overflow-y-auto" onScroll={handleScroll}>
+        <div ref={scrollRef} className="max-h-full overflow-y-auto" onScroll={handleScroll}>
           <div className="text-muted-foreground space-y-6 p-6 text-sm">
             {timeline.length === 0 && (
               <Marker role="status">

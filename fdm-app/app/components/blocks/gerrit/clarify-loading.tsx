@@ -87,7 +87,7 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
           Gerrit bekijkt het bedrijf…
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex max-h-72 flex-col gap-4 overflow-hidden p-6">
+      <CardContent className="flex max-h-full flex-col gap-4 overflow-hidden p-6">
         <Marker>
           <MarkerIcon>
             <Spinner className="text-primary h-4 w-4 shrink-0" />
