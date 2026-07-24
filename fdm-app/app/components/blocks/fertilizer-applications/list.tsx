@@ -58,7 +58,7 @@ export function FertilizerApplicationsList({
                     <ItemTitle className="flex flex-row flex-wrap items-center gap-x-2">
                       <span>
                         <FertilizerIcon
-                          p_type={fertilizer.p_type ?? "other"}
+                          p_type={fertilizer.p_type}
                           p_type_rvo={fertilizer.p_type_rvo}
                         />
                       </span>

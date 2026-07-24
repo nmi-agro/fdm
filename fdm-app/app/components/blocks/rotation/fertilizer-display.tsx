@@ -1,8 +1,8 @@
 import type { Row } from "@tanstack/react-table"
 import React from "react"
 import { NavLink } from "react-router"
-import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
-import { Badge } from "~/components/ui/badge"
+import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
+import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import type { FieldRow, RotationExtended } from "./columns"
 
@@ -33,16 +33,14 @@ export const FertilizerDisplay: React.FC<FertilizerDisplayProps> = ({ row }) => 
               key={fertilizer.p_id}
               to={`./modify_fertilizer/${fertilizer.p_id}?fieldIds=${fieldIds.map(encodeURIComponent).join(",")}`}
             >
-              <Badge variant="outline" className="text-muted-foreground gap-1">
-                <span>
-                  <FertilizerIcon
-                    dimmed={!isFertilizerUsedOnAllFieldsForThisCultivation}
-                    p_type={fertilizer.p_type ?? "other"}
-                    p_type_rvo={fertilizer.p_type_rvo}
-                  />
-                </span>
+              <FertilizerBadge
+                variant="outline"
+                showIcon
+                dimmed={!isFertilizerUsedOnAllFieldsForThisCultivation}
+                p_type={getFertilizerCategoryFromRvoCode(fertilizer.p_type_rvo)}
+              >
                 {fertilizer.p_name_nl}
-              </Badge>
+              </FertilizerBadge>
             </NavLink>
           )
 

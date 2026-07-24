@@ -12,7 +12,7 @@ import {
   EVENT_TYPE_COLOR,
   getFertilizerKindColor,
 } from "~/components/blocks/timeline/timeline-colors"
-import { isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
+import { getFertilizerCategoryFromRvoCode, isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
 import {
   filterEventsByType,
   flattenEvents,
@@ -79,7 +79,7 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
 
   let icon: React.ReactNode
   if (event.type === "fertilizer") {
-    icon = <FertilizerIcon p_type={event.p_type ?? "other"} p_type_rvo={event.p_type_rvo} />
+    icon = <FertilizerIcon p_type={getFertilizerCategoryFromRvoCode(event.p_type_rvo)} />
   } else if (event.type === "harvest") {
     icon = <Wheat className="size-4 fill-current" />
   } else if (event.type === "soil_sampling") {

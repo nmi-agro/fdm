@@ -33,6 +33,7 @@ import {
 } from "~/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { endMonth, startMonth } from "~/lib/calendar"
+import { getFertilizerCategoryFromRvoCode } from "../fertilizer/utils"
 
 // The years the Gantt renders/scrolls through must never exceed what the app's "Calendar" year
 // picker actually supports (`~/lib/calendar`) — otherwise the timeline could show a year (e.g.
@@ -374,7 +375,6 @@ function buildFieldFeatures(
 
 function EventIcon({
   kind,
-  p_type,
   p_type_rvo,
 }: {
   kind: AttachedEvent["kind"]
@@ -382,7 +382,7 @@ function EventIcon({
   p_type_rvo?: string | null
 }) {
   if (kind === "fertilizer")
-    return <FertilizerIcon p_type={p_type ?? "other"} p_type_rvo={p_type_rvo} />
+    return <FertilizerIcon p_type={getFertilizerCategoryFromRvoCode(p_type_rvo)} />
   if (kind === "harvest")
     return <Wheat className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.harvest }} />
   return <TestTube2 className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.soil_sampling }} />

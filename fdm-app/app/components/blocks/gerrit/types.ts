@@ -15,6 +15,7 @@ export interface ParsedPlanApplication {
   p_app_date: string
   p_app_method?: string | null
   p_app_method_name?: string | null
+  p_type_rvo?: string | null
 }
 
 export interface ParsedPlan {

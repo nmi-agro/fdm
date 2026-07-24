@@ -2,16 +2,25 @@ import type { Fertilizer } from "@nmi-agro/fdm-core"
 import type { z } from "zod"
 import type { FormSchema } from "./formschema"
 
-/**
- * RVO mestcodes for Renure ("REcovered Nitrogen from manURE") products: processed
- * animal-manure fractions that behave like artificial fertilizer and are exempt
- * from the 170 kg N/ha dierlijke-mest ceiling from 2026 onwards.
- */
-export const RENURE_RVO_CODES = ["130", "131", "132", "133", "134"]
+export type FertilizerKind = "manure" | "mineral" | "compost" | "renure" | "other"
 
 /**
- * Whether the given RVO mestcode identifies a Renure product.
+ * Derives the fertilizer category ("renure" | "mineral" | "compost" | "manure" | "other")
+ * based on p_type_rvo (RVO mestcode).
  */
+export function getFertilizerCategoryFromRvoCode(
+  p_type_rvo?: string | null,
+): FertilizerKind {
+  if (p_type_rvo) {
+    if (RENURE_RVO_CODES.includes(p_type_rvo)) return "renure"
+    if (MINERAL_RVO_CODES.includes(p_type_rvo)) return "mineral"
+    if (COMPOST_RVO_CODES.includes(p_type_rvo)) return "compost"
+    if (MANURE_RVO_CODES.includes(p_type_rvo)) return "manure"
+    if (OTHER_RVO_CODES.includes(p_type_rvo)) return "other"
+  }
+  return "other"
+}
+
 export function isRenureRvoCode(p_type_rvo?: string | null): boolean {
   return !!p_type_rvo && RENURE_RVO_CODES.includes(p_type_rvo)
 }
@@ -142,3 +151,100 @@ export function buildCataloguePayload(
     p_app_amount_unit: formValues.p_app_amount_unit,
   }
 }
+
+export const fertilizerKindOptions: { p_type_rvo: string; p_type: FertilizerKind }[] = [
+  { p_type_rvo: "10", p_type: "manure" },
+  { p_type_rvo: "11", p_type: "manure" },
+  { p_type_rvo: "12", p_type: "manure" },
+  { p_type_rvo: "13", p_type: "manure" },
+  { p_type_rvo: "14", p_type: "manure" },
+  { p_type_rvo: "17", p_type: "manure" },
+  { p_type_rvo: "18", p_type: "manure" },
+  { p_type_rvo: "19", p_type: "manure" },
+  { p_type_rvo: "23", p_type: "manure" },
+  { p_type_rvo: "30", p_type: "manure" },
+  { p_type_rvo: "31", p_type: "manure" },
+  { p_type_rvo: "32", p_type: "manure" },
+  { p_type_rvo: "33", p_type: "manure" },
+  {
+    p_type_rvo: "35",
+    p_type: "manure",
+  },
+  {
+    p_type_rvo: "39",
+    p_type: "manure",
+  },
+  { p_type_rvo: "40", p_type: "manure" },
+  { p_type_rvo: "41", p_type: "manure" },
+  { p_type_rvo: "42", p_type: "manure" },
+  { p_type_rvo: "43", p_type: "manure" },
+  {
+    p_type_rvo: "46",
+    p_type: "manure",
+  },
+  { p_type_rvo: "50", p_type: "manure" },
+  { p_type_rvo: "56", p_type: "manure" },
+  { p_type_rvo: "60", p_type: "manure" },
+  { p_type_rvo: "61", p_type: "manure" },
+  { p_type_rvo: "75", p_type: "manure" },
+  { p_type_rvo: "76", p_type: "manure" },
+  { p_type_rvo: "80", p_type: "manure" },
+  { p_type_rvo: "81", p_type: "manure" },
+  { p_type_rvo: "90", p_type: "manure" },
+  {
+    p_type_rvo: "91",
+    p_type: "manure",
+  },
+  { p_type_rvo: "92", p_type: "manure" },
+  { p_type_rvo: "25", p_type: "manure" },
+  { p_type_rvo: "26", p_type: "manure" },
+  { p_type_rvo: "27", p_type: "manure" },
+  { p_type_rvo: "95", p_type: "manure" },
+  { p_type_rvo: "96", p_type: "manure" },
+  { p_type_rvo: "97", p_type: "manure" },
+  { p_type_rvo: "98", p_type: "manure" },
+  { p_type_rvo: "99", p_type: "manure" },
+  { p_type_rvo: "100", p_type: "manure" },
+  { p_type_rvo: "101", p_type: "manure" },
+  { p_type_rvo: "102", p_type: "manure" },
+  { p_type_rvo: "103", p_type: "manure" },
+  { p_type_rvo: "104", p_type: "manure" },
+  { p_type_rvo: "105", p_type: "manure" },
+  { p_type_rvo: "106", p_type: "manure" },
+  { p_type_rvo: "107", p_type: "compost" },
+  { p_type_rvo: "108", p_type: "compost" },
+  { p_type_rvo: "109", p_type: "compost" },
+  { p_type_rvo: "110", p_type: "manure" },
+  { p_type_rvo: "111", p_type: "compost" },
+  { p_type_rvo: "112", p_type: "compost" },
+  { p_type_rvo: "113", p_type: "other" },
+  { p_type_rvo: "114", p_type: "other" },
+  { p_type_rvo: "115", p_type: "mineral" },
+  { p_type_rvo: "116", p_type: "other" },
+  { p_type_rvo: "117", p_type: "other" },
+  {
+    p_type_rvo: "120",
+    p_type: "manure",
+  },
+  { p_type_rvo: "130", p_type: "renure" },
+  { p_type_rvo: "131", p_type: "renure" },
+  { p_type_rvo: "132", p_type: "renure" },
+  { p_type_rvo: "133", p_type: "renure" },
+  { p_type_rvo: "134", p_type: "renure" },
+]
+
+export const RENURE_RVO_CODES = fertilizerKindOptions
+  .filter((option) => option.p_type === "renure")
+  .map((option) => option.p_type_rvo)
+export const MINERAL_RVO_CODES = fertilizerKindOptions
+  .filter((option) => option.p_type === "mineral")
+  .map((option) => option.p_type_rvo)
+export const COMPOST_RVO_CODES = fertilizerKindOptions
+  .filter((option) => option.p_type === "compost")
+  .map((option) => option.p_type_rvo)
+export const MANURE_RVO_CODES = fertilizerKindOptions
+  .filter((option) => option.p_type === "manure")
+  .map((option) => option.p_type_rvo)
+export const OTHER_RVO_CODES = fertilizerKindOptions
+  .filter((option) => option.p_type === "other")
+  .map((option) => option.p_type_rvo)
