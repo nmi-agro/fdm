@@ -20,7 +20,7 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const [reasoning, setReasoning] = useState<ReactNode>(null)
+  const [reasoning, setReasoning] = useState<ReactNode[]>([])
   const [lastScrolledTo, setLastScrolledTo] = useState<number>(0) // Track the last scroll position to determine if we should auto-scroll
 
   // Extract the latest reasoning preview from events
@@ -97,7 +97,7 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
             gerichte vragen nodig zijn.
           </MarkerContent>
         </Marker>
-        {reasoning && (
+        {reasoning.length > 0 && (
           <Marker className="min-h-0 grow items-start">
             <MarkerIcon className="mt-2">
               <Sparkles className="text-primary animate-pulse" />

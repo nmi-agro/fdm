@@ -53,7 +53,7 @@ type TimelineEntry =
       status: "running" | "done"
       count: number
     }
-  | { kind: "reasoning"; id: string; text: string; isActive: boolean }
+  | { kind: "reasoning"; id: string; text: string; isActive: boolean; isMultiLine: boolean }
 
 /**
  * Converts the current stream events into timeline entries. Most importantly, it merges tool_start events
@@ -110,14 +110,27 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
     } else if (event.type === "reasoning") {
       const chunk: string = event.data?.chunk ?? ""
       if (!chunk) continue
-      if (reasoningIndex === -1) {
-        // First reasoning chunk — insert a new note entry at current position
+
+      if (
+        reasoningIndex === -1 ||
+        entries[reasoningIndex].kind !== "reasoning" ||
+        toolIndex.size > 0
+      ) {
         reasoningIndex = entries.length
-        entries.push({ kind: "reasoning", id: "reasoning", text: chunk, isActive: true })
+        entries.push({
+          kind: "reasoning",
+          id: "reasoning",
+          text: chunk.trimStart(),
+          isActive: true,
+          isMultiLine: chunk.includes("\n"),
+        })
       } else {
-        ;(entries[reasoningIndex] as Extract<TimelineEntry, { kind: "reasoning" }>).isActive = true
-        ;(entries[reasoningIndex] as Extract<TimelineEntry, { kind: "reasoning" }>).text += chunk
+        const entry = entries[reasoningIndex]
+        if (entry.kind === "reasoning") {
+          entry.text += chunk
+        }
       }
+
       // We assume that all the tool calls have ended when the agent starts reasoning.
       while (toolsDoneUpTo < entries.length) {
         const entry = entries[toolsDoneUpTo]
@@ -126,6 +139,12 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
         }
         toolsDoneUpTo++
       }
+    }
+  }
+
+  for (const entry of entries) {
+    if (entry.kind === "reasoning") {
+      entry.text = entry.text.replaceAll("\n\n\n\n\n", "\n\n\n").replaceAll("\n\n\n\n", "\n\n\n")
     }
   }
 
@@ -267,11 +286,17 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
                     key={entry.id}
                     text={entry.text}
                     isActive={entry.isActive}
+                    isMultiLine={entry.isMultiLine}
                     scrollRef={scrollRef}
                   />
                 )
               }
             })}
+            <Marker role="status">
+              <MarkerContent className="shimmer text-muted-foreground text-xs opacity-75">
+                Even geduld, Gerrit is nog aan het denken...
+              </MarkerContent>
+            </Marker>
           </div>
           <div ref={bottomRef} />
         </div>
@@ -296,10 +321,12 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
 function GerritReasoning({
   text,
   isActive,
+  isMultiLine,
   scrollRef,
 }: {
   text: string
   isActive: boolean
+  isMultiLine: boolean
   scrollRef: RefObject<HTMLDivElement | null>
 }) {
   const plain = text
@@ -310,6 +337,12 @@ function GerritReasoning({
 
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  const statusNode = isActive ? (
+    <Spinner className="inline-block" />
+  ) : (
+    <Check className="relative top-px mx-1 inline-block text-emerald-400" />
+  )
+
   return (
     <>
       <Marker className="items-start">
@@ -317,7 +350,7 @@ function GerritReasoning({
           <Sparkles className={cn(isActive && "animate-pulse")} />
         </MarkerIcon>
         <MarkerContent>
-          {firstLineIndex > -1 ? (
+          {firstLineIndex > -1 && isMultiLine ? (
             <Collapsible className="group italic">
               <CollapsibleTrigger
                 className="line-clamp-2 h-auto cursor-pointer text-left group-data-[state=open]:line-clamp-none"
@@ -347,8 +380,9 @@ function GerritReasoning({
                 >
                   <span>Toon meer</span>
                 </Button>
+                <span className="group-data-[state=open]:hidden">{statusNode}</span>
               </CollapsibleTrigger>
-              <CollapsibleContent>
+              <CollapsibleContent className="pt-2">
                 {plain.slice(firstLineIndex + 1).map((line, index, array) => (
                   <span key={`reasoning-line-${index}`}>
                     {line}
@@ -360,10 +394,14 @@ function GerritReasoning({
                     <span>Toon minder</span>
                   </Button>
                 </CollapsibleTrigger>
+                {statusNode}
               </CollapsibleContent>
             </Collapsible>
           ) : (
-            "Redenering"
+            <div className="italic">
+              {firstLineIndex >= -1 ? text : "Redenering"}
+              {statusNode}
+            </div>
           )}
         </MarkerContent>
       </Marker>
