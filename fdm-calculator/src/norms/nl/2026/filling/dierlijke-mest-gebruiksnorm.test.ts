@@ -182,6 +182,42 @@ describe("calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNor
     ).toThrow("Fertilizer 3 has unknown p_type_rvo 200")
   })
 
+  it("should exclude Renure applications (RVO codes 130-134) from the 170 kg norm", () => {
+    const renureFertilizers = [
+      {
+        p_id: "6",
+        p_id_catalogue: "6",
+        p_type_rvo: "132", // Renure - Mineralenconcentraat
+        p_n_rt: 6.0,
+      },
+    ] as unknown as Fertilizer[]
+
+    const result = calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app7",
+          p_id: "app7",
+          p_id_catalogue: "6",
+          p_app_amount: 10000,
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: renureFertilizers,
+      cultivations: [],
+      has_organic_certification: false,
+      has_grazing_intention: false,
+      fosfaatgebruiksnorm: 0,
+      b_centroid: [0, 0],
+    } as NL2026NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling).toEqual([
+      {
+        p_app_id: "app7",
+        normFilling: 0,
+      },
+    ])
+  })
+
   it("should return zero filling when no applications are provided", () => {
     const result = calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
       applications: [],

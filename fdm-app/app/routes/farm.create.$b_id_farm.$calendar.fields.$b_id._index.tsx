@@ -255,6 +255,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       throw new Error("invalid method")
     }
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

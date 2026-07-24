@@ -72,6 +72,6 @@ export async function extractFormValuesFromRequest<T extends z.ZodType<unknown>>
 
     return parsedData.data
   } catch (error) {
-    throw handleActionError(error)
+    throw await handleActionError(error)
   }
 }

@@ -303,6 +303,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       )
     }
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

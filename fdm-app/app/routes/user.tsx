@@ -6,10 +6,14 @@ import { SidebarPlatform } from "~/components/blocks/sidebar/platform"
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
+import { RouteErrorFallback } from "~/components/custom/error"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import type { Route } from "./+types/user"
+
+type UserLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
 
 /**
  * Retrieves the session from the HTTP request and returns user information if available.
@@ -44,6 +48,40 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 /**
+ * Renders the user-settings app shell: sidebar and a content pane. Shared between the normal
+ * route render (`<Outlet />` in the content pane) and this route's `ErrorBoundary` (a friendly
+ * `<ClientErrorPage />` in the content pane), so a descendant route error (e.g. a settings
+ * sub-page that fails) never leaves the user with a bare, out-of-app-feeling page.
+ */
+function UserShell({
+  loaderData,
+  children,
+}: {
+  loaderData: UserLoaderData
+  children: React.ReactNode
+}) {
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarTitle />
+        <SidebarContent>
+          <SidebarPlatform />
+        </SidebarContent>
+        <SidebarSupport name={loaderData.userName} email={loaderData.user.email} hasNotification={false} />
+        <SidebarUser
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          image={loaderData.user.image}
+          avatarInitials={loaderData.initials}
+          userName={loaderData.userName}
+        />
+      </Sidebar>
+      <SidebarInset>{children}</SidebarInset>
+    </SidebarProvider>
+  )
+}
+
+/**
  * Renders the main application layout.
  *
  * This component retrieves user data from the loader using React Router's useLoaderData hook and passes it to the SidebarApp component within a SidebarProvider context. It also renders an Outlet to display nested routes.
@@ -63,28 +101,31 @@ export default function App() {
   }, [loaderData.user])
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarTitle />
-        <SidebarContent>
-          <SidebarPlatform />
-        </SidebarContent>
-        <SidebarSupport
-          name={loaderData.userName}
-          email={loaderData.user.email}
-          hasNotification={false}
-        />
-        <SidebarUser
-          name={loaderData.userName}
-          email={loaderData.user.email}
-          image={loaderData.user.image}
-          avatarInitials={loaderData.initials}
-          userName={loaderData.userName}
-        />
-      </Sidebar>
-      <SidebarInset>
-        <Outlet />
-      </SidebarInset>
-    </SidebarProvider>
+    <UserShell loaderData={loaderData}>
+      <Outlet />
+    </UserShell>
+  )
+}
+
+/**
+ * Renders when a descendant route throws (e.g. a settings sub-page that fails, or a genuine
+ * component bug). This route's own loader already succeeded, so the sidebar shell can render
+ * normally via {@link UserShell}; only the content pane is replaced with the classified
+ * {@link RouteErrorFallback}.
+ *
+ * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
+ * back to the bare, shell-less fallback rather than crash on undefined loader data.
+ */
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const loaderData = useLoaderData<typeof loader>() as UserLoaderData | undefined
+
+  if (!loaderData) {
+    return <RouteErrorFallback error={error} />
+  }
+
+  return (
+    <UserShell loaderData={loaderData}>
+      <RouteErrorFallback error={error} />
+    </UserShell>
   )
 }

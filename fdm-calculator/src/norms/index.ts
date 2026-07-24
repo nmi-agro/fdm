@@ -36,6 +36,10 @@ import {
   collectNL2026InputForFertilizerApplicationFillingForFarm,
 } from "./nl/2026/filling/input"
 import {
+  calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+  getNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
+} from "./nl/2026/filling/renure-gebruiksnorm"
+import {
   calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
   getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
 } from "./nl/2026/filling/stikstofgebruiksnorm"
@@ -45,12 +49,39 @@ import {
   collectNL2026InputForNorms,
   collectNL2026InputForNormsForFarm,
 } from "./nl/2026/value/input"
+import { getNL2026RenureGebruiksNorm } from "./nl/2026/value/renure-gebruiksnorm"
 import { getNL2026StikstofGebruiksNorm } from "./nl/2026/value/stikstofgebruiksnorm"
 
 type Years = "2025" | "2026"
 type Regions = "NL"
 
-export function createFunctionsForNorms(b_region: Regions, year: Years) {
+type Norms2025Functions = {
+  collectInputForNorms: typeof collectNL2025InputForNorms
+  collectInputForNormsForFarm: typeof collectNL2025InputForNormsForFarm
+  calculateNormForNitrogen: typeof getNL2025StikstofGebruiksNorm
+  calculateNormForManure: typeof getNL2025DierlijkeMestGebruiksNorm
+  calculateNormForPhosphate: typeof getNL2025FosfaatGebruiksNorm
+  aggregateNormsToFarmLevel: typeof aggregateNormsToFarmLevel
+}
+type Norms2026Functions = {
+  collectInputForNorms: typeof collectNL2026InputForNorms
+  collectInputForNormsForFarm: typeof collectNL2026InputForNormsForFarm
+  calculateNormForNitrogen: typeof getNL2026StikstofGebruiksNorm
+  calculateNormForManure: typeof getNL2026DierlijkeMestGebruiksNorm
+  calculateNormForPhosphate: typeof getNL2026FosfaatGebruiksNorm
+  calculateNormForRenure: typeof getNL2026RenureGebruiksNorm
+  aggregateNormsToFarmLevel: typeof aggregateNormsToFarmLevel
+}
+// Distributive conditional type: resolves to the exact per-year shape when `Y` is a
+// literal ("2026" -> Norms2026Functions), and to the union of both shapes when `Y`
+// is the wider `Years` union (matching the pre-Renure inferred-union behaviour for
+// call sites that pass a runtime, non-literal year).
+type NormsFunctionsByYear<Y extends Years> = Y extends "2026" ? Norms2026Functions : Norms2025Functions
+
+export function createFunctionsForNorms<Y extends Years>(
+  b_region: Regions,
+  year: Y,
+): NormsFunctionsByYear<Y> {
   if (b_region === "NL") {
     if (year === "2025") {
       return {
@@ -60,7 +91,7 @@ export function createFunctionsForNorms(b_region: Regions, year: Years) {
         calculateNormForManure: getNL2025DierlijkeMestGebruiksNorm,
         calculateNormForPhosphate: getNL2025FosfaatGebruiksNorm,
         aggregateNormsToFarmLevel: aggregateNormsToFarmLevel,
-      }
+      } as NormsFunctionsByYear<Y>
     }
     if (year === "2026") {
       return {
@@ -69,15 +100,40 @@ export function createFunctionsForNorms(b_region: Regions, year: Years) {
         calculateNormForNitrogen: getNL2026StikstofGebruiksNorm,
         calculateNormForManure: getNL2026DierlijkeMestGebruiksNorm,
         calculateNormForPhosphate: getNL2026FosfaatGebruiksNorm,
+        calculateNormForRenure: getNL2026RenureGebruiksNorm,
         aggregateNormsToFarmLevel: aggregateNormsToFarmLevel,
-      }
+      } as NormsFunctionsByYear<Y>
     }
     throw new Error("Year not supported")
   }
   throw new Error("Region not supported")
 }
 
-export function createFunctionsForFertilizerApplicationFilling(b_region: Regions, year: Years) {
+type FillingFunctions2025 = {
+  collectInputForFertilizerApplicationFilling: typeof collectNL2025InputForFertilizerApplicationFilling
+  collectInputForFertilizerApplicationFillingForFarm: typeof collectNL2025InputForFertilizerApplicationFillingForFarm
+  calculateFertilizerApplicationFillingForNitrogen: typeof getNL2025FertilizerApplicationFillingForStikstofGebruiksNorm
+  calculateFertilizerApplicationFillingForManure: typeof getNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
+  calculateFertilizerApplicationFillingForPhosphate: typeof getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm
+  aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
+}
+type FillingFunctions2026 = {
+  collectInputForFertilizerApplicationFilling: typeof collectNL2026InputForFertilizerApplicationFilling
+  collectInputForFertilizerApplicationFillingForFarm: typeof collectNL2026InputForFertilizerApplicationFillingForFarm
+  calculateFertilizerApplicationFillingForNitrogen: typeof getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm
+  calculateFertilizerApplicationFillingForManure: typeof getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
+  calculateFertilizerApplicationFillingForPhosphate: typeof getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm
+  calculateFertilizerApplicationFillingForRenure: typeof getNL2026FertilizerApplicationFillingForRenureGebruiksNorm
+  aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
+}
+type FillingFunctionsByYear<Y extends Years> = Y extends "2026"
+  ? FillingFunctions2026
+  : FillingFunctions2025
+
+export function createFunctionsForFertilizerApplicationFilling<Y extends Years>(
+  b_region: Regions,
+  year: Y,
+): FillingFunctionsByYear<Y> {
   if (b_region === "NL") {
     if (year === "2025") {
       return {
@@ -92,7 +148,7 @@ export function createFunctionsForFertilizerApplicationFilling(b_region: Regions
         calculateFertilizerApplicationFillingForPhosphate:
           getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
         aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      }
+      } as FillingFunctionsByYear<Y>
     }
     if (year === "2026") {
       return {
@@ -106,8 +162,10 @@ export function createFunctionsForFertilizerApplicationFilling(b_region: Regions
           getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
         calculateFertilizerApplicationFillingForPhosphate:
           getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        calculateFertilizerApplicationFillingForRenure:
+          getNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
         aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      }
+      } as FillingFunctionsByYear<Y>
     }
     throw new Error("Year not supported")
   }
@@ -121,10 +179,29 @@ export type { NormFilling }
  * where caching provides no benefit and direct calculation is preferred.
  * The returned functions take a single `input` argument (no `fdm` database instance).
  */
-export function createUncachedFunctionsForFertilizerApplicationFilling(
+type UncachedFillingFunctions2025 = {
+  collectInputForFertilizerApplicationFilling: typeof collectNL2025InputForFertilizerApplicationFilling
+  calculateFertilizerApplicationFillingForNitrogen: typeof calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm
+  calculateFertilizerApplicationFillingForManure: typeof calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
+  calculateFertilizerApplicationFillingForPhosphate: typeof calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm
+  aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
+}
+type UncachedFillingFunctions2026 = {
+  collectInputForFertilizerApplicationFilling: typeof collectNL2026InputForFertilizerApplicationFilling
+  calculateFertilizerApplicationFillingForNitrogen: typeof calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm
+  calculateFertilizerApplicationFillingForManure: typeof calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm
+  calculateFertilizerApplicationFillingForPhosphate: typeof calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm
+  calculateFertilizerApplicationFillingForRenure: typeof calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm
+  aggregateNormFillingsToFarmLevel: typeof aggregateNormFillingsToFarmLevel
+}
+type UncachedFillingFunctionsByYear<Y extends Years> = Y extends "2026"
+  ? UncachedFillingFunctions2026
+  : UncachedFillingFunctions2025
+
+export function createUncachedFunctionsForFertilizerApplicationFilling<Y extends Years>(
   b_region: Regions,
-  year: Years,
-) {
+  year: Y,
+): UncachedFillingFunctionsByYear<Y> {
   if (b_region === "NL") {
     if (year === "2025") {
       return {
@@ -137,7 +214,7 @@ export function createUncachedFunctionsForFertilizerApplicationFilling(
         calculateFertilizerApplicationFillingForPhosphate:
           calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
         aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      }
+      } as UncachedFillingFunctionsByYear<Y>
     }
     if (year === "2026") {
       return {
@@ -149,8 +226,10 @@ export function createUncachedFunctionsForFertilizerApplicationFilling(
           calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
         calculateFertilizerApplicationFillingForPhosphate:
           calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
+        calculateFertilizerApplicationFillingForRenure:
+          calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm,
         aggregateNormFillingsToFarmLevel: aggregateNormFillingsToFarmLevel,
-      }
+      } as UncachedFillingFunctionsByYear<Y>
     }
     throw new Error("Year not supported")
   }

@@ -5,6 +5,7 @@ import {
   assignTicket,
   checkHelpdeskPermission,
   createTag,
+  getAgentAvailabilityStatuses,
   getAgents,
   getAssigneesForTickets,
   getMessagesForTicket,
@@ -30,6 +31,7 @@ import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "~/components/blocks/helpdesk/assignee-schema"
 import { makeHelpdeskUser } from "~/components/blocks/helpdesk/helpdesk-user"
 import { MessageSchema } from "~/components/blocks/helpdesk/message-schema"
+import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
 import { TagSchema, TicketTagsSchema } from "~/components/blocks/helpdesk/tag-schema"
 import { Ticket } from "~/components/blocks/helpdesk/ticket"
 import {
@@ -46,7 +48,7 @@ export async function loader({ params, request }: Args) {
     const session = await getSession(request)
 
     const ticket = await getTicket(fdm, session.principal_id, params.ticket_id)
-    const [messages, availableTags, canAddMessages, isAgent] = await Promise.all([
+    const [messages, availableTags, canAddMessages, isAgent, isAdmin] = await Promise.all([
       getMessagesForTicket(fdm, session.principal_id, params.ticket_id),
       getTags(fdm),
       checkHelpdeskPermission(
@@ -67,10 +69,24 @@ export async function loader({ params, request }: Args) {
         "_ticketviewer.ticket.$ticket_id",
         false,
       ),
+      checkHelpdeskPermission(
+        fdm,
+        "helpdesk",
+        "write",
+        "",
+        session.principal_id,
+        "_ticketviewer.ticket.$ticket_id",
+        false,
+      ),
     ])
 
     // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
-    const agents = isAgent ? await getAgents(fdm, session.principal_id) : []
+    const agents = isAgent ? await getAgents(fdm, session.principal_id, { isActive: true }) : []
+    // Combines absence + configured work days into one availability status per agent, so the UI
+    // can never show an agent as available on a day they're absent or not scheduled to work.
+    const agentAvailability = isAgent
+      ? await getAgentAvailabilityStatuses(fdm, session.principal_id, agents)
+      : undefined
 
     // Message sender's profile pictures are shown
     const principal_ids = messages
@@ -90,6 +106,24 @@ export async function loader({ params, request }: Args) {
     const otherAgentIds = new Set(
       messages.filter((msg) => msg.sender_type === "agent").map((msg) => msg.sender_id),
     )
+
+    if (isAdmin) {
+      const unresolvedAgentIds = [...otherAgentIds].filter(
+        (id): id is string => typeof id === "string" && !agentInfo.has(id),
+      )
+      if (unresolvedAgentIds.length > 0) {
+        // No `isActive` filter: as an admin, `getAgents` returns active and inactive agents alike.
+        const allAgents = await getAgents(fdm, session.principal_id)
+        for (const agent of allAgents) {
+          if (unresolvedAgentIds.includes(agent.agent_id)) {
+            agentInfo.set(agent.agent_id, {
+              agent_id: agent.agent_id,
+              display_name: agent.display_name,
+            })
+          }
+        }
+      }
+    }
 
     const principalsSummarized = [...principals.values()].map((principal) => {
       // Agents should appear with their helpdesk display name
@@ -122,6 +156,7 @@ export async function loader({ params, request }: Args) {
       isAgent: isAgent,
       principals: principalsSummarized,
       agents: agents,
+      agentAvailability: agentAvailability,
       // To prevent hydration failed errors
       todayDate: new Date(),
       contextFarmName: ticket.context_farm_id
@@ -194,7 +229,7 @@ export async function action({ params, request }: Args) {
     }
 
     if (formValues.intent === "change_assignment") {
-      return await fdm.transaction(async (tx) => {
+      const result = await fdm.transaction(async (tx) => {
         const currentAssignees =
           (await getAssigneesForTickets(tx, session.principal_id, [params.ticket_id])).get(
             params.ticket_id,
@@ -237,15 +272,43 @@ export async function action({ params, request }: Args) {
           )
         ).length
 
-        if (unassigned > 0 || assigned > 0) {
-          return dataWithSuccess("Toewijzing succesvol verandert!", {
-            message: "Toewijzing succesvol verandert!",
-          })
-        }
+        // Agents who weren't assigned before this change; used below to email only genuinely new
+        // assignees, not agents who were already on the ticket and just had `is_primary` toggled.
+        const newlyAssignedAgentIds = formValues.assignees.filter(
+          (agent_id) => !currentAssignment.has(agent_id),
+        )
 
-        // Have not done anything
-        return null
+        return { unassigned, assigned, newlyAssignedAgentIds }
       })
+
+      if (result.newlyAssignedAgentIds.length > 0) {
+        try {
+          const [ticket, assigneeSummaries] = await Promise.all([
+            getTicket(fdm, session.principal_id, params.ticket_id),
+            getAssigneesForTickets(fdm, session.principal_id, [params.ticket_id]),
+          ])
+          const newAssignees = (assigneeSummaries.get(params.ticket_id) ?? []).filter((assignee) =>
+            result.newlyAssignedAgentIds.includes(assignee.agent_id),
+          )
+
+          await notifyAboutReassignments(
+            session.principal_id,
+            newAssignees.map((assignee) => ({ ...assignee, ticket })),
+          )
+        } catch (err) {
+          // A failed notification email shouldn't fail the assignment itself.
+          handleActionError(err)
+        }
+      }
+
+      if (result.unassigned > 0 || result.assigned > 0) {
+        return dataWithSuccess("Toewijzing succesvol verandert!", {
+          message: "Toewijzing succesvol verandert!",
+        })
+      }
+
+      // Have not done anything
+      return null
     }
 
     if (formValues.intent === "create_tag") {
@@ -379,16 +442,21 @@ export async function action({ params, request }: Args) {
       })
     }
   } catch (err) {
-    // extractFormValuesFromRequest calls handleActionError itself, so if that is detected to be the case,
-    // return the response returned from it directly.
-    if (err instanceof Promise) {
-      const awaited = await (err as Promise<any>).catch(() => {})
-      if (awaited.type === "DataWithResponseInit") {
-        return awaited
-      }
+    // extractFormValuesFromRequest awaits handleActionError before throwing (see
+    // fdm-app/app/lib/form.ts), so `err` here is already a resolved `DataWithResponseInit`
+    // toast-bearing response, not an Error. Return it directly instead of re-classifying it
+    // through handleActionError, which would overwrite its specific validation message with a
+    // generic one.
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "type" in err &&
+      (err as { type: unknown }).type === "DataWithResponseInit"
+    ) {
+      return err
     }
 
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 

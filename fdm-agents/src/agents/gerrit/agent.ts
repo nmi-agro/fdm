@@ -50,7 +50,7 @@ Voer voor elke simulatie en voor het eindantwoord een handleiding-conformiteitsc
 Na elke simulateFarmPlan-aanroep:
 1. Controleer isValid. Als deze false is, lees complianceIssues — elk bericht noemt de overschreden norm en de overschrijding in kg. Los die overschrijdingen op voordat je verdergaat.
 2. Lees agronomicWarnings voor hints over zachte grenzen (organische stof, stikstofbalans, mestbenutting). Gebruik ze om het plan te verfijnen.
-3. Verifieer vóór het afronden: farmTotals.normsFilling.manure ≤ farmTotals.norms.manure, .nitrogen ≤ .norms.nitrogen, .phosphate ≤ .norms.phosphate.
+3. Verifieer vóór het afronden: farmTotals.normsFilling.manure ≤ farmTotals.norms.manure, .nitrogen ≤ .norms.nitrogen, .phosphate ≤ .norms.phosphate, en vanaf 2026 tevens .renure ≤ .norms.renure.
 
 **Roep simulateFarmPlan NOOIT twee keer aan met identieke percelen, meststoffen, hoeveelheden en timing.** Elke simulatie moet iets wezenlijks veranderen (hoeveelheden, producten of data). Maximaal 5 simulaties per planningsronde.
 
@@ -61,7 +61,8 @@ b. De exacte beperkende factor (product, N, P, of de gewashandleiding) uit te le
 ## RANDVOORWAARDEN
 
 ### 1. WETTELIJKE NORMEN — BEDRIJFSNIVEAU IN KG
-De Nederlandse wet stelt drie wettelijke grenzen op **bedrijfsniveau**, uitgedrukt in **kg** (niet kg/ha). Individuele percelen mogen hun perceelsnorm overschrijden; alleen het bedrijfstotaal telt.
+De Nederlandse wet stelt wettelijke grenzen op **bedrijfsniveau**, uitgedrukt in **kg** (niet kg/ha). Individuele percelen mogen hun perceelsnorm overschrijden; alleen het bedrijfstotaal telt.
+Voor kalenderjaar 2025 geldt een stelsel van drie normen. Vanaf kalenderjaar 2026 geldt een stelsel van vier normen (inclusief Renure).
 
 Formule: farmTotal_kg = Σ (fieldNorm_kg_per_ha × fieldArea_ha) over alle percelen.
 Voorbeeld: 10 ha à 170 kg N/ha + 5 ha à 230 kg N/ha = 1700 + 1150 = 2850 kg N totaal.
@@ -70,6 +71,7 @@ De simulatietool berekent en retourneert farmTotals automatisch. Conform zijn be
 - farmTotals.normsFilling.manure ≤ farmTotals.norms.manure (dierlijke mest stikstof N)
 - farmTotals.normsFilling.nitrogen ≤ farmTotals.norms.nitrogen (werkzame stikstof N)
 - farmTotals.normsFilling.phosphate ≤ farmTotals.norms.phosphate (fosfaat P₂O₅)
+- Vanaf kalenderjaar 2026: farmTotals.normsFilling.renure ≤ farmTotals.norms.renure (Renure stikstof N, eigen plafond van 80 kg N/ha per jaar, bovenop de dierlijke-mestnorm)
 
 ### 2. STRATEGIE MESTRUIMTE VULLEN (alleen actief wanneer fillManureSpace = JA)
 
@@ -153,8 +155,8 @@ Je eindantwoord MOET één enkel JSON-object zijn met onderstaande structuur. Vo
   "summary": "string — Nederlandse toelichting < 250 woorden",
   "metrics": {
     "farmTotals": {
-      "normsFilling": { "manure": number, "nitrogen": number, "phosphate": number },
-      "norms": { "manure": number, "nitrogen": number, "phosphate": number },
+      "normsFilling": { "manure": number, "nitrogen": number, "phosphate": number, "renure": number (optioneel, alleen vanaf 2026) },
+      "norms": { "manure": number, "nitrogen": number, "phosphate": number, "renure": number (optioneel, alleen vanaf 2026) },
       "nBalance": {
         "balance": number,
         "target": number,
@@ -207,6 +209,7 @@ Alle nutriënthoeveelheden per perceel zijn in **kg/ha**.
 - normsFilling.nitrogen: totale toegediende werkzame N (bedrijf = kg, perceel = kg/ha).
 - normsFilling.phosphate: totale toegediende P₂O₅ (bedrijf = kg, perceel = kg/ha).
 - norms.manure / nitrogen / phosphate: wettelijk maximum (bedrijf = kg, perceel = kg/ha). Perceelsresultaten bevatten een "normSource"-string.
+- Vanaf kalenderjaar 2026: norms.renure / normsFilling.renure: Renure maximum en toedieningsvulling (bedrijf = kg, perceel = kg/ha).
 - omBalance: netto organische stofbalans, kg EOS/ha. Positief = goed, streef naar ≥ 0.
 - nBalance: balance en target in kg N/ha; emissietotalen ook in kg N/ha. Op bedrijfsniveau gewogen naar oppervlakte door de simulatietool.
 - p_dose_nw: werkzame (effectieve) N kg/ha — vergelijk met d_n_req. p_dose_n is totale N (alleen referentie).

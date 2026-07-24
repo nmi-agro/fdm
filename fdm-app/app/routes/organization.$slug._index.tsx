@@ -14,6 +14,7 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
+import { OrganizationAvatar } from "~/components/blocks/organization/organization-avatar"
 import { Expandable, ExpandableContent, ExpandableTrigger } from "~/components/custom/expandable"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
@@ -87,7 +88,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     const canModify = userRoles.has("owner") || userRoles.has("admin")
 
     // Get pending farm invitations for this organization
-    const allPendingInvitations = await listPendingInvitationsForUser(fdm, session.principal_id)
+    const allPendingInvitations = await listPendingInvitationsForUser(
+      fdm,
+      session.principal_id,
+      true,
+    )
     const pendingInvitations = allPendingInvitations.filter(
       (invitation) => invitation.target_principal_id === organization.id,
     )
@@ -152,7 +157,13 @@ export default function AppIndex() {
         <FarmTitle
           title={`Dashboard van ${loaderData.organization.name}`}
           description={"Bekijk alle informatie over deze organisatie"}
-          action={{ label: "Terug naar organisaties", to: "./.." }}
+          rightNode={
+            <OrganizationAvatar
+              src={loaderData.organization.logo}
+              alt={`Logo van ${loaderData.organization.name}`}
+              className="size-14"
+            />
+          }
         />
         <FarmContent>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -220,6 +231,7 @@ export default function AppIndex() {
                         key={invitation.invitation_id}
                         principalType="organization"
                         invitation={invitation}
+                        canAccept={invitation.can_accept}
                       />
                     ))}
                   </div>

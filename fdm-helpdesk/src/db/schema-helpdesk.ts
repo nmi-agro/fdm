@@ -68,16 +68,14 @@ export const agents = fdmHelpdeskSchema.table(
     display_name: text().notNull(),
     role: text().notNull().default("agent"), // 'admin', 'agent'
     is_active: boolean().notNull().default(true),
-    availability_status: text().notNull().default("online"), // 'online', 'away', 'out_of_office'
     assignment_tier: integer().notNull().default(1), // 1=first-line, 2=second-line, 3=escalation-only (last resort)
-    work_days: jsonb().notNull().default([1, 2, 3, 4, 5]), // ISO weekdays: 1=Mon, 2=Tue, ..., 7=Sun
+    work_days: jsonb().notNull().default([1, 2, 3, 4, 5]).$type<number[]>(), // same as Date.getDay(): 0=Sun, 1=Mon, 2=Tue, ..., 6=Sat
     max_tickets: integer().default(20), // Max concurrent assignments
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
   (table) => [
     index("agent_active_idx").on(table.is_active),
-    index("agent_availability_idx").on(table.availability_status),
     index("agent_tier_idx").on(table.assignment_tier),
   ],
 )
@@ -262,6 +260,28 @@ export const savedReplies = fdmHelpdeskSchema.table(
 )
 export type SavedReplyTypeSelect = typeof savedReplies.$inferSelect
 export type SavedReplyTypeInsert = typeof savedReplies.$inferInsert
+
+export const agentAbsences = fdmHelpdeskSchema.table(
+  "agent_absences",
+  {
+    absence_id: text().primaryKey(),
+    agent_id: text()
+      .notNull()
+      .references(() => agents.agent_id),
+    start_date: timestamp({ withTimezone: true }).notNull(),
+    end_date: timestamp({ withTimezone: true }).notNull(),
+    reason: text().notNull().default("holiday"), // 'holiday', 'day_off', 'sick', 'other'
+    note: text(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("agent_absences_agent_idx").on(table.agent_id),
+    index("agent_absences_start_date_idx").on(table.start_date),
+    index("agent_absences_end_date_idx").on(table.end_date),
+  ],
+)
+export type AgentAbsenceTypeSelect = typeof agentAbsences.$inferSelect
+export type AgentAbsenceTypeInsert = typeof agentAbsences.$inferInsert
 
 /* BLOCKED EMAILS */
 /**

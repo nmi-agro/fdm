@@ -8,8 +8,10 @@ import {
 import { CheckCircle2, ChevronDown, ChevronUp, Info } from "lucide-react"
 import { Fragment } from "react"
 import { Form } from "react-router"
+import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -24,7 +26,6 @@ import {
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import type { ParsedPlan, PlanRow } from "./types"
-import { FertilizerIcon } from "../../custom/fertilizer-icon"
 import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 
 const columnHelper = createColumnHelper<PlanRow>()
@@ -82,11 +83,12 @@ const columns = [
             >
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge
+                  <FertilizerBadge
                     variant="outline"
-                    className="text-muted-foreground w-fit cursor-help gap-1.5 font-normal"
+                    showIcon
+                    p_type={getFertilizerCategoryFromRvoCode(app.p_type_rvo)}
+                    className="w-fit cursor-help gap-1.5 font-normal"
                   >
-                    <FertilizerIcon p_type={app.p_type} />
                     <span className="text-foreground font-medium">{app.p_name_nl}</span>
                     <span className="tabular-nums">
                       {Math.round((app.p_app_amount_display ?? 0) * 100) / 100}{" "}
@@ -94,7 +96,7 @@ const columns = [
                     </span>
                     <span className="text-muted-foreground/70">·</span>
                     <span>{app.p_app_date}</span>
-                  </Badge>
+                  </FertilizerBadge>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="text-xs">
@@ -318,6 +320,15 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                                         fill: normsFilling.phosphate?.normFilling ?? 0,
                                         norm: norms.phosphate?.normValue ?? 0,
                                       },
+                                      ...(norms.renure !== undefined
+                                        ? [
+                                            {
+                                              label: "Renure N",
+                                              fill: normsFilling.renure?.normFilling ?? 0,
+                                              norm: norms.renure?.normValue ?? 0,
+                                            },
+                                          ]
+                                        : []),
                                     ].map(({ label, fill, norm }) => (
                                       <div key={label} className="space-y-1">
                                         <div className="flex justify-between text-xs">

@@ -30,6 +30,18 @@ interface AdviceArgs {
   b_ids: string[]
 }
 
+/**
+ * RVO mestcodes for Renure ("REcovered Nitrogen from manURE") products: processed
+ * animal-manure fractions that behave like artificial fertilizer and are exempt
+ * from the 170 kg N/ha dierlijke-mest ceiling from 2026 onwards, but count fully
+ * toward the total-N and phosphate norms (capped at their own 80 kg N/ha norm).
+ */
+const RENURE_RVO_CODES = ["130", "131", "132", "133", "134"]
+
+function isRenureRvoCode(p_type_rvo?: string | null): boolean {
+  return !!p_type_rvo && RENURE_RVO_CODES.includes(p_type_rvo)
+}
+
 export function isValidDutchCropCatalogue(b_lu_catalogue: string | null | undefined) {
   return /^nl_\d+$/.test(b_lu_catalogue ?? "")
 }
@@ -273,6 +285,17 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         results = results.filter((f) => allowedIds.includes(f.p_id_catalogue))
       }
 
+      // Exclude Renure products (RVO mestcodes 130-134) when the user has explicitly opted out
+      // of using them for this plan. Only meaningful from calendar year 2026 onwards — before
+      // then, these codes are legally just regular animal manure with no separate Renure
+      // classification, so the toggle must never filter them out for earlier years.
+      const includeRenure = config?.configurable?.includeRenure as boolean | undefined
+      const calendarForRenure =
+        (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
+      if (includeRenure === false && Number.parseInt(calendarForRenure, 10) >= 2026) {
+        results = results.filter((f) => !isRenureRvoCode(f.p_type_rvo))
+      }
+
       if (args.p_type) {
         results = results.filter((f) => f.p_type === args.p_type)
       }
@@ -292,6 +315,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
           p_id_catalogue: f.p_id_catalogue,
           p_name_nl: f.p_name_nl,
           p_type: f.p_type,
+          p_type_rvo: f.p_type_rvo,
           p_app_method_options: f.p_app_method_options || [],
           p_n_rt: f.p_n_rt,
           p_n_wc: f.p_n_wc,
@@ -417,10 +441,13 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               principalId,
               fieldData.b_id,
             )
-            const [manure, phosphate, nitrogen] = await Promise.all([
+            const [manure, phosphate, nitrogen, renure] = await Promise.all([
               normFuncs.calculateNormForManure(fdm, normsInput as any),
               normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
               normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
+              Number.parseInt(calendar, 10) >= 2026 && (normFuncs as any).calculateNormForRenure
+                ? (normFuncs as any).calculateNormForRenure(fdm, normsInput as any)
+                : Promise.resolve(undefined),
             ])
 
             // Calculate norm fillings using the proper Dutch regulatory logic
@@ -437,7 +464,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               ...collectedFillingInput,
               applications: proposedApps,
             }
-            const [manureFilling, nitrogenFilling, phosphateFilling] = await Promise.all([
+            const [manureFilling, nitrogenFilling, phosphateFilling, renureFilling] = await Promise.all([
               Promise.resolve(
                 fillFuncs.calculateFertilizerApplicationFillingForManure(fillingInput),
               ),
@@ -445,6 +472,9 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               Promise.resolve(
                 fillFuncs.calculateFertilizerApplicationFillingForPhosphate(fillingInput),
               ),
+              Number.parseInt(calendar, 10) >= 2026 && (fillFuncs as any).calculateFertilizerApplicationFillingForRenure
+                ? (fillFuncs as any).calculateFertilizerApplicationFillingForRenure(fillingInput)
+                : Promise.resolve(undefined),
             ])
 
             // Calculate organic matter balance using proposed applications.
@@ -541,12 +571,14 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
                   manure: manureFilling,
                   nitrogen: nitrogenFilling,
                   phosphate: phosphateFilling,
+                  renure: renureFilling,
                 },
                 // Structured for aggregateNormsToFarmLevel
                 norms: {
                   manure,
                   nitrogen,
                   phosphate,
+                  renure,
                 },
                 // Proposed nutrient dose (kg/ha) for comparison with
                 // nutrient advice. p_dose_nw (workable N) is the correct
@@ -602,15 +634,18 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
           .map(async (f) => {
             try {
               const normsInput = await normFuncs.collectInputForNorms(fdm, principalId, f.b_id)
-              const [manure, phosphate, nitrogen] = await Promise.all([
+              const [manure, phosphate, nitrogen, renure] = await Promise.all([
                 normFuncs.calculateNormForManure(fdm, normsInput as any),
                 normFuncs.calculateNormForPhosphate(fdm, normsInput as any),
                 normFuncs.calculateNormForNitrogen(fdm, normsInput as any),
+                Number.parseInt(calendar, 10) >= 2026 && (normFuncs as any).calculateNormForRenure
+                  ? (normFuncs as any).calculateNormForRenure(fdm, normsInput as any)
+                  : Promise.resolve(undefined),
               ])
               return {
                 b_id: f.b_id,
                 b_area: f.b_area as number,
-                norms: { manure, phosphate, nitrogen },
+                norms: { manure, phosphate, nitrogen, renure },
               }
             } catch {
               failedNormFields.push(f.b_id)
@@ -693,6 +728,17 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         )
       }
 
+      if (
+        Number.parseInt(calendar, 10) >= 2026 &&
+        farmNormsKg.renure !== undefined &&
+        farmFillingsKg.renure > farmNormsKg.renure
+      ) {
+        const excess = Math.round(farmFillingsKg.renure - farmNormsKg.renure)
+        complianceIssues.push(
+          `Wettelijke normoverschrijding (Renure stikstof): Bedrijf overschrijdt de grens met ${excess} kg N. Totaal toegediend: ${farmFillingsKg.renure} kg, Grens: ${farmNormsKg.renure} kg.`,
+        )
+      }
+
       if (args.strategies?.isOrganic) {
         for (const field of args.fields) {
           for (const app of field.applications) {
@@ -717,6 +763,21 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
             if (fert?.p_type === "mineral" && fert.p_p_rt != null && fert.p_p_rt > 0) {
               complianceIssues.push(
                 `Strategie-overtreding (Derogatie): Plan bevat een minerale meststof met fosfaat (${fert.p_id_catalogue} op perceel ${field.b_id}), wat onder derogatieregels niet is toegestaan.`,
+              )
+            }
+          }
+        }
+      }
+
+      if (args.strategies?.includeRenure === false && Number.parseInt(calendar, 10) >= 2026) {
+        for (const field of args.fields) {
+          for (const app of field.applications) {
+            const fert = fertilizers.find(
+              (f: Fertilizer) => f.p_id_catalogue === app.p_id_catalogue,
+            )
+            if (isRenureRvoCode(fert?.p_type_rvo)) {
+              complianceIssues.push(
+                `Strategie-overtreding (Renure): Plan bevat een Renure-product (${fert?.p_id_catalogue} op perceel ${field.b_id}, RVO mestcode ${fert?.p_type_rvo}), terwijl de strategie "Renure-producten overwegen" op NEE staat.`,
               )
             }
           }
@@ -883,6 +944,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
             keepNitrogenBalanceBelowTarget: z.boolean().optional(),
             workOnRotationLevel: z.boolean().optional(),
             isDerogation: z.boolean().optional(),
+            includeRenure: z.boolean().optional(),
           })
           .optional()
           .describe("Door de gebruiker in te stellen strategieën voor waarschuwingen"),
@@ -1034,6 +1096,7 @@ interface SimulationArgs {
     keepNitrogenBalanceBelowTarget?: boolean
     workOnRotationLevel?: boolean
     isDerogation?: boolean
+    includeRenure?: boolean
   }
   fields: SimulationField[]
 }

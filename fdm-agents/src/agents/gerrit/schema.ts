@@ -55,6 +55,7 @@ const NormValuesSchema = z.object({
   manure: z.number(),
   nitrogen: z.number(),
   phosphate: z.number(),
+  renure: z.number().optional().describe("Only present/required for 2026 and later"),
 })
 
 /**

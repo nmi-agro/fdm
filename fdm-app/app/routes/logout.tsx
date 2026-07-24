@@ -29,6 +29,6 @@ export async function action({ request }: ActionFunctionArgs) {
     })
     return redirect("/signin")
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

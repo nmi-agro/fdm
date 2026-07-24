@@ -18,6 +18,7 @@ import type { AppAmountUnit } from "./fertilizer-application-unit-conversion"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
+import { createId } from "./id"
 
 /**
  * Gets all enabled fertilizer catalogues for a farm.
@@ -641,6 +642,32 @@ export async function syncFertilizerCatalogueArray(
         if (existing.length === 0) {
           //add the item if does not exist
           await tx.insert(schema.fertilizersCatalogue).values(item)
+
+          // Automatically acquire this newly introduced catalogue product for every
+          // farm that already has this catalogue source enabled. Without this,
+          // only farms created *after* the product was added would ever see it
+          // (new farms bulk-acquire the full enabled catalogue at creation time),
+          // while existing farms would never get it without manual action.
+          const farmsWithCatalogueEnabled = await tx
+            .selectDistinct({ b_id_farm: schema.fertilizerCatalogueEnabling.b_id_farm })
+            .from(schema.fertilizerCatalogueEnabling)
+            .where(eq(schema.fertilizerCatalogueEnabling.p_source, item.p_source))
+
+          for (const farm of farmsWithCatalogueEnabled) {
+            const p_id = createId()
+            await tx.insert(schema.fertilizers).values({ p_id })
+            await tx.insert(schema.fertilizerAcquiring).values({
+              b_id_farm: farm.b_id_farm,
+              p_id,
+              p_acquiring_amount: null,
+              p_acquiring_date: null,
+            })
+            await tx.insert(schema.fertilizerPicking).values({
+              p_id,
+              p_id_catalogue: item.p_id_catalogue,
+              p_picking_date: new Date(),
+            })
+          }
         } else {
           // update the hash if it is undefined, null or different
           if (

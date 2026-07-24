@@ -69,10 +69,10 @@ import { isBcsAnalysis } from "~/lib/bcs"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
@@ -626,6 +626,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                   norms.value.manure.normValue,
                   "kg N",
                 ),
+                ...(Number.parseInt(calendar, 10) >= 2026 && norms.value.renure
+                  ? [
+                      formatNormItem(
+                        "Renure",
+                        norms.filling.renure?.normFilling ?? 0,
+                        norms.value.renure.normValue,
+                        "kg N",
+                      ),
+                    ]
+                  : []),
               ],
             },
           }

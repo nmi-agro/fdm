@@ -38,6 +38,8 @@ export interface FertilizerPlanStrategies {
   workOnRotationLevel: boolean
   /** Whether the farm operates under derogation (prohibits mineral fertilizers containing phosphate) */
   isDerogation: boolean
+  /** Whether to allow Renure products (RVO mestcodes 130-134) in the plan. Only relevant for calendar year 2026 and later. */
+  includeRenure: boolean
 }
 
 /** Schema for validating FertilizerPlanStrategies — all fields must be explicit booleans. */
@@ -48,6 +50,7 @@ export const FertilizerPlanStrategiesSchema = z.object({
   keepNitrogenBalanceBelowTarget: z.boolean(),
   workOnRotationLevel: z.boolean(),
   isDerogation: z.boolean(),
+  includeRenure: z.boolean(),
 })
 
 /** Compact field summary injected into the initial prompt for faster agent orientation. */
@@ -151,6 +154,7 @@ export function buildFertilizerPlanPrompt(
 ): string {
   const validatedStrategies = FertilizerPlanStrategiesSchema.parse(strategies)
   const safeContext = additionalContext ? sanitizeAdditionalContext(additionalContext) : "None"
+  const isRenureApplicable = Number.parseInt(calendar, 10) >= 2026
 
   // Filter out non-productive fields: buffer strips, nature/landscape elements, and small fragments
   const productiveFields = fieldsSummary?.filter(
@@ -177,6 +181,13 @@ export function buildFertilizerPlanPrompt(
       ? `\nGESELECTEERDE MESTSTOFFEN (alleen deze gebruiken):\n${selectedFertilizerIds.map((id) => `- ${id}`).join("\n")}\nGebruik uitsluitend meststoffen uit bovenstaande lijst. Sla meststoffen die hier niet in staan over, ook als ze beschikbaar zijn in de inventaris.\n`
       : ""
 
+  // Only mention Renure at all when the plan year is 2026 or later — before then, Renure has no
+  // legal meaning (RVO mestcodes 130-134 simply count as regular animal manure), so surfacing the
+  // toggle or the norm explanation for earlier years would be confusing/inapplicable noise.
+  const renureBlock = isRenureApplicable
+    ? `- Renure-producten overwegen: ${validatedStrategies.includeRenure ? "JA (mag Renure-producten gebruiken (RVO mestcodes 130-134); deze tellen niet mee voor de 170 kg dierlijke-mestnorm, maar wel voor de werkzame-stikstofnorm en fosfaatnorm, met een eigen maximum van 80 kg N/ha bovenop de dierlijke-mestnorm)" : "NEE (gebruik GEEN producten met RVO mestcode 130-134 in dit plan)"}\n`
+    : ""
+
   return `Stel een bemestingsplan op voor bedrijf "${farmData.b_id_farm}" voor het jaar "${calendar}".
 ${fieldsBlock}
 TE HANDHAVEN STRATEGIEËN:
@@ -186,7 +197,7 @@ TE HANDHAVEN STRATEGIEËN:
 - Stikstofbalans onder streefwaarde houden: ${validatedStrategies.keepNitrogenBalanceBelowTarget ? "JA (Zorg dat het stikstofbalansoverschot op bedrijfsniveau onder het bedrijfsomgevingsdoel blijft. Individuele percelen mogen hun doel overschrijden als dit door andere percelen wordt gecompenseerd)" : "NEE"}
 - Werken op bouwplanniveau: ${validatedStrategies.workOnRotationLevel ? "JA (Alle percelen met hetzelfde b_lu_catalogue MOETEN identieke giften ontvangen — dezelfde producten, hoeveelheden, data en methoden)" : "NEE"}
 - Derogatie: ${validatedStrategies.isDerogation ? "JA (Geen minerale meststoffen met fosfaat toegestaan)" : "NEE"}
-${fertilizersBlock}${clarificationsBlock}
+${renureBlock}${fertilizersBlock}${clarificationsBlock}
 --- BEGIN ADDITIONAL USER CONTEXT ---
 ${safeContext}
 --- END ADDITIONAL USER CONTEXT ---

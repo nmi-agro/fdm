@@ -83,7 +83,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       getFertilizers(fdm, session.principal_id, b_id_farm),
     ])
 
-    const fertilizerTypeById = new Map(fertilizers.map((f) => [f.p_id, f.p_type]))
+    const fertilizerTypeById = new Map(
+      fertilizers.map((f) => [f.p_id, { p_type: f.p_type, p_type_rvo: f.p_type_rvo }]),
+    )
 
     return {
       b_id_farm,
@@ -118,7 +120,7 @@ export default function TimelinePage() {
   }, [])
 
   const showMobileView = isMobile || isLandscape
-  const showMobileViewRef = useRef(showMobileView)  
+  const showMobileViewRef = useRef(showMobileView)
   useEffect(() => {
     showMobileViewRef.current = showMobileView
   }, [showMobileView])

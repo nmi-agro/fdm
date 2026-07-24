@@ -36,10 +36,10 @@ import { isBcsAnalysis } from "~/lib/bcs"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
 
@@ -423,6 +423,6 @@ export async function action({ request }: ActionFunctionArgs) {
       message: "Bufferstrook status bijgewerkt.",
     })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

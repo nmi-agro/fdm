@@ -23,6 +23,18 @@ export async function compressImage(file: File): Promise<File> {
   return imageCompression(file, COMPRESSION_OPTIONS)
 }
 
+const AVATAR_COMPRESSION_OPTIONS = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 200,
+  useWebWorker: true,
+  fileType: "image/jpeg",
+  libURL: compressionLibURL,
+}
+
+export async function compressAvatar(file: File): Promise<File> {
+  return imageCompression(file, AVATAR_COMPRESSION_OPTIONS)
+}
+
 /**
  * Compresses an image and uploads it to the server, which validates the file
  * with magic-byte detection and stores it in GCS.
