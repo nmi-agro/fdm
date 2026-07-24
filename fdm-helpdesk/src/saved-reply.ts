@@ -20,16 +20,19 @@ export async function createSavedReply(
   isShared?: schema.SavedReplyTypeInsert["is_shared"],
 ) {
   try {
-    const reply_id = createId()
-    await fdm.insert(schema.savedReplies).values({
-      reply_id: reply_id,
-      title: title,
-      body: body,
-      created_by: createdBy,
-      category: category,
-      is_shared: isShared,
+    return await fdm.transaction(async (tx) => {
+      await checkHelpdeskPermission(tx, "helpdesk", "read", "", createdBy, "createSavedReply")
+      const reply_id = createId()
+      await tx.insert(schema.savedReplies).values({
+        reply_id: reply_id,
+        title: title,
+        body: body,
+        created_by: createdBy,
+        category: category,
+        is_shared: isShared,
+      })
+      return reply_id
     })
-    return reply_id
   } catch (err) {
     throw handleError(err, "Exception for createSavedReply", {
       title,
@@ -261,6 +264,6 @@ export function applySavedReply(replyBody: string, context: SavedReplyContext): 
     }
     return result
   } catch (err) {
-    throw handleError(err, "Exception for applySavedReply")
+    throw handleError(err, "Exception for applySavedReply", { replyBody, context })
   }
 }
