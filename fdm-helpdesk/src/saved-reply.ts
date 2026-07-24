@@ -11,6 +11,19 @@ export type SavedReplySummary = Omit<SavedReply, "body">
 export type SavedReplyVariable = string
 export type SavedReplyContext = Partial<{ [k in SavedReplyVariable]: string }>
 
+/**
+ * Creates a new saved reply template that may be used to easily compose message text in the future.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param title Title for the saved reply. It is the label shown while choosing a saved reply.
+ * @param body Body of the saved reply. It contains the actual message text that will be used when composing
+ * a reply.
+ * @param createdBy Principal ID of the user who created the saved reply.
+ * @param category Optional category for the saved reply. It can be used to group similar replies together.
+ * @param isShared Indicates whether the saved reply is shared with other users.
+ * @returns The ID of the newly created saved reply.
+ */
 export async function createSavedReply(
   fdm: FdmHelpdeskType,
   title: schema.SavedReplyTypeInsert["title"],
@@ -43,6 +56,19 @@ export async function createSavedReply(
   }
 }
 
+/**
+ * Updates an existing saved reply. Throws a permission error if the user does not have write access to the
+ * saved reply or if the saved reply does not exist.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param reply_id ID of the reply to update.
+ * @param title New title. May be set to undefined to leave the title unchanged.
+ * @param body New body. May be set to undefined to leave the body unchanged.
+ * @param category New category. May be set to undefined to leave the category unchanged.
+ * @param is_shared New shared status. May be set to undefined to leave the shared status unchanged.
+ */
 export async function updateSavedReply(
   fdm: FdmHelpdeskType,
   principal_id: HelpdeskPrincipalId,
@@ -85,6 +111,15 @@ export async function updateSavedReply(
   }
 }
 
+/**
+ * Deletes an existing saved reply. Throws a permission error if the user does not have write access to the
+ * saved reply or if the saved reply does not exist.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param reply_id ID of the reply to delete.
+ */
 export async function deleteSavedReply(
   fdm: FdmHelpdeskType,
   principal_id: HelpdeskPrincipalId,
@@ -98,7 +133,7 @@ export async function deleteSavedReply(
         "write",
         reply_id,
         principal_id,
-        "updateSavedReply",
+        "deleteSavedReply",
       )
 
       await tx.delete(schema.savedReplies).where(eq(schema.savedReplies.reply_id, reply_id))
@@ -111,6 +146,16 @@ export async function deleteSavedReply(
   }
 }
 
+/**
+ * Gets all reply templates that are saved on the helpdesk and the principal has access to. It throws a
+ * permission error if the principal is not an agent.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param category Optional category to filter the saved replies.
+ * @returns A list of saved reply summaries that the principal has access to.
+ */
 export async function getSavedReplies(
   fdm: FdmHelpdeskType,
   principal_id: HelpdeskPrincipalId,
@@ -159,6 +204,16 @@ export async function getSavedReplies(
   }
 }
 
+/**
+ * Gets the saved reply with the given ID. Throws a permission error if the principal does not have access to
+ * the saved reply or if it does not exist.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with
+ * {@link createFdmServer} of fdm-core.
+ * @param principal_id The principal identifier(s); supports a single ID or an array.
+ * @param reply_id ID of the reply to get.
+ * @returns a aved reply object with the body included.
+ */
 export async function getSavedReply(
   fdm: FdmHelpdeskType,
   principal_id: HelpdeskPrincipalId,
