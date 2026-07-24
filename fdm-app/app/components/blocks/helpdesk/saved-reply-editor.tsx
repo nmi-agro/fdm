@@ -72,7 +72,9 @@ export function SavedReplyEditor({
                   render={({ field, fieldState }) => (
                     <Field>
                       <FieldLabel>Titel</FieldLabel>
-                      <FieldDescription>Geef een titel voor de sjabloon.</FieldDescription>
+                      {canModify && (
+                        <FieldDescription>Geef een titel voor de sjabloon.</FieldDescription>
+                      )}
                       <Input {...field} />
                       {fieldState.error ? <FieldError errors={[fieldState.error]} /> : undefined}
                     </Field>
@@ -83,12 +85,14 @@ export function SavedReplyEditor({
                   render={({ field, fieldState }) => (
                     <Field>
                       <FieldLabel>Sjabloontext</FieldLabel>
-                      <FieldDescription>
-                        Je kunt de sjabloon hier bewerken. &#123;&#123;customer_name&#125;&#125;,
-                        &#123;&#123;agent_name&#125;&#125;, &#123;&#123;farm_name&#125;&#125;,
-                        &#123;&#123;ticket_ref&#125;&#125; kunnen als plaatsaanduidingen voor de
-                        corresponderende waarden worden gebruikt.
-                      </FieldDescription>
+                      {canModify && (
+                        <FieldDescription>
+                          Je kunt de sjabloon hier bewerken. &#123;&#123;customer_name&#125;&#125;,
+                          &#123;&#123;agent_name&#125;&#125;, &#123;&#123;farm_name&#125;&#125;,
+                          &#123;&#123;ticket_ref&#125;&#125; kunnen als plaatsaanduidingen voor de
+                          corresponderende waarden worden gebruikt.
+                        </FieldDescription>
+                      )}
                       <Textarea {...field} rows={10} placeholder="Schrijf hier de sjabloontext." />
                       {fieldState.error ? <FieldError errors={[fieldState.error]} /> : undefined}
                     </Field>
@@ -98,7 +102,9 @@ export function SavedReplyEditor({
                   name="is_shared"
                   render={({ field, fieldState }) => (
                     <Field orientation="horizontal">
-                      <FieldLabel>Deel met andere medewerkers</FieldLabel>
+                      <FieldLabel>
+                        {canModify ? "Deel" : "Gedeeld"} met andere medewerkers
+                      </FieldLabel>
                       <Checkbox
                         name={field.name}
                         onBlur={field.onBlur}
@@ -115,10 +121,12 @@ export function SavedReplyEditor({
               <Button variant="outline" asChild>
                 <NavLink to="../.">Terug</NavLink>
               </Button>
-              <Button type="submit" disabled={isSubmitting || !canModify}>
-                Opslaan
-                {isSubmitting && <Spinner />}
-              </Button>
+              {canModify && (
+                <Button type="submit" disabled={isSubmitting || !canModify}>
+                  Opslaan
+                  {isSubmitting && <Spinner />}
+                </Button>
+              )}
             </CardFooter>
           </fetcher.Form>
         </Card>

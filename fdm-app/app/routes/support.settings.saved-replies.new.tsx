@@ -66,7 +66,11 @@ export async function action({ request }: Route.ActionArgs) {
 export default function NewSavedReply() {
   return (
     <>
-      <FarmTitle title="Nieuw sjabloon" description="Hier kun je een nieuw sjabloon aanmaken." />
+      <FarmTitle
+        title="Nieuw sjabloon"
+        description="Hier kun je een nieuw sjabloon aanmaken."
+        action={{ to: "/support/settings/saved-replies", label: "Terug" }}
+      />
       <SavedReplyEditor canModify={true} />
     </>
   )

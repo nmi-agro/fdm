@@ -1,5 +1,5 @@
 import type { SavedReplySummary } from "@nmi-agro/fdm-helpdesk"
-import { Pencil, Trash2 } from "lucide-react"
+import { ExternalLink, Pencil, Trash2 } from "lucide-react"
 import { NavLink, useFetcher } from "react-router"
 import { cn } from "@/app/lib/utils"
 import {
@@ -128,7 +128,7 @@ export function SavedReplyRow({ savedReply, canModify, principalLookup }: SavedR
       <TableCell>
         <Spinner className={cn(fetcher.state === "idle" && "invisible")} />
       </TableCell>
-      {canModify && (
+      {canModify ? (
         <TableCell>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -141,8 +141,21 @@ export function SavedReplyRow({ savedReply, canModify, principalLookup }: SavedR
             <TooltipContent>Bijwerken</TooltipContent>
           </Tooltip>
         </TableCell>
+      ) : (
+        <TableCell>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button type="button" variant="ghost" asChild>
+                <NavLink to={`/support/settings/saved-replies/${savedReply.reply_id}`}>
+                  <ExternalLink aria-label="Bekijken" />
+                </NavLink>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Bekijken</TooltipContent>
+          </Tooltip>
+        </TableCell>
       )}
-      {canModify && (
+      {canModify ? (
         <TableCell className="text-end align-middle">
           <AlertDialog>
             <Tooltip>
@@ -189,6 +202,8 @@ export function SavedReplyRow({ savedReply, canModify, principalLookup }: SavedR
             </AlertDialogContent>
           </AlertDialog>
         </TableCell>
+      ) : (
+        <TableCell />
       )}
     </TableRow>
   )

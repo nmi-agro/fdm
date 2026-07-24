@@ -78,6 +78,7 @@ export default function ExistingSavedReply() {
           savedReplyWritePermission ? "Opgeslagen reactie bijwerken" : "Opgeslagen reactie bekijken"
         }
         description={`Hier kun je de titel, tekst en andere instellingen van het sjabloon ${savedReplyWritePermission ? "bijwerken" : "bekijken"}.`}
+        action={{ to: "/support/settings/saved-replies", label: "Terug" }}
       />
       <SavedReplyEditor reply={savedReply} canModify={savedReplyWritePermission} />
     </>
