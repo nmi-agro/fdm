@@ -33,6 +33,7 @@ import {
 } from "~/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { endMonth, startMonth } from "~/lib/calendar"
+import { getFertilizerCategoryFromRvoCode } from "../fertilizer/utils"
 
 // The years the Gantt renders/scrolls through must never exceed what the app's "Calendar" year
 // picker actually supports (`~/lib/calendar`) — otherwise the timeline could show a year (e.g.
@@ -47,6 +48,12 @@ export type TimelineFertilizerApplication = {
   p_app_amount_display: number | null
   p_app_amount_unit: string | null
   p_app_date: Date
+}
+
+/** Fertilizer type/RVO-code lookup value, keyed by fertilizer `p_id` (see `fertilizerTypeById`). */
+export type FertilizerTypeInfo = {
+  p_type: "manure" | "mineral" | "compost" | null
+  p_type_rvo?: string | null
 }
 
 export type TimelineHarvest = {
@@ -106,6 +113,7 @@ type AttachedEvent = {
   detail: string
   href: string
   p_type?: "manure" | "mineral" | "compost" | null
+  p_type_rvo?: string | null
 }
 
 type TimelineFeature = GanttFeature & {
@@ -113,6 +121,7 @@ type TimelineFeature = GanttFeature & {
   href?: string
   detail: string
   p_type?: "manure" | "mineral" | "compost" | null
+  p_type_rvo?: string | null
   events?: AttachedEvent[]
 }
 
@@ -160,7 +169,7 @@ function formatHarvestDetails(harvest: TimelineHarvest): string {
 function buildFieldFeatures(
   field: TimelineField,
   filters: TimelineFilters,
-  fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>,
+  fertilizerTypeById: Map<string, FertilizerTypeInfo>,
   b_id_farm: string,
   calendar: string,
   openCultivationEndAt: Date,
@@ -245,7 +254,9 @@ function buildFieldFeatures(
 
   if (filters.showFertilizers) {
     for (const app of field.fertilizerApplications) {
-      const p_type = fertilizerTypeById.get(app.p_id) ?? null
+      const fertilizerInfo = fertilizerTypeById.get(app.p_id)
+      const p_type = fertilizerInfo?.p_type ?? null
+      const p_type_rvo = fertilizerInfo?.p_type_rvo ?? null
       const name = app.p_name_nl ?? "Bemesting"
       const amountText =
         app.p_app_amount_display != null && app.p_app_amount_unit
@@ -255,7 +266,15 @@ function buildFieldFeatures(
       const detail = `Bemesting: ${name}${amountText ? ` — ${amountText}` : ""}\n${field.b_name} · ${formatNl(app.p_app_date)}`
       attachOrPush(
         app.p_app_date,
-        { id: `fertilizer-${app.p_app_id}`, kind: "fertilizer", label: name, detail, href, p_type },
+        {
+          id: `fertilizer-${app.p_app_id}`,
+          kind: "fertilizer",
+          label: name,
+          detail,
+          href,
+          p_type,
+          p_type_rvo,
+        },
         {
           id: `fertilizer-${app.p_app_id}`,
           name,
@@ -267,6 +286,7 @@ function buildFieldFeatures(
           href,
           detail,
           p_type,
+          p_type_rvo,
         },
       )
     }
@@ -353,8 +373,16 @@ function buildFieldFeatures(
   return [...cultivationFeatures, ...orphanFeatures]
 }
 
-function EventIcon({ kind, p_type }: { kind: AttachedEvent["kind"]; p_type?: string | null }) {
-  if (kind === "fertilizer") return <FertilizerIcon p_type={p_type ?? "other"} />
+function EventIcon({
+  kind,
+  p_type_rvo,
+}: {
+  kind: AttachedEvent["kind"]
+  p_type?: string | null
+  p_type_rvo?: string | null
+}) {
+  if (kind === "fertilizer")
+    return <FertilizerIcon p_type={getFertilizerCategoryFromRvoCode(p_type_rvo)} />
   if (kind === "harvest")
     return <Wheat className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.harvest }} />
   return <TestTube2 className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.soil_sampling }} />
@@ -370,7 +398,7 @@ function EventOverlay({ event }: { event: AttachedEvent }) {
           style={{ left: `${event.percent}%` }}
           to={event.href}
         >
-          <EventIcon kind={event.kind} p_type={event.p_type} />
+          <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
         </NavLink>
       </TooltipTrigger>
       <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
@@ -439,7 +467,7 @@ function FeatureContent({ feature }: { feature: TimelineFeature }) {
           className="flex h-full min-w-0 flex-1 items-center justify-center"
           to={feature.href ?? "#"}
         >
-          <EventIcon kind={feature.kind} p_type={feature.p_type} />
+          <EventIcon kind={feature.kind} p_type={feature.p_type} p_type_rvo={feature.p_type_rvo} />
         </NavLink>
       </TooltipTrigger>
       <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
@@ -508,7 +536,7 @@ export const TimelineGanttView = forwardRef<
     filters: TimelineFilters
     /** Optional: enables the "reset filters" action in the all-hidden empty state. */
     onFiltersChange?: (filters: TimelineFilters) => void
-    fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>
+    fertilizerTypeById: Map<string, FertilizerTypeInfo>
     b_id_farm: string
     calendar: string
     calendarYear: number

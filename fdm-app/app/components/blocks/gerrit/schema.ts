@@ -11,6 +11,10 @@ export const GerritFormSchema = z
       .string()
       .optional()
       .transform((val) => val === "true"),
+    includeRenure: z.coerce
+      .string()
+      .optional()
+      .transform((val) => val === "true"),
     /** Catalogue IDs of fertilizers to consider. Undefined = use all; empty array = invalid. */
     selectedFertilizerIds: z.array(z.string()).optional(),
     additionalContext: z
@@ -39,6 +43,7 @@ export const STRATEGY_LABELS: Record<string, string> = {
   keepNitrogenBalanceBelowTarget: "Inzetten op doelsturing",
   workOnRotationLevel: "Bouwplanniveau",
   isDerogation: "Derogatie",
+  includeRenure: "Renure-producten overwegen",
 }
 
 export const GEMINI_MODELS = [

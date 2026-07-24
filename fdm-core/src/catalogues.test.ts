@@ -3,7 +3,7 @@ import {
   getFertilizersCatalogue,
   getMeasuresCatalogue,
 } from "@nmi-agro/fdm-data"
-import { eq, isNotNull } from "drizzle-orm"
+import { and, eq, isNotNull } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
 import type { FdmType } from "./fdm.types"
 import {
@@ -20,6 +20,7 @@ import {
   isFertilizerCatalogueEnabled,
   isMeasureCatalogueEnabled,
   syncCatalogues,
+  syncFertilizerCatalogueArray,
   syncMeasuresCatalogueArray,
 } from "./catalogues"
 import * as schema from "./db/schema"
@@ -428,6 +429,128 @@ describe("Catalogues syncing", () => {
       .limit(1)
 
     expect(syncedItem[0].p_name_nl).not.toBe("Updated Name")
+  })
+
+  it("should automatically acquire a newly introduced fertilizer for farms with the catalogue enabled", async () => {
+    const principal_id = "test_principal_sync"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Sync Test Farm",
+      "123456",
+      "123 Farm Lane",
+      "12345",
+    )
+    await enableFertilizerCatalogue(fdm, principal_id, b_id_farm, "baat")
+
+    const p_id_catalogue = `test_new_baat_${Date.now()}`
+    await syncFertilizerCatalogueArray(fdm, [
+      {
+        p_source: "baat",
+        p_id_catalogue,
+        p_name_nl: "Nieuw testproduct",
+        p_type_rvo: "130",
+        p_type_mineral: true,
+      },
+    ])
+
+    const acquired = await fdm
+      .select({ p_id_catalogue: schema.fertilizerPicking.p_id_catalogue })
+      .from(schema.fertilizerAcquiring)
+      .innerJoin(
+        schema.fertilizerPicking,
+        eq(schema.fertilizerAcquiring.p_id, schema.fertilizerPicking.p_id),
+      )
+      .where(
+        and(
+          eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm),
+          eq(schema.fertilizerPicking.p_id_catalogue, p_id_catalogue),
+        ),
+      )
+
+    expect(acquired.length).toBe(1)
+  })
+
+  it("should not duplicate acquisitions when syncing the same new fertilizer twice", async () => {
+    const principal_id = "test_principal_sync_dup"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Sync Test Farm 2",
+      "123456",
+      "123 Farm Lane",
+      "12345",
+    )
+    await enableFertilizerCatalogue(fdm, principal_id, b_id_farm, "baat")
+
+    const p_id_catalogue = `test_new_baat_dup_${Date.now()}`
+    const newItem = {
+      p_source: "baat",
+      p_id_catalogue,
+      p_name_nl: "Nieuw testproduct 2",
+      p_type_rvo: "131",
+      p_type_mineral: true,
+    }
+
+    await syncFertilizerCatalogueArray(fdm, [newItem])
+    // Sync again: the catalogue item now already exists, so no second acquisition should happen.
+    await syncFertilizerCatalogueArray(fdm, [newItem])
+
+    const acquired = await fdm
+      .select({ p_id_catalogue: schema.fertilizerPicking.p_id_catalogue })
+      .from(schema.fertilizerAcquiring)
+      .innerJoin(
+        schema.fertilizerPicking,
+        eq(schema.fertilizerAcquiring.p_id, schema.fertilizerPicking.p_id),
+      )
+      .where(
+        and(
+          eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm),
+          eq(schema.fertilizerPicking.p_id_catalogue, p_id_catalogue),
+        ),
+      )
+
+    expect(acquired.length).toBe(1)
+  })
+
+  it("should not acquire a newly introduced fertilizer for farms without the catalogue enabled", async () => {
+    const principal_id = "test_principal_sync_disabled"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Sync Test Farm 3",
+      "123456",
+      "123 Farm Lane",
+      "12345",
+    )
+    // Note: catalogue "baat" is intentionally NOT enabled for this farm.
+
+    const p_id_catalogue = `test_new_baat_disabled_${Date.now()}`
+    await syncFertilizerCatalogueArray(fdm, [
+      {
+        p_source: "baat",
+        p_id_catalogue,
+        p_name_nl: "Nieuw testproduct 3",
+        p_type_rvo: "132",
+        p_type_mineral: true,
+      },
+    ])
+
+    const acquired = await fdm
+      .select({ p_id_catalogue: schema.fertilizerPicking.p_id_catalogue })
+      .from(schema.fertilizerAcquiring)
+      .innerJoin(
+        schema.fertilizerPicking,
+        eq(schema.fertilizerAcquiring.p_id, schema.fertilizerPicking.p_id),
+      )
+      .where(
+        and(
+          eq(schema.fertilizerAcquiring.b_id_farm, b_id_farm),
+          eq(schema.fertilizerPicking.p_id_catalogue, p_id_catalogue),
+        ),
+      )
+
+    expect(acquired.length).toBe(0)
   })
 
   it("should update cultivation catalogue", async () => {

@@ -55,12 +55,14 @@ export type FieldNormValues = {
   manure: GebruiksnormResult
   phosphate: GebruiksnormResult
   nitrogen: GebruiksnormResult
+  renure?: GebruiksnormResult
 }
 
 export type FieldNormFillings = {
   manure: NormFilling
   phosphate: NormFilling
   nitrogen: NormFilling
+  renure?: NormFilling
 }
 
 export async function getFieldNormValues({
@@ -77,7 +79,7 @@ export async function getFieldNormValues({
   if (calendar === "2026") {
     const functionsForNorms = createFunctionsForNorms("NL", "2026")
     const normsInput = await functionsForNorms.collectInputForNorms(fdm, principal_id, b_id)
-    const [manure, phosphate, nitrogen] = await Promise.all([
+    const [manure, phosphate, nitrogen, renure] = await Promise.all([
       (
         functionsForNorms.calculateNormForManure as (
           fdm: FdmType,
@@ -96,9 +98,15 @@ export async function getFieldNormValues({
           input: typeof normsInput,
         ) => Promise<GebruiksnormResult>
       )(fdm, normsInput),
+      (
+        functionsForNorms.calculateNormForRenure as (
+          fdm: FdmType,
+          input: typeof normsInput,
+        ) => Promise<GebruiksnormResult>
+      )(fdm, normsInput),
     ])
 
-    return { manure, phosphate, nitrogen }
+    return { manure, phosphate, nitrogen, renure }
   }
 
   const functionsForNorms = createFunctionsForNorms("NL", "2025")
@@ -148,13 +156,14 @@ async function getFieldNormFillings({
       b_id,
       phosphateNorm,
     )
-    const [manure, phosphate, nitrogen] = await Promise.all([
+    const [manure, phosphate, nitrogen, renure] = await Promise.all([
       functionsForFilling.calculateFertilizerApplicationFillingForManure(fdm, fillingInput),
       functionsForFilling.calculateFertilizerApplicationFillingForPhosphate(fdm, fillingInput),
       functionsForFilling.calculateFertilizerApplicationFillingForNitrogen(fdm, fillingInput),
+      functionsForFilling.calculateFertilizerApplicationFillingForRenure(fdm, fillingInput),
     ])
 
-    return { manure, phosphate, nitrogen }
+    return { manure, phosphate, nitrogen, renure }
   }
 
   const functionsForFilling = createFunctionsForFertilizerApplicationFilling("NL", "2025")

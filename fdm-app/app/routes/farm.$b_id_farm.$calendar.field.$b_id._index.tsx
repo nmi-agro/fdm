@@ -626,6 +626,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                   norms.value.manure.normValue,
                   "kg N",
                 ),
+                ...(Number.parseInt(calendar, 10) >= 2026 && norms.value.renure
+                  ? [
+                      formatNormItem(
+                        "Renure",
+                        norms.filling.renure?.normFilling ?? 0,
+                        norms.value.renure.normValue,
+                        "kg N",
+                      ),
+                    ]
+                  : []),
               ],
             },
           }

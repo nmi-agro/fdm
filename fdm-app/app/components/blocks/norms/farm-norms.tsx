@@ -12,6 +12,8 @@ interface FarmNormsProps {
   hasFieldNormErrors: boolean
   fieldErrorMessages: string[]
   fieldWarningMessages: string[]
+  /** Whether to render the Renure norm card. Only true for calendar year 2026 and later. */
+  showRenure: boolean
 }
 
 export function FarmNorms({
@@ -20,6 +22,7 @@ export function FarmNorms({
   hasFieldNormErrors,
   fieldErrorMessages,
   fieldWarningMessages,
+  showRenure,
 }: FarmNormsProps) {
   return (
     <div>
@@ -58,7 +61,9 @@ export function FarmNorms({
           </AlertDescription>
         </Alert>
       )}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div
+        className={`grid gap-4 md:grid-cols-2 ${showRenure ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+      >
         <NormCard
           title="Stikstof, werkzaam"
           norm={farmNorms.nitrogen}
@@ -77,6 +82,14 @@ export function FarmNorms({
           filling={farmFillings?.manure}
           unit="kg N"
         />
+        {showRenure && (
+          <NormCard
+            title="Renure"
+            norm={farmNorms.renure ?? 0}
+            filling={farmFillings?.renure}
+            unit="kg N"
+          />
+        )}
       </div>
     </div>
   )

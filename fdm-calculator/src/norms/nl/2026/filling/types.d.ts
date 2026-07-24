@@ -5,6 +5,7 @@ import type { RegionKey } from "../value/types"
 export type Table11Mestcodes = {
   p_type_rvo: schema.fertilizersCatalogueTypeSelect["p_type_rvo"]
   p_type_nitratesdirective: boolean
+  p_type_renure: boolean
   p_n_rt?: number
   p_p_rt?: number
 }[]

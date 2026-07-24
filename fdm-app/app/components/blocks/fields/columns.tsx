@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { CultivationSuggestionBadge } from "../cultivation/suggestion"
+import { getFertilizerCategoryFromRvoCode } from "../fertilizer/utils"
 import { BufferStripCheckbox } from "./buffer-strip-checkbox"
 import { DataTableColumnHeader } from "./column-header"
 
@@ -156,7 +157,9 @@ export function buildColumns(b_id_farm: string, calendar: string): ColumnDef<Fie
               >
                 <Badge variant="outline" className="text-muted-foreground gap-1">
                   <span>
-                    <FertilizerIcon p_type={fertilizer.p_type ?? "other"} />
+                    <FertilizerIcon
+                      p_type={getFertilizerCategoryFromRvoCode(fertilizer.p_type_rvo)}
+                    />
                   </span>
                   {fertilizer.p_name_nl}
                 </Badge>
