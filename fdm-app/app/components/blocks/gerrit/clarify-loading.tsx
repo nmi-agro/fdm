@@ -87,7 +87,7 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
           Gerrit bekijkt het bedrijf…
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 p-6">
+      <CardContent className="flex max-h-72 flex-col gap-4 overflow-hidden p-6">
         <Marker>
           <MarkerIcon>
             <Spinner className="text-primary h-4 w-4 shrink-0" />
@@ -98,14 +98,14 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
           </MarkerContent>
         </Marker>
         {reasoning && (
-          <Marker className="items-start">
+          <Marker className="min-h-0 grow items-start">
             <MarkerIcon className="mt-2">
               <Sparkles className="text-primary animate-pulse" />
             </MarkerIcon>
-            <MarkerContent className="grow">
+            <MarkerContent className="flex min-h-0 grow flex-col self-stretch">
               <div
                 ref={scrollContainerRef}
-                className="group border-muted relative max-h-72 rounded-md border"
+                className="group border-muted relative flex min-h-0 flex-1 flex-col rounded-md border"
               >
                 <Button
                   type="button"
@@ -123,7 +123,7 @@ export function ClarifyLoading({ events = [] }: ClarifyLoadingProps) {
                 <div
                   ref={scrollRef}
                   onScroll={handleScroll}
-                  className="text-italic size-full space-y-2 overflow-y-auto px-3 py-2 text-sm"
+                  className="text-italic min-h-0 w-full flex-1 space-y-2 overflow-y-auto px-3 py-2 text-sm"
                 >
                   {reasoning}
                 </div>
