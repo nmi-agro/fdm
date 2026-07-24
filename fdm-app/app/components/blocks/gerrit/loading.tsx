@@ -44,7 +44,7 @@ export const TOOL_LABELS: Record<string, { name: string; icon: typeof Check }> =
 }
 
 type TimelineEntry =
-  | { kind: "separator"; id: string; label: string }
+  | { kind: "status"; id: string; label: string }
   | {
       kind: "tool"
       id: string
@@ -74,7 +74,7 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
     if (event.type === "start" || event.type === "status") {
       const label = event.data?.message
       if (label) {
-        entries.push({ kind: "separator", id: `sep-${entries.length}`, label })
+        entries.push({ kind: "status", id: `sep-${entries.length}`, label })
       }
     } else if (event.type === "on_tool_start") {
       const name = event.data?.name
@@ -247,10 +247,12 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
             )}
 
             {timeline.map((entry) => {
-              if (entry.kind === "separator") {
+              if (entry.kind === "status") {
                 return (
-                  <Marker key={entry.id} variant="separator">
-                    <MarkerContent>{entry.label}</MarkerContent>
+                  <Marker key={entry.id}>
+                    <MarkerContent className="text-muted-foreground text-xs opacity-75">
+                      {entry.label}
+                    </MarkerContent>
                   </Marker>
                 )
               }
