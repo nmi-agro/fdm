@@ -9,7 +9,8 @@ import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useLocation, useParams } from "react-router"
 import { RemixFormProvider, type useRemixForm } from "remix-hook-form"
 import type { FormSchema } from "~/components/blocks/fertilizer/formschema"
-import { isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
+import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
+import { getFertilizerCategory } from "~/components/blocks/fertilizer/utils"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -318,23 +319,12 @@ export function FertilizerForm({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formValues.p_type_rvo ? (
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "border-transparent text-white",
-                        isRenureRvoCode(formValues.p_type_rvo)
-                          ? "bg-purple-600 hover:bg-purple-700"
-                          : currentType === "manure"
-                            ? "bg-amber-600 hover:bg-amber-700"
-                            : currentType === "compost"
-                              ? "bg-green-600 hover:bg-green-700"
-                              : currentType === "mineral"
-                                ? "bg-blue-600 hover:bg-blue-700"
-                                : "bg-gray-600 hover:bg-gray-700",
-                      )}
+                    <FertilizerBadge
+                      p_type={getFertilizerCategory(formValues.p_type_rvo, currentType)}
+                      variant="category-solid"
                     >
                       {rvoLabels?.[formValues.p_type_rvo] || formValues.p_type_rvo}
-                    </Badge>
+                    </FertilizerBadge>
                   ) : (
                     <Badge variant="secondary">Geen RVO code</Badge>
                   )}
