@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-30T00:00:00.000Z",
+  "generatedAt": "2026-07-27T10:33:51.570Z",
   "title": "Design System: fdm-app",
   "extensions": {
     "colorMeta": {
@@ -160,13 +160,22 @@
         "displayName": "Display",
         "purpose": "Page titles and primary section headers. Fixed rem, never fluid."
       },
-      "headline": { "displayName": "Headline", "purpose": "Card and panel headers." },
-      "title": { "displayName": "Title", "purpose": "Sub-section and dialog titles." },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Card and panel headers."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Sub-section and dialog titles."
+      },
       "body": {
         "displayName": "Body",
         "purpose": "Default UI and prose text; prose capped at 65-75ch."
       },
-      "label": { "displayName": "Label", "purpose": "Buttons, form labels, table headers, badges." }
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, form labels, table headers, badges."
+      }
     },
     "shadows": [
       {
@@ -203,11 +212,26 @@
       }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px" },
-      { "name": "xl", "value": "1280px" },
-      { "name": "2xl", "value": "1536px" }
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "2xl",
+        "value": "1536px"
+      }
     ]
   },
   "components": [
