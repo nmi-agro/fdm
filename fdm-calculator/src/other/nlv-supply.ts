@@ -36,12 +36,7 @@ export interface NlvSupplyBySomParams {
  * @param params The soil texture, CN ratio, and SOM parameters.
  * @returns The absolute NLV (in kg N / ha / year).
  */
-export function calculateNlv({
-  a_clay_mi,
-  a_cn_fr,
-  a_som_loi,
-  format = "number",
-}: NlvParams & { format?: "number" | "decimal" }): number | Decimal {
+export function calculateNlv({ a_clay_mi, a_cn_fr, a_som_loi }: NlvParams): number {
   // Settings (from MINIP model)
   const paramA = new Decimal(20) // Age of organic matter
   const paramB = new Decimal(2).pow(new Decimal(14.1).sub(9).div(9)) // Temperature correction
@@ -84,9 +79,7 @@ export function calculateNlv({
   const cAss = cDiss.div(paramDissMicro)
 
   // nlv = ((c.diss + c.ass) / A_CN_FR) - (c.ass / param.cn.micro)
-  return format === "decimal"
-    ? cDiss.add(cAss).div(cnFr).sub(cAss.div(paramCnMicro))
-    : cDiss.add(cAss).div(cnFr).sub(cAss.div(paramCnMicro)).toNumber()
+  return cDiss.add(cAss).div(cnFr).sub(cAss.div(paramCnMicro)).toNumber()
 }
 
 /**
@@ -105,18 +98,8 @@ export function calculateNlvSupplyIncreaseBySomPotential({
   a_som_loi,
   b_som_potential,
 }: NlvSupplyBySomParams): number {
-  const nlvStart = calculateNlv({
-    a_clay_mi,
-    a_cn_fr,
-    a_som_loi,
-    format: "decimal",
-  }) as Decimal
-  const nlvEnd = calculateNlv({
-    a_clay_mi,
-    a_cn_fr,
-    a_som_loi: b_som_potential,
-    format: "decimal",
-  }) as Decimal
+  const nlvStart = new Decimal(calculateNlv({ a_clay_mi, a_cn_fr, a_som_loi }))
+  const nlvEnd = new Decimal(calculateNlv({ a_clay_mi, a_cn_fr, a_som_loi: b_som_potential }))
 
   return nlvEnd.sub(nlvStart).toNumber()
 }
