@@ -125,11 +125,16 @@ export default function AtlasIndicatorsMap() {
   const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
   const { capture } = useAnalytics()
 
-  useEffect(() => {
-    capture("atlas_viewed", { b_id_farm, calendar, layer: "indicators" })
-  }, [])
-
   const [selectedProperty, setSelectedProperty] = useState("S_BLN")
+
+  useEffect(() => {
+    capture("atlas_viewed", {
+      b_id_farm,
+      calendar,
+      layer: "indicators",
+      property: selectedProperty,
+    })
+  }, [b_id_farm, calendar, selectedProperty, capture])
 
   const selectedLabel =
     selectedProperty === "avgScore"

@@ -167,16 +167,21 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   const navigate = useNavigate()
   const { capture } = useAnalytics()
 
-  useEffect(() => {
-    capture("atlas_viewed", { b_id_farm, calendar, layer: "soil_analysis" })
-  }, [])
-
   const heatmapLayerId = "fieldsSavedHeatmap"
   const heatmapOutlineLayerId = "fieldsSavedHeatmapOutline"
   const selectedParameter = useSelectedAtlasSoilParameterStore((store) => store.selectedParameter)
   const setSelectedParameter = useSelectedAtlasSoilParameterStore(
     (store) => store.setSelectedParameter,
   )
+
+  useEffect(() => {
+    capture("atlas_viewed", {
+      b_id_farm,
+      calendar,
+      layer: "soil_analysis",
+      parameter: selectedParameter,
+    })
+  }, [b_id_farm, calendar, selectedParameter, capture])
 
   const [min, max] = useMemo(() => {
     if (!fieldsData || fieldsData?.features.length === 0) {
