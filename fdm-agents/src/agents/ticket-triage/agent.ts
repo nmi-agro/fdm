@@ -87,7 +87,7 @@ export function createTicketTriageAgent(apiKey?: string, modelName?: string) {
   const result: unknown = createAgent({
     name: AGENT_NAME,
     description: AGENT_DESCRIPTION,
-    model: createDefaultModel(resolvedKey, modelName),
+    model: createDefaultModel(resolvedKey, modelName ?? DEFAULT_MODEL_CODE),
     responseFormat: SubjectAndPrioritySchema,
   })
 

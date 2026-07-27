@@ -35,17 +35,19 @@ function truncateLargeValues<T>(value: T, maxStringLength: number): T {
 export function sanitizePostHogEvent(event: EventMessage | null): EventMessage | null {
   if (!event) return null
 
-  const MAX_EVENT_BYTES = 150_000 // Target 150 KB max JSON payload size
+  const MAX_EVENT_BYTES = 150_000 // Target 150 KB max JSON payload size in UTF-8 bytes
+
+  const getByteLength = (str: string) => Buffer.byteLength(str, "utf8")
 
   let serialized = ""
   try {
     serialized = JSON.stringify(event)
   } catch {
-    return event
+    return null
   }
 
   // If the event payload fits easily within limits, return untouched
-  if (serialized.length <= MAX_EVENT_BYTES) {
+  if (getByteLength(serialized) <= MAX_EVENT_BYTES) {
     return event
   }
 
@@ -57,10 +59,10 @@ export function sanitizePostHogEvent(event: EventMessage | null): EventMessage |
   try {
     serialized = JSON.stringify(event)
   } catch {
-    return event
+    return null
   }
 
-  if (serialized.length <= MAX_EVENT_BYTES) {
+  if (getByteLength(serialized) <= MAX_EVENT_BYTES) {
     return event
   }
 
@@ -72,10 +74,10 @@ export function sanitizePostHogEvent(event: EventMessage | null): EventMessage |
   try {
     serialized = JSON.stringify(event)
   } catch {
-    return event
+    return null
   }
 
-  if (serialized.length <= MAX_EVENT_BYTES) {
+  if (getByteLength(serialized) <= MAX_EVENT_BYTES) {
     return event
   }
 
@@ -98,7 +100,58 @@ export function sanitizePostHogEvent(event: EventMessage | null): EventMessage |
     }
   }
 
-  return event
+  try {
+    serialized = JSON.stringify(event)
+  } catch {
+    return null
+  }
+
+  if (getByteLength(serialized) <= MAX_EVENT_BYTES) {
+    return event
+  }
+
+  // Pass 4: Final fallback for extreme edge cases — strip all non-essential properties while keeping token & cost metrics
+  if (event.properties) {
+    const essentialKeys = new Set([
+      "$ai_lib",
+      "$ai_lib_version",
+      "$ai_trace_id",
+      "$ai_span_id",
+      "$ai_span_name",
+      "$ai_parent_id",
+      "$ai_provider",
+      "$ai_model",
+      "$ai_input_tokens",
+      "$ai_output_tokens",
+      "$ai_reasoning_tokens",
+      "$ai_cache_read_input_tokens",
+      "$ai_cache_creation_input_tokens",
+      "$ai_latency",
+      "$ai_http_status",
+      "$ai_framework",
+      "$groups",
+      "b_id_farm",
+      "org_slug",
+    ])
+    const sanitizedProperties: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(event.properties)) {
+      if (essentialKeys.has(key)) {
+        sanitizedProperties[key] = val
+      }
+    }
+    event.properties = sanitizedProperties
+  }
+
+  try {
+    serialized = JSON.stringify(event)
+    if (getByteLength(serialized) <= MAX_EVENT_BYTES) {
+      return event
+    }
+  } catch {
+    return null
+  }
+
+  return null
 }
 
 export default function PostHogClient(): PostHog | null {
