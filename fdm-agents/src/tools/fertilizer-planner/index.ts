@@ -933,7 +933,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
     {
       name: "simulateFarmPlan",
       description:
-        "Simuleert een voorgesteld bemestingsplan om de conformiteit met alle 3 wettelijke normen, de organische stofbalans en de stikstofbalans te controleren.",
+        "Simuleert een voorgesteld bemestingsplan om de conformiteit met alle 3 gebruiksruimtes, de organische stofbalans en de stikstofbalans te controleren.",
       schema: z.object({
         b_id_farm: z.string().describe("Het ID van het bedrijf"),
         strategies: z
