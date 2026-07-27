@@ -30,7 +30,7 @@ vi.mock("../../runners/one-shot", () => ({
 
 describe("Ticket Triage Agent — constants", () => {
   it("DEFAULT_MODEL_CODE should be the expected lite model", () => {
-    expect(DEFAULT_MODEL_CODE).toBe("gemini-3.1-flash-lite")
+    expect(DEFAULT_MODEL_CODE).toBe("gemini-3.5-flash-lite")
   })
 
   it("SUBJECT_AND_PRIORITY_PROMPT should contain the four priority labels", () => {
