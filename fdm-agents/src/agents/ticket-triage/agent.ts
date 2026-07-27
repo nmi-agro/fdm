@@ -5,7 +5,7 @@ import { createDefaultModel } from "../../models/default"
 import { runOneShotAgent } from "../../runners/one-shot"
 
 /** Default Gemini model used by the ticket-triage agent. Optimised for low-latency triage tasks. */
-export const DEFAULT_MODEL_CODE = "gemini-3.1-flash-lite"
+export const DEFAULT_MODEL_CODE = "gemini-3.5-flash-lite"
 
 export interface TriageAgentConfig {
   apiKey: string
@@ -87,7 +87,7 @@ export function createTicketTriageAgent(apiKey?: string, modelName?: string) {
   const result: unknown = createAgent({
     name: AGENT_NAME,
     description: AGENT_DESCRIPTION,
-    model: createDefaultModel(resolvedKey, modelName),
+    model: createDefaultModel(resolvedKey, modelName ?? DEFAULT_MODEL_CODE),
     responseFormat: SubjectAndPrioritySchema,
   })
 
