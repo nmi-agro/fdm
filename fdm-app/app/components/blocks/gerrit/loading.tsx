@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   BookOpenText,
   Bot,
   Calculator,
@@ -38,13 +39,14 @@ export const TOOL_LABELS: Record<string, { name: string; icon: typeof Check }> =
   getFarmFields: { name: "Gegevens verzamelen", icon: Search },
   getCropFertilizerGuide: { name: "Teelthandleiding raadplegen", icon: Sprout },
   getFarmNutrientAdvice: { name: "Bemestingsadvies ophalen", icon: BookOpenText },
-  getFarmLegalNorms: { name: "Wettelijke normen berekenen", icon: Landmark },
+  getFarmLegalNorms: { name: "Gebruiksruimte berekenen", icon: Landmark },
   searchFertilizers: { name: "Meststoffen zoeken", icon: Shapes },
-  simulateFarmPlan: { name: "Plan doorrekenen", icon: Calculator },
+  simulateFarmPlan: { name: "Bemestingsplan doorrekenen", icon: Calculator },
 }
 
 type TimelineEntry =
   | { kind: "status"; id: string; label: string }
+  | { kind: "error"; id: string; message: string }
   | {
       kind: "tool"
       id: string
@@ -71,7 +73,15 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
   let toolsDoneUpTo = 0
 
   for (const event of events) {
-    if (event.type === "start" || event.type === "status") {
+    if (!event || typeof event !== "object") continue
+
+    if (event.type === "error") {
+      const message =
+        typeof event.data === "string"
+          ? event.data
+          : event.data?.message ?? event.data?.error ?? "Er is een fout opgetreden bij de verwerking."
+      entries.push({ kind: "error", id: `err-${entries.length}`, message })
+    } else if (event.type === "start" || event.type === "status") {
       const label = event.data?.message
       if (label) {
         entries.push({ kind: "status", id: `sep-${entries.length}`, label })
@@ -153,7 +163,15 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
 
 const AUTO_SCROLL_THRESHOLD = 100 // px from bottom of reasoning feed to trigger auto-scroll
 
-export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
+export function GerritLoading({
+  events = [],
+  title = "Gerrit is aan het werk…",
+  initialMessage,
+}: {
+  events?: StreamEvent[]
+  title?: string
+  initialMessage?: string
+}) {
   const [elapsed, setElapsed] = useState(0)
   const startRef = useRef(Date.now())
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -170,6 +188,15 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
 
   const timeline = useMemo(() => deriveTimeline(events), [events])
 
+  const totalReasoningLength = useMemo(
+    () =>
+      timeline.reduce(
+        (acc, entry) => acc + (entry.kind === "reasoning" ? entry.text.length : 0),
+        0,
+      ),
+    [timeline],
+  )
+
   // Auto-scroll the reasoning feed when it's open and growing.
   useEffect(() => {
     if (
@@ -183,7 +210,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         top: scrollRef.current.scrollHeight,
       })
     }
-  }, [timeline.length])
+  }, [timeline.length, totalReasoningLength])
 
   const handleScroll = useCallback(() => {
     const scrollElement = scrollRef.current
@@ -213,8 +240,8 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
       <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center justify-between text-base font-semibold">
           <span className="flex items-center gap-2">
-            <Bot className="text-primary h-5 w-5 animate-pulse" />
-            Gerrit is aan het werk…
+            <Bot className="text-primary h-5 w-5 motion-reduce:animate-none animate-pulse" />
+            {title}
           </span>
           <span className="text-muted-foreground text-sm font-normal tabular-nums">
             {elapsedStr}
@@ -225,7 +252,8 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         <Button
           type="button"
           variant="outline"
-          className="absolute top-1 left-1/2 h-auto -translate-x-1/2 opacity-0 transition-opacity duration-200 group-data-scroll-start:opacity-100"
+          aria-label="Scrol naar boven"
+          className="bg-background/80 backdrop-blur-xs shadow-xs absolute top-1 left-1/2 h-auto -translate-x-1/2 opacity-0 pointer-events-none transition-opacity duration-200 group-data-scroll-start:opacity-100 group-data-scroll-start:pointer-events-auto"
           onClick={() =>
             scrollRef.current?.scrollTo({
               top: 0,
@@ -235,22 +263,35 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         >
           <ChevronUp className="text-muted-foreground my-1 h-4 w-4" />
         </Button>
-        <div ref={scrollRef} className="max-h-full overflow-y-auto" onScroll={handleScroll}>
+        <div ref={scrollRef} className="max-h-full overflow-y-auto" onScroll={handleScroll} aria-live="polite">
           <div className="text-muted-foreground space-y-6 p-6 text-sm">
             {timeline.length === 0 && (
               <Marker role="status">
                 <MarkerIcon>
                   <Spinner />
                 </MarkerIcon>
-                <MarkerContent>Voorbereiden…</MarkerContent>
+                <MarkerContent>{initialMessage ?? "Voorbereiden…"}</MarkerContent>
               </Marker>
             )}
 
             {timeline.map((entry) => {
+              if (entry.kind === "error") {
+                return (
+                  <Marker key={entry.id} role="alert">
+                    <MarkerIcon>
+                      <AlertTriangle className="text-destructive h-4 w-4 shrink-0" />
+                    </MarkerIcon>
+                    <MarkerContent className="text-destructive font-medium">
+                      {entry.message}
+                    </MarkerContent>
+                  </Marker>
+                )
+              }
+
               if (entry.kind === "status") {
                 return (
                   <Marker key={entry.id}>
-                    <MarkerContent className="text-muted-foreground text-xs opacity-75">
+                    <MarkerContent className="text-muted-foreground text-xs">
                       {entry.label}
                     </MarkerContent>
                   </Marker>
@@ -263,7 +304,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
                     <MarkerIcon>
                       {
                         <entry.label.icon
-                          className={cn(entry.status === "running" && "animate-pulse")}
+                          className={cn(entry.status === "running" && "motion-reduce:animate-none animate-pulse")}
                         />
                       }
                     </MarkerIcon>
@@ -274,7 +315,7 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
                       </Badge>
                     )}
                     {entry.status === "done" ? (
-                      <Check className="relative top-px text-emerald-400" />
+                      <Check className="relative top-px text-emerald-600 dark:text-emerald-400" />
                     ) : (
                       <Spinner />
                     )}
@@ -295,8 +336,10 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
               }
             })}
             <Marker role="status">
-              <MarkerContent className="shimmer text-muted-foreground text-xs opacity-75">
-                Even geduld, Gerrit is nog aan het denken...
+              <MarkerContent className="shimmer text-muted-foreground text-xs">
+                {elapsed > 120
+                  ? "Het verwerken duurt langer dan gebruikelijk, even geduld…"
+                  : "Even geduld, Gerrit is nog aan het denken…"}
               </MarkerContent>
             </Marker>
           </div>
@@ -305,7 +348,8 @@ export function GerritLoading({ events = [] }: { events?: StreamEvent[] }) {
         <Button
           type="button"
           variant="outline"
-          className="absolute bottom-1 left-1/2 h-auto -translate-x-1/2 opacity-0 transition-opacity duration-200 group-data-scroll-end:opacity-100"
+          aria-label="Scrol naar beneden"
+          className="bg-background/80 backdrop-blur-xs shadow-xs absolute bottom-1 left-1/2 h-auto -translate-x-1/2 opacity-0 pointer-events-none transition-opacity duration-200 group-data-scroll-end:opacity-100 group-data-scroll-end:pointer-events-auto"
           onClick={() =>
             scrollRef.current?.scrollTo({
               top: scrollRef.current?.scrollHeight,
@@ -334,77 +378,109 @@ function GerritReasoning({
   const plain = text
     .trim()
     .split("\n")
-    .map((l) => l.replace(/[*#`]/g, "").trim())
+    .map((l) => l.replace(/[*#`_]|\[([^\]]+)\]\([^)]+\)/g, "$1").trim())
   const firstLineIndex = plain.findIndex(Boolean)
 
   const bottomRef = useRef<HTMLDivElement>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
 
   const statusNode = isActive ? (
-    <Spinner className="inline-block" />
+    <Spinner className="inline-block shrink-0" />
   ) : (
-    <Check className="relative top-px mx-1 inline-block text-emerald-400" />
+    <Check className="relative top-px inline-block shrink-0 text-emerald-600 dark:text-emerald-400" />
   )
+
+  if (firstLineIndex === -1) {
+    return (
+      <Marker className="items-start">
+        <MarkerIcon className="mt-1">
+          <Sparkles className={cn(isActive && "motion-reduce:animate-none animate-pulse")} />
+        </MarkerIcon>
+        <MarkerContent className="italic">
+          Redenering {statusNode}
+        </MarkerContent>
+      </Marker>
+    )
+  }
+
+  if (!isMultiLine) {
+    return (
+      <Marker className="items-start">
+        <MarkerIcon className="mt-1">
+          <Sparkles className={cn(isActive && "motion-reduce:animate-none animate-pulse")} />
+        </MarkerIcon>
+        <MarkerContent className="italic">
+          {plain[firstLineIndex]} {statusNode}
+        </MarkerContent>
+      </Marker>
+    )
+  }
 
   return (
     <>
       <Marker className="items-start">
-        <MarkerIcon>
-          <Sparkles className={cn(isActive && "animate-pulse")} />
+        <MarkerIcon className="mt-1">
+          <Sparkles className={cn(isActive && "motion-reduce:animate-none animate-pulse")} />
         </MarkerIcon>
-        <MarkerContent>
-          {firstLineIndex > -1 && isMultiLine ? (
-            <Collapsible className="group italic">
-              <CollapsibleTrigger
-                className="line-clamp-2 h-auto cursor-pointer text-left group-data-[state=open]:line-clamp-none"
-                onClick={() => {
-                  setTimeout(() => {
-                    const element = bottomRef.current
-                    const scrollElement = scrollRef.current
-
-                    if (element && scrollElement) {
-                      const containerBottom = scrollElement.getBoundingClientRect().bottom
-                      const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
-                      if (
-                        myBottom > containerBottom &&
-                        containerBottom + AUTO_SCROLL_THRESHOLD > myTop
-                      ) {
-                        element?.scrollIntoView({ behavior: "smooth", block: "nearest" })
-                      }
-                    }
-                  }, 50)
-                }}
-              >
-                <span>{plain[firstLineIndex]}</span>
-                <Button
-                  variant="link"
-                  className="h-auto px-2 py-0 leading-none group-data-[state=open]:hidden"
-                  asChild
-                >
-                  <span>Toon meer</span>
-                </Button>
-                <span className="group-data-[state=open]:hidden">{statusNode}</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                {plain.slice(firstLineIndex + 1).map((line, index, array) => (
-                  <span key={`reasoning-line-${index}`}>
-                    {line}
-                    {index !== array.length - 1 && <br />}
-                  </span>
-                ))}
+        <MarkerContent className="min-w-0 flex-1">
+          <Collapsible className="group italic">
+            {/* Collapsed view: Line 1 + Toon meer + statusNode */}
+            <div className="group-data-[state=open]:hidden space-y-1">
+              <span className="line-clamp-2">{plain[firstLineIndex]}</span>
+              <div className="flex items-center gap-1.5 text-xs">
                 <CollapsibleTrigger asChild>
-                  <Button variant="link" asChild className="px-0">
-                    <span>Toon minder</span>
+                  <Button
+                    variant="link"
+                    className="h-auto p-0 text-xs font-medium leading-none"
+                    onClick={() => {
+                      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+                      timeoutRef.current = setTimeout(() => {
+                        const element = bottomRef.current
+                        const scrollElement = scrollRef.current
+
+                        if (element && scrollElement) {
+                          const containerBottom = scrollElement.getBoundingClientRect().bottom
+                          const { top: myTop, bottom: myBottom } = element.getBoundingClientRect()
+                          if (
+                            myBottom > containerBottom &&
+                            containerBottom + AUTO_SCROLL_THRESHOLD > myTop
+                          ) {
+                            element?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+                          }
+                        }
+                      }, 50)
+                    }}
+                  >
+                    Toon meer
                   </Button>
                 </CollapsibleTrigger>
                 {statusNode}
-              </CollapsibleContent>
-            </Collapsible>
-          ) : (
-            <div className="italic">
-              {firstLineIndex >= -1 ? text : "Redenering"}
-              {statusNode}
+              </div>
             </div>
-          )}
+
+            {/* Expanded view: All lines + Toon minder + statusNode */}
+            <CollapsibleContent className="space-y-1.5 pt-0">
+              {plain.map((line, index) => (
+                <p key={`reasoning-line-${index}`} className="leading-relaxed">
+                  {line}
+                </p>
+              ))}
+              <div className="pt-1 flex items-center gap-1.5 text-xs">
+                <CollapsibleTrigger asChild>
+                  <Button variant="link" className="h-auto p-0 text-xs font-medium leading-none">
+                    Toon minder
+                  </Button>
+                </CollapsibleTrigger>
+                {statusNode}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </MarkerContent>
       </Marker>
       <div ref={bottomRef} />
