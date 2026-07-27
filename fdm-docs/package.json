@@ -25,10 +25,10 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.24.0",
+    "lucide-react": "^1.27.0",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.10.2",
@@ -36,7 +36,7 @@
     "@docusaurus/types": "3.10.2",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "^4.12.0",
-    "typescript": "npm:@typescript/typescript6@^6.0.0",
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@^7.0.2"
   },
   "browserslist": {
