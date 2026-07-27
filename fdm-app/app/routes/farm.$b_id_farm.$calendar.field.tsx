@@ -1,3 +1,4 @@
+import { calculateNlv } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivations,
@@ -59,7 +60,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 export const meta: MetaFunction = () => {
   return [
-    { title: `Perceel | ${clientConfig.name}` },
+    { title: `Percelen | ${clientConfig.name}` },
     {
       name: "description",
       content:
@@ -188,6 +189,21 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         const a_som_loi = Number(
           currentSoilData.find((x) => x.parameter === "a_som_loi")?.value ?? 0,
         )
+        const clayVal = currentSoilData.find((x) => x.parameter === "a_clay_mi")?.value
+        const cnVal = currentSoilData.find((x) => x.parameter === "a_cn_fr")?.value
+        const somVal = currentSoilData.find((x) => x.parameter === "a_som_loi")?.value
+        const d_n_supply_base =
+          typeof somVal === "number" &&
+          typeof clayVal === "number" &&
+          typeof cnVal === "number"
+            ? Math.round(
+                calculateNlv({
+                  a_clay_mi: clayVal,
+                  a_cn_fr: cnVal,
+                  a_som_loi: somVal,
+                }) * 10,
+              ) / 10
+            : null
         const b_soiltype_agr = String(
           currentSoilData.find((x) => x.parameter === "b_soiltype_agr")?.value ?? "",
         )
@@ -239,6 +255,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           cultivations: cultivations,
           cultivationSuggestion: undefined as Awaited<ReturnType<typeof getCultivationSuggestion>>,
           fertilizers: fertilizersFiltered,
+          d_n_supply_base: d_n_supply_base,
           a_som_loi: a_som_loi,
           b_soiltype_agr: b_soiltype_agr,
           b_area: Math.round((field.b_area ?? 0) * 10) / 10,

@@ -1,7 +1,7 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MetaFunction } from "react-router"
+import { calculateNlv } from "@nmi-agro/fdm-calculator"
 import {
-  type CurrentSoilData,
   getCurrentSoilDataForFarm,
   getFields,
   getSoilParametersDescription,
@@ -95,16 +95,28 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       const features = fields.map((field) => {
         const fieldCurrentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
+        const soilProps = fieldCurrentSoilData.reduce(
+          (acc, data) => {
+            if (data.value !== null) acc[data.parameter] = data.value
+            return acc
+          },
+          {} as Record<string, string | number>,
+        )
+
+        if (soilProps.d_n_supply_base === undefined) {
+          const som = typeof soilProps.a_som_loi === "number" ? soilProps.a_som_loi : undefined
+          const clay = typeof soilProps.a_clay_mi === "number" ? soilProps.a_clay_mi : undefined
+          const cn = typeof soilProps.a_cn_fr === "number" ? soilProps.a_cn_fr : undefined
+          if (som !== undefined && clay !== undefined && cn !== undefined) {
+            soilProps.d_n_supply_base =
+              Math.round(calculateNlv({ a_clay_mi: clay, a_cn_fr: cn, a_som_loi: som }) * 10) / 10
+          }
+        }
+
         const feature = {
           type: "Feature" as const,
           properties: {
-            ...fieldCurrentSoilData.reduce(
-              (acc, data) => {
-                if (data.value !== null) acc[data.parameter] = data.value
-                return acc
-              },
-              {} as Record<CurrentSoilData[number]["parameter"], string | number>,
-            ),
+            ...soilProps,
             b_id: field.b_id,
             b_name: field.b_name,
             b_area: Math.round((field.b_area ?? 0) * 10) / 10,

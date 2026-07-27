@@ -27,6 +27,7 @@ import { isBcsAnalysis } from "~/lib/bcs"
 import { getTimeframe } from "~/lib/calendar"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { cn } from "~/lib/utils"
 
 /**
@@ -89,7 +90,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const filteredSoilAnalyses = soilAnalyses.filter((analysis) => !isBcsAnalysis(analysis))
 
     // Get current soil data
-    const currentSoilData = await getCurrentSoilData(fdm, session.principal_id, b_id, timeframe)
+    const currentSoilData = enrichCurrentSoilDataWithNlv(
+      await getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+    )
 
     // Get soil parameter descriptions
     const soilParameterDescription = getSoilParametersDescription()

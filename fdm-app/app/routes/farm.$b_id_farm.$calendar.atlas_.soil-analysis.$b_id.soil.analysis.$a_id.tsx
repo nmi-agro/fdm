@@ -84,9 +84,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Get soil parameter descriptions and filter on the available soil parameters
     const soilParameterDescription = getSoilParametersDescription().filter(
-      (item) =>
-        typeof soilAnalysis[item.parameter] !== "undefined" &&
-        soilAnalysis[item.parameter] !== null,
+      (item: { parameter: string }) =>
+        typeof (soilAnalysis as unknown as Record<string, unknown>)[item.parameter] !==
+          "undefined" &&
+        (soilAnalysis as unknown as Record<string, unknown>)[item.parameter] !== null,
     )
 
     // Return user information from loader

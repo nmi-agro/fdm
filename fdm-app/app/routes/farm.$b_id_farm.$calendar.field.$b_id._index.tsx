@@ -74,6 +74,7 @@ import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
+import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { cn } from "~/lib/utils"
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
@@ -248,7 +249,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getCultivations(fdm, session.principal_id, b_id),
       getFertilizerApplications(fdm, session.principal_id, b_id, timeframe),
       getFertilizers(fdm, session.principal_id, b_id_farm),
-      getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+      enrichCurrentSoilDataWithNlv(
+        await getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+      ),
       getSoilAnalyses(fdm, session.principal_id, b_id, {
         start: null,
         end: timeframe.end,
@@ -401,7 +404,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const sourceParam = getSoilParametersDescription().find((item) => item.parameter === "a_source")
     const basisCards = constructSoilDataCards(currentSoilData, getSoilParametersDescription())
       .filter((card) =>
-        ["b_soiltype_agr", "a_som_loi", "a_p_al", "a_p_cc", "a_clay_mi"].includes(card.parameter),
+        ["b_soiltype_agr", "a_som_loi", "a_p_al", "a_p_cc", "a_clay_mi", "d_n_supply_base"].includes(card.parameter),
       )
       .map((card) => ({
         ...card,
