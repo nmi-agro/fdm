@@ -675,7 +675,11 @@ export async function getCurrentSoilData(
 
     const currentSoilData = parameters
       .map((parameter) => {
-        const analysis = soilAnalyses.find((a) => a[parameter as keyof typeof a] !== null)
+        const analysis = soilAnalyses.find(
+          (a) =>
+            a[parameter as keyof typeof a] !== null &&
+            a[parameter as keyof typeof a] !== undefined,
+        )
         if (!analysis) return null
 
         return {
@@ -800,7 +804,9 @@ export async function getCurrentSoilDataForFarm(
       const currentSoilData = parameters
         .map((parameter) => {
           const analysis = fieldRows.find(
-            (a: Record<string, unknown>) => a[parameter as keyof typeof a] !== null,
+            (a: Record<string, unknown>) =>
+              a[parameter as keyof typeof a] !== null &&
+              a[parameter as keyof typeof a] !== undefined,
           )
           if (!analysis) return null
           return {
@@ -1122,6 +1128,13 @@ export function getSoilParametersDescription(locale = "NL-nl"): SoilParameterDes
       description: "Zink, plantbeschikbaar",
     },
     {
+      parameter: "d_n_supply_base",
+      unit: "kg N/ha",
+      name: "NLV",
+      type: "numeric",
+      description: "Jaarlijkse stikstofmineralisatie uit organische stof in de bouwvoor (0-30 cm)",
+    },
+    {
       parameter: "b_gwl_class",
       unit: "",
       name: "GWT",
@@ -1178,6 +1191,7 @@ const SOIL_PARAMETERS: SoilParameters[] = [
   "a_silt_mi",
   "a_som_loi",
   "a_zn_cc",
+  "d_n_supply_base",
   "b_gwl_class",
   "b_soiltype_agr",
 ]

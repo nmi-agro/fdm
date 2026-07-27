@@ -100,6 +100,7 @@ export type SoilParameters =
   | "a_silt_mi"
   | "a_som_loi"
   | "a_zn_cc"
+  | "d_n_supply_base"
   | "b_gwl_class"
   | "b_soiltype_agr"
   | "a_ss_bcs"

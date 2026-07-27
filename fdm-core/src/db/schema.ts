@@ -675,6 +675,10 @@ export const soilAnalysisSourceOptions = [
     label: "NMI BodemSchat",
   },
   {
+    value: "calculated",
+    label: "Berekend",
+  },
+  {
     value: "other",
     label: "Ander laboratorium",
   },
