@@ -62,6 +62,8 @@
     "date-fns": "^4.4.0",
     "dompurify": "^3.4.12",
     "drizzle-orm": "catalog:",
+    "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "file-type": "^22.0.1",
     "flatgeobuf": "^4.4.0",
     "framer-motion": "^12.42.2",

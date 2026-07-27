@@ -7,8 +7,9 @@ import type {
 } from "react-router"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { SiGithub } from "@icons-pack/react-simple-icons"
-import { AnimatePresence, motion, MotionConfig, useScroll } from "framer-motion"
+import { AnimatePresence, motion, MotionConfig } from "framer-motion"
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowRight,
   BadgeCheck,
@@ -16,10 +17,12 @@ import {
   Calculator,
   Camera,
   CheckCircle2,
+  ClipboardList,
   Droplets,
   ExternalLink,
   FileUp,
   FlaskConical,
+  Gauge,
   History,
   Info,
   Landmark,
@@ -37,10 +40,13 @@ import {
   Users,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import { Form, redirect, useSearchParams } from "react-router"
+import { Form, Link, redirect, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
+import { IndicatorCalculationFlow } from "~/components/blocks/signin/indicator-calculation-flow"
+import { IndicatorShowcaseCarousel } from "~/components/blocks/signin/indicator-showcase-carousel"
+import { scrollToTop, StickyHeader } from "~/components/blocks/signin/sticky-header"
 import {
   Accordion,
   AccordionContent,
@@ -58,6 +64,7 @@ import {
 } from "~/components/ui/card"
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
+import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { signIn } from "~/lib/auth-client"
@@ -72,7 +79,7 @@ import { extractFormValuesFromRequest } from "../lib/form"
 
 export const meta: MetaFunction = () => {
   const title = `${clientConfig.name}: Bemestingsadvies, Doelsturing & Perceelsdata`
-  const description = `Faciliteert datagedreven inzicht in bodem en bemesting voor ondernemers en adviseurs. ${clientConfig.name} ondersteunt doelsturing via de stikstofbalans, optimalisatie van de organische stofbalans, bemestingsadvies en wettelijke gebruiksruimte, aangevuld met gedetailleerde perceelsdata zoals AHN4 en gewashistorie.`
+  const description = `Faciliteert datagedreven inzicht in bodem en bemesting voor ondernemers en adviseurs. ${clientConfig.name} ondersteunt doelsturing via de stikstofbalans, optimalisatie van de organische stofbalans, bemestingsadvies, wettelijke gebruiksruimte en BLN-bodemindicatoren (waaronder Open Bodem Index/OBI en BedrijfsBodemWaterPlan/BBWP) met maatregelen voor bodemgezondheid, aangevuld met gedetailleerde perceelsdata zoals AHN4 en gewashistorie.`
   const ogImage =
     "https://images.unsplash.com/photo-1717702576954-c07131c54169?q=80&w=1200&auto=format&fit=crop"
 
@@ -160,46 +167,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch (error) {
     throw handleLoaderError(error)
   }
-}
-
-function scrollToTop() {
-  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
-  window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" })
-}
-
-const StickyHeader = () => {
-  const { scrollY } = useScroll()
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    return scrollY.on("change", (latest) => {
-      setIsVisible(latest > 600)
-    })
-  }, [scrollY])
-
-  return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.header
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="bg-background/80 fixed top-0 right-0 left-0 z-50 border-b px-4 py-3 shadow-xs backdrop-blur-md"
-        >
-          <div className="container mx-auto flex max-w-6xl items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-[#122023]">
-                <img className="size-6" src={clientConfig.logomark} alt={clientConfig.name} />
-              </div>
-              <span className="font-semibold">{clientConfig.name}</span>
-            </div>
-            <Button onClick={scrollToTop}>Aanmelden</Button>
-          </div>
-        </motion.header>
-      )}
-    </AnimatePresence>
-  )
 }
 
 /**
@@ -653,10 +620,10 @@ export default function SignIn() {
                         <span className="bg-primary mt-2 flex h-1.5 w-1.5 shrink-0 items-center rounded-full" />
                         <span>
                           <strong className="text-foreground">Open Bodem Index & BBWP:</strong> Deze
-                          twee veelgebruikte methoden helpen boeren en adviseurs nu al in het
-                          effectief nemen van maatregelen en het inzicht krijgen in de
-                          bodemgezondheid. In 2026 komen OBI en BBWP ook beschikbaar in{" "}
-                          {clientConfig.name} en maken we ze nog toegankelijker.
+                          twee veelgebruikte methoden helpen boeren en adviseurs al het effectief
+                          nemen van maatregelen en inzicht krijgen in de bodemgezondheid. Via de
+                          BLN-indicatoren zijn OBI en BBWP nu geïntegreerd in {clientConfig.name},
+                          zodat u ze nog toegankelijker kunt gebruiken.
                         </span>
                       </li>
                     </ul>
@@ -947,6 +914,192 @@ export default function SignIn() {
           <div className="bg-background py-24">
             <div className="container mx-auto max-w-6xl px-4 lg:px-8">
               <div className="mx-auto mb-20 max-w-3xl text-center">
+                <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 mb-4 inline-flex items-center rounded-full border border-emerald-200/60 dark:border-emerald-800/50 px-3 py-1 text-xs font-semibold tracking-wide uppercase">
+                  Bodemgezondheid in de praktijk
+                </div>
+                <h2 className="text-foreground mb-6 text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                  Indicatoren & Maatregelen: bodemgezondheid vertaald naar actie
+                </h2>
+                <p className="text-muted-foreground text-lg leading-relaxed">
+                  Met <strong className="text-foreground">Indicatoren</strong> brengt{" "}
+                  {clientConfig.name} de bodemgezondheid van uw percelen helder in kaart, van
+                  waterkwaliteit en klimaat tot productie. Gebaseerd op de methodieken van de <em>Open Bodem Index (OBI)</em>,{" "}
+                  <em>Bodemindicatoren Landbouwgrond Nederland (BLN)</em> en het <em>BedrijfsBodemWaterPlan (BBWP)</em>.
+                </p>
+                <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
+                  Met <strong className="text-foreground">Maatregelen</strong> koppelt u direct
+                  doelgerichte acties aan specifieke percelen. Zo weet u exact waar de bodem om
+                  aandacht vraagt én welke ingreep het meeste effect oplevert.
+                </p>
+              </div>
+
+              <div className="mb-16 grid items-start gap-12 lg:grid-cols-2">
+                {/* Left: Text with Benefits */}
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="mb-6 text-2xl font-semibold tracking-tight">
+                      Van bedrijfsscore tot individuele indicator
+                    </h3>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                        <Gauge className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-foreground font-semibold">Eén heldere score</h4>
+                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                          Klik vanuit het bedrijfsgemiddelde door naar hoofdthema's als Water,
+                          Klimaat, Nutriëntenkringloop en Productie (OBI), tot op het niveau van
+                          specifieke indicatoren zoals fosfaatbeschikbaarheid of
+                          grondwateraanvulling.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-foreground font-semibold">Knelpunten in één oogopslag</h4>
+                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                          De geautomatiseerde knelpuntenanalyse laat direct zien welke
+                          indicatoren op uw bedrijf achterblijven en welke percelen daar het meest
+                          aan bijdragen, inclusief een snelle doorklik naar de perceelsdetails.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                        <ClipboardList className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-foreground font-semibold">Maatregelen direct koppelen</h4>
+                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                          Koppel doeltreffende maatregelen aan één of meerdere percelen, leg de
+                          startdatum en looptijd vast, en volg nauwkeurig de voortgang van uw
+                          bodemverbeteringen.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Emphasize Importance */}
+                <Card className="border-primary/20 bg-primary/[0.03] dark:bg-muted/20 h-full shadow-sm">
+                  <CardHeader className="pb-3">
+                    <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                      Meerwaarde
+                    </p>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <ShieldCheck className="text-primary h-5 w-5 shrink-0" />
+                      Waarom sturen op bodemindicatoren?
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-muted-foreground leading-relaxed">
+                      Een duurzame bedrijfsvoering begint bij een gezonde bodem. Bodemindicatoren
+                      maken ingewikkelde bodemprocessen meetbaar en laten direct zien waar uw
+                      percelen aandacht vragen.
+                    </p>
+                    <ul className="text-muted-foreground space-y-3 text-sm">
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          <strong className="text-foreground font-semibold">
+                            Vroegtijdig risico's signaleren:
+                          </strong>{" "}
+                          Ontdek knelpunten zoals bodemverdichting of een lage
+                          grondwateraanvulling voordat ze uw opbrengst beïnvloeden.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          <strong className="text-foreground font-semibold">
+                            Onderbouw uw vakmanschap:
+                          </strong>{" "}
+                          Maak uw bodembeheer aantoonbaar richting afnemers, ketenpartijen en
+                          overheden met erkende scores.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          <strong className="text-foreground font-semibold">
+                            Gericht actie ondernemen:
+                          </strong>{" "}
+                          Koppel de juiste maatregelen aan zwakkere indicatoren en verlaag uw
+                          milieu-impact effectief.
+                        </span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="mb-16 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 border-t border-b py-6">
+                <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                  Met de erkende methodieken van
+                </span>
+                <Link
+                  to="https://openbodemindex.nl/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="opacity-80 transition-opacity hover:opacity-100"
+                >
+                  <img
+                    src="/obi-logo.png"
+                    alt="Open Bodemindex (OBI)"
+                    className="h-8 w-auto object-contain"
+                  />
+                </Link>
+                <Link
+                  to="https://bedrijfsbodemwaterplan.nl/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="opacity-80 transition-opacity hover:opacity-100"
+                >
+                  <img
+                    src="/bbwp-logo.png"
+                    alt="BedrijfsBodemWaterPlan (BBWP)"
+                    className="h-8 w-auto object-contain"
+                  />
+                </Link>
+                <Link
+                  to="https://edepot.wur.nl/634579"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="opacity-80 transition-opacity hover:opacity-100"
+                >
+                  <span className="text-foreground text-3xl font-bold">BLN</span>
+                </Link>
+              </div>
+
+              {/* Legible, single-slide showcase of the three features */}
+              <IndicatorShowcaseCarousel />
+
+              {/* Animated flow: how a single indicator score is calculated */}
+              <div className="mt-24 border-t pt-16">
+                <div className="mx-auto mb-16 max-w-2xl text-center">
+                  <h3 className="text-foreground mb-4 text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+                    Hoe een indicatorscore wordt berekend
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Elke indicator doorloopt dezelfde volgorde van rekenstappen; van uw invoerdata
+                    tot de score op de indicatorenpagina.
+                  </p>
+                </div>
+                <IndicatorCalculationFlow />
+              </div>
+
+              <Separator className="mt-24" />
+            </div>
+          </div>
+
+          <div className="bg-muted/10 py-24">
+            <div className="container mx-auto max-w-6xl px-4 lg:px-8">
+              <div className="mx-auto mb-20 max-w-3xl text-center">
                 <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                   Bemestingsadviezen: Kennis binnen handbereik
                 </h2>
@@ -1058,7 +1211,7 @@ export default function SignIn() {
             </div>
           </div>
 
-          <div className="bg-muted/10 py-24">
+          <div className="bg-background py-24">
             <div className="container mx-auto max-w-6xl px-4 lg:px-8">
               <div className="mx-auto mb-20 max-w-3xl text-center">
                 <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -1121,7 +1274,7 @@ export default function SignIn() {
             </div>
           </div>
 
-          <div className="bg-background py-24">
+          <div className="bg-muted/10 py-24">
             <div className="container mx-auto max-w-6xl px-4 lg:px-8">
               <div className="mx-auto mb-20 max-w-3xl text-center">
                 <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
