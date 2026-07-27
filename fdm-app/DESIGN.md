@@ -138,7 +138,7 @@ A near-monochrome slate palette: white content surfaces, slate-tinted neutrals, 
 
 ### Tertiary (data only)
 
-- **Chart series** (`#e8743b` terracotta, `#19a3a3` teal, `#2d5b8a` deep blue, `#e9c44a` ochre, `#e0962f` amber): The recharts/data-viz palette (`--chart-1..5`, authored in OKLCH). These are the only saturated colors on a normal screen. A separate, darker, more saturated set is used in dark mode.
+- **Chart series** (`#e8743b` terracotta, `#19a3a3` teal, `#2d5b8a` deep blue, `#e9c44a` ochre, `#e0962f` amber): The recharts/data-viz palette (`--chart-1..5`, authored in OKLCH). These are the only saturated colors on a normal screen. Dark mode swaps in a separate, differently-hued set (blue, green, amber, purple, red) rather than darkening these, so never hard-code a series color — always read the token.
 
 ### Status
 
@@ -223,20 +223,20 @@ The default rules above describe the authenticated interior. Some surfaces warra
 
 ### Unauthenticated pages
 
-Unauthenticated pages (sign-in, welcome, error pages, and any future public-facing routes) are the product's first impression. They bridge the **brand** and **product** registers. The authenticated interior should feel like a focused workbench; unauthenticated pages should feel modern, advanced, and trustworthy — advanced enough that a farmer or advisor immediately senses this is serious, well-built software with a scientific foundation
+The authenticated app is the primary surface and sets the defaults above: it is an **Operate** surface, where the visitor is completing a task and the interface gets out of the way. The public, unauthenticated pages — sign-in, welcome, `/about` and `/about/whats-new`, `/privacy`, error pages, and any future public routes — double as fdm-app's marketing and are therefore **Persuade**: they are the product's first impression and must earn the decision to sign in, so they may lean expressive when worked on specifically. They should feel modern, advanced, and trustworthy — advanced enough that a farmer or advisor immediately senses this is serious, well-built software with a scientific foundation.
 
 **What is permitted beyond the interior defaults:**
 
 - **Richer motion.** Entrance animations and scroll-triggered reveals are appropriate. The interior ships with no page-load sequences; unauthenticated pages earn them. All animations must still respect `MotionConfig reducedMotion="user"`.
 - **Stronger headline scale.** CTA headings may go to `4xl–5xl` where the interior is capped at `display` (1.875rem). Still capped at 6rem / 96px max.
 - **Committed color on hero surfaces.** The brand dark (`#122023`) as a panel or column background is intentional identity, not decoration.
-- **Product-evidence marketing.** Screenshot showcases, feature cards, partner logos, FAQ, and full-page CTA sections are appropriate here. They must not appear inside authenticated screens.
+- **Product-evidence marketing.** Screenshot showcases (the real ones in `public/`), feature cards, FAQ, and full-page CTA sections are appropriate here. They must not appear inside authenticated screens, and they must not invent proof the product does not have — no testimonials, customer logos, user counts, or quantified outcome claims (see PRODUCT.md → Evidence on Hand).
 - **Staggered scroll reveals.** Marketing sections may use `whileInView` stagger on feature rows; the interior must not introduce unsolicited scroll choreography.
 
 **Constraints that still apply:**
 
 - All absolute bans (side-stripe borders, gradient text, glassmorphism, identical card grids, hero-metric template, etc.) apply without exception.
-- Any functional form or action component (auth card, error recovery) is **interior-register**: flat-by-default, `shadow-sm`, no oversized type, calm and focused. The marketing _around_ it can be advanced; the action itself must remain calm.
+- Any functional form or action component (auth card, error recovery) stays on **interior** rules: flat-by-default, `shadow-sm`, no oversized type, calm and focused. The marketing _around_ it can be advanced; the action itself must remain calm.
 - The 14-inch laptop constraint is not relaxed — unauthenticated pages are often the first screens seen on a work machine.
 - Dutch formal address (`u/uw`), WCAG AA contrast, and full keyboard/screen-reader accessibility apply in full.
 

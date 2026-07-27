@@ -2,11 +2,11 @@ Quiet design is harder than bold design. Subtlety needs precision. Reduce visual
 
 ---
 
-## Register
+## Visitor mode
 
-Brand: "quieter" means more restrained palette, more whitespace, more typographic air. Drama is reduced, not eliminated; the POV stays intact.
+Persuade + Experience: "quieter" means more restrained palette, more whitespace, more typographic air. Drama is reduced, not eliminated; the POV stays intact.
 
-Product: "quieter" means reducing visual noise. Fewer background accents, flatter cards, less color, less motion. The tool should disappear more completely into the task.
+Operate + Read: "quieter" means reducing visual noise. Fewer background accents, flatter cards, less color, less motion. The tool should disappear more completely into the task.
 
 ---
 
@@ -48,7 +48,6 @@ Create a strategy to reduce intensity while maintaining impact:
 Systematically reduce intensity across these dimensions:
 
 ### Color Refinement
-
 - **Reduce saturation**: Shift from fully saturated to 70-85% saturation
 - **Soften palette**: Replace bright colors with muted tones
 - **Reduce color variety**: Use fewer colors more thoughtfully
@@ -58,21 +57,18 @@ Systematically reduce intensity across these dimensions:
 - **Never gray on color**: If you have gray text on a colored background, use a darker shade of that color or transparency instead
 
 ### Visual Weight Reduction
-
 - **Typography**: Reduce font weights (900 → 600, 700 → 500), decrease sizes where appropriate
 - **Hierarchy through subtlety**: Use weight, size, and space instead of color and boldness
 - **White space**: Increase breathing room, reduce density
 - **Borders & lines**: Reduce thickness, decrease opacity, or remove entirely
 
 ### Simplification
-
 - **Remove decorative elements**: Gradients, shadows, patterns, textures that don't serve purpose
 - **Simplify shapes**: Reduce border radius extremes, simplify custom shapes
 - **Reduce layering**: Flatten visual hierarchy where possible
 - **Clean up effects**: Reduce or remove blur effects, glows, multiple shadows
 
 ### Motion Reduction
-
 - **Reduce animation intensity**: Shorter distances (10-20px instead of 40px), gentler easing
 - **Remove decorative animations**: Keep functional motion, remove flourishes
 - **Subtle micro-interactions**: Replace dramatic effects with gentle feedback
@@ -80,13 +76,11 @@ Systematically reduce intensity across these dimensions:
 - **Remove animations entirely** if they're not serving a clear purpose
 
 ### Composition Refinement
-
 - **Reduce scale jumps**: Smaller contrast between sizes creates calmer feeling
 - **Align to grid**: Bring rogue elements back into systematic alignment
 - **Even out spacing**: Replace extreme spacing variations with consistent rhythm
 
 **NEVER**:
-
 - Make everything the same size/weight (hierarchy still matters)
 - Remove all color (quiet ≠ grayscale)
 - Eliminate all personality (maintain character through refinement)
