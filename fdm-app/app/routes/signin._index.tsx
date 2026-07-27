@@ -914,59 +914,71 @@ export default function SignIn() {
           <div className="bg-background py-24">
             <div className="container mx-auto max-w-6xl px-4 lg:px-8">
               <div className="mx-auto mb-20 max-w-3xl text-center">
-                <h2 className="text-foreground mb-6 text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 mb-4 inline-flex items-center rounded-full border border-emerald-200/60 dark:border-emerald-800/50 px-3 py-1 text-xs font-semibold tracking-wide uppercase">
+                  Bodemgezondheid in de praktijk
+                </div>
+                <h2 className="text-foreground mb-6 text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                   Indicatoren & Maatregelen: bodemgezondheid vertaald naar actie
                 </h2>
                 <p className="text-muted-foreground text-lg leading-relaxed">
-                  Met de{" "}
-                  <strong className="text-foreground">
-                    BLN (Bodemindicatoren Landbouw Nederland)
-                  </strong>{" "}
-                  brengt {clientConfig.name} de bodemgezondheid van uw percelen in kaart: van
-                  waterkwaliteit en klimaat tot de{" "}
-                  <strong className="text-foreground">Open Bodem Index (OBI)</strong> en het{" "}
-                  <strong className="text-foreground">BedrijfsBodemWaterPlan (BBWP)</strong>. Zo
-                  weet u waar de bodem om aandacht vraagt en welke maatregel het verschil maakt.
+                  Met <strong className="text-foreground">Indicatoren</strong> brengt{" "}
+                  {clientConfig.name} de bodemgezondheid van uw percelen helder in kaart, van
+                  waterkwaliteit en klimaat tot productie. Gebaseerd op de methodieken van de <em>Open Bodem Index (OBI)</em>,{" "}
+                  <em>Bodemindicatoren Landbouwgrond Nederland (BLN)</em> en het <em>BedrijfsBodemWaterPlan (BBWP)</em>.
+                </p>
+                <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
+                  Met <strong className="text-foreground">Maatregelen</strong> koppelt u direct
+                  doelgerichte acties aan specifieke percelen. Zo weet u exact waar de bodem om
+                  aandacht vraagt én welke ingreep het meeste effect oplevert.
                 </p>
               </div>
 
               <div className="mb-16 grid items-start gap-12 lg:grid-cols-2">
                 {/* Left: Text with Benefits */}
-                <div>
-                  <h3 className="mb-6 text-2xl font-semibold">
-                    Van bedrijfsscore tot individuele indicator
-                  </h3>
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="mb-6 text-2xl font-semibold tracking-tight">
+                      Van bedrijfsscore tot individuele indicator
+                    </h3>
+                  </div>
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
-                      <Gauge className="text-primary mt-1 h-6 w-6 shrink-0" />
+                      <div className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                        <Gauge className="h-5 w-5" />
+                      </div>
                       <div>
-                        <h4 className="font-semibold">Eén heldere BLN-score</h4>
-                        <p className="text-muted-foreground">
-                          Klik van het bedrijfsgemiddelde door naar categorieën als Water, Klimaat,
-                          Nutriëntenkringloop en Productie (OBI), tot op het niveau van losse
-                          indicatoren zoals fosfaatbeschikbaarheid of grondwateraanvulling.
+                        <h4 className="text-foreground font-semibold">Eén heldere score</h4>
+                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                          Klik vanuit het bedrijfsgemiddelde door naar hoofdthema's als Water,
+                          Klimaat, Nutriëntenkringloop en Productie (OBI), tot op het niveau van
+                          specifieke indicatoren zoals fosfaatbeschikbaarheid of
+                          grondwateraanvulling.
                         </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-4">
-                      <AlertTriangle className="text-primary mt-1 h-6 w-6 shrink-0" />
+                      <div className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
                       <div>
-                        <h4 className="font-semibold">Knelpunten in één oogopslag</h4>
-                        <p className="text-muted-foreground">
-                          De knelpuntenanalyse toont welke indicatoren op uw bedrijf het zwakst
-                          scoren en welke percelen daar het meest aan bijdragen, met een directe
-                          link naar het betreffende perceel.
+                        <h4 className="text-foreground font-semibold">Knelpunten in één oogopslag</h4>
+                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                          De geautomatiseerde knelpuntenanalyse laat direct zien welke
+                          indicatoren op uw bedrijf achterblijven en welke percelen daar het meest
+                          aan bijdragen, inclusief een snelle doorklik naar de perceelsdetails.
                         </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-4">
-                      <ClipboardList className="text-primary mt-1 h-6 w-6 shrink-0" />
+                      <div className="bg-primary/10 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
+                        <ClipboardList className="h-5 w-5" />
+                      </div>
                       <div>
-                        <h4 className="font-semibold">Maatregelen direct koppelen</h4>
-                        <p className="text-muted-foreground">
-                          Koppel een maatregel aan één of meerdere percelen, met een startdatum en
-                          looptijd, en houd zo per perceel bij welke stappen u zet voor een betere
-                          bodemgezondheid.
+                        <h4 className="text-foreground font-semibold">Maatregelen direct koppelen</h4>
+                        <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                          Koppel doeltreffende maatregelen aan één of meerdere percelen, leg de
+                          startdatum en looptijd vast, en volg nauwkeurig de voortgang van uw
+                          bodemverbeteringen.
                         </p>
                       </div>
                     </div>
@@ -974,39 +986,51 @@ export default function SignIn() {
                 </div>
 
                 {/* Right: Emphasize Importance */}
-                <Card className="border-primary/20 bg-background h-full shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <LayersIcon className="text-primary h-6 w-6" />
-                      Waarom bodemindicatoren volgen
+                <Card className="border-primary/20 bg-primary/[0.03] dark:bg-muted/20 h-full shadow-sm">
+                  <CardHeader className="pb-3">
+                    <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                      Meerwaarde
+                    </p>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <ShieldCheck className="text-primary h-5 w-5 shrink-0" />
+                      Waarom sturen op bodemindicatoren?
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-muted-foreground leading-relaxed">
-                      Bodemgezondheid is de basis onder Goede Landbouwpraktijk, maar is vaak lastig
-                      te bepalen. De BLN-scores maken dat inzichtelijk en helpen u om de juiste
-                      maatregelen te nemen voor een gezonde bodem en een duurzame bedrijfsvoering.
+                      Een duurzame bedrijfsvoering begint bij een gezonde bodem. Bodemindicatoren
+                      maken ingewikkelde bodemprocessen meetbaar en laten direct zien waar uw
+                      percelen aandacht vragen.
                     </p>
-                    <ul className="text-muted-foreground space-y-2">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                    <ul className="text-muted-foreground space-y-3 text-sm">
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                         <span>
-                          Signaleer risico's zoals verdichting of een tekortschietende
-                          grondwateraanvulling voordat ze uw oogst raken.
+                          <strong className="text-foreground font-semibold">
+                            Vroegtijdig risico's signaleren:
+                          </strong>{" "}
+                          Ontdek knelpunten zoals bodemverdichting of een lage
+                          grondwateraanvulling voordat ze uw opbrengst beïnvloeden.
                         </span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                         <span>
-                          Onderbouw uw bodembeheer richting ketens, regelingen en overheden met
-                          scores die steeds vaker worden gevraagd.
+                          <strong className="text-foreground font-semibold">
+                            Onderbouw uw vakmanschap:
+                          </strong>{" "}
+                          Maak uw bodembeheer aantoonbaar richting afnemers, ketenpartijen en
+                          overheden met erkende scores.
                         </span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" />
+                      <li className="flex items-start gap-2.5">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                         <span>
-                          Op maat geadviseerde maatregelen om uw bodembeheer te verbeteren voor een
-                          duurzame productie en een verlaagde milieuimpact.
+                          <strong className="text-foreground font-semibold">
+                            Gericht actie ondernemen:
+                          </strong>{" "}
+                          Koppel de juiste maatregelen aan zwakkere indicatoren en verlaag uw
+                          milieu-impact effectief.
                         </span>
                       </li>
                     </ul>
@@ -1041,6 +1065,14 @@ export default function SignIn() {
                     alt="BedrijfsBodemWaterPlan (BBWP)"
                     className="h-8 w-auto object-contain"
                   />
+                </Link>
+                <Link
+                  to="https://edepot.wur.nl/634579"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="opacity-80 transition-opacity hover:opacity-100"
+                >
+                  <span className="text-foreground text-3xl font-bold">BLN</span>
                 </Link>
               </div>
 
