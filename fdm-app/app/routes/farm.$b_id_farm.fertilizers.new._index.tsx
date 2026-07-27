@@ -4,7 +4,9 @@ import { Pencil, Plus } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
 import { getRvoMappings } from "~/components/blocks/fertilizer/utils.server"
+import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card } from "~/components/ui/card"
@@ -18,7 +20,6 @@ import {
 } from "~/components/ui/command"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
-import { cn } from "~/lib/utils"
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { b_id_farm } = params
@@ -213,21 +214,13 @@ export default function NewFertilizerIndexPage() {
                               </div>
 
                               {fertilizer.p_type_rvo && (
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "ml-4 hidden shrink-0 border-transparent font-medium sm:flex",
-                                    fertilizer.p_type === "manure"
-                                      ? "bg-amber-600 text-white hover:bg-amber-700"
-                                      : fertilizer.p_type === "compost"
-                                        ? "bg-green-600 text-white hover:bg-green-700"
-                                        : fertilizer.p_type === "mineral"
-                                          ? "bg-blue-600 text-white hover:bg-blue-700"
-                                          : "bg-gray-600 text-white hover:bg-gray-700",
-                                  )}
+                                <FertilizerBadge
+                                  p_type={getFertilizerCategoryFromRvoCode(fertilizer.p_type_rvo)}
+                                  variant="category-solid"
+                                  className="ml-4 hidden shrink-0 font-medium sm:flex"
                                 >
                                   {fertilizer.rvoLabel || "Meststof"}
-                                </Badge>
+                                </FertilizerBadge>
                               )}
                             </CommandItem>
                           ))}

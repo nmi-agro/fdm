@@ -21,6 +21,11 @@ export type InputAggregateNormsToFarmLevel = {
     manure: GebruiksnormResult
     nitrogen: GebruiksnormResult
     phosphate: GebruiksnormResult
+    /**
+     * The Renure norm value for this field, kg N/ha.
+     * Only present from 2026 onwards; omitted for years without a Renure norm.
+     */
+    renure?: GebruiksnormResult
   }
 }[]
 
@@ -41,6 +46,11 @@ export type AggregatedNormsToFarmLevel = {
    * Total phosphate norm in kg P2O5 for the entire farm.
    */
   phosphate: number // kg P2O5
+  /**
+   * Total Renure norm in kg N for the entire farm.
+   *  Only present from 2026 onwards; omitted for years without a Renure norm.
+   */
+  renure?: number // kg N
 }
 
 /**
@@ -90,18 +100,25 @@ export function aggregateNormsToFarmLevel(
   let totalManure = new Decimal(0)
   let totalNitrogen = new Decimal(0)
   let totalPhosphate = new Decimal(0)
+  let totalRenure: Decimal | undefined = undefined
 
   for (const field of input) {
     const area = new Decimal(field.b_area)
     totalManure = totalManure.plus(new Decimal(field.norms.manure.normValue).times(area))
     totalNitrogen = totalNitrogen.plus(new Decimal(field.norms.nitrogen.normValue).times(area))
     totalPhosphate = totalPhosphate.plus(new Decimal(field.norms.phosphate.normValue).times(area))
+    if (field.norms.renure) {
+      totalRenure = (totalRenure ?? new Decimal(0)).plus(
+        new Decimal(field.norms.renure.normValue).times(area),
+      )
+    }
   }
 
   return {
     manure: totalManure.toDecimalPlaces(0).toNumber(),
     nitrogen: totalNitrogen.toDecimalPlaces(0).toNumber(),
     phosphate: totalPhosphate.toDecimalPlaces(0).toNumber(),
+    renure: totalRenure ? totalRenure.toDecimalPlaces(0).toNumber() : undefined,
   }
 }
 
@@ -125,6 +142,11 @@ export type InputAggregateNormFillingsToFarmLevel = {
     manure: NormFilling
     nitrogen: NormFilling
     phosphate: NormFilling
+    /**
+     * The Renure norm filling for this field.
+     * Only present from 2026 onwards; omitted for years without a Renure norm.
+     */
+    renure?: NormFilling
   }
 }[]
 
@@ -145,6 +167,11 @@ export type AggregatedNormFillingsToFarmLevel = {
    * Total phosphate norm filling in kg P2O5 for the entire farm.
    */
   phosphate: number
+  /**
+   * Total Renure norm filling in kg N for the entire farm. Only meaningful
+   * from 2026 onwards; 0 when no field supplied a `renure` filling.
+   */
+  renure: number
 }
 
 /**
@@ -165,6 +192,7 @@ export function aggregateNormFillingsToFarmLevel(
   let totalManureFilling = new Decimal(0)
   let totalNitrogenFilling = new Decimal(0)
   let totalPhosphateFilling = new Decimal(0)
+  let totalRenureFilling = new Decimal(0)
 
   for (const field of input) {
     const area = new Decimal(field.b_area)
@@ -183,11 +211,19 @@ export function aggregateNormFillingsToFarmLevel(
     totalPhosphateFilling = totalPhosphateFilling.plus(
       new Decimal(field.normsFilling.phosphate.normFilling).times(area),
     )
+
+    // Aggregate Renure filling (only present from 2026 onwards)
+    if (field.normsFilling.renure) {
+      totalRenureFilling = totalRenureFilling.plus(
+        new Decimal(field.normsFilling.renure.normFilling).times(area),
+      )
+    }
   }
 
   return {
     manure: totalManureFilling.toDecimalPlaces(0).toNumber(),
     nitrogen: totalNitrogenFilling.toDecimalPlaces(0).toNumber(),
     phosphate: totalPhosphateFilling.toDecimalPlaces(0).toNumber(),
+    renure: totalRenureFilling.toDecimalPlaces(0).toNumber(),
   }
 }

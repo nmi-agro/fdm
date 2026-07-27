@@ -1,4 +1,4 @@
-import type { AgentSummary, TicketAssignmentSummary } from "@nmi-agro/fdm-helpdesk"
+import type { AgentSummary, AgentAvailabilityStatus, TicketAssignmentSummary } from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown, UserPlus, Users } from "lucide-react"
 import { type MouseEventHandler, useEffect, useId, useState } from "react"
 import { useFetcher } from "react-router"
@@ -20,6 +20,7 @@ import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import type { HelpdeskUser } from "./types"
+import { AgentAvailabilityDisplay } from "./agent-availability"
 import { HelpdeskUserAvatar, makeHelpdeskUser } from "./helpdesk-user"
 
 // How many assignees to display, before saying "en meer/and more"
@@ -31,6 +32,7 @@ export function AssignmentSelector({
   canModify = true,
   assignees,
   agents,
+  agentAvailability,
   principalLookup,
 }: {
   triggerId?: string
@@ -38,6 +40,7 @@ export function AssignmentSelector({
   canModify?: boolean
   assignees: TicketAssignmentSummary[]
   agents: AgentSummary[]
+  agentAvailability?: Map<string, AgentAvailabilityStatus>
   principalLookup: Map<string, HelpdeskUser>
 }) {
   const fetcher = useFetcher()
@@ -56,6 +59,17 @@ export function AssignmentSelector({
   const alreadyAssigned = new Set(assignees.map((assignee) => assignee.agent_id))
 
   const unassignedAgents = agents.filter((agent) => !alreadyAssigned.has(agent.agent_id))
+  // Split unassigned agents by real availability, so "Beschikbaar" only ever lists agents who
+  // are actually available. Absent agents and agents not scheduled to work today get their own
+  // group instead of being hidden inside "Beschikbaar", where they could be assigned by mistake
+  // during fast triage.
+  const isAvailable = (agentId: string) => agentAvailability?.get(agentId)?.available ?? true
+  const availableAgents = unassignedAgents.filter((agent) => isAvailable(agent.agent_id))
+  const unavailableAgents = unassignedAgents.filter((agent) => !isAvailable(agent.agent_id))
+  const selectedUnavailableAgents = unavailableAgents.filter((agent) =>
+    selectedAssignees.includes(agent.agent_id),
+  )
+  const activeAgentIds = new Set(agents.map((agent) => agent.agent_id))
 
   function setSelected(agentId: string, selected: boolean) {
     setSelectedAssignees((current) => {
@@ -179,6 +193,11 @@ export function AssignmentSelector({
                   <AssigneeSelectItem
                     key={assignee.agent_id}
                     agent={assignee}
+                    availability={
+                      activeAgentIds.has(assignee.agent_id)
+                        ? agentAvailability?.get(assignee.agent_id) ?? null
+                        : undefined
+                    }
                     isSelected={selectedAssignees.includes(assignee.agent_id)}
                     isPrimary={primaryAssignees.includes(assignee.agent_id)}
                     principalLookup={principalLookup}
@@ -192,15 +211,41 @@ export function AssignmentSelector({
 
             {assignees.length > 0 && unassignedAgents.length > 0 && <Separator className="my-2" />}
 
-            {unassignedAgents.length > 0 && (
+            {availableAgents.length > 0 && (
               <>
                 <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
                   Beschikbaar
                 </p>
-                {unassignedAgents.map((agent) => (
+                {availableAgents.map((agent) => (
                   <AssigneeSelectItem
                     key={agent.agent_id}
                     agent={agent}
+                    availability={agentAvailability?.get(agent.agent_id) ?? null}
+                    isSelected={selectedAssignees.includes(agent.agent_id)}
+                    isPrimary={primaryAssignees.includes(agent.agent_id)}
+                    principalLookup={principalLookup}
+                    canModify={canModify}
+                    onClick={() => toggleAssigned(agent.agent_id)}
+                    onIsPrimaryClick={() => togglePrimary(agent.agent_id)}
+                  />
+                ))}
+              </>
+            )}
+
+            {availableAgents.length > 0 && unavailableAgents.length > 0 && (
+              <Separator className="my-2" />
+            )}
+
+            {unavailableAgents.length > 0 && (
+              <>
+                <p className="text-muted-foreground px-2 pb-1 text-xs font-medium tracking-wide uppercase">
+                  Niet beschikbaar
+                </p>
+                {unavailableAgents.map((agent) => (
+                  <AssigneeSelectItem
+                    key={agent.agent_id}
+                    agent={agent}
+                    availability={agentAvailability?.get(agent.agent_id) ?? null}
                     isSelected={selectedAssignees.includes(agent.agent_id)}
                     isPrimary={primaryAssignees.includes(agent.agent_id)}
                     principalLookup={principalLookup}
@@ -212,6 +257,14 @@ export function AssignmentSelector({
               </>
             )}
           </Field>
+
+          {selectedUnavailableAgents.length > 0 && (
+            <p className="border-amber-200 bg-amber-50 text-amber-900 rounded-md border px-3 py-2 text-sm">
+              {selectedUnavailableAgents.length === 1
+                ? `${selectedUnavailableAgents[0].display_name} is niet beschikbaar. Weet je zeker dat je dit ticket aan deze medewerker wilt toewijzen?`
+                : "Een of meer geselecteerde medewerkers zijn niet beschikbaar. Weet je zeker dat je dit ticket aan hen wilt toewijzen?"}
+            </p>
+          )}
 
           <DialogFooter className="gap-2">
             <DialogClose asChild>
@@ -236,6 +289,7 @@ export function AssignmentSelector({
 
 function AssigneeSelectItem({
   agent,
+  availability,
   isPrimary,
   isSelected,
   principalLookup,
@@ -244,6 +298,7 @@ function AssigneeSelectItem({
   onIsPrimaryClick,
 }: {
   agent: AgentSummary
+  availability: AgentAvailabilityStatus | null | undefined
   isPrimary: boolean
   isSelected: boolean
   principalLookup: Map<string, HelpdeskUser>
@@ -278,7 +333,12 @@ function AssigneeSelectItem({
           {isSelected && <Check className="size-3" />}
         </span>
         <HelpdeskUserAvatar user={makeHelpdeskUser(agent, principalLookup)} type="agent" />
-        <span className="grow text-start group-hover:underline">{agent.display_name}</span>
+        <div className="text-start">
+          <span className="grow text-start group-hover:underline">{agent.display_name}</span>
+          {availability !== undefined && (
+            <AgentAvailabilityDisplay availability={availability} className="text-[11px]" />
+          )}
+        </div>
       </Button>
 
       <Tooltip>
@@ -291,6 +351,11 @@ function AssigneeSelectItem({
               className="shrink-0 hover:bg-transparent"
               onClick={onIsPrimaryClick}
               disabled={!isSelected}
+              aria-label={
+                isPrimary
+                  ? `${agent.display_name} is hoofdverantwoordelijke`
+                  : `Maak ${agent.display_name} hoofdverantwoordelijke`
+              }
             >
               <Crown
                 className={cn(

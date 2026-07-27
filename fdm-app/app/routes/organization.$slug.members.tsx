@@ -369,7 +369,10 @@ const FormSchema = z.object({
 export async function action({ request, params }: Route.ActionArgs) {
   try {
     if (!params.slug) {
-      throw handleActionError("not found: organization")
+      throw data("not found: organization", {
+        status: 404,
+        statusText: "not found: organization",
+      })
     }
 
     const session = await getSession(request)
@@ -399,7 +402,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
     const organization = organizations.find((org) => org.slug === params.slug)
     if (!organization) {
-      throw handleActionError("not found: organization")
+      throw data("not found: organization", {
+        status: 404,
+        statusText: "not found: organization",
+      })
     }
     const organizationId = organization.id
     const organizationName = organization.name
@@ -536,6 +542,6 @@ export async function action({ request, params }: Route.ActionArgs) {
         }
       }
     }
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

@@ -115,6 +115,7 @@ export async function computePlanMetrics(
         let manure: { normValue: number; normSource: string } | undefined
         let nitrogen: { normValue: number; normSource: string } | undefined
         let phosphate: { normValue: number; normSource: string } | undefined
+        let renure: { normValue: number; normSource: string } | undefined
         try {
           const norms = await getFieldNormValues({
             fdm,
@@ -126,6 +127,7 @@ export async function computePlanMetrics(
             manure = norms.manure
             phosphate = norms.phosphate
             nitrogen = norms.nitrogen
+            renure = norms.renure
           } else {
             throw new Error("Missing norms")
           }
@@ -156,6 +158,7 @@ export async function computePlanMetrics(
         let manureFilling: NormFilling
         let nitrogenFilling: NormFilling
         let phosphateFilling: NormFilling
+        let renureFilling: NormFilling | undefined
 
         try {
           const baseInput = await fillingFuncs.collectInputForFertilizerApplicationFilling(
@@ -169,7 +172,7 @@ export async function computePlanMetrics(
             applications: syntheticApps,
             fertilizers,
           } as Awaited<ReturnType<typeof fillingFuncs.collectInputForFertilizerApplicationFilling>>
-          const [manureResult, nitrogenResult, phosphateResult] = await Promise.all([
+          const [manureResult, nitrogenResult, phosphateResult, renureResult] = await Promise.all([
             Promise.resolve(
               fillingFuncs.calculateFertilizerApplicationFillingForManure(fdm, fillingInput),
             ),
@@ -177,10 +180,16 @@ export async function computePlanMetrics(
             Promise.resolve(
               fillingFuncs.calculateFertilizerApplicationFillingForPhosphate(fdm, fillingInput),
             ),
+            year === "2026"
+              ? Promise.resolve(
+                  createFunctionsForFertilizerApplicationFilling("NL", "2026").calculateFertilizerApplicationFillingForRenure(fdm, fillingInput)
+                )
+              : Promise.resolve(undefined),
           ])
           manureFilling = manureResult
           nitrogenFilling = nitrogenResult
           phosphateFilling = phosphateResult
+          renureFilling = renureResult
         } catch (err) {
           console.warn(`[computePlanMetrics] Filling calc failed for ${field.b_id}:`, err)
           throw err
@@ -257,11 +266,13 @@ export async function computePlanMetrics(
             manure: manureFilling,
             nitrogen: nitrogenFilling,
             phosphate: phosphateFilling,
+            renure: renureFilling,
           },
           norms: {
             manure: manure!,
             nitrogen: nitrogen!,
             phosphate: phosphate!,
+            renure: renure,
           },
           nBalance: nBalance
             ? {

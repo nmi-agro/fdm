@@ -1,4 +1,4 @@
-import { ArrowRight, Building } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { NavLink } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
@@ -6,11 +6,13 @@ import {
   getOrganizationRoleLabel,
   type ParseOrganizationMetadataResult,
 } from "~/lib/organization-helpers"
+import { OrganizationAvatar } from "./organization-avatar"
 
 type OrganizationRole = "owner" | "admin" | "member"
 export interface OrganizationWithRoles {
   slug: string
-  name: string | null
+  name: string
+  logo?: string | null | undefined
   metadata: ParseOrganizationMetadataResult
   userRoles: OrganizationRole[]
 }
@@ -23,9 +25,11 @@ export function OrganizationCard({ organization }: { organization: OrganizationW
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary flex h-10 w-10 items-center justify-center rounded-lg transition-colors">
-                <Building className="h-5 w-5" />
-              </div>
+              <OrganizationAvatar
+                src={organization.logo}
+                alt={`Logo van ${organization.name}`}
+                className="size-10"
+              />
               <div>
                 <CardTitle className="text-xl">{organization.name}</CardTitle>
                 <div className="mt-1 flex gap-1">

@@ -103,6 +103,7 @@ export function SoilAnalysisUploadForm() {
                             maxSize={fileSizeLimit}
                             required
                             className={cn(
+                              "h-32",
                               uploadStatus === "success" && "border-green-500 bg-green-50",
                               uploadStatus === "error" && "border-red-500 bg-red-50",
                             )}

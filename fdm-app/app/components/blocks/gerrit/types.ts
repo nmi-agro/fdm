@@ -15,6 +15,7 @@ export interface ParsedPlanApplication {
   p_app_date: string
   p_app_method?: string | null
   p_app_method_name?: string | null
+  p_type_rvo?: string | null
 }
 
 export interface ParsedPlan {
@@ -32,11 +33,13 @@ export interface FieldMetrics {
     manure: NormFilling
     nitrogen: NormFilling
     phosphate: NormFilling
+    renure?: NormFilling
   }
   norms: {
     manure: GebruiksnormResult
     nitrogen: GebruiksnormResult
     phosphate: GebruiksnormResult
+    renure?: GebruiksnormResult
   }
   nBalance: Pick<NitrogenBalanceFieldNumeric, "balance" | "target" | "emission"> | null
   omBalance: number | null

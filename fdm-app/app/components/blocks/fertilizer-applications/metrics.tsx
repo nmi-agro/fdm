@@ -43,11 +43,13 @@ interface FertilizerApplicationMetricsData {
         manure: GebruiksnormResult
         phosphate: GebruiksnormResult
         nitrogen: GebruiksnormResult
+        renure?: GebruiksnormResult
       }
       filling: {
         manure: NormFilling
         phosphate: NormFilling
         nitrogen: NormFilling
+        renure?: NormFilling
       }
     } | null>
   >
@@ -226,6 +228,31 @@ export function FertilizerApplicationMetricsCard({
                                   limit={resolvedNorms.value.manure.normValue}
                                 />
                               </div>
+
+                              {Number.parseInt(calendar, 10) >= 2026 && resolvedNorms.value.renure && (
+                                <div className="min-w-0 space-y-1.5">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <p className="text-muted-foreground truncate text-[11px] font-medium tracking-wider uppercase">
+                                          Renure
+                                        </p>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Stikstof uit Renure-producten (max. 80 kg N/ha, bovenop dierlijke mest)</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <span className="shrink-0 text-right text-xs font-bold whitespace-nowrap">
+                                      {Math.round(resolvedNorms.filling.renure?.normFilling ?? 0)} /{" "}
+                                      {Math.round(resolvedNorms.value.renure.normValue)} kg N
+                                    </span>
+                                  </div>
+                                  <NormProgressBar
+                                    used={resolvedNorms.filling.renure?.normFilling ?? 0}
+                                    limit={resolvedNorms.value.renure.normValue}
+                                  />
+                                </div>
+                              )}
                             </div>
                           )
                         }}

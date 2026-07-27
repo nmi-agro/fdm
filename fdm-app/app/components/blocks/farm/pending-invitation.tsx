@@ -24,6 +24,7 @@ type PendingInvitation = {
 type Props = {
   invitation: PendingInvitation
   principalType?: "user" | "organization"
+  canAccept?: boolean
 }
 
 function getRoleLabel(role: string): string {
@@ -33,7 +34,11 @@ function getRoleLabel(role: string): string {
   return "Lid"
 }
 
-export function PendingInvitationCard({ invitation, principalType = "user" }: Props) {
+export function PendingInvitationCard({
+  invitation,
+  principalType = "user",
+  canAccept = true,
+}: Props) {
   const farmLabel = invitation.farm_name ?? invitation.resource_id
   const expiresText = formatDistanceToNow(new Date(invitation.expires), {
     addSuffix: true,
@@ -66,29 +71,38 @@ export function PendingInvitationCard({ invitation, principalType = "user" }: Pr
             Deze uitnodiging ontvang je namens organisatie: {invitation.org_name}
           </span>
         )}{" "}
-        Je kunt deze uitnodiging accepteren of weigeren.
+        {canAccept && "Je kunt deze uitnodiging accepteren of weigeren."}
         <div className="text-muted-foreground/80 mt-2 flex items-center gap-1 text-xs">
           <Clock className="h-3 w-3" />
           <span>Verloopt {expiresText}</span>
         </div>
       </CardContent>
       <CardFooter className="flex gap-2 pt-2">
-        <Form method="post" className="flex-1">
-          <input type="hidden" name="intent" value="accept_farm_invitation" />
-          <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
-          <Button type="submit" size="sm" className="w-full">
-            <Check className="mr-1 h-3 w-3" />
-            Accepteren
-          </Button>
-        </Form>
-        <Form method="post" className="flex-1">
-          <input type="hidden" name="intent" value="decline_farm_invitation" />
-          <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
-          <Button type="submit" size="sm" variant="outline" className="w-full">
-            <X className="mr-1 h-3 w-3" />
-            Weigeren
-          </Button>
-        </Form>
+        {canAccept ? (
+          <>
+            <Form method="post" className="flex-1">
+              <input type="hidden" name="intent" value="accept_farm_invitation" />
+              <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
+              <Button type="submit" size="sm" className="w-full">
+                <Check className="mr-1 h-3 w-3" />
+                Accepteren
+              </Button>
+            </Form>
+            <Form method="post" className="flex-1">
+              <input type="hidden" name="intent" value="decline_farm_invitation" />
+              <input type="hidden" name="invitation_id" value={invitation.invitation_id} />
+              <Button type="submit" size="sm" variant="outline" className="w-full">
+                <X className="mr-1 h-3 w-3" />
+                Weigeren
+              </Button>
+            </Form>
+          </>
+        ) : (
+          <div className="text-muted-foreground text-xs">
+            Een beheerder van de organisatie <strong>{invitation.org_name}</strong> kan deze
+            uitnodiging accepteren of weigeren.
+          </div>
+        )}
       </CardFooter>
     </Card>
   )

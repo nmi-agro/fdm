@@ -3,11 +3,16 @@ import { nl } from "date-fns/locale"
 import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router"
-import type { TimelineField, TimelineFilters } from "~/components/blocks/timeline/gantt-view"
+import type {
+  FertilizerTypeInfo,
+  TimelineField,
+  TimelineFilters,
+} from "~/components/blocks/timeline/gantt-view"
 import {
   EVENT_TYPE_COLOR,
   getFertilizerKindColor,
 } from "~/components/blocks/timeline/timeline-colors"
+import { getFertilizerCategoryFromRvoCode, isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
 import {
   filterEventsByType,
   flattenEvents,
@@ -52,8 +57,10 @@ function hexToRgba(hex: string, alpha: number): string {
 
 function eventColor(event: TimelineEvent): string {
   switch (event.type) {
-    case "fertilizer":
-      return getFertilizerKindColor(event.p_type)
+    case "fertilizer": {
+      const isRenure = isRenureRvoCode(event.p_type_rvo)
+      return getFertilizerKindColor(isRenure ? "renure" : event.p_type)
+    }
     case "harvest":
       return EVENT_TYPE_COLOR.harvest
     case "soil_sampling":
@@ -72,7 +79,7 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
 
   let icon: React.ReactNode
   if (event.type === "fertilizer") {
-    icon = <FertilizerIcon p_type={event.p_type ?? "other"} />
+    icon = <FertilizerIcon p_type={getFertilizerCategoryFromRvoCode(event.p_type_rvo)} />
   } else if (event.type === "harvest") {
     icon = <Wheat className="size-4 fill-current" />
   } else if (event.type === "soil_sampling") {
@@ -355,7 +362,7 @@ export function TimelineMobileView({
   onFiltersChange,
 }: {
   fields: TimelineField[]
-  fertilizerTypeById: Map<string, "manure" | "mineral" | "compost" | null>
+  fertilizerTypeById: Map<string, FertilizerTypeInfo>
   b_id_farm: string
   calendar: string
   filters: TimelineFilters

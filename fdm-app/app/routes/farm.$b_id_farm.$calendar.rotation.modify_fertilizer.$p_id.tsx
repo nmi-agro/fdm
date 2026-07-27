@@ -162,6 +162,6 @@ export async function action({ request }: Route.ActionArgs) {
 
     throw Error(`invalid intent: ${formData.intent}`)
   } catch (e) {
-    throw handleActionError(e)
+    return handleActionError(e)
   }
 }

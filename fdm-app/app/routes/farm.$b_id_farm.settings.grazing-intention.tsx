@@ -65,7 +65,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
     return dataWithSuccess({}, `Beweiding voor ${year} ingeschakeld.`)
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 

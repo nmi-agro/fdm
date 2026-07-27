@@ -92,7 +92,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
               const collectedFertilizers: Record<
                 string,
-                Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type">
+                Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">
               > = {}
 
               ;(await cultivations).forEach((cultivation) => {
@@ -113,6 +113,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
                     p_id: fertilizer.p_id,
                     p_name_nl: fertilizer.p_name_nl,
                     p_type: fertilizer.p_type,
+                    p_type_rvo: fertilizer.p_type_rvo,
                   }
                 }
               })
@@ -136,7 +137,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
           const collectedFertilizers: Record<
             string,
-            Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type">
+            Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">
           > = {}
 
           for (const field of fieldsExtended) {

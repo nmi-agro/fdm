@@ -51,11 +51,13 @@ interface FieldNorm {
     manure: GebruiksnormResult
     phosphate: GebruiksnormResult
     nitrogen: GebruiksnormResult
+    renure?: GebruiksnormResult
   }
   normsFilling?: {
     manure: NormFilling
     phosphate: NormFilling
     nitrogen: NormFilling
+    renure?: NormFilling
   }
   errorMessage?: string
   isWarning?: boolean
@@ -383,9 +385,14 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
             hasFieldNormErrors={hasFieldNormErrors}
             fieldErrorMessages={fieldErrorMessages}
             fieldWarningMessages={fieldWarningMessages ?? []}
+            showRenure={Number.parseInt(loaderData.calendar, 10) >= 2026}
           />
           <Separator className="my-8" />
-          <FieldNorms fieldNorms={filteredFieldNorms} fieldOptions={fieldOptions} />
+          <FieldNorms
+            fieldNorms={filteredFieldNorms}
+            fieldOptions={fieldOptions}
+            showRenure={Number.parseInt(loaderData.calendar, 10) >= 2026}
+          />
         </div>
       </FarmContent>
     )

@@ -264,7 +264,16 @@ export const typeRvoOptions = [
   { value: "115", label: "Kunstmest" },
   { value: "116", label: "Overige mestsoorten" },
   { value: "117", label: "Gescheiden champost" },
-  { value: "120", label: "Mineralenconcentraat" },
+  {
+    value: "120",
+    label:
+      "Mineralenconcentraat (alleen geldig voor 2025 en eerder; Kies Renure-variant voor 2026 en later)",
+  },
+  { value: "130", label: "Ammoniumsulfaat (Renure)" },
+  { value: "131", label: "Ammoniumnitraat (Renure)" },
+  { value: "132", label: "Mineralenconcentraat (Renure)" },
+  { value: "133", label: "Struviet (Renure)" },
+  { value: "134", label: "Ander ammoniumzout (Renure)" },
 ]
 export const typeRvoEnum = fdmSchema.enum(
   "p_type_rvo",

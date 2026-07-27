@@ -31,7 +31,37 @@ describe("aggregateNormsToFarmLevel", () => {
       manure: 1450, // (100 * 10) + (90 * 5)
       nitrogen: 2200, // (150 * 10) + (140 * 5)
       phosphate: 725, // (50 * 10) + (45 * 5)
+      renure: undefined,
     })
+  })
+
+  it("should correctly aggregate renure norm values to farm level", () => {
+    const fieldData: InputAggregateNormsToFarmLevel = [
+      {
+        b_id: "field1",
+        b_area: 10, // hectares
+        norms: {
+          manure: { normValue: 170, normSource: "Source A" },
+          nitrogen: { normValue: 250, normSource: "Source B" },
+          phosphate: { normValue: 50, normSource: "Source C" },
+          renure: { normValue: 80, normSource: "Renure (max 80 kg N/ha)" },
+        },
+      },
+      {
+        b_id: "field2",
+        b_area: 5, // hectares
+        norms: {
+          manure: { normValue: 170, normSource: "Source A" },
+          nitrogen: { normValue: 250, normSource: "Source B" },
+          phosphate: { normValue: 45, normSource: "Source C" },
+          renure: { normValue: 80, normSource: "Renure (max 80 kg N/ha)" },
+        },
+      },
+    ]
+
+    const aggregatedNorms = aggregateNormsToFarmLevel(fieldData)
+
+    expect(aggregatedNorms.renure).toBe(1200) // (80 * 10) + (80 * 5)
   })
 
   it("should handle empty input array", () => {
@@ -41,6 +71,7 @@ describe("aggregateNormsToFarmLevel", () => {
       manure: 0,
       nitrogen: 0,
       phosphate: 0,
+      renure: undefined,
     })
   })
 
@@ -61,6 +92,7 @@ describe("aggregateNormsToFarmLevel", () => {
       manure: 0,
       nitrogen: 0,
       phosphate: 0,
+      renure: undefined,
     })
   })
 })
@@ -138,7 +170,41 @@ describe("aggregateNormFillingsToFarmLevel", () => {
       manure: 0,
       nitrogen: 0,
       phosphate: 0,
+      renure: 0,
     })
+  })
+
+  it("should correctly aggregate renure norm fillings to farm level", () => {
+    const fieldData: InputAggregateNormFillingsToFarmLevel = [
+      {
+        b_id: "field1",
+        b_area: 10, // hectares
+        normsFilling: {
+          manure: { normFilling: 0, applicationFilling: [] },
+          nitrogen: { normFilling: 20, applicationFilling: [] },
+          phosphate: { normFilling: 5, applicationFilling: [] },
+          renure: {
+            normFilling: 6,
+            applicationFilling: [{ p_app_id: "app1", normFilling: 6 }],
+          },
+        },
+      },
+      {
+        b_id: "field2",
+        b_area: 5, // hectares
+        normsFilling: {
+          manure: { normFilling: 0, applicationFilling: [] },
+          nitrogen: { normFilling: 15, applicationFilling: [] },
+          phosphate: { normFilling: 3, applicationFilling: [] },
+          renure: {
+            normFilling: 4,
+            applicationFilling: [{ p_app_id: "app2", normFilling: 4 }],
+          },
+        },
+      },
+    ]
+    const aggregatedFillings = aggregateNormFillingsToFarmLevel(fieldData)
+    expect(aggregatedFillings.renure).toBe(80) // (6 * 10) + (4 * 5)
   })
 
   it("should handle fields with zero area for norm fillings", () => {
@@ -167,6 +233,7 @@ describe("aggregateNormFillingsToFarmLevel", () => {
       manure: 0,
       nitrogen: 0,
       phosphate: 0,
+      renure: 0,
     })
   })
 })

@@ -333,4 +333,27 @@ export const table11Mestcodes: Table11Mestcodes = [
     p_type_rvo: "120",
     p_type_nitratesdirective: true,
   },
+  // Renure (RVO codes 130-134) is not legally recognized before 2026, so it
+  // falls back to counting as regular animal manure against the 170 kg
+  // dierlijke-mest norm for 2025 and earlier plans.
+  {
+    p_type_rvo: "130",
+    p_type_nitratesdirective: true,
+  },
+  {
+    p_type_rvo: "131",
+    p_type_nitratesdirective: true,
+  },
+  {
+    p_type_rvo: "132",
+    p_type_nitratesdirective: true,
+  },
+  {
+    p_type_rvo: "133",
+    p_type_nitratesdirective: true,
+  },
+  {
+    p_type_rvo: "134",
+    p_type_nitratesdirective: true,
+  },
 ]

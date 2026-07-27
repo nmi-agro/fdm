@@ -8,8 +8,8 @@ import {
 import { getCultivations, getCurrentSoilData, getFertilizers, getFields } from "@nmi-agro/fdm-core"
 import { getSession } from "~/lib/auth.server"
 import { serverConfig } from "~/lib/config.server"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import PostHogClient from "~/posthog.server"
 
 export async function loader({ request }: LoaderFunctionArgs) {

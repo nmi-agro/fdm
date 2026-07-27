@@ -1,6 +1,6 @@
 "use client"
 
-import type { InputHTMLAttributes, ReactNode } from "react"
+import type { CSSProperties, InputHTMLAttributes, ReactNode } from "react"
 import { X } from "lucide-react"
 import { createContext, useContext, useEffect, useId, useRef } from "react"
 import { toast as notify } from "sonner"
@@ -27,6 +27,7 @@ export type DropzoneProps = {
   value?: File[]
   accept?: string | string[]
   name: string
+  style?: CSSProperties
   className?: string
   allowReset?: boolean
   minSize?: number
@@ -50,6 +51,7 @@ export const Dropzone = ({
   multiple,
   required,
   disabled,
+  style,
   className,
   children,
   allowReset = true,
@@ -216,8 +218,9 @@ export const Dropzone = ({
           disabled={disabled}
         />
         <label
+          style={style}
           className={cn(
-            "border-muted-foreground/25 hover:bg-muted/25 h-32 w-full flex-col items-center justify-center rounded-md border border-dashed px-6 py-4 text-center transition-colors",
+            "border-muted-foreground/25 hover:bg-muted/25 w-full flex-col items-center justify-center rounded-md border border-dashed px-6 py-4 text-center transition-colors",
             disabled ? "hidden" : "flex",
             className,
           )}

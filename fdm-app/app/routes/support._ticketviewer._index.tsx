@@ -1,7 +1,7 @@
 import { MessageSquareDashed, Plus } from "lucide-react"
 import { NavLink } from "react-router"
 import { useCurrentHelpdeskPage } from "~/components/blocks/helpdesk/navigation"
-import { Button } from "../components/ui/button"
+import { Button } from "~/components/ui/button"
 import { Empty, EmptyContent, EmptyDescription, EmptyTitle } from "../components/ui/empty"
 
 export default function TicketViewerNoSelection() {

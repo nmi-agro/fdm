@@ -13,12 +13,15 @@ import { SidebarAdminHelpdesk } from "~/components/blocks/sidebar/admin-helpdesk
 import { SidebarHelpdesk } from "~/components/blocks/sidebar/helpdesk"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
+import { RouteErrorFallback } from "~/components/custom/error"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/support"
+
+type SupportLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
 
 /**
  * Retrieves the session from the HTTP request and returns user information if available.
@@ -84,24 +87,18 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 /**
- * Renders the main application layout.
- *
- * This component retrieves user data from the loader using React Router's useLoaderData hook and passes it to the SidebarApp component within a SidebarProvider context. It also renders an Outlet to display nested routes.
+ * Renders the support/helpdesk app shell: sidebar, header, and a content pane. Shared between
+ * the normal route render and this route's `ErrorBoundary`, so a descendant route error (e.g. a
+ * ticket that doesn't exist or can't be accessed) never leaves the user with a bare,
+ * out-of-app-feeling page — the sidebar and header stay in place.
  */
-export default function App() {
-  const loaderData = useLoaderData<typeof loader>()
-
-  // Identify user if PostHog is configured
-  useEffect(() => {
-    if (clientConfig.analytics.posthog && loaderData.user) {
-      posthog.identify(loaderData.user.id, {
-        id: loaderData.user.id,
-        email: loaderData.user.email,
-        name: loaderData.user.name,
-      })
-    }
-  }, [loaderData.user])
-
+function SupportShell({
+  loaderData,
+  children,
+}: {
+  loaderData: SupportLoaderData
+  children: React.ReactNode
+}) {
   return (
     <SidebarProvider>
       <Sidebar>
@@ -124,14 +121,64 @@ export default function App() {
           userName={loaderData.userName}
         />
       </Sidebar>
-      <SidebarInset className="flex flex-col">
+      <SidebarInset className="flex flex-col h-screen">
         <Header action={undefined}>
           <HeaderHelpdesk />
         </Header>
-        <div className="grow">
-          <Outlet />
-        </div>
+        {/* min-h-0 lets this flex child actually shrink to its fair share of the available
+            height (the flexbox "min-height: auto" default otherwise lets tall descendants —
+            e.g. TicketViewer's own h-full split-pane — stretch this box past the viewport). */}
+        <div className="min-h-0 grow">{children}</div>
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+/**
+ * Renders the main application layout.
+ *
+ * This component retrieves user data from the loader using React Router's useLoaderData hook and passes it to the SidebarApp component within a SidebarProvider context. It also renders an Outlet to display nested routes.
+ */
+export default function App() {
+  const loaderData = useLoaderData<typeof loader>()
+
+  // Identify user if PostHog is configured
+  useEffect(() => {
+    if (clientConfig.analytics.posthog && loaderData.user) {
+      posthog.identify(loaderData.user.id, {
+        id: loaderData.user.id,
+        email: loaderData.user.email,
+        name: loaderData.user.name,
+      })
+    }
+  }, [loaderData.user])
+
+  return (
+    <SupportShell loaderData={loaderData}>
+      <Outlet />
+    </SupportShell>
+  )
+}
+
+/**
+ * Renders when a descendant route throws (e.g. a ticket that doesn't exist or can't be accessed,
+ * or a genuine component bug). This route's own loader already succeeded, so the sidebar/header
+ * shell can render normally via {@link SupportShell}; only the content pane is replaced with the
+ * classified {@link RouteErrorFallback}.
+ *
+ * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
+ * back to the bare, shell-less fallback rather than crash on undefined loader data.
+ */
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const loaderData = useLoaderData<typeof loader>() as SupportLoaderData | undefined
+
+  if (!loaderData) {
+    return <RouteErrorFallback error={error} />
+  }
+
+  return (
+    <SupportShell loaderData={loaderData}>
+      <RouteErrorFallback error={error} />
+    </SupportShell>
   )
 }

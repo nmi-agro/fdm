@@ -248,7 +248,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       message: `${term} succesvol toegevoegd! 🎉`,
     })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 

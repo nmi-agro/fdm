@@ -346,6 +346,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
               p_name_nl: app.p_name_nl,
               p_id: app.p_id,
               p_type: app.p_type,
+              p_type_rvo: app.p_type_rvo,
             })),
           })),
         }
@@ -515,6 +516,6 @@ export async function action({ params, request }: Route.ActionArgs) {
       message: "Succesvol bijgewerkt.",
     })
   } catch (e) {
-    throw handleActionError(e)
+    return handleActionError(e)
   }
 }

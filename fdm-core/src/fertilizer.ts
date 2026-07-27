@@ -1449,8 +1449,8 @@ function convertRvoTypeToFertilizerType(
   // Compost codes
   const compostCodes = ["107", "108", "109", "111", "112"]
 
-  // Mineral codes
-  const mineralCodes = ["115"]
+  // Mineral codes (includes Renure codes 130-134, which behave like artificial fertilizer)
+  const mineralCodes = ["115", "130", "131", "132", "133", "134"]
 
   // "Other" codes
   const otherCodes = ["113", "114", "116"]

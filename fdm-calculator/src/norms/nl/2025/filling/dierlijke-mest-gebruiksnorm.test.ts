@@ -182,6 +182,44 @@ describe("calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNor
     ).toThrow("Fertilizer 3 has unknown p_type_rvo 200")
   })
 
+  it("should count a Renure application (RVO codes 130-134) against the 170 kg dierlijke-mest norm for 2025", () => {
+    const renureFertilizers = [
+      {
+        p_id: "6",
+        p_id_catalogue: "6",
+        p_type_rvo: "132", // Renure - Mineralenconcentraat
+        p_n_rt: 6.0,
+      },
+    ] as unknown as Fertilizer[]
+
+    const result = calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app7",
+          p_id: "app7",
+          p_id_catalogue: "6",
+          p_app_amount: 10000,
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: renureFertilizers,
+      cultivations: [],
+      has_organic_certification: false,
+      has_grazing_intention: false,
+      fosfaatgebruiksnorm: 0,
+      b_centroid: [0, 0],
+    } as NL2025NormsFillingInput)
+
+    // Renure was not legally recognized before 2026, so it falls back to
+    // counting as regular animal manure against the 170 kg norm.
+    expect(result.normFilling).toBe(60)
+    expect(result.applicationFilling).toEqual([
+      {
+        p_app_id: "app7",
+        normFilling: 60,
+      },
+    ])
+  })
+
   it("should return zero filling when no applications are provided", () => {
     const result = calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
       applications: [],

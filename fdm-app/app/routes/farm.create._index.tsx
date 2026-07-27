@@ -617,6 +617,6 @@ export async function action({ request }: ActionFunctionArgs) {
       message: "Bedrijf is toegevoegd! 🎉 Selecteer nu de importmethode.",
     })
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

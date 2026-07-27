@@ -17,7 +17,7 @@ export interface FarmExtended {
   b_area: number | null
   owners?: DisplayUser[]
   fields?: FarmExtended[]
-  fertilizers: Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type">[]
+  fertilizers: Pick<Fertilizer, "p_id" | "p_name_nl" | "p_type" | "p_type_rvo">[]
   cultivations: Pick<Cultivation, "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation">[]
 }
 
@@ -134,7 +134,10 @@ export const columns: ColumnDef<FarmExtended>[] = [
           {fertilizers.map((fertilizer) => (
             <Badge key={fertilizer.p_id} variant="outline" className="text-muted-foreground gap-1">
               <span>
-                <FertilizerIcon p_type={fertilizer.p_type ?? "other"} />
+                <FertilizerIcon
+                  p_type={fertilizer.p_type ?? "other"}
+                  p_type_rvo={fertilizer.p_type_rvo}
+                />
               </span>
               {fertilizer.p_name_nl}
             </Badge>

@@ -124,6 +124,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     p_id_catalogue: f.p_id_catalogue as string,
     p_name_nl: (f.p_name_nl ?? f.p_id_catalogue) as string,
     p_type: (f.p_type ?? "mineral") as "manure" | "mineral" | "compost",
+    p_type_rvo: f.p_type_rvo as string | null,
   }))
 
   const gerritUsage = await getGerritUsage(session.principal_id)
@@ -139,6 +140,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       isOrganic: isOrganicFarm,
       fillManureSpace: !isOrganicFarm,
       isDerogation: isDerogationFarm,
+      includeRenure: Number.parseInt(calendar, 10) >= 2026,
     },
     fertilizerOptions,
     gerritUsage: {

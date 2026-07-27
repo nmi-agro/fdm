@@ -15,11 +15,15 @@ import { SidebarOrganizationApps } from "~/components/blocks/sidebar/organizatio
 import { SidebarSupport } from "~/components/blocks/sidebar/support"
 import { SidebarTitle } from "~/components/blocks/sidebar/title"
 import { SidebarUser } from "~/components/blocks/sidebar/user"
+import { RouteErrorFallback } from "~/components/custom/error"
 import { Sidebar, SidebarContent, SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
 import { auth, checkSession, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import type { Route } from "./+types/organization"
+
+type OrganizationLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
 
 /**
  * Retrieves the session from the HTTP request and returns user information if available.
@@ -112,6 +116,65 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
+ * Renders the organization app shell: sidebar, header, and a content pane. Shared between the
+ * normal route render (`<Outlet />` in the content pane) and this route's `ErrorBoundary` (a
+ * friendly `<ClientErrorPage />` in the content pane) so a descendant route error never leaves
+ * the user with a bare, out-of-app-feeling page — the sidebar and header stay in place.
+ */
+function OrganizationShell({
+  loaderData,
+  children,
+}: {
+  loaderData: OrganizationLoaderData
+  children: React.ReactNode
+}) {
+  const organization = loaderData.organizations.find(
+    (org) => org.slug === loaderData.selectedOrganizationSlug,
+  )
+
+  return (
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarTitle />
+        <SidebarContent>
+          <SidebarOrganization organization={organization} roles={loaderData.selectedOrganizationRoles} />
+          <SidebarOrganizationApps />
+        </SidebarContent>
+        <SidebarSupport
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          hasNotification={loaderData.hasNotification}
+        />
+        <SidebarUser
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          image={loaderData.user.image}
+          avatarInitials={loaderData.initials}
+          userName={loaderData.userName}
+        />
+      </Sidebar>
+      <SidebarInset className="min-w-0">
+        <Header
+          action={{
+            to: loaderData.selectedOrganizationSlug
+              ? `/organization/${loaderData.selectedOrganizationSlug}`
+              : "/organization",
+            label: "Terug naar organisatie",
+            disabled: false,
+          }}
+        >
+          <HeaderOrganization
+            selectedOrganizationSlug={loaderData.selectedOrganizationSlug}
+            organizationOptions={loaderData.organizations}
+          />
+        </Header>
+        {children}
+      </SidebarInset>
+    </SidebarProvider>
+  )
+}
+
+/**
  * Renders the main application layout.
  *
  * This component retrieves user data from the loader using React Router's useLoaderData hook and passes it to the SidebarApp component within a SidebarProvider context. It also renders an Outlet to display nested routes.
@@ -144,38 +207,32 @@ export default function App() {
   }, [loaderData.selectedOrganizationSlug, organization?.name])
 
   return (
-    <SidebarProvider>
-      <Sidebar>
-        <SidebarTitle />
-        <SidebarContent>
-          <SidebarOrganization
-            organization={organization}
-            roles={loaderData.selectedOrganizationRoles}
-          />
-          <SidebarOrganizationApps />
-        </SidebarContent>
-        <SidebarSupport
-          name={loaderData.userName}
-          email={loaderData.user.email}
-          hasNotification={loaderData.hasNotification}
-        />
-        <SidebarUser
-          name={loaderData.userName}
-          email={loaderData.user.email}
-          image={loaderData.user.image}
-          avatarInitials={loaderData.initials}
-          userName={loaderData.userName}
-        />
-      </Sidebar>
-      <SidebarInset className="min-w-0">
-        <Header action={undefined}>
-          <HeaderOrganization
-            selectedOrganizationSlug={loaderData.selectedOrganizationSlug}
-            organizationOptions={loaderData.organizations}
-          />
-        </Header>
-        <Outlet />
-      </SidebarInset>
-    </SidebarProvider>
+    <OrganizationShell loaderData={loaderData}>
+      <Outlet />
+    </OrganizationShell>
+  )
+}
+
+/**
+ * Renders when a descendant route throws (e.g. a farm/settings page the user can't access, a
+ * resource that doesn't exist, or a genuine component bug). This route's own loader already
+ * succeeded, so the sidebar/header shell can render normally via {@link OrganizationShell}; only
+ * the content pane is replaced with the classified {@link RouteErrorFallback} — the app never
+ * appears to have been "left".
+ *
+ * If instead this route's *own* loader threw, `useLoaderData()` has nothing to return — fall
+ * back to the bare, shell-less fallback rather than crash on undefined loader data.
+ */
+export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  const loaderData = useLoaderData<typeof loader>() as OrganizationLoaderData | undefined
+
+  if (!loaderData) {
+    return <RouteErrorFallback error={error} />
+  }
+
+  return (
+    <OrganizationShell loaderData={loaderData}>
+      <RouteErrorFallback error={error} />
+    </OrganizationShell>
   )
 }

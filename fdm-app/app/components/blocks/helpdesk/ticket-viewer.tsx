@@ -5,7 +5,7 @@ import { Dialog } from "radix-ui"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, Outlet, useLocation, useParams, useSearchParams } from "react-router"
 import { cn } from "@/app/lib/utils"
-import { getPageSearch, Paginator } from "~/components/custom/paginator"
+import { Paginator } from "~/components/custom/paginator"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
@@ -219,7 +219,7 @@ function TicketList({
               key={ticket.ticket_id}
               ticket={ticket}
               principal={ticket.requester_id ? principalLookup.get(ticket.requester_id) : undefined}
-              href={`${toPrefix}/${ticket.ticket_id}${getPageSearch(location.search, TICKET_VIEWER_PAGE_SIZE, 0)}`}
+              href={`${toPrefix}/${ticket.ticket_id}${location.search}`}
               showAssignees={isAgentView}
               badge={
                 sorting === "priority" ? (
@@ -276,10 +276,7 @@ export function TicketViewer({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex h-[calc(100vh-16*calc(var(--spacing)))] flex-row"
-    >
+    <div ref={containerRef} className="relative flex h-full min-h-0 flex-row">
       {/* Static sidebar — only rendered on xl+ screens */}
       {isXl && (
         <aside className="border-sidebar-border bg-background flex w-100 shrink-0 flex-col border-r">

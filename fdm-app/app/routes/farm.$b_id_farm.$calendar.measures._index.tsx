@@ -56,9 +56,9 @@ import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
 export const meta: MetaFunction = () => {
@@ -324,7 +324,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     return dataWithError("unknown intent", "Onbekende actie.")
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }
 

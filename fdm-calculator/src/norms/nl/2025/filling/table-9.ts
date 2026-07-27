@@ -170,4 +170,9 @@ export const table9: Table9 = [
     p_type_rvo: ["120"],
     p_n_wcl: 1,
   },
+  {
+    description: "Renure",
+    p_type_rvo: ["130", "131", "132", "133", "134"],
+    p_n_wcl: 1,
+  },
 ]

@@ -14,11 +14,13 @@ export interface FieldNorm {
     manure: GebruiksnormResult
     phosphate: GebruiksnormResult
     nitrogen: GebruiksnormResult
+    renure?: GebruiksnormResult
   }
   normsFilling?: {
     manure: GebruiksnormFillingResult
     phosphate: GebruiksnormFillingResult
     nitrogen: GebruiksnormFillingResult
+    renure?: GebruiksnormFillingResult
   }
   errorMessage?: string
   isWarning?: boolean
@@ -30,6 +32,8 @@ interface FieldNormsProps {
     b_id: string
     b_name: string
   }[]
+  /** Whether to render the Renure norm item. Only true for calendar year 2026 and later. */
+  showRenure: boolean
 }
 
 interface NormItemProps {
@@ -68,7 +72,7 @@ function NormItem({ title, norm, filling }: NormItemProps) {
   )
 }
 
-export function FieldNorms({ fieldNorms, fieldOptions }: FieldNormsProps) {
+export function FieldNorms({ fieldNorms, fieldOptions, showRenure }: FieldNormsProps) {
   const getFieldName = (b_id: string) => {
     return fieldOptions.find((field) => field.b_id === b_id)?.b_name || `Perceel ${b_id}`
   }
@@ -124,6 +128,13 @@ export function FieldNorms({ fieldNorms, fieldOptions }: FieldNormsProps) {
                       norm={field.norms?.manure}
                       filling={field.normsFilling?.manure}
                     />
+                    {showRenure && (
+                      <NormItem
+                        title="Renure"
+                        norm={field.norms?.renure}
+                        filling={field.normsFilling?.renure}
+                      />
+                    )}
                   </div>
                 )}
               </CardContent>

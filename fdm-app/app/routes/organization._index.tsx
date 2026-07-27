@@ -166,6 +166,6 @@ export async function action({ request }: Route.ActionArgs) {
     }
     throw new Error("invalid intent")
   } catch (error) {
-    throw handleActionError(error)
+    return handleActionError(error)
   }
 }

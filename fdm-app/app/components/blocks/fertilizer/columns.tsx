@@ -1,5 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { Pencil } from "lucide-react"
+import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
+import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { DataTableColumnHeader } from "./column-header"
@@ -275,7 +277,6 @@ export const columns: ColumnDef<Fertilizer>[] = [
       if (!fertilizer.p_type_rvo) {
         return null
       }
-      const p_type = fertilizer.p_type
       const rawLabel = fertilizer.p_type_rvo_label?.trim() ?? ""
       const displayLabel = rawLabel || fertilizer.p_type_rvo || "Onbekend"
       const MAX_LABEL_LEN = 48
@@ -285,20 +286,12 @@ export const columns: ColumnDef<Fertilizer>[] = [
         : displayLabel
 
       const badge = (
-        <Badge
-          className={
-            p_type === "manure"
-              ? "bg-amber-600 text-white hover:bg-amber-700"
-              : p_type === "compost"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : p_type === "mineral"
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-gray-600 text-white hover:bg-gray-700"
-          }
-          variant="outline"
+        <FertilizerBadge
+          p_type={getFertilizerCategoryFromRvoCode(fertilizer.p_type_rvo)}
+          variant="category-solid"
         >
           <p>{truncatedLabel}</p>
-        </Badge>
+        </FertilizerBadge>
       )
 
       return (

@@ -33,6 +33,7 @@ describe("fdm-agents index", () => {
         keepNitrogenBalanceBelowTarget: false,
         workOnRotationLevel: true,
         isDerogation: false,
+        includeRenure: false,
       }
       expect(FertilizerPlanStrategiesSchema.parse(valid)).toEqual(valid)
     })
@@ -90,6 +91,7 @@ describe("fdm-agents index", () => {
         keepNitrogenBalanceBelowTarget: true,
         workOnRotationLevel: false,
         isDerogation: false,
+        includeRenure: false,
       }
       const calendar = "2025"
       const additionalContext = "Please use organic compost."
@@ -105,6 +107,57 @@ describe("fdm-agents index", () => {
       expect(prompt).toContain("--- END ADDITIONAL USER CONTEXT ---")
     })
 
+    it("should omit the Renure strategy line entirely for years before 2026", () => {
+      const farmData = { b_id_farm: "farm-123" }
+      const strategies = {
+        isOrganic: false,
+        fillManureSpace: false,
+        reduceAmmoniaEmissions: false,
+        keepNitrogenBalanceBelowTarget: false,
+        workOnRotationLevel: false,
+        isDerogation: false,
+        includeRenure: false,
+      }
+
+      const prompt = buildFertilizerPlanPrompt(farmData, strategies, "2025")
+
+      expect(prompt).not.toContain("Renure")
+    })
+
+    it("should include the Renure strategy line for calendar year 2026 and later", () => {
+      const farmData = { b_id_farm: "farm-123" }
+      const strategies = {
+        isOrganic: false,
+        fillManureSpace: false,
+        reduceAmmoniaEmissions: false,
+        keepNitrogenBalanceBelowTarget: false,
+        workOnRotationLevel: false,
+        isDerogation: false,
+        includeRenure: true,
+      }
+
+      const prompt = buildFertilizerPlanPrompt(farmData, strategies, "2026")
+
+      expect(prompt).toContain("Renure-producten overwegen: JA")
+    })
+
+    it("should state Renure is excluded when includeRenure is false for 2026", () => {
+      const farmData = { b_id_farm: "farm-123" }
+      const strategies = {
+        isOrganic: false,
+        fillManureSpace: false,
+        reduceAmmoniaEmissions: false,
+        keepNitrogenBalanceBelowTarget: false,
+        workOnRotationLevel: false,
+        isDerogation: false,
+        includeRenure: false,
+      }
+
+      const prompt = buildFertilizerPlanPrompt(farmData, strategies, "2026")
+
+      expect(prompt).toContain("Renure-producten overwegen: NEE")
+    })
+
     it("should include field summary if provided", () => {
       const farmData = { b_id_farm: "farm-123" }
       const strategies = {
@@ -114,6 +167,7 @@ describe("fdm-agents index", () => {
         keepNitrogenBalanceBelowTarget: false,
         workOnRotationLevel: false,
         isDerogation: false,
+        includeRenure: false,
       }
       const fieldsSummary = [
         {
@@ -151,6 +205,7 @@ describe("fdm-agents index", () => {
         keepNitrogenBalanceBelowTarget: false,
         workOnRotationLevel: false,
         isDerogation: false,
+        includeRenure: false,
       }
       const fieldsSummary = [
         {
@@ -285,6 +340,7 @@ describe("buildClarificationsBlock", () => {
         keepNitrogenBalanceBelowTarget: false,
         workOnRotationLevel: false,
         isDerogation: false,
+        includeRenure: false,
       },
       "2025",
       undefined,
@@ -310,6 +366,7 @@ describe("buildClarificationsBlock", () => {
         keepNitrogenBalanceBelowTarget: false,
         workOnRotationLevel: false,
         isDerogation: false,
+        includeRenure: false,
       },
       "2025",
     )
@@ -326,6 +383,7 @@ describe("buildClarificationsBlock", () => {
         keepNitrogenBalanceBelowTarget: false,
         workOnRotationLevel: false,
         isDerogation: false,
+        includeRenure: false,
       },
       "2025",
       undefined,
@@ -348,6 +406,7 @@ describe("buildClarificationsBlock", () => {
         keepNitrogenBalanceBelowTarget: false,
         workOnRotationLevel: false,
         isDerogation: false,
+        includeRenure: false,
       },
       "2025",
     )
@@ -363,6 +422,7 @@ describe("generateFarmFertilizerPlan", () => {
     keepNitrogenBalanceBelowTarget: false,
     workOnRotationLevel: false,
     isDerogation: false,
+    includeRenure: false,
   }
 
   it("should call runOneShotAgent and return result string", async () => {

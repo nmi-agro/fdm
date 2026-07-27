@@ -22,6 +22,13 @@
       "when": 1783346948212,
       "tag": "0002_sturdy_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784562834637,
+      "tag": "0003_rapid_chamber",
+      "breakpoints": true
     }
   ]
 }

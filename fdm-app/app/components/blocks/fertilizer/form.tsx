@@ -9,6 +9,8 @@ import { Controller, useWatch } from "react-hook-form"
 import { Form, NavLink, useLocation, useParams } from "react-router"
 import { RemixFormProvider, type useRemixForm } from "remix-hook-form"
 import type { FormSchema } from "~/components/blocks/fertilizer/formschema"
+import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
+import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -23,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { cn } from "~/lib/utils"
 
 type FormSchemaKeys = keyof z.infer<typeof FormSchema>
 
@@ -40,9 +41,7 @@ export function FertilizerForm({
   fertilizerParameters,
   form,
   editable = true,
-  p_type: initialType,
   rvoLabels,
-  rvoToType,
 }: FertilizerFormNewProps) {
   const { p_id, b_id_farm } = useParams()
   const location = useLocation()
@@ -52,9 +51,6 @@ export function FertilizerForm({
   const formValues = useWatch({ control: form.control })
   const sidebarButtonRef = useRef<HTMLDivElement>(null)
   const [isSidebarButtonVisible, setIsSidebarButtonVisible] = useState(true)
-
-  // Dynamic type based on current RVO code
-  const currentType = (formValues.p_type_rvo && rvoToType?.[formValues.p_type_rvo]) || initialType
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -317,21 +313,12 @@ export function FertilizerForm({
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formValues.p_type_rvo ? (
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "border-transparent text-white",
-                        currentType === "manure"
-                          ? "bg-amber-600 hover:bg-amber-700"
-                          : currentType === "compost"
-                            ? "bg-green-600 hover:bg-green-700"
-                            : currentType === "mineral"
-                              ? "bg-blue-600 hover:bg-blue-700"
-                              : "bg-gray-600 hover:bg-gray-700",
-                      )}
+                    <FertilizerBadge
+                      p_type={getFertilizerCategoryFromRvoCode(formValues.p_type_rvo)}
+                      variant="category-solid"
                     >
                       {rvoLabels?.[formValues.p_type_rvo] || formValues.p_type_rvo}
-                    </Badge>
+                    </FertilizerBadge>
                   ) : (
                     <Badge variant="secondary">Geen RVO code</Badge>
                   )}

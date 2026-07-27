@@ -24,13 +24,13 @@ import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-m
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons" // Can be reused
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getOrganicMatterBalanceForFarm } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 // Meta
 export const meta: MetaFunction = () => {

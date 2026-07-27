@@ -10,17 +10,18 @@ export const EVENT_TYPE_COLOR = {
   soil_sampling: "#2563eb",
 } as const
 
-export type FertilizerKind = "manure" | "mineral" | "compost" | "other"
+export type FertilizerKind = "manure" | "mineral" | "compost" | "renure" | "other"
 
 export const FERTILIZER_KIND_COLOR: Record<FertilizerKind, string> = {
   manure: "#ca8a04",
   mineral: "#0284c7",
   compost: "#16a34a",
+  renure: "#9333ea",
   other: "#6b7280",
 }
 
 export function getFertilizerKindColor(
-  p_type: "manure" | "mineral" | "compost" | null | undefined,
+  p_type: FertilizerKind | null | undefined,
 ): string {
   return FERTILIZER_KIND_COLOR[p_type ?? "other"]
 }

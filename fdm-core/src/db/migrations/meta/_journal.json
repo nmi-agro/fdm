@@ -225,6 +225,13 @@
       "when": 1783523467111,
       "tag": "0031_vengeful_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1784706683772,
+      "tag": "0032_overjoyed_beast",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { getFarms, getPrincipal } from "@nmi-agro/fdm-core"
 import {
   assignTicketToAnAdmin,
+  autoAssignTicket,
   createTicket,
   getMessagesForTicket,
   getTicket,
@@ -73,9 +74,22 @@ export async function action({ request }: Route.ActionArgs) {
       },
     })
 
-    // Assign the ticket to an admin and send an email to them
+    // Assign the ticket to an agent and send an email to them
     try {
-      const assigned_agent_id = await assignTicketToAnAdmin(fdm, ticket_id)
+      let assigned_agent_id: string | null = null
+
+      // First try to assign based on agent availability
+      try {
+        const auto_assignment_result = await autoAssignTicket(fdm, ticket_id, new Date())
+        assigned_agent_id = auto_assignment_result.assigned ? auto_assignment_result.agent_id : null
+      } catch (autoAssignError) {
+        handleActionError(autoAssignError)
+      }
+
+      // If auto assigning doesn't work due to error or no agent being available, assign to an admin
+      if (!assigned_agent_id) {
+        assigned_agent_id = await assignTicketToAnAdmin(fdm, ticket_id)
+      }
 
       if (assigned_agent_id) {
         const ticket = await getTicket(fdm, assigned_agent_id, ticket_id)
@@ -113,7 +127,7 @@ export async function action({ request }: Route.ActionArgs) {
       "We hebben uw vraag ontvangen. Een collega neemt binnenkort contact met u op.",
     )
   } catch (err) {
-    throw handleActionError(err)
+    return handleActionError(err)
   }
 }
 
