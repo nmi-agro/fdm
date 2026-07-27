@@ -55,7 +55,7 @@
     "decimal.js": "^10.6.0",
     "drizzle-orm": "catalog:",
     "jose": "catalog:",
-    "nanoid": "^6.0.0",
+    "nanoid": "catalog:",
     "postgres": "^3.4.9",
     "safe-stable-stringify": "^2.5.0",
     "unique-username-generator": "^1.5.1",

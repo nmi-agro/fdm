@@ -18,6 +18,7 @@ catalog:
   better-auth: ^1.6.25
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
+  nanoid: ^6.0.0
   tsdown: ^0.22.14
   typedoc: ^0.28.20
   typedoc-plugin-missing-exports: ^4.1.4

@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
-    "nanoid": "^6.0.0",
+    "nanoid": "catalog:",
     "postgres": "^3.4.9",
     "zod": "^4.4.3"
   },

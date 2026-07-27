@@ -43,7 +43,7 @@
     "@sentry/profiling-node": "^10.68.0",
     "drizzle-orm": "catalog:",
     "hono": "^4.12.32",
-    "nanoid": "^6.0.0",
+    "nanoid": "catalog:",
     "zod": "^4.4.3"
   },
   "devDependencies": {
