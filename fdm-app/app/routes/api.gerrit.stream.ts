@@ -366,6 +366,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
                 ...unitConvertedAmount,
                 p_name_nl: fert?.p_name_nl || sanitizedCatalogueId,
                 p_type: fert?.p_type || "other",
+                p_type_rvo: fert?.p_type_rvo || null,
                 p_app_method_name: methodMeta?.label ?? app.p_app_method,
               }
             }),
