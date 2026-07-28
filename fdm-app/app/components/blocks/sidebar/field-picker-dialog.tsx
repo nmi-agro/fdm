@@ -1,13 +1,12 @@
 import { Plus } from "lucide-react"
 import { NavLink } from "react-router"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { FieldPickerItem } from "~/components/blocks/header/field-picker"
 import { Button } from "~/components/ui/button"
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
 } from "~/components/ui/command"
 import {
@@ -17,7 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { TooltipProvider } from "~/components/ui/tooltip"
+import type { FieldOption } from "~/lib/hoofdteelt.server"
 
 /**
  * Dialog that lets the user pick a field within a specific farm, then hands the chosen
@@ -39,18 +39,12 @@ export function FieldPickerDialog({
   onOpenChange: (open: boolean) => void
   farmName: string
   loading: boolean
-  fields: {
-    b_id: string
-    b_name: string
-    b_area: number
-    b_lu_name?: string
-    b_lu_croprotation?: string
-  }[]
+  fields: FieldOption[]
   createFieldLink: string
   onSelectField: (b_id: string) => void
 }) {
   const sortedFields = [...fields].sort(
-    (a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || a.b_name.localeCompare(b.b_name),
+    (a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || (a.b_name ?? "").localeCompare(b.b_name ?? ""),
   )
 
   return (
@@ -78,46 +72,13 @@ export function FieldPickerDialog({
               <CommandList className="max-h-[300px] overflow-y-auto p-2">
                 <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
                 <CommandGroup heading="Percelen">
-                  {sortedFields.map((field) => {
-                    const content = (
-                      <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {field.b_lu_name ? (
-                            <span
-                              className="size-2 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor: getCultivationColor(field.b_lu_croprotation),
-                              }}
-                            />
-                          ) : null}
-                          <span className="truncate">{field.b_name}</span>
-                        </div>
-                        <span className="text-muted-foreground shrink-0 text-xs">
-                          {field.b_area} ha
-                        </span>
-                      </div>
-                    )
-
-                    return (
-                      <CommandItem
-                        key={field.b_id}
-                        value={`${field.b_name} ${field.b_id}`}
-                        onSelect={() => onSelectField(field.b_id)}
-                        className="flex cursor-pointer items-center justify-between"
-                      >
-                        {field.b_lu_name ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>{content}</TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>{field.b_lu_name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          content
-                        )}
-                      </CommandItem>
-                    )
-                  })}
+                  {sortedFields.map((field) => (
+                    <FieldPickerItem
+                      key={field.b_id}
+                      option={field}
+                      onSelect={(b_id) => onSelectField(b_id)}
+                    />
+                  ))}
                 </CommandGroup>
               </CommandList>
             </Command>

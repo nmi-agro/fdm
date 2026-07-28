@@ -17,10 +17,73 @@ import { cn } from "~/lib/utils"
 
 export type HeaderFieldPickerOption = {
   b_id: string
-  b_name: string | undefined | null
+  b_name?: string | null
   b_area?: number
   b_lu_name?: string
   b_lu_croprotation?: string
+}
+
+export function FieldPickerItem({
+  option,
+  isSelected,
+  onSelect,
+  keyPrefix,
+}: {
+  option: HeaderFieldPickerOption
+  isSelected?: boolean
+  onSelect: (b_id: string, b_name: string) => void
+  keyPrefix?: string
+}) {
+  const content = (
+    <div className="flex w-full min-w-0 items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-2">
+        {option.b_lu_name ? (
+          <>
+            <span
+              className="size-2 shrink-0 rounded-full"
+              style={{
+                backgroundColor: getCultivationColor(option.b_lu_croprotation),
+              }}
+              aria-hidden="true"
+            />
+            <span className="sr-only">Gewas: {option.b_lu_name}</span>
+          </>
+        ) : null}
+        <span className="truncate">{option.b_name}</span>
+      </div>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {option.b_area != null && (
+          <span className="text-muted-foreground text-xs">{option.b_area} ha</span>
+        )}
+        {isSelected && <Check className="text-primary h-4 w-4 shrink-0" />}
+      </div>
+    </div>
+  )
+
+  const accessibleName = option.b_lu_name
+    ? `${option.b_name ?? ""}, gewas ${option.b_lu_name}`
+    : (option.b_name ?? "")
+
+  return (
+    <CommandItem
+      key={keyPrefix ? `${keyPrefix}-${option.b_id}` : option.b_id}
+      value={`${option.b_name ?? ""} ${option.b_id}`}
+      aria-label={accessibleName}
+      onSelect={() => onSelect(option.b_id, option.b_name ?? "")}
+      className="flex cursor-pointer items-center justify-between"
+    >
+      {option.b_lu_name ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent side="top">
+            <p>{option.b_lu_name}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        content
+      )}
+    </CommandItem>
+  )
 }
 
 /**
@@ -90,100 +153,27 @@ export function HeaderFieldPicker({
               <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
               {recentFields.length > 0 && (
                 <CommandGroup heading="Onlangs bezocht">
-                  {recentFields.map((option) => {
-                    const content = (
-                      <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {option.b_lu_name ? (
-                            <span
-                              className="size-2 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor: getCultivationColor(option.b_lu_croprotation),
-                              }}
-                            />
-                          ) : null}
-                          <span className="truncate">{option.b_name}</span>
-                        </div>
-                        <div className="ml-auto flex shrink-0 items-center gap-2">
-                          {option.b_area != null && (
-                            <span className="text-muted-foreground text-xs">{option.b_area} ha</span>
-                          )}
-                          {b_id === option.b_id && (
-                            <Check className="text-primary h-4 w-4 shrink-0" />
-                          )}
-                        </div>
-                      </div>
-                    )
-
-                    return (
-                      <CommandItem
-                        key={`header-recent-${option.b_id}`}
-                        value={`${option.b_name ?? ""} ${option.b_id}`}
-                        onSelect={() => handleSelect(option.b_id, option.b_name ?? "")}
-                        className="flex cursor-pointer items-center justify-between"
-                      >
-                        {option.b_lu_name ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>{content}</TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>{option.b_lu_name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          content
-                        )}
-                      </CommandItem>
-                    )
-                  })}
+                  {recentFields.map((option) => (
+                    <FieldPickerItem
+                      key={`header-recent-${option.b_id}`}
+                      keyPrefix="header-recent"
+                      option={option}
+                      isSelected={b_id === option.b_id}
+                      onSelect={handleSelect}
+                    />
+                  ))}
                 </CommandGroup>
               )}
               {regularFields.length > 0 && (
                 <CommandGroup heading="Alle percelen">
-                  {regularFields.map((option) => {
-                    const content = (
-                      <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          {option.b_lu_name ? (
-                            <span
-                              className="size-2 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor: getCultivationColor(option.b_lu_croprotation),
-                              }}
-                            />
-                          ) : null}
-                          <span className="truncate">{option.b_name}</span>
-                        </div>
-                        <div className="ml-auto flex shrink-0 items-center gap-2">
-                          {option.b_area != null && (
-                            <span className="text-muted-foreground text-xs">{option.b_area} ha</span>
-                          )}
-                          {b_id === option.b_id && (
-                            <Check className="text-primary h-4 w-4 shrink-0" />
-                          )}
-                        </div>
-                      </div>
-                    )
-
-                    return (
-                      <CommandItem
-                        key={option.b_id}
-                        value={`${option.b_name ?? ""} ${option.b_id}`}
-                        onSelect={() => handleSelect(option.b_id, option.b_name ?? "")}
-                        className="flex cursor-pointer items-center justify-between"
-                      >
-                        {option.b_lu_name ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>{content}</TooltipTrigger>
-                            <TooltipContent side="top">
-                              <p>{option.b_lu_name}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          content
-                        )}
-                      </CommandItem>
-                    )
-                  })}
+                  {regularFields.map((option) => (
+                    <FieldPickerItem
+                      key={option.b_id}
+                      option={option}
+                      isSelected={b_id === option.b_id}
+                      onSelect={handleSelect}
+                    />
+                  ))}
                 </CommandGroup>
               )}
             </CommandList>

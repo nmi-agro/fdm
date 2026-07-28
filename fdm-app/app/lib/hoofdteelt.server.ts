@@ -47,3 +47,45 @@ export function getMainCultivation(
 
   return cultivations.find((c) => c.b_lu_catalogue === b_lu_catalogue)
 }
+
+export type FieldOption = {
+  b_id: string
+  b_name: string
+  b_area: number
+  b_lu_name?: string
+  b_lu_croprotation?: string
+}
+
+/**
+ * Builds and sorts field options for navigation/pickers across loaders.
+ * Maps field details and main cultivation info for each field, then sorts
+ * fields by area descending (secondary sort by name).
+ */
+export function buildFieldOptions(
+  fields: Array<{ b_id?: string | null; b_name?: string | null; b_area?: number | null }>,
+  cultivationsByField: Map<string, Cultivation[]>,
+  calendarParam?: string | null,
+  timeframeYear?: number,
+): FieldOption[] {
+  const calendarYear =
+    typeof calendarParam === "string" && /^\d{4}$/.test(calendarParam)
+      ? calendarParam
+      : String(timeframeYear ?? new Date().getFullYear())
+
+  return fields
+    .map((field) => {
+      if (!field?.b_id || !field?.b_name) {
+        throw new Error("Invalid field data structure")
+      }
+      const fieldCultivations = cultivationsByField.get(field.b_id) ?? []
+      const mainCultivation = getMainCultivation(fieldCultivations, calendarYear)
+      return {
+        b_id: field.b_id,
+        b_name: field.b_name,
+        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+        b_lu_name: mainCultivation?.b_lu_name ?? undefined,
+        b_lu_croprotation: mainCultivation?.b_lu_croprotation ?? undefined,
+      }
+    })
+    .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name))
+}

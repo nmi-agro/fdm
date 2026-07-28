@@ -938,7 +938,7 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                         <Badge
                           key={item.id}
                           variant="outline"
-                          className="flex items-center gap-1.5 text-xs font-normal"
+                          className="flex max-w-full min-w-0 items-center gap-1.5 text-xs font-normal"
                         >
                           <span
                             className={cn(
@@ -946,10 +946,10 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                               getScoreDotClass(item.score),
                             )}
                           />
-                          <span className="truncate">{item.name}</span>
+                          <span className="min-w-0 shrink truncate">{item.name}</span>
                           <span
                             className={cn(
-                              "font-semibold tabular-nums",
+                              "shrink-0 font-semibold tabular-nums",
                               getScoreTextClass(item.score),
                             )}
                           >

@@ -21,7 +21,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { containsErrorMessage, handleLoaderError, PERMISSION_DENIED_MESSAGE } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 import { useCalendarStore } from "~/store/calendar"
 import { useFarmStore } from "~/store/farm"
 import { useSelectedFieldStore } from "~/store/selected-field"
@@ -115,29 +115,17 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         ? await getFields(fdm, session.principal_id, params.b_id_farm, timeframe)
         : []
 
-    const cultivationsByField =
+    const cultivationsByField: Awaited<ReturnType<typeof getCultivationsForFarm>> =
       hasFarmParam && !farmAccessDenied && params.b_id_farm
         ? await getCultivationsForFarm(fdm, session.principal_id, params.b_id_farm, timeframe)
         : new Map()
 
-    const fieldOptions = fields.map((field) => {
-      if (!field?.b_id || !field?.b_name) {
-        throw new Error("Invalid field data structure")
-      }
-      const fieldCultivations = cultivationsByField.get(field.b_id) ?? []
-      const calendarYear = params.calendar ?? String(timeframe.start?.getFullYear() ?? new Date().getFullYear())
-      const mainCultivation = getMainCultivation(fieldCultivations, calendarYear)
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-        b_lu_name: mainCultivation?.b_lu_name ?? undefined,
-        b_lu_croprotation: mainCultivation?.b_lu_croprotation ?? undefined,
-      }
-    })
-
-    // Sort fields by area descending (secondary sort by name)
-    fieldOptions.sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name))
+    const fieldOptions = buildFieldOptions(
+      fields,
+      cultivationsByField,
+      params.calendar,
+      timeframe.start?.getFullYear(),
+    )
 
     const helpdeskReadPermission = await checkHelpdeskPermission(
       fdm,

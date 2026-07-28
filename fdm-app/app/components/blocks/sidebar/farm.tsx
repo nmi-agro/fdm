@@ -23,7 +23,7 @@ import { useFarmStore } from "@/app/store/farm"
 import { useSelectedFieldStore } from "@/app/store/selected-field"
 import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
 import { FieldPickerDialog } from "~/components/blocks/sidebar/field-picker-dialog"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { FieldPickerItem } from "~/components/blocks/header/field-picker"
 import { Badge } from "~/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import {
@@ -31,7 +31,6 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
 } from "~/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
@@ -48,6 +47,9 @@ import {
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
+import type { FieldOption } from "~/lib/hoofdteelt.server"
+
+export type { FieldOption }
 
 export function SidebarFarm({
   farm,
@@ -58,13 +60,7 @@ export function SidebarFarm({
 }: {
   farm: Awaited<ReturnType<typeof getFarm>> | undefined
   farms?: { b_id_farm: string; b_name_farm: string | null }[]
-  fields?: {
-    b_id: string
-    b_name: string
-    b_area: number
-    b_lu_name?: string
-    b_lu_croprotation?: string
-  }[]
+  fields?: FieldOption[]
   activeFieldId?: string | null
   fieldWritePermission?: boolean
 }) {
@@ -117,15 +113,7 @@ export function SidebarFarm({
   >(null)
   // Once a farm has been picked for the "pick-field" flow, load that farm's fields.
   const [fieldPickerFarmId, setFieldPickerFarmId] = useState<string | null>(null)
-  const fieldOptionsFetcher = useFetcher<{
-    fields: {
-      b_id: string
-      b_name: string
-      b_area: number
-      b_lu_name?: string
-      b_lu_croprotation?: string
-    }[]
-  }>()
+  const fieldOptionsFetcher = useFetcher<{ fields: FieldOption[] }>()
 
   const openFarmPicker = (label: string, resolvePath: (b_id_farm: string) => string) => {
     setPendingFeature({ kind: "navigate", label, resolvePath })
@@ -197,7 +185,7 @@ export function SidebarFarm({
     .filter((f): f is NonNullable<typeof f> => f !== undefined)
   const regularFields = fields
     .filter((f) => !recentFieldIds.includes(f.b_id))
-    .sort((a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || a.b_name.localeCompare(b.b_name))
+    .sort((a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || (a.b_name ?? "").localeCompare(b.b_name ?? ""))
 
   const navigationItems = activeFieldId
     ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, fieldWritePermission)
@@ -559,94 +547,25 @@ export function SidebarFarm({
                             <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
                             {recentFields.length > 0 && (
                               <CommandGroup heading="Onlangs bezocht">
-                                {recentFields.map((field) => {
-                                  const content = (
-                                    <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                                      <div className="flex min-w-0 items-center gap-2">
-                                        {field.b_lu_name ? (
-                                          <span
-                                            className="size-2 shrink-0 rounded-full"
-                                            style={{
-                                              backgroundColor: getCultivationColor(
-                                                field.b_lu_croprotation,
-                                              ),
-                                            }}
-                                          />
-                                        ) : null}
-                                        <span className="truncate">{field.b_name}</span>
-                                      </div>
-                                      <span className="text-muted-foreground shrink-0 text-xs">
-                                        {field.b_area} ha
-                                      </span>
-                                    </div>
-                                  )
-
-                                  return (
-                                    <CommandItem
-                                      key={`recent-${field.b_id}`}
-                                      value={`${field.b_name} ${field.b_id}`}
-                                      onSelect={() => handleSelectField(field.b_id, field.b_name)}
-                                      className="flex cursor-pointer items-center justify-between"
-                                    >
-                                      {field.b_lu_name ? (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>{content}</TooltipTrigger>
-                                          <TooltipContent side="top">
-                                            <p>{field.b_lu_name}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      ) : (
-                                        content
-                                      )}
-                                    </CommandItem>
-                                  )
-                                })}
+                                {recentFields.map((field) => (
+                                  <FieldPickerItem
+                                    key={`recent-${field.b_id}`}
+                                    keyPrefix="recent"
+                                    option={field}
+                                    onSelect={handleSelectField}
+                                  />
+                                ))}
                               </CommandGroup>
                             )}
                             {regularFields.length > 0 && (
                               <CommandGroup heading="Alle percelen">
-                                {regularFields.map((field) => {
-                                  const content = (
-                                    <div className="flex w-full min-w-0 items-center justify-between gap-2">
-                                      <div className="flex min-w-0 items-center gap-2">
-                                        {field.b_lu_name ? (
-                                          <span
-                                            className="size-2 shrink-0 rounded-full"
-                                            style={{
-                                              backgroundColor: getCultivationColor(
-                                                field.b_lu_croprotation,
-                                              ),
-                                            }}
-                                          />
-                                        ) : null}
-                                        <span className="truncate">{field.b_name}</span>
-                                      </div>
-                                      <span className="text-muted-foreground shrink-0 text-xs">
-                                        {field.b_area} ha
-                                      </span>
-                                    </div>
-                                  )
-
-                                  return (
-                                    <CommandItem
-                                      key={field.b_id}
-                                      value={`${field.b_name} ${field.b_id}`}
-                                      onSelect={() => handleSelectField(field.b_id, field.b_name)}
-                                      className="flex cursor-pointer items-center justify-between"
-                                    >
-                                      {field.b_lu_name ? (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>{content}</TooltipTrigger>
-                                          <TooltipContent side="top">
-                                            <p>{field.b_lu_name}</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      ) : (
-                                        content
-                                      )}
-                                    </CommandItem>
-                                  )
-                                })}
+                                {regularFields.map((field) => (
+                                  <FieldPickerItem
+                                    key={field.b_id}
+                                    option={field}
+                                    onSelect={handleSelectField}
+                                  />
+                                ))}
                               </CommandGroup>
                             )}
                           </CommandList>
