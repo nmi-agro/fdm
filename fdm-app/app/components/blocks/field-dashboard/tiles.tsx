@@ -4,7 +4,7 @@ import {
   Calculator,
   CheckCircle2,
   ClipboardCheck,
-  Leaf,
+  ClipboardList,
   Microscope,
   MoveRight,
   Sparkles,
@@ -949,7 +949,7 @@ export function FieldDashboardMeasuresTile({ dashboard, tile }: FieldDashboardTi
       <FieldDashboardTileEmpty
         title={tile.title}
         detailHref={tile.detailHref}
-        icon={Leaf}
+        icon={ClipboardList}
         emptyTitle="Nog geen maatregelen"
         emptyDescription="Registreer bodemmaatregelen om de voortgang van dit perceel te volgen."
         action={
