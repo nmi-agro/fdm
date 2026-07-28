@@ -1,9 +1,10 @@
-import { getFields } from "@nmi-agro/fdm-core"
+import { getCultivationsForFarm, getFields } from "@nmi-agro/fdm-core"
 import { data, type LoaderFunctionArgs } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 /**
  * Resource route that returns a minimal list of fields for a farm.
@@ -21,16 +22,29 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    const cultivationsByField = await getCultivationsForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
 
     const fieldOptions = fields
       .map((field) => {
         if (!field?.b_id || !field?.b_name) {
           throw new Error("Invalid field data structure")
         }
+        const calendarYear = params.calendar ?? String(timeframe.start?.getFullYear() ?? new Date().getFullYear())
+        const mainCultivation = getMainCultivation(
+          cultivationsByField.get(field.b_id) ?? [],
+          calendarYear,
+        )
         return {
           b_id: field.b_id,
           b_name: field.b_name,
           b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+          b_lu_name: mainCultivation?.b_lu_name ?? undefined,
+          b_lu_croprotation: mainCultivation?.b_lu_croprotation ?? undefined,
         }
       })
       .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name))

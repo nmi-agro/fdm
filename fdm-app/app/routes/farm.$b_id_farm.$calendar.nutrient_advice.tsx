@@ -1,4 +1,4 @@
-import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getCultivationsForFarm, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
@@ -17,6 +17,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -90,16 +91,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Get the fields to be selected
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-    const fieldOptions = fields.map((field) => {
-      if (!field?.b_id || !field?.b_name) {
-        throw new Error("Invalid field data structure")
-      }
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-      }
-    })
+    const cultivationsByField = await getCultivationsForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
+    const fieldOptions = fields
+      .map((field) => {
+        if (!field?.b_id || !field?.b_name) {
+          throw new Error("Invalid field data structure")
+        }
+        const calendarYear = params.calendar ?? String(timeframe.start?.getFullYear() ?? new Date().getFullYear())
+        const mainCultivation = getMainCultivation(
+          cultivationsByField.get(field.b_id) ?? [],
+          calendarYear,
+        )
+        return {
+          b_id: field.b_id,
+          b_name: field.b_name,
+          b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+          b_lu_name: mainCultivation?.b_lu_name ?? undefined,
+          b_lu_croprotation: mainCultivation?.b_lu_croprotation ?? undefined,
+        }
+      })
+      .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name))
 
     // Return user information from loader
     return {
