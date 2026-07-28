@@ -16,6 +16,7 @@ import { cn } from "~/lib/utils"
 export type HeaderFieldPickerOption = {
   b_id: string
   b_name: string | undefined | null
+  b_area?: number
 }
 
 /**
@@ -51,7 +52,13 @@ export function HeaderFieldPicker({
   const recentFields = recentFieldIds
     .map((id) => fieldOptions.find((f) => f.b_id === id))
     .filter((f): f is NonNullable<typeof f> => f !== undefined)
-  const regularFields = fieldOptions.filter((f) => !recentFieldIds.includes(f.b_id))
+  const regularFields = fieldOptions
+    .filter((f) => !recentFieldIds.includes(f.b_id))
+    .sort(
+      (a, b) =>
+        (b.b_area ?? 0) - (a.b_area ?? 0) ||
+        (a.b_name ?? "").localeCompare(b.b_name ?? ""),
+    )
 
   const selectedLabel = b_id
     ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ?? "Onbekend perceel")
@@ -81,14 +88,19 @@ export function HeaderFieldPicker({
                 {recentFields.map((option) => (
                   <CommandItem
                     key={`header-recent-${option.b_id}`}
-                    value={option.b_name ?? ""}
+                    value={`${option.b_name ?? ""} ${option.b_id}`}
                     onSelect={() => handleSelect(option.b_id, option.b_name ?? "")}
                     className="flex cursor-pointer items-center justify-between"
                   >
                     <span>{option.b_name}</span>
-                    {b_id === option.b_id && (
-                      <Check className="text-primary ml-auto h-4 w-4 shrink-0" />
-                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                      {option.b_area != null && (
+                        <span className="text-muted-foreground text-xs">{option.b_area} ha</span>
+                      )}
+                      {b_id === option.b_id && (
+                        <Check className="text-primary h-4 w-4 shrink-0" />
+                      )}
+                    </div>
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -98,14 +110,19 @@ export function HeaderFieldPicker({
                 {regularFields.map((option) => (
                   <CommandItem
                     key={option.b_id}
-                    value={option.b_name ?? ""}
+                    value={`${option.b_name ?? ""} ${option.b_id}`}
                     onSelect={() => handleSelect(option.b_id, option.b_name ?? "")}
                     className="flex cursor-pointer items-center justify-between"
                   >
                     <span>{option.b_name}</span>
-                    {b_id === option.b_id && (
-                      <Check className="text-primary ml-auto h-4 w-4 shrink-0" />
-                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                      {option.b_area != null && (
+                        <span className="text-muted-foreground text-xs">{option.b_area} ha</span>
+                      )}
+                      {b_id === option.b_id && (
+                        <Check className="text-primary h-4 w-4 shrink-0" />
+                      )}
+                    </div>
                   </CommandItem>
                 ))}
               </CommandGroup>

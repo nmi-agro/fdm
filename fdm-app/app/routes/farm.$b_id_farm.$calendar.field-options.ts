@@ -33,7 +33,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
           b_area: Math.round((field.b_area ?? 0) * 10) / 10,
         }
       })
-      .sort((a, b) => a.b_name.localeCompare(b.b_name))
+      .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name))
 
     return { fields: fieldOptions }
   } catch (error) {

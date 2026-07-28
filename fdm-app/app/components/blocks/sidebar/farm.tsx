@@ -182,7 +182,9 @@ export function SidebarFarm({
   const recentFields = recentFieldIds
     .map((id) => fields.find((f) => f.b_id === id))
     .filter((f): f is NonNullable<typeof f> => f !== undefined)
-  const regularFields = fields.filter((f) => !recentFieldIds.includes(f.b_id))
+  const regularFields = fields
+    .filter((f) => !recentFieldIds.includes(f.b_id))
+    .sort((a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || a.b_name.localeCompare(b.b_name))
 
   const navigationItems = activeFieldId
     ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, fieldWritePermission)
@@ -547,7 +549,7 @@ export function SidebarFarm({
                                 {recentFields.map((field) => (
                                   <CommandItem
                                     key={`recent-${field.b_id}`}
-                                    value={field.b_name}
+                                    value={`${field.b_name} ${field.b_id}`}
                                     onSelect={() => handleSelectField(field.b_id, field.b_name)}
                                     className="flex cursor-pointer items-center justify-between"
                                   >
@@ -564,7 +566,7 @@ export function SidebarFarm({
                                 {regularFields.map((field) => (
                                   <CommandItem
                                     key={field.b_id}
-                                    value={field.b_name}
+                                    value={`${field.b_name} ${field.b_id}`}
                                     onSelect={() => handleSelectField(field.b_id, field.b_name)}
                                     className="flex cursor-pointer items-center justify-between"
                                   >

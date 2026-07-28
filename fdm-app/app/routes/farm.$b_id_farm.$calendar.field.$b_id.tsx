@@ -108,8 +108,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     })
 
-    // Sort fields by name alphabetically
-    fieldOptions.sort((a, b) => a.b_name.localeCompare(b.b_name))
+    // Sort fields by area descending (secondary sort by name)
+    fieldOptions.sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name))
 
     // Get the generral information of the field
     const field = await getField(fdm, session.principal_id, b_id)

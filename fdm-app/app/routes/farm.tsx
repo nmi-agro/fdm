@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
-import { getFarm, getFarms, getFields, checkPermission } from "@nmi-agro/fdm-core"
+import { checkPermission, getCultivationsForFarm, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
   checkHelpdeskPermission,
   getUnassignedTicketCount,
@@ -125,8 +125,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       }
     })
 
-    // Sort fields by name alphabetically
-    fieldOptions.sort((a, b) => a.b_name.localeCompare(b.b_name))
+    // Sort fields by area descending (secondary sort by name)
+    fieldOptions.sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name))
 
     const helpdeskReadPermission = await checkHelpdeskPermission(
       fdm,
