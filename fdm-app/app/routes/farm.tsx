@@ -110,15 +110,15 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
     const timeframe = getTimeframe(params)
 
-    const fields =
-      hasFarmParam && !farmAccessDenied && params.b_id_farm
-        ? await getFields(fdm, session.principal_id, params.b_id_farm, timeframe)
-        : []
+    const shouldFetchFarmData = Boolean(hasFarmParam && !farmAccessDenied && params.b_id_farm)
 
-    const cultivationsByField: Awaited<ReturnType<typeof getCultivationsForFarm>> =
-      hasFarmParam && !farmAccessDenied && params.b_id_farm
-        ? await getCultivationsForFarm(fdm, session.principal_id, params.b_id_farm, timeframe)
-        : new Map()
+    const [fields, cultivationsByField] =
+      shouldFetchFarmData && params.b_id_farm
+        ? await Promise.all([
+            getFields(fdm, session.principal_id, params.b_id_farm, timeframe),
+            getCultivationsForFarm(fdm, session.principal_id, params.b_id_farm, timeframe),
+          ])
+        : [[], new Map()]
 
     const fieldOptions = buildFieldOptions(
       fields,

@@ -97,13 +97,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     })
 
     // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-    const cultivationsByField = await getCultivationsForFarm(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-      timeframe,
-    )
+    const [fields, cultivationsByField] = await Promise.all([
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
     const fieldOptions = buildFieldOptions(
       fields,
       cultivationsByField,

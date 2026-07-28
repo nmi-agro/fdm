@@ -32,7 +32,7 @@ import {
   Trash2,
   UserRoundCheck,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -147,8 +147,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // dashboard: an optional "calendar" search param (set when navigating here from a calendar-scoped page),
     // falling back to the current year. The resolved year is also returned so the NavLink target stays aligned
     // with the count.
+    const calendarParam = new URL(request.url).searchParams.get("calendar")
     const activeYear =
-      new URL(request.url).searchParams.get("calendar") ?? new Date().getFullYear().toString()
+      calendarParam && /^\d{4}$/.test(calendarParam)
+        ? calendarParam
+        : new Date().getFullYear().toString()
     const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm, {
       start: new Date(`${activeYear}-01-01T00:00:00.000Z`),
       end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
@@ -261,11 +264,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (intent === "accept_all_suggestions") {
       const calendarValue = formData.get("calendar")
       const activeYear =
-        typeof calendarValue === "string" && calendarValue
+        typeof calendarValue === "string" && /^\d{4}$/.test(calendarValue)
           ? calendarValue
           : new Date().getFullYear().toString()
 
       const selectedBIds = formData.getAll("selected_b_id").map(String)
+      if (selectedBIds.length === 0) {
+        throw data("Geen percelen geselecteerd.", { status: 400 })
+      }
 
       // Fetch fields and cultivations for the farm
       const fields = await getFields(fdm, session.principal_id, b_id_farm)
@@ -279,21 +285,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
         },
       )
 
-      let fieldsMissingCultivation = fields.filter(
-        (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
-      )
-
-      if (selectedBIds.length > 0) {
-        fieldsMissingCultivation = fieldsMissingCultivation.filter((field) =>
-          selectedBIds.includes(field.b_id),
+      const fieldsMissingCultivation = fields
+        .filter((field) => selectedBIds.includes(field.b_id))
+        .filter(
+          (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
         )
-      }
 
       const nmiApiKey = getNmiApiKey()
       let acceptedCount = 0
+      let failedCount = 0
 
-      for (const fieldsChunk of chunk(fieldsMissingCultivation, CULTIVATION_SUGGESTION_CONCURRENCY)) {
-        await Promise.all(
+      for (const fieldsChunk of chunk(
+        fieldsMissingCultivation,
+        CULTIVATION_SUGGESTION_CONCURRENCY,
+      )) {
+        const results = await Promise.allSettled(
           fieldsChunk.map(async (field) => {
             const result = await getCultivationSuggestionResult(
               fdm,
@@ -322,21 +328,40 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 source: "batch_brp_suggestion",
               })
 
-              acceptedCount++
+              return true
             }
+
+            return false
           }),
         )
+
+        for (const res of results) {
+          if (res.status === "fulfilled") {
+            if (res.value) {
+              acceptedCount++
+            }
+          } else {
+            failedCount++
+          }
+        }
       }
 
-      return dataWithSuccess(
-        { acceptedCount },
-        {
-          message:
-            acceptedCount > 0
-              ? `${acceptedCount} ${acceptedCount === 1 ? "BRP-hoofdteelt" : "BRP-hoofdteelten"} succesvol toegevoegd! 🎉`
-              : "Geen BRP-voorstellen beschikbaar om toe te voegen.",
-        },
-      )
+      let message: string
+      if (failedCount > 0) {
+        if (acceptedCount > 0) {
+          message = `${acceptedCount} ${acceptedCount === 1 ? "hoofdteelt" : "hoofdteelten"} toegevoegd, ${failedCount} ${failedCount === 1 ? "perceel" : "percelen"} mislukt.`
+        } else {
+          message = `Het toevoegen van BRP-hoofdteelten is mislukt voor ${failedCount} ${failedCount === 1 ? "perceel" : "percelen"}.`
+        }
+      } else {
+        if (acceptedCount > 0) {
+          message = `${acceptedCount} ${acceptedCount === 1 ? "hoofdteelt" : "hoofdteelten"} succesvol toegevoegd! 🎉`
+        } else {
+          message = "Geen BRP-voorstellen beschikbaar om toe te voegen."
+        }
+      }
+
+      return dataWithSuccess({ acceptedCount, failedCount }, { message })
     }
 
     throw data("Ongeldige actie", { status: 400 })
@@ -404,14 +429,22 @@ export default function FarmDashboardIndex() {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
   const isAcceptingAll = fetcher.state !== "idle"
-  const suggestedFields = loaderData.fieldsMissingCultivationDetails.filter(
-    (field) => field.result.status === "suggested",
+  const suggestedFields = useMemo(
+    () =>
+      loaderData.fieldsMissingCultivationDetails.filter(
+        (field) => field.result.status === "suggested",
+      ),
+    [loaderData.fieldsMissingCultivationDetails],
   )
   const suggestedFieldsCount = suggestedFields.length
 
   const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
     suggestedFields.map((f) => f.b_id),
   )
+
+  useEffect(() => {
+    setSelectedFieldIds((prev) => prev.filter((id) => suggestedFields.some((f) => f.b_id === id)))
+  }, [suggestedFields])
 
   const toggleFieldSelection = (b_id: string) => {
     setSelectedFieldIds((prev) =>
@@ -734,16 +767,16 @@ export default function FarmDashboardIndex() {
                       </div>
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (
-                      <div className="border-amber-500/25 bg-amber-500/5 dark:border-amber-500/20 dark:bg-amber-500/10 rounded-xl border p-3.5 space-y-3 transition-all">
+                      <div className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3.5 transition-all dark:border-amber-500/20 dark:bg-amber-500/10">
                         <div className="flex items-start gap-2.5">
-                          <div className="bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 mt-0.5 shrink-0 rounded-md p-1.5">
+                          <div className="mt-0.5 shrink-0 rounded-md bg-amber-500/15 p-1.5 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
                             <Sparkles className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-amber-950 dark:text-amber-100 text-sm font-semibold">
+                            <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
                               Teeltassistent
                             </p>
-                            <p className="text-amber-800/90 dark:text-amber-200/90 text-xs mt-0.5">
+                            <p className="mt-0.5 text-xs text-amber-800/90 dark:text-amber-200/90">
                               {loaderData.fieldsMissingCultivation}{" "}
                               {loaderData.fieldsMissingCultivation === 1
                                 ? "perceel heeft"
@@ -753,14 +786,14 @@ export default function FarmDashboardIndex() {
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-500/15">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-500/15 pt-1">
                           {suggestedFieldsCount > 0 && loaderData.farmWritePermission ? (
                             <Button
                               type="button"
                               size="sm"
                               onClick={handleOpenReviewDialog}
                               disabled={isAcceptingAll}
-                              className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 h-8 cursor-pointer gap-1.5 text-xs font-medium shadow-xs transition-all"
+                              className="h-8 cursor-pointer gap-1.5 bg-amber-600 text-xs font-medium text-white shadow-xs transition-all hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
                             >
                               Controleer & accepteer ({suggestedFieldsCount})
                             </Button>
@@ -771,7 +804,7 @@ export default function FarmDashboardIndex() {
                           <button
                             type="button"
                             onClick={() => setShowMissingCultivationDetails((prev) => !prev)}
-                            className="text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 text-xs font-medium underline underline-offset-2 flex items-center gap-1 cursor-pointer ml-auto"
+                            className="ml-auto flex cursor-pointer items-center gap-1 text-xs font-medium text-amber-800 underline underline-offset-2 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100"
                           >
                             {showMissingCultivationDetails ? (
                               <>
@@ -788,7 +821,7 @@ export default function FarmDashboardIndex() {
                         </div>
 
                         {showMissingCultivationDetails && (
-                          <div className="border-amber-500/20 space-y-2.5 border-t pt-3 max-h-80 overflow-y-auto">
+                          <div className="max-h-80 space-y-2.5 overflow-y-auto border-t border-amber-500/20 pt-3">
                             {loaderData.fieldsMissingCultivationDetails.map((field) => (
                               <div key={field.b_id} className="space-y-1">
                                 <CultivationSuggestionStatusBanner
@@ -802,7 +835,7 @@ export default function FarmDashboardIndex() {
                                 {field.result.status !== "suggested" && (
                                   <NavLink
                                     to={`${loaderData.cultivationYear}/field/${field.b_id}/cultivation`}
-                                    className="text-amber-800/80 hover:text-amber-950 dark:text-amber-300/80 dark:hover:text-amber-100 block text-xs underline underline-offset-2"
+                                    className="block text-xs text-amber-800/80 underline underline-offset-2 hover:text-amber-950 dark:text-amber-300/80 dark:hover:text-amber-100"
                                   >
                                     {field.b_name}: hoofdteelt handmatig toevoegen →
                                   </NavLink>
@@ -911,7 +944,7 @@ export default function FarmDashboardIndex() {
         <DialogContent className="max-w-md sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center gap-2.5">
-              <div className="bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 rounded-md p-2">
+              <div className="rounded-md bg-amber-500/15 p-2 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div className="text-left">
@@ -926,14 +959,14 @@ export default function FarmDashboardIndex() {
           </DialogHeader>
 
           <div className="space-y-3 py-2">
-            <div className="flex items-center justify-between border-b pb-2 text-xs text-muted-foreground">
+            <div className="text-muted-foreground flex items-center justify-between border-b pb-2 text-xs">
               <span className="font-medium">
                 {selectedFieldIds.length} van {suggestedFields.length} percelen geselecteerd
               </span>
               <button
                 type="button"
                 onClick={toggleAllFields}
-                className="text-primary hover:underline font-medium text-xs cursor-pointer"
+                className="text-primary cursor-pointer text-xs font-medium hover:underline"
               >
                 {selectedFieldIds.length === suggestedFields.length
                   ? "Alles deselecteren"
@@ -941,7 +974,7 @@ export default function FarmDashboardIndex() {
               </button>
             </div>
 
-            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
               {suggestedFields.map((field) => {
                 const isChecked = selectedFieldIds.includes(field.b_id)
                 const suggestion =
@@ -952,9 +985,18 @@ export default function FarmDashboardIndex() {
                 return (
                   <div
                     key={field.b_id}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isChecked}
                     onClick={() => toggleFieldSelection(field.b_id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        toggleFieldSelection(field.b_id)
+                      }
+                    }}
                     className={cn(
-                      "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors text-left",
+                      "flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-left transition-colors",
                       isChecked
                         ? "border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10"
                         : "border-border bg-muted/20 opacity-60 hover:opacity-100",
@@ -962,21 +1004,23 @@ export default function FarmDashboardIndex() {
                   >
                     <Checkbox
                       checked={isChecked}
-                      onCheckedChange={() => toggleFieldSelection(field.b_id)}
-                      className="mt-0.5"
+                      tabIndex={-1}
+                      className="pointer-events-none mt-0.5"
                     />
-                    <div className="min-w-0 flex-1 text-xs space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1 text-xs">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-foreground">{field.b_name}</p>
-                        <Badge variant="secondary" className="text-[10px] py-0 font-normal">
+                        <p className="text-foreground font-semibold">{field.b_name}</p>
+                        <Badge variant="secondary" className="py-0 text-[10px] font-normal">
                           BRP-schatting
                         </Badge>
                       </div>
                       <p className="text-muted-foreground font-medium">
                         Voorgesteld gewas:{" "}
-                        <span className="text-foreground font-semibold">{suggestion.b_lu_name}</span>
+                        <span className="text-foreground font-semibold">
+                          {suggestion.b_lu_name}
+                        </span>
                       </p>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-3">
+                      <div className="text-muted-foreground flex items-center gap-3 text-[11px]">
                         <span>
                           Start:{" "}
                           <span className="text-foreground font-medium">
@@ -1022,7 +1066,7 @@ export default function FarmDashboardIndex() {
               <Button
                 type="submit"
                 disabled={selectedFieldIds.length === 0 || isAcceptingAll}
-                className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 gap-1.5 font-medium cursor-pointer"
+                className="cursor-pointer gap-1.5 bg-amber-600 font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
               >
                 {isAcceptingAll ? (
                   <>

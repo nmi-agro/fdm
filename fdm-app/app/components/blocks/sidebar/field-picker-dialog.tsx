@@ -43,10 +43,6 @@ export function FieldPickerDialog({
   createFieldLink: string
   onSelectField: (b_id: string) => void
 }) {
-  const sortedFields = [...fields].sort(
-    (a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || (a.b_name ?? "").localeCompare(b.b_name ?? ""),
-  )
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0">
@@ -72,7 +68,7 @@ export function FieldPickerDialog({
               <CommandList className="max-h-[300px] overflow-y-auto p-2">
                 <CommandEmpty>Geen percelen gevonden.</CommandEmpty>
                 <CommandGroup heading="Percelen">
-                  {sortedFields.map((field) => (
+                  {fields.map((field) => (
                     <FieldPickerItem
                       key={field.b_id}
                       option={field}

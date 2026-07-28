@@ -183,9 +183,7 @@ export function SidebarFarm({
   const recentFields = recentFieldIds
     .map((id) => fields.find((f) => f.b_id === id))
     .filter((f): f is NonNullable<typeof f> => f !== undefined)
-  const regularFields = fields
-    .filter((f) => !recentFieldIds.includes(f.b_id))
-    .sort((a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || (a.b_name ?? "").localeCompare(b.b_name ?? ""))
+  const regularFields = fields.filter((f) => !recentFieldIds.includes(f.b_id))
 
   const navigationItems = activeFieldId
     ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, fieldWritePermission)
