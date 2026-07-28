@@ -38,6 +38,8 @@ type CultivationSuggestionProps = {
   /** Field name, shown for contexts that list multiple fields (e.g. the dashboard banner). */
   b_name?: string
   suggestion: CultivationSuggestion | undefined
+  /** Optional callback to open a 1-step review dialog instead of navigating to the field page. */
+  onAccept?: () => void
 }
 
 /**
@@ -55,14 +57,14 @@ export function CultivationSuggestionBanner({
   b_id,
   b_name,
   suggestion,
+  onAccept,
 }: CultivationSuggestionProps) {
   if (!suggestion) {
     return null
   }
 
   return (
-    <div className="bg-muted/40 flex items-start gap-2 rounded-lg border p-3">
-      <Sparkles className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+    <div className="bg-muted/40 rounded-lg border p-3">
       <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
         <p className="text-sm">
           {b_name && <span className="font-medium">{b_name}: </span>}
@@ -70,14 +72,20 @@ export function CultivationSuggestionBanner({
             BRP-schatting
           </Badge>
           We denken dat hier <span className="font-medium">{suggestion.b_lu_name}</span> geteeld
-          werd in {calendar}, gebaseerd op de Basisregistratie Gewaspercelen. Toevoegen als
+          werd in {calendar}. Toevoegen als
           hoofdteelt?
         </p>
-        <Button size="sm" asChild>
-          <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
+        {onAccept ? (
+          <Button size="sm" type="button" onClick={onAccept}>
             Voorstel toevoegen
-          </NavLink>
-        </Button>
+          </Button>
+        ) : (
+          <Button size="sm" asChild>
+            <NavLink to={buildAcceptSuggestionUrl(b_id_farm, calendar, b_id, suggestion)}>
+              Voorstel toevoegen
+            </NavLink>
+          </Button>
+        )}
       </div>
     </div>
   )
@@ -132,6 +140,7 @@ type CultivationSuggestionStatusProps = {
   b_id: string
   b_name?: string
   result: CultivationSuggestionResult
+  onAccept?: () => void
 }
 
 /**
@@ -147,6 +156,7 @@ export function CultivationSuggestionStatusBanner({
   b_id,
   b_name,
   result,
+  onAccept,
 }: CultivationSuggestionStatusProps) {
   if (result.status === "not_configured") {
     return null
@@ -160,6 +170,7 @@ export function CultivationSuggestionStatusBanner({
         b_id={b_id}
         b_name={b_name}
         suggestion={result.suggestion}
+        onAccept={onAccept}
       />
     )
   }

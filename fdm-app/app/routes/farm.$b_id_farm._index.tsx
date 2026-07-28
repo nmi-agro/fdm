@@ -1,11 +1,13 @@
 import { cowHead } from "@lucide/lab"
 import {
+  addCultivation,
   checkPermission,
   getCultivationsForFarm,
   getFarm,
   getFarms,
   getFields,
 } from "@nmi-agro/fdm-core"
+import { format } from "date-fns"
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -24,6 +26,7 @@ import {
   PlusIcon,
   ScrollText,
   Shapes,
+  Sparkles,
   Sprout,
   Square,
   Trash2,
@@ -31,20 +34,33 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import {
+  type ActionFunctionArgs,
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
+  useFetcher,
   useLoaderData,
 } from "react-router"
+import { dataWithSuccess } from "remix-toast"
 import { toast } from "sonner"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { Checkbox } from "~/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -56,11 +72,12 @@ import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { cn } from "~/lib/utils"
@@ -214,6 +231,121 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
+ * Handles action requests for the farm dashboard, such as batch-accepting BRP cultivation suggestions in a single step.
+ */
+export async function action({ request, params }: ActionFunctionArgs) {
+  try {
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw data("Farm ID is required", { status: 400 })
+    }
+
+    const session = await getSession(request)
+
+    const farmWritePermission = await checkPermission(
+      fdm,
+      "farm",
+      "write",
+      b_id_farm,
+      session.principal_id,
+      new URL(request.url).pathname,
+      false,
+    )
+    if (!farmWritePermission) {
+      throw data("U heeft geen schrijfrechten op dit bedrijf.", { status: 403 })
+    }
+
+    const formData = await request.formData()
+    const intent = formData.get("intent")
+
+    if (intent === "accept_all_suggestions") {
+      const calendarValue = formData.get("calendar")
+      const activeYear =
+        typeof calendarValue === "string" && calendarValue
+          ? calendarValue
+          : new Date().getFullYear().toString()
+
+      const selectedBIds = formData.getAll("selected_b_id").map(String)
+
+      // Fetch fields and cultivations for the farm
+      const fields = await getFields(fdm, session.principal_id, b_id_farm)
+      const cultivationsByField = await getCultivationsForFarm(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        {
+          start: new Date(`${activeYear}-01-01T00:00:00.000Z`),
+          end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
+        },
+      )
+
+      let fieldsMissingCultivation = fields.filter(
+        (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
+      )
+
+      if (selectedBIds.length > 0) {
+        fieldsMissingCultivation = fieldsMissingCultivation.filter((field) =>
+          selectedBIds.includes(field.b_id),
+        )
+      }
+
+      const nmiApiKey = getNmiApiKey()
+      let acceptedCount = 0
+
+      for (const fieldsChunk of chunk(fieldsMissingCultivation, CULTIVATION_SUGGESTION_CONCURRENCY)) {
+        await Promise.all(
+          fieldsChunk.map(async (field) => {
+            const result = await getCultivationSuggestionResult(
+              fdm,
+              session.principal_id,
+              b_id_farm,
+              field.b_id,
+              activeYear,
+              nmiApiKey,
+            )
+
+            if (result.status === "suggested" && result.suggestion) {
+              await addCultivation(
+                fdm,
+                session.principal_id,
+                result.suggestion.b_lu_catalogue,
+                field.b_id,
+                result.suggestion.b_lu_start,
+                result.suggestion.b_lu_end,
+              )
+
+              captureEvent(session.principal_id, "cultivation_added", {
+                b_id_farm,
+                b_id: field.b_id,
+                b_lu_catalogue: result.suggestion.b_lu_catalogue,
+                calendar: activeYear,
+                source: "batch_brp_suggestion",
+              })
+
+              acceptedCount++
+            }
+          }),
+        )
+      }
+
+      return dataWithSuccess(
+        { acceptedCount },
+        {
+          message:
+            acceptedCount > 0
+              ? `${acceptedCount} ${acceptedCount === 1 ? "BRP-hoofdteelt" : "BRP-hoofdteelten"} succesvol toegevoegd! 🎉`
+              : "Geen BRP-voorstellen beschikbaar om toe te voegen.",
+        },
+      )
+    }
+
+    throw data("Ongeldige actie", { status: 400 })
+  } catch (error) {
+    throw handleActionError(error)
+  }
+}
+
+/**
  * A disabled-aware NavLink for the "Acties" list: shows an icon, title and description, and swaps
  * in `disabledDescription` (with a warning icon) plus disables navigation when `disabled` is true.
  */
@@ -262,12 +394,48 @@ function ActionLink({
 
 export default function FarmDashboardIndex() {
   const loaderData = useLoaderData<typeof loader>()
+  const fetcher = useFetcher()
 
   const calendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const years = getCalendarSelection()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+
+  const isAcceptingAll = fetcher.state !== "idle"
+  const suggestedFields = loaderData.fieldsMissingCultivationDetails.filter(
+    (field) => field.result.status === "suggested",
+  )
+  const suggestedFieldsCount = suggestedFields.length
+
+  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
+    suggestedFields.map((f) => f.b_id),
+  )
+
+  const toggleFieldSelection = (b_id: string) => {
+    setSelectedFieldIds((prev) =>
+      prev.includes(b_id) ? prev.filter((id) => id !== b_id) : [...prev, b_id],
+    )
+  }
+
+  const toggleAllFields = () => {
+    if (selectedFieldIds.length === suggestedFields.length) {
+      setSelectedFieldIds([])
+    } else {
+      setSelectedFieldIds(suggestedFields.map((f) => f.b_id))
+    }
+  }
+
+  const handleOpenReviewDialog = () => {
+    setSelectedFieldIds(suggestedFields.map((f) => f.b_id))
+    setIsReviewDialogOpen(true)
+  }
+
+  const handleOpenReviewForSingleField = (b_id: string) => {
+    setSelectedFieldIds([b_id])
+    setIsReviewDialogOpen(true)
+  }
 
   const handleDownloadPdf = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -566,36 +734,61 @@ export default function FarmDashboardIndex() {
                       </div>
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (
-                      <div className="border-destructive/30 bg-destructive/5 rounded-lg border">
-                        <button
-                          type="button"
-                          onClick={() => setShowMissingCultivationDetails((prev) => !prev)}
-                          className="hover:bg-destructive/10 flex w-full items-start gap-2 rounded-t-lg p-3 text-left transition-colors"
-                        >
-                          <AlertTriangle className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
-                          <p className="flex-1 text-sm">
-                            <span className="font-medium">
+                      <div className="border-amber-500/25 bg-amber-500/5 dark:border-amber-500/20 dark:bg-amber-500/10 rounded-xl border p-3.5 space-y-3 transition-all">
+                        <div className="flex items-start gap-2.5">
+                          <div className="bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 mt-0.5 shrink-0 rounded-md p-1.5">
+                            <Sparkles className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-amber-950 dark:text-amber-100 text-sm font-semibold">
+                              Teeltassistent
+                            </p>
+                            <p className="text-amber-800/90 dark:text-amber-200/90 text-xs mt-0.5">
                               {loaderData.fieldsMissingCultivation}{" "}
                               {loaderData.fieldsMissingCultivation === 1
-                                ? "perceel mist"
-                                : "percelen missen"}
-                            </span>{" "}
-                            een hoofdteelt voor dit jaar.
-                          </p>
-                          {showMissingCultivationDetails ? (
-                            <ChevronUp className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                                ? "perceel heeft"
+                                : "percelen hebben"}{" "}
+                              nog geen hoofdteelt voor dit jaar.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-amber-500/15">
+                          {suggestedFieldsCount > 0 && loaderData.farmWritePermission ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleOpenReviewDialog}
+                              disabled={isAcceptingAll}
+                              className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 h-8 cursor-pointer gap-1.5 text-xs font-medium shadow-xs transition-all"
+                            >
+                              Controleer & accepteer ({suggestedFieldsCount})
+                            </Button>
                           ) : (
-                            <ChevronDown className="text-destructive mt-0.5 h-4 w-4 shrink-0" />
+                            <div />
                           )}
-                        </button>
-                        <NavLink
-                          to={`${loaderData.cultivationYear}/field`}
-                          className="text-muted-foreground hover:text-foreground block px-3 pb-3 text-sm underline"
-                        >
-                          Bekijk de percelen om dit aan te vullen
-                        </NavLink>
+
+                          <button
+                            type="button"
+                            onClick={() => setShowMissingCultivationDetails((prev) => !prev)}
+                            className="text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 text-xs font-medium underline underline-offset-2 flex items-center gap-1 cursor-pointer ml-auto"
+                          >
+                            {showMissingCultivationDetails ? (
+                              <>
+                                <ChevronUp className="h-3.5 w-3.5" />
+                                Verberg details
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="h-3.5 w-3.5" />
+                                Details per perceel
+                              </>
+                            )}
+                          </button>
+                        </div>
+
                         {showMissingCultivationDetails && (
-                          <div className="space-y-2 border-t p-3">
+                          <div className="border-amber-500/20 space-y-2.5 border-t pt-3 max-h-80 overflow-y-auto">
                             {loaderData.fieldsMissingCultivationDetails.map((field) => (
                               <div key={field.b_id} className="space-y-1">
                                 <CultivationSuggestionStatusBanner
@@ -604,13 +797,14 @@ export default function FarmDashboardIndex() {
                                   b_id={field.b_id}
                                   b_name={field.b_name}
                                   result={field.result}
+                                  onAccept={() => handleOpenReviewForSingleField(field.b_id)}
                                 />
                                 {field.result.status !== "suggested" && (
                                   <NavLink
                                     to={`${loaderData.cultivationYear}/field/${field.b_id}/cultivation`}
-                                    className="text-muted-foreground hover:text-foreground block text-sm underline"
+                                    className="text-amber-800/80 hover:text-amber-950 dark:text-amber-300/80 dark:hover:text-amber-100 block text-xs underline underline-offset-2"
                                   >
-                                    {field.b_name}: hoofdteelt handmatig toevoegen
+                                    {field.b_name}: hoofdteelt handmatig toevoegen →
                                   </NavLink>
                                 )}
                               </div>
@@ -713,6 +907,136 @@ export default function FarmDashboardIndex() {
           </div>
         </FarmContent>
       </main>
+      <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+        <DialogContent className="max-w-md sm:max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-2.5">
+              <div className="bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 rounded-md p-2">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="text-left">
+                <DialogTitle>Teeltassistent: BRP-voorstellen controleren</DialogTitle>
+                <DialogDescription className="mt-1 text-xs">
+                  Controleer de BRP-schattingen voor {suggestedFields.length}{" "}
+                  {suggestedFields.length === 1 ? "perceel" : "percelen"}. Vink percelen aan of uit
+                  voordat je ze in 1 stap toevoegt.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="flex items-center justify-between border-b pb-2 text-xs text-muted-foreground">
+              <span className="font-medium">
+                {selectedFieldIds.length} van {suggestedFields.length} percelen geselecteerd
+              </span>
+              <button
+                type="button"
+                onClick={toggleAllFields}
+                className="text-primary hover:underline font-medium text-xs cursor-pointer"
+              >
+                {selectedFieldIds.length === suggestedFields.length
+                  ? "Alles deselecteren"
+                  : "Alles selecteren"}
+              </button>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+              {suggestedFields.map((field) => {
+                const isChecked = selectedFieldIds.includes(field.b_id)
+                const suggestion =
+                  field.result.status === "suggested" ? field.result.suggestion : undefined
+
+                if (!suggestion) return null
+
+                return (
+                  <div
+                    key={field.b_id}
+                    onClick={() => toggleFieldSelection(field.b_id)}
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-colors text-left",
+                      isChecked
+                        ? "border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10"
+                        : "border-border bg-muted/20 opacity-60 hover:opacity-100",
+                    )}
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={() => toggleFieldSelection(field.b_id)}
+                      className="mt-0.5"
+                    />
+                    <div className="min-w-0 flex-1 text-xs space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-foreground">{field.b_name}</p>
+                        <Badge variant="secondary" className="text-[10px] py-0 font-normal">
+                          BRP-schatting
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground font-medium">
+                        Voorgesteld gewas:{" "}
+                        <span className="text-foreground font-semibold">{suggestion.b_lu_name}</span>
+                      </p>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-3">
+                        <span>
+                          Start:{" "}
+                          <span className="text-foreground font-medium">
+                            {format(new Date(suggestion.b_lu_start), "dd-MM-yyyy")}
+                          </span>
+                        </span>
+                        {suggestion.b_lu_end && (
+                          <span>
+                            Einde:{" "}
+                            <span className="text-foreground font-medium">
+                              {format(new Date(suggestion.b_lu_end), "dd-MM-yyyy")}
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsReviewDialogOpen(false)}
+              disabled={isAcceptingAll}
+            >
+              Annuleren
+            </Button>
+            <fetcher.Form
+              method="post"
+              onSubmit={() => {
+                setTimeout(() => setIsReviewDialogOpen(false), 200)
+              }}
+            >
+              <input type="hidden" name="intent" value="accept_all_suggestions" />
+              <input type="hidden" name="calendar" value={loaderData.cultivationYear} />
+              {selectedFieldIds.map((b_id) => (
+                <input key={b_id} type="hidden" name="selected_b_id" value={b_id} />
+              ))}
+              <Button
+                type="submit"
+                disabled={selectedFieldIds.length === 0 || isAcceptingAll}
+                className="bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500 dark:hover:bg-amber-600 gap-1.5 font-medium cursor-pointer"
+              >
+                {isAcceptingAll ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Toevoegen...
+                  </>
+                ) : (
+                  `Bevestigen en toevoegen (${selectedFieldIds.length})`
+                )}
+              </Button>
+            </fetcher.Form>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarInset>
   )
 }

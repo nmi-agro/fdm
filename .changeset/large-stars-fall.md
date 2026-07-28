@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-app": minor
 ---
 
-At the farm homepage show an alert if the farm has a field without a main cultivation for that year
+Added Teeltassistent on the farm dashboard for fields missing a main cultivation, with 1-step BRP suggestion acceptance and a review modal.
