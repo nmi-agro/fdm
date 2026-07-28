@@ -1,7 +1,7 @@
 import type { CurrentSoilData, SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale/nl"
-import { Calendar, ExternalLink, Microscope, Pencil, Sparkles, User } from "lucide-react"
+import { Calculator, Calendar, ExternalLink, Microscope, Pencil, Sparkles, User } from "lucide-react"
 import { NavLink } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
@@ -11,7 +11,7 @@ import { cn } from "~/lib/utils"
 const SOIL_GROUPS = [
   {
     title: "Basis",
-    parameters: ["b_soiltype_agr", "a_som_loi", "a_ph_cc", "b_gwl_class"],
+    parameters: ["b_soiltype_agr", "a_som_loi", "d_n_supply_base", "a_ph_cc", "b_gwl_class"],
   },
   {
     title: "Nutriënten",
@@ -88,7 +88,8 @@ function SoilDataCard({
   sourceLabel: string
   canModify: boolean
 }) {
-  const EditIcon = canModify ? Pencil : ExternalLink
+  const isEditable = canModify && source !== "calculated"
+  const EditIcon = isEditable ? Pencil : ExternalLink
   return (
     <Card className="hover:bg-accent/5 flex h-full flex-col transition-colors">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 space-x-2 pb-2">
@@ -112,7 +113,7 @@ function SoilDataCard({
                   <EditIcon className="text-muted-foreground h-full w-full text-xs opacity-50 transition-opacity hover:opacity-100" />
                 </NavLink>
               </TooltipTrigger>
-              <TooltipContent>{canModify ? "Bewerken" : "Bekijken"}</TooltipContent>
+              <TooltipContent>{isEditable ? "Bewerken" : "Bekijken"}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         ) : null}
@@ -145,7 +146,9 @@ function SoilDataCard({
                     !source ? "invisible" : "",
                   )}
                 >
-                  {source === "nl-other-nmi" ? (
+                  {source === "calculated" ? (
+                    <Calculator className="h-3 w-3 shrink-0" />
+                  ) : source === "nl-other-nmi" ? (
                     <Sparkles className="h-3 w-3 shrink-0" />
                   ) : source === "other" || !source ? (
                     <User className="h-3 w-3 shrink-0" />
@@ -156,11 +159,13 @@ function SoilDataCard({
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                {source === "nl-other-nmi"
-                  ? `Geschat met ${sourceLabel}`
-                  : source === "other" || !source
-                    ? "Onbekende bron"
-                    : `Gemeten door ${sourceLabel}`}
+                {source === "calculated"
+                  ? "Berekend"
+                  : source === "nl-other-nmi"
+                    ? `Geschat met ${sourceLabel}`
+                    : source === "other" || !source
+                      ? "Onbekende bron"
+                      : `Gemeten door ${sourceLabel}`}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -213,7 +218,10 @@ export function SoilDataCards({
               {groupCards.map((card) => {
                 const sourceParam = soilParameterDescription.find((x) => x.parameter === "a_source")
                 const sourceOption = sourceParam?.options?.find((x) => x.value === card.source)
-                const sourceLabel = sourceOption?.label || card.source || "Onbekend"
+                const sourceLabel =
+                  card.source === "calculated"
+                    ? "Berekend"
+                    : sourceOption?.label || card.source || "Onbekend"
 
                 return (
                   <SoilDataCard

@@ -35,6 +35,7 @@ export type FieldExtended = {
   cultivations: Cultivation[]
   cultivationSuggestion?: CultivationSuggestion
   fertilizers: Fertilizer[]
+  d_n_supply_base: number | null
   a_som_loi: number | null
   b_soiltype_agr: string | null
   b_area: number
@@ -177,6 +178,25 @@ export function buildColumns(b_id_farm: string, calendar: string): ColumnDef<Fie
       },
       cell: (props) => <BufferStripCheckbox {...props} />,
       enableHiding: true, // Enable hiding for mobile
+    },
+    {
+      accessorKey: "d_n_supply_base",
+      enableSorting: true,
+      sortingFn: "alphanumeric",
+      header: ({ column }) => {
+        return <DataTableColumnHeader column={column} title="NLV" />
+      },
+      enableHiding: true, // Enable hiding for mobile
+      cell: ({ row }) => {
+        const field = row.original
+        return (
+          <p className="text-muted-foreground">
+            {field.d_n_supply_base !== null
+              ? `${Math.round(field.d_n_supply_base)} kg N/ha`
+              : "-"}
+          </p>
+        )
+      },
     },
     {
       accessorKey: "a_som_loi",

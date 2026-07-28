@@ -1,6 +1,7 @@
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import {
+  Calculator,
   CheckCircle2,
   ClipboardCheck,
   Leaf,
@@ -57,6 +58,7 @@ function formatNumberLabel(value: number | null | undefined, unit?: string) {
 }
 
 function soilSourceIcon(source: string | null) {
+  if (source === "calculated") return Calculator
   if (source === "nl-other-nmi") return Sparkles
   if (source && source !== "other") return Microscope
   return User
@@ -743,11 +745,13 @@ export function FieldDashboardSoilParametersTile({ dashboard, tile }: FieldDashb
               <div className="text-muted-foreground mt-3 flex items-center gap-2 text-xs">
                 <Icon className="size-3.5" />
                 <span className="truncate">
-                  {card.source === "nl-other-nmi"
-                    ? "Geschat met NMI BodemSchat"
-                    : card.source && card.source !== "other"
-                      ? `Gemeten door ${card.sourceLabel}`
-                      : "Onbekende bron"}
+                  {card.source === "calculated"
+                    ? "Berekend"
+                    : card.source === "nl-other-nmi"
+                      ? "Geschat met NMI BodemSchat"
+                      : card.source && card.source !== "other"
+                        ? `Gemeten door ${card.sourceLabel}`
+                        : "Onbekende bron"}
                 </span>
               </div>
             </div>

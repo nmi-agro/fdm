@@ -1,7 +1,6 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MetaFunction } from "react-router"
 import {
-  type CurrentSoilData,
   getCurrentSoilDataForFarm,
   getFields,
   getSoilParametersDescription,
@@ -42,6 +41,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { useSelectedAtlasSoilParameterStore } from "~/store/selected-soil-parameter"
 
 export const meta: MetaFunction = () => {
@@ -95,16 +95,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       const features = fields.map((field) => {
         const fieldCurrentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
+        const fieldEnrichedSoilData = enrichCurrentSoilDataWithNlv(fieldCurrentSoilData)
+        const soilProps = fieldEnrichedSoilData.reduce(
+          (acc, data) => {
+            if (data.value !== null) acc[data.parameter] = data.value
+            return acc
+          },
+          {} as Record<string, string | number>,
+        )
+
         const feature = {
           type: "Feature" as const,
           properties: {
-            ...fieldCurrentSoilData.reduce(
-              (acc, data) => {
-                if (data.value !== null) acc[data.parameter] = data.value
-                return acc
-              },
-              {} as Record<CurrentSoilData[number]["parameter"], string | number>,
-            ),
+            ...soilProps,
             b_id: field.b_id,
             b_name: field.b_name,
             b_area: Math.round((field.b_area ?? 0) * 10) / 10,
@@ -155,16 +158,21 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   const navigate = useNavigate()
   const { capture } = useAnalytics()
 
-  useEffect(() => {
-    capture("atlas_viewed", { b_id_farm, calendar, layer: "soil_analysis" })
-  }, [])
-
   const heatmapLayerId = "fieldsSavedHeatmap"
   const heatmapOutlineLayerId = "fieldsSavedHeatmapOutline"
   const selectedParameter = useSelectedAtlasSoilParameterStore((store) => store.selectedParameter)
   const setSelectedParameter = useSelectedAtlasSoilParameterStore(
     (store) => store.setSelectedParameter,
   )
+
+  useEffect(() => {
+    capture("atlas_viewed", {
+      b_id_farm,
+      calendar,
+      layer: "soil_analysis",
+      parameter: selectedParameter,
+    })
+  }, [b_id_farm, calendar, selectedParameter, capture])
 
   const [min, max] = useMemo(() => {
     if (!fieldsData || fieldsData?.features.length === 0) {

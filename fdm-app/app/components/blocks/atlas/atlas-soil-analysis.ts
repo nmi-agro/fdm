@@ -85,6 +85,7 @@ export const GRADIENT_SHADED_SOIL_PARAMETERS = {
   a_com_fr: "carbon_ratio",
   a_cu_cc: "copper",
   a_density_sa: "earth_heavy",
+  d_n_supply_base: "nitrogen",
   a_fe_ox: "iron",
   a_k_cc: "potassium",
   a_k_co: "potassium",

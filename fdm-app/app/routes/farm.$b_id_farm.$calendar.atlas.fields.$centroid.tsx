@@ -1,5 +1,5 @@
 import {
-  calculateNlvSupplyBySom,
+  calculateNlvSupplyIncreaseBySomPotential,
   calculateWaterSupplyBySom,
   getRegion,
   getSoilParameterEstimates,
@@ -234,7 +234,7 @@ async function loadAsyncData(_calendar: string, latitude: number, longitude: num
           }),
         ),
         extraNMineralization: Math.round(
-          calculateNlvSupplyBySom({
+          calculateNlvSupplyIncreaseBySomPotential({
             a_clay_mi: estimates.a_clay_mi,
             a_cn_fr: estimates.a_cn_fr,
             a_som_loi: estimates.a_som_loi,

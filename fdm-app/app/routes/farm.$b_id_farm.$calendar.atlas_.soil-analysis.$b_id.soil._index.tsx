@@ -12,6 +12,7 @@ import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 
 /**
  * Loader function for the soil data page of a specific farm field.
@@ -70,7 +71,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         start: null,
         end: timeframe.end,
       }),
-      getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
+      getCurrentSoilData(fdm, session.principal_id, b_id, timeframe).then(
+        enrichCurrentSoilDataWithNlv,
+      ),
     ])
 
     // Get soil parameter descriptions
