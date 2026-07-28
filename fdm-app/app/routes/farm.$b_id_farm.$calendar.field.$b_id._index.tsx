@@ -73,7 +73,7 @@ import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.ser
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
+import { getIndicatorInfo, getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
 import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { cn } from "~/lib/utils"
 
@@ -720,9 +720,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
 
         const score = scoreToDisplay(mainScore01)
-        const attentionCount = result.score.indicators.filter(
-          (indicator) => getScoreTier(scoreToDisplay(indicator.score)) !== "green",
-        ).length
+        const attentionItems = result.score.indicators
+          .filter(
+            (indicator) => getScoreTier(scoreToDisplay(indicator.score)) !== "green",
+          )
+          .map((indicator) => {
+            const info = getIndicatorInfo(indicator.indicator_id)
+            return {
+              id: indicator.indicator_id,
+              name: info?.name ?? indicator.indicator_id,
+              score: scoreToDisplay(indicator.score),
+            }
+          })
+          .sort((a, b) => a.score - b.score)
+
+        const attentionCount = attentionItems.length
 
         const aggregations = [
           { id: "S_WAT_BLN", label: "Water" },
@@ -747,6 +759,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             score,
             verdict: getScoreVerdict(score),
             attentionCount,
+            attentionItems,
             aggregations,
           },
         }

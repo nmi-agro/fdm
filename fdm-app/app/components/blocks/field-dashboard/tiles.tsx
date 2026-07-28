@@ -25,7 +25,7 @@ import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { getScoreDotClass } from "~/lib/indicators"
+import { getScoreDotClass, getScoreTextClass } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 import {
   FieldDashboardTile,
@@ -899,24 +899,17 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
               statusBadge={<ScoreBadge score={data.score} />}
             >
               <div className="space-y-4">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-3xl font-semibold">{data.score}/100</p>
-                    <p className="text-muted-foreground text-sm">{data.verdict}</p>
-                  </div>
-                  <div className="text-right text-sm">
-                    <p className="font-medium">
-                      {data.attentionCount === 0
-                        ? "Geen directe aandachtspunten"
-                        : `${data.attentionCount} aandachtspunt${data.attentionCount === 1 ? "" : "en"}`}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-3xl font-semibold">{data.score}/100</p>
+                  <p className="text-muted-foreground text-sm">{data.verdict}</p>
                 </div>
                 <Separator />
                 <div className="grid grid-cols-2 gap-3">
                   {data.aggregations.map((aggregation) => (
                     <div key={aggregation.id} className="rounded-lg border p-3">
-                      <p className="text-muted-foreground text-xs uppercase">{aggregation.label}</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        {aggregation.label}
+                      </p>
                       <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
                         {aggregation.score == null ? (
                           "Onbekend"
@@ -935,6 +928,38 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                     </div>
                   ))}
                 </div>
+                {data.attentionItems && data.attentionItems.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-muted-foreground text-xs font-medium uppercase">
+                      Aandachtspunten ({data.attentionCount})
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {data.attentionItems.map((item) => (
+                        <Badge
+                          key={item.id}
+                          variant="outline"
+                          className="flex items-center gap-1.5 text-xs font-normal"
+                        >
+                          <span
+                            className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              getScoreDotClass(item.score),
+                            )}
+                          />
+                          <span className="truncate">{item.name}</span>
+                          <span
+                            className={cn(
+                              "font-semibold tabular-nums",
+                              getScoreTextClass(item.score),
+                            )}
+                          >
+                            {item.score}
+                          </span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </FieldDashboardTile>
           ))

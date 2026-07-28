@@ -127,10 +127,17 @@ export interface FieldDashboardBlnAggregationSummary {
   score: number | null
 }
 
+export interface FieldDashboardBlnAttentionItem {
+  id: string
+  name: string
+  score: number
+}
+
 export interface FieldDashboardBlnSummary {
   score: number
   verdict: string
   attentionCount: number
+  attentionItems?: FieldDashboardBlnAttentionItem[]
   aggregations: FieldDashboardBlnAggregationSummary[]
 }
 
