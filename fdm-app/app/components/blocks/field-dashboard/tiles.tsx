@@ -780,10 +780,10 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
   return (
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className="text-3xl font-semibold">{dashboard.soil.analysisCount}</p>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm leading-snug">
               analyses · laatste bemonstering op{" "}
               {formatDateLabel(dashboard.soil.latestAnalysisDate)}
             </p>
@@ -795,6 +795,7 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
               title={latestAnalysisPdf.title}
               triggerLabel="Bekijk PDF"
               triggerVariant="outline"
+              triggerSize="sm"
               triggerClassName="shrink-0"
             />
           )}
