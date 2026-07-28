@@ -1,5 +1,5 @@
 import { format } from "date-fns"
-import { CircleHelp, Sprout } from "lucide-react"
+import { CircleHelp, Sparkles } from "lucide-react"
 import { NavLink } from "react-router"
 import type {
   CultivationSuggestion,
@@ -62,7 +62,7 @@ export function CultivationSuggestionBanner({
 
   return (
     <div className="bg-muted/40 flex items-start gap-2 rounded-lg border p-3">
-      <Sprout className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+      <Sparkles className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
       <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
         <p className="text-sm">
           {b_name && <span className="font-medium">{b_name}: </span>}
@@ -110,7 +110,7 @@ export function CultivationSuggestionBadge({
               variant="secondary"
               className="hover:bg-secondary/70 flex min-w-0 items-center gap-1"
             >
-              <Sprout className="h-3 w-3 shrink-0" />
+              <Sparkles className="h-3 w-3 shrink-0" />
               <span className="min-w-0 truncate">BRP: {suggestion.b_lu_name}</span>
             </Badge>
           </NavLink>
