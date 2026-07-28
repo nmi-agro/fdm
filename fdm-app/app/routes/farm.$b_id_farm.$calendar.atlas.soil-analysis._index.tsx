@@ -1,6 +1,5 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MetaFunction } from "react-router"
-import { calculateNlv } from "@nmi-agro/fdm-calculator"
 import {
   getCurrentSoilDataForFarm,
   getFields,
@@ -42,6 +41,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { useSelectedAtlasSoilParameterStore } from "~/store/selected-soil-parameter"
 
 export const meta: MetaFunction = () => {
@@ -95,23 +95,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       const features = fields.map((field) => {
         const fieldCurrentSoilData = currentSoilDataForFarm.get(field.b_id) ?? []
-        const soilProps = fieldCurrentSoilData.reduce(
+        const fieldEnrichedSoilData = enrichCurrentSoilDataWithNlv(fieldCurrentSoilData)
+        const soilProps = fieldEnrichedSoilData.reduce(
           (acc, data) => {
             if (data.value !== null) acc[data.parameter] = data.value
             return acc
           },
           {} as Record<string, string | number>,
         )
-
-        if (soilProps.d_n_supply_base === undefined) {
-          const som = typeof soilProps.a_som_loi === "number" ? soilProps.a_som_loi : undefined
-          const clay = typeof soilProps.a_clay_mi === "number" ? soilProps.a_clay_mi : undefined
-          const cn = typeof soilProps.a_cn_fr === "number" ? soilProps.a_cn_fr : undefined
-          if (som !== undefined && clay !== undefined && cn !== undefined) {
-            soilProps.d_n_supply_base =
-              Math.round(calculateNlv({ a_clay_mi: clay, a_cn_fr: cn, a_som_loi: som }) * 10) / 10
-          }
-        }
 
         const feature = {
           type: "Feature" as const,

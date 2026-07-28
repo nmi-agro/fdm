@@ -189,21 +189,26 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         const a_som_loi = Number(
           currentSoilData.find((x) => x.parameter === "a_som_loi")?.value ?? 0,
         )
+        const existingNlv = currentSoilData.find(
+          (x) => x.parameter === "d_n_supply_base" && x.value != null,
+        )?.value
         const clayVal = currentSoilData.find((x) => x.parameter === "a_clay_mi")?.value
         const cnVal = currentSoilData.find((x) => x.parameter === "a_cn_fr")?.value
         const somVal = currentSoilData.find((x) => x.parameter === "a_som_loi")?.value
         const d_n_supply_base =
-          typeof somVal === "number" &&
-          typeof clayVal === "number" &&
-          typeof cnVal === "number"
-            ? Math.round(
-                calculateNlv({
-                  a_clay_mi: clayVal,
-                  a_cn_fr: cnVal,
-                  a_som_loi: somVal,
-                }) * 10,
-              ) / 10
-            : null
+          typeof existingNlv === "number"
+            ? existingNlv
+            : typeof somVal === "number" &&
+                typeof clayVal === "number" &&
+                typeof cnVal === "number"
+              ? Math.round(
+                  calculateNlv({
+                    a_clay_mi: clayVal,
+                    a_cn_fr: cnVal,
+                    a_som_loi: somVal,
+                  }) * 10,
+                ) / 10
+              : null
         const b_soiltype_agr = String(
           currentSoilData.find((x) => x.parameter === "b_soiltype_agr")?.value ?? "",
         )

@@ -238,7 +238,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       allCultivations,
       fertilizerApplications,
       fertilizers,
-      currentSoilData,
+      currentSoilDataRaw,
       soilAnalyses,
       measures,
     ] = await Promise.all([
@@ -249,15 +249,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getCultivations(fdm, session.principal_id, b_id),
       getFertilizerApplications(fdm, session.principal_id, b_id, timeframe),
       getFertilizers(fdm, session.principal_id, b_id_farm),
-      enrichCurrentSoilDataWithNlv(
-        await getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
-      ),
+      getCurrentSoilData(fdm, session.principal_id, b_id, timeframe),
       getSoilAnalyses(fdm, session.principal_id, b_id, {
         start: null,
         end: timeframe.end,
       }),
       getMeasures(fdm, session.principal_id, b_id, timeframe),
     ])
+
+    const currentSoilData = enrichCurrentSoilDataWithNlv(currentSoilDataRaw)
 
     if (!field) {
       throw data("Unable to find field", { status: 404, statusText: "Unable to find field" })

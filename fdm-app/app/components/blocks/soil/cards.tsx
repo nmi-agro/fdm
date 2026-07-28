@@ -88,7 +88,8 @@ function SoilDataCard({
   sourceLabel: string
   canModify: boolean
 }) {
-  const EditIcon = canModify ? Pencil : ExternalLink
+  const isEditable = canModify && source !== "calculated"
+  const EditIcon = isEditable ? Pencil : ExternalLink
   return (
     <Card className="hover:bg-accent/5 flex h-full flex-col transition-colors">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 space-x-2 pb-2">
@@ -104,7 +105,7 @@ function SoilDataCard({
             </Tooltip>
           </TooltipProvider>
         </div>
-        {source !== "nl-other-nmi" && source !== "calculated" ? (
+        {source !== "nl-other-nmi" ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -112,7 +113,7 @@ function SoilDataCard({
                   <EditIcon className="text-muted-foreground h-full w-full text-xs opacity-50 transition-opacity hover:opacity-100" />
                 </NavLink>
               </TooltipTrigger>
-              <TooltipContent>{canModify ? "Bewerken" : "Bekijken"}</TooltipContent>
+              <TooltipContent>{isEditable ? "Bewerken" : "Bekijken"}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         ) : null}
@@ -169,7 +170,7 @@ function SoilDataCard({
             </Tooltip>
           </TooltipProvider>
 
-          {!(!date || source === "nl-other-nmi" || source === "calculated") && (
+          {!(!date || source === "nl-other-nmi") && (
             <div className="text-muted-foreground flex items-center space-x-1.5 text-[10px]">
               <Calendar className="h-3 w-3 shrink-0 opacity-60" />
               <span>{format(date, "P", { locale: nl })}</span>
@@ -217,7 +218,10 @@ export function SoilDataCards({
               {groupCards.map((card) => {
                 const sourceParam = soilParameterDescription.find((x) => x.parameter === "a_source")
                 const sourceOption = sourceParam?.options?.find((x) => x.value === card.source)
-                const sourceLabel = sourceOption?.label || card.source || "Onbekend"
+                const sourceLabel =
+                  card.source === "calculated"
+                    ? "Berekend"
+                    : sourceOption?.label || card.source || "Onbekend"
 
                 return (
                   <SoilDataCard
