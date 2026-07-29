@@ -74,10 +74,22 @@ export {
 } from "./bcs/index"
 export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
 export { calcPhDelta } from "./bcs/ph-delta"
-export { collectInputForBln3Score, getBln3Score, requestBln3Score } from "./bln3"
+export {
+  collectInputForBln3MeasureApplicability,
+  collectInputForBln3Score,
+  getBln3MeasureApplicability,
+  getBln3Score,
+  requestBln3MeasureApplicability,
+  requestBln3Score,
+} from "./bln3"
 export type {
   Bln3AggregationResult,
   Bln3IndicatorResult,
+  Bln3MeasureApplicabilityCollectedInputs,
+  Bln3MeasureApplicabilityInputs,
+  Bln3MeasureApplicabilityItem,
+  Bln3MeasureApplicabilityResult,
+  Bln3MeasureApplicabilityStatus,
   Bln3Score,
   Bln3ScoreCollectedInputs,
   Bln3ScoreInputs,
