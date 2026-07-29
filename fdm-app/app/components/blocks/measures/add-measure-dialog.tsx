@@ -1,4 +1,5 @@
 import type { Measure, MeasureCatalogue } from "@nmi-agro/fdm-core"
+import type { MeasureApplicabilityInfo } from "~/integrations/bln3.server"
 /**
  * Add Measure dialog for the Maatregelen field detail page.
  *
@@ -30,6 +31,12 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip"
 import { cn } from "~/lib/utils"
 import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
 
@@ -46,6 +53,15 @@ type FieldItem = {
   } | null
 }
 
+type ConsolidatedMeasureInfo = {
+  applicability: MeasureApplicabilityInfo["applicability"]
+  isBlocked: boolean
+  isInapplicable: boolean
+  message?: string
+  applicableFieldNames?: string[]
+  totalFieldsCount?: number
+}
+
 type AddMeasureDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -57,6 +73,14 @@ type AddMeasureDialogProps = {
   calendarYearStart: string
   /** Harvest/end date for "Einde teeltseizoen" preset (YYYY-MM-DD or null) */
   harvestDate: string | null
+  /**
+   * Single-field applicability map (m_id -> applicability info).
+   */
+  applicabilityMap?: Record<string, MeasureApplicabilityInfo>
+  /**
+   * Multi-field applicability map (b_id -> m_id -> applicability info).
+   */
+  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo>>
   /**
    * When provided, renders a field selector (checkboxes) so the user can
    * apply the measure to multiple fields at once. Posts multiple hidden
@@ -84,6 +108,8 @@ export function AddMeasureDialog({
   activeMeasures,
   calendarYearStart,
   harvestDate,
+  applicabilityMap,
+  applicabilityByField,
   fields,
   initialFieldIds,
   action,
@@ -191,10 +217,85 @@ export function AddMeasureDialog({
     return map
   }, [catalogue, activeMeasureIds, activeMeasures])
 
+  // Derive consolidated applicability map across single field or selected fields
+  const computedApplicabilityMap = useMemo(() => {
+    if (applicabilityMap) {
+      // Single-field mode
+      const map: Record<string, ConsolidatedMeasureInfo> = {}
+      for (const item of catalogue) {
+        const info = applicabilityMap[item.m_id]
+        if (!info) continue
+        map[item.m_id] = {
+          applicability: info.applicability,
+          isBlocked: info.applicability !== "applicable",
+          isInapplicable: info.applicability === "inapplicable",
+          message: info.message,
+        }
+      }
+      return map
+    }
+
+    if (!applicabilityByField || !fields || fields.length === 0) return undefined
+
+    // Multi-field mode (farm level)
+    const targetFields =
+      selectedFieldIds.size > 0
+        ? fields.filter((f) => selectedFieldIds.has(f.b_id))
+        : fields
+
+    if (targetFields.length === 0) return undefined
+
+    const map: Record<string, ConsolidatedMeasureInfo> = {}
+
+    for (const item of catalogue) {
+      const applicableFieldNames: string[] = []
+      const messages: string[] = []
+
+      for (const f of targetFields) {
+        const info = applicabilityByField[f.b_id]?.[item.m_id]
+        const fieldName = f.b_name ?? f.b_id
+
+        if (!info || info.applicability === "applicable") {
+          applicableFieldNames.push(fieldName)
+        } else {
+          if (info.message && !messages.includes(info.message)) {
+            messages.push(info.message)
+          }
+        }
+      }
+
+      const totalFieldsCount = targetFields.length
+      const hasAnyApplicable = applicableFieldNames.length > 0
+
+      map[item.m_id] = {
+        applicability: hasAnyApplicable ? "applicable" : "inapplicable",
+        isBlocked: !hasAnyApplicable,
+        isInapplicable: !hasAnyApplicable,
+        message: !hasAnyApplicable ? messages.join(" ") : undefined,
+        applicableFieldNames,
+        totalFieldsCount,
+      }
+    }
+
+    return map
+  }, [applicabilityMap, applicabilityByField, selectedFieldIds, fields, catalogue])
+
+  // Hide farm-level measures (via catalogue field or fallback message check)
+  const fieldLevelCatalogue = useMemo(() => {
+    return catalogue.filter((item) => {
+      if (item.m_stage_applicability === "farm") return false
+      const info = computedApplicabilityMap?.[item.m_id]
+      if (info?.message && /Toepasbaarheidsniveau.*'farm'/i.test(info.message)) {
+        return false
+      }
+      return true
+    })
+  }, [catalogue, computedApplicabilityMap])
+
   // Fuzzy search — search against indexed combined strings per catalogue item
   const filteredCatalogue = useMemo(() => {
-    if (!query.trim()) return catalogue
-    const targets = catalogue.map(
+    if (!query.trim()) return fieldLevelCatalogue
+    const targets = fieldLevelCatalogue.map(
       (item, i) => `[${i}] ${item.m_name} ${item.m_id} ${item.m_description ?? ""}`,
     )
     const results = fuzzysort.go(query, targets, { threshold: -10000 })
@@ -202,10 +303,24 @@ export function AddMeasureDialog({
       .map((r) => {
         const match = r.target.match(/^\[(\d+)\]/)
         if (!match) return null
-        return catalogue[Number(match[1])] ?? null
+        return fieldLevelCatalogue[Number(match[1])] ?? null
       })
-      .filter((item): item is (typeof catalogue)[number] => item !== null)
-  }, [query, catalogue])
+      .filter((item): item is (typeof fieldLevelCatalogue)[number] => item !== null)
+  }, [query, fieldLevelCatalogue])
+
+  // Sort catalogue: applicable & not yet applicable (0) -> inapplicable (1) -> unknown (2)
+  const sortedCatalogue = useMemo(() => {
+    if (!computedApplicabilityMap) return filteredCatalogue
+
+    const getRank = (item: (typeof filteredCatalogue)[number]) => {
+      const info = computedApplicabilityMap[item.m_id]
+      if (!info) return 2
+      if (info.isInapplicable) return 1
+      return 0
+    }
+
+    return [...filteredCatalogue].sort((a, b) => getRank(a) - getRank(b))
+  }, [filteredCatalogue, computedApplicabilityMap])
 
   // Determine end date to submit based on preset — sync to form state
   const handleDatePresetChange = (preset: DatePreset) => {
@@ -225,16 +340,28 @@ export function AddMeasureDialog({
     (datePreset !== "vaste_einddatum" || !!mEnd) &&
     (fields === undefined || selectedFieldIds.size > 0)
 
-  // Sort fields: selected first, then unselected — alphabetically within each group
+  // Sort fields: applicable+selected -> applicable+unselected -> non-applicable (at bottom)
   const sortedFields = useMemo(() => {
     if (!fields) return []
     return [...fields].sort((a, b) => {
+      const aNonApplicable =
+        selected &&
+        applicabilityByField?.[a.b_id]?.[selected.m_id] &&
+        applicabilityByField[a.b_id][selected.m_id].applicability !== "applicable"
+      const bNonApplicable =
+        selected &&
+        applicabilityByField?.[b.b_id]?.[selected.m_id] &&
+        applicabilityByField[b.b_id][selected.m_id].applicability !== "applicable"
+
+      if (aNonApplicable !== bNonApplicable) return aNonApplicable ? 1 : -1
+
       const aSelected = selectedFieldIds.has(a.b_id)
       const bSelected = selectedFieldIds.has(b.b_id)
       if (aSelected !== bSelected) return aSelected ? -1 : 1
+
       return (a.b_name ?? "").localeCompare(b.b_name ?? "", "nl")
     })
-  }, [fields, selectedFieldIds])
+  }, [fields, selectedFieldIds, selected, applicabilityByField])
 
   const visibleFields = useMemo(() => {
     if (!fieldSearch.trim()) return sortedFields
@@ -249,6 +376,18 @@ export function AddMeasureDialog({
   const handleSelectMeasure = (item: MeasureCatalogue) => {
     setSelected(item)
     setStep("configure")
+
+    if (applicabilityByField && fields && selectedFieldIds.size > 0) {
+      // Filter pre-selected fields to remove any where item.m_id is not applicable
+      const validFieldIds = new Set<string>()
+      for (const b_id of selectedFieldIds) {
+        const info = applicabilityByField[b_id]?.[item.m_id]
+        if (!info || info.applicability === "applicable") {
+          validFieldIds.add(b_id)
+        }
+      }
+      setSelectedFieldIds(validFieldIds)
+    }
   }
 
   const handleBackToSelect = () => {
@@ -289,17 +428,26 @@ export function AddMeasureDialog({
 
             {/* Catalogue list */}
             <div className="max-h-[55vh] overflow-y-auto rounded-md border">
-              {filteredCatalogue.length === 0 ? (
+              {sortedCatalogue.length === 0 ? (
                 <p className="text-muted-foreground py-8 text-center text-sm">
                   Geen maatregelen gevonden voor &ldquo;
                   {query}&rdquo;
                 </p>
               ) : (
                 <div className="divide-y">
-                  {filteredCatalogue.map((item) => {
+                  {sortedCatalogue.map((item) => {
                     const isAlreadyActive = activeMeasureIds.has(item.m_id)
                     const conflicts = conflictMap.get(item.m_id)
-                    const isBlocked = isAlreadyActive || !!conflicts
+                    const appInfo = computedApplicabilityMap?.[item.m_id]
+                    const isNotApplicable = appInfo && appInfo.isBlocked
+                    const isBlocked = isAlreadyActive || !!conflicts || isNotApplicable
+
+                    const hasPartialApplicability =
+                      appInfo &&
+                      !appInfo.isBlocked &&
+                      appInfo.applicableFieldNames &&
+                      appInfo.totalFieldsCount &&
+                      appInfo.applicableFieldNames.length < appInfo.totalFieldsCount
 
                     return (
                       <button
@@ -323,6 +471,31 @@ export function AddMeasureDialog({
                               {item.m_id.replace("bln_", "")}
                             </span>
                             <span className="truncate text-sm font-medium">{item.m_name}</span>
+                            {appInfo?.applicability === "not yet applicable" && (
+                              <Badge
+                                variant="outline"
+                                className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                              >
+                                Niet geschikt
+                              </Badge>
+                            )}
+                            {appInfo?.applicability === "inapplicable" && (
+                              <Badge
+                                variant="outline"
+                                className="border-destructive/50 bg-destructive/10 text-[10px] text-destructive"
+                              >
+                                {fields ? "Geen toepasbare percelen" : "Niet mogelijk"}
+                              </Badge>
+                            )}
+                            {hasPartialApplicability && (
+                              <Badge
+                                variant="outline"
+                                className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                              >
+                                Deels toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
+                                {appInfo.applicableFieldNames!.length === 1 ? "perceel" : "percelen"}
+                              </Badge>
+                            )}
                           </div>
                           {isAlreadyActive && (
                             <p className="text-muted-foreground mt-0.5 text-xs">
@@ -333,6 +506,16 @@ export function AddMeasureDialog({
                             <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-600">
                               <AlertTriangle className="h-3 w-3 shrink-0" />
                               Conflicteert met: {conflicts.join(", ")}
+                            </p>
+                          )}
+                          {!fields && appInfo?.applicability === "not yet applicable" && appInfo.message && (
+                            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
+                              {appInfo.message}
+                            </p>
+                          )}
+                          {!fields && appInfo?.isInapplicable && appInfo.message && (
+                            <p className="text-destructive mt-0.5 text-xs">
+                              {appInfo.message}
                             </p>
                           )}
                         </div>
@@ -396,18 +579,36 @@ export function AddMeasureDialog({
                         type="button"
                         className="text-muted-foreground hover:text-foreground text-xs"
                         onClick={() => {
-                          const visibleIds = visibleFields.map((f) => f.b_id)
-                          const allVisible = visibleIds.every((id) => selectedFieldIds.has(id))
+                          const selectableIds = visibleFields
+                            .filter(
+                              (f) =>
+                                !selected ||
+                                !applicabilityByField?.[f.b_id]?.[selected.m_id] ||
+                                applicabilityByField[f.b_id][selected.m_id].applicability === "applicable",
+                            )
+                            .map((f) => f.b_id)
+                          const allSelectableChecked = selectableIds.every((id) =>
+                            selectedFieldIds.has(id),
+                          )
                           const next = new Set(selectedFieldIds)
-                          if (allVisible) {
-                            for (const id of visibleIds) next.delete(id)
+                          if (allSelectableChecked) {
+                            for (const id of selectableIds) next.delete(id)
                           } else {
-                            for (const id of visibleIds) next.add(id)
+                            for (const id of selectableIds) next.add(id)
                           }
                           setSelectedFieldIds(next)
                         }}
                       >
-                        {visibleFields.every((f) => selectedFieldIds.has(f.b_id)) ? "Geen" : "Alle"}
+                        {visibleFields
+                          .filter(
+                            (f) =>
+                              !selected ||
+                              !applicabilityByField?.[f.b_id]?.[selected.m_id] ||
+                              applicabilityByField[f.b_id][selected.m_id].applicability === "applicable",
+                          )
+                          .every((f) => selectedFieldIds.has(f.b_id))
+                          ? "Geen"
+                          : "Alle"}
                       </button>
                     </div>
                     <div className="relative">
@@ -436,22 +637,32 @@ export function AddMeasureDialog({
                       ) : (
                         visibleFields.map((f) => {
                           const checked = selectedFieldIds.has(f.b_id)
+                          const fieldAppInfo =
+                            selected && applicabilityByField?.[f.b_id]?.[selected.m_id]
+                          const isFieldNonApplicable =
+                            fieldAppInfo && fieldAppInfo.applicability !== "applicable"
                           const cultColor = getCultivationColor(
                             f.mainCultivation?.b_lu_croprotation ?? undefined,
                           )
-                          return (
+
+                          const rowContent = (
                             <label
-                              key={f.b_id}
                               className={cn(
-                                "flex cursor-pointer items-center gap-3 px-3 py-2 transition-colors",
-                                checked ? "bg-primary/5" : "hover:bg-muted/50",
+                                "flex items-center gap-3 px-3 py-2 transition-colors",
+                                isFieldNonApplicable
+                                  ? "cursor-not-allowed opacity-50 bg-muted/20"
+                                  : checked
+                                    ? "cursor-pointer bg-primary/5"
+                                    : "cursor-pointer hover:bg-muted/50",
                               )}
                             >
                               <input
                                 type="checkbox"
                                 className="shrink-0 rounded"
-                                checked={checked}
+                                checked={checked && !isFieldNonApplicable}
+                                disabled={isFieldNonApplicable}
                                 onChange={() => {
+                                  if (isFieldNonApplicable) return
                                   const next = new Set(selectedFieldIds)
                                   if (checked) {
                                     next.delete(f.b_id)
@@ -464,12 +675,29 @@ export function AddMeasureDialog({
                               <span
                                 className={cn(
                                   "min-w-0 flex-1 truncate text-sm",
-                                  checked && "font-medium",
+                                  checked && !isFieldNonApplicable && "font-medium",
+                                  isFieldNonApplicable && "line-through text-muted-foreground",
                                 )}
                               >
                                 {f.b_name ?? f.b_id}
                               </span>
                               <div className="flex shrink-0 items-center gap-2">
+                                {fieldAppInfo?.applicability === "not yet applicable" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                  >
+                                    Niet geschikt
+                                  </Badge>
+                                )}
+                                {fieldAppInfo?.applicability === "inapplicable" && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-destructive/50 bg-destructive/10 text-[10px] text-destructive"
+                                  >
+                                    Niet mogelijk
+                                  </Badge>
+                                )}
                                 {f.mainCultivation?.b_lu_name && (
                                   <Badge
                                     className="px-1.5 py-0 text-xs text-white"
@@ -488,6 +716,23 @@ export function AddMeasureDialog({
                               </div>
                             </label>
                           )
+
+                          if (isFieldNonApplicable && fieldAppInfo?.message) {
+                            return (
+                              <TooltipProvider key={f.b_id}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div>{rowContent}</div>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="max-w-xs text-xs">
+                                    {fieldAppInfo.message}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )
+                          }
+
+                          return <div key={f.b_id}>{rowContent}</div>
                         })
                       )}
                     </div>

@@ -59,6 +59,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { getMeasureApplicabilityForFields } from "~/integrations/bln3.server"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
 export const meta: MetaFunction = () => {
@@ -102,6 +103,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         false,
       ),
     ])
+
+    const calendarYear = Number(calendar)
+    const fieldIds = fields.map((f) => f.b_id)
+    const applicabilityByField = await getMeasureApplicabilityForFields({
+      principal_id: session.principal_id,
+      b_ids: fieldIds,
+      b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+      timeframe,
+    }).catch(() => ({}))
 
     // Build field list for the dialog — enrich with cultivation + area
     const fieldCultivations = await Promise.all(
@@ -219,6 +229,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       catalogue,
       mapStyle: getMapStyle("satellite"),
       fieldSummaries,
+      applicabilityByField,
       stats: {
         totalFields: fields.length,
         totalMeasures,
@@ -497,6 +508,7 @@ export default function MeasuresFarmIndex() {
     mapStyle,
     stats,
     fieldSummaries,
+    applicabilityByField,
     farmWritePermission,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
@@ -650,6 +662,7 @@ export default function MeasuresFarmIndex() {
         onOpenChange={setAddDialogOpen}
         catalogue={catalogue}
         activeMeasures={[]}
+        applicabilityByField={applicabilityByField ?? undefined}
         fields={fieldList}
         initialFieldIds={initialFieldIds}
         calendarYearStart={calendarYearStart}
