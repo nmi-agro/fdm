@@ -11,6 +11,7 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
+  type Cultivation,
   getCultivations,
   getCultivationsForFarm,
   getCurrentSoilData,
@@ -29,7 +30,6 @@ import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
 import { useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
-import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
 import type {
   AsyncTileResult,
   FieldDashboardBlnSummary,
@@ -73,7 +73,7 @@ import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.ser
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
+import { getIndicatorInfo, getScoreTier, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
 import { enrichCurrentSoilDataWithNlv } from "~/lib/soil.server"
 import { cn } from "~/lib/utils"
 
@@ -209,6 +209,51 @@ function formatNormItem(
     limit: Math.round(limit),
     unit,
   }
+}
+
+/**
+ * Resolves FDM-registered main cultivations across candidate years (including active calendar year,
+ * current year, and any estimated years from NMI). For every year where `getMainCultivation`
+ * resolves an active FDM cultivation, returns an entry with `source: "fdm"`.
+ */
+function getFdmCultivationHistoryEntries(
+  allCultivations: Cultivation[],
+  calendar: string,
+  extraYears: number[] = [],
+): FieldDashboardCultivationHistoryEntry[] {
+  const currentYear = new Date().getFullYear()
+  const calendarYear = Number(calendar)
+
+  const yearsSet = new Set<number>([calendarYear, currentYear, ...extraYears])
+
+  for (const cultivation of allCultivations) {
+    const startYear = toDate(cultivation.b_lu_start)?.getFullYear()
+    const endYear =
+      toDate(cultivation.b_lu_end)?.getFullYear() ?? Math.max(calendarYear, currentYear)
+    if (startYear != null) {
+      for (let y = startYear; y <= endYear; y++) {
+        yearsSet.add(y)
+      }
+    }
+  }
+
+  const sortedYears = Array.from(yearsSet).sort((a, b) => b - a)
+
+  const history: FieldDashboardCultivationHistoryEntry[] = []
+  for (const year of sortedYears) {
+    const cultivationForYear = getMainCultivation(allCultivations, String(year))
+    if (!cultivationForYear) continue
+    history.push({
+      year,
+      b_lu_catalogue: cultivationForYear.b_lu_catalogue,
+      b_lu_name: cultivationForYear.b_lu_name ?? undefined,
+      b_lu_croprotation: cultivationForYear.b_lu_croprotation ?? undefined,
+      b_lu_rest_oravib: cultivationForYear.b_lu_rest_oravib ?? false,
+      source: "fdm",
+    })
+  }
+
+  return history
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -372,28 +417,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
       : null
 
-    const cultivationYears = allCultivations.flatMap((cultivation) => {
-      const startYear = toDate(cultivation.b_lu_start)?.getFullYear()
-      const endYear = toDate(cultivation.b_lu_end)?.getFullYear()
-      return [startYear, endYear].filter((year): year is number => year != null)
-    })
-    const minYear = cultivationYears.length > 0 ? Math.min(...cultivationYears) : Number(calendar)
-    const maxYear = cultivationYears.length > 0 ? Math.max(...cultivationYears) : Number(calendar)
-
-    const fdmCultivationHistory: CultivationHistory[] = []
-    for (let year = maxYear; year >= minYear; year--) {
-      // Use the same hoofdteelt rule as the rest of the app, rather than grouping by start
-      // date, so multi-cultivation years resolve to the one considered active.
-      const cultivationForYear = getMainCultivation(allCultivations, String(year))
-      if (!cultivationForYear) continue
-      fdmCultivationHistory.push({
-        year,
-        b_lu_catalogue: cultivationForYear.b_lu_catalogue,
-        b_lu_name: cultivationForYear.b_lu_name ?? undefined,
-        b_lu_croprotation: cultivationForYear.b_lu_croprotation ?? undefined,
-        b_lu_rest_oravib: cultivationForYear.b_lu_rest_oravib ?? false,
-      })
-    }
+    const initialFdmHistory = getFdmCultivationHistoryEntries(allCultivations, calendar)
 
     const dose = calculateDose({
       applications: fertilizerApplications,
@@ -465,12 +489,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>
     > => {
       const nmiApiKey = getNmiApiKey()
-      const fdmHistoryWithSource: FieldDashboardCultivationHistoryEntry[] =
-        fdmCultivationHistory.map((entry) => ({ ...entry, source: "fdm" }))
 
       if (!nmiApiKey || !field.b_geometry) {
-        return fdmHistoryWithSource.length > 0
-          ? { status: "ready", data: fdmHistoryWithSource }
+        return initialFdmHistory.length > 0
+          ? { status: "ready", data: initialFdmHistory }
           : buildEmptyResult("Nog geen teelthistorie beschikbaar voor dit perceel.")
       }
 
@@ -486,7 +508,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const catalogueMap = new Map(
           cultivationCatalogue.map((item) => [item.b_lu_catalogue, item]),
         )
-        const fdmYears = new Set(fdmCultivationHistory.map((entry) => entry.year))
+
+        const estimatedYears = estimates.cultivations.map((c) => c.year)
+        const fdmHistory = getFdmCultivationHistoryEntries(
+          allCultivations,
+          calendar,
+          estimatedYears,
+        )
+        const fdmYears = new Set(fdmHistory.map((entry) => entry.year))
 
         // Fill in years not registered in fdm with NMI's BRP-based cultivation-history estimate
         const nmiHistory: FieldDashboardCultivationHistoryEntry[] = estimates.cultivations
@@ -504,15 +533,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             }
           })
 
-        const merged = [...fdmHistoryWithSource, ...nmiHistory].sort((a, b) => b.year - a.year)
+        const merged = [...fdmHistory, ...nmiHistory].sort((a, b) => b.year - a.year)
 
         return merged.length > 0
           ? { status: "ready", data: merged }
           : buildEmptyResult("Nog geen teelthistorie beschikbaar voor dit perceel.")
       } catch (error) {
         // NMI enrichment failed: fall back to the field's own registered history rather than a hard error
-        if (fdmHistoryWithSource.length > 0) {
-          return { status: "ready", data: fdmHistoryWithSource }
+        if (initialFdmHistory.length > 0) {
+          return { status: "ready", data: initialFdmHistory }
         }
         return buildSanitizedErrorResult(
           error,
@@ -691,9 +720,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
 
         const score = scoreToDisplay(mainScore01)
-        const attentionCount = result.score.indicators.filter(
-          (indicator) => getScoreTier(scoreToDisplay(indicator.score)) !== "green",
-        ).length
+        const attentionItems = result.score.indicators
+          .filter(
+            (indicator) => getScoreTier(scoreToDisplay(indicator.score)) !== "green",
+          )
+          .map((indicator) => {
+            const info = getIndicatorInfo(indicator.indicator_id)
+            return {
+              id: indicator.indicator_id,
+              name: info?.name ?? indicator.indicator_id,
+              score: scoreToDisplay(indicator.score),
+            }
+          })
+          .sort((a, b) => a.score - b.score)
+
+        const attentionCount = attentionItems.length
 
         const aggregations = [
           { id: "S_WAT_BLN", label: "Water" },
@@ -718,6 +759,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             score,
             verdict: getScoreVerdict(score),
             attentionCount,
+            attentionItems,
             aggregations,
           },
         }

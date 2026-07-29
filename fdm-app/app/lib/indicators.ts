@@ -132,6 +132,13 @@ export const INDICATORS: IndicatorInfo[] = [
     unit: null,
   },
   {
+    id: "P_PAW",
+    name: "Plantbeschikbaar water",
+    description: "De hoeveelheid water die de bodem kan vasthouden en beschikbaar kan stellen aan het gewas",
+    ecosysteemdienst: "Productie",
+    unit: "mm",
+  },
+  {
     id: "P_RO",
     name: "Bewortelbaarheid",
     description: "De mate waarin de bodem gemakkelijk te bewortelen is voor het gewas",
@@ -274,7 +281,10 @@ export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
 ]
 
 /** Convert 0–1 API score to 0–100 display value. */
-export function scoreToDisplay(score01: number): number {
+export function scoreToDisplay(score01: number | null | undefined): number {
+  if (typeof score01 !== "number" || !Number.isFinite(score01)) {
+    return 0
+  }
   return Math.round(score01 * 100)
 }
 

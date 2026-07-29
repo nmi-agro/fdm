@@ -1,4 +1,4 @@
-import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
+import { getCultivationsForFarm, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
@@ -17,6 +17,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -89,17 +90,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     })
 
     // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-    const fieldOptions = fields.map((field) => {
-      if (!field?.b_id || !field?.b_name) {
-        throw new Error("Invalid field data structure")
-      }
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-      }
-    })
+    const [fields, cultivationsByField] = await Promise.all([
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+    const fieldOptions = buildFieldOptions(
+      fields,
+      cultivationsByField,
+      params.calendar,
+      timeframe.start?.getFullYear(),
+    )
 
     // Return user information from loader
     return {

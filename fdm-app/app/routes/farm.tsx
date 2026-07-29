@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router"
-import { getFarm, getFarms, getFields, checkPermission } from "@nmi-agro/fdm-core"
+import { checkPermission, getCultivationsForFarm, getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
   checkHelpdeskPermission,
   getUnassignedTicketCount,
@@ -21,6 +21,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { containsErrorMessage, handleLoaderError, PERMISSION_DENIED_MESSAGE } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 import { useCalendarStore } from "~/store/calendar"
 import { useFarmStore } from "~/store/farm"
 import { useSelectedFieldStore } from "~/store/selected-field"
@@ -109,24 +110,22 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
     const timeframe = getTimeframe(params)
 
-    const fields =
-      hasFarmParam && !farmAccessDenied && params.b_id_farm
-        ? await getFields(fdm, session.principal_id, params.b_id_farm, timeframe)
-        : []
+    const shouldFetchFarmData = Boolean(hasFarmParam && !farmAccessDenied && params.b_id_farm)
 
-    const fieldOptions = fields.map((field) => {
-      if (!field?.b_id || !field?.b_name) {
-        throw new Error("Invalid field data structure")
-      }
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-      }
-    })
+    const [fields, cultivationsByField] =
+      shouldFetchFarmData && params.b_id_farm
+        ? await Promise.all([
+            getFields(fdm, session.principal_id, params.b_id_farm, timeframe),
+            getCultivationsForFarm(fdm, session.principal_id, params.b_id_farm, timeframe),
+          ])
+        : [[], new Map()]
 
-    // Sort fields by name alphabetically
-    fieldOptions.sort((a, b) => a.b_name.localeCompare(b.b_name))
+    const fieldOptions = buildFieldOptions(
+      fields,
+      cultivationsByField,
+      params.calendar,
+      timeframe.start?.getFullYear(),
+    )
 
     const helpdeskReadPermission = await checkHelpdeskPermission(
       fdm,

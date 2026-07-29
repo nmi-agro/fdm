@@ -86,6 +86,20 @@ function StackedScoreBar({
   )
 }
 
+function formatNumber(value: unknown): string {
+  if (typeof value === "string" && value.trim() === "") {
+    return "-"
+  }
+  if (typeof value !== "number" && typeof value !== "string") {
+    return "-"
+  }
+  const num = Number(value)
+  if (Number.isFinite(num)) {
+    return num.toFixed(2)
+  }
+  return "-"
+}
+
 export function IndicatorCard({
   info,
   result,
@@ -154,10 +168,10 @@ export function IndicatorCard({
 
             {/* Status & target */}
             <p className="text-muted-foreground mt-0.5 text-xs">
-              Status <span className="text-foreground font-medium">{result.status.toFixed(2)}</span>
+              Status <span className="text-foreground font-medium">{formatNumber(result.status)}</span>
               {info.unit && <span className="text-muted-foreground"> {info.unit}</span>}
               {"  "}· Doel{" "}
-              <span className="text-foreground font-medium">{result.target.toFixed(2)}</span>
+              <span className="text-foreground font-medium">{formatNumber(result.target)}</span>
               {info.unit && <span className="text-muted-foreground"> {info.unit}</span>}
             </p>
 

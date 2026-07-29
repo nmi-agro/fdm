@@ -10,7 +10,7 @@ catalogs:
       specifier: ^1.6.25
       version: 1.6.25
     '@dotenvx/dotenvx':
-      specifier: ^2.18.0
+      specifier: ^2.19.0
       version: 2.18.0
     '@types/node':
       specifier: ^26.1.1
@@ -212,8 +212,8 @@ importers:
         specifier: ^7.21.0
         version: 7.21.0(supports-color@8.1.1)
       '@hookform/resolvers':
-        specifier: ^5.5.6
-        version: 5.5.6(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.76.1(react@19.2.8))(valibot@1.4.2(typescript@7.0.2))(zod@4.4.3)
+        specifier: ^5.5.7
+        version: 5.5.7(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.76.1(react@19.2.8))(valibot@1.4.2(typescript@7.0.2))(zod@4.4.3)
       '@icons-pack/react-simple-icons':
         specifier: ^13.13.0
         version: 13.13.0(react@19.2.8)
@@ -386,8 +386,8 @@ importers:
         specifier: ^3.4.9
         version: 3.4.9
       posthog-js:
-        specifier: ^1.407.2
-        version: 1.407.2
+        specifier: ^1.407.3
+        version: 1.407.3
       posthog-node:
         specifier: ^5.46.1
         version: 5.46.1
@@ -469,7 +469,7 @@ importers:
     devDependencies:
       '@dotenvx/dotenvx':
         specifier: 'catalog:'
-        version: 2.18.0
+        version: 2.19.0
       '@react-router/dev':
         specifier: ^8.3.0
         version: 8.3.0(@react-router/serve@8.3.0(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(supports-color@8.1.1)(typescript@7.0.2))(react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(supports-color@8.1.1)(typescript@7.0.2)(vite@8.1.5(@types/node@26.1.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)(yaml@2.9.0))
@@ -2247,8 +2247,15 @@ packages:
     resolution: {integrity: sha512-HbL4eyeQub/V4VBm0RNYA3ZIozbES0j2wy3TTYKw++lvKU4UEjXu8QQnfEr3zJg5c+fjOceCQbtAWT2LYIoKxQ==}
     hasBin: true
 
+  '@dotenvx/dotenvx@2.19.0':
+    resolution: {integrity: sha512-DPy8Xbe+wV8gDRAC9Kr324dkgH4aQS7tPGh1YLkBSBICFvAQNe5umnpRT7IZ0yJ3VlsfWVFJ6+2s9dcZjtQOAw==}
+    hasBin: true
+
   '@dotenvx/primitives@2.1.0':
     resolution: {integrity: sha512-GIpMSSgjZk4URRCtAw12vBmobnw3VeSKL+p7/y8ypWvTHFW+StAMZvq4wCjdX+QKuw4alXu0IMGW6QPhKo6ufg==}
+
+  '@dotenvx/primitives@2.1.1':
+    resolution: {integrity: sha512-FvG4D0x5nELUxGjeGviXJnVHluK4jIeB3ebOTObgCMbc0/hc7byzUsl3nURTSyBcSCy9dQdOZ12zOIknircMkA==}
 
   '@dotenvx/tooling@1.0.3':
     resolution: {integrity: sha512-Gd6qQol/ICb4MPRWpiIH56y+pR9AVB7kPBkbhrLSGLtAiF4Qgy+k651/f2pze0Xbm3H5XewbPfIm4y9K+ic30Q==}
@@ -2801,8 +2808,8 @@ packages:
       hono: '>=4.11.2'
       zod: ^3.25.0 || ^4.0.0
 
-  '@hookform/resolvers@5.5.6':
-    resolution: {integrity: sha512-BVHhpGDbkUbvnAbtLLyp7+r1HzdjKQYYeEgaqOrec+b0bX6VKWLf91t1cjbxWnu+Ae8KTXZYp/7R6SZN4avPtg==}
+  '@hookform/resolvers@5.5.7':
+    resolution: {integrity: sha512-CyPCYV8/KlXfEXLWj8HHHhVsR/IZ6Ckm3b/a4fWtO/lRnRK1huqncb8LlAWrmpPRsse5glF5aVuDRMHEr3UGag==}
     peerDependencies:
       '@sinclair/typebox': '>=0.25.24'
       '@standard-schema/spec': ^1.0.0
@@ -2825,7 +2832,7 @@ packages:
       react-hook-form: ^7.55.0
       superstruct: '>=0.12.0'
       typanion: ^3.3.2
-      valibot: ^1.0.0 || ^1.0.0-beta.4 || ^1.0.0-rc
+      valibot: '>=0.31.0 || ^1.0.0-beta.4 || ^1.0.0-rc'
       vest: '>=3.0.0'
       yup: ^1.0.0
       zod: ^3.25.0 || ^4.0.0
@@ -3858,8 +3865,8 @@ packages:
       openai:
         optional: true
 
-  '@posthog/browser-common@0.2.1':
-    resolution: {integrity: sha512-FTVPsRw6GBKWvFwN26TNIQNNYPR9FsUj+B+CKhk/ht63IRzn4yYFtFOjcmW+bfXvNHuRADs6APbZ6Haz1kpoAw==}
+  '@posthog/browser-common@0.2.2':
+    resolution: {integrity: sha512-4NHumu2lx7pMeucDLfXnDmeP5CV2oVWY8jBpXBwBUjoYwkQxB7Z3A6q9oDydw+/iSAGl6MaPqW9gsnRK8AvqLA==}
 
   '@posthog/core@1.45.1':
     resolution: {integrity: sha512-tLtvzomavb2PPWdGYKsusyIzIeL2Px47v348Smibkay7sMy/83TyPk+Ptsp2NdeOgJsbuwSxWkR2+XA0aSCAaA==}
@@ -10751,8 +10758,8 @@ packages:
     resolution: {integrity: sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw==}
     engines: {node: '>=12'}
 
-  posthog-js@1.407.2:
-    resolution: {integrity: sha512-5deTvXopn+NJWEmCUw8Ix/ms3cv2+60WJ73Vgbvu2wSkZY/FIj2uqAgCnq7IewGpGC+tH7CAbPYFzH6hw8eW1w==}
+  posthog-js@1.407.3:
+    resolution: {integrity: sha512-b9Kc7HVN6nh+xsh1JrcLYHv9bbYLwYUM9belJtNVUFZSJWWfFcZRJJP6L+KeanAeu2VxSFSpioVA39pjjolv4A==}
 
   posthog-node@5.46.1:
     resolution: {integrity: sha512-WjCqExq44pBdyg9MSsH6UAE0tNZ88p4aIuVFicgqhjf2Fbws6IhS4ioYUa4aBrbUPS9EDRXtBTtF5DpP1ml8Pw==}
@@ -12702,8 +12709,8 @@ packages:
     resolution: {integrity: sha512-DODGl1wJjA/s5pnJFKau9lIYHT81lnhob1i3e1TjxZRxEhWRKl74nTbWE6H5KlkViQQTo/Z29YFdxzTZAMY3ng==}
     engines: {node: '>=18.19'}
 
-  yoctocolors@2.1.2:
-    resolution: {integrity: sha512-CzhO+pFNo8ajLM2d2IW/R93ipy99LWjtwblvC1RsoSUMZgyLbYFr221TnSNT7GjGdYui6P459mw9JH/g/zW2ug==}
+  yoctocolors@2.2.0:
+    resolution: {integrity: sha512-xYqdZFUK/VYazNl/oCDYN+3WloWQwMfZxBoiNt6qNyk+xfOdi598muWE42rNZFp1kNOiqW936q5RhUdnpqElSg==}
     engines: {node: '>=18'}
 
   yoga-layout@3.2.1:
@@ -13678,7 +13685,7 @@ snapshots:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.7
       '@babel/helper-globals': 7.29.7
-      '@babel/parser': 7.29.2
+      '@babel/parser': 7.29.7
       '@babel/template': 7.29.7
       '@babel/types': 7.29.7
       debug: 4.4.3(supports-color@8.1.1)
@@ -15242,7 +15249,15 @@ snapshots:
       '@dotenvx/tooling': 1.0.3
       yocto-spinner: 1.2.2
 
+  '@dotenvx/dotenvx@2.19.0':
+    dependencies:
+      '@dotenvx/primitives': 2.1.1
+      '@dotenvx/tooling': 1.0.3
+      yocto-spinner: 1.2.2
+
   '@dotenvx/primitives@2.1.0': {}
+
+  '@dotenvx/primitives@2.1.1': {}
 
   '@dotenvx/tooling@1.0.3': {}
 
@@ -15607,7 +15622,7 @@ snapshots:
       hono: 4.12.32
       zod: 4.4.3
 
-  '@hookform/resolvers@5.5.6(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.76.1(react@19.2.8))(valibot@1.4.2(typescript@7.0.2))(zod@4.4.3)':
+  '@hookform/resolvers@5.5.7(@sinclair/typebox@0.27.12)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(joi@17.13.4)(react-hook-form@7.76.1(react@19.2.8))(valibot@1.4.2(typescript@7.0.2))(zod@4.4.3)':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.76.1(react@19.2.8)
@@ -16487,7 +16502,7 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 2.10.0(@opentelemetry/api@1.9.1)
       openai: 6.42.0(ws@8.21.1)(zod@4.4.3)
 
-  '@posthog/browser-common@0.2.1':
+  '@posthog/browser-common@0.2.2':
     dependencies:
       '@posthog/core': 1.45.1
       '@posthog/types': 1.398.0
@@ -22138,7 +22153,7 @@ snapshots:
   log-symbols@7.0.1:
     dependencies:
       is-unicode-supported: 2.1.0
-      yoctocolors: 2.1.2
+      yoctocolors: 2.2.0
 
   long@5.3.2:
     optional: true
@@ -23826,9 +23841,9 @@ snapshots:
 
   postgres@3.4.9: {}
 
-  posthog-js@1.407.2:
+  posthog-js@1.407.3:
     dependencies:
-      '@posthog/browser-common': 0.2.1
+      '@posthog/browser-common': 0.2.2
       '@posthog/core': 1.45.1
       '@posthog/types': 1.398.0
       core-js: 3.49.0
@@ -26161,9 +26176,9 @@ snapshots:
 
   yocto-spinner@1.2.2:
     dependencies:
-      yoctocolors: 2.1.2
+      yoctocolors: 2.2.0
 
-  yoctocolors@2.1.2: {}
+  yoctocolors@2.2.0: {}
 
   yoga-layout@3.2.1: {}
 

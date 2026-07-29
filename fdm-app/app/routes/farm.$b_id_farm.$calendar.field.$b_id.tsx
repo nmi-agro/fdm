@@ -1,4 +1,4 @@
-import { checkPermission, getFarms, getField, getFields } from "@nmi-agro/fdm-core"
+import { checkPermission, getCultivationsForFarm, getFarms, getField, getFields } from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
@@ -19,6 +19,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 import { useCalendarStore } from "~/store/calendar"
 
 // Meta
@@ -36,7 +37,7 @@ export const meta: MetaFunction = () => {
  * Loads data required to render the farm field index page.
  *
  * This function verifies that both a farm ID and a field ID are provided in the route parameters, retrieving the user session before fetching farms and fields associated with the user's principal ID.
- * It constructs selectable options for farms and fields (with field areas rounded to one decimal place), ensures field options are sorted alphabetically, and retrieves detailed information about the specified field.
+ * It constructs selectable options for farms and fields (with field areas rounded to one decimal place), ensures field options are sorted by area descending (secondary sort by name), and retrieves detailed information about the specified field.
  * Additionally, it builds sidebar navigation items for the page. *
  * @returns An object containing:
  *  - b_id_farm: The farm identifier.
@@ -96,20 +97,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     })
 
     // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-    const fieldOptions = fields.map((field) => {
-      if (!field?.b_id || !field?.b_name) {
-        throw new Error("Invalid field data structure")
-      }
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-      }
-    })
-
-    // Sort fields by name alphabetically
-    fieldOptions.sort((a, b) => a.b_name.localeCompare(b.b_name))
+    const [fields, cultivationsByField] = await Promise.all([
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+    const fieldOptions = buildFieldOptions(
+      fields,
+      cultivationsByField,
+      params.calendar,
+      timeframe.start?.getFullYear(),
+    )
 
     // Get the generral information of the field
     const field = await getField(fdm, session.principal_id, b_id)

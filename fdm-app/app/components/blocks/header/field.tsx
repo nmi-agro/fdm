@@ -56,4 +56,7 @@ export function HeaderField({
 type HeaderFieldOption = {
   b_id: string
   b_name: string | undefined | null
+  b_area?: number
+  b_lu_name?: string
+  b_lu_croprotation?: string
 }

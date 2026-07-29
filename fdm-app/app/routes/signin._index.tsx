@@ -914,7 +914,7 @@ export default function SignIn() {
           <div className="bg-background py-24">
             <div className="container mx-auto max-w-6xl px-4 lg:px-8">
               <div className="mx-auto mb-20 max-w-3xl text-center">
-                <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 mb-4 inline-flex items-center rounded-full border border-emerald-200/60 dark:border-emerald-800/50 px-3 py-1 text-xs font-semibold tracking-wide uppercase">
+                <div className="mb-4 inline-flex items-center rounded-full border border-emerald-200/60 bg-emerald-100 px-3 py-1 text-xs font-semibold tracking-wide text-emerald-800 uppercase dark:border-emerald-800/50 dark:bg-emerald-950/60 dark:text-emerald-300">
                   Bodemgezondheid in de praktijk
                 </div>
                 <h2 className="text-foreground mb-6 text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -923,8 +923,10 @@ export default function SignIn() {
                 <p className="text-muted-foreground text-lg leading-relaxed">
                   Met <strong className="text-foreground">Indicatoren</strong> brengt{" "}
                   {clientConfig.name} de bodemgezondheid van uw percelen helder in kaart, van
-                  waterkwaliteit en klimaat tot productie. Gebaseerd op de methodieken van de <em>Open Bodem Index (OBI)</em>,{" "}
-                  <em>Bodemindicatoren Landbouwgrond Nederland (BLN)</em> en het <em>BedrijfsBodemWaterPlan (BBWP)</em>.
+                  waterkwaliteit en klimaat tot productie. Gebaseerd op de methodieken van de{" "}
+                  <em>Open Bodem Index (OBI)</em>,{" "}
+                  <em>Bodemindicatoren Landbouwgrond Nederland (BLN)</em> en het{" "}
+                  <em>BedrijfsBodemWaterPlan (BBWP)</em>.
                 </p>
                 <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
                   Met <strong className="text-foreground">Maatregelen</strong> koppelt u direct
@@ -961,11 +963,13 @@ export default function SignIn() {
                         <AlertTriangle className="h-5 w-5" />
                       </div>
                       <div>
-                        <h4 className="text-foreground font-semibold">Knelpunten in één oogopslag</h4>
+                        <h4 className="text-foreground font-semibold">
+                          Knelpunten in één oogopslag
+                        </h4>
                         <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                          De geautomatiseerde knelpuntenanalyse laat direct zien welke
-                          indicatoren op uw bedrijf achterblijven en welke percelen daar het meest
-                          aan bijdragen, inclusief een snelle doorklik naar de perceelsdetails.
+                          De geautomatiseerde knelpuntenanalyse laat direct zien welke indicatoren
+                          op uw bedrijf achterblijven en welke percelen daar het meest aan
+                          bijdragen, inclusief een snelle doorklik naar de perceelsdetails.
                         </p>
                       </div>
                     </div>
@@ -974,7 +978,9 @@ export default function SignIn() {
                         <ClipboardList className="h-5 w-5" />
                       </div>
                       <div>
-                        <h4 className="text-foreground font-semibold">Maatregelen direct koppelen</h4>
+                        <h4 className="text-foreground font-semibold">
+                          Maatregelen direct koppelen
+                        </h4>
                         <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                           Koppel doeltreffende maatregelen aan één of meerdere percelen, leg de
                           startdatum en looptijd vast, en volg nauwkeurig de voortgang van uw
@@ -1009,8 +1015,8 @@ export default function SignIn() {
                           <strong className="text-foreground font-semibold">
                             Vroegtijdig risico's signaleren:
                           </strong>{" "}
-                          Ontdek knelpunten zoals bodemverdichting of een lage
-                          grondwateraanvulling voordat ze uw opbrengst beïnvloeden.
+                          Ontdek knelpunten zoals bodemverdichting of een lage grondwateraanvulling
+                          voordat ze uw opbrengst beïnvloeden.
                         </span>
                       </li>
                       <li className="flex items-start gap-2.5">
@@ -1603,14 +1609,14 @@ export default function SignIn() {
                 </div>
               </div>
               <div className="text-muted-foreground border-t pt-8 text-center text-sm">
-                Ontwikkeld door{" "}
+                Ontwikkeld door het{" "}
                 <a
                   href="https://www.nmi-agro.nl"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground underline underline-offset-2 transition-colors"
                 >
-                  het Nutriënten Management Instituut
+                  Nutriënten Management Instituut
                 </a>
                 . Gelicentieerd onder de MIT-licentie.
               </div>

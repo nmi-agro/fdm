@@ -118,6 +118,7 @@ export function PdfViewerDialog({
   title,
   triggerLabel = "Bekijk PDF",
   triggerVariant = "outline",
+  triggerSize,
   triggerClassName,
 }: {
   a_id: string
@@ -125,12 +126,18 @@ export function PdfViewerDialog({
   title: string
   triggerLabel?: string
   triggerVariant?: React.ComponentProps<typeof Button>["variant"]
+  triggerSize?: React.ComponentProps<typeof Button>["size"]
   triggerClassName?: string
 }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant={triggerVariant} type="button" className={triggerClassName}>
+        <Button
+          variant={triggerVariant}
+          size={triggerSize}
+          type="button"
+          className={triggerClassName}
+        >
           <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
           {triggerLabel}
         </Button>

@@ -4,7 +4,7 @@ import {
   Calculator,
   CheckCircle2,
   ClipboardCheck,
-  Leaf,
+  ClipboardList,
   Microscope,
   MoveRight,
   Sparkles,
@@ -25,7 +25,7 @@ import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { getScoreDotClass } from "~/lib/indicators"
+import { getScoreDotClass, getScoreTextClass } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 import {
   FieldDashboardTile,
@@ -780,10 +780,10 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
   return (
     <FieldDashboardTile title={tile.title} detailHref={tile.detailHref}>
       <div className="space-y-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className="text-3xl font-semibold">{dashboard.soil.analysisCount}</p>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm leading-snug">
               analyses · laatste bemonstering op{" "}
               {formatDateLabel(dashboard.soil.latestAnalysisDate)}
             </p>
@@ -795,6 +795,7 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
               title={latestAnalysisPdf.title}
               triggerLabel="Bekijk PDF"
               triggerVariant="outline"
+              triggerSize="sm"
               triggerClassName="shrink-0"
             />
           )}
@@ -898,24 +899,17 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
               statusBadge={<ScoreBadge score={data.score} />}
             >
               <div className="space-y-4">
-                <div className="flex items-end justify-between gap-3">
-                  <div>
-                    <p className="text-3xl font-semibold">{data.score}/100</p>
-                    <p className="text-muted-foreground text-sm">{data.verdict}</p>
-                  </div>
-                  <div className="text-right text-sm">
-                    <p className="font-medium">
-                      {data.attentionCount === 0
-                        ? "Geen directe aandachtspunten"
-                        : `${data.attentionCount} aandachtspunt${data.attentionCount === 1 ? "" : "en"}`}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-3xl font-semibold">{data.score}/100</p>
+                  <p className="text-muted-foreground text-sm">{data.verdict}</p>
                 </div>
                 <Separator />
                 <div className="grid grid-cols-2 gap-3">
                   {data.aggregations.map((aggregation) => (
                     <div key={aggregation.id} className="rounded-lg border p-3">
-                      <p className="text-muted-foreground text-xs uppercase">{aggregation.label}</p>
+                      <p className="text-muted-foreground text-xs uppercase">
+                        {aggregation.label}
+                      </p>
                       <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
                         {aggregation.score == null ? (
                           "Onbekend"
@@ -934,6 +928,38 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                     </div>
                   ))}
                 </div>
+                {data.attentionItems && data.attentionItems.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-muted-foreground text-xs font-medium uppercase">
+                      Aandachtspunten ({data.attentionCount})
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {data.attentionItems.map((item) => (
+                        <Badge
+                          key={item.id}
+                          variant="outline"
+                          className="flex max-w-full min-w-0 items-center gap-1.5 text-xs font-normal"
+                        >
+                          <span
+                            className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              getScoreDotClass(item.score),
+                            )}
+                          />
+                          <span className="min-w-0 shrink truncate">{item.name}</span>
+                          <span
+                            className={cn(
+                              "shrink-0 font-semibold tabular-nums",
+                              getScoreTextClass(item.score),
+                            )}
+                          >
+                            {item.score}
+                          </span>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </FieldDashboardTile>
           ))
@@ -949,7 +975,7 @@ export function FieldDashboardMeasuresTile({ dashboard, tile }: FieldDashboardTi
       <FieldDashboardTileEmpty
         title={tile.title}
         detailHref={tile.detailHref}
-        icon={Leaf}
+        icon={ClipboardList}
         emptyTitle="Nog geen maatregelen"
         emptyDescription="Registreer bodemmaatregelen om de voortgang van dit perceel te volgen."
         action={

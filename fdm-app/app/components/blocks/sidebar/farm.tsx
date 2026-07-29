@@ -23,6 +23,7 @@ import { useFarmStore } from "@/app/store/farm"
 import { useSelectedFieldStore } from "@/app/store/selected-field"
 import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
 import { FieldPickerDialog } from "~/components/blocks/sidebar/field-picker-dialog"
+import { FieldPickerItem } from "~/components/blocks/header/field-picker"
 import { Badge } from "~/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import {
@@ -30,7 +31,6 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
-  CommandItem,
   CommandList,
 } from "~/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
@@ -47,6 +47,9 @@ import {
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
+import type { FieldOption } from "~/lib/hoofdteelt.server"
+
+export type { FieldOption }
 
 export function SidebarFarm({
   farm,
@@ -57,7 +60,7 @@ export function SidebarFarm({
 }: {
   farm: Awaited<ReturnType<typeof getFarm>> | undefined
   farms?: { b_id_farm: string; b_name_farm: string | null }[]
-  fields?: { b_id: string; b_name: string; b_area: number }[]
+  fields?: FieldOption[]
   activeFieldId?: string | null
   fieldWritePermission?: boolean
 }) {
@@ -110,9 +113,7 @@ export function SidebarFarm({
   >(null)
   // Once a farm has been picked for the "pick-field" flow, load that farm's fields.
   const [fieldPickerFarmId, setFieldPickerFarmId] = useState<string | null>(null)
-  const fieldOptionsFetcher = useFetcher<{
-    fields: { b_id: string; b_name: string; b_area: number }[]
-  }>()
+  const fieldOptionsFetcher = useFetcher<{ fields: FieldOption[] }>()
 
   const openFarmPicker = (label: string, resolvePath: (b_id_farm: string) => string) => {
     setPendingFeature({ kind: "navigate", label, resolvePath })
@@ -182,7 +183,13 @@ export function SidebarFarm({
   const recentFields = recentFieldIds
     .map((id) => fields.find((f) => f.b_id === id))
     .filter((f): f is NonNullable<typeof f> => f !== undefined)
-  const regularFields = fields.filter((f) => !recentFieldIds.includes(f.b_id))
+  const regularFields = fields
+    .filter((f) => !recentFieldIds.includes(f.b_id))
+    .sort(
+      (a, b) =>
+        (b.b_area ?? 0) - (a.b_area ?? 0) ||
+        (a.b_name ?? "").localeCompare(b.b_name ?? ""),
+    )
 
   const navigationItems = activeFieldId
     ? getFieldNavigationItems(farmId!, selectedCalendar!, activeFieldId, fieldWritePermission)
@@ -545,34 +552,23 @@ export function SidebarFarm({
                             {recentFields.length > 0 && (
                               <CommandGroup heading="Onlangs bezocht">
                                 {recentFields.map((field) => (
-                                  <CommandItem
+                                  <FieldPickerItem
                                     key={`recent-${field.b_id}`}
-                                    value={field.b_name}
-                                    onSelect={() => handleSelectField(field.b_id, field.b_name)}
-                                    className="flex cursor-pointer items-center justify-between"
-                                  >
-                                    <span>{field.b_name}</span>
-                                    <span className="text-muted-foreground text-xs">
-                                      {field.b_area} ha
-                                    </span>
-                                  </CommandItem>
+                                    keyPrefix="recent"
+                                    option={field}
+                                    onSelect={handleSelectField}
+                                  />
                                 ))}
                               </CommandGroup>
                             )}
                             {regularFields.length > 0 && (
                               <CommandGroup heading="Alle percelen">
                                 {regularFields.map((field) => (
-                                  <CommandItem
+                                  <FieldPickerItem
                                     key={field.b_id}
-                                    value={field.b_name}
-                                    onSelect={() => handleSelectField(field.b_id, field.b_name)}
-                                    className="flex cursor-pointer items-center justify-between"
-                                  >
-                                    <span>{field.b_name}</span>
-                                    <span className="text-muted-foreground text-xs">
-                                      {field.b_area} ha
-                                    </span>
-                                  </CommandItem>
+                                    option={field}
+                                    onSelect={handleSelectField}
+                                  />
                                 ))}
                               </CommandGroup>
                             )}
