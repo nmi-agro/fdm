@@ -40,7 +40,6 @@ const mockedGetSoilAnalyses = vi.mocked(getSoilAnalyses)
 const mockedGetCultivations = vi.mocked(getCultivations)
 const mockedGetMeasures = vi.mocked(getMeasures)
 const mockedGetFertilizerApplications = vi.mocked(getFertilizerApplications)
-const mockedGetSoilParameterEstimates = vi.mocked(getSoilParameterEstimates)
 
 // Minimal FdmType mock — collect functions don't use transactions
 const mockFdm = {} as FdmType
