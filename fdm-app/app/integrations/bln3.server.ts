@@ -167,7 +167,6 @@ export async function getMeasureApplicabilityForField({
     b_id,
     b_year,
     timeframe,
-    nmiApiKey,
   )
   const result = await getBln3MeasureApplicability(fdm, {
     ...inputs,
@@ -227,10 +226,7 @@ export async function getMeasureApplicabilityForFields({
     }),
   )
 
-  const fieldApplicabilityMap: Record<
-    string,
-    Record<string, MeasureApplicabilityInfo>
-  > = {}
+  const fieldApplicabilityMap: Record<string, Record<string, MeasureApplicabilityInfo>> = {}
 
   results.forEach((result, index) => {
     const b_id = b_ids[index]
