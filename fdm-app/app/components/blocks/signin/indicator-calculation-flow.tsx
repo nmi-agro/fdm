@@ -11,7 +11,7 @@ import {
   Scale,
   Target,
   TrendingUp,
-  Wrench,
+  ClipboardList,
 } from "lucide-react"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "~/components/ui/hover-card"
 import { cn } from "~/lib/utils"
@@ -218,7 +218,7 @@ function IndicatorCalculationFlowVertical() {
         className="mx-auto mt-10 flex max-w-sm flex-col items-center border-t pt-10"
       >
         <FlowStep
-          icon={Wrench}
+          icon={ClipboardList}
           title="Geselecteerde maatregelen"
           description="Elke maatregel telt mee naar toepasbaarheid op dit perceel en effectgrootte."
           detail={FLOW_STEP_DETAILS.maatregelen}
@@ -352,7 +352,7 @@ function IndicatorCalculationFlowHorizontal() {
         <motion.div {...node(0.1)} className="col-start-1 row-start-3">
           <FlowStep
             compact
-            icon={Wrench}
+            icon={ClipboardList}
             title="Maatregelen"
             description="Toepasbaarheid en effect."
             detail={FLOW_STEP_DETAILS.maatregelen}

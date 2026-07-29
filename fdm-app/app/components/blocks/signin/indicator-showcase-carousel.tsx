@@ -1,5 +1,5 @@
 import Autoplay from "embla-carousel-autoplay"
-import { AlertTriangle, Gauge, Wrench } from "lucide-react"
+import { AlertTriangle, Gauge, ClipboardList } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
   Carousel,
@@ -41,7 +41,7 @@ const INDICATOR_SHOWCASE_SLIDES: IndicatorShowcaseSlide[] = [
   },
   {
     id: "maatregelen",
-    icon: Wrench,
+    icon: ClipboardList,
     title: "Maatregelen op maat van uw percelen",
     description:
       "Selecteer de percelen — hier 2 van 204 — waar een maatregel geldt, stel een start- en einddatum in en volg het effect terug in uw indicatoren.",
