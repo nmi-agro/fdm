@@ -87,14 +87,15 @@ function StackedScoreBar({
 }
 
 function formatNumber(value: unknown): string {
-  if (typeof value === "number" && !Number.isNaN(value)) {
-    return value.toFixed(2)
+  if (typeof value === "string" && value.trim() === "") {
+    return "-"
   }
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value)
-    if (!Number.isNaN(parsed)) {
-      return parsed.toFixed(2)
-    }
+  if (typeof value !== "number" && typeof value !== "string") {
+    return "-"
+  }
+  const num = Number(value)
+  if (Number.isFinite(num)) {
+    return num.toFixed(2)
   }
   return "-"
 }
