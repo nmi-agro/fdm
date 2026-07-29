@@ -1,15 +1,22 @@
 import type {
   Cultivation,
   FdmType,
+  FertilizerApplication,
   Field,
   Measure,
   PrincipalId,
   SoilAnalysis,
   Timeframe,
 } from "@nmi-agro/fdm-core"
-import { getCultivations, getField, getMeasures, getSoilAnalyses } from "@nmi-agro/fdm-core"
+import {
+  getCultivations,
+  getFertilizerApplications,
+  getField,
+  getMeasures,
+  getSoilAnalyses,
+} from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { collectInputForBln3Score } from "./input"
+import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
 
 vi.mock("@nmi-agro/fdm-core", async () => {
   const actual = await vi.importActual("@nmi-agro/fdm-core")
@@ -19,13 +26,19 @@ vi.mock("@nmi-agro/fdm-core", async () => {
     getSoilAnalyses: vi.fn(),
     getCultivations: vi.fn(),
     getMeasures: vi.fn(),
+    getFertilizerApplications: vi.fn(),
   }
 })
+
+vi.mock("../estimates", () => ({
+  getSoilParameterEstimates: vi.fn(),
+}))
 
 const mockedGetField = vi.mocked(getField)
 const mockedGetSoilAnalyses = vi.mocked(getSoilAnalyses)
 const mockedGetCultivations = vi.mocked(getCultivations)
 const mockedGetMeasures = vi.mocked(getMeasures)
+const mockedGetFertilizerApplications = vi.mocked(getFertilizerApplications)
 
 // Minimal FdmType mock — collect functions don't use transactions
 const mockFdm = {} as FdmType
@@ -516,6 +529,87 @@ describe("collectInputForBln3Score", () => {
 })
 
 import { findHoofdteelt } from "../shared/hoofdteelt"
+
+describe("collectInputForBln3MeasureApplicability", () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it("should collect applicability inputs including b_year and excluding measures", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+      timeframe,
+    )
+
+    expect(result.a_lat).toBe(51.6)
+    expect(result.a_lon).toBe(5.2)
+    expect(result.b_year).toBe(2026)
+    expect(result.b_soiltype_agr).toBe("dekzand")
+    expect(result.b_gwl_class).toBe("IIb")
+    expect(result.a_som_loi).toBe(4.5)
+    expect(result.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2024 }])
+    expect(result).not.toHaveProperty("measures")
+  })
+
+  it("should collect p_app_method from fertilizer applications", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([
+      { p_app_method: "slotted coulter" } as unknown as FertilizerApplication,
+      { p_app_method: "injection" } as unknown as FertilizerApplication,
+      { p_app_method: "slotted coulter" } as unknown as FertilizerApplication,
+    ])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+    )
+
+    expect(result.p_app_method).toEqual(["slotted coulter", "injection"])
+  })
+
+  it("should omit cultivations if none exist", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+    )
+
+    expect(result.a_lat).toBe(51.6)
+    expect(result.a_lon).toBe(5.2)
+    expect(result.b_year).toBe(2026)
+    expect(result).not.toHaveProperty("cultivations")
+    expect(result).not.toHaveProperty("measures")
+  })
+
+  it("should wrap errors from fdm-core with a descriptive message", async () => {
+    mockedGetField.mockRejectedValue(new Error("DB error"))
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    await expect(
+      collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026),
+    ).rejects.toThrow(`Failed to collect BLN3 measure applicability inputs for field ${b_id}`)
+  })
+})
 
 describe("findHoofdteelt boundary and tie-break cases", () => {
   it("counts a cultivation that spans exactly May 15–July 15 as in-window", () => {

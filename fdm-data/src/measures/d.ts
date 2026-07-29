@@ -8,6 +8,7 @@ export interface CatalogueMeasureItem {
   m_summary: string | null
   m_source_url: string | null
   m_conflicts: string[] | null // m_id values, e.g. ["bln_BM2"]
+  m_stage_applicability?: "field" | "farm" | null
   hash?: string | null
 }
 

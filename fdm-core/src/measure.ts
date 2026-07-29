@@ -182,6 +182,7 @@ export async function getMeasure(
         m_name: schema.measuresCatalogue.m_name,
         m_summary: schema.measuresCatalogue.m_summary,
         m_conflicts: schema.measuresCatalogue.m_conflicts,
+        m_stage_applicability: schema.measuresCatalogue.m_stage_applicability,
       })
       .from(schema.measures)
       .innerJoin(
@@ -232,6 +233,7 @@ export async function getMeasures(
         m_name: schema.measuresCatalogue.m_name,
         m_summary: schema.measuresCatalogue.m_summary,
         m_conflicts: schema.measuresCatalogue.m_conflicts,
+        m_stage_applicability: schema.measuresCatalogue.m_stage_applicability,
       })
       .from(schema.measures)
       .innerJoin(
@@ -282,6 +284,7 @@ export async function getMeasuresForFarm(
         m_name: schema.measuresCatalogue.m_name,
         m_summary: schema.measuresCatalogue.m_summary,
         m_conflicts: schema.measuresCatalogue.m_conflicts,
+        m_stage_applicability: schema.measuresCatalogue.m_stage_applicability,
       })
       .from(schema.measures)
       .innerJoin(
@@ -325,7 +328,7 @@ export async function getMeasuresForFarm(
  */
 export async function getMeasuresFromCatalogue(fdm: FdmType): Promise<MeasureCatalogue[]> {
   try {
-    return fdm
+    const rows = await fdm
       .select({
         m_id: schema.measuresCatalogue.m_id,
         m_source: schema.measuresCatalogue.m_source,
@@ -334,9 +337,12 @@ export async function getMeasuresFromCatalogue(fdm: FdmType): Promise<MeasureCat
         m_summary: schema.measuresCatalogue.m_summary,
         m_source_url: schema.measuresCatalogue.m_source_url,
         m_conflicts: schema.measuresCatalogue.m_conflicts,
+        m_stage_applicability: schema.measuresCatalogue.m_stage_applicability,
       })
       .from(schema.measuresCatalogue)
       .orderBy(asc(schema.measuresCatalogue.m_source), asc(schema.measuresCatalogue.m_name))
+
+    return rows as MeasureCatalogue[]
   } catch (err) {
     throw handleError(err, "Exception for getMeasuresFromCatalogue", {})
   }

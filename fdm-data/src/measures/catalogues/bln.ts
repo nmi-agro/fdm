@@ -7,15 +7,7 @@ interface BLN3ApiMeasure {
   m_description: string | null
   m_source_url: string | null
   m_conflicts: string[] | null
-}
-
-interface BLN3ApiMeasureOld {
-  bln_id: string
-  name: string
-  summary: string | null
-  description: string | null
-  source_url: string | null
-  conflicts_with_measure: string[] | null
+  m_applicability: { variable: "M_STAGE_APPLICABILITY" | string; values: string[] }[]
 }
 
 const FETCH_TIMEOUT_MS = 30_000
@@ -53,26 +45,27 @@ export async function getCatalogueBln(nmiApiKey: string): Promise<CatalogueMeasu
     )
   }
   return json.data.measures
-    .filter((item: BLN3ApiMeasure & BLN3ApiMeasureOld) => {
-      const id = item.m_id ?? item.bln_id
-      const name = item.m_name ?? item.name
+    .filter((item: BLN3ApiMeasure) => {
       return (
-        typeof id === "string" &&
-        id.trim().length > 0 &&
-        typeof name === "string" &&
-        name.trim().length > 0
+        typeof item.m_id === "string" &&
+        item.m_id.trim().length > 0 &&
+        typeof item.m_name === "string" &&
+        item.m_name.trim().length > 0
       )
     })
-    .map((item: BLN3ApiMeasure & BLN3ApiMeasureOld) => ({
-      m_id: `bln_${item.m_id ?? item.bln_id}`,
+    .map((item: BLN3ApiMeasure) => ({
+      m_id: `bln_${item.m_id}`,
       m_source: "bln",
-      m_name: item.m_name ?? item.name,
-      m_description: item.m_description ?? item.description ?? null,
-      m_summary: item.m_summary ?? item.summary ?? null,
-      m_source_url: item.m_source_url ?? item.source_url ?? null,
-      m_conflicts:
-        item.m_conflicts?.map((id) => `bln_${id}`) ??
-        item.conflicts_with_measure?.map((id) => `bln_${id}`) ??
-        null,
+      m_name: item.m_name,
+      m_description: item.m_description ?? null,
+      m_summary: item.m_summary ?? null,
+      m_source_url: item.m_source_url ?? null,
+      m_conflicts: item.m_conflicts?.map((id) => `bln_${id}`) ?? null,
+      m_stage_applicability: (() => {
+        const val = item.m_applicability?.find(
+          (a) => a.variable === "M_STAGE_APPLICABILITY",
+        )?.values[0]
+        return val === "field" || val === "farm" ? val : null
+      })(),
     }))
 }

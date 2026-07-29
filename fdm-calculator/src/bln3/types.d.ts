@@ -1,3 +1,5 @@
+import type { GwlClasses, SoilTypes } from "@nmi-agro/fdm-core"
+
 /**
  * A single cultivation entry for the BLN3 score request.
  */
@@ -38,39 +40,9 @@ export type Bln3ScoreCollectedInputs = {
 
   // ── Field characteristics ────────────────────────────────────────────────
   /** Dutch agricultural soil type */
-  b_soiltype_agr?:
-    | "zeeklei"
-    | "rivierklei"
-    | "maasklei"
-    | "moerige_klei"
-    | "duinzand"
-    | "dalgrond"
-    | "dekzand"
-    | "loess"
-    | "veen"
+  b_soiltype_agr?: SoilTypes
   /** Groundwater class */
-  b_gwl_class?:
-    | "Ia"
-    | "Ic"
-    | "IIa"
-    | "IIb"
-    | "IIc"
-    | "IIIa"
-    | "IIIb"
-    | "IVu"
-    | "IVc"
-    | "Va"
-    | "Vao"
-    | "Vad"
-    | "Vb"
-    | "Vbo"
-    | "Vbd"
-    | "VIo"
-    | "VId"
-    | "VIIo"
-    | "VIId"
-    | "VIIIo"
-    | "VIIId"
+  b_gwl_class?: GwlClasses
 
   // ── Soil analysis ────────────────────────────────────────────────────────
   /** Calcium occupation of the CEC (%) */
@@ -196,5 +168,117 @@ export type Bln3ScoreResponse = {
     /** The API uses singular "indicator" — mapped to plural "indicators" in Bln3Score */
     indicator: Bln3IndicatorResult[]
     aggregations?: Bln3AggregationResult[]
+  }
+}
+
+/**
+ * Applicability status returned by the NMI API for a measure.
+ */
+export type Bln3MeasureApplicabilityStatus =
+  | "applicable"
+  | "not yet applicable"
+  | "inapplicable"
+
+/**
+ * A single measure applicability result from the NMI API (`POST /maatwerk/bln3/measure/applicability`).
+ * `m_id` values from the API are prefixed with "bln_" in FDM (e.g. "bln_BM86").
+ */
+export type Bln3MeasureApplicabilityItem = {
+  /** Identifier of the measure (namespaced with "bln_", e.g. "bln_BM86") */
+  m_id: string
+  /** Applicability status */
+  applicability: Bln3MeasureApplicabilityStatus
+  /** Explanation message in Dutch when not applicable (empty string when applicable) */
+  message: string
+}
+
+/**
+ * Input parameters collected for `requestBln3MeasureApplicability`.
+ * `a_lat`, `a_lon`, and `b_year` are required; all other fields are optional.
+ * Note: `measures` is intentionally NOT sent.
+ */
+export type Bln3MeasureApplicabilityCollectedInputs = {
+  // ── Required ─────────────────────────────────────────────────────────────
+  /** Latitude of the field centroid (WGS84; EPSG:4326) */
+  a_lat: number
+  /** Longitude of the field centroid (WGS84; EPSG:4326) */
+  a_lon: number
+  /** Calendar year for the applicability check */
+  b_year: number
+
+  // ── Cultivation history ──────────────────────────────────────────────────
+  /** Crop cultivations on the field (most recent first) */
+  cultivations?: Bln3Cultivation[]
+
+  // ── Field characteristics ────────────────────────────────────────────────
+  /** Dutch agricultural soil type */
+  b_soiltype_agr?: SoilTypes
+  /** Groundwater class */
+  b_gwl_class?: GwlClasses
+
+  // Groundwater / soil potential estimates (optional)
+  b_gwl_glg?: number
+  b_gwl_ghg?: number
+  b_gwl_zcrit?: number
+  b_som_potential?: number
+  b_help_wenr?: string
+  b_sc_wenr?: number
+  b_drain?: boolean
+  d_ro_r?: number
+
+  /** Application methods applied on the field */
+  p_app_method?: string[]
+
+  // ── Soil analysis ────────────────────────────────────────────────────────
+  a_ca_co_po?: number
+  a_cec_co?: number
+  a_clay_mi?: number
+  a_cn_fr?: number
+  a_k_cc?: number
+  a_k_co_po?: number
+  a_mg_cc?: number
+  a_mg_co_po?: number
+  a_n_pmn?: number
+  a_n_rt?: number
+  a_p_cc?: number
+  a_p_al?: number
+  a_p_wa?: number
+  a_ph_cc?: number
+  a_s_rt?: number
+  a_sand_mi?: number
+  a_silt_mi?: number
+  a_som_loi?: number
+}
+
+/**
+ * Full inputs for `getBln3MeasureApplicability`: collected field data plus the NMI API key.
+ */
+export type Bln3MeasureApplicabilityInputs =
+  Bln3MeasureApplicabilityCollectedInputs & {
+    /** NMI API key for authentication — redacted from cache hash */
+    nmiApiKey: string | undefined
+  }
+
+/**
+ * The BLN3 measure applicability result returned by `requestBln3MeasureApplicability` / `getBln3MeasureApplicability`.
+ */
+export type Bln3MeasureApplicabilityResult = {
+  applicability: Bln3MeasureApplicabilityItem[]
+}
+
+/**
+ * Response envelope from the NMI API for `POST /maatwerk/bln3/measure/applicability`.
+ */
+export type Bln3MeasureApplicabilityResponse = {
+  request_id: string
+  success: boolean
+  status: number
+  message: string | null
+  data: {
+    applicability: {
+      m_id: string
+      applicability: Bln3MeasureApplicabilityStatus
+      message: string
+    }[]
   }
 }

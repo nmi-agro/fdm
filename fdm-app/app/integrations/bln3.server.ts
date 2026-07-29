@@ -8,9 +8,14 @@
  */
 
 import {
+  type Bln3MeasureApplicabilityItem,
+  type Bln3MeasureApplicabilityResult,
+  type Bln3MeasureApplicabilityStatus,
   type Bln3Score,
   type Bln3ScoreCollectedInputs,
+  collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
+  getBln3MeasureApplicability,
   getBln3Score,
 } from "@nmi-agro/fdm-calculator"
 import {
@@ -24,7 +29,13 @@ import type { FieldMeasure } from "~/lib/indicators"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
 
-export type { Bln3Score, Bln3ScoreCollectedInputs }
+export type {
+  Bln3MeasureApplicabilityItem,
+  Bln3MeasureApplicabilityResult,
+  Bln3MeasureApplicabilityStatus,
+  Bln3Score,
+  Bln3ScoreCollectedInputs,
+}
 
 export type FieldBln3Score = {
   b_id: string
@@ -35,6 +46,11 @@ export type FieldBln3Score = {
 export type FieldBln3Result = {
   score: Bln3Score | null
   inputs: Bln3ScoreCollectedInputs
+}
+
+export type MeasureApplicabilityInfo = {
+  applicability: Bln3MeasureApplicabilityStatus
+  message: string
 }
 
 /**
@@ -126,4 +142,104 @@ export async function getFieldMeasuresForIndicators({
     m_start: m.m_start ? m.m_start.toISOString() : null,
     m_end: m.m_end ? m.m_end.toISOString() : null,
   }))
+}
+
+/**
+ * Collects inputs and fetches BLN3 measure applicability for a single field.
+ *
+ * Returns a record mapping measure IDs (`bln_BM86`) to their applicability status and message.
+ */
+export async function getMeasureApplicabilityForField({
+  principal_id,
+  b_id,
+  b_year,
+  timeframe,
+}: {
+  principal_id: PrincipalId
+  b_id: string
+  b_year: number
+  timeframe?: Timeframe
+}): Promise<Record<string, MeasureApplicabilityInfo>> {
+  const nmiApiKey = getNmiApiKey()
+  const inputs = await collectInputForBln3MeasureApplicability(
+    fdm,
+    principal_id,
+    b_id,
+    b_year,
+    timeframe,
+  )
+  const result = await getBln3MeasureApplicability(fdm, {
+    ...inputs,
+    nmiApiKey,
+  })
+
+  const map: Record<string, MeasureApplicabilityInfo> = {}
+  for (const item of result.applicability) {
+    map[item.m_id] = {
+      applicability: item.applicability,
+      message: item.message,
+    }
+  }
+  return map
+}
+
+async function mapInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  fn: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize)
+    const batchResults = await Promise.allSettled(batch.map(fn))
+    results.push(...batchResults)
+  }
+  return results
+}
+
+/**
+ * Fetches BLN3 measure applicability for multiple fields in parallel using bounded batches.
+ *
+ * Uses `Promise.allSettled` in batches of 5 so individual field failures return an empty record
+ * for that field rather than failing the entire request or overwhelming external services.
+ *
+ * @returns A record mapping `b_id` to a record mapping `m_id` to `MeasureApplicabilityInfo`.
+ */
+export async function getMeasureApplicabilityForFields({
+  principal_id,
+  b_ids,
+  b_year,
+  timeframe,
+}: {
+  principal_id: PrincipalId
+  b_ids: string[]
+  b_year: number
+  timeframe?: Timeframe
+}): Promise<Record<string, Record<string, MeasureApplicabilityInfo>>> {
+  const BATCH_SIZE = 5
+  const results = await mapInBatches(b_ids, BATCH_SIZE, (b_id) =>
+    getMeasureApplicabilityForField({
+      principal_id,
+      b_id,
+      b_year,
+      timeframe,
+    }),
+  )
+
+  const fieldApplicabilityMap: Record<string, Record<string, MeasureApplicabilityInfo>> = {}
+
+  results.forEach((result, index) => {
+    const b_id = b_ids[index]
+    if (result.status === "fulfilled") {
+      fieldApplicabilityMap[b_id] = result.value
+    } else {
+      console.error(
+        `BLN3 applicability check failed for field ${b_id}:`,
+        result.reason instanceof Error ? result.reason.message : String(result.reason),
+      )
+      fieldApplicabilityMap[b_id] = {}
+    }
+  })
+
+  return fieldApplicabilityMap
 }

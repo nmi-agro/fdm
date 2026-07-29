@@ -6,6 +6,7 @@ export type MeasureCatalogue = {
   m_summary: string | null
   m_source_url: string | null
   m_conflicts: string[] | null // m_id values
+  m_stage_applicability?: "field" | "farm" | null
 }
 
 export type Measure = {
@@ -18,4 +19,5 @@ export type Measure = {
   m_name: string
   m_summary: string | null
   m_conflicts: string[] | null
+  m_stage_applicability?: "field" | "farm" | null
 }

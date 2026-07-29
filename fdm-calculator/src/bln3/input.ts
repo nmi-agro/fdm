@@ -1,6 +1,17 @@
 import type { FdmType, fdmSchema, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
-import { getCultivations, getField, getMeasures, getSoilAnalyses } from "@nmi-agro/fdm-core"
-import type { Bln3Cultivation, Bln3Measure, Bln3ScoreCollectedInputs } from "./types"
+import {
+  getCultivations,
+  getFertilizerApplications,
+  getField,
+  getMeasures,
+  getSoilAnalyses,
+} from "@nmi-agro/fdm-core"
+import type {
+  Bln3Cultivation,
+  Bln3Measure,
+  Bln3MeasureApplicabilityCollectedInputs,
+  Bln3ScoreCollectedInputs,
+} from "./types"
 import { findHoofdteelt } from "../shared/hoofdteelt"
 
 /**
@@ -147,6 +158,121 @@ export async function collectInputForBln3Score(
   } catch (error) {
     throw new Error(
       `Failed to collect BLN3 score inputs for field ${b_id}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    )
+  }
+}
+
+/**
+ * Collects all field data needed for a BLN3 measure applicability check from the FDM database.
+ *
+ * Fetches field geometry (lat/lon), soil analysis, and cultivation history, and optionally calls
+ * `getSoilParameterEstimates` (if `nmiApiKey` is provided) to populate GxG and SOM potential fields.
+ * Note that `measures` is intentionally excluded per NMI applicability endpoint requirements.
+ *
+ * @param fdm - The FDM instance for database interaction.
+ * @param principal_id - The principal making the request.
+ * @param b_id - The field ID for which to collect inputs.
+ * @param b_year - The calendar year for the applicability check.
+ * @param timeframe - Optional timeframe applied to soil analyses.
+ * @param nmiApiKey - Optional NMI API key to fetch soil parameter estimates (b_gwl_ghg, b_gwl_glg, b_som_potential).
+ * @returns A promise resolving to collected BLN3 measure applicability inputs.
+ */
+export async function collectInputForBln3MeasureApplicability(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: fdmSchema.fieldsTypeSelect["b_id"],
+  b_year: number,
+  timeframe?: Timeframe,
+): Promise<Bln3MeasureApplicabilityCollectedInputs> {
+  try {
+    const [field, soilAnalyses, cultivations, fertilizerApplications] = await Promise.all([
+      getField(fdm, principal_id, b_id),
+      getSoilAnalyses(fdm, principal_id, b_id, timeframe),
+      getCultivations(fdm, principal_id, b_id),
+      getFertilizerApplications(fdm, principal_id, b_id, timeframe).catch(() => []),
+    ])
+
+    const [a_lon, a_lat] = field.b_centroid
+
+    const labNumericFields = [
+      "a_ca_co_po",
+      "a_cec_co",
+      "a_clay_mi",
+      "a_cn_fr",
+      "a_k_cc",
+      "a_k_co_po",
+      "a_mg_cc",
+      "a_mg_co_po",
+      "a_n_pmn",
+      "a_n_rt",
+      "a_p_al",
+      "a_p_cc",
+      "a_p_wa",
+      "a_ph_cc",
+      "a_s_rt",
+      "a_sand_mi",
+      "a_silt_mi",
+      "a_som_loi",
+    ] as const
+
+    const soilData: Record<string, number> = {}
+    for (const f of labNumericFields) {
+      const analysis = soilAnalyses.find((a) => typeof a[f] === "number")
+      if (analysis) {
+        soilData[f] = analysis[f] as number
+      }
+    }
+
+    const latestWithSoiltype = soilAnalyses.find((a) => a.b_soiltype_agr != null)
+    const latestWithGwlClass = soilAnalyses.find((a) => a.b_gwl_class != null)
+
+    const cultivationsWithStart = cultivations.filter((c) => c.b_lu_start != null)
+    const bln3Cultivations: Bln3Cultivation[] = []
+
+    if (cultivationsWithStart.length > 0) {
+      const cultivationMaxYear = cultivationsWithStart.reduce((max, c) => {
+        const y = c.b_lu_end?.getFullYear() ?? c.b_lu_start?.getFullYear()
+        return y !== undefined && y > max ? y : max
+      }, 0)
+      const maxYear = Math.max(timeframe?.end?.getFullYear() ?? 0, cultivationMaxYear)
+      const minYear = cultivationsWithStart.reduce((min, c) => {
+        const y = c.b_lu_start?.getFullYear()
+        return y !== undefined && y < min ? y : min
+      }, maxYear)
+
+      for (let year = maxYear; year >= minYear; year--) {
+        const catalogue = findHoofdteelt(cultivations, year)
+        const match = /^nl_(\d+)$/.exec(catalogue)
+        if (!match) continue
+        bln3Cultivations.push({
+          b_lu_brp: Number(match[1]),
+          b_lu_year: year,
+        })
+      }
+    }
+
+    const appMethods = Array.from(
+      new Set(
+        fertilizerApplications
+          .map((app) => app.p_app_method)
+          .filter((m): m is NonNullable<typeof m> => m != null),
+      ),
+    ) as string[]
+
+    return {
+      a_lat,
+      a_lon,
+      b_year,
+      b_soiltype_agr: latestWithSoiltype?.b_soiltype_agr ?? undefined,
+      b_gwl_class: latestWithGwlClass?.b_gwl_class ?? undefined,
+      ...(appMethods.length > 0 && { p_app_method: appMethods }),
+      ...(bln3Cultivations.length > 0 && { cultivations: bln3Cultivations }),
+      ...soilData,
+    }
+  } catch (error) {
+    throw new Error(
+      `Failed to collect BLN3 measure applicability inputs for field ${b_id}: ${error instanceof Error ? error.message : String(error)}`,
       { cause: error },
     )
   }

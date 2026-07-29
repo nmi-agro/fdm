@@ -56,7 +56,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/u
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { getIndicatorsForField } from "~/integrations/bln3.server"
+import { getIndicatorsForField, getMeasureApplicabilityForField } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -111,6 +111,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmMeasures,
       cultivations,
       bln3Result,
+      applicabilityMap,
       fieldWritePermission,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
@@ -124,6 +125,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id,
         timeframe,
       }).catch(() => null),
+      getMeasureApplicabilityForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+        timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 applicability check failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
       checkPermission(
         fdm,
         "field",
@@ -193,6 +206,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_name: f.b_name ?? null,
       })),
       fieldScore: bln3Result?.score ?? null,
+      applicabilityMap,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -483,6 +497,7 @@ export default function MeasuresFieldDetail() {
     harvestDate,
     calendarYearStart,
     fieldScore,
+    applicabilityMap,
     fieldWritePermission,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
@@ -680,6 +695,7 @@ export default function MeasuresFieldDetail() {
         activeMeasures={measures}
         calendarYearStart={calendarYearStart}
         harvestDate={harvestDate}
+        applicabilityMap={applicabilityMap ?? undefined}
       />
 
       {/* Edit Measure dialog */}
