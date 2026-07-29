@@ -909,6 +909,15 @@ export type cultivationCatalogueSelectingTypeInsert =
   typeof cultivationCatalogueSelecting.$inferInsert
 
 // Define measures_catalogue table
+export const stageApplicabilityTypeOptions = [
+  { value: "farm", label: "Bedrijf" },
+  { value: "field", label: "Perceel" },
+] as const
+export const stageApplicabilityTypeEnum = fdmSchema.enum(
+  "m_stage_applicability",
+  stageApplicabilityTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
 export const measuresCatalogue = fdmSchema.table(
   "measures_catalogue",
   {
@@ -919,6 +928,7 @@ export const measuresCatalogue = fdmSchema.table(
     m_summary: text(),
     m_source_url: text(),
     m_conflicts: text().array(), // Conflicting m_id values
+    m_stage_applicability: stageApplicabilityTypeEnum(), // "field" | "farm"
     hash: text(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),

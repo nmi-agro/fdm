@@ -232,6 +232,13 @@
       "when": 1784706683772,
       "tag": "0032_overjoyed_beast",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1785316346264,
+      "tag": "0033_yielding_vulcan",
+      "breakpoints": true
     }
   ]
 }
