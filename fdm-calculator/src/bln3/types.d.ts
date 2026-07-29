@@ -174,10 +174,7 @@ export type Bln3ScoreResponse = {
 /**
  * Applicability status returned by the NMI API for a measure.
  */
-export type Bln3MeasureApplicabilityStatus =
-  | "applicable"
-  | "not yet applicable"
-  | "inapplicable"
+export type Bln3MeasureApplicabilityStatus = "applicable" | "not yet applicable" | "inapplicable"
 
 /**
  * A single measure applicability result from the NMI API (`POST /maatwerk/bln3/measure/applicability`).
@@ -253,11 +250,10 @@ export type Bln3MeasureApplicabilityCollectedInputs = {
 /**
  * Full inputs for `getBln3MeasureApplicability`: collected field data plus the NMI API key.
  */
-export type Bln3MeasureApplicabilityInputs =
-  Bln3MeasureApplicabilityCollectedInputs & {
-    /** NMI API key for authentication — redacted from cache hash */
-    nmiApiKey: string | undefined
-  }
+export type Bln3MeasureApplicabilityInputs = Bln3MeasureApplicabilityCollectedInputs & {
+  /** NMI API key for authentication — redacted from cache hash */
+  nmiApiKey: string | undefined
+}
 
 /**
  * The BLN3 measure applicability result returned by `requestBln3MeasureApplicability` / `getBln3MeasureApplicability`.

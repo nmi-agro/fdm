@@ -52,6 +52,7 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
+import { getMeasureApplicabilityForFields } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -59,7 +60,6 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { getMeasureApplicabilityForFields } from "~/integrations/bln3.server"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
 export const meta: MetaFunction = () => {

@@ -67,7 +67,11 @@ function UserShell({
         <SidebarContent>
           <SidebarPlatform />
         </SidebarContent>
-        <SidebarSupport name={loaderData.userName} email={loaderData.user.email} hasNotification={false} />
+        <SidebarSupport
+          name={loaderData.userName}
+          email={loaderData.user.email}
+          hasNotification={false}
+        />
         <SidebarUser
           name={loaderData.userName}
           email={loaderData.user.email}

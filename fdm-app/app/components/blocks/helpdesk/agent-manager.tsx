@@ -1,5 +1,5 @@
-import { zodResolver } from "@hookform/resolvers/zod"
 import type { AgentAvailabilityStatus } from "@nmi-agro/fdm-helpdesk"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Pencil, User, Users } from "lucide-react"
 import { useId, useMemo, type ComponentProps } from "react"
 import { Controller } from "react-hook-form"
@@ -21,7 +21,14 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table"
 import type { HelpdeskUser } from "./types"
 import { AgentAvailabilityDisplay } from "./agent-availability"
 import { AddAgentSchema } from "./agent-schema"

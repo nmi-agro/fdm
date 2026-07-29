@@ -9,10 +9,13 @@ import type {
   TimelineFilters,
 } from "~/components/blocks/timeline/gantt-view"
 import {
+  getFertilizerCategoryFromRvoCode,
+  isRenureRvoCode,
+} from "~/components/blocks/fertilizer/utils"
+import {
   EVENT_TYPE_COLOR,
   getFertilizerKindColor,
 } from "~/components/blocks/timeline/timeline-colors"
-import { getFertilizerCategoryFromRvoCode, isRenureRvoCode } from "~/components/blocks/fertilizer/utils"
 import {
   filterEventsByType,
   flattenEvents,

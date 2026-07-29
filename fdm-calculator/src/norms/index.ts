@@ -76,7 +76,9 @@ type Norms2026Functions = {
 // literal ("2026" -> Norms2026Functions), and to the union of both shapes when `Y`
 // is the wider `Years` union (matching the pre-Renure inferred-union behaviour for
 // call sites that pass a runtime, non-literal year).
-type NormsFunctionsByYear<Y extends Years> = Y extends "2026" ? Norms2026Functions : Norms2025Functions
+type NormsFunctionsByYear<Y extends Years> = Y extends "2026"
+  ? Norms2026Functions
+  : Norms2025Functions
 
 export function createFunctionsForNorms<Y extends Years>(
   b_region: Regions,

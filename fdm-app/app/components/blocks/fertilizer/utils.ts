@@ -8,9 +8,7 @@ export type FertilizerKind = "manure" | "mineral" | "compost" | "renure" | "othe
  * Derives the fertilizer category ("renure" | "mineral" | "compost" | "manure" | "other")
  * based on p_type_rvo (RVO mestcode).
  */
-export function getFertilizerCategoryFromRvoCode(
-  p_type_rvo?: string | null,
-): FertilizerKind {
+export function getFertilizerCategoryFromRvoCode(p_type_rvo?: string | null): FertilizerKind {
   if (p_type_rvo) {
     if (RENURE_RVO_CODES.includes(p_type_rvo)) return "renure"
     if (MINERAL_RVO_CODES.includes(p_type_rvo)) return "mineral"

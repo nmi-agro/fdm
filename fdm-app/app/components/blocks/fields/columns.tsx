@@ -191,9 +191,7 @@ export function buildColumns(b_id_farm: string, calendar: string): ColumnDef<Fie
         const field = row.original
         return (
           <p className="text-muted-foreground">
-            {field.d_n_supply_base !== null
-              ? `${Math.round(field.d_n_supply_base)} kg N/ha`
-              : "-"}
+            {field.d_n_supply_base !== null ? `${Math.round(field.d_n_supply_base)} kg N/ha` : "-"}
           </p>
         )
       },

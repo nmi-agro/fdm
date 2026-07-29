@@ -428,7 +428,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const sourceParam = getSoilParametersDescription().find((item) => item.parameter === "a_source")
     const basisCards = constructSoilDataCards(currentSoilData, getSoilParametersDescription())
       .filter((card) =>
-        ["b_soiltype_agr", "a_som_loi", "a_p_al", "a_p_cc", "a_clay_mi", "d_n_supply_base"].includes(card.parameter),
+        [
+          "b_soiltype_agr",
+          "a_som_loi",
+          "a_p_al",
+          "a_p_cc",
+          "a_clay_mi",
+          "d_n_supply_base",
+        ].includes(card.parameter),
       )
       .map((card) => ({
         ...card,
@@ -721,9 +728,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         const score = scoreToDisplay(mainScore01)
         const attentionItems = result.score.indicators
-          .filter(
-            (indicator) => getScoreTier(scoreToDisplay(indicator.score)) !== "green",
-          )
+          .filter((indicator) => getScoreTier(scoreToDisplay(indicator.score)) !== "green")
           .map((indicator) => {
             const info = getIndicatorInfo(indicator.indicator_id)
             return {

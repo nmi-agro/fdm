@@ -45,8 +45,8 @@ export function ClientErrorPage({ status }: { status?: number | null } = {}) {
         </h1>
         <p className="text-muted-foreground mt-4 text-lg text-pretty">
           Het lijkt erop dat deze pagina niet bestaat, of dat je er geen toegang tot hebt.
-          Controleer het webadres en of je toegang hebt, of neem contact op als je denkt dat dit niet
-          klopt.
+          Controleer het webadres en of je toegang hebt, of neem contact op als je denkt dat dit
+          niet klopt.
         </p>
 
         <div className="mt-8 flex w-full flex-col items-center gap-4">
@@ -324,6 +324,12 @@ export function RouteErrorFallback({ error }: { error: unknown }) {
 
   Sentry.captureException(error)
   return (
-    <UnexpectedErrorPage status={500} message="Unknown Error" stacktrace={null} page={page} timestamp={timestamp} />
+    <UnexpectedErrorPage
+      status={500}
+      message="Unknown Error"
+      stacktrace={null}
+      page={page}
+      timestamp={timestamp}
+    />
   )
 }

@@ -121,7 +121,7 @@ function SupportShell({
           userName={loaderData.userName}
         />
       </Sidebar>
-      <SidebarInset className="flex flex-col h-screen">
+      <SidebarInset className="flex h-screen flex-col">
         <Header action={undefined}>
           <HeaderHelpdesk />
         </Header>

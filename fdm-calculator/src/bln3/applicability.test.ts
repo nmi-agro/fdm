@@ -4,10 +4,7 @@ import type {
   Bln3MeasureApplicabilityResponse,
   Bln3MeasureApplicabilityResult,
 } from "./types"
-import {
-  getBln3MeasureApplicability,
-  requestBln3MeasureApplicability,
-} from "./applicability"
+import { getBln3MeasureApplicability, requestBln3MeasureApplicability } from "./applicability"
 
 const mockApplicabilityResponse: Bln3MeasureApplicabilityResponse = {
   request_id: "test-uuid",

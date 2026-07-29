@@ -95,7 +95,8 @@ export function sanitizePostHogEvent(event: EventMessage | null): EventMessage |
     ]
     for (const field of textFieldsToClear) {
       if (field in event.properties) {
-        event.properties[field] = "[Payload text truncated to preserve token & cost metrics in PostHog]"
+        event.properties[field] =
+          "[Payload text truncated to preserve token & cost metrics in PostHog]"
       }
     }
   }
@@ -170,4 +171,3 @@ export default function PostHogClient(): PostHog | null {
   }
   return posthogClient
 }
-

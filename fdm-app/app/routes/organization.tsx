@@ -137,7 +137,10 @@ function OrganizationShell({
       <Sidebar>
         <SidebarTitle />
         <SidebarContent>
-          <SidebarOrganization organization={organization} roles={loaderData.selectedOrganizationRoles} />
+          <SidebarOrganization
+            organization={organization}
+            roles={loaderData.selectedOrganizationRoles}
+          />
           <SidebarOrganizationApps />
         </SidebarContent>
         <SidebarSupport

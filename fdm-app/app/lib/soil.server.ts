@@ -1,5 +1,5 @@
-import { calculateNlv } from "@nmi-agro/fdm-calculator"
 import type { CurrentSoilData } from "@nmi-agro/fdm-core"
+import { calculateNlv } from "@nmi-agro/fdm-calculator"
 
 /**
  * Enriches current soil data with the calculated base Nitrogen Supplying Capacity (d_n_supply_base / NLV)
@@ -10,15 +10,11 @@ import type { CurrentSoilData } from "@nmi-agro/fdm-core"
  * @param currentSoilData The current soil parameter measurements for a field.
  * @returns The enriched CurrentSoilData array.
  */
-export function enrichCurrentSoilDataWithNlv(
-  currentSoilData: CurrentSoilData,
-): CurrentSoilData {
+export function enrichCurrentSoilDataWithNlv(currentSoilData: CurrentSoilData): CurrentSoilData {
   const data = currentSoilData.filter(
     (item) => item.parameter !== "d_n_supply_base" || item.value != null,
   )
-  const hasNlv = data.some(
-    (item) => item.parameter === "d_n_supply_base" && item.value != null,
-  )
+  const hasNlv = data.some((item) => item.parameter === "d_n_supply_base" && item.value != null)
   if (!hasNlv) {
     const somItem = data.find((item) => item.parameter === "a_som_loi")
     const clayItem = data.find((item) => item.parameter === "a_clay_mi")

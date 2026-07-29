@@ -907,9 +907,7 @@ export function FieldDashboardBlnTile({ dashboard, tile }: FieldDashboardTilePro
                 <div className="grid grid-cols-2 gap-3">
                   {data.aggregations.map((aggregation) => (
                     <div key={aggregation.id} className="rounded-lg border p-3">
-                      <p className="text-muted-foreground text-xs uppercase">
-                        {aggregation.label}
-                      </p>
+                      <p className="text-muted-foreground text-xs uppercase">{aggregation.label}</p>
                       <p className="mt-1 flex items-center gap-2 text-sm font-semibold">
                         {aggregation.score == null ? (
                           "Onbekend"

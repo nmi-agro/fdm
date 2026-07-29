@@ -122,9 +122,7 @@ export function HeaderFieldPicker({
   const regularFields = fieldOptions
     .filter((f) => !recentFieldIds.includes(f.b_id))
     .sort(
-      (a, b) =>
-        (b.b_area ?? 0) - (a.b_area ?? 0) ||
-        (a.b_name ?? "").localeCompare(b.b_name ?? ""),
+      (a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || (a.b_name ?? "").localeCompare(b.b_name ?? ""),
     )
 
   const selectedLabel = b_id
