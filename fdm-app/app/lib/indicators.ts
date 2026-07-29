@@ -281,7 +281,10 @@ export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
 ]
 
 /** Convert 0–1 API score to 0–100 display value. */
-export function scoreToDisplay(score01: number): number {
+export function scoreToDisplay(score01: number | null | undefined): number {
+  if (typeof score01 !== "number" || Number.isNaN(score01)) {
+    return 0
+  }
   return Math.round(score01 * 100)
 }
 
