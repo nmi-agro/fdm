@@ -127,6 +127,29 @@ describe("requestBln3MeasureApplicability", () => {
     })
   })
 
+  it("should preserve measure IDs that are already prefixed with 'bln_'", async () => {
+    const responseWithPrefixed: Bln3MeasureApplicabilityResponse = {
+      ...mockApplicabilityResponse,
+      data: {
+        applicability: [
+          {
+            m_id: "bln_BM86",
+            applicability: "applicable",
+            message: "",
+          },
+        ],
+      },
+    }
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => responseWithPrefixed,
+    } as Response)
+
+    const result = await requestBln3MeasureApplicability(baseInputs)
+
+    expect(result.applicability[0].m_id).toBe("bln_BM86")
+  })
+
   it("should throw if the NMI API returns a non-ok response", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,

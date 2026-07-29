@@ -9,7 +9,7 @@ import type {
 } from "@nmi-agro/fdm-core"
 import { getCultivations, getField, getMeasures, getSoilAnalyses } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { collectInputForBln3Score } from "./input"
+import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
 
 vi.mock("@nmi-agro/fdm-core", async () => {
   const actual = await vi.importActual("@nmi-agro/fdm-core")
@@ -516,6 +516,64 @@ describe("collectInputForBln3Score", () => {
 })
 
 import { findHoofdteelt } from "../shared/hoofdteelt"
+
+describe("collectInputForBln3MeasureApplicability", () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+  })
+
+  it("should collect applicability inputs including b_year and excluding measures", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+      timeframe,
+    )
+
+    expect(result.a_lat).toBe(51.6)
+    expect(result.a_lon).toBe(5.2)
+    expect(result.b_year).toBe(2026)
+    expect(result.b_soiltype_agr).toBe("dekzand")
+    expect(result.b_gwl_class).toBe("IIb")
+    expect(result.a_som_loi).toBe(4.5)
+    expect(result.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2024 }])
+    expect(result).not.toHaveProperty("measures")
+  })
+
+  it("should omit cultivations if none exist", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+    )
+
+    expect(result.a_lat).toBe(51.6)
+    expect(result.a_lon).toBe(5.2)
+    expect(result.b_year).toBe(2026)
+    expect(result).not.toHaveProperty("cultivations")
+    expect(result).not.toHaveProperty("measures")
+  })
+
+  it("should wrap errors from fdm-core with a descriptive message", async () => {
+    mockedGetField.mockRejectedValue(new Error("DB error"))
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+
+    await expect(
+      collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026),
+    ).rejects.toThrow(`Failed to collect BLN3 measure applicability inputs for field ${b_id}`)
+  })
+})
 
 describe("findHoofdteelt boundary and tie-break cases", () => {
   it("counts a cultivation that spans exactly May 15–July 15 as in-window", () => {
