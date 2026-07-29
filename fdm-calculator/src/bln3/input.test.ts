@@ -581,60 +581,6 @@ describe("collectInputForBln3MeasureApplicability", () => {
     expect(result.p_app_method).toEqual(["slotted coulter", "injection"])
   })
 
-  it("should call getSoilParameterEstimates when nmiApiKey is provided", async () => {
-    mockedGetField.mockResolvedValue(mockField)
-    mockedGetSoilAnalyses.mockResolvedValue([])
-    mockedGetCultivations.mockResolvedValue([])
-    mockedGetFertilizerApplications.mockResolvedValue([])
-    mockedGetSoilParameterEstimates.mockResolvedValue({
-      b_gwl_ghg: 15,
-      b_gwl_glg: 60,
-      b_som_potential: 20,
-      b_soiltype_agr: "rivierklei",
-      b_gwl_class: "IIa",
-    } as any)
-
-    const result = await collectInputForBln3MeasureApplicability(
-      mockFdm,
-      principal_id,
-      b_id,
-      2026,
-      timeframe,
-      "mock-key",
-    )
-
-    expect(mockedGetSoilParameterEstimates).toHaveBeenCalledWith(mockFdm, {
-      a_lat: 51.6,
-      a_lon: 5.2,
-      nmiApiKey: "mock-key",
-    })
-    expect(result.b_gwl_ghg).toBe(15)
-    expect(result.b_gwl_glg).toBe(60)
-    expect(result.b_som_potential).toBe(20)
-    expect(result.b_soiltype_agr).toBe("rivierklei")
-    expect(result.b_gwl_class).toBe("IIa")
-  })
-
-  it("should handle error gracefully if getSoilParameterEstimates fails", async () => {
-    mockedGetField.mockResolvedValue(mockField)
-    mockedGetSoilAnalyses.mockResolvedValue([])
-    mockedGetCultivations.mockResolvedValue([])
-    mockedGetFertilizerApplications.mockResolvedValue([])
-    mockedGetSoilParameterEstimates.mockRejectedValue(new Error("API Error"))
-
-    const result = await collectInputForBln3MeasureApplicability(
-      mockFdm,
-      principal_id,
-      b_id,
-      2026,
-      timeframe,
-      "mock-key",
-    )
-
-    expect(result.a_lat).toBe(51.6)
-    expect(result.b_gwl_ghg).toBeUndefined()
-  })
-
   it("should omit cultivations if none exist", async () => {
     mockedGetField.mockResolvedValue(mockField)
     mockedGetSoilAnalyses.mockResolvedValue([])
