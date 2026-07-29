@@ -192,6 +192,45 @@ describe("requestBln3MeasureApplicability", () => {
       "BLN3 measure applicability API returned a malformed payload",
     )
   })
+
+  it("should throw if an item in the applicability array is malformed", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        status: 200,
+        data: {
+          applicability: [{ m_id: "", applicability: "invalid_status", message: null }],
+        },
+      }),
+    } as unknown as Response)
+
+    await expect(requestBln3MeasureApplicability(baseInputs)).rejects.toThrow(
+      "BLN3 measure applicability API returned a malformed payload (invalid item in applicability array)",
+    )
+  })
+
+  it("should handle request timeout via AbortError", async () => {
+    vi.useFakeTimers()
+    const abortError = new DOMException("The operation was aborted", "AbortError")
+
+    vi.mocked(fetch).mockImplementationOnce((_url, options) => {
+      const signal = options?.signal
+      return new Promise((_resolve, reject) => {
+        if (signal) {
+          signal.addEventListener("abort", () => reject(abortError))
+        }
+      })
+    })
+
+    const promise = requestBln3MeasureApplicability(baseInputs)
+    vi.advanceTimersByTime(30000)
+
+    await expect(promise).rejects.toThrow(
+      "BLN3 measure applicability request timed out (30s). The NMI API did not respond in time.",
+    )
+    vi.useRealTimers()
+  })
 })
 
 describe("getBln3MeasureApplicability function export", () => {

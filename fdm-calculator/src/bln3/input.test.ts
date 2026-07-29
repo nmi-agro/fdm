@@ -1,15 +1,23 @@
 import type {
   Cultivation,
   FdmType,
+  FertilizerApplication,
   Field,
   Measure,
   PrincipalId,
   SoilAnalysis,
   Timeframe,
 } from "@nmi-agro/fdm-core"
-import { getCultivations, getField, getMeasures, getSoilAnalyses } from "@nmi-agro/fdm-core"
+import {
+  getCultivations,
+  getFertilizerApplications,
+  getField,
+  getMeasures,
+  getSoilAnalyses,
+} from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
+import { getSoilParameterEstimates } from "../estimates"
 
 vi.mock("@nmi-agro/fdm-core", async () => {
   const actual = await vi.importActual("@nmi-agro/fdm-core")
@@ -19,13 +27,20 @@ vi.mock("@nmi-agro/fdm-core", async () => {
     getSoilAnalyses: vi.fn(),
     getCultivations: vi.fn(),
     getMeasures: vi.fn(),
+    getFertilizerApplications: vi.fn(),
   }
 })
+
+vi.mock("../estimates", () => ({
+  getSoilParameterEstimates: vi.fn(),
+}))
 
 const mockedGetField = vi.mocked(getField)
 const mockedGetSoilAnalyses = vi.mocked(getSoilAnalyses)
 const mockedGetCultivations = vi.mocked(getCultivations)
 const mockedGetMeasures = vi.mocked(getMeasures)
+const mockedGetFertilizerApplications = vi.mocked(getFertilizerApplications)
+const mockedGetSoilParameterEstimates = vi.mocked(getSoilParameterEstimates)
 
 // Minimal FdmType mock — collect functions don't use transactions
 const mockFdm = {} as FdmType
@@ -526,6 +541,7 @@ describe("collectInputForBln3MeasureApplicability", () => {
     mockedGetField.mockResolvedValue(mockField)
     mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
     mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
 
     const result = await collectInputForBln3MeasureApplicability(
       mockFdm,
@@ -545,10 +561,85 @@ describe("collectInputForBln3MeasureApplicability", () => {
     expect(result).not.toHaveProperty("measures")
   })
 
+  it("should collect p_app_method from fertilizer applications", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([
+      { p_app_method: "slotted coulter" } as unknown as FertilizerApplication,
+      { p_app_method: "injection" } as unknown as FertilizerApplication,
+      { p_app_method: "slotted coulter" } as unknown as FertilizerApplication,
+    ])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+    )
+
+    expect(result.p_app_method).toEqual(["slotted coulter", "injection"])
+  })
+
+  it("should call getSoilParameterEstimates when nmiApiKey is provided", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+    mockedGetSoilParameterEstimates.mockResolvedValue({
+      b_gwl_ghg: 15,
+      b_gwl_glg: 60,
+      b_som_potential: 20,
+      b_soiltype_agr: "rivierklei",
+      b_gwl_class: "IIa",
+    } as any)
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+      timeframe,
+      "mock-key",
+    )
+
+    expect(mockedGetSoilParameterEstimates).toHaveBeenCalledWith(mockFdm, {
+      a_lat: 51.6,
+      a_lon: 5.2,
+      nmiApiKey: "mock-key",
+    })
+    expect(result.b_gwl_ghg).toBe(15)
+    expect(result.b_gwl_glg).toBe(60)
+    expect(result.b_som_potential).toBe(20)
+    expect(result.b_soiltype_agr).toBe("rivierklei")
+    expect(result.b_gwl_class).toBe("IIa")
+  })
+
+  it("should handle error gracefully if getSoilParameterEstimates fails", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+    mockedGetSoilParameterEstimates.mockRejectedValue(new Error("API Error"))
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2026,
+      timeframe,
+      "mock-key",
+    )
+
+    expect(result.a_lat).toBe(51.6)
+    expect(result.b_gwl_ghg).toBeUndefined()
+  })
+
   it("should omit cultivations if none exist", async () => {
     mockedGetField.mockResolvedValue(mockField)
     mockedGetSoilAnalyses.mockResolvedValue([])
     mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([])
 
     const result = await collectInputForBln3MeasureApplicability(
       mockFdm,
@@ -568,6 +659,7 @@ describe("collectInputForBln3MeasureApplicability", () => {
     mockedGetField.mockRejectedValue(new Error("DB error"))
     mockedGetSoilAnalyses.mockResolvedValue([])
     mockedGetCultivations.mockResolvedValue([])
+    mockedGetFertilizerApplications.mockResolvedValue([])
 
     await expect(
       collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026),

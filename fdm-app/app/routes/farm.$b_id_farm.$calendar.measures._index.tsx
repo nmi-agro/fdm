@@ -106,17 +106,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const calendarYear = Number(calendar)
     const fieldIds = fields.map((f) => f.b_id)
-    const applicabilityByField = await getMeasureApplicabilityForFields({
-      principal_id: session.principal_id,
-      b_ids: fieldIds,
-      b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
-      timeframe,
-    }).catch(() => ({}))
 
-    // Build field list for the dialog — enrich with cultivation + area
-    const fieldCultivations = await Promise.all(
-      fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id)),
-    )
+    const [applicabilityByField, fieldCultivations] = await Promise.all([
+      getMeasureApplicabilityForFields({
+        principal_id: session.principal_id,
+        b_ids: fieldIds,
+        b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+        timeframe,
+      }).catch(() => ({})),
+      Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
+    ])
     const fieldList = fields.map((f, i) => {
       const cultivations = fieldCultivations[i]
       const main = getMainCultivation(cultivations, calendar) ?? null

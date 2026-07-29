@@ -167,6 +167,7 @@ export async function getMeasureApplicabilityForField({
     b_id,
     b_year,
     timeframe,
+    nmiApiKey,
   )
   const result = await getBln3MeasureApplicability(fdm, {
     ...inputs,
@@ -183,11 +184,25 @@ export async function getMeasureApplicabilityForField({
   return map
 }
 
+async function mapInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  fn: (item: T) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = []
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize)
+    const batchResults = await Promise.allSettled(batch.map(fn))
+    results.push(...batchResults)
+  }
+  return results
+}
+
 /**
- * Fetches BLN3 measure applicability for multiple fields in parallel.
+ * Fetches BLN3 measure applicability for multiple fields in parallel using bounded batches.
  *
- * Uses `Promise.allSettled` so individual field failures return an empty record
- * for that field rather than failing the entire request.
+ * Uses `Promise.allSettled` in batches of 5 so individual field failures return an empty record
+ * for that field rather than failing the entire request or overwhelming external services.
  *
  * @returns A record mapping `b_id` to a record mapping `m_id` to `MeasureApplicabilityInfo`.
  */
@@ -202,15 +217,14 @@ export async function getMeasureApplicabilityForFields({
   b_year: number
   timeframe?: Timeframe
 }): Promise<Record<string, Record<string, MeasureApplicabilityInfo>>> {
-  const results = await Promise.allSettled(
-    b_ids.map((b_id) =>
-      getMeasureApplicabilityForField({
-        principal_id,
-        b_id,
-        b_year,
-        timeframe,
-      }),
-    ),
+  const BATCH_SIZE = 5
+  const results = await mapInBatches(b_ids, BATCH_SIZE, (b_id) =>
+    getMeasureApplicabilityForField({
+      principal_id,
+      b_id,
+      b_year,
+      timeframe,
+    }),
   )
 
   const fieldApplicabilityMap: Record<

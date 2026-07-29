@@ -61,8 +61,11 @@ export async function getCatalogueBln(nmiApiKey: string): Promise<CatalogueMeasu
       m_summary: item.m_summary ?? null,
       m_source_url: item.m_source_url ?? null,
       m_conflicts: item.m_conflicts?.map((id) => `bln_${id}`) ?? null,
-      m_stage_applicability: (item.m_applicability?.find(
-        (a) => a.variable === "M_STAGE_APPLICABILITY",
-      )?.values[0] ?? null) as "field" | "farm" | null,
+      m_stage_applicability: (() => {
+        const val = item.m_applicability?.find(
+          (a) => a.variable === "M_STAGE_APPLICABILITY",
+        )?.values[0]
+        return val === "field" || val === "farm" ? val : null
+      })(),
     }))
 }

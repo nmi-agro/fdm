@@ -64,6 +64,21 @@ export async function requestBln3MeasureApplicability(
       )
     }
 
+    const validStatuses = new Set(["applicable", "not yet applicable", "inapplicable"])
+    for (const item of result.data.applicability) {
+      if (
+        !item ||
+        typeof item.m_id !== "string" ||
+        item.m_id.trim().length === 0 ||
+        !validStatuses.has(item.applicability) ||
+        typeof item.message !== "string"
+      ) {
+        throw new Error(
+          "BLN3 measure applicability API returned a malformed payload (invalid item in applicability array)",
+        )
+      }
+    }
+
     // Map m_id to "bln_" prefixed format to match FDM CatalogueMeasureItem.m_id convention
     return {
       applicability: result.data.applicability.map((item) => ({

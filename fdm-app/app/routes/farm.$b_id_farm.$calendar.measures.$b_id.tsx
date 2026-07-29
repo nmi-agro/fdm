@@ -130,7 +130,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id,
         b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
         timeframe,
-      }).catch(() => null),
+      }).catch((err) => {
+        console.error(
+          `BLN3 applicability check failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
       checkPermission(
         fdm,
         "field",

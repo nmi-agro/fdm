@@ -373,6 +373,22 @@ export function AddMeasureDialog({
     )
   }, [sortedFields, fieldSearch])
 
+  // Derive selectable (applicable) fields for the currently selected measure in Step 2
+  const selectableFields = useMemo(() => {
+    if (!visibleFields) return []
+    return visibleFields.filter(
+      (f) =>
+        !selected ||
+        !applicabilityByField?.[f.b_id]?.[selected.m_id] ||
+        applicabilityByField[f.b_id][selected.m_id].applicability === "applicable",
+    )
+  }, [visibleFields, selected, applicabilityByField])
+
+  const allSelectableChecked = useMemo(() => {
+    if (selectableFields.length === 0) return false
+    return selectableFields.every((f) => selectedFieldIds.has(f.b_id))
+  }, [selectableFields, selectedFieldIds])
+
   const handleSelectMeasure = (item: MeasureCatalogue) => {
     setSelected(item)
     setStep("configure")
@@ -579,36 +595,16 @@ export function AddMeasureDialog({
                         type="button"
                         className="text-muted-foreground hover:text-foreground text-xs"
                         onClick={() => {
-                          const selectableIds = visibleFields
-                            .filter(
-                              (f) =>
-                                !selected ||
-                                !applicabilityByField?.[f.b_id]?.[selected.m_id] ||
-                                applicabilityByField[f.b_id][selected.m_id].applicability === "applicable",
-                            )
-                            .map((f) => f.b_id)
-                          const allSelectableChecked = selectableIds.every((id) =>
-                            selectedFieldIds.has(id),
-                          )
                           const next = new Set(selectedFieldIds)
                           if (allSelectableChecked) {
-                            for (const id of selectableIds) next.delete(id)
+                            for (const f of selectableFields) next.delete(f.b_id)
                           } else {
-                            for (const id of selectableIds) next.add(id)
+                            for (const f of selectableFields) next.add(f.b_id)
                           }
                           setSelectedFieldIds(next)
                         }}
                       >
-                        {visibleFields
-                          .filter(
-                            (f) =>
-                              !selected ||
-                              !applicabilityByField?.[f.b_id]?.[selected.m_id] ||
-                              applicabilityByField[f.b_id][selected.m_id].applicability === "applicable",
-                          )
-                          .every((f) => selectedFieldIds.has(f.b_id))
-                          ? "Geen"
-                          : "Alle"}
+                        {allSelectableChecked ? "Geen" : "Alle"}
                       </button>
                     </div>
                     <div className="relative">

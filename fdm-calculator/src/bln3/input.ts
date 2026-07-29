@@ -1,5 +1,11 @@
 import type { FdmType, fdmSchema, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
-import { getCultivations, getField, getMeasures, getSoilAnalyses } from "@nmi-agro/fdm-core"
+import {
+  getCultivations,
+  getFertilizerApplications,
+  getField,
+  getMeasures,
+  getSoilAnalyses,
+} from "@nmi-agro/fdm-core"
 import type {
   Bln3Cultivation,
   Bln3Measure,
@@ -180,10 +186,11 @@ export async function collectInputForBln3MeasureApplicability(
   timeframe?: Timeframe,
 ): Promise<Bln3MeasureApplicabilityCollectedInputs> {
   try {
-    const [field, soilAnalyses, cultivations] = await Promise.all([
+    const [field, soilAnalyses, cultivations, fertilizerApplications] = await Promise.all([
       getField(fdm, principal_id, b_id),
       getSoilAnalyses(fdm, principal_id, b_id, timeframe),
       getCultivations(fdm, principal_id, b_id),
+      getFertilizerApplications(fdm, principal_id, b_id, timeframe).catch(() => []),
     ])
 
     const [a_lon, a_lat] = field.b_centroid
@@ -245,12 +252,21 @@ export async function collectInputForBln3MeasureApplicability(
       }
     }
 
+    const appMethods = Array.from(
+      new Set(
+        fertilizerApplications
+          .map((app) => app.p_app_method)
+          .filter((m): m is NonNullable<typeof m> => m != null),
+      ),
+    ) as string[]
+
     return {
       a_lat,
       a_lon,
       b_year,
       b_soiltype_agr: latestWithSoiltype?.b_soiltype_agr ?? undefined,
       b_gwl_class: latestWithGwlClass?.b_gwl_class ?? undefined,
+      ...(appMethods.length > 0 && { p_app_method: appMethods }),
       ...(bln3Cultivations.length > 0 && { cultivations: bln3Cultivations }),
       ...soilData,
     }
