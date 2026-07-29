@@ -1,0 +1,244 @@
+---
+slug: release-july-2026
+title: July 2026 Release
+authors: [svenverweij]
+tags:
+  [
+    release,
+    fdm-app,
+    fdm-core,
+    fdm-calculator,
+    fdm-data,
+    fdm-api,
+    fdm-agents,
+    fdm-docs,
+    fdm-rvo,
+    fdm-helpdesk,
+  ]
+date: 2026-07-30
+---
+
+The July 2026 release centres on a new field dashboard that brings the map, cultivations, fertilization, gebruiksruimte, balansen, soil data, indicators and maatregelen of a single field together on one page, supported by a reworked sidebar and navigation. It further introduces end-to-end support for Renure, from the RVO mestcodes and default catalogue products to the 2026 gebruiksnorm and Gerrit's fertilizer strategies, adds a farm-level Tijdlijn with a dedicated mobile view, a Teeltassistent that proposes a missing hoofdteelt based on BRP data, and the Nitrogen Supplying Capacity (NLV) as a calculated soil parameter. Alongside these, the release makes BLN3 measures aware of where they apply, replaces the farm-level nutrient advice overview with a datatable, extends the Helpdesk with inbound email, agent schedules and automatic ticket routing, adds profile pictures and organization logos, brings the 2026 fields and cultivations into the catalogues, and moves the whole monorepo to TypeScript v7.
+
+{/* truncate */}
+
+### Field Dashboard and Navigation
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The field `_index` redirect has been replaced by a field dashboard: a structured overview combining a switchable field map, the current cultivation and a merged fdm/BRP cultivation history, fertilizer applications and bemestingsadvies, gebruiksruimte, the stikstof- and organische stofbalans, soil parameters, analyses and the BodemConditieScore, BLN indicators and maatregelen. Each block links through to its own detail page, so the dashboard serves as the starting point for a field rather than as a separate report.
+- A context-aware "Perceel" collapsible group has been added at the bottom of the Bedrijf section in the sidebar, making it easier to reach field-specific pages.
+- Clicking a farm-scoped item in the sidebar (Kalender, Percelen, Bouwplan, Maatregelen, Meststoffen, Apps) while no farm is active, for example on the farms overview page, no longer leads to an inactive link. A dialog now appears to choose one of your farms, after which you are redirected to the requested page for that farm. If you do not have a farm yet, the dialog offers to create one. "Kies een perceel" additionally asks which field of the chosen farm to open and navigates straight to that field's page rather than the fields overview.
+- The field settings page has been renamed from `/overview` to `/settings`; the label remains "Gegevens".
+- Client errors (400, 403 and 404) now render a visually distinct page from server errors (500), making the difference clearer to the user.
+
+### Renure
+
+Renure (REcovered Nitrogen from manURE) covers mineral nitrogen products recovered from animal manure. Under the Dutch derogation framework these products count towards a separate norm from 2026 onwards: 80 kg N per hectare on top of the 170 kg N per hectare norm for dierlijke mest. Before 2026 they carry no separate legal meaning and are counted as dierlijke mest. This release implements that distinction throughout the stack.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- `p_type_rvo` now includes the Renure mestcodes 130, 131, 132, 133 and 134.
+- `syncFertilizerCatalogueArray`, and therefore `syncCatalogues` which runs on application startup, now automatically acquires a newly introduced catalogue product for every existing farm that already has that catalogue source enabled. This mirrors the bulk acquisition that happens when a new farm is created. Previously only farms created after a product was added would ever see it, and existing farms had no automatic or manual way to pick up new catalogue products such as the Renure products described below. This applies only to genuinely new catalogue items on first insert; updates to existing items are unaffected.
+
+**FDM Data (`@nmi-agro/fdm-data`)**
+
+- Four default Renure products have been added to the BAAT fertilizer catalogue: Ammoniumsulfaatoplossing (130), Ammoniumnitraatoplossing (131), Mineralenconcentraat (132) and Ammoniumstruviet (133).
+- Two variants of Ammoniumstruviet and Kaliumstruviet without a Renure classification have been added as well. Both products can technically be produced as Renure, but in practice this is not often the case.
+- No default product is provided for mestcode 134, as it is a generic "overig" category.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- Renure is supported in the gebruiksnormen calculation. For 2026 it is returned as a fourth norm, with accompanying value and filling functions. For 2025 no Renure norm is returned and Renure products count towards the dierlijke mest norm.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The Renure norm is shown at Gebruiksruimte for 2026 and later.
+
+**FDM Agents (`@nmi-agro/fdm-agents`)**
+
+- Gerrit is now Renure-aware. A new `includeRenure` fertilizer plan strategy has been added, together with a RENURE prompt section explaining the 80 kg N per hectare norm on top of the 170 kg dierlijke mest norm.
+- `searchFertilizers` now exposes `p_type_rvo`, so the agent can reason about the RVO classification of a product.
+- `simulateFarmPlan` gained a compliance check. Together with `searchFertilizers`, Renure products are only filtered out or flagged when `includeRenure` is false **and** the plan's calendar year is 2026 or later, so the toggle never affects earlier years.
+
+### Tijdlijn
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- A farm-level "Tijdlijn" page presents a Gantt chart overview of cultivations, fertilizer applications, harvests and soil samplings across all fields, with zoom levels and filters.
+- On viewports narrower than 768px, and on landscape viewports up to 1024px wide, the Gantt chart is replaced by a date-grouped event feed with sticky headers, a sticky active-cultivations bar, month and year filtering, a Datum/Veld toggle, a collapsible field-grouped view, infinite scroll and empty states.
+
+### Teeltassistent
+
+A field without a registered hoofdteelt cannot be given a gebruiksnorm or a bemestingsadvies, which makes it a common blind spot early in the season. The Teeltassistent closes that gap by proposing the crop that the BRP already knows about.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Fields with no registered hoofdteelt for the active calendar year now receive an NMI-estimate-based crop suggestion sourced from the BRP. The suggestion appears on the farm dashboard's missing-cultivation banner, the field list, the field detail page and the nutrient advice overview, and can be accepted to pre-fill the "add cultivation" form.
+- The Teeltassistent on the farm dashboard collects the fields missing a hoofdteelt and offers one-step acceptance of the BRP suggestion, with a review modal so the proposal can be checked before it is recorded.
+- The suggestion is silently omitted, and never blocks the page, when no NMI API key is configured, when no estimate is available for the year, or when the NMI API call fails.
+- Main-cultivation determination has been unified with `fdm-calculator`'s May 15 to July 15 duration rule, replacing the application's diverging "active on May 15th" logic.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- `findHoofdteelt` gained an optional `returnNull` parameter, letting callers receive `null` instead of the regulatory fallback `GROENE_BRAAK` (`nl_6794`) when no cultivation overlaps the May 15 to July 15 window. It defaults to `false`, preserving existing behaviour. This is what allows the application to distinguish a genuinely missing hoofdteelt from a fallback value.
+
+### Soil: Nitrogen Supplying Capacity and Analyses
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- `d_n_supply_base` has been added as a soil parameter, representing the NLV: the nitrogen mineralised from soil organic matter. It can carry a `calculated` source.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- A new `calculateNlv` function computes the nitrogen mineralization from soil organic matter.
+- `calculateNlvSupplyBySom` has been renamed to `calculateNlvSupplyIncreaseBySomPotential`, which more accurately describes what it returns.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The NLV is now shown on the soil cards, the field overview dashboard, the fields table and as a layer on the soil analysis atlas map.
+- The tabs on the field soil page have been replaced by a two-column layout showing both the latest values per soil parameter and a list of soil analyses.
+
+**FDM Core (`@nmi-agro/fdm-core`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- Uploaded soil analysis PDFs are now stored in the GCS bucket and `a_file_path` is set on the analysis. The original laboratory report can therefore be viewed and downloaded from within the application afterwards, next to the parsed values, so the source of a measurement remains verifiable. Deleting a soil analysis also removes its stored PDF.
+
+### BLN3 Measures and Indicators
+
+Not every BLN3 measure applies to every field, and some apply at farm level rather than at field level. This release makes that explicit in the data and enforces it in the interface.
+
+**FDM Data (`@nmi-agro/fdm-data`)**
+
+- The `bln` measures catalogue now carries an `m_stage_applicability` property indicating whether a measure applies at `farm` or at `field` level.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- `m_stage_applicability` has been added to the MeasureCatalogue and Measure items, so the level at which a measure applies is returned to consumers.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- `getBln3MeasureApplicability` determines the applicability of a measure based on the properties of a field.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- In the list of measures, measures that are not applicable or not yet applicable are shown as inactive and cannot be selected, with an explanation of why the measure does not apply to the field.
+- At farm level, measures show for how many fields they are applicable when this is not all of them, and non-applicable fields cannot be selected.
+- Fixed a dead click on the indicator tree, where clicking the highest-level score did not expand or collapse the indicators below it.
+
+### Bemestingsadvies and Gebruiksnormen
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The farm-level nutrient advice overview has been replaced by a sortable, searchable datatable showing all fields and nutrients at a glance, with a per hectare / totaal switch, farm-level totals, and clearer handling of fields for which no advice could be calculated.
+- Shared `NormProgressBar` and `AdviceProgressBar` components ensure consistent colouring wherever these bars appear. Gebruiksnormen bars are green within the limit and red beyond it, including the case of a zero limit with recorded usage. Bemestingsadvies bars are orange below 90%, green between 90% and 110% and red above 110%, with an exemption for EOC.
+- Fertilizer icons are now rendered through a single shared component.
+
+### Gerrit (Labs)
+
+Gerrit remains a research preview. This release makes its reasoning easier to follow and extends the strategies it can apply.
+
+**FDM Agents (`@nmi-agro/fdm-agents`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- Gerrit is now Renure-aware through the `includeRenure` strategy described above.
+- The status view has been rebuilt on the new shadcn marker components. Each tool call and each reasoning step is displayed individually, showing how often each tool was called and in what order.
+- Gemini 3.6 Flash replaces Gemini 3.5 Flash as the default model, and Gemini 3.5 Flash Lite replaces Gemini 3.1 Flash Lite.
+
+### Helpdesk
+
+The helpdesk introduced in June has grown into a full support back-end this month. Besides accepting email, it now knows who is working when, and routes tickets accordingly.
+
+**FDM Helpdesk (`@nmi-agro/fdm-helpdesk`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- The server can be configured to receive inbound email through Postmark and turn those messages into tickets. Replies are detected through email threading and posted as messages under the corresponding ticket instead of opening a new one.
+- Tickets from senders without an account are supported: `requester_email` has been added to the `tickets` table, `messages.sender_id` is now nullable, and the interface shows the email address instead of a blank requester name. When such a sender later creates an account, their earlier email tickets and messages are linked to their principal, so their support history appears in the in-app helpdesk on first sign-in.
+- Blocked emails can be managed from the support settings: a `blocked_emails` table with matching that is case-insensitive, together with a guard against excessively long email addresses, keeps unwanted senders out of the ticket queue.
+
+**Agent management and schedules**
+
+- Administrators can add and edit agents, change their role and set them active or inactive, from an agent management screen with an inline form.
+- Each agent has an `assignment_tier` (1 = first line, 2 = second line, 3 = escalation only), a set of `work_days` (defaulting to Monday through Friday) and an optional `max_tickets` limit on concurrent assignments (defaulting to 20).
+- Absences can be scheduled per agent through the new `agent_absences` table, with a start and end date, a reason (Vakantie, Vrije dag, Ziek or Overig) and an optional note. `scheduleAbsence`, `updateAbsence`, `cancelAbsence`, `getAbsence`, `getAbsencesForAgent` and `getAllAbsences` cover the lifecycle.
+- The stored `agents.availability_status` column has been dropped. Availability is now derived: an agent counts as available when they are scheduled to work today and no absence covers today. `getAgentAvailabilityStatuses` is the canonical way for the interface to determine this and applies exactly the same rules that the server applies when assigning, so display and assignment cannot drift apart. Availability is shown on the agent list and on the ticket assignment controls.
+
+**Ticket routing**
+
+- `autoAssignTicket` assigns an incoming ticket to the least-loaded available agent. `getAvailableAgents` selects agents that are active, scheduled to work on that weekday, not absent and below their ticket ceiling, and orders them by assignment tier first, then by the number of active primary assignments, then by a priority-weighted workload (low 1, normal 2, high 4, urgent 8) and finally by name. The tier ordering means first-line agents are exhausted before a ticket cascades to second line or escalation.
+- `reassignAgentTickets` redistributes the active tickets of a departing or unavailable agent. It promotes an existing co-assignee to primary where one exists, and otherwise assigns to the least-loaded available agent. Reassignment is optional rather than automatic, and agents are notified by email about their newly assigned tickets, capped at three emails per agent per run.
+- Inactive agents are no longer offered as assignment candidates.
+- Two database migrations accompany these changes: `0002_sturdy_mojo.sql` for inbound email and blocked senders, and `0003_rapid_chamber.sql` for agent absences and the removal of the stored availability status.
+
+### Accounts and Sign-In
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Users can upload a profile picture and organizations can upload a logo. Both are stored in GCS and displayed through the existing `user.image` and `organization.logo` fields. Images can also be deleted, including those previously retrieved from a social login.
+
+**FDM Core (`@nmi-agro/fdm-core`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- The magic-link sign-in code is now a 6-digit numeric code instead of an 8-character alphanumeric one. Mobile devices therefore consistently show a numeric keypad and the code is faster to type, while the existing rate limit of five attempts per fifteen minutes keeps it safe from brute-forcing.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The sign-in verification flow (`signin/check-your-email`, `signin/verify` and `welcome`) has been improved: a resend-code action with a masked destination address and a cooldown now backs the "request a new code" copy, `aria-invalid` reaches the rendered input, the error region no longer renders when empty, and focus returns to the code field after a failed verification.
+- Auto-submit after a completed code no longer fires when the user edits the code during the reveal delay, and a manual submit cancels the pending auto-submit.
+- `welcome.tsx` now reuses the shared `AuthLayout` and `AuthCard` components instead of duplicating the auth shell, and its deprecated `Form`/`FormField` usage has been replaced by the `Controller` plus `Field`/`FieldLabel`/`FieldError` pattern used elsewhere. The screen also describes concretely what happens next rather than showing a generic profile-completion message.
+- The sign-in page received an accessibility, copy and visual pass: a visible label, `type="email"` and `autoComplete` on the email field for WCAG AA, corrected Dutch typos and consistent formal address, a trust line linking to NMI and GitHub, a horizontal staggered feature layout in place of identical centred cards, flat-by-default shadows, a fix for 4-column grid overflow on 14-inch laptops, and respect for `prefers-reduced-motion` on all scroll and enter animations.
+
+### Soil Parameter Estimates in FDM Calculator
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- A new `estimates` module exports `getSoilParameterEstimates`, cached in the database through `withCalculationCache` and moved here from `fdm-app`'s internal `nmi.server.ts`, together with its uncached counterpart `requestSoilParameterEstimates` and `collectInputForSoilParameterEstimates(fdm, principal_id, b_id, nmiApiKey)`, which resolves a persisted field's centroid through `getField` and mirrors `collectInputForBln3Score`.
+- **This is a breaking change**: `getSoilParameterEstimates` now takes `(fdm, { a_lat, a_lon, nmiApiKey })` instead of `(field, nmiApiKey)`. All internal call sites have been updated accordingly.
+
+### Fields and Cultivations for 2026
+
+These changes were released ahead of this release, in the patch releases of 3 and 15 July, so that the 2026 season could be registered without waiting for the monthly cycle.
+
+**FDM Data (`@nmi-agro/fdm-data`)**
+
+- The new 2026 cultivations have been added to the BRP catalogue.
+- The value of `b_lu_rest_oravib` has been corrected for a number of cultivations.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- The stikstofgebruiksnormen for the new 2026 cultivations have been added.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- At Atlas the draft fields for 2026 have been enabled and the 2025 fields switched from draft to definitive; field details are now requested for 2026 instead of 2025.
+
+### Landing Page and Visual Polish
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The landing page gained a section about the Indicators and Measures features.
+- The farms overview and the farm page received a slight improvement to their visual hierarchy.
+
+### Under the Hood
+
+**All packages**
+
+- The monorepo has been migrated to TypeScript v7. `fdm-docs` keeps TypeScript v6 for TypeDoc, as v7 does not yet expose the API TypeDoc requires; this is expected to return in TypeScript 7.1.
+- Linting and formatting have been migrated from Biome to oxlint and oxfmt.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Product analytics instrumentation through PostHog has been added, capturing events across the application and grouping them by farm, organization and year. Event payloads are truncated to prevent HTTP 413 drops on large LLM generation events, while token usage and cost metrics are preserved.
+
+### Hotfixes since June 2026
+
+Three patch releases were published between the June 2026 and July 2026 releases, on 3, 15 and 23 July. Besides the 2026 fields and cultivations described above, they contained the following fixes.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- BLN3 uses the updated indicator names `CR_CSEQ` instead of `C_SEQ` and `GW_WHC` instead of `P_WRET`.
+- An inline form error is now shown when creating a cultivation whose end date precedes its start date; previously this only worked when updating a cultivation.
+
+**FDM Core (`@nmi-agro/fdm-core`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- Users can now see farm invitations for their organization even when they are only a member, through the new `include_readonly` flag on `listPendingInvitationsForUser` and `listPendingInvitationsForPrincipal`. Members who cannot act on an invitation themselves see no accept or decline buttons, but a message explaining that their administrator can respond on their behalf.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), [fdm-calculator](https://github.com/nmi-agro/fdm/blob/main/fdm-calculator/CHANGELOG.md), [fdm-data](https://github.com/nmi-agro/fdm/blob/main/fdm-data/CHANGELOG.md), [fdm-api](https://github.com/nmi-agro/fdm/blob/main/fdm-api/CHANGELOG.md), [fdm-rvo](https://github.com/nmi-agro/fdm/blob/main/fdm-rvo/CHANGELOG.md), [fdm-agents](https://github.com/nmi-agro/fdm/blob/main/fdm-agents/CHANGELOG.md), [fdm-helpdesk](https://github.com/nmi-agro/fdm/blob/main/fdm-helpdesk/CHANGELOG.md), and [fdm-docs](https://github.com/nmi-agro/fdm/blob/main/fdm-docs/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.
