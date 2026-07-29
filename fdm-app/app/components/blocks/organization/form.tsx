@@ -60,7 +60,7 @@ export function OrganizationSettingsForm({
         const formData = new FormData(formRef.current)
         processForm(async () => {
           const formDataWithCroppedPic = await cropProfilePicture(formData)
-          fetcher.submit(formDataWithCroppedPic, {
+          void fetcher.submit(formDataWithCroppedPic, {
             method: "post",
             encType: "multipart/form-data",
           })

@@ -7,7 +7,7 @@ interface BLN3ApiMeasure {
   m_description: string | null
   m_source_url: string | null
   m_conflicts: string[] | null
-  m_applicability: { variable: "M_STAGE_APPLICABILITY" | string; values: string[] }[]
+  m_applicability: { variable: string; values: string[] }[]
 }
 
 const FETCH_TIMEOUT_MS = 30_000

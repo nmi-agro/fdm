@@ -156,7 +156,7 @@ export async function action({ request }: Route.ActionArgs) {
           try {
             await deleteObject(objectKey)
           } catch (revertError) {
-            handleActionError(revertError)
+            void handleActionError(revertError)
           }
         }
         try {
@@ -167,7 +167,7 @@ export async function action({ request }: Route.ActionArgs) {
             },
           })
         } catch (revertError) {
-          handleActionError(revertError)
+          void handleActionError(revertError)
         }
         throw err
       }

@@ -91,7 +91,7 @@ export async function action({ params, request }: Route.ActionArgs) {
           message: "Gegevens succesvol bijgewerkt en tickets opnieuw toegewezen.",
         })
       } catch (err) {
-        handleActionError(err)
+        void handleActionError(err)
       }
     }
 
@@ -120,7 +120,7 @@ export default function SupportSettingsProfile() {
         person="third"
         open={true}
         onOpenChange={(open) => {
-          if (!open) navigate("..")
+          if (!open) void navigate("..")
         }}
       />
     </main>

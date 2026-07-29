@@ -222,7 +222,7 @@ export function ProfilePictureManager({
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault()
     processForm(async () => {
-      uploadFetcher.submit(await cropProfilePicture(new FormData(e.currentTarget)), {
+      void uploadFetcher.submit(await cropProfilePicture(new FormData(e.currentTarget)), {
         method: "post",
         encType: "multipart/form-data",
       })
@@ -293,7 +293,7 @@ export function ProfilePictureManager({
                     onClick={() => {
                       const formData = new FormData()
                       formData.append("intent", "delete_profile_picture")
-                      deleteFetcher.submit(formData, { method: "post" })
+                      void deleteFetcher.submit(formData, { method: "post" })
                     }}
                   >
                     Verwijderen
@@ -389,7 +389,9 @@ export async function cropProfilePicture(
               targetWidth,
               targetHeight,
             )
-            imageCompression.canvasToFile(canvas, "image/webp", "avatar", Date.now()).then(resolve)
+            void imageCompression
+              .canvasToFile(canvas, "image/webp", "avatar", Date.now())
+              .then(resolve)
           })
         })
         .catch(reject)

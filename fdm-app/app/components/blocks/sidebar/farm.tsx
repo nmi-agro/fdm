@@ -128,7 +128,7 @@ export function SidebarFarm({
       void navigate(pendingFeature.resolvePath(b_id_farm))
     } else if (pendingFeature?.kind === "pick-field") {
       setFieldPickerFarmId(b_id_farm)
-      fieldOptionsFetcher.load(`/farm/${b_id_farm}/${selectedCalendar}/field-options`)
+      void fieldOptionsFetcher.load(`/farm/${b_id_farm}/${selectedCalendar}/field-options`)
     }
     setPendingFeature(null)
   }

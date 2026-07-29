@@ -237,8 +237,9 @@ export default function SignIn() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
+  const redirectTo = formData.get("redirectTo")
   // Validate redirectTo to prevent open redirect, matching signin._index.tsx
-  const safeRedirectTo = getSafeRedirect(String(formData.get("redirectTo") || ""))
+  const safeRedirectTo = getSafeRedirect(typeof redirectTo === "string" ? redirectTo : null)
 
   // Re-read the email from the cookie rather than trusting a client-supplied
   // field, keeping it the single source of truth for this flow.

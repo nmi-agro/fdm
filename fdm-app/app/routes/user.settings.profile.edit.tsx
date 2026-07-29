@@ -176,7 +176,7 @@ export async function action({ request }: Route.ActionArgs) {
         try {
           await deleteObject(objectKey)
         } catch (revertErr) {
-          handleActionError(revertErr)
+          void handleActionError(revertErr)
         }
         // Caught by the outer try catch block
         throw err
@@ -198,7 +198,7 @@ export async function action({ request }: Route.ActionArgs) {
         try {
           await deleteObject(oldProfilePictureObjectKey)
         } catch (err) {
-          handleActionError(err)
+          void handleActionError(err)
           await auth.api.updateUser({
             headers: request.headers,
             body: { image: session.user.image },

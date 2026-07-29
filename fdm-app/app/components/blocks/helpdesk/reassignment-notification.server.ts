@@ -63,7 +63,7 @@ export async function notifyAboutReassignments(
 
       sentCounts.set(assignment.agent_id, (sentCounts.get(assignment.agent_id) ?? 0) + 1)
     } catch (err) {
-      handleActionError(err)
+      void handleActionError(err)
     }
   }
 }

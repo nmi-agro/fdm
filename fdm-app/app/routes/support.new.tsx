@@ -83,7 +83,7 @@ export async function action({ request }: Route.ActionArgs) {
         const auto_assignment_result = await autoAssignTicket(fdm, ticket_id, new Date())
         assigned_agent_id = auto_assignment_result.assigned ? auto_assignment_result.agent_id : null
       } catch (autoAssignError) {
-        handleActionError(autoAssignError)
+        void handleActionError(autoAssignError)
       }
 
       // If auto assigning doesn't work due to error or no agent being available, assign to an admin
