@@ -1,30 +1,28 @@
+import type { FeatureCollection, Geometry } from "geojson"
+import type { MetaFunction } from "react-router"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import type { FeatureCollection, Geometry } from "geojson"
 import maplibregl from "maplibre-gl"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
-    Layer,
-    type LayerProps,
-    Map as MapGL,
-    type MapRef,
-    type ViewStateChangeEvent,
+  Layer,
+  type LayerProps,
+  Map as MapGL,
+  type MapRef,
+  type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
-import type { MetaFunction } from "react-router"
-import { type LoaderFunctionArgs, useLoaderData } from "react-router"
+import { type LoaderFunctionArgs, useLoaderData, useParams } from "react-router"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
 import {
-    FieldsSourceAvailable,
-    FieldsSourceNotClickable,
+  FieldsSourceAvailable,
+  FieldsSourceNotClickable,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import {
-    type AtlasViewState,
-    getViewState,
-} from "~/components/blocks/atlas/atlas-viewstate"
+import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -33,14 +31,14 @@ import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
 export const meta: MetaFunction = () => {
-    return [
-        { title: `Percelen - Atlas | ${clientConfig.name}` },
-        {
-            name: "description",
-            content:
-                "Bekijk alle percelen van uw bedrijf op één interactieve kaart. Visualiseer de geografische spreiding en onderlinge relaties tussen uw percelen.",
-        },
-    ]
+  return [
+    { title: `Percelen - Atlas | ${clientConfig.name}` },
+    {
+      name: "description",
+      content:
+        "Bekijk alle percelen van uw bedrijf op één interactieve kaart. Visualiseer de geografische spreiding en onderlinge relaties tussen uw percelen.",
+    },
+  ]
 }
 
 /**
@@ -58,63 +56,57 @@ export const meta: MetaFunction = () => {
  * @throws {Response} If the farm ID is missing or if an error occurs during data retrieval and processing.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Get the farm id
-        const b_id_farm = params.b_id_farm
+  try {
+    // Get the farm id
+    const b_id_farm = params.b_id_farm
 
-        // Get the session
-        const session = await getSession(request)
+    // Get the session
+    const session = await getSession(request)
 
-        // Get timeframe from calendar store
-        const calendar = getCalendar(params)
-        const timeframe = getTimeframe(params)
+    // Get timeframe from calendar store
+    const calendar = getCalendar(params)
+    const timeframe = getTimeframe(params)
 
-        // Get the fields of the farm
-        let featureCollection: FeatureCollection | undefined
-        if (b_id_farm && b_id_farm !== "undefined") {
-            const fields = await getFields(
-                fdm,
-                session.principal_id,
-                b_id_farm,
-                timeframe,
-            )
-            const features = fields.map((field) => {
-                const feature = {
-                    type: "Feature" as const,
-                    properties: {
-                        b_id: field.b_id,
-                        b_name: field.b_name,
-                        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-                        b_lu_name:
-                            (field as { b_lu_name?: string }).b_lu_name ?? "",
-                        b_id_source: field.b_id_source,
-                    },
-                    geometry: simplify(field.b_geometry as Geometry, {
-                        tolerance: 0.00001,
-                        highQuality: true,
-                    }),
-                }
-                return feature
-            })
-
-            featureCollection = {
-                type: "FeatureCollection",
-                features: features,
-            }
+    // Get the fields of the farm
+    let featureCollection: FeatureCollection | undefined
+    if (b_id_farm && b_id_farm !== "undefined") {
+      const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+      const features = fields.map((field) => {
+        const feature = {
+          type: "Feature" as const,
+          properties: {
+            b_id: field.b_id,
+            b_name: field.b_name,
+            b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+            b_lu_name: (field as { b_lu_name?: string }).b_lu_name ?? "",
+            b_id_source: field.b_id_source,
+          },
+          geometry: simplify(field.b_geometry as Geometry, {
+            tolerance: 0.00001,
+            highQuality: true,
+          }),
         }
+        return feature
+      })
 
-        // Get Map Style
-        const mapStyle = getMapStyle("satellite")
-
-        // Return user information from loader
-        return {
-            calendar: calendar,
-            savedFields: featureCollection,
-            mapStyle: mapStyle,
-        }
-    } catch (error) {
-        throw handleLoaderError(error)
+      featureCollection = {
+        type: "FeatureCollection",
+        features: features,
+      }
     }
+
+    // Get Map Style
+    const mapStyle = getMapStyle("satellite")
+
+    // Return user information from loader
+    return {
+      calendar: calendar,
+      savedFields: featureCollection,
+      mapStyle: mapStyle,
+    }
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }
 
 /**
@@ -124,128 +116,130 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * It integrates geolocation and navigation controls, wraps the field layer in a non-interactive source, and includes a panel for displaying additional field details on hover.
  */
 export default function FarmAtlasFieldsBlock() {
-    const loaderData = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
+  const params = useParams()
+  const { capture } = useAnalytics()
 
-    const id = "fieldsSaved"
-    const fields = loaderData.savedFields
-    const fieldsSavedStyle = getFieldsStyle(id)
-    const fieldsAvailableId = "fieldsAvailable"
-    const fieldsAvailableStyle = getFieldsStyle(fieldsAvailableId)
-    const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
-    // ViewState logic
-    const initialViewState = getViewState(fields)
-    const [viewState, setViewState] = useState<AtlasViewState>(() => {
-        if (typeof window !== "undefined") {
-            try {
-                const savedViewState = sessionStorage.getItem("mapViewState")
-                if (savedViewState) {
-                    return JSON.parse(savedViewState)
-                }
-            } catch {
-                // ignore storage errors (e.g., private mode)
-            }
-        }
-        return initialViewState
+  useEffect(() => {
+    capture("atlas_viewed", {
+      b_id_farm: params.b_id_farm,
+      calendar: loaderData.calendar,
+      layer: "fields",
     })
+  }, [])
 
-    const [showFields, setShowFields] = useState(true)
-
-    const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-        setViewState(event.viewState)
-    }, [])
-
-    const mapRef = useRef<MapRef>(null)
-
-    useEffect(() => {
-        if (typeof window !== "undefined") {
-            try {
-                sessionStorage.setItem(
-                    "mapViewState",
-                    JSON.stringify(viewState),
-                )
-            } catch {
-                // ignore storage errors (e.g., private mode)
-            }
+  const id = "fieldsSaved"
+  const fields = loaderData.savedFields
+  const fieldsSavedStyle = getFieldsStyle(id)
+  const fieldsAvailableId = "fieldsAvailable"
+  const fieldsAvailableStyle = getFieldsStyle(fieldsAvailableId)
+  const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
+  // ViewState logic
+  const initialViewState = getViewState(fields)
+  const [viewState, setViewState] = useState<AtlasViewState>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedViewState = sessionStorage.getItem("mapViewState")
+        if (savedViewState) {
+          return JSON.parse(savedViewState)
         }
-    }, [viewState])
+      } catch {
+        // ignore storage errors (e.g., private mode)
+      }
+    }
+    return initialViewState
+  })
 
-    const layerLayout = { visibility: showFields ? "visible" : "none" } as const
-    const fieldsAvailableLayer = {
-        ...fieldsAvailableStyle,
-        layout: layerLayout,
-    } as LayerProps
-    const fieldsSavedOutlineLayer = {
-        ...fieldsSavedOutlineStyle,
-        layout: layerLayout,
-    } as LayerProps
-    const fieldsSavedLayer = {
-        ...fieldsSavedStyle,
-        layout: layerLayout,
-    } as LayerProps
+  const [showFields, setShowFields] = useState(true)
 
-    return (
-        <MapGL
-            {...viewState}
-            ref={mapRef}
-            style={{ height: "calc(100vh - 64px)", width: "100%" }}
-            interactive={true}
-            mapStyle={loaderData.mapStyle}
-            mapLib={maplibregl}
-            interactiveLayerIds={[id, fieldsAvailableId]}
-            onMove={onViewportChange}
-        >
-            <Controls
-                onViewportChange={({ longitude, latitude, zoom }) =>
-                    setViewState((currentViewState) => ({
-                        ...currentViewState,
-                        longitude,
-                        latitude,
-                        zoom,
-                        pitch: currentViewState.pitch, // Ensure pitch is carried over
-                        bearing: currentViewState.bearing, // Ensure bearing is carried over
-                    }))
-                }
-                showFields={showFields}
-                onToggleFields={() => setShowFields(!showFields)}
-                showFlyToFields={
-                    fields && fields.features.length > 0 ? true : undefined
-                }
-                onFlyToFields={() => {
-                    setViewState({ ...initialViewState })
-                    if (initialViewState.bounds) {
-                        mapRef.current?.fitBounds(
-                            initialViewState.bounds,
-                            initialViewState.fitBoundsOptions,
-                        )
-                    }
-                }}
-            />
+  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
+    setViewState(event.viewState)
+  }, [])
 
-            <MapTilerAttribution />
+  const mapRef = useRef<MapRef>(null)
 
-            <FieldsSourceAvailable
-                id={fieldsAvailableId}
-                calendar={loaderData.calendar}
-                zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                redirectToDetailsPage={true}
-            >
-                <Layer {...fieldsAvailableLayer} />
-            </FieldsSourceAvailable>
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
+      } catch {
+        // ignore storage errors (e.g., private mode)
+      }
+    }
+  }, [viewState])
 
-            {fields && (
-                <FieldsSourceNotClickable id={id} fieldsData={fields}>
-                    <Layer {...fieldsSavedOutlineLayer} />
-                    <Layer {...fieldsSavedLayer} />
-                </FieldsSourceNotClickable>
-            )}
+  const layerLayout = { visibility: showFields ? "visible" : "none" } as const
+  const fieldsAvailableLayer = {
+    ...fieldsAvailableStyle,
+    layout: layerLayout,
+  } as LayerProps
+  const fieldsSavedOutlineLayer = {
+    ...fieldsSavedOutlineStyle,
+    layout: layerLayout,
+  } as LayerProps
+  const fieldsSavedLayer = {
+    ...fieldsSavedStyle,
+    layout: layerLayout,
+  } as LayerProps
 
-            <div className="fields-panel">
-                <FieldsPanelHover
-                    zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                    layer={[fieldsAvailableId, id]}
-                    clickRedirectsToDetailsPage={true}
-                />
-            </div>
-        </MapGL>
-    )
+  return (
+    <MapGL
+      {...viewState}
+      ref={mapRef}
+      style={{ height: "calc(100vh - 64px)", width: "100%" }}
+      interactive={true}
+      mapStyle={loaderData.mapStyle}
+      mapLib={maplibregl}
+      interactiveLayerIds={[id, fieldsAvailableId]}
+      onMove={onViewportChange}
+    >
+      <Controls
+        onViewportChange={({ longitude, latitude, zoom }) =>
+          setViewState((currentViewState) => ({
+            ...currentViewState,
+            longitude,
+            latitude,
+            zoom,
+            pitch: currentViewState.pitch, // Ensure pitch is carried over
+            bearing: currentViewState.bearing, // Ensure bearing is carried over
+          }))
+        }
+        showFields={showFields}
+        onToggleFields={() => setShowFields(!showFields)}
+        showFlyToFields={fields && fields.features.length > 0 ? true : undefined}
+        onFlyToFields={() => {
+          setViewState({ ...initialViewState })
+          if (initialViewState.bounds) {
+            mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
+          }
+        }}
+      />
+
+      <MapTilerAttribution />
+
+      <FieldsSourceAvailable
+        id={fieldsAvailableId}
+        calendar={loaderData.calendar}
+        zoomLevelFields={ZOOM_LEVEL_FIELDS}
+        redirectToDetailsPage={true}
+      >
+        <Layer {...fieldsAvailableLayer} />
+      </FieldsSourceAvailable>
+
+      {fields && (
+        <FieldsSourceNotClickable id={id} fieldsData={fields}>
+          <Layer {...fieldsSavedOutlineLayer} />
+          <Layer {...fieldsSavedLayer} />
+        </FieldsSourceNotClickable>
+      )}
+
+      <div className="fields-panel">
+        <FieldsPanelHover
+          zoomLevelFields={ZOOM_LEVEL_FIELDS}
+          layer={[fieldsAvailableId, id]}
+          clickRedirectsToDetailsPage={true}
+        />
+      </div>
+    </MapGL>
+  )
 }

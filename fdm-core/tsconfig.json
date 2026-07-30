@@ -1,10 +1,10 @@
 {
-    "extends": "../tsconfig.packages.json",
-    "compilerOptions": {
-        "noEmit": true,
-        "paths": {
-            "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
-        }
-    },
-    "include": ["src/**/*", "vitest.config.ts", "drizzle.config.ts"]
+  "extends": "../tsconfig.packages.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@nmi-agro/fdm-data": ["../fdm-data/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*", "vitest.config.ts", "drizzle.config.ts"]
 }

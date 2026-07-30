@@ -23,123 +23,118 @@ const MEST_IOU_THRESHOLD = 0.95
  * @throws Will throw an error if the API request fails.
  */
 export async function fetchRvoFields(
-    rvoClient: RvoClient,
-    year: string,
-    kvkNumber: string,
+  rvoClient: RvoClient,
+  year: string,
+  kvkNumber: string,
 ): Promise<RvoField[]> {
-    // Request fields and mest fields from RVO API concurrently
-    // We request the full calendar year period
-    const [fieldsRaw, mestFieldsRaw] = await Promise.all([
-        rvoClient.opvragenBedrijfspercelen({
-            periodBeginDate: `${year}-01-01`,
-            periodEndDate: `${year}-12-31`,
-            farmId: kvkNumber,
-            outputFormat: "geojson",
-        }),
-        rvoClient
-            .opvragenRegelingspercelenMest({
-                periodBeginDate: `${year}-01-01`,
-                periodEndDate: `${year}-12-31`,
-                farmId: kvkNumber,
-                outputFormat: "geojson",
-            })
-            .catch((err) => {
-                // Catching in case this endpoint fails independently so we don't break the main flow.
-                console.warn("Failed to fetch RegelingspercelenMest:", err)
-                return { features: [] }
-            }),
-    ])
+  // Request fields and mest fields from RVO API concurrently
+  // We request the full calendar year period
+  const [fieldsRaw, mestFieldsRaw] = await Promise.all([
+    rvoClient.opvragenBedrijfspercelen({
+      periodBeginDate: `${year}-01-01`,
+      periodEndDate: `${year}-12-31`,
+      farmId: kvkNumber,
+      outputFormat: "geojson",
+    }),
+    rvoClient
+      .opvragenRegelingspercelenMest({
+        periodBeginDate: `${year}-01-01`,
+        periodEndDate: `${year}-12-31`,
+        farmId: kvkNumber,
+        outputFormat: "geojson",
+      })
+      .catch((err) => {
+        // Catching in case this endpoint fails independently so we don't break the main flow.
+        console.warn("Failed to fetch RegelingspercelenMest:", err)
+        return { features: [] }
+      }),
+  ])
 
-    // The raw response is expected to be a GeoJSON FeatureCollection.
-    // We access the 'features' array to iterate over individual fields.
-    const features = (fieldsRaw as any).features || []
-    const mestFeatures = (mestFieldsRaw as any).features || []
+  // The raw response is expected to be a GeoJSON FeatureCollection.
+  // We access the 'features' array to iterate over individual fields.
+  const features = (fieldsRaw as any).features || []
+  const mestFeatures = (mestFieldsRaw as any).features || []
 
-    if (Array.isArray(features)) {
-        // Pre-compute bounding boxes for all MEST features (avoid recalc in inner loops)
-        const mestWithBbox = Array.isArray(mestFeatures)
-            ? mestFeatures
-                  .filter((mf: any) => mf?.geometry)
-                  .map((mf: any) => ({
-                      feature: mf,
-                      bbox: bbox(mf.geometry) as number[],
-                  }))
-            : []
+  if (Array.isArray(features)) {
+    // Pre-compute bounding boxes for all MEST features (avoid recalc in inner loops)
+    const mestWithBbox = Array.isArray(mestFeatures)
+      ? mestFeatures
+          .filter((mf: any) => mf?.geometry)
+          .map((mf: any) => ({
+            feature: mf,
+            bbox: bbox(mf.geometry) as number[],
+          }))
+      : []
 
-        const matchedMestIndices = new Set<number>()
+    const matchedMestIndices = new Set<number>()
 
-        for (const cropFeature of features) {
-            if (!cropFeature?.geometry) continue
+    for (const cropFeature of features) {
+      if (!cropFeature?.geometry) continue
 
-            const cropBbox = bbox(cropFeature.geometry) as number[]
-            const cropDesignator: string =
-                cropFeature?.properties?.CropFieldDesignator ?? ""
+      const cropBbox = bbox(cropFeature.geometry) as number[]
+      const cropDesignator: string = cropFeature?.properties?.CropFieldDesignator ?? ""
 
-            let mergedMestProps: any = null
+      let mergedMestProps: any = null
 
-            // -------------------------------------------------------
-            // Tier 1: FieldDesignator name match + IoU sanity check
-            // -------------------------------------------------------
-            if (cropDesignator) {
-                const nameMatches = mestWithBbox
-                    .map((m, idx) => ({ ...m, idx }))
-                    .filter(
-                        ({ feature: mf, idx }) =>
-                            !matchedMestIndices.has(idx) &&
-                            mf?.properties?.Fielddesignator === cropDesignator,
-                    )
+      // -------------------------------------------------------
+      // Tier 1: FieldDesignator name match + IoU sanity check
+      // -------------------------------------------------------
+      if (cropDesignator) {
+        const nameMatches = mestWithBbox
+          .map((m, idx) => ({ ...m, idx }))
+          .filter(
+            ({ feature: mf, idx }) =>
+              !matchedMestIndices.has(idx) && mf?.properties?.Fielddesignator === cropDesignator,
+          )
 
-                if (nameMatches.length === 1) {
-                    // Only match when exactly one MEST feature has the same name.
-                    // Multiple matches indicate ambiguity; fall through to Tier 2 spatial matching.
-                    const candidate = nameMatches[0]
-                    const iou = calculateIoU(
-                        cropFeature.geometry,
-                        candidate.feature.geometry,
-                    )
-                    if (iou >= MEST_IOU_THRESHOLD) {
-                        mergedMestProps = candidate.feature.properties
-                        matchedMestIndices.add(candidate.idx)
-                    }
-                }
-            }
+        if (nameMatches.length === 1) {
+          // Only match when exactly one MEST feature has the same name.
+          // Multiple matches indicate ambiguity; fall through to Tier 2 spatial matching.
+          const candidate = nameMatches[0]
+          const iou = calculateIoU(cropFeature.geometry, candidate.feature.geometry)
+          if (iou >= MEST_IOU_THRESHOLD) {
+            mergedMestProps = candidate.feature.properties
+            matchedMestIndices.add(candidate.idx)
+          }
+        }
+      }
 
-            // -------------------------------------------------------
-            // Tier 2: Spatial IoU join (bbox pre-filter)
-            // -------------------------------------------------------
-            if (!mergedMestProps) {
-                let bestIoU = 0
-                let bestIdx = -1
+      // -------------------------------------------------------
+      // Tier 2: Spatial IoU join (bbox pre-filter)
+      // -------------------------------------------------------
+      if (!mergedMestProps) {
+        let bestIoU = 0
+        let bestIdx = -1
 
-                for (let i = 0; i < mestWithBbox.length; i++) {
-                    if (matchedMestIndices.has(i)) continue
-                    const { feature: mf, bbox: mBbox } = mestWithBbox[i]
-                    if (!bboxOverlap(cropBbox, mBbox)) continue
+        for (let i = 0; i < mestWithBbox.length; i++) {
+          if (matchedMestIndices.has(i)) continue
+          const { feature: mf, bbox: mBbox } = mestWithBbox[i]
+          if (!bboxOverlap(cropBbox, mBbox)) continue
 
-                    const iou = calculateIoU(cropFeature.geometry, mf.geometry)
-                    if (iou > bestIoU) {
-                        bestIoU = iou
-                        bestIdx = i
-                    }
-                }
-
-                if (bestIdx >= 0 && bestIoU >= MEST_IOU_THRESHOLD) {
-                    mergedMestProps = mestWithBbox[bestIdx].feature.properties
-                    matchedMestIndices.add(bestIdx)
-                }
-            }
-
-            if (mergedMestProps) {
-                cropFeature.properties.mestData = mergedMestProps
-            }
+          const iou = calculateIoU(cropFeature.geometry, mf.geometry)
+          if (iou > bestIoU) {
+            bestIoU = iou
+            bestIdx = i
+          }
         }
 
-        // Define a schema for an array of fields and parse the data.
-        // This ensures runtime type safety and filters out malformed records if configured.
-        const RvoFieldsArraySchema = z.array(RvoFieldSchema)
-        return RvoFieldsArraySchema.parse(features)
+        if (bestIdx >= 0 && bestIoU >= MEST_IOU_THRESHOLD) {
+          mergedMestProps = mestWithBbox[bestIdx].feature.properties
+          matchedMestIndices.add(bestIdx)
+        }
+      }
+
+      if (mergedMestProps) {
+        cropFeature.properties.mestData = mergedMestProps
+      }
     }
 
-    // Return empty array if the response format is unexpected or contains no features.
-    return []
+    // Define a schema for an array of fields and parse the data.
+    // This ensures runtime type safety and filters out malformed records if configured.
+    const RvoFieldsArraySchema = z.array(RvoFieldSchema)
+    return RvoFieldsArraySchema.parse(features)
+  }
+
+  // Return empty array if the response format is unexpected or contains no features.
+  return []
 }

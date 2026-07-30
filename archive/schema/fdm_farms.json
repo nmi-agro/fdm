@@ -1,25 +1,25 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_farms.json",
-    "title": "Farm asset in Farm Data Model",
-    "description": "The data model to describe the asset: farm",
-    "type": "object",
-    "properties": {
-        "b_id_farm": {
-            "description": "ID of the farm",
-            "type": "string"
-        },
-        "b_name_farm": {
-            "description": "Name of the farm",
-            "type": "string"
-        },
-        "b_sector": {
-            "type": "array",
-            "items": {
-                "type": "string",
-                "enum": ["arable", "diary", "bulb", "tree_nursery"]
-            }
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_farms.json",
+  "title": "Farm asset in Farm Data Model",
+  "description": "The data model to describe the asset: farm",
+  "type": "object",
+  "properties": {
+    "b_id_farm": {
+      "description": "ID of the farm",
+      "type": "string"
     },
-    "required": ["b_id_farm"]
+    "b_name_farm": {
+      "description": "Name of the farm",
+      "type": "string"
+    },
+    "b_sector": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["arable", "diary", "bulb", "tree_nursery"]
+      }
+    }
+  },
+  "required": ["b_id_farm"]
 }

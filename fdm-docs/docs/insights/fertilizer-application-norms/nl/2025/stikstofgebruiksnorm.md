@@ -17,14 +17,14 @@ The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) t
 
 1. **Identify Main Crop**: The main crop for 2025 is determined from your cultivation plan.
 2. **Determine Geographical Context**: The field's location is used to check:
-    * If it is in a **Nutrient-Polluted Area (`NV-gebied`)**, which results in a stricter (lower) norm.
-    * The dominant **soil region** (`zand_nwc`, `zand_zuid`, `klei`, `veen`, or `loess`).
+   - If it is in a **Nutrient-Polluted Area (`NV-gebied`)**, which results in a stricter (lower) norm.
+   - The dominant **soil region** (`zand_nwc`, `zand_zuid`, `klei`, `veen`, or `loess`).
 3. **Find the Standard Norm**: The main crop is looked up in the official RVO Table 2 (or Tabel 2g for NV-gebieden).
 4. **Apply Specific Rules**: The standard norm is refined with additional rules for certain crops:
-    * **Temporary Grassland (`Tijdelijk grasland`)**: The norm is adjusted based on the cultivation end date.
-    * **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety. See [RVO Tabel 2c](https://www.rvo.nl/sites/default/files/2024-12/Tabel-2c-Consumptieaardappelen%20hoge%20of%20lage%20norm-2025.pdf).
-    * **Maize (`Maïs`)**: The norm depends on the farm's derogation status.
-    * **Outdoor Flowers (`Buitenbloemen`)**: A higher norm is applied for specific varieties.
+   - **Temporary Grassland (`Tijdelijk grasland`)**: The norm is adjusted based on the cultivation end date.
+   - **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety. See [RVO Tabel 2c](https://www.rvo.nl/sites/default/files/2024-12/Tabel-2c-Consumptieaardappelen%20hoge%20of%20lage%20norm-2025.pdf).
+   - **Maize (`Maïs`)**: The norm depends on the farm's derogation status.
+   - **Outdoor Flowers (`Buitenbloemen`)**: A higher norm is applied for specific varieties.
 5. **Select the Final Norm**: The final value is selected based on the field's soil region and `NV-gebied` status.
 6. **Apply Nitrogen Usage Norm Reduction (`Korting Stikstofgebruiksnorm`)**: The norm can be reduced (`korting`) if catch crop (`vanggewas`) or winter crop (`winterteelt`) requirements were not met in the previous year on sand and loess soils.
 
@@ -32,8 +32,8 @@ The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) t
 
 The `fdm-calculator` uses the `calculateNitrogenUsageNorm` function in `fdm-calculator/src/norms/nl/2025/value/stikstofgebruiksnorm.ts`, which relies on:
 
-* **`stikstofgebruiksnorm-data.ts`**: Contains the data from RVO Tabel 2 and Tabel 2g.
-* **`input.ts`**: Defines the required inputs, such as derogation status, location, and crop data.
+- **`stikstofgebruiksnorm-data.ts`**: Contains the data from RVO Tabel 2 and Tabel 2g.
+- **`input.ts`**: Defines the required inputs, such as derogation status, location, and crop data.
 
 ---
 
@@ -52,10 +52,10 @@ No reduction is applied if the main crop of the current year is a designated **w
 
 If there is no winter crop, a **catch crop (`vanggewas`)** must be sown. The sowing date determines the reduction:
 
-* **No Reduction**: Sown by **October 1st**.
-* **5 kg N/ha Reduction**: Sown between **October 2nd and October 14th**.
-* **10 kg N/ha Reduction**: Sown between **October 15th and October 31st**.
-* **20 kg N/ha Reduction**: No valid catch crop, sown on or after **November 1st**, or destroyed before **February 1st**.
+- **No Reduction**: Sown by **October 1st**.
+- **5 kg N/ha Reduction**: Sown between **October 2nd and October 14th**.
+- **10 kg N/ha Reduction**: Sown between **October 15th and October 31st**.
+- **20 kg N/ha Reduction**: No valid catch crop, sown on or after **November 1st**, or destroyed before **February 1st**.
 
 ---
 
@@ -67,23 +67,23 @@ In 2025, specific nitrogen usage norm reductions (`kortingen`) apply when grassl
 
 When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. This is only allowed within specific periods:
 
-* **Sand and Loess Soils**: June 1st – August 31st.
-* **Clay and Peat Soils**:
-  * **Derogation Farm + NV-Area**: June 1st – August 31st.
-  * **Derogation Farm + Non-NV-Area**: June 1st – September 15th.
-  * **Non-Derogation Farm**: February 1st – September 15th.
+- **Sand and Loess Soils**: June 1st – August 31st.
+- **Clay and Peat Soils**:
+  - **Derogation Farm + NV-Area**: June 1st – August 31st.
+  - **Derogation Farm + Non-NV-Area**: June 1st – September 15th.
+  - **Non-Derogation Farm**: February 1st – September 15th.
 
 ### 2. Grassland Destruction (Gras-naar-Bouwland)
 
 When grassland is replaced by Maize or specific Potato types, a reduction of **65 kg N/ha** applies.
 
-* **Eligible Crops**: Maize, Consumption Potatoes, and Factory Potatoes.
-* **Excluded Crops**: **Seed Potatoes (`Pootaardappelen`)** do not trigger this reduction.
-* **Allowed Periods**:
-  * **Sand and Loess Soils**: February 1st – May 10th.
-  * **Clay and Peat Soils**:
-    * **NV-Area**: February 1st – March 15th.
-    * **Non-NV-Area**: February 1st – May 31st.
+- **Eligible Crops**: Maize, Consumption Potatoes, and Factory Potatoes.
+- **Excluded Crops**: **Seed Potatoes (`Pootaardappelen`)** do not trigger this reduction.
+- **Allowed Periods**:
+  - **Sand and Loess Soils**: February 1st – May 10th.
+  - **Clay and Peat Soils**:
+    - **NV-Area**: February 1st – March 15th.
+    - **Non-NV-Area**: February 1st – May 31st.
 
 ### How the FDM Calculator Implements These Rules
 
@@ -108,24 +108,24 @@ The filling is based on the **effective nitrogen** (`werkzame stikstof`) applied
 #### Efficiency Coefficients (`Werkingscoëfficiënten`)
 
 | Mestsoort (Manure Type) & Herkomst (Origin) | Toepassing (Application) | Werkingscoëfficiënt (%) |
-| :--- | :--- | :--- |
-| **Drijfmest en dunne fractie** | | |
-| Drijfmest van graasdieren (eigen bedrijf) | Met beweiding | 45 |
-| | Zonder beweiding | 60 |
-| Drijfmest van graasdieren (aangevoerd) | | 60 |
-| Drijfmest van varkens | Klei en veen | 60 |
-| | Zand en löss | 80 |
-| Overige drijfmest en dunne fractie | | 80 |
-| **Vaste mest** | | |
-| Vaste mest van graasdieren (eigen bedrijf) | Bouwland (sep-jan) | 30 |
-| | Overig met beweiding | 45 |
-| | Overig zonder beweiding | 60 |
-| Vaste mest van graasdieren (aangevoerd) | Bouwland (sep-jan) | 30 |
-| | Overige | 40 |
-| Vaste mest van varkens, pluimvee, nertsen | | 55 |
-| **Overig** | | |
-| Compost / Champost | | 10 / 25 |
-| Kunstmest (Mineral fertilizer) | | 100 |
+| :------------------------------------------ | :----------------------- | :---------------------- |
+| **Drijfmest en dunne fractie**              |                          |                         |
+| Drijfmest van graasdieren (eigen bedrijf)   | Met beweiding            | 45                      |
+|                                             | Zonder beweiding         | 60                      |
+| Drijfmest van graasdieren (aangevoerd)      |                          | 60                      |
+| Drijfmest van varkens                       | Klei en veen             | 60                      |
+|                                             | Zand en löss             | 80                      |
+| Overige drijfmest en dunne fractie          |                          | 80                      |
+| **Vaste mest**                              |                          |                         |
+| Vaste mest van graasdieren (eigen bedrijf)  | Bouwland (sep-jan)       | 30                      |
+|                                             | Overig met beweiding     | 45                      |
+|                                             | Overig zonder beweiding  | 60                      |
+| Vaste mest van graasdieren (aangevoerd)     | Bouwland (sep-jan)       | 30                      |
+|                                             | Overige                  | 40                      |
+| Vaste mest van varkens, pluimvee, nertsen   |                          | 55                      |
+| **Overig**                                  |                          |                         |
+| Compost / Champost                          |                          | 10 / 25                 |
+| Kunstmest (Mineral fertilizer)              |                          | 100                     |
 
 ### How the FDM Calculator Determines the Filling
 

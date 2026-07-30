@@ -7,6 +7,7 @@ waar N-beheer en timing verschillen.
 ## Algemene regels voor alle koolgewassen
 
 **Voorkeur:**
+
 - Zwavel: alle brassicas vormen glucosinolaten en hebben een hoge S-behoefte. Neem
   **altijd** S op om aan `advice.d_s_req` te voldoen.
 - Borium: B-gebrek veroorzaakt holle stengel in broccoli en bloemkool. Neem B op om aan
@@ -16,7 +17,8 @@ waar N-beheer en timing verschillen.
   ongelijkmatige kop-/spruitontwikkeling.
 
 **Vermijden:**
-- Zure gronden: knolvoet (clubroot, *Plasmodiophora brassicae*) gedijt onder zure
+
+- Zure gronden: knolvoet (clubroot, _Plasmodiophora brassicae_) gedijt onder zure
   omstandigheden. Behandel een lage pH-KCl als risicosignaal voor elk perceel met
   brassicas — het knolvoetrisico stijgt sterk op klei beneden pH-KCl ~7.0 en op zand
   beneden pH-KCl ~6.0–6.5. Raadpleeg `advice.d_ca_req` en de bodem-pH-gegevens voordat
@@ -26,6 +28,7 @@ waar N-beheer en timing verschillen.
   afrijping.
 
 **Extra aandacht:**
+
 - Molybdeen: bloemkool en broccoli zijn gevoelig voor Mo-gebrek op zure gronden
   ("zweepstaart" / whiptail in bloemkool). Raadpleeg `advice.d_mo_req`.
 - Calcium: belangrijk om tipburn in bloemkool te voorkomen en voor bewaarkwaliteit in

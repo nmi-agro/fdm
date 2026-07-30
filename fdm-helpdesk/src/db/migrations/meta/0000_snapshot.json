@@ -1,1032 +1,1032 @@
 {
-    "id": "c23c89b3-cf18-4fb2-a303-5301589906ec",
-    "prevId": "00000000-0000-0000-0000-000000000000",
-    "version": "7",
-    "dialect": "postgresql",
-    "tables": {
-        "fdm-helpdesk.agents": {
-            "name": "agents",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "agent_id": {
-                    "name": "agent_id",
-                    "type": "text",
-                    "primaryKey": true,
-                    "notNull": true
-                },
-                "display_name": {
-                    "name": "display_name",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "role": {
-                    "name": "role",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "'agent'"
-                },
-                "is_active": {
-                    "name": "is_active",
-                    "type": "boolean",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": true
-                },
-                "availability_status": {
-                    "name": "availability_status",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "'online'"
-                },
-                "assignment_tier": {
-                    "name": "assignment_tier",
-                    "type": "integer",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": 1
-                },
-                "work_days": {
-                    "name": "work_days",
-                    "type": "jsonb",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "'[1,2,3,4,5]'::jsonb"
-                },
-                "max_tickets": {
-                    "name": "max_tickets",
-                    "type": "integer",
-                    "primaryKey": false,
-                    "notNull": false,
-                    "default": 20
-                },
-                "created": {
-                    "name": "created",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                },
-                "updated": {
-                    "name": "updated",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                }
-            },
-            "indexes": {
-                "agent_active_idx": {
-                    "name": "agent_active_idx",
-                    "columns": [
-                        {
-                            "expression": "is_active",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "agent_availability_idx": {
-                    "name": "agent_availability_idx",
-                    "columns": [
-                        {
-                            "expression": "availability_status",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "agent_tier_idx": {
-                    "name": "agent_tier_idx",
-                    "columns": [
-                        {
-                            "expression": "assignment_tier",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {},
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+  "id": "c23c89b3-cf18-4fb2-a303-5301589906ec",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "fdm-helpdesk.agents": {
+      "name": "agents",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
         },
-        "fdm-helpdesk.messages": {
-            "name": "messages",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "message_id": {
-                    "name": "message_id",
-                    "type": "text",
-                    "primaryKey": true,
-                    "notNull": true
-                },
-                "ticket_id": {
-                    "name": "ticket_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "sender_id": {
-                    "name": "sender_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "sender_type": {
-                    "name": "sender_type",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "body": {
-                    "name": "body",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "is_internal": {
-                    "name": "is_internal",
-                    "type": "boolean",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": false
-                },
-                "created": {
-                    "name": "created",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                },
-                "updated": {
-                    "name": "updated",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "deleted_at": {
-                    "name": "deleted_at",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                }
-            },
-            "indexes": {
-                "message_ticket_idx": {
-                    "name": "message_ticket_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "message_sender_idx": {
-                    "name": "message_sender_idx",
-                    "columns": [
-                        {
-                            "expression": "sender_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "message_created_idx": {
-                    "name": "message_created_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        },
-                        {
-                            "expression": "created",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "message_search_idx": {
-                    "name": "message_search_idx",
-                    "columns": [
-                        {
-                            "expression": "to_tsvector('dutch', \"body\")",
-                            "asc": true,
-                            "isExpression": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "gin",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {
-                "messages_ticket_id_tickets_ticket_id_fk": {
-                    "name": "messages_ticket_id_tickets_ticket_id_fk",
-                    "tableFrom": "messages",
-                    "tableTo": "tickets",
-                    "schemaTo": "fdm-helpdesk",
-                    "columnsFrom": ["ticket_id"],
-                    "columnsTo": ["ticket_id"],
-                    "onDelete": "no action",
-                    "onUpdate": "no action"
-                }
-            },
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
         },
-        "fdm-helpdesk.saved_replies": {
-            "name": "saved_replies",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "reply_id": {
-                    "name": "reply_id",
-                    "type": "text",
-                    "primaryKey": true,
-                    "notNull": true
-                },
-                "title": {
-                    "name": "title",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "body": {
-                    "name": "body",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "category": {
-                    "name": "category",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "created_by": {
-                    "name": "created_by",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "is_shared": {
-                    "name": "is_shared",
-                    "type": "boolean",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": true
-                },
-                "usage_count": {
-                    "name": "usage_count",
-                    "type": "integer",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": 0
-                },
-                "created": {
-                    "name": "created",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                },
-                "updated": {
-                    "name": "updated",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                }
-            },
-            "indexes": {
-                "saved_reply_category_idx": {
-                    "name": "saved_reply_category_idx",
-                    "columns": [
-                        {
-                            "expression": "category",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {},
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'agent'"
         },
-        "fdm-helpdesk.tags": {
-            "name": "tags",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "tag_id": {
-                    "name": "tag_id",
-                    "type": "text",
-                    "primaryKey": true,
-                    "notNull": true
-                },
-                "name": {
-                    "name": "name",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "name_lower": {
-                    "name": "name_lower",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "color": {
-                    "name": "color",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false,
-                    "default": "'#6b7280'"
-                },
-                "description": {
-                    "name": "description",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "created": {
-                    "name": "created",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                }
-            },
-            "indexes": {
-                "tag_name_lower_idx": {
-                    "name": "tag_name_lower_idx",
-                    "columns": [
-                        {
-                            "expression": "name_lower",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": true,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {},
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
-        "fdm-helpdesk.ticket_activity": {
-            "name": "ticket_activity",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "activity_id": {
-                    "name": "activity_id",
-                    "type": "text",
-                    "primaryKey": true,
-                    "notNull": true
-                },
-                "ticket_id": {
-                    "name": "ticket_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "actor_id": {
-                    "name": "actor_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "action": {
-                    "name": "action",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "old_value": {
-                    "name": "old_value",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "new_value": {
-                    "name": "new_value",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "metadata": {
-                    "name": "metadata",
-                    "type": "jsonb",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "created": {
-                    "name": "created",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                }
-            },
-            "indexes": {
-                "activity_ticket_idx": {
-                    "name": "activity_ticket_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "activity_created_idx": {
-                    "name": "activity_created_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        },
-                        {
-                            "expression": "created",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {
-                "ticket_activity_ticket_id_tickets_ticket_id_fk": {
-                    "name": "ticket_activity_ticket_id_tickets_ticket_id_fk",
-                    "tableFrom": "ticket_activity",
-                    "tableTo": "tickets",
-                    "schemaTo": "fdm-helpdesk",
-                    "columnsFrom": ["ticket_id"],
-                    "columnsTo": ["ticket_id"],
-                    "onDelete": "no action",
-                    "onUpdate": "no action"
-                }
-            },
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "availability_status": {
+          "name": "availability_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'online'"
         },
-        "fdm-helpdesk.ticket_assignments": {
-            "name": "ticket_assignments",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "assignment_id": {
-                    "name": "assignment_id",
-                    "type": "text",
-                    "primaryKey": true,
-                    "notNull": true
-                },
-                "ticket_id": {
-                    "name": "ticket_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "agent_id": {
-                    "name": "agent_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "assigned_by": {
-                    "name": "assigned_by",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "is_primary": {
-                    "name": "is_primary",
-                    "type": "boolean",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": true
-                },
-                "assigned_at": {
-                    "name": "assigned_at",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                },
-                "unassigned_at": {
-                    "name": "unassigned_at",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "unassigned_by": {
-                    "name": "unassigned_by",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "updated_at": {
-                    "name": "updated_at",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                }
-            },
-            "indexes": {
-                "assignment_ticket_idx": {
-                    "name": "assignment_ticket_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "assignment_agent_idx": {
-                    "name": "assignment_agent_idx",
-                    "columns": [
-                        {
-                            "expression": "agent_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "assignment_unassigned_at_idx": {
-                    "name": "assignment_unassigned_at_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        },
-                        {
-                            "expression": "agent_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "where": "\"fdm-helpdesk\".\"ticket_assignments\".\"unassigned_at\" is null",
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {
-                "ticket_assignments_ticket_id_tickets_ticket_id_fk": {
-                    "name": "ticket_assignments_ticket_id_tickets_ticket_id_fk",
-                    "tableFrom": "ticket_assignments",
-                    "tableTo": "tickets",
-                    "schemaTo": "fdm-helpdesk",
-                    "columnsFrom": ["ticket_id"],
-                    "columnsTo": ["ticket_id"],
-                    "onDelete": "no action",
-                    "onUpdate": "no action"
-                },
-                "ticket_assignments_agent_id_agents_agent_id_fk": {
-                    "name": "ticket_assignments_agent_id_agents_agent_id_fk",
-                    "tableFrom": "ticket_assignments",
-                    "tableTo": "agents",
-                    "schemaTo": "fdm-helpdesk",
-                    "columnsFrom": ["agent_id"],
-                    "columnsTo": ["agent_id"],
-                    "onDelete": "no action",
-                    "onUpdate": "no action"
-                }
-            },
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "assignment_tier": {
+          "name": "assignment_tier",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         },
-        "fdm-helpdesk.ticket_tags_map": {
-            "name": "ticket_tags_map",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "ticket_id": {
-                    "name": "ticket_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "tag_id": {
-                    "name": "tag_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "created": {
-                    "name": "created",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                }
-            },
-            "indexes": {
-                "ticket_tag_ticket_idx": {
-                    "name": "ticket_tag_ticket_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "ticket_tag_tag_idx": {
-                    "name": "ticket_tag_tag_idx",
-                    "columns": [
-                        {
-                            "expression": "tag_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {
-                "ticket_tags_map_ticket_id_tickets_ticket_id_fk": {
-                    "name": "ticket_tags_map_ticket_id_tickets_ticket_id_fk",
-                    "tableFrom": "ticket_tags_map",
-                    "tableTo": "tickets",
-                    "schemaTo": "fdm-helpdesk",
-                    "columnsFrom": ["ticket_id"],
-                    "columnsTo": ["ticket_id"],
-                    "onDelete": "no action",
-                    "onUpdate": "no action"
-                },
-                "ticket_tags_map_tag_id_tags_tag_id_fk": {
-                    "name": "ticket_tags_map_tag_id_tags_tag_id_fk",
-                    "tableFrom": "ticket_tags_map",
-                    "tableTo": "tags",
-                    "schemaTo": "fdm-helpdesk",
-                    "columnsFrom": ["tag_id"],
-                    "columnsTo": ["tag_id"],
-                    "onDelete": "no action",
-                    "onUpdate": "no action"
-                }
-            },
-            "compositePrimaryKeys": {
-                "ticket_tags_map_pk": {
-                    "name": "ticket_tags_map_pk",
-                    "columns": ["ticket_id", "tag_id"]
-                }
-            },
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "work_days": {
+          "name": "work_days",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[1,2,3,4,5]'::jsonb"
         },
-        "fdm-helpdesk.ticket_views": {
-            "name": "ticket_views",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "ticket_id": {
-                    "name": "ticket_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "actor_id": {
-                    "name": "actor_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "viewed_at": {
-                    "name": "viewed_at",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                }
-            },
-            "indexes": {},
-            "foreignKeys": {
-                "ticket_views_ticket_id_tickets_ticket_id_fk": {
-                    "name": "ticket_views_ticket_id_tickets_ticket_id_fk",
-                    "tableFrom": "ticket_views",
-                    "tableTo": "tickets",
-                    "schemaTo": "fdm-helpdesk",
-                    "columnsFrom": ["ticket_id"],
-                    "columnsTo": ["ticket_id"],
-                    "onDelete": "no action",
-                    "onUpdate": "no action"
-                }
-            },
-            "compositePrimaryKeys": {
-                "ticket_views_pk": {
-                    "name": "ticket_views_pk",
-                    "columns": ["ticket_id", "actor_id"]
-                }
-            },
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "max_tickets": {
+          "name": "max_tickets",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 20
         },
-        "fdm-helpdesk.tickets": {
-            "name": "tickets",
-            "schema": "fdm-helpdesk",
-            "columns": {
-                "ticket_id": {
-                    "name": "ticket_id",
-                    "type": "text",
-                    "primaryKey": true,
-                    "notNull": true
-                },
-                "ticket_ref": {
-                    "name": "ticket_ref",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true
-                },
-                "subject": {
-                    "name": "subject",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "status": {
-                    "name": "status",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "'open'"
-                },
-                "priority": {
-                    "name": "priority",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "'normal'"
-                },
-                "channel": {
-                    "name": "channel",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "'web'"
-                },
-                "requester_id": {
-                    "name": "requester_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "context_farm_id": {
-                    "name": "context_farm_id",
-                    "type": "text",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "resolved_at": {
-                    "name": "resolved_at",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "closed_at": {
-                    "name": "closed_at",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                },
-                "created": {
-                    "name": "created",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": true,
-                    "default": "now()"
-                },
-                "updated": {
-                    "name": "updated",
-                    "type": "timestamp with time zone",
-                    "primaryKey": false,
-                    "notNull": false
-                }
-            },
-            "indexes": {
-                "ticket_ref_idx": {
-                    "name": "ticket_ref_idx",
-                    "columns": [
-                        {
-                            "expression": "ticket_ref",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": true,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "ticket_status_idx": {
-                    "name": "ticket_status_idx",
-                    "columns": [
-                        {
-                            "expression": "status",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "ticket_requester_idx": {
-                    "name": "ticket_requester_idx",
-                    "columns": [
-                        {
-                            "expression": "requester_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "ticket_priority_idx": {
-                    "name": "ticket_priority_idx",
-                    "columns": [
-                        {
-                            "expression": "priority",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "ticket_created_idx": {
-                    "name": "ticket_created_idx",
-                    "columns": [
-                        {
-                            "expression": "created",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "ticket_farm_idx": {
-                    "name": "ticket_farm_idx",
-                    "columns": [
-                        {
-                            "expression": "context_farm_id",
-                            "isExpression": false,
-                            "asc": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "btree",
-                    "with": {}
-                },
-                "title_search_idx": {
-                    "name": "title_search_idx",
-                    "columns": [
-                        {
-                            "expression": "to_tsvector('dutch', \"subject\")",
-                            "asc": true,
-                            "isExpression": true,
-                            "nulls": "last"
-                        }
-                    ],
-                    "isUnique": false,
-                    "concurrently": false,
-                    "method": "gin",
-                    "with": {}
-                }
-            },
-            "foreignKeys": {},
-            "compositePrimaryKeys": {},
-            "uniqueConstraints": {},
-            "policies": {},
-            "checkConstraints": {},
-            "isRLSEnabled": false
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
+      },
+      "indexes": {
+        "agent_active_idx": {
+          "name": "agent_active_idx",
+          "columns": [
+            {
+              "expression": "is_active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_availability_idx": {
+          "name": "agent_availability_idx",
+          "columns": [
+            {
+              "expression": "availability_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_tier_idx": {
+          "name": "agent_tier_idx",
+          "columns": [
+            {
+              "expression": "assignment_tier",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "enums": {},
-    "schemas": {
-        "fdm-helpdesk": "fdm-helpdesk"
+    "fdm-helpdesk.messages": {
+      "name": "messages",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_id": {
+          "name": "sender_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sender_type": {
+          "name": "sender_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_internal": {
+          "name": "is_internal",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "message_ticket_idx": {
+          "name": "message_ticket_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "message_sender_idx": {
+          "name": "message_sender_idx",
+          "columns": [
+            {
+              "expression": "sender_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "message_created_idx": {
+          "name": "message_created_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "message_search_idx": {
+          "name": "message_search_idx",
+          "columns": [
+            {
+              "expression": "to_tsvector('dutch', \"body\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "messages_ticket_id_tickets_ticket_id_fk": {
+          "name": "messages_ticket_id_tickets_ticket_id_fk",
+          "tableFrom": "messages",
+          "tableTo": "tickets",
+          "schemaTo": "fdm-helpdesk",
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "sequences": {},
-    "roles": {},
-    "policies": {},
-    "views": {},
-    "_meta": {
-        "columns": {},
-        "schemas": {},
-        "tables": {}
+    "fdm-helpdesk.saved_replies": {
+      "name": "saved_replies",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "reply_id": {
+          "name": "reply_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_shared": {
+          "name": "is_shared",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "usage_count": {
+          "name": "usage_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "saved_reply_category_idx": {
+          "name": "saved_reply_category_idx",
+          "columns": [
+            {
+              "expression": "category",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm-helpdesk.tags": {
+      "name": "tags",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "tag_id": {
+          "name": "tag_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_lower": {
+          "name": "name_lower",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'#6b7280'"
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tag_name_lower_idx": {
+          "name": "tag_name_lower_idx",
+          "columns": [
+            {
+              "expression": "name_lower",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm-helpdesk.ticket_activity": {
+      "name": "ticket_activity",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "activity_id": {
+          "name": "activity_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "old_value": {
+          "name": "old_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "new_value": {
+          "name": "new_value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "activity_ticket_idx": {
+          "name": "activity_ticket_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "activity_created_idx": {
+          "name": "activity_created_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ticket_activity_ticket_id_tickets_ticket_id_fk": {
+          "name": "ticket_activity_ticket_id_tickets_ticket_id_fk",
+          "tableFrom": "ticket_activity",
+          "tableTo": "tickets",
+          "schemaTo": "fdm-helpdesk",
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm-helpdesk.ticket_assignments": {
+      "name": "ticket_assignments",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "assignment_id": {
+          "name": "assignment_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "assigned_by": {
+          "name": "assigned_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_primary": {
+          "name": "is_primary",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "assigned_at": {
+          "name": "assigned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "unassigned_at": {
+          "name": "unassigned_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unassigned_by": {
+          "name": "unassigned_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "assignment_ticket_idx": {
+          "name": "assignment_ticket_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "assignment_agent_idx": {
+          "name": "assignment_agent_idx",
+          "columns": [
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "assignment_unassigned_at_idx": {
+          "name": "assignment_unassigned_at_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"fdm-helpdesk\".\"ticket_assignments\".\"unassigned_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ticket_assignments_ticket_id_tickets_ticket_id_fk": {
+          "name": "ticket_assignments_ticket_id_tickets_ticket_id_fk",
+          "tableFrom": "ticket_assignments",
+          "tableTo": "tickets",
+          "schemaTo": "fdm-helpdesk",
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ticket_assignments_agent_id_agents_agent_id_fk": {
+          "name": "ticket_assignments_agent_id_agents_agent_id_fk",
+          "tableFrom": "ticket_assignments",
+          "tableTo": "agents",
+          "schemaTo": "fdm-helpdesk",
+          "columnsFrom": ["agent_id"],
+          "columnsTo": ["agent_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm-helpdesk.ticket_tags_map": {
+      "name": "ticket_tags_map",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ticket_tag_ticket_idx": {
+          "name": "ticket_tag_ticket_idx",
+          "columns": [
+            {
+              "expression": "ticket_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ticket_tag_tag_idx": {
+          "name": "ticket_tag_tag_idx",
+          "columns": [
+            {
+              "expression": "tag_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ticket_tags_map_ticket_id_tickets_ticket_id_fk": {
+          "name": "ticket_tags_map_ticket_id_tickets_ticket_id_fk",
+          "tableFrom": "ticket_tags_map",
+          "tableTo": "tickets",
+          "schemaTo": "fdm-helpdesk",
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "ticket_tags_map_tag_id_tags_tag_id_fk": {
+          "name": "ticket_tags_map_tag_id_tags_tag_id_fk",
+          "tableFrom": "ticket_tags_map",
+          "tableTo": "tags",
+          "schemaTo": "fdm-helpdesk",
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["tag_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "ticket_tags_map_pk": {
+          "name": "ticket_tags_map_pk",
+          "columns": ["ticket_id", "tag_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm-helpdesk.ticket_views": {
+      "name": "ticket_views",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "viewed_at": {
+          "name": "viewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ticket_views_ticket_id_tickets_ticket_id_fk": {
+          "name": "ticket_views_ticket_id_tickets_ticket_id_fk",
+          "tableFrom": "ticket_views",
+          "tableTo": "tickets",
+          "schemaTo": "fdm-helpdesk",
+          "columnsFrom": ["ticket_id"],
+          "columnsTo": ["ticket_id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "ticket_views_pk": {
+          "name": "ticket_views_pk",
+          "columns": ["ticket_id", "actor_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm-helpdesk.tickets": {
+      "name": "tickets",
+      "schema": "fdm-helpdesk",
+      "columns": {
+        "ticket_id": {
+          "name": "ticket_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ticket_ref": {
+          "name": "ticket_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'normal'"
+        },
+        "channel": {
+          "name": "channel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'web'"
+        },
+        "requester_id": {
+          "name": "requester_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "context_farm_id": {
+          "name": "context_farm_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "ticket_ref_idx": {
+          "name": "ticket_ref_idx",
+          "columns": [
+            {
+              "expression": "ticket_ref",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ticket_status_idx": {
+          "name": "ticket_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ticket_requester_idx": {
+          "name": "ticket_requester_idx",
+          "columns": [
+            {
+              "expression": "requester_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ticket_priority_idx": {
+          "name": "ticket_priority_idx",
+          "columns": [
+            {
+              "expression": "priority",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ticket_created_idx": {
+          "name": "ticket_created_idx",
+          "columns": [
+            {
+              "expression": "created",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ticket_farm_idx": {
+          "name": "ticket_farm_idx",
+          "columns": [
+            {
+              "expression": "context_farm_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "title_search_idx": {
+          "name": "title_search_idx",
+          "columns": [
+            {
+              "expression": "to_tsvector('dutch', \"subject\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
+  },
+  "enums": {},
+  "schemas": {
+    "fdm-helpdesk": "fdm-helpdesk"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
 }

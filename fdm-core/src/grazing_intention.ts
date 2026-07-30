@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm"
-import { checkPermission } from "./authorization"
 import type { PrincipalId } from "./authorization.types"
+import type { FdmType } from "./fdm.types"
+import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
-import type { FdmType } from "./fdm.types"
 
 /**
  * Sets a grazing intention for a farm for a specific year.
@@ -18,46 +18,39 @@ import type { FdmType } from "./fdm.types"
  * @alpha
  */
 export async function setGrazingIntention(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.intendingGrazingTypeInsert["b_id_farm"],
-    b_grazing_intention_year: schema.intendingGrazingTypeInsert["b_grazing_intention_year"],
-    b_grazing_intention: schema.intendingGrazingTypeInsert["b_grazing_intention"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.intendingGrazingTypeInsert["b_id_farm"],
+  b_grazing_intention_year: schema.intendingGrazingTypeInsert["b_grazing_intention_year"],
+  b_grazing_intention: schema.intendingGrazingTypeInsert["b_grazing_intention"],
 ): Promise<void> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "write",
-            b_id_farm,
-            principal_id,
-            "setGrazingIntention",
-        )
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "setGrazingIntention")
 
-        await fdm
-            .insert(schema.intendingGrazing)
-            .values({
-                b_id_farm,
-                b_grazing_intention_year: b_grazing_intention_year,
-                b_grazing_intention: b_grazing_intention,
-            })
-            .onConflictDoUpdate({
-                target: [
-                    schema.intendingGrazing.b_id_farm,
-                    schema.intendingGrazing.b_grazing_intention_year,
-                ],
-                set: {
-                    b_grazing_intention: b_grazing_intention,
-                    updated: new Date(),
-                },
-            })
-    } catch (err) {
-        throw handleError(err, "Exception for setGrazingIntention", {
-            b_id_farm,
-            b_grazing_intention_year,
-            b_grazing_intention,
-        })
-    }
+    await fdm
+      .insert(schema.intendingGrazing)
+      .values({
+        b_id_farm,
+        b_grazing_intention_year: b_grazing_intention_year,
+        b_grazing_intention: b_grazing_intention,
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.intendingGrazing.b_id_farm,
+          schema.intendingGrazing.b_grazing_intention_year,
+        ],
+        set: {
+          b_grazing_intention: b_grazing_intention,
+          updated: new Date(),
+        },
+      })
+  } catch (err) {
+    throw handleError(err, "Exception for setGrazingIntention", {
+      b_id_farm,
+      b_grazing_intention_year,
+      b_grazing_intention,
+    })
+  }
 }
 
 /**
@@ -71,38 +64,28 @@ export async function setGrazingIntention(
  * @alpha
  */
 export async function removeGrazingIntention(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.intendingGrazingTypeSelect["b_id_farm"],
-    b_grazing_intention_year: schema.intendingGrazingTypeSelect["b_grazing_intention_year"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.intendingGrazingTypeSelect["b_id_farm"],
+  b_grazing_intention_year: schema.intendingGrazingTypeSelect["b_grazing_intention_year"],
 ): Promise<void> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "write",
-            b_id_farm,
-            principal_id,
-            "removeGrazingIntention",
-        )
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "removeGrazingIntention")
 
-        await fdm
-            .delete(schema.intendingGrazing)
-            .where(
-                and(
-                    eq(schema.intendingGrazing.b_id_farm, b_id_farm),
-                    eq(
-                        schema.intendingGrazing.b_grazing_intention_year,
-                        b_grazing_intention_year,
-                    ),
-                ),
-            )
-    } catch (err) {
-        throw handleError(err, "Exception for removeGrazingIntention", {
-            b_id_farm,
-            b_grazing_intention_year,
-        })
-    }
+    await fdm
+      .delete(schema.intendingGrazing)
+      .where(
+        and(
+          eq(schema.intendingGrazing.b_id_farm, b_id_farm),
+          eq(schema.intendingGrazing.b_grazing_intention_year, b_grazing_intention_year),
+        ),
+      )
+  } catch (err) {
+    throw handleError(err, "Exception for removeGrazingIntention", {
+      b_id_farm,
+      b_grazing_intention_year,
+    })
+  }
 }
 
 /**
@@ -115,29 +98,22 @@ export async function removeGrazingIntention(
  * @alpha
  */
 export async function getGrazingIntentions(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
 ): Promise<schema.intendingGrazingTypeSelect[]> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "read",
-            b_id_farm,
-            principal_id,
-            "getGrazingIntentions",
-        )
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getGrazingIntentions")
 
-        return await fdm
-            .select()
-            .from(schema.intendingGrazing)
-            .where(eq(schema.intendingGrazing.b_id_farm, b_id_farm))
-    } catch (err) {
-        throw handleError(err, "Exception for getGrazingIntentions", {
-            b_id_farm,
-        })
-    }
+    return await fdm
+      .select()
+      .from(schema.intendingGrazing)
+      .where(eq(schema.intendingGrazing.b_id_farm, b_id_farm))
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazingIntentions", {
+      b_id_farm,
+    })
+  }
 }
 
 /**
@@ -151,40 +127,30 @@ export async function getGrazingIntentions(
  * @alpha
  */
 export async function getGrazingIntention(
-    fdm: FdmType,
-    principal_id: PrincipalId,
-    b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-    b_grazing_intention_year: schema.intendingGrazingTypeSelect["b_grazing_intention_year"],
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  b_grazing_intention_year: schema.intendingGrazingTypeSelect["b_grazing_intention_year"],
 ): Promise<boolean> {
-    try {
-        await checkPermission(
-            fdm,
-            "farm",
-            "read",
-            b_id_farm,
-            principal_id,
-            "getGrazingIntention",
-        )
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getGrazingIntention")
 
-        const result = await fdm
-            .select({ intention: schema.intendingGrazing.b_grazing_intention })
-            .from(schema.intendingGrazing)
-            .where(
-                and(
-                    eq(schema.intendingGrazing.b_id_farm, b_id_farm),
-                    eq(
-                        schema.intendingGrazing.b_grazing_intention_year,
-                        b_grazing_intention_year,
-                    ),
-                ),
-            )
-            .limit(1)
+    const result = await fdm
+      .select({ intention: schema.intendingGrazing.b_grazing_intention })
+      .from(schema.intendingGrazing)
+      .where(
+        and(
+          eq(schema.intendingGrazing.b_id_farm, b_id_farm),
+          eq(schema.intendingGrazing.b_grazing_intention_year, b_grazing_intention_year),
+        ),
+      )
+      .limit(1)
 
-        return result[0]?.intention ?? false
-    } catch (err) {
-        throw handleError(err, "Exception for getGrazingIntention", {
-            b_id_farm,
-            b_grazing_intention_year,
-        })
-    }
+    return result[0]?.intention ?? false
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazingIntention", {
+      b_id_farm,
+      b_grazing_intention_year,
+    })
+  }
 }

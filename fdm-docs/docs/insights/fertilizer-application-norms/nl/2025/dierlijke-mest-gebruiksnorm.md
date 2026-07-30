@@ -22,13 +22,13 @@ If the farm does **not** have a derogation permit, the standard norm is **170 kg
 Derogation is a temporary exception that allows farms with at least 80% grassland to use more nitrogen from grazing animal manure. However, derogation is being phased out, and the norms for 2025 are as follows:
 
 1. **Derogation-Free Zones**:
-    * If a field is in a **derogation-free zone** (`derogatievrije zone`) around a Natura 2000 area, the standard norm of **170 kg N/ha** applies, even with a derogation permit.
+   - If a field is in a **derogation-free zone** (`derogatievrije zone`) around a Natura 2000 area, the standard norm of **170 kg N/ha** applies, even with a derogation permit.
 
 2. **Nutrient-Polluted and Groundwater Protection Areas**:
-    * If a field is in a **Nutrient-Polluted Area (`NV-gebied`)** or a **Groundwater Protection Area (`GWBG-gebied`)**, the derogation norm is **190 kg N/ha**.
+   - If a field is in a **Nutrient-Polluted Area (`NV-gebied`)** or a **Groundwater Protection Area (`GWBG-gebied`)**, the derogation norm is **190 kg N/ha**.
 
 3. **Other Areas**:
-    * For all other fields, the derogation norm is **200 kg N/ha**.
+   - For all other fields, the derogation norm is **200 kg N/ha**.
 
 ### How the FDM Calculator Determines the Norm
 
@@ -53,18 +53,18 @@ The forfaitair nitrogen content per ton of manure is determined by the animal sp
 **Example from RVO Tabel 11**:
 
 | Diersoort (Animal Species) | Omschrijving (Description) | Mestcode | Kg stikstof per ton | Kg fosfaat per ton |
-| :------------------------ | :------------------------- | :------- | :------------------ | :----------------- |
-| Rundvee (Cattle)          | Vaste mest (Solid manure)  | 10       | 6.4                 | 3.2                |
-| Rundvee                   | Drijfmest (Slurry)         | 17       | 4.0                 | 1.3                |
-| Varkens (Pigs)            | Drijfmest vleesvarkens     | 46       | 6.4                 | 2.4                |
-| Kippen (Chickens)         | Mestband (Belt manure)     | 32       | 26.0                | 3.8                |
+| :------------------------- | :------------------------- | :------- | :------------------ | :----------------- |
+| Rundvee (Cattle)           | Vaste mest (Solid manure)  | 10       | 6.4                 | 3.2                |
+| Rundvee                    | Drijfmest (Slurry)         | 17       | 4.0                 | 1.3                |
+| Varkens (Pigs)             | Drijfmest vleesvarkens     | 46       | 6.4                 | 2.4                |
+| Kippen (Chickens)          | Mestband (Belt manure)     | 32       | 26.0                | 3.8                |
 
 ### How the FDM Calculator Determines the Filling
 
 The `fdm-calculator` uses the `calculateAnimalManureFilling` function in `fdm-calculator/src/norms/nl/2025/filling/dierlijke-mest-gebruiksnorm.ts`. This function relies on:
 
-* The applied amount of animal manure.
-* The manure code (`mestcode`) of the applied manure.
-* The forfaitair nitrogen values from `fdm-calculator/src/norms/nl/2025/filling/table-11-mestcodes.ts`, which implements RVO Tabel 11.
+- The applied amount of animal manure.
+- The manure code (`mestcode`) of the applied manure.
+- The forfaitair nitrogen values from `fdm-calculator/src/norms/nl/2025/filling/table-11-mestcodes.ts`, which implements RVO Tabel 11.
 
 If a specific analysis value for the nitrogen content is known, it will be used; otherwise, the forfaitair content is applied.

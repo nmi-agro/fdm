@@ -1,7 +1,4 @@
-import {
-    type Fertilizer,
-    getFertilizerParametersDescription,
-} from "@nmi-agro/fdm-core"
+import { type Fertilizer, getFertilizerParametersDescription } from "@nmi-agro/fdm-core"
 
 /**
  * Retrieves RVO label and type mappings used across fertilizer forms and summaries.
@@ -13,22 +10,20 @@ import {
  *   - `rvoToType`: A record mapping RVO codes to fertilizer types (manure, compost, etc.).
  */
 export async function getRvoMappings(fertilizers: Partial<Fertilizer>[] = []) {
-    const fertilizerParameterDescription =
-        await getFertilizerParametersDescription("NL-nl")
-    const p_type_rvo_options =
-        fertilizerParameterDescription.find((x) => x.parameter === "p_type_rvo")
-            ?.options ?? []
+  const fertilizerParameterDescription = getFertilizerParametersDescription("NL-nl")
+  const p_type_rvo_options =
+    fertilizerParameterDescription.find((x) => x.parameter === "p_type_rvo")?.options ?? []
 
-    const rvoLabels = Object.fromEntries(
-        p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
-    )
+  const rvoLabels = Object.fromEntries(
+    p_type_rvo_options.map((opt) => [String(opt.value), opt.label]),
+  )
 
-    const rvoToType: Record<string, string> = {}
-    for (const f of fertilizers) {
-        if (f.p_type_rvo && f.p_type) {
-            rvoToType[f.p_type_rvo] = f.p_type
-        }
+  const rvoToType: Record<string, string> = {}
+  for (const f of fertilizers) {
+    if (f.p_type_rvo && f.p_type) {
+      rvoToType[f.p_type_rvo] = f.p_type
     }
+  }
 
-    return { rvoLabels, rvoToType }
+  return { rvoLabels, rvoToType }
 }

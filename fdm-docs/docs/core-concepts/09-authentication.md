@@ -12,17 +12,17 @@ FDM is configured to support several authentication methods. The availability of
 
 FDM supports passwordless authentication via Magic Links.
 
-* Users provide their email address.
-* The system sends a secure, time-limited link to that email.
-* Clicking the link authenticates the user without requiring a password.
+- Users provide their email address.
+- The system sends a secure, time-limited link to that email.
+- Clicking the link authenticates the user without requiring a password.
 
 ### OAuth Providers
 
 FDM includes integration with **Google** and **Microsoft** OAuth providers.
 
-* **Account Linking:** Users can log in using their existing Google or Microsoft accounts.
-* **Profile Mapping:** Upon login, FDM maps profile information from the provider (First Name, Last Name, and Profile Picture) to the FDM user profile.
-* **User Creation:** New users authenticating via OAuth are automatically provisioned with a unique username and default settings (e.g., language preference set to `nl-NL`).
+- **Account Linking:** Users can log in using their existing Google or Microsoft accounts.
+- **Profile Mapping:** Upon login, FDM maps profile information from the provider (First Name, Last Name, and Profile Picture) to the FDM user profile.
+- **User Creation:** New users authenticating via OAuth are automatically provisioned with a unique username and default settings (e.g., language preference set to `nl-NL`).
 
 #### Microsoft sign-in — certificate credential
 
@@ -30,13 +30,13 @@ Microsoft sign-in uses a **certificate credential** (`private_key_jwt`) rather t
 
 **Required environment variables:**
 
-| Variable | Description |
-|---|---|
-| `MS_CLIENT_ID` | Azure app registration client ID |
-| `MS_TENANT_ID` | Tenant ID or authority segment (e.g. `common`, `organizations`, or a tenant GUID). Defaults to `common`, which allows any Microsoft account including personal accounts. |
-| `MS_PRIVATE_KEY` | PKCS#8 PEM private key — inline content **or** a file path. Never commit this. |
-| `MS_CERTIFICATE` | Full public certificate PEM — inline content **or** a file path. **Recommended** — thumbprint is computed automatically. This is the public half; it is not secret and may be stored in config. |
-| `MS_CERT_THUMBPRINT` | Alternative to `MS_CERTIFICATE`: pre-computed base64url SHA-1 thumbprint (see below). |
+| Variable             | Description                                                                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MS_CLIENT_ID`       | Azure app registration client ID                                                                                                                                                                |
+| `MS_TENANT_ID`       | Tenant ID or authority segment (e.g. `common`, `organizations`, or a tenant GUID). Defaults to `common`, which allows any Microsoft account including personal accounts.                        |
+| `MS_PRIVATE_KEY`     | PKCS#8 PEM private key — inline content **or** a file path. Never commit this.                                                                                                                  |
+| `MS_CERTIFICATE`     | Full public certificate PEM — inline content **or** a file path. **Recommended** — thumbprint is computed automatically. This is the public half; it is not secret and may be stored in config. |
+| `MS_CERT_THUMBPRINT` | Alternative to `MS_CERTIFICATE`: pre-computed base64url SHA-1 thumbprint (see below).                                                                                                           |
 
 Provide either `MS_CERTIFICATE` or `MS_CERT_THUMBPRINT`. Both `MS_PRIVATE_KEY` and `MS_CERTIFICATE` accept either the **inline PEM content** or a **file path** to the `.pem`/`.crt` file. This mirrors the behaviour of `RVO_PKIO_PRIVATE_KEY` used in the RVO integration: if the value starts with a path prefix (`/`, `./`, `../`, or a Windows drive letter), the file is read at startup; otherwise the value is treated as inline PEM content. Using `MS_CERTIFICATE` (rather than `MS_CERT_THUMBPRINT`) is simpler — the Entra portal truncates the thumbprint display, making it difficult to copy.
 
@@ -74,13 +74,13 @@ openssl x509 -in ms-signin-public.crt -outform DER | openssl dgst -sha1 -binary 
 
 FDM uses a database-backed session system managed by Better Auth.
 
-* **Session Storage:** Sessions are stored in the database using the Drizzle ORM adapter. This allows for server-side session control and revocation.
-* **Expiration:** By default, sessions are configured to expire after 30 days.
-* **Renewal:** Active sessions are automatically updated every 24 hours to extend their validity.
+- **Session Storage:** Sessions are stored in the database using the Drizzle ORM adapter. This allows for server-side session control and revocation.
+- **Expiration:** By default, sessions are configured to expire after 30 days.
+- **Renewal:** Active sessions are automatically updated every 24 hours to extend their validity.
 
 ## Implementation Details
 
 The core authentication logic resides in `fdm-core/src/authentication.ts`.
 
-* **Schema Extensions:** The user schema is extended to include FDM-specific fields such as `firstname`, `surname`, `lang`, and `farm_active`.
-* **Organizations:** The system utilizes the Better Auth organization plugin, which supports the creation and management of organizations within the authentication flow.
+- **Schema Extensions:** The user schema is extended to include FDM-specific fields such as `firstname`, `surname`, `lang`, and `farm_active`.
+- **Organizations:** The system utilizes the Better Auth organization plugin, which supports the creation and management of organizations within the authentication flow.

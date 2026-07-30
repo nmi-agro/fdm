@@ -11,6 +11,7 @@ uniform stro, bloei zonder legering en volledige korrelvulling.
 > component.
 
 **Voorkeur:**
+
 - Gesplitste N: een typisch regime bestaat uit **twee giften in het voorjaar** — bij de start van de groei (T1) en
   bij het begin van de stengelstrekking (T2). De totale N volgt `advice.d_n_req`.
 - **Late-herfst-N voor meerjarige bestanden** (bijv. veldbeemdgras, roodzwenkgras,
@@ -25,6 +26,7 @@ uniform stro, bloei zonder legering en volledige korrelvulling.
   omdat het N-regime hierboven alleen werkt met effectieve groeiregulatie.
 
 **Vermijden:**
+
 - Eén grote N-gift: legering is de belangrijkste opbrengstbeperker in graszaad. Gelegerde gewassen
   geven verschrompeld zaad en oogstverliezen.
 - Late voorjaars-N (na T2 / vlagblad): verhoogt vegetatieve hergroei zonder voordeel voor de zaadopbrengst
@@ -33,6 +35,7 @@ uniform stro, bloei zonder legering en volledige korrelvulling.
   dien het dan in de late herfst toe op meerjarige bestanden.
 
 **Per soort — aandachtspunten om te signaleren:**
+
 - **Engels raaigras (nl_2030, nl_2031, nl_6750)** — de standaardreferentie; het regime
   hierboven past.
 - **Italiaans raaigras (nl_1920, nl_6754) / Westerwolds (nl_1919, nl_6790)** — korte cyclus,
@@ -46,6 +49,7 @@ uniform stro, bloei zonder legering en volledige korrelvulling.
   — zie `klaver.md`; de regels hierboven gelden niet.
 
 **Extra aandacht:**
+
 - Cl-tolerantie: de meeste grassen verdragen KCl, maar gebruik K₂SO₄ / patentkali wanneer S ook een
   doel is.
 - Na de zaadoogst wordt de stoppel (met hergroei en stro) vaak een vanggewas;

@@ -1,34 +1,34 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_fertilizing.json",
-    "title": "Fertilizing event in Farm Data Model",
-    "description": "The data model to describe fertilizing event of a field",
-    "type": "object",
-    "properties": {
-        "b_id_fertilizing": {
-            "description": "ID of the fertilizing event",
-            "type": "string"
-        },
-        "p_id": {
-            "description": "ID of the fertilizer",
-            "type": "string"
-        },
-        "b_id": {
-            "description": "ID of the field",
-            "type": "string"
-        },
-        "p_dose": {
-            "description": "The amount of fertilizer applied",
-            "type": "number"
-        },
-        "b_date_fertilizing": {
-            "description": "The date of applying fertilizer",
-            "type": "string"
-        },
-        "p_app_method": {
-            "description": "The application method",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_fertilizing.json",
+  "title": "Fertilizing event in Farm Data Model",
+  "description": "The data model to describe fertilizing event of a field",
+  "type": "object",
+  "properties": {
+    "b_id_fertilizing": {
+      "description": "ID of the fertilizing event",
+      "type": "string"
     },
-    "required": ["b_id_fertilizing", "p_id", "b_id"]
+    "p_id": {
+      "description": "ID of the fertilizer",
+      "type": "string"
+    },
+    "b_id": {
+      "description": "ID of the field",
+      "type": "string"
+    },
+    "p_dose": {
+      "description": "The amount of fertilizer applied",
+      "type": "number"
+    },
+    "b_date_fertilizing": {
+      "description": "The date of applying fertilizer",
+      "type": "string"
+    },
+    "p_app_method": {
+      "description": "The application method",
+      "type": "string"
+    }
+  },
+  "required": ["b_id_fertilizing", "p_id", "b_id"]
 }

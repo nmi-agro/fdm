@@ -1,20 +1,20 @@
 import { type FdmType, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
+import type {
+  CultivationDetail,
+  FertilizerDetail,
+  OrganicMatterBalanceFieldInput,
+  OrganicMatterBalanceFieldNumeric,
+  OrganicMatterBalanceFieldResultNumeric,
+  OrganicMatterBalanceInput,
+  OrganicMatterBalanceNumeric,
+  SoilAnalysisPicked,
+} from "./types"
 import pkg from "../../package"
 import { convertDecimalToNumberRecursive } from "../shared/conversion"
 import { combineSoilAnalyses } from "../shared/soil"
 import { calculateOrganicMatterDegradation } from "./degradation"
 import { calculateOrganicMatterSupply } from "./supply"
-import type {
-    CultivationDetail,
-    FertilizerDetail,
-    OrganicMatterBalanceFieldInput,
-    OrganicMatterBalanceFieldNumeric,
-    OrganicMatterBalanceFieldResultNumeric,
-    OrganicMatterBalanceInput,
-    OrganicMatterBalanceNumeric,
-    SoilAnalysisPicked,
-} from "./types"
 
 /**
  * Calculates the organic matter balance for a farm, aggregating results from all its fields.
@@ -32,20 +32,20 @@ import type {
  * @throws {Error} Throws an error if the calculation process fails for any reason.
  */
 export async function calculateOrganicMatterBalance(
-    fdm: FdmType,
-    organicMatterBalanceInput: OrganicMatterBalanceInput,
+  fdm: FdmType,
+  organicMatterBalanceInput: OrganicMatterBalanceInput,
 ) {
-    return calculateOrganicMatterBalanceForFarms(fdm, [
-        {
-            ...organicMatterBalanceInput,
-            b_id_farm:
-                (
-                    organicMatterBalanceInput as OrganicMatterBalanceInput & {
-                        b_id_farm?: string
-                    }
-                ).b_id_farm ?? "farm",
-        },
-    ])
+  return calculateOrganicMatterBalanceForFarms(fdm, [
+    {
+      ...organicMatterBalanceInput,
+      b_id_farm:
+        (
+          organicMatterBalanceInput as OrganicMatterBalanceInput & {
+            b_id_farm?: string
+          }
+        ).b_id_farm ?? "farm",
+    },
+  ])
 }
 
 /**
@@ -63,90 +63,77 @@ export async function calculateOrganicMatterBalance(
  * @throws {Error} Throws an error if the calculation process fails for any reason.
  */
 export async function calculateOrganicMatterBalanceForFarms(
-    fdm: FdmType,
-    inputs: (OrganicMatterBalanceInput & { b_id_farm: string })[],
+  fdm: FdmType,
+  inputs: (OrganicMatterBalanceInput & { b_id_farm: string })[],
 ) {
-    const fieldInputs: (OrganicMatterBalanceFieldInput & {
-        b_id_farm: string
-    })[] = inputs.flatMap((input) =>
-        input.fields.map((field) => ({
-            b_id_farm: input.b_id_farm,
-            fieldInput: field,
-            fertilizerDetails: input.fertilizerDetails,
-            cultivationDetails: input.cultivationDetails,
-            timeFrame: input.timeFrame,
-        })),
-    )
-    return calculateOrganicMatterBalanceBatched(fdm, fieldInputs)
+  const fieldInputs: (OrganicMatterBalanceFieldInput & {
+    b_id_farm: string
+  })[] = inputs.flatMap((input) =>
+    input.fields.map((field) => ({
+      b_id_farm: input.b_id_farm,
+      fieldInput: field,
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+    })),
+  )
+  return calculateOrganicMatterBalanceBatched(fdm, fieldInputs)
 }
 
 export async function calculateOrganicMatterBalanceBatched(
-    fdm: FdmType,
-    fieldInputs: (OrganicMatterBalanceFieldInput & { b_id_farm: string })[],
+  fdm: FdmType,
+  fieldInputs: (OrganicMatterBalanceFieldInput & { b_id_farm: string })[],
 ): Promise<OrganicMatterBalanceNumeric> {
-    // Fail early if no fields are in input
-    if (fieldInputs.length === 0) {
-        const errorMessage = "No fields in input"
-        return {
-            errorMessage,
-            ...calculateOrganicMatterBalancesFieldToFarm([], true, [
-                errorMessage,
-            ]),
+  // Fail early if no fields are in input
+  if (fieldInputs.length === 0) {
+    const errorMessage = "No fields in input"
+    return {
+      errorMessage,
+      ...calculateOrganicMatterBalancesFieldToFarm([], true, [errorMessage]),
+    }
+  }
+
+  // Process fields in batches to avoid overwhelming the system with concurrent promises,
+  // especially for farms with a large number of fields.
+  const fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[] = []
+  const batchSize = 50
+
+  for (let i = 0; i < fieldInputs.length; i += batchSize) {
+    const batch = fieldInputs.slice(i, i + batchSize)
+    const batchResults = await Promise.all(
+      batch.map(async (fieldInput) => {
+        try {
+          const balance = await getOrganicMatterBalanceField(fdm, fieldInput)
+          return {
+            b_id: fieldInput.fieldInput.field.b_id,
+            b_area: fieldInput.fieldInput.field.b_area ?? 0,
+            b_bufferstrip: fieldInput.fieldInput.field.b_bufferstrip ?? false,
+            balance,
+          }
+        } catch (error) {
+          return {
+            b_id: fieldInput.fieldInput.field.b_id,
+            b_area: fieldInput.fieldInput.field.b_area ?? 0,
+            b_bufferstrip: fieldInput.fieldInput.field.b_bufferstrip ?? false,
+            errorMessage: error instanceof Error ? error.message : String(error),
+          }
         }
-    }
-
-    // Process fields in batches to avoid overwhelming the system with concurrent promises,
-    // especially for farms with a large number of fields.
-    const fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[] =
-        []
-    const batchSize = 50
-
-    for (let i = 0; i < fieldInputs.length; i += batchSize) {
-        const batch = fieldInputs.slice(i, i + batchSize)
-        const batchResults = await Promise.all(
-            batch.map(async (fieldInput) => {
-                try {
-                    const balance = await getOrganicMatterBalanceField(
-                        fdm,
-                        fieldInput,
-                    )
-                    return {
-                        b_id: fieldInput.fieldInput.field.b_id,
-                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
-                        b_bufferstrip:
-                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
-                        balance,
-                    }
-                } catch (error) {
-                    return {
-                        b_id: fieldInput.fieldInput.field.b_id,
-                        b_area: fieldInput.fieldInput.field.b_area ?? 0,
-                        b_bufferstrip:
-                            fieldInput.fieldInput.field.b_bufferstrip ?? false,
-                        errorMessage:
-                            error instanceof Error
-                                ? error.message
-                                : String(error),
-                    }
-                }
-            }),
-        )
-        fieldsWithBalanceResults.push(...batchResults)
-    }
-
-    const hasErrors = fieldsWithBalanceResults.some(
-        (result) => result.errorMessage !== undefined,
+      }),
     )
-    const fieldErrorMessages = fieldsWithBalanceResults
-        .filter((result) => result.errorMessage !== undefined)
-        .map((result) => result.errorMessage as string)
+    fieldsWithBalanceResults.push(...batchResults)
+  }
 
-    // Aggregate the results from all individual fields into a single farm-level balance.
-    return calculateOrganicMatterBalancesFieldToFarm(
-        fieldsWithBalanceResults,
-        hasErrors,
-        fieldErrorMessages,
-    )
+  const hasErrors = fieldsWithBalanceResults.some((result) => result.errorMessage !== undefined)
+  const fieldErrorMessages = fieldsWithBalanceResults
+    .filter((result) => result.errorMessage !== undefined)
+    .map((result) => result.errorMessage as string)
+
+  // Aggregate the results from all individual fields into a single farm-level balance.
+  return calculateOrganicMatterBalancesFieldToFarm(
+    fieldsWithBalanceResults,
+    hasErrors,
+    fieldErrorMessages,
+  )
 }
 
 /**
@@ -161,79 +148,72 @@ export async function calculateOrganicMatterBalanceBatched(
  * @returns A `OrganicMatterBalanceFieldResult` object containing the detailed balance or an error message.
  */
 export function calculateOrganicMatterBalanceField(
-    organicMatterBalanceFieldInput: OrganicMatterBalanceFieldInput,
+  organicMatterBalanceFieldInput: OrganicMatterBalanceFieldInput,
 ): OrganicMatterBalanceFieldNumeric {
-    const { fieldInput, fertilizerDetails, cultivationDetails, timeFrame } =
-        organicMatterBalanceFieldInput
+  const { fieldInput, fertilizerDetails, cultivationDetails, timeFrame } =
+    organicMatterBalanceFieldInput
 
-    const { field, cultivations, fertilizerApplications, soilAnalyses } =
-        fieldInput
+  const { field, cultivations, fertilizerApplications, soilAnalyses } = fieldInput
 
-    if (field.b_bufferstrip) {
-        return {
-            b_id: field.b_id,
-            balance: 0,
-            supply: {
-                total: 0,
-                fertilizers: {
-                    total: 0,
-                    manure: { total: 0, applications: [] },
-                    compost: { total: 0, applications: [] },
-                    other: { total: 0, applications: [] },
-                },
-                cultivations: { total: 0, cultivations: [] },
-                residues: { total: 0, cultivations: [] },
-            },
-            degradation: { total: 0 },
-        } as OrganicMatterBalanceFieldNumeric
-    }
+  if (field.b_bufferstrip) {
+    return {
+      b_id: field.b_id,
+      balance: 0,
+      supply: {
+        total: 0,
+        fertilizers: {
+          total: 0,
+          manure: { total: 0, applications: [] },
+          compost: { total: 0, applications: [] },
+          other: { total: 0, applications: [] },
+        },
+        cultivations: { total: 0, cultivations: [] },
+        residues: { total: 0, cultivations: [] },
+      },
+      degradation: { total: 0 },
+    } as OrganicMatterBalanceFieldNumeric
+  }
 
-    const fertilizerDetailsMap = new Map<string, FertilizerDetail>(
-        fertilizerDetails.map((detail: FertilizerDetail) => [
-            detail.p_id_catalogue,
-            detail,
-        ]),
-    )
-    const cultivationDetailsMap = new Map<string, CultivationDetail>(
-        cultivationDetails.map((detail: CultivationDetail) => [
-            detail.b_lu_catalogue,
-            detail,
-        ]),
-    )
-    const fieldDetails = field
+  const fertilizerDetailsMap = new Map<string, FertilizerDetail>(
+    fertilizerDetails.map((detail: FertilizerDetail) => [detail.p_id_catalogue, detail]),
+  )
+  const cultivationDetailsMap = new Map<string, CultivationDetail>(
+    cultivationDetails.map((detail: CultivationDetail) => [detail.b_lu_catalogue, detail]),
+  )
+  const fieldDetails = field
 
-    // 1. Combine multiple soil analyses into a single representative record for the field.
-    // We need 'a_som_loi' and 'a_density_sa' for the degradation calculation.
-    const soilAnalysis = combineSoilAnalyses<SoilAnalysisPicked>(
-        soilAnalyses,
-        ["a_som_loi", "a_density_sa", "b_soiltype_agr"],
-        true, // Enable estimation of missing values if possible
-    )
+  // 1. Combine multiple soil analyses into a single representative record for the field.
+  // We need 'a_som_loi' and 'a_density_sa' for the degradation calculation.
+  const soilAnalysis = combineSoilAnalyses<SoilAnalysisPicked>(
+    soilAnalyses,
+    ["a_som_loi", "a_density_sa", "b_soiltype_agr"],
+    true, // Enable estimation of missing values if possible
+  )
 
-    // 2. Calculate the total supply of effective organic matter (EOM).
-    const supply = calculateOrganicMatterSupply(
-        cultivations,
-        fertilizerApplications,
-        cultivationDetailsMap,
-        fertilizerDetailsMap,
-        timeFrame,
-    )
+  // 2. Calculate the total supply of effective organic matter (EOM).
+  const supply = calculateOrganicMatterSupply(
+    cultivations,
+    fertilizerApplications,
+    cultivationDetailsMap,
+    fertilizerDetailsMap,
+    timeFrame,
+  )
 
-    // 3. Calculate the total degradation of soil organic matter (SOM).
-    const degradation = calculateOrganicMatterDegradation(
-        soilAnalysis,
-        cultivations,
-        cultivationDetailsMap,
-        timeFrame,
-    )
+  // 3. Calculate the total degradation of soil organic matter (SOM).
+  const degradation = calculateOrganicMatterDegradation(
+    soilAnalysis,
+    cultivations,
+    cultivationDetailsMap,
+    timeFrame,
+  )
 
-    // 4. Calculate the final balance: EOM Supply - SOM Degradation.
-    return convertDecimalToNumberRecursive({
-        b_id: fieldDetails.b_id,
-        balance: supply.total.plus(degradation.total),
-        supply: supply,
-        degradation: degradation,
-    }) as OrganicMatterBalanceFieldNumeric
+  // 4. Calculate the final balance: EOM Supply - SOM Degradation.
+  return convertDecimalToNumberRecursive({
+    b_id: fieldDetails.b_id,
+    balance: supply.total.plus(degradation.total),
+    supply: supply,
+    degradation: degradation,
+  }) as OrganicMatterBalanceFieldNumeric
 }
 
 /**
@@ -247,9 +227,9 @@ export function calculateOrganicMatterBalanceField(
  * @returns A promise that resolves with the calculated organic matter balance, with numeric values as numbers.
  */
 export const getOrganicMatterBalanceField = withCalculationCache(
-    calculateOrganicMatterBalanceField,
-    "calculateOrganicMatterBalanceField",
-    pkg.calculatorVersion,
+  calculateOrganicMatterBalanceField,
+  "calculateOrganicMatterBalanceField",
+  pkg.calculatorVersion,
 )
 
 /**
@@ -265,56 +245,56 @@ export const getOrganicMatterBalanceField = withCalculationCache(
  * @returns A single `OrganicMatterBalanceNumeric` object representing the aggregated farm-level results.
  */
 export function calculateOrganicMatterBalancesFieldToFarm(
-    fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[],
-    hasErrors: boolean,
-    fieldErrorMessages: string[],
+  fieldsWithBalanceResults: OrganicMatterBalanceFieldResultNumeric[],
+  hasErrors: boolean,
+  fieldErrorMessages: string[],
 ): OrganicMatterBalanceNumeric {
-    // Filter out fields that have errors to ensure they are not included in the aggregation.
-    // Also filter out buffer strips as they should be ignored in the farm-level aggregation
-    const successfulFieldBalances = fieldsWithBalanceResults.filter(
-        (result) => result.balance !== undefined && !result.b_bufferstrip,
-    ) as (OrganicMatterBalanceFieldResultNumeric & {
-        balance: OrganicMatterBalanceFieldNumeric
-    })[]
+  // Filter out fields that have errors to ensure they are not included in the aggregation.
+  // Also filter out buffer strips as they should be ignored in the farm-level aggregation
+  const successfulFieldBalances = fieldsWithBalanceResults.filter(
+    (result) => result.balance !== undefined && !result.b_bufferstrip,
+  ) as (OrganicMatterBalanceFieldResultNumeric & {
+    balance: OrganicMatterBalanceFieldNumeric
+  })[]
 
-    let totalFarmSupply = new Decimal(0)
-    let totalFarmDegradation = new Decimal(0)
-    let totalFarmArea = new Decimal(0)
+  let totalFarmSupply = new Decimal(0)
+  let totalFarmDegradation = new Decimal(0)
+  let totalFarmArea = new Decimal(0)
 
-    // Calculate the total supply and degradation across the farm, weighted by field area.
-    for (const fieldResult of successfulFieldBalances) {
-        const fieldArea = new Decimal(fieldResult.b_area ?? 0)
-        totalFarmArea = totalFarmArea.add(fieldArea)
+  // Calculate the total supply and degradation across the farm, weighted by field area.
+  for (const fieldResult of successfulFieldBalances) {
+    const fieldArea = new Decimal(fieldResult.b_area ?? 0)
+    totalFarmArea = totalFarmArea.add(fieldArea)
 
-        // Add the area-weighted supply and degradation to the farm totals.
-        totalFarmSupply = totalFarmSupply.add(
-            new Decimal(fieldResult.balance.supply.total).times(fieldArea),
-        )
-        totalFarmDegradation = totalFarmDegradation.add(
-            new Decimal(fieldResult.balance.degradation.total).times(fieldArea),
-        )
-    }
+    // Add the area-weighted supply and degradation to the farm totals.
+    totalFarmSupply = totalFarmSupply.add(
+      new Decimal(fieldResult.balance.supply.total).times(fieldArea),
+    )
+    totalFarmDegradation = totalFarmDegradation.add(
+      new Decimal(fieldResult.balance.degradation.total).times(fieldArea),
+    )
+  }
 
-    // Calculate the average values per hectare for the entire farm.
-    const avgFarmSupply = totalFarmArea.isZero()
-        ? new Decimal(0)
-        : totalFarmSupply.dividedBy(totalFarmArea)
-    const avgFarmDegradation = totalFarmArea.isZero()
-        ? new Decimal(0)
-        : totalFarmDegradation.dividedBy(totalFarmArea)
+  // Calculate the average values per hectare for the entire farm.
+  const avgFarmSupply = totalFarmArea.isZero()
+    ? new Decimal(0)
+    : totalFarmSupply.dividedBy(totalFarmArea)
+  const avgFarmDegradation = totalFarmArea.isZero()
+    ? new Decimal(0)
+    : totalFarmDegradation.dividedBy(totalFarmArea)
 
-    // The final farm balance is the difference between the average supply and average degradation.
-    const avgFarmBalance = avgFarmSupply.plus(avgFarmDegradation)
+  // The final farm balance is the difference between the average supply and average degradation.
+  const avgFarmBalance = avgFarmSupply.plus(avgFarmDegradation)
 
-    return convertDecimalToNumberRecursive({
-        balance: avgFarmBalance,
-        supply: avgFarmSupply,
-        degradation: avgFarmDegradation,
-        fields: fieldsWithBalanceResults,
-        hasErrors:
-            hasErrors ||
-            fieldsWithBalanceResults.filter((result) => !result.b_bufferstrip)
-                .length !== successfulFieldBalances.length,
-        fieldErrorMessages,
-    }) as OrganicMatterBalanceNumeric
+  return convertDecimalToNumberRecursive({
+    balance: avgFarmBalance,
+    supply: avgFarmSupply,
+    degradation: avgFarmDegradation,
+    fields: fieldsWithBalanceResults,
+    hasErrors:
+      hasErrors ||
+      fieldsWithBalanceResults.filter((result) => !result.b_bufferstrip).length !==
+        successfulFieldBalances.length,
+    fieldErrorMessages,
+  }) as OrganicMatterBalanceNumeric
 }

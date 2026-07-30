@@ -1,50 +1,50 @@
-import * as Sentry from "@sentry/node"
 import type { Context, ErrorHandler, NotFoundHandler } from "hono"
-import { HTTPException } from "hono/http-exception"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
+import * as Sentry from "@sentry/node"
+import { HTTPException } from "hono/http-exception"
 import { nanoid } from "nanoid"
 
 const TITLES: Record<string, string> = {
-    "validation-failed": "Validation Failed",
-    "ambiguous-api-key": "Ambiguous API Key",
-    unauthorized: "Unauthorized",
-    forbidden: "Forbidden",
-    "not-found": "Not Found",
-    conflict: "Conflict",
-    "payload-too-large": "Payload Too Large",
-    "unsupported-media-type": "Unsupported Media Type",
-    "unprocessable-entity": "Unprocessable Entity",
-    "rate-limit-exceeded": "Rate Limit Exceeded",
-    "service-unavailable": "Service Unavailable",
-    "bad-gateway": "Bad Gateway",
-    "gateway-timeout": "Gateway Timeout",
-    "internal-error": "Internal Server Error",
+  "validation-failed": "Validation Failed",
+  "ambiguous-api-key": "Ambiguous API Key",
+  unauthorized: "Unauthorized",
+  forbidden: "Forbidden",
+  "not-found": "Not Found",
+  conflict: "Conflict",
+  "payload-too-large": "Payload Too Large",
+  "unsupported-media-type": "Unsupported Media Type",
+  "unprocessable-entity": "Unprocessable Entity",
+  "rate-limit-exceeded": "Rate Limit Exceeded",
+  "service-unavailable": "Service Unavailable",
+  "bad-gateway": "Bad Gateway",
+  "gateway-timeout": "Gateway Timeout",
+  "internal-error": "Internal Server Error",
 }
 
 /**
  * Represents an HTTP error that should be rendered as RFC 9457 problem details.
  */
 export class ApiError extends Error {
-    /**
-     * Creates an API error with HTTP metadata and optional problem details extensions.
-     *
-     * @param status - HTTP status code returned to the client.
-     * @param slug - Machine-readable problem type slug appended to the configured application URL.
-     * @param message - Human-readable problem detail included in the response payload.
-     * @param extras - Optional RFC 9457 extension members to merge into the problem document.
-     */
-    constructor(
-        /** HTTP status code returned to the client. */
-        public readonly status: number,
-        /** Machine-readable problem type slug. */
-        public readonly slug: string,
-        message: string,
-        /** Optional extension members included in the problem document. */
-        public readonly extras?: Record<string, unknown>,
-    ) {
-        super(message)
-        this.name = "ApiError"
-    }
+  /**
+   * Creates an API error with HTTP metadata and optional problem details extensions.
+   *
+   * @param status - HTTP status code returned to the client.
+   * @param slug - Machine-readable problem type slug appended to the configured application URL.
+   * @param message - Human-readable problem detail included in the response payload.
+   * @param extras - Optional RFC 9457 extension members to merge into the problem document.
+   */
+  constructor(
+    /** HTTP status code returned to the client. */
+    public readonly status: number,
+    /** Machine-readable problem type slug. */
+    public readonly slug: string,
+    message: string,
+    /** Optional extension members included in the problem document. */
+    public readonly extras?: Record<string, unknown>,
+  ) {
+    super(message)
+    this.name = "ApiError"
+  }
 }
 
 /**
@@ -63,46 +63,46 @@ export class ApiError extends Error {
  * ```
  */
 export function problemResponse(
-    c: Context,
-    status: number,
-    slug: string,
-    detail: string,
-    appUrl: string,
-    extras?: Record<string, unknown>,
-    errorId?: string,
+  c: Context,
+  status: number,
+  slug: string,
+  detail: string,
+  appUrl: string,
+  extras?: Record<string, unknown>,
+  errorId?: string,
 ) {
-    const error_id = errorId ?? nanoid()
-    const logLine = `[fdm-api] error_id=${error_id} status=${status} type=${slug} path=${c.req.path} detail="${detail}"`
-    if (status >= 500) {
-        console.error(logLine)
-    } else {
-        console.warn(logLine)
-    }
-    return c.json(
-        {
-            ...extras,
-            type: `${appUrl}/problems/${slug}`,
-            title: TITLES[slug] ?? slug,
-            status,
-            detail,
-            instance: c.req.path,
-            error_id,
-        },
-        status as ContentfulStatusCode,
-        { "content-type": "application/problem+json" },
-    )
+  const error_id = errorId ?? nanoid()
+  const logLine = `[fdm-api] error_id=${error_id} status=${status} type=${slug} path=${c.req.path} detail="${detail}"`
+  if (status >= 500) {
+    console.error(logLine)
+  } else {
+    console.warn(logLine)
+  }
+  return c.json(
+    {
+      ...extras,
+      type: `${appUrl}/problems/${slug}`,
+      title: TITLES[slug] ?? slug,
+      status,
+      detail,
+      instance: c.req.path,
+      error_id,
+    },
+    status as ContentfulStatusCode,
+    { "content-type": "application/problem+json" },
+  )
 }
 
 const PERMISSION_MESSAGES = new Set([
-    "Permission denied",
-    "Principal does not have permission to perform this action",
+  "Permission denied",
+  "Principal does not have permission to perform this action",
 ])
 
 function isPermissionDenied(err: unknown): boolean {
-    if (!(err instanceof Error)) return false
-    if (PERMISSION_MESSAGES.has(err.message)) return true
-    if (err.cause) return isPermissionDenied(err.cause)
-    return false
+  if (!(err instanceof Error)) return false
+  if (PERMISSION_MESSAGES.has(err.message)) return true
+  if (err.cause) return isPermissionDenied(err.cause)
+  return false
 }
 
 /**
@@ -113,60 +113,53 @@ function isPermissionDenied(err: unknown): boolean {
  * @throws {ApiError} Does not throw directly, but converts upstream `ApiError` instances into HTTP responses.
  */
 export function createErrorHandler(appUrl: string): ErrorHandler {
-    return (err, c) => {
-        if (err instanceof HTTPException && err.status === 400) {
-            return problemResponse(
-                c,
-                400,
-                "validation-failed",
-                "Request body contains invalid JSON.",
-                appUrl,
-            )
-        }
-        if (err instanceof ApiError) {
-            return problemResponse(
-                c,
-                err.status,
-                err.slug,
-                err.message,
-                appUrl,
-                err.extras,
-            )
-        }
-        if (isPermissionDenied(err)) {
-            return problemResponse(
-                c,
-                403,
-                "forbidden",
-                "You do not have permission to access this resource.",
-                appUrl,
-            )
-        }
-        if (err instanceof SyntaxError) {
-            return problemResponse(
-                c,
-                400,
-                "validation-failed",
-                `Request body contains invalid JSON: ${err.message}`,
-                appUrl,
-            )
-        }
-        console.error("[fdm-api] Unhandled error:", err)
-        const error_id = nanoid()
-        Sentry.withScope((scope) => {
-            scope.setTag("error_id", error_id)
-            Sentry.captureException(err)
-        })
-        return problemResponse(
-            c,
-            500,
-            "internal-error",
-            "An unexpected error occurred.",
-            appUrl,
-            undefined,
-            error_id,
-        )
+  return (err, c) => {
+    if (err instanceof HTTPException && err.status === 400) {
+      return problemResponse(
+        c,
+        400,
+        "validation-failed",
+        "Request body contains invalid JSON.",
+        appUrl,
+      )
     }
+    if (err instanceof ApiError) {
+      return problemResponse(c, err.status, err.slug, err.message, appUrl, err.extras)
+    }
+    if (isPermissionDenied(err)) {
+      return problemResponse(
+        c,
+        403,
+        "forbidden",
+        "You do not have permission to access this resource.",
+        appUrl,
+      )
+    }
+    if (err instanceof SyntaxError) {
+      return problemResponse(
+        c,
+        400,
+        "validation-failed",
+        `Request body contains invalid JSON: ${err.message}`,
+        appUrl,
+      )
+    }
+    console.error("[fdm-api] Unhandled error:", err)
+    const error_id = nanoid()
+    Sentry.withScope((scope) => {
+      scope.setTag("error_id", error_id)
+      Sentry.captureException(err)
+    })
+    return problemResponse(
+      c,
+      500,
+      "internal-error",
+      "An unexpected error occurred.",
+      appUrl,
+      undefined,
+      error_id,
+    )
+  }
 }
 
 /**
@@ -180,12 +173,5 @@ export function createErrorHandler(appUrl: string): ErrorHandler {
  * ```
  */
 export function createNotFoundHandler(appUrl: string): NotFoundHandler {
-    return (c) =>
-        problemResponse(
-            c,
-            404,
-            "not-found",
-            `${c.req.path} does not exist.`,
-            appUrl,
-        )
+  return (c) => problemResponse(c, 404, "not-found", `${c.req.path} does not exist.`, appUrl)
 }

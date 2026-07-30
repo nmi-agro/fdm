@@ -86,9 +86,9 @@ Returns `404` if the analysis does not exist.
 
 ## Summary table
 
-| Endpoint | Hard delete | Cascades to | Idempotent | Auth required |
-|---|---|---|---|---|
-| `DELETE /api/farms/{b_id_farm}` | ✅ | Fields → cultivations → harvests → soil analyses → fertilizers → derogations | ✅ | `advisor` or `owner` on farm |
-| `DELETE /api/fields/{b_id}` | ✅ | Cultivations → harvests, soil analyses | ✅ | `advisor` or `owner` on field |
-| `DELETE /api/cultivations/{b_lu}` | ✅ | Harvests and harvest analyses | ✅ | `advisor` or `owner` on cultivation |
-| `DELETE /api/soil-analyses/{a_id}` | ✅ | Soil sampling record | ✅ | `advisor` or `owner` on soil_analysis |
+| Endpoint                           | Hard delete | Cascades to                                                                  | Idempotent | Auth required                         |
+| ---------------------------------- | ----------- | ---------------------------------------------------------------------------- | ---------- | ------------------------------------- |
+| `DELETE /api/farms/{b_id_farm}`    | ✅          | Fields → cultivations → harvests → soil analyses → fertilizers → derogations | ✅         | `advisor` or `owner` on farm          |
+| `DELETE /api/fields/{b_id}`        | ✅          | Cultivations → harvests, soil analyses                                       | ✅         | `advisor` or `owner` on field         |
+| `DELETE /api/cultivations/{b_lu}`  | ✅          | Harvests and harvest analyses                                                | ✅         | `advisor` or `owner` on cultivation   |
+| `DELETE /api/soil-analyses/{a_id}` | ✅          | Soil sampling record                                                         | ✅         | `advisor` or `owner` on soil_analysis |

@@ -1,6 +1,7 @@
 # Grasland (productiegrasland) — nl_265, nl_266
 
 **Voorkeur:**
+
 - Rundveedrijfmest als belangrijkste mestproduct — past bij het typische melkveebedrijfssysteem en
   heeft een gunstige N/P-verhouding voor grasland.
 - Meerdere N-giften afgestemd op groeisneden: meestal 4–6 giften verdeeld over
@@ -14,6 +15,7 @@
   pH-gegevens voordat bekalking wordt geadviseerd.
 
 **Vermijden:**
+
 - Varkensdrijfmest in hoge eenmalige giften op grasland — het hoge P-gehalte geeft risico op P-afspoeling op
   verzadigde bodems en kan de bedrijfs-P-balans boven wettelijke grenzen brengen.
 - N in nazomer / herfst: respecteer de wettelijke sluitingsdata voor kunstmest-N en drijfmest op
@@ -22,6 +24,7 @@
   en verhoogde nitraatuitspoeling in de herfst.
 
 **Extra aandacht — weidegrasland (begrazing):**
+
 - **Kopziekte (grastetanie / hypomagnesiëmie)**: vermijd op weidegrasland dat in het voorjaar door melkvee wordt beweid
   hoge K-giften in de eerste weidesnede. Veel K in gras remt de Mg-opname
   door runderen (K/Mg-antagonisme), waardoor het risico op kopziekte toeneemt. Dien K-rijke

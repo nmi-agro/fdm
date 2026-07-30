@@ -1,238 +1,207 @@
 import type { Dose } from "@nmi-agro/fdm-calculator"
 import type { Fertilizer } from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
+import type { Navigation } from "react-router"
 import { Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-import type { Navigation } from "react-router"
 import { useFetcher, useLocation, useNavigation, useParams } from "react-router"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "~/components/ui/dialog"
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
-import { FertilizerApplicationForm } from "./form"
 import type { FieldFertilizerFormValues } from "./formschema"
-import { FertilizerApplicationsList } from "./list"
 import type { FertilizerApplication, FertilizerOption } from "./types.d"
+import { FertilizerApplicationForm } from "./form"
+import { FertilizerApplicationsList } from "./list"
 
 export function FertilizerApplicationCard({
-    fertilizerApplications,
-    applicationMethodOptions,
-    fertilizers,
-    fertilizerOptions,
-    canCreateFertilizerApplication = true,
-    canModifyFertilizerApplication = {},
+  fertilizerApplications,
+  applicationMethodOptions,
+  fertilizers,
+  fertilizerOptions,
+  canCreateFertilizerApplication = true,
+  canModifyFertilizerApplication = {},
 }: {
-    fertilizerApplications: FertilizerApplication[]
-    applicationMethodOptions: {
-        value: ApplicationMethods
-        label: string
-    }[]
-    fertilizers: Fertilizer[]
-    fertilizerOptions: FertilizerOption[]
-    dose: Dose
-    className?: string
-    canCreateFertilizerApplication?: boolean
-    canModifyFertilizerApplication?: Record<string, boolean>
+  fertilizerApplications: FertilizerApplication[]
+  applicationMethodOptions: {
+    value: ApplicationMethods
+    label: string
+  }[]
+  fertilizers: Fertilizer[]
+  fertilizerOptions: FertilizerOption[]
+  dose: Dose
+  className?: string
+  canCreateFertilizerApplication?: boolean
+  canModifyFertilizerApplication?: Record<string, boolean>
 }) {
-    const fetcher = useFetcher()
-    const location = useLocation()
-    const params = useParams()
-    const navigation = useNavigation()
-    const [isDialogOpen, setIsDialogOpen] = useState(false)
-    const [editedFertilizerApplication, setEditedFertilizerApplication] =
-        useState<FertilizerApplication>()
-    const previousNavigationState = useRef(navigation.state)
+  const fetcher = useFetcher()
+  const location = useLocation()
+  const params = useParams()
+  const navigation = useNavigation()
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editedFertilizerApplication, setEditedFertilizerApplication] =
+    useState<FertilizerApplication>()
+  const previousNavigationState = useRef(navigation.state)
 
-    const b_id_or_b_lu_catalogue = params.b_lu_catalogue || params.b_id
+  const b_id_or_b_lu_catalogue = params.b_lu_catalogue || params.b_id
 
-    const handleDelete = (p_app_id: string | string[]) => {
-        if (fetcher.state !== "idle") return
+  const handleDelete = (p_app_id: string | string[]) => {
+    if (fetcher.state !== "idle") return
 
-        fetcher.submit({ p_app_id }, { method: "DELETE" })
+    void fetcher.submit({ p_app_id }, { method: "DELETE" })
+  }
+
+  const handleEdit = (fertilizerApplication: FertilizerApplication) => () => {
+    setEditedFertilizerApplication(fertilizerApplication)
+    setIsDialogOpen(true)
+  }
+
+  useEffect(() => {
+    const wasNotIdle = previousNavigationState.current !== "idle"
+    const isIdle = navigation.state === "idle"
+
+    if (wasNotIdle && isIdle) {
+      setIsDialogOpen(false)
+      setEditedFertilizerApplication(undefined)
     }
 
-    const handleEdit = (fertilizerApplication: FertilizerApplication) => () => {
-        setEditedFertilizerApplication(fertilizerApplication)
-        setIsDialogOpen(true)
+    previousNavigationState.current = navigation.state
+  }, [navigation.state])
+
+  const fieldFertilizerFormStore = useFieldFertilizerFormStore()
+  const { calendar } = useCalendarStore()
+  const savedFormValues =
+    params.b_id_farm && b_id_or_b_lu_catalogue
+      ? fieldFertilizerFormStore.load(params.b_id_farm, b_id_or_b_lu_catalogue, calendar)
+      : null
+
+  // See if the saved form was for updating an existing application.
+  // If so, verify that the user can still edit the application and update the state.
+  const applicationToEdit = savedFormValues?.p_app_id
+    ? fertilizerApplications.find((app) => app.p_app_id === savedFormValues.p_app_id)
+    : null
+  useEffect(() => {
+    if (applicationToEdit && !editedFertilizerApplication) {
+      setEditedFertilizerApplication(applicationToEdit)
     }
-
-    useEffect(() => {
-        const wasNotIdle = previousNavigationState.current !== "idle"
-        const isIdle = navigation.state === "idle"
-
-        if (wasNotIdle && isIdle) {
-            setIsDialogOpen(false)
-            setEditedFertilizerApplication(undefined)
-        }
-
-        previousNavigationState.current = navigation.state
-    }, [navigation.state])
-
-    const fieldFertilizerFormStore = useFieldFertilizerFormStore()
-    const { calendar } = useCalendarStore()
-    const savedFormValues =
-        params.b_id_farm && b_id_or_b_lu_catalogue
-            ? fieldFertilizerFormStore.load(
-                  params.b_id_farm,
-                  b_id_or_b_lu_catalogue,
-                  calendar,
-              )
-            : null
-
-    // See if the saved form was for updating an existing application.
-    // If so, verify that the user can still edit the application and update the state.
-    const applicationToEdit = savedFormValues?.p_app_id
-        ? fertilizerApplications.find(
-              (app) => app.p_app_id === savedFormValues.p_app_id,
-          )
-        : null
-    useEffect(() => {
-        if (applicationToEdit && !editedFertilizerApplication) {
-            setEditedFertilizerApplication(applicationToEdit)
-        }
-        if (savedFormValues?.p_app_id && !applicationToEdit) {
-            fieldFertilizerFormStore.delete(
-                params.b_id_farm || "",
-                b_id_or_b_lu_catalogue || "",
-                calendar,
-            )
-        }
-    }, [
-        applicationToEdit,
-        params.b_id_farm,
-        b_id_or_b_lu_catalogue,
-        savedFormValues,
-        editedFertilizerApplication,
-        fieldFertilizerFormStore,
+    if (savedFormValues?.p_app_id && !applicationToEdit) {
+      fieldFertilizerFormStore.delete(
+        params.b_id_farm || "",
+        b_id_or_b_lu_catalogue || "",
         calendar,
-    ])
+      )
+    }
+  }, [
+    applicationToEdit,
+    params.b_id_farm,
+    b_id_or_b_lu_catalogue,
+    savedFormValues,
+    editedFertilizerApplication,
+    fieldFertilizerFormStore,
+    calendar,
+  ])
 
-    useEffect(() => {
-        if (savedFormValues && !isDialogOpen) {
-            if (savedFormValues.p_app_id) {
-                // Do not open the form if there is a risk it will create a new application
-                if (
-                    applicationToEdit &&
-                    (canModifyFertilizerApplication[
-                        applicationToEdit.p_app_id
-                    ] ??
-                        true)
-                ) {
-                    setIsDialogOpen(true)
-                }
-            } else if (canCreateFertilizerApplication) {
-                setIsDialogOpen(true)
-            }
+  useEffect(() => {
+    if (savedFormValues && !isDialogOpen) {
+      if (savedFormValues.p_app_id) {
+        // Do not open the form if there is a risk it will create a new application
+        if (
+          applicationToEdit &&
+          (canModifyFertilizerApplication[applicationToEdit.p_app_id] ?? true)
+        ) {
+          setIsDialogOpen(true)
         }
-    }, [
-        savedFormValues,
-        applicationToEdit,
-        isDialogOpen,
-        canCreateFertilizerApplication,
-        canModifyFertilizerApplication,
-    ])
+      } else if (canCreateFertilizerApplication) {
+        setIsDialogOpen(true)
+      }
+    }
+  }, [
+    savedFormValues,
+    applicationToEdit,
+    isDialogOpen,
+    canCreateFertilizerApplication,
+    canModifyFertilizerApplication,
+  ])
 
-    function handleDialogOpenChange(state: boolean) {
-        if (!state && params.b_id_farm && b_id_or_b_lu_catalogue) {
-            fieldFertilizerFormStore.delete(
-                params.b_id_farm,
-                b_id_or_b_lu_catalogue,
-                calendar,
-            )
-        }
-
-        if (!state) {
-            setEditedFertilizerApplication(undefined)
-        }
-
-        setIsDialogOpen(state)
+  function handleDialogOpenChange(state: boolean) {
+    if (!state && params.b_id_farm && b_id_or_b_lu_catalogue) {
+      fieldFertilizerFormStore.delete(params.b_id_farm, b_id_or_b_lu_catalogue, calendar)
     }
 
-    const formFertilizerApplication: Partial<FieldFertilizerFormValues> | null =
-        editedFertilizerApplication
-            ? {
-                  p_app_id: editedFertilizerApplication.p_app_id,
-                  p_app_ids: editedFertilizerApplication.p_app_ids,
-                  p_id: editedFertilizerApplication.p_id,
-                  p_app_method:
-                      editedFertilizerApplication.p_app_method ?? undefined,
-                  p_app_amount_display:
-                      editedFertilizerApplication.p_app_amount_display ??
-                      undefined,
-                  p_app_date: editedFertilizerApplication.p_app_date,
-              }
-            : null
+    if (!state) {
+      setEditedFertilizerApplication(undefined)
+    }
 
-    return (
-        <Card>
-            <CardHeader className="flex flex-col space-y-4 xl:flex-row xl:items-center xl:justify-between xl:space-y-0">
-                <CardTitle>
-                    <p className="text-lg font-medium">Bemesting</p>
-                </CardTitle>
-                <Dialog
-                    open={isDialogOpen}
-                    onOpenChange={handleDialogOpenChange}
-                >
-                    <DialogTrigger asChild>
-                        <Button
-                            className={cn(
-                                !canCreateFertilizerApplication
-                                    ? "invisible"
-                                    : "",
-                            )}
-                        >
-                            <Plus className="size-4" />
-                            Toevoegen
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-200">
-                        <DialogHeader>
-                            <DialogTitle className="flex flex-row items-center justify-between mr-4">
-                                {editedFertilizerApplication
-                                    ? "Bemesting wijzigen"
-                                    : "Bemesting toevoegen"}
-                            </DialogTitle>
-                            <DialogDescription>
-                                {editedFertilizerApplication
-                                    ? "Wijzig een bemestingtoepassing aan het percel."
-                                    : "Voeg een nieuwe bemestingstoepassing toe aan het perceel."}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <FertilizerApplicationForm
-                            options={fertilizerOptions}
-                            action={location.pathname}
-                            navigation={navigation as unknown as Navigation}
-                            b_id_farm={params.b_id_farm || ""}
-                            b_id_or_b_lu_catalogue={
-                                b_id_or_b_lu_catalogue || ""
-                            }
-                            fertilizerApplication={formFertilizerApplication}
-                        />
-                    </DialogContent>
-                </Dialog>
-            </CardHeader>
-            <CardContent>
-                <FertilizerApplicationsList
-                    fertilizerApplications={fertilizerApplications}
-                    applicationMethodOptions={applicationMethodOptions}
-                    fertilizers={fertilizers}
-                    handleDelete={handleDelete}
-                    handleEdit={handleEdit}
-                    canModifyFertilizerApplication={
-                        canModifyFertilizerApplication
-                    }
-                    isBusy={fetcher.state !== "idle"}
-                />
-            </CardContent>
-        </Card>
-    )
+    setIsDialogOpen(state)
+  }
+
+  const formFertilizerApplication: Partial<FieldFertilizerFormValues> | null =
+    editedFertilizerApplication
+      ? {
+          p_app_id: editedFertilizerApplication.p_app_id,
+          p_app_ids: editedFertilizerApplication.p_app_ids,
+          p_id: editedFertilizerApplication.p_id,
+          p_app_method: editedFertilizerApplication.p_app_method ?? undefined,
+          p_app_amount_display: editedFertilizerApplication.p_app_amount_display ?? undefined,
+          p_app_date: editedFertilizerApplication.p_app_date,
+        }
+      : null
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-col space-y-4 xl:flex-row xl:items-center xl:justify-between xl:space-y-0">
+        <CardTitle>
+          <p className="text-lg font-medium">Bemesting</p>
+        </CardTitle>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+          <DialogTrigger asChild>
+            <Button className={cn(!canCreateFertilizerApplication ? "invisible" : "")}>
+              <Plus className="size-4" />
+              Toevoegen
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-200">
+            <DialogHeader>
+              <DialogTitle className="mr-4 flex flex-row items-center justify-between">
+                {editedFertilizerApplication ? "Bemesting wijzigen" : "Bemesting toevoegen"}
+              </DialogTitle>
+              <DialogDescription>
+                {editedFertilizerApplication
+                  ? "Wijzig een bemestingtoepassing aan het percel."
+                  : "Voeg een nieuwe bemestingstoepassing toe aan het perceel."}
+              </DialogDescription>
+            </DialogHeader>
+            <FertilizerApplicationForm
+              options={fertilizerOptions}
+              action={location.pathname}
+              navigation={navigation as unknown as Navigation}
+              b_id_farm={params.b_id_farm || ""}
+              b_id_or_b_lu_catalogue={b_id_or_b_lu_catalogue || ""}
+              fertilizerApplication={formFertilizerApplication}
+            />
+          </DialogContent>
+        </Dialog>
+      </CardHeader>
+      <CardContent>
+        <FertilizerApplicationsList
+          fertilizerApplications={fertilizerApplications}
+          applicationMethodOptions={applicationMethodOptions}
+          fertilizers={fertilizers}
+          handleDelete={handleDelete}
+          handleEdit={handleEdit}
+          canModifyFertilizerApplication={canModifyFertilizerApplication}
+          isBusy={fetcher.state !== "idle"}
+        />
+      </CardContent>
+    </Card>
+  )
 }

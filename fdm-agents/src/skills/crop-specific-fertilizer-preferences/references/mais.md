@@ -1,6 +1,7 @@
 # Maïs (snijmaïs, korrelmais, CCM, MKS) — nl_259, nl_316, nl_317, nl_814, nl_1935, nl_2032
 
 **Voorkeur:**
+
 - Varkensdrijfmest of rundveedrijfmest kort voor of bij de zaai toegediend
   (werkingscoëfficiënt voor N is het hoogst bij voorjaarstoediening). Maïs is een ideaal gewas om
   mestruimte te benutten.
@@ -14,6 +15,7 @@
   `advice.d_zn_req`.
 
 **Vermijden:**
+
 - Te vroege N-toediening in koude voorjaren: N gaat door denitrificatie verloren vóór wortelopname.
   Richt drijfmesttoediening op bodemtemperatuur > 8 °C, doorgaans vanaf half april. De
   rijenbemesting bij zaai compenseert N-verliezen in een koud voorjaar gedeeltelijk.
@@ -21,6 +23,7 @@
   bodemverdichting te voorkomen en de N-benutting te verbeteren.
 
 **Extra aandacht:**
+
 - Korrelmais (nl_316) en CCM (nl_317) hebben een langer groeiseizoen dan snijmais en kunnen
   baat hebben bij een iets hogere N-bijbemesting, afhankelijk van de opbrengstdoelen; laat de dosering afhangen van
   `advice.d_n_req`.

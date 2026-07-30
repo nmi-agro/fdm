@@ -19,26 +19,26 @@
  * @property p_dose_b - The dose of boron (B) in kg/ha.
  */
 export interface DoseProperties {
-    p_app_id?: string
-    p_dose_n: number
-    p_dose_nw: number
-    p_dose_p: number
-    p_dose_k: number
-    p_dose_eoc: number
-    p_dose_s: number
-    p_dose_mg: number
-    p_dose_ca: number
-    p_dose_na: number
-    p_dose_cu: number
-    p_dose_zn: number
-    p_dose_co: number
-    p_dose_mn: number
-    p_dose_mo: number
-    p_dose_b: number
+  p_app_id?: string
+  p_dose_n: number
+  p_dose_nw: number
+  p_dose_p: number
+  p_dose_k: number
+  p_dose_eoc: number
+  p_dose_s: number
+  p_dose_mg: number
+  p_dose_ca: number
+  p_dose_na: number
+  p_dose_cu: number
+  p_dose_zn: number
+  p_dose_co: number
+  p_dose_mn: number
+  p_dose_mo: number
+  p_dose_b: number
 }
 
 export interface Dose extends DoseProperties {
-    [key: string]: string | number | undefined
+  [key: string]: string | number | undefined
 }
 
 export type NumericDoseKeys = Exclude<keyof DoseProperties, "p_app_id">

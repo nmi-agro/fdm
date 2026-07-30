@@ -1,8 +1,8 @@
 {
-    "label": "Core Concepts",
-    "position": 2,
-    "link": {
-        "type": "generated-index",
-        "description": "This section will provide detailed information on the fundamental components of the Farm Data Model, explaining both the 'what' and the 'why' of each concept."
-    }
+  "label": "Core Concepts",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "This section will provide detailed information on the fundamental components of the Farm Data Model, explaining both the 'what' and the 'why' of each concept."
+  }
 }

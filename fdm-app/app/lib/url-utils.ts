@@ -12,26 +12,17 @@
  * provided
  */
 export function modifySearchParams(
-    href: string,
-    modifier: (searchParams: URLSearchParams) => void,
+  href: string,
+  modifier: (searchParams: URLSearchParams) => void,
 ): string {
-    const hasProtocol =
-        href.startsWith("http://") || href.startsWith("https://")
-    const hasSlash = href.startsWith("/")
-    const url = new URL(
-        hasProtocol
-            ? href
-            : hasSlash
-              ? `http://localhost${href}`
-              : `http://localhost/${href}`,
-    )
-    modifier(url.searchParams)
-    const relativeToOrigin = `${url.pathname}${url.search}${url.hash}`
-    return hasProtocol
-        ? url.href
-        : hasSlash
-          ? relativeToOrigin
-          : relativeToOrigin.substring(1)
+  const hasProtocol = href.startsWith("http://") || href.startsWith("https://")
+  const hasSlash = href.startsWith("/")
+  const url = new URL(
+    hasProtocol ? href : hasSlash ? `http://localhost${href}` : `http://localhost/${href}`,
+  )
+  modifier(url.searchParams)
+  const relativeToOrigin = `${url.pathname}${url.search}${url.hash}`
+  return hasProtocol ? url.href : hasSlash ? relativeToOrigin : relativeToOrigin.substring(1)
 }
 
 /**
@@ -45,13 +36,13 @@ export function modifySearchParams(
  * @returns the search parameters, or empty search parameters if none was found
  */
 export function getSearchParams(href: string) {
-    let searchParams: URLSearchParams | undefined
-    if (href.length > 0) {
-        modifySearchParams(href, (p) => {
-            searchParams = p
-        })
-    }
-    return searchParams ?? new URLSearchParams()
+  let searchParams: URLSearchParams | undefined
+  if (href.length > 0) {
+    modifySearchParams(href, (p) => {
+      searchParams = p
+    })
+  }
+  return searchParams ?? new URLSearchParams()
 }
 
 /**
@@ -68,27 +59,27 @@ export function getSearchParams(href: string) {
  * @returns The normalised route pattern (e.g. `/farm/:id/:year/atlas/fields/:centroid`).
  */
 export function normalizePage(page: string): string {
-    // Strip query string and hash (pathname typically excludes these, but be defensive)
-    const path = page.split("?")[0].split("#")[0]
-    return path
-        .split("/")
-        .map((segment) => {
-            if (!segment) return segment
-            // FDM nanoid IDs: exactly 16 chars from the custom read-safe alphabet
-            if (/^[6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwza]{16}$/.test(segment)) {
-                return ":id"
-            }
-            // Pure numeric segments (years, numeric IDs)
-            if (/^\d+$/.test(segment)) {
-                return ":year"
-            }
-            // Coordinate-like segments: mix of digits with dots or commas
-            if (/[,.]/.test(segment) && /\d/.test(segment)) {
-                return ":centroid"
-            }
-            return segment
-        })
-        .join("/")
+  // Strip query string and hash (pathname typically excludes these, but be defensive)
+  const path = page.split("?")[0].split("#")[0]
+  return path
+    .split("/")
+    .map((segment) => {
+      if (!segment) return segment
+      // FDM nanoid IDs: exactly 16 chars from the custom read-safe alphabet
+      if (/^[6789BCDFGHJKLMNPQRTWbcdfghjkmnpqrtwza]{16}$/.test(segment)) {
+        return ":id"
+      }
+      // Pure numeric segments (years, numeric IDs)
+      if (/^\d+$/.test(segment)) {
+        return ":year"
+      }
+      // Coordinate-like segments: mix of digits with dots or commas
+      if (/[,.]/.test(segment) && /\d/.test(segment)) {
+        return ":centroid"
+      }
+      return segment
+    })
+    .join("/")
 }
 
 /**
@@ -101,24 +92,46 @@ export function normalizePage(page: string): string {
  * @returns the validation result for full URLs, true if no full URL is found
  */
 export function isOfOrigin(href: string, origin: string) {
-    try {
-        // Explicitly reject protocol-relative URLs (e.g., //example.com)
-        // These can be exploited for open redirects when used in browser contexts
-        if (href.startsWith("//")) return false
+  try {
+    // Explicitly reject protocol-relative URLs (e.g., //example.com)
+    // These can be exploited for open redirects when used in browser contexts
+    if (href.startsWith("//")) return false
 
-        // Allow root-relative paths (e.g., /path/to/page)
-        if (href.startsWith("/")) return true
+    // Allow root-relative paths (e.g., /path/to/page)
+    if (href.startsWith("/")) return true
 
-        // If no URI scheme is present, treat as relative/path-like input
-        const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(href)
-        if (!hasScheme) return true
+    // If no URI scheme is present, treat as relative/path-like input
+    const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(href)
+    if (!hasScheme) return true
 
-        // For absolute URLs, only allow same-origin HTTP(S)
-        const parsed = new URL(href)
-        const isHttp =
-            parsed.protocol === "http:" || parsed.protocol === "https:"
-        return isHttp && parsed.origin === origin
-    } catch {
-        return false
-    }
+    // For absolute URLs, only allow same-origin HTTP(S)
+    const parsed = new URL(href)
+    const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:"
+    return isHttp && parsed.origin === origin
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Normalises the given address to be a safe, root-relative redirect target,
+ * or `/farm` by default. Resolves the candidate against a fixed same-origin
+ * base and only accepts it if the resolved origin is unchanged, which closes
+ * host-confusion bypasses that a simple `startsWith("/")` check misses (e.g.
+ * a backslash-based address like `/\evil.com` is normalized by browsers/URL
+ * parsers to the protocol-relative `//evil.com`, silently changing the host).
+ *
+ * @param address address to check for safety, null/undefined if not specified
+ * @returns the normalized, safe redirect address
+ */
+export function getSafeRedirect(address: string | null | undefined): string {
+  if (!address) return "/farm"
+  try {
+    const base = new URL("http://localhost")
+    const resolved = new URL(address, base)
+    if (resolved.origin !== base.origin) return "/farm"
+    return `${resolved.pathname}${resolved.search}${resolved.hash}` || "/farm"
+  } catch {
+    return "/farm"
+  }
 }

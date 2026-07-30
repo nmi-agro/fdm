@@ -1,22 +1,22 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_samplingdesign_soil.json",
-    "title": "Sampling of soil of a field in Farm Data Model",
-    "description": "The data model to describe sampling design of soil",
-    "type": "object",
-    "properties": {
-        "b_id_samplingdesign": {
-            "description": "ID of sampling design",
-            "type": "string"
-        },
-        "b_geometry_sampling": {
-            "description": "ID of field",
-            "type": "string"
-        },
-        "a_depth": {
-            "description": "Depth of soil sampling",
-            "type": "number"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_samplingdesign_soil.json",
+  "title": "Sampling of soil of a field in Farm Data Model",
+  "description": "The data model to describe sampling design of soil",
+  "type": "object",
+  "properties": {
+    "b_id_samplingdesign": {
+      "description": "ID of sampling design",
+      "type": "string"
     },
-    "required": ["b_id_samplingdesign"]
+    "b_geometry_sampling": {
+      "description": "ID of field",
+      "type": "string"
+    },
+    "a_depth": {
+      "description": "Depth of soil sampling",
+      "type": "number"
+    }
+  },
+  "required": ["b_id_samplingdesign"]
 }

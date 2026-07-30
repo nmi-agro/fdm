@@ -14,54 +14,54 @@ This post outlines the August 2025 updates of the FDM libraries: `@nmi-agro/fdm-
 
 The FDM application has been redesigned to provide a more intuitive and user-friendly experience.
 
-*   **New Landing Page after signin:** The landing page after signin has been redesigned with cards that show new farm and atlas. When first logged in, it will show 2 detailed cards with the background information about the farm and atlas tool.
-*   **Redesigned "What's New" Page:** The "whats-new" page has been redesigned with a new changelog component. A notification will be added to the sidebar in case a new entry is available at the "whats-new" page.
-*   **Improved Atlas:**
-    *   Atlas is now also available without selecting a farm first.
-    *   The fields at Atlas will now show all fields and redirect to the details page when clicked.
-    *   When a field is clicked at Atlas, details about that field, like cultivation history and soil texture, are shown on the fields details page.
-    *   The available fields will now be shown in different colors based on the cultivation type.
-    *   Atlas will now show the available-fields dataset for the selected calendar year.
-*   **Improved Farm Creation Wizard:**
-    *   On the farm create wizard atlas page, the already stored fields will be shown as well, next to the available fields and selected fields.
-    *   A button has been added to the fields page in the farm create wizard that allows users to go back to the atlas page to select more fields.
-    *   Selected fields now have an outline instead of a different fill color in the farm creation wizard atlas.
-    *   The color of selected fields has been changed from red to yellow.
-    *   When additional fields are created through the wizard, they are named with numbers starting from the number of previously created fields.
-*   **Bug Fixes and Performance Improvements:**
-    *   The map for adding a new field was not interactive when the farm did not have a field yet. This has now been fixed.
-    *   When using the header on a field’s cultivations page to switch fields, the information shown in the cultivation details card will now be updated as well.
-    *   The nutrient balance, nutrient advice, and norms pages will now load quickly before any expensive calculations, so they properly show their spinners.
+- **New Landing Page after signin:** The landing page after signin has been redesigned with cards that show new farm and atlas. When first logged in, it will show 2 detailed cards with the background information about the farm and atlas tool.
+- **Redesigned "What's New" Page:** The "whats-new" page has been redesigned with a new changelog component. A notification will be added to the sidebar in case a new entry is available at the "whats-new" page.
+- **Improved Atlas:**
+  - Atlas is now also available without selecting a farm first.
+  - The fields at Atlas will now show all fields and redirect to the details page when clicked.
+  - When a field is clicked at Atlas, details about that field, like cultivation history and soil texture, are shown on the fields details page.
+  - The available fields will now be shown in different colors based on the cultivation type.
+  - Atlas will now show the available-fields dataset for the selected calendar year.
+- **Improved Farm Creation Wizard:**
+  - On the farm create wizard atlas page, the already stored fields will be shown as well, next to the available fields and selected fields.
+  - A button has been added to the fields page in the farm create wizard that allows users to go back to the atlas page to select more fields.
+  - Selected fields now have an outline instead of a different fill color in the farm creation wizard atlas.
+  - The color of selected fields has been changed from red to yellow.
+  - When additional fields are created through the wizard, they are named with numbers starting from the number of previously created fields.
+- **Bug Fixes and Performance Improvements:**
+  - The map for adding a new field was not interactive when the farm did not have a field yet. This has now been fixed.
+  - When using the header on a field’s cultivations page to switch fields, the information shown in the cultivation details card will now be updated as well.
+  - The nutrient balance, nutrient advice, and norms pages will now load quickly before any expensive calculations, so they properly show their spinners.
 
 ### Nitrogen Balance Refinements
 
 A key focus of this release has been to improve the nitrogen balance calculations in `@nmi-agro/fdm-calculator`. These changes provide a more accurate and transparent model for nitrogen management.
 
-*   **Terminology Update: "Emission" replaces "Volatilization" (`@nmi-agro/fdm-calculator`):**
-    *   We have replaced the term "volatilization" with "emission" throughout the nitrogen balance calculations and documentation. This change in terminology is more than just a semantic update; it's a strategic refactoring that allows us to include other sources of nitrogen loss in the future, such as nitrate leaching. This will provide a more comprehensive and accurate picture of the nitrogen cycle.
-*   **Mineralization Calculation Update (`@nmi-agro/fdm-calculator`):**
-    *   The calculation for nitrogen mineralization has been updated to use default values instead of the MINIP model. This change simplifies the calculation and aligns it with common agricultural practices. The documentation has been updated to reflect this change.
-*   **Exported Functions (`@nmi-agro/fdm-calculator`):**
-    *   The functions `getRegion`, `isFieldInNVGebied`, `isFieldInGWGBGebie` and `isFieldInNatura2000Gebied` have been exported. This will make it easier for developers to use these functions in their own applications.
+- **Terminology Update: "Emission" replaces "Volatilization" (`@nmi-agro/fdm-calculator`):**
+  - We have replaced the term "volatilization" with "emission" throughout the nitrogen balance calculations and documentation. This change in terminology is more than just a semantic update; it's a strategic refactoring that allows us to include other sources of nitrogen loss in the future, such as nitrate leaching. This will provide a more comprehensive and accurate picture of the nitrogen cycle.
+- **Mineralization Calculation Update (`@nmi-agro/fdm-calculator`):**
+  - The calculation for nitrogen mineralization has been updated to use default values instead of the MINIP model. This change simplifies the calculation and aligns it with common agricultural practices. The documentation has been updated to reflect this change.
+- **Exported Functions (`@nmi-agro/fdm-calculator`):**
+  - The functions `getRegion`, `isFieldInNVGebied`, `isFieldInGWGBGebie` and `isFieldInNatura2000Gebied` have been exported. This will make it easier for developers to use these functions in their own applications.
 
 ### Data Management Enhancements
 
-*   **Cultivation Varieties (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`, `@nmi-agro/fdm-app`):**
-    *   `b_lu_variety` has been added to `cultivations` for selecting the variety of a cultivation.
-    *   `b_lu_variety_options` has been added to list the possible varieties of a cultivation.
-    *   A `CultivationDetailsCard` component has been added that will allow users to select a variety for a cultivation.
-*   **New BRP 2025 Crops (`@nmi-agro/fdm-data`):**
-    *   The new BRP 2025 crops have been added to the `brp` cultivation dataset.
-*   **New `b_lu_rest_oravib` Property (`@nmi-agro/fdm-data`, `@nmi-agro/fdm-app`):**
-    *   The `b_lu_rest_oravib` property has been added to the BRP cultivation dataset. This boolean parameter specifies if the cultivation is classified as 'rustgewas'.
-    *   The `b_lu_rest_oravib` parameter has been added to the `cultivationCatalogue`.
+- **Cultivation Varieties (`@nmi-agro/fdm-core`, `@nmi-agro/fdm-data`, `@nmi-agro/fdm-app`):**
+  - `b_lu_variety` has been added to `cultivations` for selecting the variety of a cultivation.
+  - `b_lu_variety_options` has been added to list the possible varieties of a cultivation.
+  - A `CultivationDetailsCard` component has been added that will allow users to select a variety for a cultivation.
+- **New BRP 2025 Crops (`@nmi-agro/fdm-data`):**
+  - The new BRP 2025 crops have been added to the `brp` cultivation dataset.
+- **New `b_lu_rest_oravib` Property (`@nmi-agro/fdm-data`, `@nmi-agro/fdm-app`):**
+  - The `b_lu_rest_oravib` property has been added to the BRP cultivation dataset. This boolean parameter specifies if the cultivation is classified as 'rustgewas'.
+  - The `b_lu_rest_oravib` parameter has been added to the `cultivationCatalogue`.
 
 ### Technical Improvements
 
-*   **Sentry Migration (`@nmi-agro/fdm-app`):**
-    *   Sentry has been migrated to `@sentry/react-router`. This is an important update for error tracking and performance monitoring.
-*   **Environment Variable Update (`@nmi-agro/fdm-app`):**
-    *   The environment variable `FDM_PUBLIC_DATA` has been replaced with `PUBLIC_FDM_DATASETS_URL`.
+- **Sentry Migration (`@nmi-agro/fdm-app`):**
+  - Sentry has been migrated to `@sentry/react-router`. This is an important update for error tracking and performance monitoring.
+- **Environment Variable Update (`@nmi-agro/fdm-app`):**
+  - The environment variable `FDM_PUBLIC_DATA` has been replaced with `PUBLIC_FDM_DATASETS_URL`.
 
 ---
 

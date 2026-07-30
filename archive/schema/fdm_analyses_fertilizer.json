@@ -1,50 +1,50 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_analyses_fertilizer.json",
-    "title": "Analysis of fertilizer assets in Farm Data Model",
-    "description": "The data model to describe analyses of fertilizers",
-    "type": "object",
-    "properties": {
-        "p_id_analysis": {
-            "description": "ID of the analysis of fertilizer",
-            "type": "string"
-        },
-        "p_id": {
-            "description": "ID of fertilizer",
-            "type": "string"
-        },
-        "p_date_sampling": {
-            "description": "Date of sampling fertilizer",
-            "type": "string"
-        },
-        "p_n_rt": {
-            "description": "",
-            "type": "number"
-        },
-        "p_n_if": {
-            "description": "",
-            "type": "number"
-        },
-        "p_n_of": {
-            "description": "",
-            "type": "number"
-        },
-        "p_p_rt": {
-            "description": "",
-            "type": "number"
-        },
-        "p_k_rt": {
-            "description": "",
-            "type": "number"
-        },
-        "p_dm": {
-            "description": "",
-            "type": "number"
-        },
-        "p_om": {
-            "description": "",
-            "type": "number"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_analyses_fertilizer.json",
+  "title": "Analysis of fertilizer assets in Farm Data Model",
+  "description": "The data model to describe analyses of fertilizers",
+  "type": "object",
+  "properties": {
+    "p_id_analysis": {
+      "description": "ID of the analysis of fertilizer",
+      "type": "string"
     },
-    "required": ["p_id_analysis", "p_id"]
+    "p_id": {
+      "description": "ID of fertilizer",
+      "type": "string"
+    },
+    "p_date_sampling": {
+      "description": "Date of sampling fertilizer",
+      "type": "string"
+    },
+    "p_n_rt": {
+      "description": "",
+      "type": "number"
+    },
+    "p_n_if": {
+      "description": "",
+      "type": "number"
+    },
+    "p_n_of": {
+      "description": "",
+      "type": "number"
+    },
+    "p_p_rt": {
+      "description": "",
+      "type": "number"
+    },
+    "p_k_rt": {
+      "description": "",
+      "type": "number"
+    },
+    "p_dm": {
+      "description": "",
+      "type": "number"
+    },
+    "p_om": {
+      "description": "",
+      "type": "number"
+    }
+  },
+  "required": ["p_id_analysis", "p_id"]
 }

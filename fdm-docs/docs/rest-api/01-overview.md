@@ -10,11 +10,11 @@ The FDM REST API (`/api`) gives external applications, automation scripts, and t
 
 ## Target audience
 
-| Audience | Examples |
-|---|---|
-| **First-party automation** | Internal scripts, CI pipelines, data-import tooling |
-| **Trusted partners** | Registered agri-tech partners with server-side integrations |
-| **Public third-party integrations** | Farm management systems, precision-agriculture apps |
+| Audience                            | Examples                                                    |
+| ----------------------------------- | ----------------------------------------------------------- |
+| **First-party automation**          | Internal scripts, CI pipelines, data-import tooling         |
+| **Trusted partners**                | Registered agri-tech partners with server-side integrations |
+| **Public third-party integrations** | Farm management systems, precision-agriculture apps         |
 
 ## What the API provides
 
@@ -56,8 +56,8 @@ All request and response bodies use FDM-native JSON field names that mirror `fdm
 
 The following routes under `/api` are **internal application routes** — they are session-authenticated, not part of the public API, and not accessible with API keys:
 
-| Path | Purpose |
-|---|---|
-| `/api/auth/*` | Better Auth session handlers |
-| `/api/lookup/principal` | Internal principal lookup |
-| `/api/soil-analysis/extract` | Internal bulk upload helper |
+| Path                         | Purpose                      |
+| ---------------------------- | ---------------------------- |
+| `/api/auth/*`                | Better Auth session handlers |
+| `/api/lookup/principal`      | Internal principal lookup    |
+| `/api/soil-analysis/extract` | Internal bulk upload helper  |

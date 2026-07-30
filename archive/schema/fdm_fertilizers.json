@@ -1,22 +1,22 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_fertilizers.json",
-    "title": "Fertilizer asset in Farm Data Model",
-    "description": "The data model to describe the asset: fertilizer",
-    "type": "object",
-    "properties": {
-        "p_id": {
-            "description": "ID of the fertilzer",
-            "type": "string"
-        },
-        "b_id_farm": {
-            "description": "ID of the farm",
-            "type": "string"
-        },
-        "p_id_name": {
-            "description": "Name of the fertilizer",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_fertilizers.json",
+  "title": "Fertilizer asset in Farm Data Model",
+  "description": "The data model to describe the asset: fertilizer",
+  "type": "object",
+  "properties": {
+    "p_id": {
+      "description": "ID of the fertilzer",
+      "type": "string"
     },
-    "required": ["p_id", "b_id_farm"]
+    "b_id_farm": {
+      "description": "ID of the farm",
+      "type": "string"
+    },
+    "p_id_name": {
+      "description": "Name of the fertilizer",
+      "type": "string"
+    }
+  },
+  "required": ["p_id", "b_id_farm"]
 }

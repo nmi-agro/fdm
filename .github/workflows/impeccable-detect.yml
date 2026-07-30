@@ -1,0 +1,43 @@
+name: Impeccable Detect
+
+# Scans fdm-app UI source for design anti-patterns using the bundled impeccable
+# detector (.github/skills/impeccable/scripts/detect.mjs). Report-only: it never
+# fails the build, it surfaces findings in the job summary.
+
+on:
+  pull_request:
+    paths:
+      - "fdm-app/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  impeccable-detect:
+    name: detect UI anti-patterns
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Run impeccable detect on fdm-app/app
+        # Run from fdm-app so the detector picks up its DESIGN.md /
+        # .impeccable/design.json context. The detector exits 2 when it finds
+        # anti-patterns; `|| true` keeps this report-only.
+        working-directory: fdm-app
+        run: |
+          {
+            echo '## Impeccable UI anti-pattern report'
+            echo
+            echo 'Target: `fdm-app/app`'
+            echo
+            echo '```'
+            node ../.github/skills/impeccable/scripts/detect.mjs app 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

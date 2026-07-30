@@ -1,5 +1,19 @@
 # fdm-data
 
+## 0.23.0
+
+### Minor Changes
+
+- [#721](https://github.com/nmi-agro/fdm/pull/721) [`a73a977`](https://github.com/nmi-agro/fdm/commit/a73a97733453191cd486f3261f5bb613a7f8b512) Thanks [@SvenVw](https://github.com/SvenVw)! - Include for measures catalogue `bln` the property `m_stage_applicability` to know it the measure is on `farm` or `field` level applicable
+
+- [#712](https://github.com/nmi-agro/fdm/pull/712) [`f09806b`](https://github.com/nmi-agro/fdm/commit/f09806b1df03d193740dcdbe578be42ffc611b48) Thanks [@SvenVw](https://github.com/SvenVw)! - Add four default Renure products (RVO mestcodes 130-133) to the BAAT fertilizer catalogue: Ammoniumsulfaatoplossing, Ammoniumnitraatoplossing, Mineralenconcentraat and Ammoniumstruviet. Also two non-Renure variants of Ammoniumstruviet and Kaliumstruviet are added. For mestcode 134 no default product has been added to the catalogue as it is a generic "other" category.
+
+### Patch Changes
+
+- [#693](https://github.com/nmi-agro/fdm/pull/693) [`30f2748`](https://github.com/nmi-agro/fdm/commit/30f274831dfcc0b8404046e2e8c103e8d48e28a6) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate to TypeScript V7
+
+- [#660](https://github.com/nmi-agro/fdm/pull/660) [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate for linting and formatting from Biome to oxlint and oxfmt
+
 ## 0.22.0
 
 ### Minor Changes

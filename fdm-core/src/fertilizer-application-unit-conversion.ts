@@ -1,12 +1,13 @@
+/* eslint-disable typescript/restrict-template-expressions -- Number, Decimal, and string union literals are intentionally formatted in template strings and serialize safely. */
 import Decimal from "decimal.js"
 
 export type AppAmountUnit = "kg/ha" | "l/ha" | "m3/ha" | "ton/ha"
 
 export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
-    { value: "kg/ha", label: "kg/ha" },
-    { value: "l/ha", label: "l/ha" },
-    { value: "m3/ha", label: "m³/ha" },
-    { value: "ton/ha", label: "ton/ha" },
+  { value: "kg/ha", label: "kg/ha" },
+  { value: "l/ha", label: "l/ha" },
+  { value: "m3/ha", label: "m³/ha" },
+  { value: "ton/ha", label: "ton/ha" },
 ]
 
 /**
@@ -22,39 +23,27 @@ export const APP_AMOUNT_UNITS: { value: AppAmountUnit; label: string }[] = [
  * @alpha
  */
 export function toKgPerHa(
-    value: number | Decimal | string,
-    unit: AppAmountUnit,
-    density?: number | Decimal | null, // kg/l
+  value: number | Decimal | string,
+  unit: AppAmountUnit,
+  density?: number | Decimal | null, // kg/l
 ): number {
-    const d = new Decimal(value)
-    switch (unit) {
-        case "kg/ha":
-            return new Decimal(d).toNumber()
-        case "ton/ha":
-            return new Decimal(1000).times(d).toNumber()
-        case "l/ha":
-            if (
-                density === null ||
-                density === undefined ||
-                new Decimal(0).greaterThanOrEqualTo(density)
-            )
-                throw new Error(
-                    "Positive density (p_density) is required for l/ha → kg/ha conversion",
-                )
-            return new Decimal(density).times(d).toNumber()
-        case "m3/ha":
-            if (
-                density === null ||
-                density === undefined ||
-                new Decimal(0).greaterThanOrEqualTo(density)
-            )
-                throw new Error(
-                    "Positive density (p_density) is required for m3/ha → kg/ha conversion",
-                )
-            return new Decimal(1000).times(d).times(density).toNumber()
-        default:
-            throw new Error(`${unit} → kg/ha conversion is not supported`)
-    }
+  const d = new Decimal(value)
+  switch (unit) {
+    case "kg/ha":
+      return new Decimal(d).toNumber()
+    case "ton/ha":
+      return new Decimal(1000).times(d).toNumber()
+    case "l/ha":
+      if (density === null || density === undefined || new Decimal(0).greaterThanOrEqualTo(density))
+        throw new Error("Positive density (p_density) is required for l/ha → kg/ha conversion")
+      return new Decimal(density).times(d).toNumber()
+    case "m3/ha":
+      if (density === null || density === undefined || new Decimal(0).greaterThanOrEqualTo(density))
+        throw new Error("Positive density (p_density) is required for m3/ha → kg/ha conversion")
+      return new Decimal(1000).times(d).times(density).toNumber()
+    default:
+      throw new Error(`${unit} → kg/ha conversion is not supported`)
+  }
 }
 
 /**
@@ -70,27 +59,27 @@ export function toKgPerHa(
  * @alpha
  */
 export function fromKgPerHa(
-    valueKgPerHa: number | Decimal | string,
-    unit: AppAmountUnit,
-    density?: number | Decimal | null, // kg/l
+  valueKgPerHa: number | Decimal | string,
+  unit: AppAmountUnit,
+  density?: number | Decimal | null, // kg/l
 ): number | null {
-    const d = new Decimal(valueKgPerHa)
-    const densityNotProvided =
-        density === null ||
-        typeof density === "undefined" ||
-        new Decimal(0).greaterThanOrEqualTo(density)
-    switch (unit) {
-        case "kg/ha":
-            return d.toNumber()
-        case "ton/ha":
-            return d.dividedBy(1000).toNumber()
-        case "l/ha":
-            if (densityNotProvided) return null
-            return d.dividedBy(new Decimal(density)).toNumber()
-        case "m3/ha":
-            if (densityNotProvided) return null
-            return d.dividedBy(new Decimal(density).times(1000)).toNumber()
-        default:
-            return null
-    }
+  const d = new Decimal(valueKgPerHa)
+  const densityNotProvided =
+    density === null ||
+    typeof density === "undefined" ||
+    new Decimal(0).greaterThanOrEqualTo(density)
+  switch (unit) {
+    case "kg/ha":
+      return d.toNumber()
+    case "ton/ha":
+      return d.dividedBy(1000).toNumber()
+    case "l/ha":
+      if (densityNotProvided) return null
+      return d.dividedBy(new Decimal(density)).toNumber()
+    case "m3/ha":
+      if (densityNotProvided) return null
+      return d.dividedBy(new Decimal(density).times(1000)).toNumber()
+    default:
+      return null
+  }
 }

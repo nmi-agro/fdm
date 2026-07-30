@@ -1,10 +1,10 @@
 import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 
 export const applicationUnitOptions = {
-    "kg/ha": { label: "kg/ha", totalLabel: "kg" },
-    "ton/ha": { label: "ton/ha", totalLabel: "ton" },
-    "l/ha": { label: "l/ha", totalLabel: "L" },
-    "m3/ha": { label: "m³/ha", totalLabel: "m³" },
+  "kg/ha": { label: "kg/ha", totalLabel: "kg" },
+  "ton/ha": { label: "ton/ha", totalLabel: "ton" },
+  "l/ha": { label: "l/ha", totalLabel: "L" },
+  "m3/ha": { label: "m³/ha", totalLabel: "m³" },
 } as const
 
 /**
@@ -13,7 +13,7 @@ export const applicationUnitOptions = {
  * @returns the pretty-printed unit
  */
 export function getApplicationAmountUnitLabel(unit: AppAmountUnit) {
-    return applicationUnitOptions[unit].label
+  return applicationUnitOptions[unit].label
 }
 
 /**
@@ -22,5 +22,5 @@ export function getApplicationAmountUnitLabel(unit: AppAmountUnit) {
  * @returns the pretty-printed corresponding mass or volume unit
  */
 export function getApplicationAmountTotalUnitLabel(unit: AppAmountUnit) {
-    return applicationUnitOptions[unit].totalLabel
+  return applicationUnitOptions[unit].totalLabel
 }

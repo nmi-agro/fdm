@@ -1,8 +1,8 @@
 import { eq, ilike, inArray, or } from "drizzle-orm"
-import * as authNSchema from "./db/schema-authn"
-import { handleError } from "./error"
 import type { FdmType } from "./fdm.types"
 import type { Principal } from "./principal.types"
+import * as authNSchema from "./db/schema-authn"
+import { handleError } from "./error"
 
 /**
  * Retrieves details of a principal (either a user or an organization) by ID.
@@ -31,19 +31,16 @@ import type { Principal } from "./principal.types"
  * ```
  */
 export async function getPrincipal(
-    fdm: FdmType,
-    principal_id: string,
+  fdm: FdmType,
+  principal_id: string,
 ): Promise<Principal | undefined> {
-    try {
-        return (
-            (await getPrincipals(fdm, [principal_id])).get(principal_id) ??
-            undefined
-        )
-    } catch (err) {
-        throw handleError(err, "Exception for getPrincipal", {
-            principal_id: principal_id,
-        })
-    }
+  try {
+    return (await getPrincipals(fdm, [principal_id])).get(principal_id) ?? undefined
+  } catch (err) {
+    throw handleError(err, "Exception for getPrincipal", {
+      principal_id: principal_id,
+    })
+  }
 }
 
 /**
@@ -73,124 +70,116 @@ export async function getPrincipal(
  * ```
  */
 export async function getPrincipals(fdm: FdmType, principal_ids: string[]) {
-    try {
-        return await fdm.transaction(async (tx) => {
-            const principalIdsSet = new Set(principal_ids)
-            const result: Map<
-                string,
-                {
-                    id: string
-                    username: string
-                    email: string | null
-                    initials: string
-                    displayUserName: string | null
-                    image: string | null
-                    type: "user" | "organization"
-                    isVerified: boolean
-                }
-            > = new Map()
-            // If principal is an user get the details of the user
-            if (principalIdsSet.size === 0) return result
-            const users = await tx
-                .select({
-                    id: authNSchema.user.id,
-                    username: authNSchema.user.username,
-                    displayUserName: authNSchema.user.displayUsername,
-                    image: authNSchema.user.image,
-                    isVerified: authNSchema.user.emailVerified,
-                    firstname: authNSchema.user.firstname,
-                    surname: authNSchema.user.surname,
-                    email: authNSchema.user.email,
-                    name: authNSchema.user.name,
-                })
-                .from(authNSchema.user)
-                .where(inArray(authNSchema.user.id, [...principalIdsSet]))
-                .limit(principalIdsSet.size)
-
-            for (const user of users) {
-                principalIdsSet.delete(user.id)
-                // Determine avatar initials
-                let initials = user.email
-                if (user.firstname && user.surname) {
-                    // Select only the first capital letter of firstname and surname
-                    initials = user.firstname.charAt(0).toUpperCase()
-
-                    // Find the first capital letter in the surname
-                    const surnameParts = user.surname.split(/\s+/) // Split by one or more spaces
-                    let firstCapitalLetterInSurname = ""
-
-                    for (const part of surnameParts) {
-                        if (part.length > 0) {
-                            const firstChar = part.charAt(0)
-                            if (
-                                firstChar === firstChar.toUpperCase() &&
-                                firstChar.match(/[a-zA-Z]/)
-                            ) {
-                                firstCapitalLetterInSurname =
-                                    firstChar.toUpperCase()
-                                break // Stop at the first capital letter found
-                            }
-                        }
-                    }
-
-                    initials += firstCapitalLetterInSurname
-                } else if (user.firstname) {
-                    initials = user.firstname[0]
-                } else if (user.name) {
-                    initials = user.name[0]
-                }
-                result.set(user.id, {
-                    id: user.id,
-                    username: user.username ?? user.email,
-                    email: user.email,
-                    initials: initials.toUpperCase(),
-                    displayUserName: user.displayUserName,
-                    image: user.image,
-                    type: "user",
-                    isVerified: user.isVerified,
-                })
-            }
-
-            // If principal is an organization get the details of the organization
-            if (principalIdsSet.size === 0) return result
-            const organizations = await tx
-                .select({
-                    id: authNSchema.organization.id,
-                    name: authNSchema.organization.name,
-                    slug: authNSchema.organization.slug,
-                    logo: authNSchema.organization.logo,
-                    metadata: authNSchema.organization.metadata,
-                })
-                .from(authNSchema.organization)
-                .where(
-                    inArray(authNSchema.organization.id, [...principalIdsSet]),
-                )
-                .limit(principalIdsSet.size)
-
-            for (const organization of organizations) {
-                const metadata = organization.metadata
-                    ? JSON.parse(organization.metadata)
-                    : null
-
-                result.set(organization.id, {
-                    id: organization.id,
-                    username: organization.slug,
-                    email: null,
-                    initials: organization.name.charAt(0).toUpperCase(),
-                    displayUserName: organization.name,
-                    image: organization.logo,
-                    type: "organization",
-                    isVerified: metadata ? metadata.isVerified : false,
-                })
-            }
-
-            return result
+  try {
+    return await fdm.transaction(async (tx) => {
+      const principalIdsSet = new Set(principal_ids)
+      const result: Map<
+        string,
+        {
+          id: string
+          username: string
+          email: string | null
+          initials: string
+          displayUserName: string | null
+          image: string | null
+          type: "user" | "organization"
+          isVerified: boolean
+        }
+      > = new Map()
+      // If principal is an user get the details of the user
+      if (principalIdsSet.size === 0) return result
+      const users = await tx
+        .select({
+          id: authNSchema.user.id,
+          username: authNSchema.user.username,
+          displayUserName: authNSchema.user.displayUsername,
+          image: authNSchema.user.image,
+          isVerified: authNSchema.user.emailVerified,
+          firstname: authNSchema.user.firstname,
+          surname: authNSchema.user.surname,
+          email: authNSchema.user.email,
+          name: authNSchema.user.name,
         })
-    } catch (err) {
-        throw handleError(err, "Exception for getPrincipals", {
-            principal_ids: principal_ids,
+        .from(authNSchema.user)
+        .where(inArray(authNSchema.user.id, [...principalIdsSet]))
+        .limit(principalIdsSet.size)
+
+      for (const user of users) {
+        principalIdsSet.delete(user.id)
+        // Determine avatar initials
+        let initials = user.email
+        if (user.firstname && user.surname) {
+          // Select only the first capital letter of firstname and surname
+          initials = user.firstname.charAt(0).toUpperCase()
+
+          // Find the first capital letter in the surname
+          const surnameParts = user.surname.split(/\s+/) // Split by one or more spaces
+          let firstCapitalLetterInSurname = ""
+
+          for (const part of surnameParts) {
+            if (part.length > 0) {
+              const firstChar = part.charAt(0)
+              if (firstChar === firstChar.toUpperCase() && firstChar.match(/[a-zA-Z]/)) {
+                firstCapitalLetterInSurname = firstChar.toUpperCase()
+                break // Stop at the first capital letter found
+              }
+            }
+          }
+
+          initials += firstCapitalLetterInSurname
+        } else if (user.firstname) {
+          initials = user.firstname[0]
+        } else if (user.name) {
+          initials = user.name[0]
+        }
+        result.set(user.id, {
+          id: user.id,
+          username: user.username ?? user.email,
+          email: user.email,
+          initials: initials.toUpperCase(),
+          displayUserName: user.displayUserName,
+          image: user.image,
+          type: "user",
+          isVerified: user.isVerified,
         })
-    }
+      }
+
+      // If principal is an organization get the details of the organization
+      if (principalIdsSet.size === 0) return result
+      const organizations = await tx
+        .select({
+          id: authNSchema.organization.id,
+          name: authNSchema.organization.name,
+          slug: authNSchema.organization.slug,
+          logo: authNSchema.organization.logo,
+          metadata: authNSchema.organization.metadata,
+        })
+        .from(authNSchema.organization)
+        .where(inArray(authNSchema.organization.id, [...principalIdsSet]))
+        .limit(principalIdsSet.size)
+
+      for (const organization of organizations) {
+        const metadata = organization.metadata ? JSON.parse(organization.metadata) : null
+
+        result.set(organization.id, {
+          id: organization.id,
+          username: organization.slug,
+          email: null,
+          initials: organization.name.charAt(0).toUpperCase(),
+          displayUserName: organization.name,
+          image: organization.logo,
+          type: "organization",
+          isVerified: metadata ? metadata.isVerified : false,
+        })
+      }
+
+      return result
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for getPrincipals", {
+      principal_ids: principal_ids,
+    })
+  }
 }
 
 /**
@@ -217,46 +206,43 @@ export async function getPrincipals(fdm: FdmType, principal_ids: string[]) {
  * ```
  */
 export async function identifyPrincipal(
-    fdm: FdmType,
-    identifier: string,
+  fdm: FdmType,
+  identifier: string,
 ): Promise<Principal | undefined> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            // Check if principal is an user
-            let principal_id = await tx
-                .select({ id: authNSchema.user.id })
-                .from(authNSchema.user)
-                .where(
-                    or(
-                        eq(authNSchema.user.username, identifier),
-                        eq(authNSchema.user.email, identifier),
-                    ),
-                )
-                .limit(1)
+  try {
+    return await fdm.transaction(async (tx) => {
+      // Check if principal is an user
+      let principal_id = await tx
+        .select({ id: authNSchema.user.id })
+        .from(authNSchema.user)
+        .where(
+          or(eq(authNSchema.user.username, identifier), eq(authNSchema.user.email, identifier)),
+        )
+        .limit(1)
 
-            if (principal_id.length === 0) {
-                // Check if principal is an organization
-                principal_id = await tx
-                    .select({ id: authNSchema.organization.id })
-                    .from(authNSchema.organization)
-                    .where(eq(authNSchema.organization.slug, identifier))
-                    .limit(1)
-            }
+      if (principal_id.length === 0) {
+        // Check if principal is an organization
+        principal_id = await tx
+          .select({ id: authNSchema.organization.id })
+          .from(authNSchema.organization)
+          .where(eq(authNSchema.organization.slug, identifier))
+          .limit(1)
+      }
 
-            if (principal_id.length === 0) {
-                return undefined
-            }
+      if (principal_id.length === 0) {
+        return undefined
+      }
 
-            // Get the type of the principal
-            const principalDetails = await getPrincipal(tx, principal_id[0].id)
+      // Get the type of the principal
+      const principalDetails = await getPrincipal(tx, principal_id[0].id)
 
-            return principalDetails
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for identifyPrincipal", {
-            identifier: identifier,
-        })
-    }
+      return principalDetails
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for identifyPrincipal", {
+      identifier: identifier,
+    })
+  }
 }
 
 /**
@@ -284,80 +270,66 @@ export async function identifyPrincipal(
  * }
  * ```
  */
-export async function lookupPrincipal(
-    fdm: FdmType,
-    identifier: string,
-): Promise<Principal[]> {
-    try {
-        return await fdm.transaction(async (tx) => {
-            // Lookup if identifier is 1 or more characters
-            if (identifier.length <= 1) {
-                return []
-            }
+export async function lookupPrincipal(fdm: FdmType, identifier: string): Promise<Principal[]> {
+  try {
+    return await fdm.transaction(async (tx) => {
+      // Lookup if identifier is 1 or more characters
+      if (identifier.length <= 1) {
+        return []
+      }
 
-            // Check if identifier is email of user
-            const principals = await tx
-                .select({ id: authNSchema.user.id })
-                .from(authNSchema.user)
-                .where(eq(authNSchema.user.email, identifier))
-                .limit(1)
+      // Check if identifier is email of user
+      const principals = await tx
+        .select({ id: authNSchema.user.id })
+        .from(authNSchema.user)
+        .where(eq(authNSchema.user.email, identifier))
+        .limit(1)
 
-            if (principals.length === 0) {
-                // Check if identifier is close to organization name or slug
-                const principalOrganizations = await tx
-                    .select({ id: authNSchema.organization.id })
-                    .from(authNSchema.organization)
-                    .where(
-                        or(
-                            ilike(
-                                authNSchema.organization.name,
-                                `%${identifier}%`,
-                            ),
-                            ilike(
-                                authNSchema.organization.slug,
-                                `%${identifier}%`,
-                            ),
-                        ),
-                    )
-                    .limit(5)
+      if (principals.length === 0) {
+        // Check if identifier is close to organization name or slug
+        const principalOrganizations = await tx
+          .select({ id: authNSchema.organization.id })
+          .from(authNSchema.organization)
+          .where(
+            or(
+              ilike(authNSchema.organization.name, `%${identifier}%`),
+              ilike(authNSchema.organization.slug, `%${identifier}%`),
+            ),
+          )
+          .limit(5)
 
-                principals.push(...principalOrganizations)
+        principals.push(...principalOrganizations)
 
-                // Check if identifier is close to name of user
-                const principalUsers = await tx
-                    .select({ id: authNSchema.user.id })
-                    .from(authNSchema.user)
-                    .where(
-                        or(
-                            ilike(authNSchema.user.username, `%${identifier}%`),
-                            ilike(
-                                authNSchema.user.firstname,
-                                `%${identifier}%`,
-                            ),
-                            ilike(authNSchema.user.surname, `%${identifier}%`),
-                            ilike(authNSchema.user.name, `%${identifier}%`),
-                        ),
-                    )
-                    .limit(5)
-                principals.push(...principalUsers)
-            }
+        // Check if identifier is close to name of user
+        const principalUsers = await tx
+          .select({ id: authNSchema.user.id })
+          .from(authNSchema.user)
+          .where(
+            or(
+              ilike(authNSchema.user.username, `%${identifier}%`),
+              ilike(authNSchema.user.firstname, `%${identifier}%`),
+              ilike(authNSchema.user.surname, `%${identifier}%`),
+              ilike(authNSchema.user.name, `%${identifier}%`),
+            ),
+          )
+          .limit(5)
+        principals.push(...principalUsers)
+      }
 
-            // Collect details of principals
-            if (principals.length > 0) {
-                const principalsDetails = await getPrincipals(
-                    tx,
-                    principals.map((p) => p.id),
-                )
-                return [...principalsDetails.values()].filter(
-                    (p): p is Principal => p !== undefined,
-                )
-            }
+      // Collect details of principals
+      if (principals.length > 0) {
+        const principalsDetails = await getPrincipals(
+          tx,
+          principals.map((p) => p.id),
+        )
+        return [...principalsDetails.values()].filter((p): p is Principal => p !== undefined)
+      }
 
-            return []
-        })
-    } catch (err) {
-        throw handleError(err, "Exception for LookupPrincipal", {
-            identifier: identifier,
-        })
-    }
+      return []
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for LookupPrincipal", {
+      identifier: identifier,
+    })
+  }
 }

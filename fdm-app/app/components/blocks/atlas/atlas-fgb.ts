@@ -11,30 +11,30 @@ type Bbox = { minX: number; minY: number; maxX: number; maxY: number }
  * every Range request — bypassing and replacing the poisoned cache entry.
  */
 export async function* deserializeFgb(url: string, bbox: Bbox) {
-    try {
-        yield* deserialize(url, bbox)
-    } catch (error) {
-        if (error instanceof Error && error.message.includes(NOT_FGB_ERROR)) {
-            console.warn(
-                `[atlas-fgb] Received "${NOT_FGB_ERROR}" for ${url}. ` +
-                    "Retrying with no-cache to bypass a potentially poisoned browser cache.",
-            )
+  try {
+    yield* deserialize(url, bbox)
+  } catch (error) {
+    if (error instanceof Error && error.message.includes(NOT_FGB_ERROR)) {
+      console.warn(
+        `[atlas-fgb] Received "${NOT_FGB_ERROR}" for ${url}. ` +
+          "Retrying with no-cache to bypass a potentially poisoned browser cache.",
+      )
 
-            try {
-                yield* deserialize(url, bbox, undefined, true)
-            } catch (retryError) {
-                throw new Error(
-                    `[atlas-fgb] Failed to load FlatGeobuf data from ${url} even after bypassing the browser cache.`,
-                    {
-                        cause: {
-                            originalError: error,
-                            retryError,
-                        },
-                    },
-                )
-            }
-        } else {
-            throw error
-        }
+      try {
+        yield* deserialize(url, bbox, undefined, true)
+      } catch (retryError) {
+        throw new Error(
+          `[atlas-fgb] Failed to load FlatGeobuf data from ${url} even after bypassing the browser cache.`,
+          {
+            cause: {
+              originalError: error,
+              retryError,
+            },
+          },
+        )
+      }
+    } else {
+      throw error
     }
+  }
 }

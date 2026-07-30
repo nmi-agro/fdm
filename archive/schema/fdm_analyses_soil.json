@@ -1,46 +1,46 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_analyses_soil.json",
-    "title": "Analysis of soil in Farm Data Model",
-    "description": "The data model to describe a soil analysis",
-    "type": "object",
-    "properties": {
-        "a_id_analysis": {
-            "description": "ID of the analyis of soil",
-            "type": "string"
-        },
-        "a_id_sampling_soil": {
-            "description": "ID of the sampling of soil",
-            "type": "string"
-        },
-        "a_source": {
-            "description": "Source of analyis",
-            "type": "string"
-        },
-        "a_som_loi": {
-            "description": "",
-            "type": "number"
-        },
-        "a_clay_mi": {
-            "description": "",
-            "type": "number"
-        },
-        "a_c_of": {
-            "description": "",
-            "type": "number"
-        },
-        "a_n_rt": {
-            "description": "",
-            "type": "number"
-        },
-        "a_nmin_cc": {
-            "description": "",
-            "type": "number"
-        },
-        "a_ph_cc": {
-            "description": "",
-            "type": "number"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_analyses_soil.json",
+  "title": "Analysis of soil in Farm Data Model",
+  "description": "The data model to describe a soil analysis",
+  "type": "object",
+  "properties": {
+    "a_id_analysis": {
+      "description": "ID of the analyis of soil",
+      "type": "string"
     },
-    "required": ["a_id_analysis", "a_id_samnpling"]
+    "a_id_sampling_soil": {
+      "description": "ID of the sampling of soil",
+      "type": "string"
+    },
+    "a_source": {
+      "description": "Source of analyis",
+      "type": "string"
+    },
+    "a_som_loi": {
+      "description": "",
+      "type": "number"
+    },
+    "a_clay_mi": {
+      "description": "",
+      "type": "number"
+    },
+    "a_c_of": {
+      "description": "",
+      "type": "number"
+    },
+    "a_n_rt": {
+      "description": "",
+      "type": "number"
+    },
+    "a_nmin_cc": {
+      "description": "",
+      "type": "number"
+    },
+    "a_ph_cc": {
+      "description": "",
+      "type": "number"
+    }
+  },
+  "required": ["a_id_analysis", "a_id_samnpling"]
 }

@@ -1,10 +1,4 @@
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "~/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { InvitationForm } from "./invitation-form"
 import { PrincipalRow } from "./principal-row"
@@ -12,79 +6,71 @@ import { PrincipalRow } from "./principal-row"
 const VALID_ROLES = ["owner", "advisor", "researcher"] as const
 type Role = (typeof VALID_ROLES)[number]
 function isValidRole(role: string): role is Role {
-    return (VALID_ROLES as readonly string[]).includes(role)
+  return (VALID_ROLES as readonly string[]).includes(role)
 }
 
 // Define the type for the principal object based on usage
 // Ensure this matches the type definition used in InvitationForm and PrincipalRow if needed elsewhere
 type Principal = {
-    username: string
-    displayUserName: string | null
-    image?: string | null
-    initials: string
-    role: string
-    type: "user" | "organization"
-    status: "active" | "pending"
-    invitation_id?: string
-    invitation_expires_at?: Date | string
+  username: string
+  displayUserName: string | null
+  image?: string | null
+  initials: string
+  role: string
+  type: "user" | "organization"
+  status: "active" | "pending"
+  invitation_id?: string
+  invitation_expires_at?: Date | string
 }
 
 // Define props for the AccessManagementCard
 type AccessManagementCardProps = {
-    principals: Principal[]
-    hasSharePermission: boolean
+  principals: Principal[]
+  hasSharePermission: boolean
 }
 
 export const AccessManagementCard = ({
-    principals,
-    hasSharePermission,
+  principals,
+  hasSharePermission,
 }: AccessManagementCardProps) => {
-    return (
-        <Card className="md:col-span-2">
-            <CardHeader>
-                <CardTitle>Toegang</CardTitle>
-                <CardDescription>
-                    {hasSharePermission
-                        ? "Beheer welke gebruikers en organisaties toegang hebben tot dit bedrijf"
-                        : "U heeft geen rechten om de toegang tot dit bedrijf te beheren."}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {/* Conditionally render InvitationForm based on permission */}
-                {hasSharePermission ? (
-                    <InvitationForm principals={principals} />
-                ) : null}
-                <Separator className="my-4" />
-                <div className="space-y-4">
-                    <div className="text-sm font-medium">
-                        Gebruikers en organisaties met toegang tot dit bedrijf
-                    </div>
-                    <div className="grid gap-6">
-                        {/* Map over principals to render PrincipalRow for each */}
-                        {principals.map((principal) => (
-                            <PrincipalRow
-                                key={principal.username}
-                                username={principal.username}
-                                displayUserName={principal.displayUserName}
-                                image={principal.image}
-                                initials={principal.initials}
-                                role={
-                                    isValidRole(principal.role)
-                                        ? principal.role
-                                        : "advisor"
-                                }
-                                type={principal.type}
-                                status={principal.status}
-                                invitation_id={principal.invitation_id}
-                                invitation_expires_at={
-                                    principal.invitation_expires_at
-                                }
-                                hasSharePermission={hasSharePermission}
-                            />
-                        ))}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    )
+  return (
+    <Card className="md:col-span-2">
+      <CardHeader>
+        <CardTitle>Toegang</CardTitle>
+        <CardDescription>
+          {hasSharePermission
+            ? "Beheer welke gebruikers en organisaties toegang hebben tot dit bedrijf"
+            : "U heeft geen rechten om de toegang tot dit bedrijf te beheren."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* Conditionally render InvitationForm based on permission */}
+        {hasSharePermission ? <InvitationForm principals={principals} /> : null}
+        <Separator className="my-4" />
+        <div className="space-y-4">
+          <div className="text-sm font-medium">
+            Gebruikers en organisaties met toegang tot dit bedrijf
+          </div>
+          <div className="grid gap-6">
+            {/* Map over principals to render PrincipalRow for each */}
+            {principals.map((principal) => (
+              <PrincipalRow
+                key={principal.username}
+                username={principal.username}
+                displayUserName={principal.displayUserName}
+                image={principal.image}
+                initials={principal.initials}
+                role={isValidRole(principal.role) ? principal.role : "advisor"}
+                type={principal.type}
+                status={principal.status}
+                invitation_id={principal.invitation_id}
+                invitation_expires_at={principal.invitation_expires_at}
+                hasSharePermission={hasSharePermission}
+              />
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }

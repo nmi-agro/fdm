@@ -1,9 +1,5 @@
 import { getFields } from "@nmi-agro/fdm-core"
-import {
-    type LoaderFunctionArgs,
-    type MetaFunction,
-    redirect,
-} from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, redirect } from "react-router"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -12,16 +8,15 @@ import { fdm } from "~/lib/fdm.server"
 
 // Meta
 export const meta: MetaFunction = () => {
-    return [
-        {
-            title: `Percelen beheren - Bedrijf toevoegen | ${clientConfig.name}`,
-        },
-        {
-            name: "description",
-            content:
-                "Beheer de percelen van je bedrijf. Pas namen aan en bekijk perceelsinformatie.",
-        },
-    ]
+  return [
+    {
+      title: `Percelen beheren - Bedrijf toevoegen | ${clientConfig.name}`,
+    },
+    {
+      name: "description",
+      content: "Beheer de percelen van je bedrijf. Pas namen aan en bekijk perceelsinformatie.",
+    },
+  ]
 }
 
 /**
@@ -36,32 +31,27 @@ export const meta: MetaFunction = () => {
  * @throws {Error} If no fields are found for the specified farm.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
-    try {
-        // Redirect to first cultivation
-        const b_id_farm = params.b_id_farm
-        if (!b_id_farm) {
-            throw new Error("b_id_farm is required")
-        }
-
-        // Get the session
-        const session = await getSession(request)
-
-        // Get timeframe from calendar store
-        const timeframe = getTimeframe(params)
-        const calendar = getCalendar(params)
-
-        // Get fields
-        const fields = await getFields(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            timeframe,
-        )
-        if (!fields.length) {
-            return redirect(`/farm/create/${b_id_farm}/${calendar}/atlas`)
-        }
-        return redirect(`./${fields[0].b_id}`)
-    } catch (error) {
-        throw handleLoaderError(error)
+  try {
+    // Redirect to first cultivation
+    const b_id_farm = params.b_id_farm
+    if (!b_id_farm) {
+      throw new Error("b_id_farm is required")
     }
+
+    // Get the session
+    const session = await getSession(request)
+
+    // Get timeframe from calendar store
+    const timeframe = getTimeframe(params)
+    const calendar = getCalendar(params)
+
+    // Get fields
+    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+    if (!fields.length) {
+      return redirect(`/farm/create/${b_id_farm}/${calendar}/atlas`)
+    }
+    return redirect(`./${fields[0].b_id}`)
+  } catch (error) {
+    throw handleLoaderError(error)
+  }
 }

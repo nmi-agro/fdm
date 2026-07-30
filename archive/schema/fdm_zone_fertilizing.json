@@ -1,22 +1,22 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_zone_fertilizing.json",
-    "title": "Zone fertilizing event in Farm Data Model",
-    "description": "The data model to describe the event of zoning a field",
-    "type": "object",
-    "properties": {
-        "b_id_zone": {
-            "description": "ID of the zone",
-            "type": "string"
-        },
-        "b_id_fertilizing": {
-            "description": "ID of the fertilizing event",
-            "type": "string"
-        },
-        "p_dose_rate": {
-            "description": "The relative rate of applying fertilizer for this zone",
-            "type": "number"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_zone_fertilizing.json",
+  "title": "Zone fertilizing event in Farm Data Model",
+  "description": "The data model to describe the event of zoning a field",
+  "type": "object",
+  "properties": {
+    "b_id_zone": {
+      "description": "ID of the zone",
+      "type": "string"
     },
-    "required": ["b_id_zone", "b_id_fertilizing"]
+    "b_id_fertilizing": {
+      "description": "ID of the fertilizing event",
+      "type": "string"
+    },
+    "p_dose_rate": {
+      "description": "The relative rate of applying fertilizer for this zone",
+      "type": "number"
+    }
+  },
+  "required": ["b_id_zone", "b_id_fertilizing"]
 }

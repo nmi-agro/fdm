@@ -12,20 +12,20 @@ The model is built around two fundamental concepts:
 
 **Assets** represent the entities within a farm operation. They are the objects that have value or play a significant role in the system. In FDM, key assets include:
 
-* **Farms:** The top-level container for all other assets.
-* **Fields:** The primary spatial asset, representing a specific area of land.
-* **Cultivations:** An instance of a crop being grown on a field.
-* **Fertilizers:** A specific batch or acquisition of a fertilizer product.
-* **Soil Samples:** A physical sample of soil taken from a field.
+- **Farms:** The top-level container for all other assets.
+- **Fields:** The primary spatial asset, representing a specific area of land.
+- **Cultivations:** An instance of a crop being grown on a field.
+- **Fertilizers:** A specific batch or acquisition of a fertilizer product.
+- **Soil Samples:** A physical sample of soil taken from a field.
 
 ### Actions
 
 **Actions** represent the operations or events that affect assets. These capture the dynamic processes that shape the state of farm assets. Common actions include:
 
-* **Sowing:** Planting a crop, which creates a new `cultivation` asset.
-* **Fertilizing:** Applying fertilizer to a field, which modifies the `field` or `cultivation` state.
-* **Harvesting:** Gathering a crop, which modifies the `cultivation` asset.
-* **Soil Sampling:** Taking a soil sample, which creates a new `soil sample` asset.
+- **Sowing:** Planting a crop, which creates a new `cultivation` asset.
+- **Fertilizing:** Applying fertilizer to a field, which modifies the `field` or `cultivation` state.
+- **Harvesting:** Gathering a crop, which modifies the `cultivation` asset.
+- **Soil Sampling:** Taking a soil sample, which creates a new `soil sample` asset.
 
 ## Design Philosophy
 
@@ -42,10 +42,10 @@ This separation allows for more nuanced analysis. An agronomist can calculate ni
 
 The structure of the Asset-Action model supports various data requirements:
 
-* **Granularity:** Actions can be defined with varying levels of detail, from broad categories (e.g., "planting") to specific instances containing detailed parameters (e.g., specific hybrid variety and seeding rate).
-* **Relationships:** The model captures relationships between entities and events. A single asset can be the subject of multiple actions over time (e.g., a field undergoes plowing, sowing, and harvesting). Conversely, a single action can involve multiple assets.
-* **Temporal Tracking:** Actions are associated with timestamps. This allows the system to track changes in assets over time, providing a historical view of farm operations.
-* **Extensibility:** Both assets and actions can include custom attributes to capture specific data relevant to the operation, such as geometry for fields or application methods for fertilizer actions.
+- **Granularity:** Actions can be defined with varying levels of detail, from broad categories (e.g., "planting") to specific instances containing detailed parameters (e.g., specific hybrid variety and seeding rate).
+- **Relationships:** The model captures relationships between entities and events. A single asset can be the subject of multiple actions over time (e.g., a field undergoes plowing, sowing, and harvesting). Conversely, a single action can involve multiple assets.
+- **Temporal Tracking:** Actions are associated with timestamps. This allows the system to track changes in assets over time, providing a historical view of farm operations.
+- **Extensibility:** Both assets and actions can include custom attributes to capture specific data relevant to the operation, such as geometry for fields or application methods for fertilizer actions.
 
 ## Practical Implementation
 

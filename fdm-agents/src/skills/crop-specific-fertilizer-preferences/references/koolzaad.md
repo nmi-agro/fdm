@@ -1,6 +1,7 @@
 # Koolzaad / Raapzaad (koolzaad) — nl_1922, nl_1923, nl_664, nl_7124
 
 **Voorkeur:**
+
 - Zwavel: het akkerbouwgewas met de hoogste S-behoefte in Nederlandse bouwplannen. Neem **altijd** S-aanvoer op
   om aan `advice.d_s_req` te voldoen. Dien toe in het voorjaar bij hergroei (meest effectieve timing). Als
   herfsttoediening ook mogelijk is, splits dan over herfst + voorjaar.
@@ -12,6 +13,7 @@
   aan `advice.d_b_req` te voldoen.
 
 **Vermijden:**
+
 - Hoge eenmalige N-gift in het voorjaar: risico op legering en ongelijkmatige afrijping.
 - Drijfmest in de herfst in volledige dosering — een groot deel van de N gaat in de winter verloren; een matige
   herfsttoediening van drijfmest (voor P/K/S), gevolgd door minerale N in het voorjaar, is efficiënter.

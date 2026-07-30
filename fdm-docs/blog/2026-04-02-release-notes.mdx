@@ -16,11 +16,11 @@ A new package, `@nmi-agro/fdm-rvo`, has been added to the monorepo. It provides 
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   **Farm create wizard:** A step has been added to the farm creation wizard to import fields directly from RVO during onboarding.
-*   **Fields page:** Existing farms can also import or update fields from RVO via the fields page.
-The feature is available behind a feature flag for deployments that have RVO connectivity configured.
+- **Farm create wizard:** A step has been added to the farm creation wizard to import fields directly from RVO during onboarding.
+- **Fields page:** Existing farms can also import or update fields from RVO via the fields page.
+  The feature is available behind a feature flag for deployments that have RVO connectivity configured.
 
-*   **Shapefile handling:** When importing a shapefile, parcels without a recorded name are assigned a fallback label, preventing failed imports for unlabelled fields.
+- **Shapefile handling:** When importing a shapefile, parcels without a recorded name are assigned a fallback label, preventing failed imports for unlabelled fields.
 
 ### Fertilizer Management
 
@@ -28,46 +28,46 @@ The fertilizer catalogue view and the add-fertilizer workflow have been substant
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   **Nutrient columns:** The fertilizer table now includes columns for DS, OS, MgO, CaO, Na₂O, SO₃, and trace elements. Columns can be toggled on and off via a "Kolommen" dropdown, keeping the default view uncluttered.
-*   **Searchable catalogue:** The catalogue picker replaces the previous card grid with a searchable list. Standard and custom fertilizers are visually distinguished, and RVO category badges indicate classification.
-*   **Updated form:** Numeric input fields are now arranged in a three-column grid for easier data entry. The application method section has been reorganised.
-*   **Summary sidebar:** The "Samenvatting" sidebar now calculates the effective nitrogen content ("Werkzame N") live as inputs change.
-*   **Navigation:** Rows in the fertilizer table are now clickable. A "Gebruik als sjabloon" option allows creating a new fertilizer based on an existing one.
+- **Nutrient columns:** The fertilizer table now includes columns for DS, OS, MgO, CaO, Na₂O, SO₃, and trace elements. Columns can be toggled on and off via a "Kolommen" dropdown, keeping the default view uncluttered.
+- **Searchable catalogue:** The catalogue picker replaces the previous card grid with a searchable list. Standard and custom fertilizers are visually distinguished, and RVO category badges indicate classification.
+- **Updated form:** Numeric input fields are now arranged in a three-column grid for easier data entry. The application method section has been reorganised.
+- **Summary sidebar:** The "Samenvatting" sidebar now calculates the effective nitrogen content ("Werkzame N") live as inputs change.
+- **Navigation:** Rows in the fertilizer table are now clickable. A "Gebruik als sjabloon" option allows creating a new fertilizer based on an existing one.
 
 **FDM Data (`@nmi-agro/fdm-data`)**
 
-*   **Broadcasting:** The `broadcasting` application method has been added to the available options for solid manure (*vaste mesten*) and compost, reflecting that these products can be applied by broadcasting in practice.
-*   **Fertilizer data corrections:** Dry matter content and density values for several liquid mineral fertilizers have been corrected:
-    *   BAAT003 (Ammoniumnitraatureanoplossing UAN): `p_dm` corrected to 750 g/kg, `p_density` to 1.3 kg/L
-    *   BAAT004 (APP 10-34-0): `p_dm` corrected to 560 g/kg, `p_density` to 1.39 kg/L
-    *   BAAT044 (NTS 27): `p_dm` corrected to 345 g/kg, `p_density` to 1.32 kg/L
-    *   BAAT057 (UAN): `p_dm` corrected to 750 g/kg, `p_density` to 1.3 kg/L
-    *   BAAT059 (Ureum 20% liquid): Name corrected; `p_dm` corrected to 429 g/kg, `p_density` to 1.09 kg/L, nitrogen composition corrected
-    *   BAAT027 (Kalksalpeter): `p_ca_rt` value corrected
+- **Broadcasting:** The `broadcasting` application method has been added to the available options for solid manure (_vaste mesten_) and compost, reflecting that these products can be applied by broadcasting in practice.
+- **Fertilizer data corrections:** Dry matter content and density values for several liquid mineral fertilizers have been corrected:
+  - BAAT003 (Ammoniumnitraatureanoplossing UAN): `p_dm` corrected to 750 g/kg, `p_density` to 1.3 kg/L
+  - BAAT004 (APP 10-34-0): `p_dm` corrected to 560 g/kg, `p_density` to 1.39 kg/L
+  - BAAT044 (NTS 27): `p_dm` corrected to 345 g/kg, `p_density` to 1.32 kg/L
+  - BAAT057 (UAN): `p_dm` corrected to 750 g/kg, `p_density` to 1.3 kg/L
+  - BAAT059 (Ureum 20% liquid): Name corrected; `p_dm` corrected to 429 g/kg, `p_density` to 1.09 kg/L, nitrogen composition corrected
+  - BAAT027 (Kalksalpeter): `p_ca_rt` value corrected
 
 ### Farm and Organization Balances
 
 **FDM Application (`@nmi-agro/fdm-app`)**
 
-*   **Organization-level balance plots:** Nitrogen and organic matter balance results are now available at the organization level, showing farm-by-farm results in a single overview. Individual farms can be excluded from the view.
+- **Organization-level balance plots:** Nitrogen and organic matter balance results are now available at the organization level, showing farm-by-farm results in a single overview. Individual farms can be excluded from the view.
 
 **FDM Calculator (`@nmi-agro/fdm-calculator`)**
 
-*   **Farm-level aggregation:** Two new functions support collecting input data and aggregating results across all farms in an organization:
-    *   `collectInputForNitrogenBalanceForFarms`
-    *   `collectInputForOrganicMatterBalanceForFarms`
-*   **Uncached calculation APIs:** New public functions allow running calculations without the cache layer, useful for integration scenarios and testing.
-*   **Nitrogen balance correction:** The farm-level nitrogen balance no longer includes nitrate leaching, correcting an error in the previous aggregation logic.
+- **Farm-level aggregation:** Two new functions support collecting input data and aggregating results across all farms in an organization:
+  - `collectInputForNitrogenBalanceForFarms`
+  - `collectInputForOrganicMatterBalanceForFarms`
+- **Uncached calculation APIs:** New public functions allow running calculations without the cache layer, useful for integration scenarios and testing.
+- **Nitrogen balance correction:** The farm-level nitrogen balance no longer includes nitrate leaching, correcting an error in the previous aggregation logic.
 
 **FDM Core (`@nmi-agro/fdm-core`)**
 
-*   **Catalogue access functions:** New composable functions replace the previous monolithic catalogue queries:
-    *   `getEnabledCultivationCataloguesForFarms` and `getEnabledFertilizerCataloguesForFarms` return the catalogues enabled per farm.
-    *   `getCultivationsFromCatalogues` and `getFertilizersFromCatalogues` retrieve entries from a given set of catalogues.
+- **Catalogue access functions:** New composable functions replace the previous monolithic catalogue queries:
+  - `getEnabledCultivationCataloguesForFarms` and `getEnabledFertilizerCataloguesForFarms` return the catalogues enabled per farm.
+  - `getCultivationsFromCatalogues` and `getFertilizersFromCatalogues` retrieve entries from a given set of catalogues.
 
-    These are composable: callers can first fetch catalogues, then pass them into the item-retrieval functions, enabling deduplication across multiple farms.
+  These are composable: callers can first fetch catalogues, then pass them into the item-retrieval functions, enabling deduplication across multiple farms.
 
-*   **Farm-level batch query functions:** New functions retrieve all data for a farm in a single query, eliminating N+1 round-trips when processing all fields of a farm at once.
+- **Farm-level batch query functions:** New functions retrieve all data for a farm in a single query, eliminating N+1 round-trips when processing all fields of a farm at once.
 
 ### AI Fertilizer Planning Assistant (Labs)
 
@@ -81,21 +81,21 @@ The feature is available as a Labs feature and can be enabled through a dedicate
 
 ### Navigation and UI Improvements
 
-*   **Soil analysis:** The soil analysis pages now include header breadcrumbs and a back button, making navigation between analyses, uploads, and field details more consistent.
-*   **Crop residue:** The crop residue option in the rotation table is now disabled when the selected crop has no effective organic matter residue, preventing entries that would have no effect on the organic matter balance.
-*   **Fields table:** A buffer strip checkbox column has been added to the fields table, making it straightforward to check or update the buffer strip designation for each individual field.
-*   **Atlas:** A button has been added to focus the Atlas map on the farm's own fields. When in the process of adding new fields, the focus area also updates to include newly selected parcels.
+- **Soil analysis:** The soil analysis pages now include header breadcrumbs and a back button, making navigation between analyses, uploads, and field details more consistent.
+- **Crop residue:** The crop residue option in the rotation table is now disabled when the selected crop has no effective organic matter residue, preventing entries that would have no effect on the organic matter balance.
+- **Fields table:** A buffer strip checkbox column has been added to the fields table, making it straightforward to check or update the buffer strip designation for each individual field.
+- **Atlas:** A button has been added to focus the Atlas map on the farm's own fields. When in the process of adding new fields, the focus area also updates to include newly selected parcels.
 
 ### Technical Improvements
 
-*   **Minimum Node.js version:** All packages in the monorepo now require Node.js 24 or higher.
-*   **Authentication:** `better-auth` has been updated to version 1.5.
-*   **Soil analysis storage:** The `a_nmin_cc` parameter is now stored correctly when submitting a soil analysis.
-*   **Calculator bug fix:** A falsy-value check in the calculator has been corrected to preserve `0` and `false` as valid inputs. Previously, a field with a legitimate value of zero — such as zero organic matter content or zero nitrogen supply — could be treated as missing, leading to incorrect results in downstream calculations.
-*   **GeoTIFF reliability:** Processing of GeoTIFF files now uses hybrid buffer loading (files ≤2 MB are buffered in memory), concurrency throttling via a semaphore, and exponential backoff with a 10-second timeout, reducing the frequency of intermittent fetch errors.
-*   **Fertilizer type:** Missing parameters have been added to the `Fertilizer` type in fdm-core, improving type completeness.
-*   **Calculator batch queries:** All input collectors for balances and norms now use farm-level batch queries instead of per-field loops, eliminating N+1 database round-trips for large farms.
-*   **Crop residue nitrogen removal:** A bug in the nitrogen balance has been fixed: residues left on the field are no longer counted as removed nitrogen, while residues that are removed from the field are now counted correctly.
+- **Minimum Node.js version:** All packages in the monorepo now require Node.js 24 or higher.
+- **Authentication:** `better-auth` has been updated to version 1.5.
+- **Soil analysis storage:** The `a_nmin_cc` parameter is now stored correctly when submitting a soil analysis.
+- **Calculator bug fix:** A falsy-value check in the calculator has been corrected to preserve `0` and `false` as valid inputs. Previously, a field with a legitimate value of zero — such as zero organic matter content or zero nitrogen supply — could be treated as missing, leading to incorrect results in downstream calculations.
+- **GeoTIFF reliability:** Processing of GeoTIFF files now uses hybrid buffer loading (files ≤2 MB are buffered in memory), concurrency throttling via a semaphore, and exponential backoff with a 10-second timeout, reducing the frequency of intermittent fetch errors.
+- **Fertilizer type:** Missing parameters have been added to the `Fertilizer` type in fdm-core, improving type completeness.
+- **Calculator batch queries:** All input collectors for balances and norms now use farm-level batch queries instead of per-field loops, eliminating N+1 database round-trips for large farms.
+- **Crop residue nitrogen removal:** A bug in the nitrogen balance has been fixed: residues left on the field are no longer counted as removed nitrogen, while residues that are removed from the field are now counted correctly.
 
 ---
 

@@ -1,5 +1,124 @@
 # Changelog fdm-app
 
+## 0.35.0
+
+### Minor Changes
+
+- [#722](https://github.com/nmi-agro/fdm/pull/722) [`e68b083`](https://github.com/nmi-agro/fdm/commit/e68b083aa23040fa9253011b7ccdafed6e70d160) Thanks [@SvenVw](https://github.com/SvenVw)! - Support helpdesk tickets from email senders without an account, and let administrators block unwanted senders.
+
+  - `requester_email` has been added to the `tickets` table and `messages.sender_id` is now nullable, so an inbound email from an unknown sender can become a ticket. The interface shows the email address instead of a blank requester name.
+  - `moveInboundEmailTicketsToPrincipalUnchecked` links earlier email tickets and their messages to a principal when that sender later creates an account, so their support history appears in the in-app helpdesk on first sign-in.
+  - A new `blocked_emails` table and the `getEmailBlock`, `getMatchingEmailBlock`, `getEmailBlocks`, `addEmailBlock` and `removeEmailBlock` functions allow blocking senders, with case-insensitive matching and a guard against excessively long email addresses. Blocked senders can be managed from the support settings.
+
+- [#678](https://github.com/nmi-agro/fdm/pull/678) [`d3bf80a`](https://github.com/nmi-agro/fdm/commit/d3bf80a9d3935d03776ba7dbe5408044fb7c5587) Thanks [@SvenVw](https://github.com/SvenVw)! - Add a farm/field picker dialog for inactive sidebar links when no farm is selected
+
+  - Clicking a farm-scoped sidebar item (Kalender, Percelen, Bouwplan, Maatregelen, Meststoffen, Apps links) while no farm is selected now opens a dialog to pick one of your farms, or create a new one if you don't have any yet
+  - "Kies een perceel" additionally asks which field of the chosen farm to open, and navigates straight to that field's page instead of the fields overview
+
+- [#702](https://github.com/nmi-agro/fdm/pull/702) [`24b26ad`](https://github.com/nmi-agro/fdm/commit/24b26adcf17fc22109943e3c45de670bb99ba4e8) Thanks [@SvenVw](https://github.com/SvenVw)! - Add responsive mobile view for the Timeline page. On viewports narrower than 768px, and on landscape viewports up to 1024px wide, the Gantt chart is replaced by a date-grouped event feed with sticky headers, a sticky active-cultivations bar, month/year filtering, a Datum/Veld toggle, collapsible field-grouped view, infinite scroll, and empty states.
+
+- [#708](https://github.com/nmi-agro/fdm/pull/708) [`0ccf41d`](https://github.com/nmi-agro/fdm/commit/0ccf41d4d61047001c4ece0b8163b94b1d18339b) Thanks [@SvenVw](https://github.com/SvenVw)! - Add to the landing page a section about the Indicators and Measures features
+
+- [#712](https://github.com/nmi-agro/fdm/pull/712) [`43ba345`](https://github.com/nmi-agro/fdm/commit/43ba345bb838ed671b8eefb5b3aa6b35b169cd2c) Thanks [@SvenVw](https://github.com/SvenVw)! - Gerrit is now Renure-aware. Added an `includeRenure` fertilizer plan strategy (RVO mestcodes 130-134) with a new "RENURE" prompt section explaining the 80 kg N/ha norm (on top of the 170 kg dierlijke-mest norm). `searchFertilizers` now exposes `p_type_rvo` and, together with `simulateFarmPlan`'s new compliance check, only filters/flags Renure products when `includeRenure` is false **and** the plan's calendar year is 2026 or later — Renure has no legal meaning before 2026, so the toggle never affects earlier years.
+
+- [#704](https://github.com/nmi-agro/fdm/pull/704) [`83bbd53`](https://github.com/nmi-agro/fdm/commit/83bbd53875b98518811fc28d9833a2cb73c0c2ff) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can now upload their profile picture and organizations can now upload their logo, which will be stored in the GCS and displayed using the existing user.image and organization.logo database record fields. The profile pictures and logos, including those retrieved previously from social login, can also be deleted.
+
+- [#718](https://github.com/nmi-agro/fdm/pull/718) [`51edad7`](https://github.com/nmi-agro/fdm/commit/51edad7f9d198adcd43cbfdae76e64d2e4ee6c16) Thanks [@SvenVw](https://github.com/SvenVw)! - Added calculation for Nitrogen Supplying Capacity (NLV / `d_n_supply_base`) across soil cards, the field overview dashboard, fields table, and the soil analysis atlas map layer.
+
+- [#709](https://github.com/nmi-agro/fdm/pull/709) [`cafdfab`](https://github.com/nmi-agro/fdm/commit/cafdfab2df7ce784ed3044d9b5feee9078e4ebee) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Modernized the Gerrit status view using the new shadcn marker components. Now each tool call and each reasoning step is displayed individually, and the user can see how many times each tool is called too, and in what order.
+
+- [#678](https://github.com/nmi-agro/fdm/pull/678) [`b493b62`](https://github.com/nmi-agro/fdm/commit/b493b6217a0dc873275f51287af017480c1a8593) Thanks [@SvenVw](https://github.com/SvenVw)! - Added Teeltassistent on the farm dashboard for fields missing a main cultivation, with 1-step BRP suggestion acceptance and a review modal.
+
+- [#695](https://github.com/nmi-agro/fdm/pull/695) [`9baf550`](https://github.com/nmi-agro/fdm/commit/9baf550068f302482a20887273a52e74bcab48e3) Thanks [@SvenVw](https://github.com/SvenVw)! - Added a farm-level "Tijdlijn" page with a Gantt chart overview of cultivations, fertilizer applications, harvests, and soil samplings across all fields, with zoom levels, filters, and a mobile placeholder.
+
+- [#721](https://github.com/nmi-agro/fdm/pull/721) [`35991ad`](https://github.com/nmi-agro/fdm/commit/35991ad45f0b40e64535cf52db1ea5415a07114a) Thanks [@SvenVw](https://github.com/SvenVw)! - At the list of measures make measures that are not applicable or not yet applicable inactive and thus unable to select. Also an explanation is shown to explain why the measure is not applicable for the field. At farm level show for how many fields the measure is applicable if not all and set the fields to inactive for selection when not applicable
+
+- [#722](https://github.com/nmi-agro/fdm/pull/722) [`e68b083`](https://github.com/nmi-agro/fdm/commit/e68b083aa23040fa9253011b7ccdafed6e70d160) Thanks [@SvenVw](https://github.com/SvenVw)! - Add agent scheduling, availability and automatic ticket routing to the helpdesk.
+
+  - Administrators can add and edit agents, change their role and set them active or inactive from an agent management screen.
+  - Agents have an `assignment_tier` (1 = first line, 2 = second line, 3 = escalation only), a set of `work_days` (default Monday through Friday) and an optional `max_tickets` limit on concurrent assignments (default 20).
+  - Absences can be scheduled per agent through the new `agent_absences` table, with a start and end date, a reason (holiday, day off, sick or other) and an optional note, covered by `scheduleAbsence`, `updateAbsence`, `cancelAbsence`, `getAbsence`, `getAbsencesForAgent`, `getAbsencesForAgentsOnDate` and `getAllAbsences`.
+  - The stored `agents.availability_status` column has been dropped. Availability is now derived: an agent is available when scheduled to work today and not covered by an absence. `getAgentAvailabilityStatuses` and `isAgentScheduledOn` are the canonical helpers for display code and apply the same rules that `getAvailableAgents` applies server-side, so the interface and the assignment logic cannot drift apart.
+  - `autoAssignTicket` assigns a ticket to the least-loaded available agent. `getAvailableAgents` selects agents that are active, scheduled on that weekday, not absent and below their ticket ceiling, ordered by assignment tier, then number of active primary assignments, then a priority-weighted workload (low 1, normal 2, high 4, urgent 8), then display name.
+  - `reassignAgentTickets` redistributes the active tickets of a departing or unavailable agent, promoting an existing co-assignee to primary where one exists and otherwise assigning to the least-loaded available agent. Reassignment is optional, and affected agents are notified by email about newly assigned tickets, capped at three emails per agent.
+  - Inactive agents are no longer offered as assignment candidates.
+
+- [#677](https://github.com/nmi-agro/fdm/pull/677) [`f03fdb6`](https://github.com/nmi-agro/fdm/commit/f03fdb6ac1ba37577e55376a1fd0b8dadbbbfd57) Thanks [@SvenVw](https://github.com/SvenVw)! - Added comprehensive PostHog product analytics instrumentation by capturing various events across the application and group them by farm, organization and year.
+
+- [#683](https://github.com/nmi-agro/fdm/pull/683) [`62985b3`](https://github.com/nmi-agro/fdm/commit/62985b389a29920b125c89109acdd4578616f91a) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Replaced the tabs at the field soil page with 2 column layout that shows both latests values for soil parameters and a list of soil analyses
+
+- [#678](https://github.com/nmi-agro/fdm/pull/678) [`80bb3b6`](https://github.com/nmi-agro/fdm/commit/80bb3b6c3306ad7df3d9289a2c6c32a57ae6c2a7) Thanks [@SvenVw](https://github.com/SvenVw)! - Replaced the nutrient advice overview at farm-level with a sortable, searchable datatable showing all fields and nutrients at a glance, with a per ha/totaal switch, farm-level totals, and clearer handling of fields where advice could not be calculated.
+
+- [#670](https://github.com/nmi-agro/fdm/pull/670) [`9cbcd5a`](https://github.com/nmi-agro/fdm/commit/9cbcd5aab5fc3d5e953bc22ab9eea6e185c121a1) Thanks [@SvenVw](https://github.com/SvenVw)! - Added a context-aware Perceel collapsible group at the bottom of the Bedrijf section in the sidebar to make it easier to navigate to the field-specific pages.
+
+- [#706](https://github.com/nmi-agro/fdm/pull/706) [`7ff7074`](https://github.com/nmi-agro/fdm/commit/7ff7074c083fd67d1d2177ceb18ac51d97d11d9c) Thanks [@SvenVw](https://github.com/SvenVw)! - In case of a client error (400, 403 and 404) show a visually distinct page than for an error (500) to make it more clear to the user.
+
+- [#687](https://github.com/nmi-agro/fdm/pull/687) [`a88e193`](https://github.com/nmi-agro/fdm/commit/a88e193a74dbf3e7ab9e542d8f84324ef2e30331) Thanks [@SvenVw](https://github.com/SvenVw)! - Fields with no registered main cultivation ("hoofdteelt") for the active calendar year now get an NMI-estimate-based crop suggestion (sourced from the BRP). The suggestion appears on the farm dashboard's missing-cultivation banner, the field list, the field detail page, and the nutrient advice overview, and can be accepted to pre-fill the "add cultivation" form. The suggestion is silently omitted (never blocks the page) when no NMI API key is configured, no estimate is available for the year, or the NMI API call fails.
+
+  Updated all internal call sites to use `@nmi-agro/fdm-calculator`'s new cached `getSoilParameterEstimates(fdm, ...)` signature.
+
+- [#683](https://github.com/nmi-agro/fdm/pull/683) [`c2cdeb0`](https://github.com/nmi-agro/fdm/commit/c2cdeb02703a94409106fa0c54c97e26471aa46f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Uploaded soil analysis PDFs are now stored in the GCS bucket, and the a_file_path in a soil analysis is set. With this, the user is able to later download the PDF. If the user deletes the soil analysis later, its saved PDF is deleted from the GCS bucket alongside it.
+
+- [#680](https://github.com/nmi-agro/fdm/pull/680) [`95b56aa`](https://github.com/nmi-agro/fdm/commit/95b56aae746b286e8c941e45f3ec2b9d836884be) Thanks [@SvenVw](https://github.com/SvenVw)! - Add a field dashboard overview page
+
+  - Replace the field `_index` redirect with a new field dashboard: a structured overview combining a switchable field map, current cultivation and merged fdm/BRP cultivation history, fertilizer applications and bemestingsadvies, gebruiksruimte, stikstof- and organische stofbalans, soil parameters/analyses/BodemConditieScore, BLN indicators, and maatregelen, each linking through to its detail page
+
+- [#682](https://github.com/nmi-agro/fdm/pull/682) [`7551f6a`](https://github.com/nmi-agro/fdm/commit/7551f6a67b05b122cffad6f8463d3d0f19eac582) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - The server can now be configured to receive inbound emails from Postmarks, and in turn it can make these emails into tickets. It can also detect email replies and post these as messages under the corresponding ticket instead of making a new ticket.
+
+- [#712](https://github.com/nmi-agro/fdm/pull/712) [`f2312b1`](https://github.com/nmi-agro/fdm/commit/f2312b1a69923d900cbe8fdd4b2c8ebd053a4ce0) Thanks [@SvenVw](https://github.com/SvenVw)! - Show the Renure norm at Gebruiksruimte for 2026 and later
+
+### Patch Changes
+
+- [#697](https://github.com/nmi-agro/fdm/pull/697) [`cf299dc`](https://github.com/nmi-agro/fdm/commit/cf299dc442947fd41725f0ef930a93d337f1012e) Thanks [@SvenVw](https://github.com/SvenVw)! - Unified main-cultivation ("hoofdteelt") determination with `fdm-calculator`'s correct May 15–July 15 duration rule, replacing the app's diverging "active on May 15th" logic.
+
+- [#716](https://github.com/nmi-agro/fdm/pull/716) [`8cf22f3`](https://github.com/nmi-agro/fdm/commit/8cf22f3776811bf3682071bac7aa32a1d446ad7d) Thanks [@SvenVw](https://github.com/SvenVw)! - Replace Gemini 3.5 Flash with Gemini 3.6 Flash
+
+- [#693](https://github.com/nmi-agro/fdm/pull/693) [`30f2748`](https://github.com/nmi-agro/fdm/commit/30f274831dfcc0b8404046e2e8c103e8d48e28a6) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate to TypeScript V7
+
+- [#685](https://github.com/nmi-agro/fdm/pull/685) [`500838f`](https://github.com/nmi-agro/fdm/commit/500838f40555b89c60f982032ae82b4ea27814ed) Thanks [@posthog-eu](https://github.com/apps/posthog-eu)! - Fixes a dead click at the indicator tree when clicking on the highest level score would not result into opening or closing the indicators below it.
+
+- [#690](https://github.com/nmi-agro/fdm/pull/690) [`771489e`](https://github.com/nmi-agro/fdm/commit/771489e3e7f8767f931012ec535fbcce0e46d2a9) Thanks [@SvenVw](https://github.com/SvenVw)! - Improved the sign-in verification flow (`signin/check-your-email`, `signin/verify`, `welcome`):
+
+  - Added a resend-code action with masked destination email and a cooldown, so the "request a new code" error copy has an actual button behind it.
+  - Fixed the OTP field's accessibility: `aria-invalid` now reaches the rendered input, the error region no longer renders when empty, and focus moves back to the code field on a failed verification.
+  - Auto-submit after a completed code no longer fires if the user edits the code during the reveal delay, and a manual submit click cancels the pending auto-submit.
+  - Refactored `welcome.tsx` to reuse the shared `AuthLayout`/`AuthCard` components instead of duplicating the auth shell, and replaced its deprecated `Form`/`FormField` usage with the `Field` component pattern already used elsewhere (e.g. `Controller` + `Field`/`FieldLabel`/`FieldError`).
+  - Gave the welcome screen a more concrete "what's next" description instead of a generic profile-completion message.
+
+- [#678](https://github.com/nmi-agro/fdm/pull/678) [`b493b62`](https://github.com/nmi-agro/fdm/commit/b493b6217a0dc873275f51287af017480c1a8593) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve page design for farms and farm page by improving the visual hierarchy
+
+- [#716](https://github.com/nmi-agro/fdm/pull/716) [`e8a325a`](https://github.com/nmi-agro/fdm/commit/e8a325ac5ac54ab074da53344be1309739be2b4b) Thanks [@SvenVw](https://github.com/SvenVw)! - Replace Gemini 3.1 Flash Lite with Gemini 3.5 Flash Lite
+
+- [#716](https://github.com/nmi-agro/fdm/pull/716) [`5e81c21`](https://github.com/nmi-agro/fdm/commit/5e81c212be42a77a65df338a9261da9a3bcad4f7) Thanks [@SvenVw](https://github.com/SvenVw)! - Add PostHog event payload truncation to prevent HTTP 413 drops on large LLM generation events while preserving token usage and cost metric
+
+- [#671](https://github.com/nmi-agro/fdm/pull/671) [`d7041c7`](https://github.com/nmi-agro/fdm/commit/d7041c70b1129fc14d07dc64883b4ff9f1437ab9) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve sign-in page accessibility, copy, and visual quality
+
+  - Add visible label, `type="email"`, and `autoComplete` to email field (WCAG AA)
+  - Fix Dutch typos and mixed formal/informal address (`je` → `u/uw`)
+  - Add trust line under sign-in card with links to NMI and GitHub
+  - Replace identical centered feature cards with horizontal staggered layout
+  - Align shadows to flat-by-default design principle
+  - Fix 4-column grid overflow on 14" laptops
+  - Respect `prefers-reduced-motion` on all scroll and enter animations
+
+- [#690](https://github.com/nmi-agro/fdm/pull/690) [`def7e8f`](https://github.com/nmi-agro/fdm/commit/def7e8f6b378cf7b9dfd89ac15e630116cd113be) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch the magic-link sign-in code to a 6-digit numeric code (previously an 8-character alphanumeric code). This ensures mobile devices consistently show a numeric keypad for entry and makes the code faster to type, while remaining safe from brute-forcing thanks to the existing 5-attempts-per-15-minutes rate limit on code verification.
+
+- [#680](https://github.com/nmi-agro/fdm/pull/680) [`95b56aa`](https://github.com/nmi-agro/fdm/commit/95b56aae746b286e8c941e45f3ec2b9d836884be) Thanks [@SvenVw](https://github.com/SvenVw)! - Introduce shared `NormProgressBar` and `AdviceProgressBar` components so gebruiksnormen bars (green within limit, red over limit, including zero-limit-with-usage) and bemestingsadvies bars (orange under 90%, green 90–110%, red over 110%, with an exemption for EOC) are colored consistently everywhere they appear
+
+- [#680](https://github.com/nmi-agro/fdm/pull/680) [`95b56aa`](https://github.com/nmi-agro/fdm/commit/95b56aae746b286e8c941e45f3ec2b9d836884be) Thanks [@SvenVw](https://github.com/SvenVw)! - Rename the field settings page from `/overview` to `/settings` (still labeled "Gegevens")
+
+- [#702](https://github.com/nmi-agro/fdm/pull/702) [`8c32959`](https://github.com/nmi-agro/fdm/commit/8c329590b164750676086f3e039224d14972a88b) Thanks [@SvenVw](https://github.com/SvenVw)! - Use shared component for fertilizer icons
+
+- [#660](https://github.com/nmi-agro/fdm/pull/660) [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate for linting and formatting from Biome to oxlint and oxfmt
+
+- Updated dependencies [[`a73a977`](https://github.com/nmi-agro/fdm/commit/a73a97733453191cd486f3261f5bb613a7f8b512), [`e68b083`](https://github.com/nmi-agro/fdm/commit/e68b083aa23040fa9253011b7ccdafed6e70d160), [`f8ca5b6`](https://github.com/nmi-agro/fdm/commit/f8ca5b6fa0ef4ee109d919e4865e27e797299160), [`af8cf53`](https://github.com/nmi-agro/fdm/commit/af8cf53a82a2c3525c56977f2746c742d04cfdb7), [`8cf22f3`](https://github.com/nmi-agro/fdm/commit/8cf22f3776811bf3682071bac7aa32a1d446ad7d), [`30f2748`](https://github.com/nmi-agro/fdm/commit/30f274831dfcc0b8404046e2e8c103e8d48e28a6), [`43ba345`](https://github.com/nmi-agro/fdm/commit/43ba345bb838ed671b8eefb5b3aa6b35b169cd2c), [`f09806b`](https://github.com/nmi-agro/fdm/commit/f09806b1df03d193740dcdbe578be42ffc611b48), [`9688dd1`](https://github.com/nmi-agro/fdm/commit/9688dd18bd247283d87f8b7d12a049291d5ffd9f), [`e68b083`](https://github.com/nmi-agro/fdm/commit/e68b083aa23040fa9253011b7ccdafed6e70d160), [`e8a325a`](https://github.com/nmi-agro/fdm/commit/e8a325ac5ac54ab074da53344be1309739be2b4b), [`bb689c9`](https://github.com/nmi-agro/fdm/commit/bb689c922ed81bd90f8b26dfb18313f655a69cad), [`5bdd718`](https://github.com/nmi-agro/fdm/commit/5bdd718665ff0e549d12aeefc8e99ad6e7add5d8), [`def7e8f`](https://github.com/nmi-agro/fdm/commit/def7e8f6b378cf7b9dfd89ac15e630116cd113be), [`5aa2d57`](https://github.com/nmi-agro/fdm/commit/5aa2d57759cbae2e44b56f88f961f58cb8146a3a), [`130a468`](https://github.com/nmi-agro/fdm/commit/130a468f037f46466f116f1106a70399f3101fcb), [`94e073f`](https://github.com/nmi-agro/fdm/commit/94e073f935c05413f12cf37cadacdfec63ac8a6d), [`c2cdeb0`](https://github.com/nmi-agro/fdm/commit/c2cdeb02703a94409106fa0c54c97e26471aa46f), [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad), [`7551f6a`](https://github.com/nmi-agro/fdm/commit/7551f6a67b05b122cffad6f8463d3d0f19eac582), [`7a774d6`](https://github.com/nmi-agro/fdm/commit/7a774d604ed390c682672bf3afc6cf6d3f411027)]:
+  - @nmi-agro/fdm-data@0.23.0
+  - @nmi-agro/fdm-helpdesk@0.2.0
+  - @nmi-agro/fdm-calculator@0.18.0
+  - @nmi-agro/fdm-core@0.36.0
+  - @nmi-agro/fdm-agents@0.5.0
+  - @nmi-agro/fdm-rvo@0.3.2
+
 ## 0.34.0
 
 ### Minor Changes
@@ -49,7 +168,6 @@
 ### Minor Changes
 
 - [#632](https://github.com/nmi-agro/fdm/pull/632) [`f02f477`](https://github.com/nmi-agro/fdm/commit/f02f477e4787811f0e9c77d8a398108b6ba810f2) Thanks [@SvenVw](https://github.com/SvenVw)! - Add BodemConditieScore (BCS) feature to the field page.
-
   - New BCS overview page (`bcs._index.tsx`) showing total BCS score and per-indicator breakdown with image gallery
   - New BCS detail page (`bcs.$a_id.tsx`) with score card, annotated image gallery and computed lab-derived pH/OM scores
   - New BCS wizard (`bcs.new.tsx`) for step-by-step field assessment:
@@ -77,7 +195,6 @@
 - [#636](https://github.com/nmi-agro/fdm/pull/636) [`98e0127`](https://github.com/nmi-agro/fdm/commit/98e0127bd3f02e193ad57a1cfef18fc10df40c67) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch to use certificates for sign-in with Microsoft instead of using a client secret to improve security
 
 - [#638](https://github.com/nmi-agro/fdm/pull/638) [`c07e18c`](https://github.com/nmi-agro/fdm/commit/c07e18c7bc178a7c052fcdde0db30a56d508587a) Thanks [@SvenVw](https://github.com/SvenVw)! - Redesign how soil quality aggregations and relations are displayed under the BLN3 bodemkwaliteit framework.
-
   - **Official API Aggregations**: Replaces the old, self-computed placeholder averages with aggregation scores calculated directly by the NMI API.
   - **Drill-Down Summary Tree (`AggregationTree`)**: Introduces an interactive nested tree widget. Users can view high-level root scores (`S_BLN`), expand them into branches and subcategories, and drill all the way down to the individual contributing soil indicators.
   - **BBWP Sibling Tree support**: Fully integrates the `S_BBWP` (BedrijfsBodemWaterPlan) as a sibling root card with its specific water-policy indicators whenever a field is evaluated for water and soil measures.

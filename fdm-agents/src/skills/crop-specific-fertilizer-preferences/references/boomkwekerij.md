@@ -1,6 +1,7 @@
 # Tree nursery and perennial nursery stock (boomkwekerij en vaste planten)
 
 Omvat:
+
 - **Vollegrond boomkwekerij / vaste planten**: nl_229, nl_3806.
 - **Pot- en containervelden**: nl_294, nl_1090.
 - **Trek- en besheesters**: nl_1076 (vollegrond), nl_1090 (pot / container).
@@ -17,6 +18,7 @@ voedingsschema's. Hieronder wordt alleen de algemene bandbreedte gegeven.
 ## Vollegrond — laanbomen, sierheesters, vaste planten (nl_229, nl_3806, nl_1076)
 
 **Voorkeur:**
+
 - Behoudende basisgift NPK vóór planten / aan het begin van het groeiseizoen, gevolgd
   door 1–3 bijbemestingen of fertigatie gedurende het seizoen. Totaal volgens
   `advice.d_n_req` — voor jonge aanplant is dit duidelijk lager dan voor productieve
@@ -31,6 +33,7 @@ voedingsschema's. Hieronder wordt alleen de algemene bandbreedte gegeven.
   herfst — bouwt structuur op in een meerjarig systeem.
 
 **Vermijden:**
+
 - Hoge N na half juli — verlengt de groei tot in de herfst, verzwakt de afharding, geeft
   vorstgevoelige scheuten en slechte rooikwaliteit.
 - Verse drijfmest tussen jonge planten — wortelschade en zoutstress.
@@ -49,7 +52,7 @@ in het plan en verwijs naar de eigen voedingsschema's van de teler / leverancier
 
 ## Kerstbomen (nl_796)
 
-Kerstbomen (vooral *Picea abies* en *Abies nordmanniana*) groeien op zand met lage
+Kerstbomen (vooral _Picea abies_ en _Abies nordmanniana_) groeien op zand met lage
 inputs:
 
 - N matig tot laag, vroeg in het seizoen; geen herfsttoepassing.

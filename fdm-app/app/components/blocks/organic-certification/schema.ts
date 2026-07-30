@@ -18,61 +18,55 @@ const SKAL_REGEX = /^\d{6}$/
 
 // Client-side safe validation functions
 function isValidTracesNumber(tracesNumber: string): boolean {
-    return TRACES_REGEX.test(tracesNumber)
+  return TRACES_REGEX.test(tracesNumber)
 }
 
 function isValidSkalNumber(skalNumber: string): boolean {
-    return SKAL_REGEX.test(skalNumber)
+  return SKAL_REGEX.test(skalNumber)
 }
 
 export const formSchema = z
-    .object({
-        b_organic_traces: z
-            .string()
-            .trim()
-            .optional()
-            .refine((val) => !val || isValidTracesNumber(val), {
-                error: "Ongeldig TRACES-nummer",
-            }),
-        b_organic_skal: z
-            .string()
-            .trim()
-            .optional()
-            .refine((val) => !val || isValidSkalNumber(val), {
-                error: "Ongeldig SKAL-nummer",
-            }),
-        b_organic_issued: z.preprocess(
-            (val) => (typeof val === "string" ? new Date(val) : val),
-            z.date({
-                error: (issue) =>
-                    issue.input === undefined
-                        ? "Startdatum is verplicht"
-                        : "Ongeldige datum",
-            }),
-        ),
-        b_organic_expires: z.coerce
-            .date({
-                error: (issue) =>
-                    issue.input === undefined ? undefined : "Ongeldige datum",
-            })
-            .optional(),
-    })
-    .refine(
-        (data) => {
-            if (data.b_organic_issued && data.b_organic_expires) {
-                return (
-                    data.b_organic_issued.getTime() <
-                    data.b_organic_expires.getTime()
-                )
-            }
-            return true
-        },
-        {
-            path: ["b_organic_issued"],
-            error: "Startdatum kan niet na einddatum liggen",
-        },
-    )
-    .refine((data) => !!(data.b_organic_traces || data.b_organic_skal), {
-        path: ["b_organic_traces"],
-        error: "Vul een TRACES- of SKAL-nummer in",
-    })
+  .object({
+    b_organic_traces: z
+      .string()
+      .trim()
+      .optional()
+      .refine((val) => !val || isValidTracesNumber(val), {
+        error: "Ongeldig TRACES-nummer",
+      }),
+    b_organic_skal: z
+      .string()
+      .trim()
+      .optional()
+      .refine((val) => !val || isValidSkalNumber(val), {
+        error: "Ongeldig SKAL-nummer",
+      }),
+    b_organic_issued: z.preprocess(
+      (val) => (typeof val === "string" ? new Date(val) : val),
+      z.date({
+        error: (issue) =>
+          issue.input === undefined ? "Startdatum is verplicht" : "Ongeldige datum",
+      }),
+    ),
+    b_organic_expires: z.coerce
+      .date({
+        error: (issue) => (issue.input === undefined ? undefined : "Ongeldige datum"),
+      })
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.b_organic_issued && data.b_organic_expires) {
+        return data.b_organic_issued.getTime() < data.b_organic_expires.getTime()
+      }
+      return true
+    },
+    {
+      path: ["b_organic_issued"],
+      error: "Startdatum kan niet na einddatum liggen",
+    },
+  )
+  .refine((data) => !!(data.b_organic_traces || data.b_organic_skal), {
+    path: ["b_organic_traces"],
+    error: "Vul een TRACES- of SKAL-nummer in",
+  })

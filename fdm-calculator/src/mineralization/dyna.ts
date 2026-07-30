@@ -30,10 +30,10 @@
 
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import { z } from "zod"
+import type { DynaComputeInput, DynaResult } from "./types"
 import pkg from "../package"
 import { NmiApiError } from "./errors"
 import { dynaResponseSchema } from "./schemas"
-import type { DynaComputeInput, DynaResult } from "./types"
 
 // ─── API call ─────────────────────────────────────────────────────────────────
 
@@ -63,77 +63,61 @@ import type { DynaComputeInput, DynaResult } from "./types"
  * @throws {@link NmiApiError} on API or HTTP errors.
  * @throws `Error` if the response body fails Zod validation.
  */
-export async function requestDyna(
-    input: DynaComputeInput,
-): Promise<DynaResult> {
-    const { b_id, nmiApiKey, requestBody } = input
+export async function requestDyna(input: DynaComputeInput): Promise<DynaResult> {
+  const { b_id, nmiApiKey, requestBody } = input
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 60000) // 60s timeout for DYNA
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 60000) // 60s timeout for DYNA
 
-    try {
-        const response = await fetch(
-            "https://api.nmi-agro.nl/bemestingsplan/dyna",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${nmiApiKey}`,
-                    "NMI-API-Version": "v1",
-                },
-                body: JSON.stringify(requestBody),
-                signal: controller.signal,
-            },
-        )
+  try {
+    const response = await fetch("https://api.nmi-agro.nl/bemestingsplan/dyna", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${nmiApiKey}`,
+        "NMI-API-Version": "v1",
+      },
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    })
 
-        if (!response.ok) {
-            const errorText = await response.text()
-            if (response.status === 422) {
-                throw new NmiApiError(
-                    422,
-                    `Onvoldoende gegevens voor DYNA-berekening. ${errorText}`,
-                )
-            }
-            if (response.status === 503) {
-                throw new NmiApiError(
-                    503,
-                    "NMI API is tijdelijk niet beschikbaar.",
-                )
-            }
-            throw new NmiApiError(
-                response.status,
-                `Er is een fout opgetreden bij de DYNA-berekening. ${errorText}`,
-            )
-        }
-
-        let json: unknown
-        try {
-            json = await response.json()
-        } catch (_err) {
-            throw new Error(
-                "Ongeldig DYNA-antwoord van NMI API: Geen geldige JSON",
-            )
-        }
-
-        const parsed = dynaResponseSchema.safeParse(json)
-        if (!parsed.success) {
-            throw new Error(
-                `Ongeldig DYNA-antwoord van NMI API: ${JSON.stringify(z.treeifyError(parsed.error))}`,
-            )
-        }
-
-        return { b_id, ...parsed.data.data }
-    } catch (err) {
-        if (err instanceof Error && err.name === "AbortError") {
-            throw new NmiApiError(
-                408,
-                "De aanvraag naar de NMI API is verlopen (timeout).",
-            )
-        }
-        throw err
-    } finally {
-        clearTimeout(timeout)
+    if (!response.ok) {
+      const errorText = await response.text()
+      if (response.status === 422) {
+        throw new NmiApiError(422, `Onvoldoende gegevens voor DYNA-berekening. ${errorText}`)
+      }
+      if (response.status === 503) {
+        throw new NmiApiError(503, "NMI API is tijdelijk niet beschikbaar.")
+      }
+      throw new NmiApiError(
+        response.status,
+        `Er is een fout opgetreden bij de DYNA-berekening. ${errorText}`,
+      )
     }
+
+    let json: unknown
+    try {
+      json = await response.json()
+    } catch {
+      throw new Error("Ongeldig DYNA-antwoord van NMI API: Geen geldige JSON")
+    }
+
+    const parsed = dynaResponseSchema.safeParse(json)
+    if (!parsed.success) {
+      throw new Error(
+        `Ongeldig DYNA-antwoord van NMI API: ${JSON.stringify(z.treeifyError(parsed.error))}`,
+      )
+    }
+
+    return { b_id, ...parsed.data.data }
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new NmiApiError(408, "De aanvraag naar de NMI API is verlopen (timeout).")
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 // ─── Cached version ───────────────────────────────────────────────────────────
@@ -176,9 +160,6 @@ export async function requestDyna(
  * )
  * ```
  */
-export const getDyna = withCalculationCache(
-    requestDyna,
-    "requestDyna",
-    pkg.calculatorVersion,
-    ["nmiApiKey"],
-)
+export const getDyna = withCalculationCache(requestDyna, "requestDyna", pkg.calculatorVersion, [
+  "nmiApiKey",
+])

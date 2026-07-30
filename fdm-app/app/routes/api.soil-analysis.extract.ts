@@ -20,84 +20,75 @@ import { getSession } from "~/lib/auth.server"
  */
 
 export async function action({ request }: ActionFunctionArgs) {
-    // Single session check for the entire bulk operation
-    const session = await getSession(request)
-    if (!session) {
-        return new Response("Unauthorized", { status: 401 })
-    }
+  // Single session check for the entire bulk operation
+  const session = await getSession(request)
+  if (!session) {
+    return new Response("Unauthorized", { status: 401 })
+  }
 
-    const formData = await request.formData()
-    const files = (formData.getAll("soilAnalysisFile") as File[]).filter(
-        (f) => f instanceof File && f.name,
-    )
+  const formData = await request.formData()
+  const files = (formData.getAll("soilAnalysisFile") as File[]).filter(
+    (f) => f instanceof File && f.name,
+  )
 
-    if (files.length === 0) {
-        return new Response(JSON.stringify({ error: "No files uploaded" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-        })
-    }
+  if (files.length === 0) {
+    return new Response(JSON.stringify({ error: "No files uploaded" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
 
-    const encoder = new TextEncoder()
-    const stream = new ReadableStream({
-        async start(controller) {
-            let nextIndex = 0
-            const concurrency = 10
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      let nextIndex = 0
+      const concurrency = 10
 
-            const workers = Array.from(
-                { length: Math.min(concurrency, files.length) },
-                async () => {
-                    while (nextIndex < files.length) {
-                        const file = files[nextIndex++]
-                        if (!file) continue
+      const workers = Array.from({ length: Math.min(concurrency, files.length) }, async () => {
+        while (nextIndex < files.length) {
+          const file = files[nextIndex++]
+          if (!file) continue
 
-                        try {
-                            // Create a minimal FormData for a single file extraction
-                            const singleFileFormData = new FormData()
-                            singleFileFormData.append("soilAnalysisFile", file)
+          try {
+            // Create a minimal FormData for a single file extraction
+            const singleFileFormData = new FormData()
+            singleFileFormData.append("soilAnalysisFile", file)
 
-                            const analyses =
-                                await extractBulkSoilAnalyses(
-                                    singleFileFormData,
-                                )
+            const analyses = await extractBulkSoilAnalyses(singleFileFormData)
 
-                            controller.enqueue(
-                                encoder.encode(
-                                    `${JSON.stringify({
-                                        success: true,
-                                        filename: file.name,
-                                        analyses,
-                                    })}\n`,
-                                ),
-                            )
-                        } catch (err) {
-                            controller.enqueue(
-                                encoder.encode(
-                                    `${JSON.stringify({
-                                        success: false,
-                                        filename: file.name,
-                                        error:
-                                            err instanceof Error
-                                                ? err.message
-                                                : "Analyse mislukt",
-                                    })}\n`,
-                                ),
-                            )
-                        }
-                    }
-                },
+            controller.enqueue(
+              encoder.encode(
+                `${JSON.stringify({
+                  success: true,
+                  filename: file.name,
+                  analyses,
+                })}\n`,
+              ),
             )
+          } catch (err) {
+            controller.enqueue(
+              encoder.encode(
+                `${JSON.stringify({
+                  success: false,
+                  filename: file.name,
+                  error: err instanceof Error ? err.message : "Analyse mislukt",
+                })}\n`,
+              ),
+            )
+          }
+        }
+      })
 
-            await Promise.all(workers)
-            controller.close()
-        },
-    })
+      await Promise.all(workers)
+      controller.close()
+    },
+  })
 
-    return new Response(stream, {
-        headers: {
-            "Content-Type": "application/x-ndjson",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-        },
-    })
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "application/x-ndjson",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  })
 }

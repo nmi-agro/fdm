@@ -1,33 +1,33 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_farm_managing.json",
-    "title": "Managing event of field for a farm in Farm Data Model",
-    "description": "The data model to describe the management of field event and connect farm and field",
-    "type": "object",
-    "properties": {
-        "b_id_farm": {
-            "description": "ID of the farm",
-            "type": "string"
-        },
-        "b_id": {
-            "description": "ID of the field",
-            "type": "string"
-        },
-        "b_manage_start": {
-            "description": "Date on which field is started to be managed for farm",
-            "type": "string",
-            "pattern": " ^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$"
-        },
-        "b_manage_end": {
-            "description": "Last date on which field is managed for farm",
-            "type": "string",
-            "pattern": "^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$"
-        },
-        "b_aquire_type": {
-            "description": "Type of management of field",
-            "type": "string",
-            "enum": ["ownership", "lease"]
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_farm_managing.json",
+  "title": "Managing event of field for a farm in Farm Data Model",
+  "description": "The data model to describe the management of field event and connect farm and field",
+  "type": "object",
+  "properties": {
+    "b_id_farm": {
+      "description": "ID of the farm",
+      "type": "string"
     },
-    "required": ["b_id", "b_id_farm"]
+    "b_id": {
+      "description": "ID of the field",
+      "type": "string"
+    },
+    "b_manage_start": {
+      "description": "Date on which field is started to be managed for farm",
+      "type": "string",
+      "pattern": " ^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "b_manage_end": {
+      "description": "Last date on which field is managed for farm",
+      "type": "string",
+      "pattern": "^\d{4}\-(0[1-9]|1[012])\-(0[1-9]|[12][0-9]|3[01])$"
+    },
+    "b_aquire_type": {
+      "description": "Type of management of field",
+      "type": "string",
+      "enum": ["ownership", "lease"]
+    }
+  },
+  "required": ["b_id", "b_id_farm"]
 }

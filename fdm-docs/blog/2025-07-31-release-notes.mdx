@@ -14,28 +14,28 @@ This post outlines the recent updates to the FDM libraries: `@nmi-agro/fdm-core`
 
 A significant addition to `@nmi-agro/fdm-core` is the introduction of a full suite of functions to manage derogations for farms. This is essential for farmers who need to operate under specific exemptions from standard regulations.
 
-*   **Derogation Functions (`@nmi-agro/fdm-core`):**
-    *   `addDerogation`: Allows for the addition of a derogation for a specific farm and year.
-    *   `removeDerogation`: Enables the removal of a previously granted derogation.
-    *   `listDerogations`: Retrieves a list of derogations per year for a farm.
-    *   `isDerogationGrantedForYear`: Checks if a derogation is active for a given year.
+- **Derogation Functions (`@nmi-agro/fdm-core`):**
+  - `addDerogation`: Allows for the addition of a derogation for a specific farm and year.
+  - `removeDerogation`: Enables the removal of a previously granted derogation.
+  - `listDerogations`: Retrieves a list of derogations per year for a farm.
+  - `isDerogationGrantedForYear`: Checks if a derogation is active for a given year.
 
 ### Advanced Farm and Data Management
 
 We've introduced several new features and improvements to give users more granular control over their farm data.
 
-*   **Field Removal (`@nmi-agro/fdm-core`):**
-    *   The new `removeField` function allows for the complete deletion of a field, including all associated data such as cultivations, soil analyses, and fertilizer applications.
+- **Field Removal (`@nmi-agro/fdm-core`):**
+  - The new `removeField` function allows for the complete deletion of a field, including all associated data such as cultivations, soil analyses, and fertilizer applications.
 
-*   **Harvest Updates (`@nmi-agro/fdm-core`):**
-    *   The `updateHarvest` function has been added, allowing users to modify the details of a harvest event after it has been created.
+- **Harvest Updates (`@nmi-agro/fdm-core`):**
+  - The `updateHarvest` function has been added, allowing users to modify the details of a harvest event after it has been created.
 
-*   **Refined Acquiring Methods (`@nmi-agro/fdm-core`):**
-    *   The `b_acquiring_method` options have been refactored to align with the official RVO codes, ensuring better standardization and interoperability.
-    *   The `listAvailableAcquiringMethods` function has been introduced to retrieve all possible acquiring method options.
+- **Refined Acquiring Methods (`@nmi-agro/fdm-core`):**
+  - The `b_acquiring_method` options have been refactored to align with the official RVO codes, ensuring better standardization and interoperability.
+  - The `listAvailableAcquiringMethods` function has been introduced to retrieve all possible acquiring method options.
 
-*   **Cultivation Plan Enhancements (`@nmi-agro/fdm-core`):**
-    *   The `getCultivationPlan` function now includes the `b_area` (area in hectares) in its output, providing a more complete overview of the cultivation plan.
+- **Cultivation Plan Enhancements (`@nmi-agro/fdm-core`):**
+  - The `getCultivationPlan` function now includes the `b_area` (area in hectares) in its output, providing a more complete overview of the cultivation plan.
 
 ### Detailed Implementation of 2025 Dutch Fertilizer Norms
 
@@ -43,29 +43,29 @@ We've introduced several new features and improvements to give users more granul
 
 Here’s a summary of what the calculator now handles:
 
-*   **1. Nitrogen Usage Norm (`Stikstofgebruiksnorm`):**
-    *   The calculator determines the maximum allowable nitrogen application by identifying the main crop and the field's geographical context (soil region and whether it's in a Nutrient-Polluted Area, `NV-gebied`).
-    *   It applies specific rules for crops like temporary grassland, potatoes (variety-specific), and maize (derogation-dependent).
-    *   Crucially, it also calculates the potential reduction (`korting`) based on the use of catch crops or winter crops in the previous year on sand and loess soils.
+- **1. Nitrogen Usage Norm (`Stikstofgebruiksnorm`):**
+  - The calculator determines the maximum allowable nitrogen application by identifying the main crop and the field's geographical context (soil region and whether it's in a Nutrient-Polluted Area, `NV-gebied`).
+  - It applies specific rules for crops like temporary grassland, potatoes (variety-specific), and maize (derogation-dependent).
+  - Crucially, it also calculates the potential reduction (`korting`) based on the use of catch crops or winter crops in the previous year on sand and loess soils.
 
-*   **2. Phosphate Usage Norm (`Fosfaatgebruiksnorm`):**
-    *   This norm is calculated based on the land use type (grassland or arable land) and the soil's phosphate status, which is determined from the latest soil analysis data (P-CaCl2 and P-Al values).
-    *   The soil is classified into one of five categories (`Arm` to `Hoog`), each with a corresponding phosphate application limit.
+- **2. Phosphate Usage Norm (`Fosfaatgebruiksnorm`):**
+  - This norm is calculated based on the land use type (grassland or arable land) and the soil's phosphate status, which is determined from the latest soil analysis data (P-CaCl2 and P-Al values).
+  - The soil is classified into one of five categories (`Arm` to `Hoog`), each with a corresponding phosphate application limit.
 
-*   **3. Animal Manure Usage Norm (`Dierlijke Mest Gebruiksnorm`):**
-    *   This norm is determined by the farm's derogation status for 2025.
-    *   For farms with a derogation permit, the norm is adjusted based on whether the field is located in a sensitive area, such as a Nutrient-Polluted Area (`NV-gebied`) or a Groundwater Protection Area (`GWBG-gebied`).
+- **3. Animal Manure Usage Norm (`Dierlijke Mest Gebruiksnorm`):**
+  - This norm is determined by the farm's derogation status for 2025.
+  - For farms with a derogation permit, the norm is adjusted based on whether the field is located in a sensitive area, such as a Nutrient-Polluted Area (`NV-gebied`) or a Groundwater Protection Area (`GWBG-gebied`).
 
 ### Data Corrections and Improvements
 
-*   **`brp` Catalogue Update (`@nmi-agro/fdm-data`):**
-    *   The values for `b_lu_yield` in the `brp` cultivation catalogue have been corrected to ensure more accurate yield estimations.
+- **`brp` Catalogue Update (`@nmi-agro/fdm-data`):**
+  - The values for `b_lu_yield` in the `brp` cultivation catalogue have been corrected to ensure more accurate yield estimations.
 
 ### Bug Fixes and Maintenance
 
-*   **Harvest Removal Bug (`@nmi-agro/fdm-core`):** A bug that caused an exception when removing a cultivation with an associated harvest has been fixed.
-*   **Crop Residue Calculation (`@nmi-agro/fdm-calculator`):** A fix has been implemented for the calculation of crop residue biomass in the nitrogen balance.
-*   **Dependency Updates:** All packages have been updated with the latest dependencies.
+- **Harvest Removal Bug (`@nmi-agro/fdm-core`):** A bug that caused an exception when removing a cultivation with an associated harvest has been fixed.
+- **Crop Residue Calculation (`@nmi-agro/fdm-calculator`):** A fix has been implemented for the calculation of crop residue biomass in the nitrogen balance.
+- **Dependency Updates:** All packages have been updated with the latest dependencies.
 
 ---
 

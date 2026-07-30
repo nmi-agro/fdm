@@ -1,6 +1,7 @@
+import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"
+/* eslint-disable typescript/restrict-template-expressions -- catalogueName is a union of string literals which safely interpolates in template strings. */
 import { getCatalogueBaat } from "./catalogues/baat"
 import { getCatalogueSrm } from "./catalogues/srm"
-import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"
 
 /**
  * Retrieves a fertilizer catalogue based on the specified name.
@@ -23,14 +24,14 @@ import type { CatalogueFertilizer, CatalogueFertilizerName } from "./d"
  * ```
  */
 export async function getFertilizersCatalogue(
-    catalogueName: CatalogueFertilizerName,
+  catalogueName: CatalogueFertilizerName,
 ): Promise<CatalogueFertilizer> {
-    // Get the specified catalogue
-    if (catalogueName === "srm") {
-        return await getCatalogueSrm()
-    }
-    if (catalogueName === "baat") {
-        return await getCatalogueBaat()
-    }
-    throw new Error(`catalogue ${catalogueName} is not recognized`)
+  // Get the specified catalogue
+  if (catalogueName === "srm") {
+    return await getCatalogueSrm()
+  }
+  if (catalogueName === "baat") {
+    return await getCatalogueBaat()
+  }
+  throw new Error(`catalogue ${catalogueName} is not recognized`)
 }

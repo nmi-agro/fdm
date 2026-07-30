@@ -1,26 +1,26 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_sowing.json",
-    "title": "Sowing event in Farm Data Model",
-    "description": "The data model to describe sowing event and connect field with cultivation",
-    "type": "object",
-    "properties": {
-        "b_id_sowing": {
-            "description": "ID of the sowing event",
-            "type": "string"
-        },
-        "b_id": {
-            "description": "ID of the field",
-            "type": "string"
-        },
-        "b_lu": {
-            "description": "ID of crop",
-            "type": "string"
-        },
-        "b_lu_start": {
-            "description": "Date of sowing",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_sowing.json",
+  "title": "Sowing event in Farm Data Model",
+  "description": "The data model to describe sowing event and connect field with cultivation",
+  "type": "object",
+  "properties": {
+    "b_id_sowing": {
+      "description": "ID of the sowing event",
+      "type": "string"
     },
-    "required": ["b_id_sowing", "b_id", "b_lu"]
+    "b_id": {
+      "description": "ID of the field",
+      "type": "string"
+    },
+    "b_lu": {
+      "description": "ID of crop",
+      "type": "string"
+    },
+    "b_lu_start": {
+      "description": "Date of sowing",
+      "type": "string"
+    }
+  },
+  "required": ["b_id_sowing", "b_id", "b_lu"]
 }

@@ -1,18 +1,18 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_zoning.json",
-    "title": "Field asset in Farm Data Model",
-    "description": "The data model to describe the event of zoning a field",
-    "type": "object",
-    "properties": {
-        "b_id": {
-            "description": "ID of the field that is zoned",
-            "type": "string"
-        },
-        "b_id_zone": {
-            "description": "ID of a resulting zone",
-            "type": "string"
-        }
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/AgroCares/farm-data-model/blob/main/schema/fdm_field_zoning.json",
+  "title": "Field asset in Farm Data Model",
+  "description": "The data model to describe the event of zoning a field",
+  "type": "object",
+  "properties": {
+    "b_id": {
+      "description": "ID of the field that is zoned",
+      "type": "string"
     },
-    "required": ["b_id", "b_id_zone"]
+    "b_id_zone": {
+      "description": "ID of a resulting zone",
+      "type": "string"
+    }
+  },
+  "required": ["b_id", "b_id_zone"]
 }

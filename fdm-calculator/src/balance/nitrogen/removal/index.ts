@@ -13,32 +13,32 @@ import { calculateNitrogenRemovalByResidue } from "./residue"
  * @returns The NitrogenRemoval object containing the total amount of Nitrogen removed and the individual harvest and residue values.
  */
 export function calculateNitrogenRemoval(
-    cultivations: FieldInput["cultivations"],
-    harvests: FieldInput["harvests"],
-    cultivationDetailsMap: Map<string, CultivationDetail>,
+  cultivations: FieldInput["cultivations"],
+  harvests: FieldInput["harvests"],
+  cultivationDetailsMap: Map<string, CultivationDetail>,
 ): NitrogenRemoval {
-    // Calculate the amount of Nitrogen removed by harvests
-    const harvestsRemoval = calculateNitrogenRemovalByHarvests(
-        cultivations,
-        harvests,
-        cultivationDetailsMap,
-    )
+  // Calculate the amount of Nitrogen removed by harvests
+  const harvestsRemoval = calculateNitrogenRemovalByHarvests(
+    cultivations,
+    harvests,
+    cultivationDetailsMap,
+  )
 
-    // Calculate the amount of Nitrogen removed by crop residues
-    const residuesRemoval = calculateNitrogenRemovalByResidue(
-        cultivations,
-        harvests,
-        cultivationDetailsMap,
-    )
+  // Calculate the amount of Nitrogen removed by crop residues
+  const residuesRemoval = calculateNitrogenRemovalByResidue(
+    cultivations,
+    harvests,
+    cultivationDetailsMap,
+  )
 
-    // Calculate the total amount of Nitrogen removed (sum of harvest and residue removal)
-    const totalValue = harvestsRemoval.total.add(residuesRemoval.total)
+  // Calculate the total amount of Nitrogen removed (sum of harvest and residue removal)
+  const totalValue = harvestsRemoval.total.add(residuesRemoval.total)
 
-    const removal = {
-        total: totalValue,
-        harvests: harvestsRemoval,
-        residues: residuesRemoval,
-    }
+  const removal = {
+    total: totalValue,
+    harvests: harvestsRemoval,
+    residues: residuesRemoval,
+  }
 
-    return removal
+  return removal
 }
