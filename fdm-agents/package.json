@@ -32,7 +32,7 @@
     "@nmi-agro/fdm-calculator": "workspace:^",
     "@nmi-agro/fdm-core": "workspace:^",
     "@nmi-agro/fdm-data": "workspace:^",
-    "@posthog/ai": "^8.4.0",
+    "@posthog/ai": "^8.4.1",
     "langchain": "^1.5.4",
     "posthog-node": "^5.46.1",
     "zod": "^4.4.3"
