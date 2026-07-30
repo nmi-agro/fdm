@@ -1,5 +1,30 @@
 # Changelog fdm-core
 
+## 0.36.0
+
+### Minor Changes
+
+- [#721](https://github.com/nmi-agro/fdm/pull/721) [`af8cf53`](https://github.com/nmi-agro/fdm/commit/af8cf53a82a2c3525c56977f2746c742d04cfdb7) Thanks [@SvenVw](https://github.com/SvenVw)! - Add `m_stage_applicability` to the MeasureCatalogue and Measure items so it is returned for measures if they are applicable on farm or field level
+
+- [#718](https://github.com/nmi-agro/fdm/pull/718) [`5bdd718`](https://github.com/nmi-agro/fdm/commit/5bdd718665ff0e549d12aeefc8e99ad6e7add5d8) Thanks [@SvenVw](https://github.com/SvenVw)! - Add `d_n_supply_base` as soil parameter (NLV, mineralisation by soil organic matter from soil) that can have a 'calculated' source
+
+- [#712](https://github.com/nmi-agro/fdm/pull/712) [`5aa2d57`](https://github.com/nmi-agro/fdm/commit/5aa2d57759cbae2e44b56f88f961f58cb8146a3a) Thanks [@SvenVw](https://github.com/SvenVw)! - Add for `p_type_rvo` the Mestcodes for Renure: 130, 131, 132, 133, 134
+
+- [#683](https://github.com/nmi-agro/fdm/pull/683) [`c2cdeb0`](https://github.com/nmi-agro/fdm/commit/c2cdeb02703a94409106fa0c54c97e26471aa46f) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Uploaded soil analysis PDFs are now stored in the GCS bucket, and the a_file_path in a soil analysis is set. With this, the user is able to later download the PDF. If the user deletes the soil analysis later, its saved PDF is deleted from the GCS bucket alongside it.
+
+### Patch Changes
+
+- [#693](https://github.com/nmi-agro/fdm/pull/693) [`30f2748`](https://github.com/nmi-agro/fdm/commit/30f274831dfcc0b8404046e2e8c103e8d48e28a6) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate to TypeScript V7
+
+- [#712](https://github.com/nmi-agro/fdm/pull/712) [`bb689c9`](https://github.com/nmi-agro/fdm/commit/bb689c922ed81bd90f8b26dfb18313f655a69cad) Thanks [@SvenVw](https://github.com/SvenVw)! - `syncFertilizerCatalogueArray` (and therefore `syncCatalogues`, run on app startup) now automatically acquires a newly introduced fertilizer catalogue product for every existing farm that already has that catalogue source enabled, mirroring the bulk-acquisition that happens when a new farm is created. Previously, only farms created after a product was added to the catalogue would ever see it; existing farms had no automatic or manual way to pick up new catalogue products (e.g. the new Renure BAAT products). This only applies to genuinely new catalogue items (first-time insert); updates to existing catalogue items are unaffected.
+
+- [#690](https://github.com/nmi-agro/fdm/pull/690) [`def7e8f`](https://github.com/nmi-agro/fdm/commit/def7e8f6b378cf7b9dfd89ac15e630116cd113be) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch the magic-link sign-in code to a 6-digit numeric code (previously an 8-character alphanumeric code). This ensures mobile devices consistently show a numeric keypad for entry and makes the code faster to type, while remaining safe from brute-forcing thanks to the existing 5-attempts-per-15-minutes rate limit on code verification.
+
+- [#660](https://github.com/nmi-agro/fdm/pull/660) [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate for linting and formatting from Biome to oxlint and oxfmt
+
+- Updated dependencies [[`a73a977`](https://github.com/nmi-agro/fdm/commit/a73a97733453191cd486f3261f5bb613a7f8b512), [`30f2748`](https://github.com/nmi-agro/fdm/commit/30f274831dfcc0b8404046e2e8c103e8d48e28a6), [`f09806b`](https://github.com/nmi-agro/fdm/commit/f09806b1df03d193740dcdbe578be42ffc611b48), [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad)]:
+  - @nmi-agro/fdm-data@0.23.0
+
 ## 0.35.0
 
 ### Minor Changes

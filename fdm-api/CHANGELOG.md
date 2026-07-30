@@ -1,5 +1,17 @@
 # @nmi-agro/fdm-api
 
+## 0.2.4
+
+### Patch Changes
+
+- [#693](https://github.com/nmi-agro/fdm/pull/693) [`30f2748`](https://github.com/nmi-agro/fdm/commit/30f274831dfcc0b8404046e2e8c103e8d48e28a6) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate to TypeScript V7
+
+- [#660](https://github.com/nmi-agro/fdm/pull/660) [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate for linting and formatting from Biome to oxlint and oxfmt
+
+- Updated dependencies [[`f8ca5b6`](https://github.com/nmi-agro/fdm/commit/f8ca5b6fa0ef4ee109d919e4865e27e797299160), [`af8cf53`](https://github.com/nmi-agro/fdm/commit/af8cf53a82a2c3525c56977f2746c742d04cfdb7), [`30f2748`](https://github.com/nmi-agro/fdm/commit/30f274831dfcc0b8404046e2e8c103e8d48e28a6), [`9688dd1`](https://github.com/nmi-agro/fdm/commit/9688dd18bd247283d87f8b7d12a049291d5ffd9f), [`bb689c9`](https://github.com/nmi-agro/fdm/commit/bb689c922ed81bd90f8b26dfb18313f655a69cad), [`5bdd718`](https://github.com/nmi-agro/fdm/commit/5bdd718665ff0e549d12aeefc8e99ad6e7add5d8), [`def7e8f`](https://github.com/nmi-agro/fdm/commit/def7e8f6b378cf7b9dfd89ac15e630116cd113be), [`5aa2d57`](https://github.com/nmi-agro/fdm/commit/5aa2d57759cbae2e44b56f88f961f58cb8146a3a), [`130a468`](https://github.com/nmi-agro/fdm/commit/130a468f037f46466f116f1106a70399f3101fcb), [`94e073f`](https://github.com/nmi-agro/fdm/commit/94e073f935c05413f12cf37cadacdfec63ac8a6d), [`c2cdeb0`](https://github.com/nmi-agro/fdm/commit/c2cdeb02703a94409106fa0c54c97e26471aa46f), [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad), [`7a774d6`](https://github.com/nmi-agro/fdm/commit/7a774d604ed390c682672bf3afc6cf6d3f411027)]:
+  - @nmi-agro/fdm-calculator@0.18.0
+  - @nmi-agro/fdm-core@0.36.0
+
 ## 0.2.3
 
 ### Patch Changes
