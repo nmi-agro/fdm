@@ -198,9 +198,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         const d_n_supply_base =
           typeof existingNlv === "number"
             ? existingNlv
-            : typeof somVal === "number" &&
-                typeof clayVal === "number" &&
-                typeof cnVal === "number"
+            : typeof somVal === "number" && typeof clayVal === "number" && typeof cnVal === "number"
               ? Math.round(
                   calculateNlv({
                     a_clay_mi: clayVal,

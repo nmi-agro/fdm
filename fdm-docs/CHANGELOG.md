@@ -1,5 +1,13 @@
 # fdm-docs
 
+## 0.13.1
+
+### Patch Changes
+
+- [#693](https://github.com/nmi-agro/fdm/pull/693) [`4670727`](https://github.com/nmi-agro/fdm/commit/4670727b0c0f2a32b3c4e577acb119e9fe9651a0) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate to TypeScript V7. However keep TypeScript V6 for typedoc as V7 does not expose the API that typedocs needs (will probably be included in TypeScript V7.1).
+
+- [#660](https://github.com/nmi-agro/fdm/pull/660) [`5da4dc5`](https://github.com/nmi-agro/fdm/commit/5da4dc5445c6c4613dcab9e8a78ce9ccff4867ad) Thanks [@SvenVw](https://github.com/SvenVw)! - Migrate for linting and formatting from Biome to oxlint and oxfmt
+
 ## 0.13.0
 
 ### Minor Changes

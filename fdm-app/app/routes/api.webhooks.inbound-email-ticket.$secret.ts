@@ -201,7 +201,7 @@ export async function action({ params, request }: Route.ActionArgs) {
           }
         }
       } catch (err) {
-        handleActionError(err)
+        void handleActionError(err)
       }
       return new Response("OK", { status: 200 })
     }
@@ -225,7 +225,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         await performTicketTriage(serverConfig.integrations.gemini.api_key, ticket_id, messageBody)
       }
     } catch (err) {
-      handleActionError(err)
+      void handleActionError(err)
     }
 
     // Assign the ticket to an agent and send an email to them
@@ -237,7 +237,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         const auto_assignment_result = await autoAssignTicket(fdm, ticket_id, new Date())
         assigned_agent_id = auto_assignment_result.assigned ? auto_assignment_result.agent_id : null
       } catch (autoAssignError) {
-        handleActionError(autoAssignError)
+        void handleActionError(autoAssignError)
       }
 
       // If auto assigning doesn't work due to error or no agent being available, assign to an admin
@@ -263,12 +263,12 @@ export async function action({ params, request }: Route.ActionArgs) {
         }
       }
     } catch (err) {
-      handleActionError(err)
+      void handleActionError(err)
     }
 
     return new Response("OK", { status: 200 })
   } catch (err) {
-    handleActionError(err)
+    void handleActionError(err)
     return new Response("Internal Server Error", { status: 500 })
   }
 }

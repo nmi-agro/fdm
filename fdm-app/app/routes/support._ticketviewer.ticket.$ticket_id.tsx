@@ -297,7 +297,7 @@ export async function action({ params, request }: Args) {
           )
         } catch (err) {
           // A failed notification email shouldn't fail the assignment itself.
-          handleActionError(err)
+          void handleActionError(err)
         }
       }
 

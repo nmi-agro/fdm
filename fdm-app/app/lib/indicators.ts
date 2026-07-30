@@ -134,7 +134,8 @@ export const INDICATORS: IndicatorInfo[] = [
   {
     id: "P_PAW",
     name: "Plantbeschikbaar water",
-    description: "De hoeveelheid water die de bodem kan vasthouden en beschikbaar kan stellen aan het gewas",
+    description:
+      "De hoeveelheid water die de bodem kan vasthouden en beschikbaar kan stellen aan het gewas",
     ecosysteemdienst: "Productie",
     unit: "mm",
   },

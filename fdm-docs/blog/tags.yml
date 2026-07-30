@@ -43,6 +43,11 @@ fdm-api:
   description: Posts related to the FDM API (@nmi-agro/fdm-api).
   permalink: /fdm-api
 
+fdm-helpdesk:
+  label: fdm-helpdesk
+  description: Posts related to the FDM helpdesk back-end (@nmi-agro/fdm-helpdesk).
+  permalink: /fdm-helpdesk
+
 update:
   label: Update
   description: General updates and improvements to the FDM ecosystem.

@@ -677,8 +677,7 @@ export async function getCurrentSoilData(
       .map((parameter) => {
         const analysis = soilAnalyses.find(
           (a) =>
-            a[parameter as keyof typeof a] !== null &&
-            a[parameter as keyof typeof a] !== undefined,
+            a[parameter as keyof typeof a] !== null && a[parameter as keyof typeof a] !== undefined,
         )
         if (!analysis) return null
 

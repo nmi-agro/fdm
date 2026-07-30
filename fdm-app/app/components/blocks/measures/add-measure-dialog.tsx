@@ -1,5 +1,4 @@
 import type { Measure, MeasureCatalogue } from "@nmi-agro/fdm-core"
-import type { MeasureApplicabilityInfo } from "~/integrations/bln3.server"
 /**
  * Add Measure dialog for the Maatregelen field detail page.
  *
@@ -22,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Controller } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
+import type { MeasureApplicabilityInfo } from "~/integrations/bln3.server"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Badge } from "~/components/ui/badge"
@@ -31,12 +31,7 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "~/components/ui/tooltip"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { cn } from "~/lib/utils"
 import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
 
@@ -239,9 +234,7 @@ export function AddMeasureDialog({
 
     // Multi-field mode (farm level)
     const targetFields =
-      selectedFieldIds.size > 0
-        ? fields.filter((f) => selectedFieldIds.has(f.b_id))
-        : fields
+      selectedFieldIds.size > 0 ? fields.filter((f) => selectedFieldIds.has(f.b_id)) : fields
 
     if (targetFields.length === 0) return undefined
 
@@ -498,7 +491,7 @@ export function AddMeasureDialog({
                             {appInfo?.applicability === "inapplicable" && (
                               <Badge
                                 variant="outline"
-                                className="border-destructive/50 bg-destructive/10 text-[10px] text-destructive"
+                                className="border-destructive/50 bg-destructive/10 text-destructive text-[10px]"
                               >
                                 {fields ? "Geen toepasbare percelen" : "Niet mogelijk"}
                               </Badge>
@@ -509,7 +502,9 @@ export function AddMeasureDialog({
                                 className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                               >
                                 Deels toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
-                                {appInfo.applicableFieldNames!.length === 1 ? "perceel" : "percelen"}
+                                {appInfo.applicableFieldNames!.length === 1
+                                  ? "perceel"
+                                  : "percelen"}
                               </Badge>
                             )}
                           </div>
@@ -524,15 +519,15 @@ export function AddMeasureDialog({
                               Conflicteert met: {conflicts.join(", ")}
                             </p>
                           )}
-                          {!fields && appInfo?.applicability === "not yet applicable" && appInfo.message && (
-                            <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
-                              {appInfo.message}
-                            </p>
-                          )}
+                          {!fields &&
+                            appInfo?.applicability === "not yet applicable" &&
+                            appInfo.message && (
+                              <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-400">
+                                {appInfo.message}
+                              </p>
+                            )}
                           {!fields && appInfo?.isInapplicable && appInfo.message && (
-                            <p className="text-destructive mt-0.5 text-xs">
-                              {appInfo.message}
-                            </p>
+                            <p className="text-destructive mt-0.5 text-xs">{appInfo.message}</p>
                           )}
                         </div>
                       </button>
@@ -646,10 +641,10 @@ export function AddMeasureDialog({
                               className={cn(
                                 "flex items-center gap-3 px-3 py-2 transition-colors",
                                 isFieldNonApplicable
-                                  ? "cursor-not-allowed opacity-50 bg-muted/20"
+                                  ? "bg-muted/20 cursor-not-allowed opacity-50"
                                   : checked
-                                    ? "cursor-pointer bg-primary/5"
-                                    : "cursor-pointer hover:bg-muted/50",
+                                    ? "bg-primary/5 cursor-pointer"
+                                    : "hover:bg-muted/50 cursor-pointer",
                               )}
                             >
                               <input
@@ -672,7 +667,7 @@ export function AddMeasureDialog({
                                 className={cn(
                                   "min-w-0 flex-1 truncate text-sm",
                                   checked && !isFieldNonApplicable && "font-medium",
-                                  isFieldNonApplicable && "line-through text-muted-foreground",
+                                  isFieldNonApplicable && "text-muted-foreground line-through",
                                 )}
                               >
                                 {f.b_name ?? f.b_id}
@@ -689,7 +684,7 @@ export function AddMeasureDialog({
                                 {fieldAppInfo?.applicability === "inapplicable" && (
                                   <Badge
                                     variant="outline"
-                                    className="border-destructive/50 bg-destructive/10 text-[10px] text-destructive"
+                                    className="border-destructive/50 bg-destructive/10 text-destructive text-[10px]"
                                   >
                                     Niet mogelijk
                                   </Badge>

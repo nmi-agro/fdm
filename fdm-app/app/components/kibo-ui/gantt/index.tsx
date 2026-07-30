@@ -226,18 +226,17 @@ const createInitialTimelineData = (startYear: number, endYear: number) => {
   const data: TimelineData = []
 
   for (let year = startYear; year <= endYear; year++) {
-    data.push({ year, quarters: new Array(4).fill(null) })
-  }
-
-  for (const yearObj of data) {
-    yearObj.quarters = new Array(4).fill(null).map((_, quarterIndex) => ({
-      months: new Array(3).fill(null).map((_, monthIndex) => {
-        const month = quarterIndex * 3 + monthIndex
-        return {
-          days: getDaysInMonth(new Date(yearObj.year, month, 1)),
-        }
-      }),
-    }))
+    data.push({
+      year,
+      quarters: Array.from({ length: 4 }, (_, quarterIndex) => ({
+        months: Array.from({ length: 3 }, (_, monthIndex) => {
+          const month = quarterIndex * 3 + monthIndex
+          return {
+            days: getDaysInMonth(new Date(year, month, 1)),
+          }
+        }),
+      })),
+    })
   }
 
   return data
@@ -1196,8 +1195,8 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         const newTimelineData: TimelineData = [...timelineData]
         newTimelineData.unshift({
           year: firstYear - 1,
-          quarters: new Array(4).fill(null).map((_, quarterIndex) => ({
-            months: new Array(3).fill(null).map((_, monthIndex) => {
+          quarters: Array.from({ length: 4 }, (_, quarterIndex) => ({
+            months: Array.from({ length: 3 }, (_, monthIndex) => {
               const month = quarterIndex * 3 + monthIndex
               return {
                 days: getDaysInMonth(new Date(firstYear, month, 1)),
@@ -1222,8 +1221,8 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         const newTimelineData: TimelineData = [...timelineData]
         newTimelineData.push({
           year: lastYear + 1,
-          quarters: new Array(4).fill(null).map((_, quarterIndex) => ({
-            months: new Array(3).fill(null).map((_, monthIndex) => {
+          quarters: Array.from({ length: 4 }, (_, quarterIndex) => ({
+            months: Array.from({ length: 3 }, (_, monthIndex) => {
               const month = quarterIndex * 3 + monthIndex
               return {
                 days: getDaysInMonth(new Date(lastYear, month, 1)),

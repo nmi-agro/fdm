@@ -182,7 +182,10 @@ export async function computePlanMetrics(
             ),
             year === "2026"
               ? Promise.resolve(
-                  createFunctionsForFertilizerApplicationFilling("NL", "2026").calculateFertilizerApplicationFillingForRenure(fdm, fillingInput)
+                  createFunctionsForFertilizerApplicationFilling(
+                    "NL",
+                    "2026",
+                  ).calculateFertilizerApplicationFillingForRenure(fdm, fillingInput),
                 )
               : Promise.resolve(undefined),
           ])

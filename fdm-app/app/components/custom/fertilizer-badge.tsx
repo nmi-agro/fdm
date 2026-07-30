@@ -1,7 +1,5 @@
 import type { ReactNode } from "react"
-import {
-  type FertilizerKind,
-} from "~/components/blocks/fertilizer/utils"
+import { type FertilizerKind } from "~/components/blocks/fertilizer/utils"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
 import { cn } from "~/lib/utils"

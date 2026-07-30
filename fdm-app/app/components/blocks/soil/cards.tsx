@@ -1,7 +1,15 @@
 import type { CurrentSoilData, SoilParameterDescription } from "@nmi-agro/fdm-core"
 import { format } from "date-fns/format"
 import { nl } from "date-fns/locale/nl"
-import { Calculator, Calendar, ExternalLink, Microscope, Pencil, Sparkles, User } from "lucide-react"
+import {
+  Calculator,
+  Calendar,
+  ExternalLink,
+  Microscope,
+  Pencil,
+  Sparkles,
+  User,
+} from "lucide-react"
 import { NavLink } from "react-router"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"

@@ -569,12 +569,7 @@ describe("collectInputForBln3MeasureApplicability", () => {
       { p_app_method: "slotted coulter" } as unknown as FertilizerApplication,
     ])
 
-    const result = await collectInputForBln3MeasureApplicability(
-      mockFdm,
-      principal_id,
-      b_id,
-      2026,
-    )
+    const result = await collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026)
 
     expect(result.p_app_method).toEqual(["slotted coulter", "injection"])
   })
@@ -585,12 +580,7 @@ describe("collectInputForBln3MeasureApplicability", () => {
     mockedGetCultivations.mockResolvedValue([])
     mockedGetFertilizerApplications.mockResolvedValue([])
 
-    const result = await collectInputForBln3MeasureApplicability(
-      mockFdm,
-      principal_id,
-      b_id,
-      2026,
-    )
+    const result = await collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026)
 
     expect(result.a_lat).toBe(51.6)
     expect(result.a_lon).toBe(5.2)

@@ -20,8 +20,6 @@ export const FERTILIZER_KIND_COLOR: Record<FertilizerKind, string> = {
   other: "#6b7280",
 }
 
-export function getFertilizerKindColor(
-  p_type: FertilizerKind | null | undefined,
-): string {
+export function getFertilizerKindColor(p_type: FertilizerKind | null | undefined): string {
   return FERTILIZER_KIND_COLOR[p_type ?? "other"]
 }

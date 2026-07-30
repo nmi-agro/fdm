@@ -31,18 +31,15 @@ export async function requestBln3MeasureApplicability(
   const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
 
   try {
-    const response = await fetch(
-      "https://api.nmi-agro.nl/maatwerk/bln3/measure/applicability",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${nmiApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(fieldData),
-        signal: controller.signal,
+    const response = await fetch("https://api.nmi-agro.nl/maatwerk/bln3/measure/applicability", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${nmiApiKey}`,
+        "Content-Type": "application/json",
       },
-    )
+      body: JSON.stringify(fieldData),
+      signal: controller.signal,
+    })
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "")

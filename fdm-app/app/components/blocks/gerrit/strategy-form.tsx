@@ -100,7 +100,8 @@ export function StrategyForm({
     if (!showRenure) return
     const renureCodes = ["130", "131", "132", "133", "134"]
     if (includeRenure === false) {
-      const currentSelected = (form.getValues("selectedFertilizerIds") as string[] | undefined) ?? allIds
+      const currentSelected =
+        (form.getValues("selectedFertilizerIds") as string[] | undefined) ?? allIds
       const filtered = currentSelected.filter((id) => {
         const fert = fertilizerOptions.find((f) => f.p_id_catalogue === id)
         return !fert?.p_type_rvo || !renureCodes.includes(fert.p_type_rvo)

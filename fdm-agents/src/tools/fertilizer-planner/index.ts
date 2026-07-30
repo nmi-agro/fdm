@@ -464,18 +464,20 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
               ...collectedFillingInput,
               applications: proposedApps,
             }
-            const [manureFilling, nitrogenFilling, phosphateFilling, renureFilling] = await Promise.all([
-              Promise.resolve(
-                fillFuncs.calculateFertilizerApplicationFillingForManure(fillingInput),
-              ),
-              fillFuncs.calculateFertilizerApplicationFillingForNitrogen(fillingInput),
-              Promise.resolve(
-                fillFuncs.calculateFertilizerApplicationFillingForPhosphate(fillingInput),
-              ),
-              Number.parseInt(calendar, 10) >= 2026 && (fillFuncs as any).calculateFertilizerApplicationFillingForRenure
-                ? (fillFuncs as any).calculateFertilizerApplicationFillingForRenure(fillingInput)
-                : Promise.resolve(undefined),
-            ])
+            const [manureFilling, nitrogenFilling, phosphateFilling, renureFilling] =
+              await Promise.all([
+                Promise.resolve(
+                  fillFuncs.calculateFertilizerApplicationFillingForManure(fillingInput),
+                ),
+                fillFuncs.calculateFertilizerApplicationFillingForNitrogen(fillingInput),
+                Promise.resolve(
+                  fillFuncs.calculateFertilizerApplicationFillingForPhosphate(fillingInput),
+                ),
+                Number.parseInt(calendar, 10) >= 2026 &&
+                (fillFuncs as any).calculateFertilizerApplicationFillingForRenure
+                  ? (fillFuncs as any).calculateFertilizerApplicationFillingForRenure(fillingInput)
+                  : Promise.resolve(undefined),
+              ])
 
             // Calculate organic matter balance using proposed applications.
             const fieldOmInput = omInput.fields.find((f: any) => f.field.b_id === fieldData.b_id)

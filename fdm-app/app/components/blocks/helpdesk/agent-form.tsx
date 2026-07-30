@@ -115,7 +115,8 @@ export function AgentFormFields({
           <Field>
             <FieldLabel htmlFor={assignmentTierId}>Ondersteuningsniveau</FieldLabel>
             <FieldDescription>
-              Het ondersteuningsniveau van de medewerker. Dit bepaalt hoe tickets worden toegewezen en wie de eerste aanspreekpunt is.
+              Het ondersteuningsniveau van de medewerker. Dit bepaalt hoe tickets worden toegewezen
+              en wie de eerste aanspreekpunt is.
             </FieldDescription>
             <Select
               value={field.value?.toString() ?? "1"}

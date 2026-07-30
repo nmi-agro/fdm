@@ -7,7 +7,7 @@ interface BLN3ApiMeasure {
   m_description: string | null
   m_source_url: string | null
   m_conflicts: string[] | null
-  m_applicability: { variable: "M_STAGE_APPLICABILITY" | string; values: string[] }[]
+  m_applicability: { variable: string; values: string[] }[]
 }
 
 const FETCH_TIMEOUT_MS = 30_000
@@ -62,9 +62,8 @@ export async function getCatalogueBln(nmiApiKey: string): Promise<CatalogueMeasu
       m_source_url: item.m_source_url ?? null,
       m_conflicts: item.m_conflicts?.map((id) => `bln_${id}`) ?? null,
       m_stage_applicability: (() => {
-        const val = item.m_applicability?.find(
-          (a) => a.variable === "M_STAGE_APPLICABILITY",
-        )?.values[0]
+        const val = item.m_applicability?.find((a) => a.variable === "M_STAGE_APPLICABILITY")
+          ?.values[0]
         return val === "field" || val === "farm" ? val : null
       })(),
     }))

@@ -79,7 +79,9 @@ function deriveTimeline(events: StreamEvent[]): TimelineEntry[] {
       const message =
         typeof event.data === "string"
           ? event.data
-          : event.data?.message ?? event.data?.error ?? "Er is een fout opgetreden bij de verwerking."
+          : (event.data?.message ??
+            event.data?.error ??
+            "Er is een fout opgetreden bij de verwerking.")
       entries.push({ kind: "error", id: `err-${entries.length}`, message })
     } else if (event.type === "start" || event.type === "status") {
       const label = event.data?.message
@@ -240,7 +242,7 @@ export function GerritLoading({
       <CardHeader className="shrink-0 border-b">
         <CardTitle className="flex items-center justify-between text-base font-semibold">
           <span className="flex items-center gap-2">
-            <Bot className="text-primary h-5 w-5 motion-reduce:animate-none animate-pulse" />
+            <Bot className="text-primary h-5 w-5 animate-pulse motion-reduce:animate-none" />
             {title}
           </span>
           <span className="text-muted-foreground text-sm font-normal tabular-nums">
@@ -253,7 +255,7 @@ export function GerritLoading({
           type="button"
           variant="outline"
           aria-label="Scrol naar boven"
-          className="bg-background/80 backdrop-blur-xs shadow-xs absolute top-1 left-1/2 h-auto -translate-x-1/2 opacity-0 pointer-events-none transition-opacity duration-200 group-data-scroll-start:opacity-100 group-data-scroll-start:pointer-events-auto"
+          className="bg-background/80 pointer-events-none absolute top-1 left-1/2 h-auto -translate-x-1/2 opacity-0 shadow-xs backdrop-blur-xs transition-opacity duration-200 group-data-scroll-start:pointer-events-auto group-data-scroll-start:opacity-100"
           onClick={() =>
             scrollRef.current?.scrollTo({
               top: 0,
@@ -263,7 +265,12 @@ export function GerritLoading({
         >
           <ChevronUp className="text-muted-foreground my-1 h-4 w-4" />
         </Button>
-        <div ref={scrollRef} className="max-h-full overflow-y-auto" onScroll={handleScroll} aria-live="polite">
+        <div
+          ref={scrollRef}
+          className="max-h-full overflow-y-auto"
+          onScroll={handleScroll}
+          aria-live="polite"
+        >
           <div className="text-muted-foreground space-y-6 p-6 text-sm">
             {timeline.length === 0 && (
               <Marker role="status">
@@ -304,7 +311,10 @@ export function GerritLoading({
                     <MarkerIcon>
                       {
                         <entry.label.icon
-                          className={cn(entry.status === "running" && "motion-reduce:animate-none animate-pulse")}
+                          className={cn(
+                            entry.status === "running" &&
+                              "animate-pulse motion-reduce:animate-none",
+                          )}
                         />
                       }
                     </MarkerIcon>
@@ -349,7 +359,7 @@ export function GerritLoading({
           type="button"
           variant="outline"
           aria-label="Scrol naar beneden"
-          className="bg-background/80 backdrop-blur-xs shadow-xs absolute bottom-1 left-1/2 h-auto -translate-x-1/2 opacity-0 pointer-events-none transition-opacity duration-200 group-data-scroll-end:opacity-100 group-data-scroll-end:pointer-events-auto"
+          className="bg-background/80 pointer-events-none absolute bottom-1 left-1/2 h-auto -translate-x-1/2 opacity-0 shadow-xs backdrop-blur-xs transition-opacity duration-200 group-data-scroll-end:pointer-events-auto group-data-scroll-end:opacity-100"
           onClick={() =>
             scrollRef.current?.scrollTo({
               top: scrollRef.current?.scrollHeight,
@@ -400,11 +410,9 @@ function GerritReasoning({
     return (
       <Marker className="items-start">
         <MarkerIcon className="mt-1">
-          <Sparkles className={cn(isActive && "motion-reduce:animate-none animate-pulse")} />
+          <Sparkles className={cn(isActive && "animate-pulse motion-reduce:animate-none")} />
         </MarkerIcon>
-        <MarkerContent className="italic">
-          Redenering {statusNode}
-        </MarkerContent>
+        <MarkerContent className="italic">Redenering {statusNode}</MarkerContent>
       </Marker>
     )
   }
@@ -413,7 +421,7 @@ function GerritReasoning({
     return (
       <Marker className="items-start">
         <MarkerIcon className="mt-1">
-          <Sparkles className={cn(isActive && "motion-reduce:animate-none animate-pulse")} />
+          <Sparkles className={cn(isActive && "animate-pulse motion-reduce:animate-none")} />
         </MarkerIcon>
         <MarkerContent className="italic">
           {plain[firstLineIndex]} {statusNode}
@@ -426,18 +434,18 @@ function GerritReasoning({
     <>
       <Marker className="items-start">
         <MarkerIcon className="mt-1">
-          <Sparkles className={cn(isActive && "motion-reduce:animate-none animate-pulse")} />
+          <Sparkles className={cn(isActive && "animate-pulse motion-reduce:animate-none")} />
         </MarkerIcon>
         <MarkerContent className="min-w-0 flex-1">
           <Collapsible className="group italic">
             {/* Collapsed view: Line 1 + Toon meer + statusNode */}
-            <div className="group-data-[state=open]:hidden space-y-1">
+            <div className="space-y-1 group-data-[state=open]:hidden">
               <span className="line-clamp-2">{plain[firstLineIndex]}</span>
               <div className="flex items-center gap-1.5 text-xs">
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="link"
-                    className="h-auto p-0 text-xs font-medium leading-none"
+                    className="h-auto p-0 text-xs leading-none font-medium"
                     onClick={() => {
                       if (timeoutRef.current) clearTimeout(timeoutRef.current)
                       timeoutRef.current = setTimeout(() => {
@@ -471,9 +479,9 @@ function GerritReasoning({
                   {line}
                 </p>
               ))}
-              <div className="pt-1 flex items-center gap-1.5 text-xs">
+              <div className="flex items-center gap-1.5 pt-1 text-xs">
                 <CollapsibleTrigger asChild>
-                  <Button variant="link" className="h-auto p-0 text-xs font-medium leading-none">
+                  <Button variant="link" className="h-auto p-0 text-xs leading-none font-medium">
                     Toon minder
                   </Button>
                 </CollapsibleTrigger>

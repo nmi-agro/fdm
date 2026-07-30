@@ -203,9 +203,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
           await deleteObject(objectKey)
         }
       } catch (deleteError) {
-        handleActionError(deleteError)
+        void handleActionError(deleteError)
       }
-      handleActionError(gcsSaveError)
+      void handleActionError(gcsSaveError)
     }
 
     const url = new URL(request.url)

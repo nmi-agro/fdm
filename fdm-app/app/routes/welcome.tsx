@@ -113,7 +113,7 @@ export default function Welcome() {
         const formData = new FormData(formRef.current)
         processForm(async () => {
           const formDataWithCroppedPic = await cropProfilePicture(formData)
-          submit(formDataWithCroppedPic, {
+          void submit(formDataWithCroppedPic, {
             action: "/welcome",
             method: "post",
             encType: "multipart/form-data",
@@ -351,7 +351,7 @@ export async function action({ request }: ActionFunctionArgs) {
           try {
             await deleteObject(objectKey)
           } catch (revertError) {
-            handleActionError(revertError)
+            void handleActionError(revertError)
           }
         }
         throw err
@@ -369,7 +369,7 @@ export async function action({ request }: ActionFunctionArgs) {
               body: { image: session.user.image },
             })
           } catch (revertErr) {
-            handleActionError(revertErr)
+            void handleActionError(revertErr)
           }
           throw err
         }

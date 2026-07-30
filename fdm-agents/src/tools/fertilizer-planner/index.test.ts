@@ -905,7 +905,11 @@ describe("tool execute functions", () => {
         { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
       )
       expect(result.isValid).toBe(false)
-      expect(result.complianceIssues.some((i: string) => i.includes("Wettelijke normoverschrijding (Renure stikstof)"))).toBe(true)
+      expect(
+        result.complianceIssues.some((i: string) =>
+          i.includes("Wettelijke normoverschrijding (Renure stikstof)"),
+        ),
+      ).toBe(true)
     })
 
     it("should warn when nitrogen balance exceeds target", async () => {

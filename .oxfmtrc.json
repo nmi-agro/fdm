@@ -22,5 +22,6 @@
     "functions": ["clsx", "cn"],
     "preserveWhitespace": true
   },
-  "sortPackageJson": true
+  "sortPackageJson": true,
+  "ignorePatterns": [".github/skills/**"]
 }

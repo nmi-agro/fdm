@@ -1,4 +1,8 @@
-import type { AgentSummary, AgentAvailabilityStatus, TicketAssignmentSummary } from "@nmi-agro/fdm-helpdesk"
+import type {
+  AgentSummary,
+  AgentAvailabilityStatus,
+  TicketAssignmentSummary,
+} from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown, UserPlus, Users } from "lucide-react"
 import { type MouseEventHandler, useEffect, useId, useState } from "react"
 import { useFetcher } from "react-router"
@@ -195,7 +199,7 @@ export function AssignmentSelector({
                     agent={assignee}
                     availability={
                       activeAgentIds.has(assignee.agent_id)
-                        ? agentAvailability?.get(assignee.agent_id) ?? null
+                        ? (agentAvailability?.get(assignee.agent_id) ?? null)
                         : undefined
                     }
                     isSelected={selectedAssignees.includes(assignee.agent_id)}
@@ -259,7 +263,7 @@ export function AssignmentSelector({
           </Field>
 
           {selectedUnavailableAgents.length > 0 && (
-            <p className="border-amber-200 bg-amber-50 text-amber-900 rounded-md border px-3 py-2 text-sm">
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
               {selectedUnavailableAgents.length === 1
                 ? `${selectedUnavailableAgents[0].display_name} is niet beschikbaar. Weet je zeker dat je dit ticket aan deze medewerker wilt toewijzen?`
                 : "Een of meer geselecteerde medewerkers zijn niet beschikbaar. Weet je zeker dat je dit ticket aan hen wilt toewijzen?"}

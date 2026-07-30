@@ -223,21 +223,21 @@
       "idx": 31,
       "version": "7",
       "when": 1783523467111,
-      "tag": "0031_vengeful_gideon",
+      "tag": "0031_v0-36-0-1",
       "breakpoints": true
     },
     {
       "idx": 32,
       "version": "7",
       "when": 1784706683772,
-      "tag": "0032_overjoyed_beast",
+      "tag": "0032_v0-36-0-2",
       "breakpoints": true
     },
     {
       "idx": 33,
       "version": "7",
       "when": 1785316346264,
-      "tag": "0033_yielding_vulcan",
+      "tag": "0033_v0-36-0-3",
       "breakpoints": true
     }
   ]

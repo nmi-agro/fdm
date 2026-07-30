@@ -1,8 +1,8 @@
 import type { Row } from "@tanstack/react-table"
 import React from "react"
 import { NavLink } from "react-router"
-import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
+import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import type { FieldRow, RotationExtended } from "./columns"
 

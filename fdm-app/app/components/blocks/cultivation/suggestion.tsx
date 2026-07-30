@@ -72,8 +72,7 @@ export function CultivationSuggestionBanner({
             BRP-schatting
           </Badge>
           We denken dat hier <span className="font-medium">{suggestion.b_lu_name}</span> geteeld
-          werd in {calendar}. Toevoegen als
-          hoofdteelt?
+          werd in {calendar}. Toevoegen als hoofdteelt?
         </p>
         {onAccept ? (
           <Button size="sm" type="button" onClick={onAccept}>

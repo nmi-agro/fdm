@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react"
 import { NavLink } from "react-router"
+import type { FieldOption } from "~/lib/hoofdteelt.server"
 import { FieldPickerItem } from "~/components/blocks/header/field-picker"
 import { Button } from "~/components/ui/button"
 import {
@@ -17,7 +18,6 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog"
 import { TooltipProvider } from "~/components/ui/tooltip"
-import type { FieldOption } from "~/lib/hoofdteelt.server"
 
 /**
  * Dialog that lets the user pick a field within a specific farm, then hands the chosen
@@ -44,9 +44,7 @@ export function FieldPickerDialog({
   onSelectField: (b_id: string) => void
 }) {
   const sortedFields = [...fields].sort(
-    (a, b) =>
-      (b.b_area ?? 0) - (a.b_area ?? 0) ||
-      (a.b_name ?? "").localeCompare(b.b_name ?? ""),
+    (a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || (a.b_name ?? "").localeCompare(b.b_name ?? ""),
   )
 
   return (

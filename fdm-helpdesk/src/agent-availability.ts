@@ -417,7 +417,7 @@ export async function setMaxTickets(
   fdm: FdmHelpdeskType,
   principal_id: string,
   agent_id: string,
-  max_tickets?: number | null | undefined,
+  max_tickets?: number | null,
 ) {
   try {
     if (max_tickets !== undefined && max_tickets !== null && max_tickets < 0) {

@@ -1,4 +1,10 @@
-import { checkPermission, getCultivationsForFarm, getFarms, getField, getFields } from "@nmi-agro/fdm-core"
+import {
+  checkPermission,
+  getCultivationsForFarm,
+  getFarms,
+  getField,
+  getFields,
+} from "@nmi-agro/fdm-core"
 import {
   data,
   type LoaderFunctionArgs,
