@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray } from "drizzle-orm"
+import { and, asc, eq, gt, inArray, isNull } from "drizzle-orm"
 import type { PrincipalId, PrincipalWithRoles, Role } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Principal } from "./principal.types"
@@ -240,6 +240,7 @@ export async function getFarms(
  *
  * This function first checks if the specified principal is authorized to update the farm,
  * then updates the farm's name, business ID, address, and postal code along with a new timestamp.
+ * A farm's KvK number cannot be changed while it has a non-revoked verification.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - ID of the principal initiating the update.
@@ -264,28 +265,60 @@ export async function updateFarm(
   b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"],
 ): Promise<schema.farmsTypeSelect> {
   try {
-    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "updateFarm")
-    const updatedFarm = await fdm
-      .update(schema.farms)
-      .set({
-        b_name_farm,
-        b_businessid_farm,
-        b_address_farm,
-        b_postalcode_farm,
-        updated: new Date(),
-      })
-      .where(eq(schema.farms.b_id_farm, b_id_farm))
-      .returning({
-        b_id_farm: schema.farms.b_id_farm,
-        b_name_farm: schema.farms.b_name_farm,
-        b_businessid_farm: schema.farms.b_businessid_farm,
-        b_address_farm: schema.farms.b_address_farm,
-        b_postalcode_farm: schema.farms.b_postalcode_farm,
-        created: schema.farms.created,
-        updated: schema.farms.updated,
-      })
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "farm", "write", b_id_farm, principal_id, "updateFarm")
 
-    return updatedFarm[0]
+      const currentFarm = await tx
+        .select({ b_businessid_farm: schema.farms.b_businessid_farm })
+        .from(schema.farms)
+        .where(eq(schema.farms.b_id_farm, b_id_farm))
+        .limit(1)
+        .for("update")
+
+      if (currentFarm.length === 0) {
+        throw new Error("Farm not found")
+      }
+
+      if (currentFarm[0].b_businessid_farm !== b_businessid_farm) {
+        const activeVerification = await tx
+          .select({ verification_id: authZSchema.farmVerification.verification_id })
+          .from(authZSchema.farmVerification)
+          .where(
+            and(
+              eq(authZSchema.farmVerification.b_id_farm, b_id_farm),
+              eq(authZSchema.farmVerification.verification_result, "verified"),
+              isNull(authZSchema.farmVerification.revoked_at),
+            ),
+          )
+          .limit(1)
+
+        if (activeVerification.length > 0) {
+          throw new Error("Cannot change farm KvK number while verification is active")
+        }
+      }
+
+      const updatedFarm = await tx
+        .update(schema.farms)
+        .set({
+          b_name_farm,
+          b_businessid_farm,
+          b_address_farm,
+          b_postalcode_farm,
+          updated: new Date(),
+        })
+        .where(eq(schema.farms.b_id_farm, b_id_farm))
+        .returning({
+          b_id_farm: schema.farms.b_id_farm,
+          b_name_farm: schema.farms.b_name_farm,
+          b_businessid_farm: schema.farms.b_businessid_farm,
+          b_address_farm: schema.farms.b_address_farm,
+          b_postalcode_farm: schema.farms.b_postalcode_farm,
+          created: schema.farms.created,
+          updated: schema.farms.updated,
+        })
+
+      return updatedFarm[0]
+    })
   } catch (err) {
     throw handleError(err, "Exception for updateFarm", {
       b_id_farm,
@@ -390,6 +423,8 @@ export async function updateRoleOfPrincipalAtFarm(
  * Revokes a specified role from a principal for a given farm.
  *
  * This function checks if the acting principal has 'share' permission on the farm, then revokes the specified role from the revokee.
+ * Any verification rows previously created by the revokee remain as immutable
+ * point-in-time measurements; changing access does not rewrite verification history.
  *
  * @param fdm - The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal performing the revoke (must have 'share' permission).
