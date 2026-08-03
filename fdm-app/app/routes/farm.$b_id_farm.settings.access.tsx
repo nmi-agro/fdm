@@ -30,6 +30,7 @@ import {
   sendEmail,
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
@@ -73,12 +74,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Check if user has share permission
     const hasSharePermission = await isAllowedToShareFarm(fdm, session.principal_id, b_id_farm)
+    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     // Return user information from loader
     return {
       b_id_farm: b_id_farm,
       principals: principals,
       hasSharePermission: hasSharePermission,
+      verificationProviders: farmVerification.providers,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -86,12 +89,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function FarmSettingsAccessBlock() {
-  const { principals, hasSharePermission } = useLoaderData<typeof loader>()
+  const { principals, hasSharePermission, verificationProviders } = useLoaderData<typeof loader>()
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <AccessManagementCard principals={principals} hasSharePermission={hasSharePermission} />
-      <AccessInfoCard />
+      <AccessManagementCard
+        principals={principals}
+        hasSharePermission={hasSharePermission}
+        verificationProviders={verificationProviders}
+      />
+      <AccessInfoCard verificationProviders={verificationProviders} />
     </div>
   )
 }

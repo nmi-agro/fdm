@@ -1,4 +1,5 @@
 import {
+  addFarmVerification,
   addSoilAnalysis,
   type FdmType,
   type Field,
@@ -120,6 +121,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       rvoClient.setAccessToken(rvoAccessToken)
 
       const rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
+
+      await addFarmVerification(fdm, session.principal_id, b_id_farm, {
+        verification_method: "rvo_eherkenning",
+        verification_result: rvoFields.length > 0 ? "verified" : "not_verified",
+        b_businessid_farm: farm.b_businessid_farm,
+      })
 
       const localFields = await getFields(fdm, session.principal_id, b_id_farm)
       const localFieldsExtended = await Promise.all(

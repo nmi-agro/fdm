@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
+import type { AccessVerificationProvider } from "./access-info-card"
 import { InvitationForm } from "./invitation-form"
 import { PrincipalRow } from "./principal-row"
 
@@ -12,6 +13,7 @@ function isValidRole(role: string): role is Role {
 // Define the type for the principal object based on usage
 // Ensure this matches the type definition used in InvitationForm and PrincipalRow if needed elsewhere
 type Principal = {
+  id: string
   username: string
   displayUserName: string | null
   image?: string | null
@@ -27,11 +29,13 @@ type Principal = {
 type AccessManagementCardProps = {
   principals: Principal[]
   hasSharePermission: boolean
+  verificationProviders: AccessVerificationProvider[]
 }
 
 export const AccessManagementCard = ({
   principals,
   hasSharePermission,
+  verificationProviders,
 }: AccessManagementCardProps) => {
   return (
     <Card className="md:col-span-2">
@@ -53,21 +57,30 @@ export const AccessManagementCard = ({
           </div>
           <div className="grid gap-6">
             {/* Map over principals to render PrincipalRow for each */}
-            {principals.map((principal) => (
-              <PrincipalRow
-                key={principal.username}
-                username={principal.username}
-                displayUserName={principal.displayUserName}
-                image={principal.image}
-                initials={principal.initials}
-                role={isValidRole(principal.role) ? principal.role : "advisor"}
-                type={principal.type}
-                status={principal.status}
-                invitation_id={principal.invitation_id}
-                invitation_expires_at={principal.invitation_expires_at}
-                hasSharePermission={hasSharePermission}
-              />
-            ))}
+            {principals.map((principal) => {
+              const isVerificationProvider = verificationProviders.some(
+                (provider) => provider.principal_id === principal.id,
+              )
+              return (
+                <PrincipalRow
+                  key={principal.username}
+                  username={principal.username}
+                  displayUserName={principal.displayUserName}
+                  image={principal.image}
+                  initials={principal.initials}
+                  role={isValidRole(principal.role) ? principal.role : "advisor"}
+                  type={principal.type}
+                  status={principal.status}
+                  invitation_id={principal.invitation_id}
+                  invitation_expires_at={principal.invitation_expires_at}
+                  hasSharePermission={hasSharePermission}
+                  isVerificationProvider={isVerificationProvider}
+                  isLastVerificationProvider={
+                    isVerificationProvider && verificationProviders.length === 1
+                  }
+                />
+              )
+            })}
           </div>
         </div>
       </CardContent>

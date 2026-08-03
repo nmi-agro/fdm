@@ -1,5 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 
+export interface AccessVerificationProvider {
+  principal_id: string
+  display_name: string
+  verified_at: Date
+}
+
 export const AccessInfoCard = () => {
   return (
     <Card aria-labelledby="access-roles-title" aria-describedby="access-roles-description">

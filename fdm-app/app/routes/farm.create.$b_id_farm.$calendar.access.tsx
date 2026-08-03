@@ -32,6 +32,7 @@ import {
   sendEmail,
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
@@ -74,12 +75,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const principals = await listPrincipalsForFarm(fdm, session.principal_id, b_id_farm)
 
     const hasSharePermission = await isAllowedToShareFarm(fdm, session.principal_id, b_id_farm)
+    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     return {
       b_id_farm: b_id_farm,
       b_name_farm: farm.b_name_farm,
       principals: principals,
       hasSharePermission: hasSharePermission,
+      verificationProviders: farmVerification.providers,
       calendar: calendar,
     }
   } catch (error) {
@@ -91,7 +94,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 // TODO: Add wizard-specific layout/header/breadcrumbs
 // TODO: Add "Voltooien" button with correct navigation
 export default function CreateFarmAccessStep() {
-  const { b_id_farm, b_name_farm, principals, hasSharePermission } = useLoaderData<typeof loader>()
+  const { b_id_farm, b_name_farm, principals, hasSharePermission, verificationProviders } =
+    useLoaderData<typeof loader>()
 
   return (
     <SidebarInset>
@@ -122,8 +126,12 @@ export default function CreateFarmAccessStep() {
           </div>
           <Separator className="my-6" />
           <div className="grid gap-4 md:grid-cols-3">
-            <AccessManagementCard principals={principals} hasSharePermission={hasSharePermission} />
-            <AccessInfoCard />
+            <AccessManagementCard
+              principals={principals}
+              hasSharePermission={hasSharePermission}
+              verificationProviders={verificationProviders}
+            />
+            <AccessInfoCard verificationProviders={verificationProviders} />
           </div>
         </div>
       </main>

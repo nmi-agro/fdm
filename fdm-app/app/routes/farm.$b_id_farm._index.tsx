@@ -11,6 +11,8 @@ import { format } from "date-fns"
 import {
   AlertTriangle,
   ArrowRightLeft,
+  BadgeAlert,
+  BadgeCheck,
   BookOpenText,
   ChevronDown,
   ChevronUp,
@@ -30,7 +32,6 @@ import {
   Sprout,
   Square,
   Trash2,
-  UserRoundCheck,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -78,6 +79,7 @@ import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { cn } from "~/lib/utils"
@@ -210,6 +212,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       new URL(request.url).pathname,
       false,
     )
+    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
@@ -226,6 +229,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmOptions: farmOptions,
       roles: roles,
       farmWritePermission,
+      farmVerification,
       isRvoConfigured,
     }
   } catch (error) {
@@ -713,7 +717,7 @@ export default function FarmDashboardIndex() {
                         to={`${calendar}/rvo`}
                         icon={<CloudDownload className="text-primary h-5 w-5" />}
                         title="Ophalen bij RVO"
-                        description="Importeer percelen vanuit RVO."
+                        description="Importeer percelen vanuit RVO. Hiermee verifieert u ook het bedrijf."
                         disabledDescription="U heeft geen schrijfrechten om percelen te importeren."
                         disabled={!loaderData.farmWritePermission}
                       />
@@ -764,6 +768,34 @@ export default function FarmDashboardIndex() {
                           {loaderData.farmArea}
                           <span className="text-muted-foreground ml-1 text-sm font-normal">ha</span>
                         </p>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "rounded-xl border p-3.5",
+                        loaderData.farmVerification.isVerified
+                          ? "border-green-600/30 bg-green-50/60 dark:bg-green-950/20"
+                          : "border-border bg-muted/30",
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {loaderData.farmVerification.isVerified ? (
+                          <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" />
+                        ) : (
+                          <BadgeAlert className="text-muted-foreground mt-0.5 h-5 w-5 shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold">
+                            {loaderData.farmVerification.isVerified
+                              ? "Geverifieerd"
+                              : "Dit bedrijf is nog niet geverifieerd"}
+                          </p>
+                          <p className="text-muted-foreground mt-0.5 text-xs">
+                            {loaderData.farmVerification.latest
+                              ? `Laatst geverifieerd door ${loaderData.farmVerification.latest.display_name}.`
+                              : "U kunt dit bedrijf verifiëren door de percelen op te halen bij RVO en eHerkenning te gebruiken."}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (
@@ -917,7 +949,7 @@ export default function FarmDashboardIndex() {
                       </Button>
                       <Button variant="ghost" className="w-full justify-start" asChild>
                         <NavLink to="settings/access">
-                          <UserRoundCheck className="mr-2 h-4 w-4" />
+                          <BadgeCheck className="mr-2 h-4 w-4" />
                           Toegang
                         </NavLink>
                       </Button>

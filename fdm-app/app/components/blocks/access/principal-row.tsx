@@ -3,9 +3,21 @@ import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
+import { BadgeCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -17,6 +29,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
 // Define the props type based on usage in the original file
@@ -31,6 +44,8 @@ type PrincipalRowProps = {
   invitation_id?: string
   invitation_expires_at?: Date | string
   hasSharePermission: boolean
+  isVerificationProvider: boolean
+  isLastVerificationProvider: boolean
 }
 
 export const PrincipalRow = ({
@@ -44,6 +59,8 @@ export const PrincipalRow = ({
   invitation_id,
   invitation_expires_at,
   hasSharePermission,
+  isVerificationProvider,
+  isLastVerificationProvider,
 }: PrincipalRowProps) => {
   const fetcher = useFetcher()
 
@@ -76,6 +93,20 @@ export const PrincipalRow = ({
       { method: "post" },
     )
   }
+
+  const removeButton = (
+    <Button
+      type={isLastVerificationProvider ? "button" : "submit"}
+      variant="destructive"
+      className="shrink-0"
+      name={isLastVerificationProvider ? undefined : "intent"}
+      value={isLastVerificationProvider ? undefined : "remove_user"}
+      disabled={fetcher.state !== "idle"}
+      onClick={isLastVerificationProvider ? undefined : handleRemove}
+    >
+      Verwijder
+    </Button>
+  )
 
   // Handler for changing the role via Select dropdown
   const handleSelectChange = async (value: string) => {
@@ -114,6 +145,19 @@ export const PrincipalRow = ({
         </Avatar>
         <div>
           <p className="text-sm leading-none font-medium">{displayUserName}</p>
+          {isVerificationProvider && (
+            <Tooltip>
+              <TooltipTrigger>
+                <Badge variant="outline" className="mt-2 gap-1 border-green-600 text-green-700">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  Geverifieerd
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                Deze gebruiker heeft een geverifieerde relatie met dit bedrijf.
+              </TooltipContent>
+            </Tooltip>
+          )}
           {isPending ? (
             <p className="text-muted-foreground text-sm">
               Uitnodiging
@@ -165,18 +209,30 @@ export const PrincipalRow = ({
             )}
 
             {/* Button to trigger removal */}
-            <Button
-              type="submit" // Submit the fetcher.Form
-              variant="destructive"
-              className="shrink-0"
-              name="intent" // Set intent for this button
-              value="remove_user"
-              // Disable button while submitting
-              disabled={fetcher.state !== "idle"}
-              onClick={handleRemove}
-            >
-              Verwijder
-            </Button>
+            {isLastVerificationProvider ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>{removeButton}</AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Laatste gebruiker met geverifieerde relatie tot dit bedrijf verwijderen?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Deze gebruiker is de enige gebruiker die een geverifieerde relatie met dit
+                      bedrijf heeft. Als u deze gebruiker verwijdert, dan verliest dit bedrijf ook
+                      de geverifieerde status. Weet u zeker dat u de toegang van deze gebruiker tot
+                      bedrijf wilt verwijderen?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRemove}>Verwijderen</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              removeButton
+            )}
           </fieldset>
         </fetcher.Form>
       ) : (
