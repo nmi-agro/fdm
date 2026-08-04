@@ -29,6 +29,7 @@
 export * from "./auth"
 export * from "./compare"
 export * from "./data"
+export * from "./errors"
 export * from "./process"
 export * from "./shapefile"
 export * from "./types"
