@@ -9,17 +9,17 @@ The same names are used throughout the stack: in the PostgreSQL database, in the
 
 ## Domain prefixes
 
-Every column in the `fdm` schema begins with a prefix identifying its domain. The prefixes derive from Dutch agronomic terminology, which is why they are not always mnemonic in English.
+Every domain column in the `fdm` schema begins with a prefix identifying its domain. The prefixes derive from Dutch agronomic terminology, which is why they are not always mnemonic in English.
 
-| Prefix | Domain | Examples |
-| --- | --- | --- |
-| `b_` | Farm, field and business-level data (Dutch *bedrijf*, farm business) | `b_id_farm`, `b_name_farm`, `b_id`, `b_geometry`, `b_soiltype_agr`, `b_gwl_class` |
-| `b_lu_` | Cultivation data (Dutch *landgebruik*, land use); a sub-namespace of `b_` used for anything describing a crop | `b_lu`, `b_lu_catalogue`, `b_lu_start`, `b_lu_end`, `b_lu_yield`, `b_lu_variety` |
-| `p_` | Fertilizer products and their application (Dutch *product*) | `p_id`, `p_id_catalogue`, `p_app_id`, `p_app_amount`, `p_app_method`, `p_n_rt` |
-| `a_` | Soil analysis parameters and soil imagery (*analysis*) | `a_id`, `a_date`, `a_source`, `a_p_al`, `a_som_loi`, `a_image_type` |
-| `m_` | Measures, meaning agronomic practices a farm can adopt | `m_id`, `m_name`, `m_start`, `m_end`, `m_stage_applicability` |
-| `l_` | Livestock: animals, herds and barns (under development) | `l_id_animal`, `l_id_herd`, `l_species`, `l_birthdate` |
-| `f_` | Feed and feed analysis (under development) | `f_id_batch`, `f_dm`, `f_vem`, `f_cp` |
+| Prefix  | Domain                                                                                                        | Examples                                                                          |
+| ------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `b_`    | Farm, field and business-level data (Dutch _bedrijf_, farm business)                                          | `b_id_farm`, `b_name_farm`, `b_id`, `b_geometry`, `b_soiltype_agr`, `b_gwl_class` |
+| `b_lu_` | Cultivation data (Dutch _landgebruik_, land use); a sub-namespace of `b_` used for anything describing a crop | `b_lu`, `b_lu_catalogue`, `b_lu_start`, `b_lu_end`, `b_lu_yield`, `b_lu_variety`  |
+| `p_`    | Fertilizer products and their application (Dutch _product_)                                                   | `p_id`, `p_id_catalogue`, `p_app_id`, `p_app_amount`, `p_app_method`, `p_n_rt`    |
+| `a_`    | Soil analysis parameters and soil imagery (_analysis_)                                                        | `a_id`, `a_date`, `a_source`, `a_p_al`, `a_som_loi`, `a_image_type`               |
+| `m_`    | Measures, meaning agronomic practices a farm can adopt                                                        | `m_id`, `m_name`, `m_start`, `m_end`, `m_stage_applicability`                     |
+| `l_`    | Livestock: animals, herds and barns (under development)                                                       | `l_id_animal`, `l_id_herd`, `l_species`, `l_birthdate`                            |
+| `f_`    | Feed and feed analysis (under development)                                                                    | `f_id_batch`, `f_dm`, `f_vem`, `f_cp`                                             |
 
 Only the two audit columns, `created` and `updated`, carry no prefix. They are present on every table in the `fdm` schema and record when a row was inserted and last modified.
 
@@ -43,13 +43,13 @@ Human-readable names follow `<prefix>_name`, optionally with the entity (`b_name
 
 Nutrient columns on fertilizers follow the pattern `p_<element>_<form>`, where the element is the chemical symbol and the suffix states which form or fraction is meant.
 
-| Suffix | Meaning | Example |
-| --- | --- | --- |
-| `_rt` | Total content | `p_n_rt` total nitrogen, `p_p_rt` total phosphorus |
-| `_if` | Inorganic fraction | `p_n_if` inorganic (mineral) nitrogen |
-| `_of` | Organic fraction | `p_n_of` organically bound nitrogen |
-| `_fr` | Fraction | `p_c_fr` carbon fraction |
-| `_wc` | Working coefficient | `p_n_wc` nitrogen working coefficient |
+| Suffix | Meaning             | Example                                            |
+| ------ | ------------------- | -------------------------------------------------- |
+| `_rt`  | Total content       | `p_n_rt` total nitrogen, `p_p_rt` total phosphorus |
+| `_if`  | Inorganic fraction  | `p_n_if` inorganic (mineral) nitrogen              |
+| `_of`  | Organic fraction    | `p_n_of` organically bound nitrogen                |
+| `_fr`  | Fraction            | `p_c_fr` carbon fraction                           |
+| `_wc`  | Working coefficient | `p_n_wc` nitrogen working coefficient              |
 
 The distinction matters agronomically: `p_n_rt` is what a laboratory reports as total N, while `p_n_if` is the directly plant-available share and `p_n_wc` expresses the effective availability used in fertilization planning.
 
@@ -57,16 +57,16 @@ The distinction matters agronomically: `p_n_rt` is what a laboratory reports as 
 
 A soil value is only interpretable together with the extraction or determination method used, so soil columns follow `a_<parameter>_<method>`. Two phosphorus results from the same sample are not comparable if one is a P-Al determination and the other a P-CaCl2 determination, and FDM therefore stores them in separate columns rather than a single "phosphorus" field.
 
-| Column | Parameter and method |
-| --- | --- |
-| `a_p_al` | Phosphorus, ammonium lactate extraction (P-Al) |
-| `a_p_cc` | Phosphorus, calcium chloride extraction (P-CaCl2) |
-| `a_p_wa` | Phosphorus, water extraction (P-water) |
-| `a_ph_cc` | pH, calcium chloride |
-| `a_som_loi` | Soil organic matter, loss on ignition |
-| `a_n_rt` | Total nitrogen |
-| `a_k_cc`, `a_mg_cc` | Potassium and magnesium, calcium chloride extraction |
-| `a_clay_mi`, `a_sand_mi`, `a_silt_mi` | Texture fractions, mineral analysis |
+| Column                                | Parameter and method                                 |
+| ------------------------------------- | ---------------------------------------------------- |
+| `a_p_al`                              | Phosphorus, ammonium lactate extraction (P-Al)       |
+| `a_p_cc`                              | Phosphorus, calcium chloride extraction (P-CaCl2)    |
+| `a_p_wa`                              | Phosphorus, water extraction (P-water)               |
+| `a_ph_cc`                             | pH, calcium chloride                                 |
+| `a_som_loi`                           | Soil organic matter, loss on ignition                |
+| `a_n_rt`                              | Total nitrogen                                       |
+| `a_k_cc`, `a_mg_cc`                   | Potassium and magnesium, calcium chloride extraction |
+| `a_clay_mi`, `a_sand_mi`, `a_silt_mi` | Texture fractions, mineral analysis                  |
 
 Common method suffixes are `_al` (ammonium lactate), `_cc` (calcium chloride), `_wa` (water), `_ox` (oxalate), `_co` (cobalt hexamine), `_loi` (loss on ignition), `_rt` (total) and `_mi` (mineral fraction). See [Soil Analyses](./07-soil-analyses.md) for the full parameter list.
 
