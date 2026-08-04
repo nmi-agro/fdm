@@ -28,6 +28,7 @@ export const farms = fdmSchema.table(
     b_businessid_farm: text(),
     b_address_farm: text(),
     b_postalcode_farm: text(),
+    b_farm_livestock: boolean().notNull().default(false),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -146,6 +147,7 @@ export const fertilizerAcquiring = fdmSchema.table("fertilizer_acquiring", {
     .references(() => fertilizers.p_id),
   p_acquiring_amount: numericCasted(), //kg
   p_acquiring_date: timestamp({ withTimezone: true }),
+  b_id_manurepit: text().references(() => manurePits.b_id_manurepit),
   created: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updated: timestamp({ withTimezone: true }),
 })
@@ -1085,3 +1087,768 @@ export const soilImageAnnotating = fdmSchema.table(
 
 export type soilImageAnnotatingTypeSelect = typeof soilImageAnnotating.$inferSelect
 export type soilImageAnnotatingTypeInsert = typeof soilImageAnnotating.$inferInsert
+
+// ─── Livestock Domain ─────────────────────────────────────────────────────────────
+
+// Livestock Enums & Options
+export const animalCategoryOptions = [
+  // Rund
+  { value: "rvo_100", label: "100 - Melk- en kalfkoeien" },
+  {
+    value: "rvo_101",
+    label: "101 - Jongvee <1 jaar (melkveehouderij) / opfokkalveren <1 jaar (vleesveehouderij)",
+  },
+  {
+    value: "rvo_102",
+    label:
+      "102 - Vrouwelijk jongvee ≥1 jaar (melkveehouderij) / opfokkalveren ≥1 jaar (vleesveehouderij)",
+  },
+  { value: "rvo_104", label: "104 - Fokstieren ≥1 jaar" },
+  { value: "rvo_112", label: "112 - Witvleeskalveren ca. 14 dagen tot ca. 8 maanden" },
+  {
+    value: "rvo_115",
+    label: "115 - Startkalveren voor rosévlees of roodvlees ca. 14 dagen tot ca. 3 maanden",
+  },
+  { value: "rvo_116", label: "116 - Rosévleeskalveren ca. 3 maanden tot ca. 8 maanden" },
+  { value: "rvo_117", label: "117 - Rosévleeskalveren ca. 14 dagen tot ca. 8 maanden" },
+  { value: "rvo_120", label: "120 - Weide- en zoogkoeien" },
+  { value: "rvo_122", label: "122 - Roodvleesstieren ca. 3 maanden tot de slacht" },
+
+  // Schaap
+  { value: "rvo_550", label: "550 - Schapen voor de vlees- en melkproductie" },
+  { value: "rvo_551", label: "551 - Vleesschapen tot ca. 4 maanden (niet op geboortebedrijf)" },
+  { value: "rvo_552", label: "552 - Opfokooien, weideschapen en vleesschapen ≥ ca. 4 maanden" },
+
+  // Geit
+  { value: "rvo_600", label: "600 - Melkgeiten ≥1 jaar" },
+  { value: "rvo_601", label: "601 - Opfokgeiten en vleesgeiten tot ca. 4 maanden" },
+  { value: "rvo_602", label: "602 - Opfokgeiten ≥ ca. 4 maanden" },
+
+  // Paard
+  { value: "rvo_941", label: "941 - Pony's (schofthoogte tot 1,56m)" },
+  { value: "rvo_943", label: "943 - Paarden (schofthoogte vanaf 1,56m)" },
+
+  // Ezel
+  { value: "rvo_961", label: "961 - Ezels" },
+
+  // Middeneuropees edelhert
+  { value: "rvo_971", label: "971 - Hinden (edelhert) voor de fokkerij" },
+  { value: "rvo_973", label: "973 - Herten (edelhert) 6 tot 12 maanden voor de slacht" },
+  { value: "rvo_974", label: "974 - Herten (edelhert) ≥12 maanden voor de slacht" },
+
+  // Damhert
+  { value: "rvo_981", label: "981 - Hinden (damhert) voor de fokkerij" },
+  { value: "rvo_982", label: "982 - Herten (damhert) ≥3 maanden voor de slacht" },
+
+  // Waterbuffel
+  { value: "rvo_991", label: "991 - Waterbuffelkoeien" },
+  { value: "rvo_992", label: "992 - Waterbuffeljongvee (<2 jaar)" },
+
+  // Varken
+  { value: "rvo_400", label: "400 - Fokzeugen (gespeende biggen op ander bedrijf)" },
+  { value: "rvo_401", label: "401 - Fokzeugen incl. biggen tot ca. 25 kg" },
+  {
+    value: "rvo_404",
+    label: "404 - Opfokzeugen en -beren van ca. 25 kg tot geslachtsrijpheid",
+  },
+  { value: "rvo_406", label: "406 - Dekberen en zoekberen" },
+  {
+    value: "rvo_407",
+    label: "407 - Gespeende biggen tot ca. 25 kg zonder moederdier op eigen bedrijf",
+  },
+  { value: "rvo_411", label: "411 - Vleesvarkens" },
+
+  // Kip
+  { value: "rvo_300", label: "300 - Leghennen en (groot)ouderdieren <18 weken" },
+  { value: "rvo_301", label: "301 - Leghennen en (groot)ouderdieren ≥18 weken" },
+  { value: "rvo_310", label: "310 - (Groot)ouderdieren van vleeskuikens <20 weken" },
+  { value: "rvo_311", label: "311 - (Groot)ouderdieren van vleeskuikens ≥20 weken" },
+  { value: "rvo_312", label: "312 - Vleeskuikens" },
+
+  // Kalkoen
+  { value: "rvo_200", label: "200 - Jonge kalkoenen 0-6 weken" },
+  { value: "rvo_201", label: "201 - Opfokkalkoenen 6-30 weken" },
+  { value: "rvo_202", label: "202 - Kalkoenen ouderdieren ≥30 weken" },
+  { value: "rvo_210", label: "210 - Vleeskalkoenen" },
+
+  // Nerts
+  { value: "rvo_751", label: "751 - Fokteven (nertsen)" },
+
+  // Konijn
+  { value: "rvo_900", label: "900 - Voedsters en fokrammen (konijnen)" },
+  { value: "rvo_901", label: "901 - Vleeskonijnen" },
+
+  // Peking eend
+  { value: "rvo_801", label: "801 - Vleeseenden" },
+  {
+    value: "rvo_802",
+    label: "802 - Ouderdieren van vleeseenden in opfok (<20 weken)",
+  },
+  { value: "rvo_803", label: "803 - Ouderdieren van vleeseenden (≥20 weken)" },
+
+  // Overige diersoorten
+  {
+    value: "rvo_15",
+    label: "15 - Bruine rat, tamme muis, cavia, goudhamster, gerbil",
+  },
+  { value: "rvo_25", label: "25 - Struisvogel, emoe, nandoe" },
+  { value: "rvo_28", label: "28 - Knobbelgans, grauwe gans" },
+  { value: "rvo_35", label: "35 - Fazant, patrijs" },
+  { value: "rvo_37", label: "37 - Vleesduif, helmparelhoen" },
+] as const
+export const animalCategoryEnum = fdmSchema.enum(
+  "l_herd_category",
+  animalCategoryOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const animalSexOptions = [
+  { value: "female", label: "Vrouwelijk" },
+  { value: "male", label: "Mannelijk" },
+] as const
+export const animalSexEnum = fdmSchema.enum(
+  "l_sex",
+  animalSexOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const animalSpeciesOptions = [
+  { value: "cattle", label: "Rundvee" },
+  { value: "pig", label: "Varkens" },
+  { value: "poultry", label: "Pluimvee" },
+  { value: "turkey", label: "Kalkoenen" },
+  { value: "duck", label: "Eenden" },
+  { value: "goat", label: "Geiten" },
+  { value: "sheep", label: "Schapen" },
+  { value: "horse", label: "Paarden" },
+  { value: "pony", label: "Pony's" },
+  { value: "other", label: "Overige diersoorten" },
+] as const
+export const animalSpeciesEnum = fdmSchema.enum(
+  "l_species",
+  animalSpeciesOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const arrivingMethodOptions = [
+  { value: "born", label: "Geboren" },
+  { value: "purchased", label: "Aangekocht" },
+  { value: "imported", label: "Geïmporteerd" },
+] as const
+export const arrivingMethodEnum = fdmSchema.enum(
+  "l_arriving_method",
+  arrivingMethodOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const leavingMethodOptions = [
+  { value: "died", label: "Overleden" },
+  { value: "sold", label: "Verkocht" },
+  { value: "slaughtered", label: "Geslacht" },
+  { value: "exported", label: "Geëxporteerd" },
+] as const
+export const leavingMethodEnum = fdmSchema.enum(
+  "l_leaving_method",
+  leavingMethodOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const feedTypeOptions = [
+  { value: "grass_silage", label: "Ingekuild gras" },
+  { value: "fresh_grass", label: "Vers gras" },
+  { value: "maize_silage", label: "Snijmaïs" },
+  { value: "concentrate", label: "Brokken / Krachtvoer" },
+  { value: "byproduct", label: "Bijproduct" },
+  { value: "mineral", label: "Mineralen" },
+  { value: "other", label: "Overig" },
+] as const
+export const feedTypeEnum = fdmSchema.enum(
+  "f_batch_type",
+  feedTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const feedOriginOptions = [
+  { value: "own_land", label: "Eigen land" },
+  { value: "purchased", label: "Aangekocht" },
+] as const
+export const feedOriginEnum = fdmSchema.enum(
+  "f_batch_origin",
+  feedOriginOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+export const grazingTypeOptions = [
+  { value: "full", label: "Volledig weiden" },
+  { value: "partial", label: "Gedeeltelijk weiden" },
+] as const
+export const grazingTypeEnum = fdmSchema.enum(
+  "l_grazing_type",
+  grazingTypeOptions.map((x) => x.value) as [string, ...string[]],
+)
+
+// Herds
+export const herds = fdmSchema.table(
+  "herds",
+  {
+    l_id_herd: text().primaryKey(),
+    l_herd_name: text(),
+    l_herd_category: animalCategoryEnum(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("l_id_herd_idx").on(table.l_id_herd)],
+)
+
+export type herdsTypeSelect = typeof herds.$inferSelect
+export type herdsTypeInsert = typeof herds.$inferInsert
+
+export const herdStarting = fdmSchema.table(
+  "herd_starting",
+  {
+    l_id_herd: text()
+      .notNull()
+      .references(() => herds.l_id_herd),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
+    l_start: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.l_id_herd, table.b_id_farm] })],
+)
+
+export type herdStartingTypeSelect = typeof herdStarting.$inferSelect
+export type herdStartingTypeInsert = typeof herdStarting.$inferInsert
+
+export const herdEnding = fdmSchema.table("herd_ending", {
+  l_id_herd: text()
+    .primaryKey()
+    .notNull()
+    .references(() => herds.l_id_herd),
+  l_end: timestamp({ withTimezone: true }),
+  created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated: timestamp({ withTimezone: true }),
+})
+
+export type herdEndingTypeSelect = typeof herdEnding.$inferSelect
+export type herdEndingTypeInsert = typeof herdEnding.$inferInsert
+
+// Animals
+export const animals = fdmSchema.table(
+  "animals",
+  {
+    l_id_animal: text().primaryKey(),
+    l_id_eartag: text(),
+    l_id_worknumber: text(),
+    l_species: animalSpeciesEnum().notNull().default("cattle"),
+    l_breed: text(),
+    l_coatcolor: text(),
+    l_birth_date: timestamp({ withTimezone: true }),
+    l_sex: animalSexEnum(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("l_id_animal_idx").on(table.l_id_animal)],
+)
+
+export type animalsTypeSelect = typeof animals.$inferSelect
+export type animalsTypeInsert = typeof animals.$inferInsert
+
+export const animalArriving = fdmSchema.table(
+  "animal_arriving",
+  {
+    l_id_animal: text()
+      .notNull()
+      .references(() => animals.l_id_animal),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
+    l_arriving_date: timestamp({ withTimezone: true }),
+    l_arriving_method: arrivingMethodEnum().notNull().default("born"),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.l_id_animal, table.b_id_farm] })],
+)
+
+export type animalArrivingTypeSelect = typeof animalArriving.$inferSelect
+export type animalArrivingTypeInsert = typeof animalArriving.$inferInsert
+
+export const animalLeaving = fdmSchema.table("animal_leaving", {
+  l_id_animal: text()
+    .primaryKey()
+    .notNull()
+    .references(() => animals.l_id_animal),
+  l_leaving_date: timestamp({ withTimezone: true }),
+  l_leaving_method: leavingMethodEnum(),
+  created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated: timestamp({ withTimezone: true }),
+})
+
+export type animalLeavingTypeSelect = typeof animalLeaving.$inferSelect
+export type animalLeavingTypeInsert = typeof animalLeaving.$inferInsert
+
+export const animalAssigning = fdmSchema.table(
+  "animal_assigning",
+  {
+    l_id_animal: text()
+      .notNull()
+      .references(() => animals.l_id_animal),
+    l_id_herd: text()
+      .notNull()
+      .references(() => herds.l_id_herd),
+    l_assigning_start: timestamp({ withTimezone: true }).notNull(),
+    l_assigning_end: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.l_id_animal, table.l_id_herd, table.l_assigning_start],
+    }),
+  ],
+)
+
+export type animalAssigningTypeSelect = typeof animalAssigning.$inferSelect
+export type animalAssigningTypeInsert = typeof animalAssigning.$inferInsert
+
+// Barns & Housing
+export const barns = fdmSchema.table(
+  "barns",
+  {
+    b_id_barn: text().primaryKey(),
+    b_barn_name: text(),
+    b_floor_area: numericCasted(),
+    b_barn_geometry: geometry<"Polygon" | "MultiPolygon">("b_barn_geometry", {
+      type: "Polygon",
+    }),
+    // b_milking_system: text(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("b_id_barn_idx").on(table.b_id_barn),
+    index("b_barn_geom_idx").using("gist", table.b_barn_geometry),
+  ],
+)
+
+export type barnsTypeSelect = typeof barns.$inferSelect
+export type barnsTypeInsert = typeof barns.$inferInsert
+
+export const barnConstructing = fdmSchema.table(
+  "barn_constructing",
+  {
+    b_id_barn: text()
+      .notNull()
+      .references(() => barns.b_id_barn),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
+    b_barn_constructing_date: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.b_id_barn, table.b_id_farm] })],
+)
+
+export type barnConstructingTypeSelect = typeof barnConstructing.$inferSelect
+export type barnConstructingTypeInsert = typeof barnConstructing.$inferInsert
+
+export const barnDecommissioning = fdmSchema.table("barn_decommissioning", {
+  b_id_barn: text()
+    .primaryKey()
+    .notNull()
+    .references(() => barns.b_id_barn),
+  b_barn_decommissioning_date: timestamp({ withTimezone: true }),
+  created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updated: timestamp({ withTimezone: true }),
+})
+
+export type barnDecommissioningTypeSelect = typeof barnDecommissioning.$inferSelect
+export type barnDecommissioningTypeInsert = typeof barnDecommissioning.$inferInsert
+
+export const housing = fdmSchema.table(
+  "housing",
+  {
+    l_id_herd: text()
+      .notNull()
+      .references(() => herds.l_id_herd),
+    b_id_barn: text()
+      .notNull()
+      .references(() => barns.b_id_barn),
+    b_housing_start: timestamp({ withTimezone: true }).notNull(),
+    b_housing_end: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.l_id_herd, table.b_id_barn, table.b_housing_start] })],
+)
+
+export type housingTypeSelect = typeof housing.$inferSelect
+export type housingTypeInsert = typeof housing.$inferInsert
+
+// Milk
+export const milkTanks = fdmSchema.table(
+  "milk_tanks",
+  {
+    b_id_milktank: text().primaryKey(),
+    b_milktank_name: text(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("b_id_milktank_idx").on(table.b_id_milktank)],
+)
+
+export type milkTanksTypeSelect = typeof milkTanks.$inferSelect
+export type milkTanksTypeInsert = typeof milkTanks.$inferInsert
+
+export const milkingHerd = fdmSchema.table(
+  "milking_herd",
+  {
+    l_id_herd: text()
+      .notNull()
+      .references(() => herds.l_id_herd),
+    b_id_milktank: text()
+      .notNull()
+      .references(() => milkTanks.b_id_milktank),
+    b_milking_start: timestamp({ withTimezone: true }).notNull(),
+    b_milking_end: timestamp({ withTimezone: true }),
+    b_milk_amount: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.l_id_herd, table.b_id_milktank, table.b_milking_start],
+    }),
+  ],
+)
+
+export type milkingHerdTypeSelect = typeof milkingHerd.$inferSelect
+export type milkingHerdTypeInsert = typeof milkingHerd.$inferInsert
+
+export const milkingAnimal = fdmSchema.table(
+  "milking_animal",
+  {
+    l_id_animal: text()
+      .notNull()
+      .references(() => animals.l_id_animal),
+    b_id_milktank: text()
+      .notNull()
+      .references(() => milkTanks.b_id_milktank),
+    b_milking_start: timestamp({ withTimezone: true }).notNull(),
+    b_milking_end: timestamp({ withTimezone: true }),
+    b_milk_amount: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.l_id_animal, table.b_id_milktank, table.b_milking_start],
+    }),
+  ],
+)
+
+export type milkingAnimalTypeSelect = typeof milkingAnimal.$inferSelect
+export type milkingAnimalTypeInsert = typeof milkingAnimal.$inferInsert
+
+export const milkDeliveries = fdmSchema.table(
+  "milk_deliveries",
+  {
+    b_id_milk_delivery: text().primaryKey(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("b_id_milk_delivery_idx").on(table.b_id_milk_delivery)],
+)
+
+export type milkDeliveriesTypeSelect = typeof milkDeliveries.$inferSelect
+export type milkDeliveriesTypeInsert = typeof milkDeliveries.$inferInsert
+
+export const milkDelivering = fdmSchema.table(
+  "milk_delivering",
+  {
+    b_id_milk_delivering: text().primaryKey(),
+    b_id_milktank: text()
+      .notNull()
+      .references(() => milkTanks.b_id_milktank),
+    b_id_milk_delivery: text()
+      .notNull()
+      .references(() => milkDeliveries.b_id_milk_delivery),
+    b_milk_delivery_date: timestamp({ withTimezone: true }),
+    b_milk_amount: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("b_id_milk_delivering_idx").on(table.b_id_milk_delivering)],
+)
+
+export type milkDeliveringTypeSelect = typeof milkDelivering.$inferSelect
+export type milkDeliveringTypeInsert = typeof milkDelivering.$inferInsert
+
+export const milkSampling = fdmSchema.table(
+  "milk_sampling",
+  {
+    b_id_milk_delivery: text()
+      .notNull()
+      .references(() => milkDeliveries.b_id_milk_delivery),
+    b_id_milk_analysis: text()
+      .notNull()
+      .references(() => milkAnalyses.b_id_milk_analysis),
+    b_sampling_date: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.b_id_milk_delivery, table.b_id_milk_analysis] })],
+)
+
+export type milkSamplingTypeSelect = typeof milkSampling.$inferSelect
+export type milkSamplingTypeInsert = typeof milkSampling.$inferInsert
+
+export const milkAnalyses = fdmSchema.table(
+  "milk_analyses",
+  {
+    b_id_milk_analysis: text().primaryKey(),
+    b_milk_fat: numericCasted(),
+    b_milk_protein: numericCasted(),
+    b_milk_lactose: numericCasted(),
+    b_milk_urea: numericCasted(),
+    b_milk_scc: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("b_id_milk_analysis_idx").on(table.b_id_milk_analysis)],
+)
+
+export type milkAnalysesTypeSelect = typeof milkAnalyses.$inferSelect
+export type milkAnalysesTypeInsert = typeof milkAnalyses.$inferInsert
+
+// Manure
+export const manurePits = fdmSchema.table(
+  "manure_pits",
+  {
+    b_id_manurepit: text().primaryKey(),
+    b_manurepit_name: text(),
+    b_pit_area: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("b_id_manurepit_idx").on(table.b_id_manurepit)],
+)
+
+export type manurePitsTypeSelect = typeof manurePits.$inferSelect
+export type manurePitsTypeInsert = typeof manurePits.$inferInsert
+
+export const excreting = fdmSchema.table(
+  "excreting",
+  {
+    l_id_excreting: text().primaryKey(),
+    l_id_herd: text()
+      .notNull()
+      .references(() => herds.l_id_herd),
+    b_id_manurepit: text()
+      .notNull()
+      .references(() => manurePits.b_id_manurepit),
+    l_excreting_start: timestamp({ withTimezone: true }),
+    l_excreting_end: timestamp({ withTimezone: true }),
+    p_amount: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("l_id_excreting_idx").on(table.l_id_excreting)],
+)
+
+export type excretingTypeSelect = typeof excreting.$inferSelect
+export type excretingTypeInsert = typeof excreting.$inferInsert
+
+export const manureDeliveries = fdmSchema.table(
+  "manure_deliveries",
+  {
+    p_id_delivery: text().primaryKey(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("p_id_delivery_idx").on(table.p_id_delivery)],
+)
+
+export type manureDeliveriesTypeSelect = typeof manureDeliveries.$inferSelect
+export type manureDeliveriesTypeInsert = typeof manureDeliveries.$inferInsert
+
+export const manureDisposing = fdmSchema.table(
+  "manure_disposing",
+  {
+    p_id_disposing: text().primaryKey(),
+    b_id_manurepit: text()
+      .notNull()
+      .references(() => manurePits.b_id_manurepit),
+    p_id_delivery: text()
+      .notNull()
+      .references(() => manureDeliveries.p_id_delivery),
+    p_disposing_date: timestamp({ withTimezone: true }),
+    p_amount: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("p_id_disposing_idx").on(table.p_id_disposing)],
+)
+
+export type manureDisposingTypeSelect = typeof manureDisposing.$inferSelect
+export type manureDisposingTypeInsert = typeof manureDisposing.$inferInsert
+
+export const manureSampling = fdmSchema.table(
+  "manure_sampling",
+  {
+    p_id_delivery: text()
+      .notNull()
+      .references(() => manureDeliveries.p_id_delivery),
+    p_id_analysis: text()
+      .notNull()
+      .references(() => manureAnalyses.p_id_analysis),
+    p_sampling_date: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.p_id_delivery, table.p_id_analysis] })],
+)
+
+export type manureSamplingTypeSelect = typeof manureSampling.$inferSelect
+export type manureSamplingTypeInsert = typeof manureSampling.$inferInsert
+
+export const manureAnalyses = fdmSchema.table(
+  "manure_analyses",
+  {
+    p_id_analysis: text().primaryKey(),
+    p_n_rt: numericCasted(),
+    p_p_rt: numericCasted(),
+    p_dm: numericCasted(),
+    p_om: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("p_id_analysis_idx").on(table.p_id_analysis)],
+)
+
+export type manureAnalysesTypeSelect = typeof manureAnalyses.$inferSelect
+export type manureAnalysesTypeInsert = typeof manureAnalyses.$inferInsert
+
+// Feed
+export const feedBatches = fdmSchema.table(
+  "feed_batches",
+  {
+    f_id_batch: text().primaryKey(),
+    f_batch_name: text(),
+    f_batch_type: feedTypeEnum(),
+    f_batch_origin: feedOriginEnum(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("f_id_batch_idx").on(table.f_id_batch)],
+)
+
+export type feedBatchesTypeSelect = typeof feedBatches.$inferSelect
+export type feedBatchesTypeInsert = typeof feedBatches.$inferInsert
+
+export const feedSampling = fdmSchema.table(
+  "feed_sampling",
+  {
+    f_id_batch: text()
+      .notNull()
+      .references(() => feedBatches.f_id_batch),
+    f_id_feed_analysis: text()
+      .notNull()
+      .references(() => feedAnalyses.f_id_feed_analysis),
+    f_sampling_date: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.f_id_batch, table.f_id_feed_analysis] })],
+)
+
+export type feedSamplingTypeSelect = typeof feedSampling.$inferSelect
+export type feedSamplingTypeInsert = typeof feedSampling.$inferInsert
+
+export const feedAnalyses = fdmSchema.table(
+  "feed_analyses",
+  {
+    f_id_feed_analysis: text().primaryKey(),
+    f_dm: numericCasted(),
+    f_cp: numericCasted(),
+    f_vem: numericCasted(),
+    f_oeb: numericCasted(),
+    f_ndf: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("f_id_feed_analysis_idx").on(table.f_id_feed_analysis)],
+)
+
+export type feedAnalysesTypeSelect = typeof feedAnalyses.$inferSelect
+export type feedAnalysesTypeInsert = typeof feedAnalyses.$inferInsert
+
+export const feedingHerd = fdmSchema.table(
+  "feeding_herd",
+  {
+    f_id_batch: text()
+      .notNull()
+      .references(() => feedBatches.f_id_batch),
+    l_id_herd: text()
+      .notNull()
+      .references(() => herds.l_id_herd),
+    f_feeding_start: timestamp({ withTimezone: true }).notNull(),
+    f_feeding_end: timestamp({ withTimezone: true }),
+    f_amount: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.f_id_batch, table.l_id_herd, table.f_feeding_start],
+    }),
+  ],
+)
+
+export type feedingHerdTypeSelect = typeof feedingHerd.$inferSelect
+export type feedingHerdTypeInsert = typeof feedingHerd.$inferInsert
+
+export const feedingAnimal = fdmSchema.table(
+  "feeding_animal",
+  {
+    l_id_animal: text()
+      .notNull()
+      .references(() => animals.l_id_animal),
+    f_id_batch: text()
+      .notNull()
+      .references(() => feedBatches.f_id_batch),
+    f_feeding_start: timestamp({ withTimezone: true }).notNull(),
+    f_feeding_end: timestamp({ withTimezone: true }),
+    f_amount: numericCasted(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.l_id_animal, table.f_id_batch, table.f_feeding_start],
+    }),
+  ],
+)
+
+export type feedingAnimalTypeSelect = typeof feedingAnimal.$inferSelect
+export type feedingAnimalTypeInsert = typeof feedingAnimal.$inferInsert
+
+// Grazing
+export const grazing = fdmSchema.table(
+  "grazing",
+  {
+    b_id: text().references(() => fields.b_id),
+    l_id_herd: text()
+      .notNull()
+      .references(() => herds.l_id_herd),
+    l_grazing_start: timestamp({ withTimezone: true }).notNull(),
+    l_grazing_end: timestamp({ withTimezone: true }),
+    l_grazing_days: integer(),
+    l_grazing_hours: numericCasted(),
+    l_grazing_area: numericCasted(),
+    l_grazing_type: grazingTypeEnum(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.l_id_herd, table.l_grazing_start] })],
+)
+
+export type grazingTypeSelect = typeof grazing.$inferSelect
+export type grazingTypeInsert = typeof grazing.$inferInsert
