@@ -38,10 +38,10 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 - Build everything: `pnpm build` (turbo) — respects build order.
 - Lint / format (oxlint + oxfmt, configured at root): `pnpm lint`, `pnpm lint:fix`, `pnpm format`.
 - Type-check: `pnpm check-types` in `fdm-core`, `fdm-rvo`, etc.; in `fdm-app` use `pnpm check-types` (runs `react-router typegen && tsc`).
-- Test (all): `pnpm test` (turbo `test-coverage`). Tests use Vitest and require a running PostgreSQL (PostGIS) — set `POSTGRES_HOST/PORT/DB/USER/PASSWORD`. `docker compose up -d` provides the database locally.
+- Test (all): `pnpm test` (turbo `test-coverage`). Tests use Vitest and require a running PostgreSQL (PostGIS) — set `POSTGRES_HOST/PORT/DB/USER/PASSWORD`. Developers normally run PostgreSQL locally on their machine; do not assume Docker.
 - Test one package: `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`.
 - Test one file/case in a package: `cd fdm-core` then `pnpm exec dotenvx run -- vitest run src/farm.test.ts` (add `-t "name"` for a single case). Tests load env via `dotenvx`.
-- Run the app: `docker compose up -d` then `pnpm --filter fdm-app dev` (http://localhost:5173). Copy `fdm-app/.env.example` to `fdm-app/.env` first.
+- Run the app: `pnpm --filter fdm-app dev` (http://localhost:5173), with a local PostgreSQL/PostGIS running. Copy `fdm-app/.env.example` to `fdm-app/.env` first.
 
 ## Releases / changesets
 

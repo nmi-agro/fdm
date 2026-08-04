@@ -183,7 +183,7 @@ Work these steps in order. Steps 2 and 3 are the ones agents skip, and skipping 
 3. **Read the generated SQL.** Confirm it does what you intended and nothing more. A `DROP COLUMN` or `ALTER COLUMN ... SET NOT NULL` you did not expect means the change is destructive: for renames and type changes, add an explicit data-migration step so existing rows survive.
 4. **Update the core functions** — add or adjust the CRUD in the matching `fdm-core/src/<domain>.ts`, with its `<domain>.types.d.ts` and colocated `<domain>.test.ts`.
 5. **Update the documentation** — `fdm-docs/docs/core-concepts/01-database-schema.md` and the relevant `core-concepts/` page. The docs are the published contract.
-6. **Test** — `cd fdm-core && pnpm exec dotenvx run -- vitest run src/<domain>.test.ts`. Needs PostGIS: `docker compose up -d`.
+6. **Test** — `cd fdm-core && pnpm exec dotenvx run -- vitest run src/<domain>.test.ts`. Requires a PostgreSQL instance with PostGIS enabled, reachable via the `POSTGRES_*` variables in your `.env`; developers normally run one locally on the machine.
 7. **Check conventions** — `pnpm check-schema` from the repository root.
 8. **Add a changeset** — `pnpm changeset`, select `@nmi-agro/fdm-core` and any downstream package. Schema changes are always at least a minor bump.
 9. **Rebuild before touching downstream** — consumers import the built `dist`, so run `pnpm turbo build` (or `pnpm build` in `fdm-core`) before `fdm-app`/`fdm-calculator` will see the new types.

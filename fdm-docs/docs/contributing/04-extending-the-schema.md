@@ -90,7 +90,7 @@ Values are stable machine codes and labels are the display text. Where a nationa
 3. **Review the generated SQL.** Confirm that it performs the intended change and nothing more. An unexpected `DROP COLUMN`, or an `ALTER COLUMN ... SET NOT NULL` on a table that already holds data, indicates a destructive change; renames and type changes need an explicit data-migration step so that existing rows are preserved.
 4. **Update the core functions** in the corresponding `fdm-core/src/<domain>.ts`, together with its `<domain>.types.d.ts` and its colocated `<domain>.test.ts`.
 5. **Update the documentation**: [Database Schema](../core-concepts/01-database-schema.md) and the relevant Core Concepts page. The documentation is the published description of the model.
-6. **Run the tests**: `cd fdm-core && pnpm exec dotenvx run -- vitest run src/<domain>.test.ts`. A PostGIS-enabled PostgreSQL instance is required; `docker compose up -d` provides one locally.
+6. **Run the tests**: `cd fdm-core && pnpm exec dotenvx run -- vitest run src/<domain>.test.ts`. The tests run against a real PostgreSQL instance with PostGIS enabled, configured through the `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` environment variables. See [Setting up a Local Environment](./02-setting-up-local-environment.md).
 7. **Check the conventions**: `pnpm check-schema` from the repository root, described below.
 8. **Add a changeset**: `pnpm changeset`, selecting `@nmi-agro/fdm-core` and any affected downstream package. See [Releasing FDM](./03-releasing-fdm.md).
 9. **Rebuild before working downstream.** Other packages import the built output of `fdm-core`, so run `pnpm turbo build` before `fdm-app` or `fdm-calculator` will see the new types.
