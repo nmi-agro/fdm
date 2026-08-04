@@ -72,6 +72,11 @@ const ALLOWLIST = {
 const strict = process.argv.includes("--strict")
 const findings = []
 
+/** Escapes every regex metacharacter, so identifiers read from the schema are matched literally. */
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 function report(level, rule, file, line, message) {
   findings.push({ level, rule, file, line, message })
 }
@@ -192,7 +197,7 @@ function checkFile(relPath) {
       for (const kind of ["TypeSelect", "TypeInsert"]) {
         const infer = kind === "TypeSelect" ? "$inferSelect" : "$inferInsert"
         const expected = new RegExp(
-          `export type \\w*${kind}\\s*=\\s*typeof ${table.constName}\\.${infer.replace("$", "\\$")}`,
+          `export type \\w*${kind}\\s*=\\s*typeof ${escapeRegExp(table.constName)}\\.${escapeRegExp(infer)}`,
         )
         if (!expected.test(source)) {
           report(
@@ -253,7 +258,7 @@ function checkFile(relPath) {
       )
       continue
     }
-    const used = new RegExp(`^\\s*${enumName}\\s*:\\s*${constName}\\(`, "m").test(source)
+    const used = new RegExp(`^\\s*${escapeRegExp(enumName)}\\s*:\\s*${escapeRegExp(constName)}\\(`, "m").test(source)
     if (!used) {
       report(
         "warn",
