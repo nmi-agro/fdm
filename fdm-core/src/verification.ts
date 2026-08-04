@@ -323,7 +323,6 @@ export async function isFarmVerifiedForPrincipal(
         "isFarmVerifiedForPrincipal",
       )
       const principals = Array.isArray(principal_id) ? principal_id : [principal_id]
-      if (principals.length === 0) return false
 
       const verifications = await tx
         .select({

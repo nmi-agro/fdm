@@ -1,8 +1,11 @@
 import { eq } from "drizzle-orm"
+import { getTableConfig } from "drizzle-orm/pg-core"
 import { beforeAll, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
 import type { FdmServerType } from "./fdm-server.types"
+import type { FdmType } from "./fdm.types"
 import { createFdmAuth } from "./authentication"
+import { grantRole } from "./authorization"
 import * as authZSchema from "./db/schema-authz"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -54,6 +57,13 @@ describe("Farm Verification Functions", () => {
     })
     principal_id = user.user.id
     b_id_farm = await addFarm(fdm, principal_id, "Verification Farm", "555555", "Address", "1111AA")
+  })
+
+  it("defines the farm verification lookup index", () => {
+    const tableConfig = getTableConfig(authZSchema.farmVerification)
+
+    expect(tableConfig.indexes).toHaveLength(1)
+    expect(tableConfig.indexes[0].config.name).toBe("farm_verification_farm_principal_revoked_idx")
   })
 
   it("records matching verification snapshots and links the audit entry", async () => {
@@ -111,6 +121,29 @@ describe("Farm Verification Functions", () => {
     ).rejects.toThrowError("Exception for addFarmVerification")
   })
 
+  it("rejects unsupported verification methods", async () => {
+    await expect(
+      addFarmVerification(fdm, principal_id, b_id_farm, {
+        verification_method: "eherkenning_saml",
+        verification_result: "verified",
+        b_businessid_farm: "555555",
+      }),
+    ).rejects.toThrowError("Exception for addFarmVerification")
+  })
+
+  it("rejects verification for a farm row that does not exist", async () => {
+    const missingFarmId = createId()
+    await grantRole(fdm, "farm", "owner", missingFarmId, principal_id)
+
+    await expect(
+      addFarmVerification(fdm, principal_id, missingFarmId, {
+        verification_method: "rvo_eherkenning",
+        verification_result: "verified",
+        b_businessid_farm: "555555",
+      }),
+    ).rejects.toThrowError("Exception for addFarmVerification")
+  })
+
   it("uses the latest negative result for a principal", async () => {
     await addFarmVerification(fdm, principal_id, b_id_farm, {
       verification_method: "rvo_eherkenning",
@@ -147,11 +180,35 @@ describe("Farm Verification Functions", () => {
     expect(
       history.find((entry) => entry.verification_id === verification_id)?.revoked_at,
     ).toBeInstanceOf(Date)
+    await expect(
+      revokeFarmVerification(fdm, principal_id, b_id_farm, verification_id),
+    ).rejects.toThrowError("Exception for revokeFarmVerification")
   })
 
   it("does not expose verification status without farm access", async () => {
     await expect(isFarmVerifiedForPrincipal(fdm, createId(), b_id_farm)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
+  })
+
+  it("wraps verification read and revoke failures", async () => {
+    const failingFdm = {
+      transaction: async () => {
+        throw new Error("Database unavailable")
+      },
+    } as unknown as FdmType
+
+    await expect(getFarmVerifications(failingFdm, principal_id, b_id_farm)).rejects.toThrowError(
+      "Exception for getFarmVerifications",
+    )
+    await expect(
+      getActiveFarmVerifications(failingFdm, principal_id, b_id_farm),
+    ).rejects.toThrowError("Exception for getActiveFarmVerifications")
+    await expect(
+      getLatestFarmVerification(failingFdm, principal_id, b_id_farm),
+    ).rejects.toThrowError("Exception for getLatestFarmVerification")
+    await expect(
+      revokeFarmVerification(failingFdm, principal_id, b_id_farm, createId()),
+    ).rejects.toThrowError("Exception for revokeFarmVerification")
   })
 })

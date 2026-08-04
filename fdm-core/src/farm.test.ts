@@ -4,7 +4,7 @@ import type { FdmAuth } from "./authentication"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
 import { createFdmAuth } from "./authentication"
-import { listPrincipalsForResource } from "./authorization"
+import { grantRole, listPrincipalsForResource } from "./authorization"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -254,6 +254,23 @@ describe("Farm Functions", () => {
           updatedFarmBusinessId,
           updatedFarmAddress,
           updatedFarmPostalCode,
+        ),
+      ).rejects.toThrowError("Exception for updateFarm")
+    })
+
+    it("should handle an update for a farm row that does not exist", async () => {
+      const missingFarmId = createId()
+      await grantRole(fdm, "farm", "owner", missingFarmId, principal_id)
+
+      await expect(
+        updateFarm(
+          fdm,
+          principal_id,
+          missingFarmId,
+          "Missing Farm",
+          "123456",
+          "Unknown Lane",
+          "00000",
         ),
       ).rejects.toThrowError("Exception for updateFarm")
     })
