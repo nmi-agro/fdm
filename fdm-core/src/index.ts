@@ -61,9 +61,17 @@ export {
 export type { Cultivation, CultivationCatalogue, CultivationPlan } from "./cultivation.types"
 export {
   acquiringMethodOptions,
+  animalCategoryOptions,
+  animalSexOptions,
+  animalSpeciesOptions,
   annotationTypeOptions,
+  arrivingMethodOptions,
   bcsIndicatorOptions,
+  feedOriginOptions,
+  feedTypeOptions,
+  grazingTypeOptions,
   gwlClassesOptions,
+  leavingMethodOptions,
   soilTypesOptions,
   visualImageTypeOptions,
 } from "./db/schema"
@@ -223,4 +231,56 @@ export type {
   UpdateSoilImageAnnotationInput,
 } from "./soil-image.types"
 export type { Timeframe } from "./timeframe.d"
+export { addHerd, getHerd, getHerdsForFarm, removeHerd, updateHerd } from "./herd"
+export type { Herd } from "./herd.types"
+export {
+  addAnimal,
+  addAnimalsToHerd,
+  getAnimal,
+  getAnimalsForFarm,
+  getAnimalsForHerd,
+  getCensusForFarm,
+  removeAnimal,
+  setAnimalCategory,
+  updateAnimal,
+} from "./animal"
+export type { Animal, HerdCensus } from "./animal.types"
+export {
+  addBarn,
+  addHousing,
+  getBarn,
+  getBarnsForFarm,
+  getHousingForHerd,
+  removeBarn,
+  updateBarn,
+} from "./barn"
+export type { Barn, Housing } from "./barn.types"
+export {
+  addMilkDelivery,
+  addMilking,
+  addMilkingAnimal,
+  addMilkTank,
+  getMilkDeliveriesForFarm,
+  getMilkProductionForHerd,
+} from "./milk"
+export type { MilkDelivery, Milking, MilkingAnimal, MilkTank } from "./milk.types"
+export {
+  addFeedBatch,
+  addFeeding,
+  addFeedingAnimal,
+  getFeedBatchesForFarm,
+  getFeedSelfSufficiency,
+} from "./feed"
+export type { FeedBatch, Feeding, FeedingAnimal, FeedSelfSufficiency } from "./feed.types"
+export {
+  addExcreting,
+  addManureDelivery,
+  addManureDisposing,
+  addManurePit,
+  getManureDeliveriesForFarm,
+  getManureDisposalsForFarm,
+} from "./manure"
+export type { Excreting, ManureDelivery, ManurePit } from "./manure.types"
+export { addGrazing, getGrazingForFarm, getGrazingForHerd } from "./grazing"
+export type { Grazing } from "./grazing.types"
 export { fdmSchema }

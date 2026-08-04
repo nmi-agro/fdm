@@ -99,6 +99,7 @@ export async function getFarm(
   b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
   b_address_farm: schema.farmsTypeSelect["b_address_farm"]
   b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
+  b_farm_livestock: schema.farmsTypeSelect["b_farm_livestock"]
   b_id_principal: PrincipalId
   b_id_principal_owner: PrincipalId
   roles: PrincipalWithRoles[]
@@ -114,6 +115,7 @@ export async function getFarm(
           b_businessid_farm: schema.farms.b_businessid_farm,
           b_address_farm: schema.farms.b_address_farm,
           b_postalcode_farm: schema.farms.b_postalcode_farm,
+          b_farm_livestock: schema.farms.b_farm_livestock,
         })
         .from(schema.farms)
         .where(eq(schema.farms.b_id_farm, b_id_farm))
@@ -160,6 +162,7 @@ export async function getFarms(
     b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
     b_address_farm: schema.farmsTypeSelect["b_address_farm"]
     b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
+    b_farm_livestock: schema.farmsTypeSelect["b_farm_livestock"]
     roles: {
       principal_id: string
       principal_type: "user" | "organization"
@@ -196,6 +199,7 @@ export async function getFarms(
           b_businessid_farm: schema.farms.b_businessid_farm,
           b_address_farm: schema.farms.b_address_farm,
           b_postalcode_farm: schema.farms.b_postalcode_farm,
+          b_farm_livestock: schema.farms.b_farm_livestock,
         })
         .from(schema.farms)
         .where(inArray(schema.farms.b_id_farm, resources))
@@ -281,6 +285,7 @@ export async function updateFarm(
         b_businessid_farm: schema.farms.b_businessid_farm,
         b_address_farm: schema.farms.b_address_farm,
         b_postalcode_farm: schema.farms.b_postalcode_farm,
+        b_farm_livestock: schema.farms.b_farm_livestock,
         created: schema.farms.created,
         updated: schema.farms.updated,
       })

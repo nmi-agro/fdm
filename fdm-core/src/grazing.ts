@@ -1,0 +1,170 @@
+import { and, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm"
+import type { PrincipalId } from "./authorization.types"
+import type { FdmType } from "./fdm.types"
+import type { Grazing } from "./grazing.types"
+import type { Timeframe } from "./timeframe"
+import { checkPermission } from "./authorization"
+import * as schema from "./db/schema"
+import { handleError } from "./error"
+
+/**
+ * Records an outdoor pasture grazing action for a herd on a farm field parcel.
+ * Allows logging grazing start/end dates, total grazing days, daily grazing hours, grazed area in hectares,
+ * and grazing regime (full vs partial day).
+ *
+ * @param fdm - The FDM instance providing connection to the database.
+ * @param principal_id - Identifier of the principal recording the grazing action.
+ * @param l_id_herd - Herd ID.
+ * @param l_grazing_start - Start timestamp.
+ * @param properties - Optional field ID, end timestamp, days, hours, area, and grazing type.
+ */
+export async function addGrazing(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_grazing_start = new Date(),
+  properties?: {
+    b_id?: schema.grazingTypeInsert["b_id"]
+    l_grazing_end?: schema.grazingTypeInsert["l_grazing_end"]
+    l_grazing_days?: schema.grazingTypeInsert["l_grazing_days"]
+    l_grazing_hours?: schema.grazingTypeInsert["l_grazing_hours"]
+    l_grazing_area?: schema.grazingTypeInsert["l_grazing_area"]
+    l_grazing_type?: schema.grazingTypeInsert["l_grazing_type"]
+  },
+): Promise<void> {
+  try {
+    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addGrazing")
+
+    await fdm.insert(schema.grazing).values({
+      l_id_herd,
+      l_grazing_start,
+      b_id: properties?.b_id ?? null,
+      l_grazing_end: properties?.l_grazing_end ?? null,
+      l_grazing_days: properties?.l_grazing_days ?? null,
+      l_grazing_hours: properties?.l_grazing_hours ?? null,
+      l_grazing_area: properties?.l_grazing_area ?? null,
+      l_grazing_type: properties?.l_grazing_type ?? null,
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for addGrazing", { l_id_herd, l_grazing_start, properties })
+  }
+}
+
+/**
+ * Retrieves grazing actions for a specified herd.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal ID.
+ * @param l_id_herd - Herd ID.
+ * @param timeframe - Optional timeframe filter.
+ * @returns Array of grazing records.
+ */
+export async function getGrazingForHerd(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  timeframe?: Timeframe,
+): Promise<Grazing[]> {
+  try {
+    await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "getGrazingForHerd")
+
+    let dateWhere: SQL | undefined = eq(schema.grazing.l_id_herd, l_id_herd)
+    if (timeframe?.start && timeframe?.end) {
+      dateWhere = and(
+        dateWhere,
+        gte(schema.grazing.l_grazing_start, timeframe.start),
+        lte(schema.grazing.l_grazing_start, timeframe.end),
+      )
+    } else if (timeframe?.start) {
+      dateWhere = and(dateWhere, gte(schema.grazing.l_grazing_start, timeframe.start))
+    } else if (timeframe?.end) {
+      dateWhere = and(dateWhere, lte(schema.grazing.l_grazing_start, timeframe.end))
+    }
+
+    const rows = await fdm
+      .select({
+        b_id: schema.grazing.b_id,
+        l_id_herd: schema.grazing.l_id_herd,
+        l_grazing_start: schema.grazing.l_grazing_start,
+        l_grazing_end: schema.grazing.l_grazing_end,
+        l_grazing_days: schema.grazing.l_grazing_days,
+        l_grazing_hours: schema.grazing.l_grazing_hours,
+        l_grazing_area: schema.grazing.l_grazing_area,
+        l_grazing_type: schema.grazing.l_grazing_type,
+        created: schema.grazing.created,
+        updated: schema.grazing.updated,
+      })
+      .from(schema.grazing)
+      .where(dateWhere)
+      .orderBy(desc(schema.grazing.l_grazing_start))
+
+    return rows as Grazing[]
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazingForHerd", { l_id_herd })
+  }
+}
+
+/**
+ * Retrieves all grazing actions across herds for a farm.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal ID.
+ * @param b_id_farm - Farm ID.
+ * @param timeframe - Optional timeframe filter.
+ * @returns Array of grazing records.
+ */
+export async function getGrazingForFarm(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  timeframe?: Timeframe,
+): Promise<Grazing[]> {
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getGrazingForFarm")
+
+    const herdRows = await fdm
+      .select({ l_id_herd: schema.herdStarting.l_id_herd })
+      .from(schema.herdStarting)
+      .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
+
+    const herdIds = herdRows.map((h) => h.l_id_herd)
+
+    if (herdIds.length === 0) {
+      return []
+    }
+
+    let dateWhere: SQL | undefined = inArray(schema.grazing.l_id_herd, herdIds)
+    if (timeframe?.start && timeframe?.end) {
+      dateWhere = and(
+        dateWhere,
+        gte(schema.grazing.l_grazing_start, timeframe.start),
+        lte(schema.grazing.l_grazing_start, timeframe.end),
+      )
+    } else if (timeframe?.start) {
+      dateWhere = and(dateWhere, gte(schema.grazing.l_grazing_start, timeframe.start))
+    } else if (timeframe?.end) {
+      dateWhere = and(dateWhere, lte(schema.grazing.l_grazing_start, timeframe.end))
+    }
+
+    const rows = await fdm
+      .select({
+        b_id: schema.grazing.b_id,
+        l_id_herd: schema.grazing.l_id_herd,
+        l_grazing_start: schema.grazing.l_grazing_start,
+        l_grazing_end: schema.grazing.l_grazing_end,
+        l_grazing_days: schema.grazing.l_grazing_days,
+        l_grazing_hours: schema.grazing.l_grazing_hours,
+        l_grazing_area: schema.grazing.l_grazing_area,
+        l_grazing_type: schema.grazing.l_grazing_type,
+        created: schema.grazing.created,
+        updated: schema.grazing.updated,
+      })
+      .from(schema.grazing)
+      .where(dateWhere)
+      .orderBy(desc(schema.grazing.l_grazing_start))
+
+    return rows as Grazing[]
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazingForFarm", { b_id_farm })
+  }
+}

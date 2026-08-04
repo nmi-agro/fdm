@@ -10,6 +10,12 @@ export type Resource =
   | "soil_image"
   | "fertilizer_application"
   | "harvesting"
+  | "barn"
+  | "herd"
+  | "animal"
+  | "milk"
+  | "feed"
+  | "manure"
 export type Role = "owner" | "advisor" | "researcher"
 export type Action = "read" | "write" | "list" | "share"
 
