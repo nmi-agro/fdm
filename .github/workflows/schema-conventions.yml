@@ -1,0 +1,24 @@
+name: Schema Conventions
+on: push
+permissions:
+  contents: read
+jobs:
+  schema-conventions:
+    name: Schema Conventions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v7
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Zero-dependency check, so it needs no install and runs in seconds.
+      # Rules are documented in .github/skills/fdm-schema/SKILL.md
+      - name: Check fdm schema conventions
+        run: node .github/skills/fdm-schema/scripts/check-schema-conventions.mjs
