@@ -30,12 +30,15 @@ type AccessManagementCardProps = {
   principals: Principal[]
   hasSharePermission: boolean
   verificationProviders: AccessVerificationProvider[]
+  /** Used in the "remove last verification provider" confirmation copy. */
+  farmName: string | null
 }
 
 export const AccessManagementCard = ({
   principals,
   hasSharePermission,
   verificationProviders,
+  farmName,
 }: AccessManagementCardProps) => {
   return (
     <Card className="md:col-span-2">
@@ -78,6 +81,7 @@ export const AccessManagementCard = ({
                   isLastVerificationProvider={
                     isVerificationProvider && verificationProviders.length === 1
                   }
+                  farmName={farmName}
                 />
               )
             })}

@@ -32,6 +32,7 @@ import {
   Sprout,
   Square,
   Trash2,
+  UserRoundCheck,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -48,6 +49,7 @@ import { toast } from "sonner"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -717,7 +719,7 @@ export default function FarmDashboardIndex() {
                         to={`${calendar}/rvo`}
                         icon={<CloudDownload className="text-primary h-5 w-5" />}
                         title="Ophalen bij RVO"
-                        description="Importeer percelen vanuit RVO. Hiermee verifieert u ook het bedrijf."
+                        description="Importeer percelen vanuit RVO. Dit verifieert het bedrijf als het KvK-nummer overeenkomt."
                         disabledDescription="U heeft geen schrijfrechten om percelen te importeren."
                         disabled={!loaderData.farmWritePermission}
                       />
@@ -785,15 +787,16 @@ export default function FarmDashboardIndex() {
                           <BadgeAlert className="text-muted-foreground mt-0.5 h-5 w-5 shrink-0" />
                         )}
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold">
+                          <p className="flex items-center gap-1.5 text-sm font-semibold">
                             {loaderData.farmVerification.isVerified
                               ? "Geverifieerd"
                               : "Dit bedrijf is nog niet geverifieerd"}
+                            <FarmVerificationInfo />
                           </p>
                           <p className="text-muted-foreground mt-0.5 text-xs">
                             {loaderData.farmVerification.latest
                               ? `Laatst geverifieerd door ${loaderData.farmVerification.latest.display_name}.`
-                              : "U kunt dit bedrijf verifiëren door de percelen op te halen bij RVO en eHerkenning te gebruiken."}
+                              : "Haal percelen op bij RVO met eHerkenning. Als het KvK-nummer overeenkomt, wordt dit bedrijf geverifieerd."}
                           </p>
                         </div>
                       </div>
@@ -949,7 +952,7 @@ export default function FarmDashboardIndex() {
                       </Button>
                       <Button variant="ghost" className="w-full justify-start" asChild>
                         <NavLink to="settings/access">
-                          <BadgeCheck className="mr-2 h-4 w-4" />
+                          <UserRoundCheck className="mr-2 h-4 w-4" />
                           Toegang
                         </NavLink>
                       </Button>

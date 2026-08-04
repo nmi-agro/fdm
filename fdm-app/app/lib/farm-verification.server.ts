@@ -9,6 +9,8 @@ export interface FarmVerificationProvider {
   principal_id: string
   display_name: string
   verified_at: Date
+  /** The verification row backing this provider's status; needed to revoke it. */
+  verification_id: string
 }
 
 export async function getFarmVerificationStatus(
@@ -42,6 +44,7 @@ export async function getFarmVerificationStatus(
       principal_id: verification.principal_id,
       display_name: principal?.displayUserName || principal?.username || verification.principal_id,
       verified_at: verification.verified_at,
+      verification_id: verification.verification_id,
     })
   }
 

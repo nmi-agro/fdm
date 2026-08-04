@@ -1,6 +1,6 @@
 import type { Control, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { checkPermission, getFarm, updateFarm } from "@nmi-agro/fdm-core"
+import { checkPermission, getFarm, revokeFarmVerification, updateFarm } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import {
   type ActionFunctionArgs,
@@ -8,12 +8,24 @@ import {
   Form,
   type LoaderFunctionArgs,
   type MetaFunction,
+  useFetcher,
   useLoaderData,
 } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithSuccess } from "remix-toast"
 import validator from "validator"
 import { z } from "zod"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import {
   FormControl,
@@ -114,6 +126,7 @@ type FormValues = z.infer<typeof FormSchema>
 
 export default function FarmSettingsPropertiesBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const unlockFetcher = useFetcher()
 
   const form = useRemixForm<FormValues>({
     mode: "onTouched",
@@ -173,13 +186,54 @@ export default function FarmSettingsPropertiesBlock() {
                         <Input
                           placeholder="bv. 91021934"
                           {...field}
-                          readOnly={loaderData.farmVerification.isVerified}
+                          disabled={loaderData.farmVerification.isVerified}
                         />
                       </FormControl>
                       <FormDescription>
-                        {loaderData.farmVerification.isVerified
-                          ? "Het KvK-nummer is niet meer aanpasbaar omdat dit bedrijf is geverifieerd."
-                          : "Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven"}
+                        {loaderData.farmVerification.isVerified ? (
+                          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                            Het KvK-nummer is vergrendeld omdat dit bedrijf hierop is geverifieerd.
+                            Wijzig het nummer alleen als het onjuist is.
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  className="h-auto p-0 text-xs"
+                                  disabled={!loaderData.farmWritePermission}
+                                >
+                                  KvK-nummer corrigeren?
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>KvK-nummer wijzigen?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Dit bedrijf is geverifieerd op basis van het huidige
+                                    KvK-nummer. Als u het nummer wijzigt, vervalt de geverifieerde
+                                    status en moet dit bedrijf opnieuw geverifieerd worden via RVO
+                                    met eHerkenning.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      unlockFetcher.submit(
+                                        { intent: "unlock_kvk" },
+                                        { method: "post" },
+                                      )
+                                    }
+                                  >
+                                    KvK-nummer ontgrendelen
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </span>
+                        ) : (
+                          "Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven"
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -270,6 +324,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     // Get the session
     const session = await getSession(request)
+
+    // Peek at the intent without consuming the request body, so the main
+    // update flow below can still read the full form via extractFormValuesFromRequest.
+    const intentFormData = await request.clone().formData()
+    if (intentFormData.get("intent") === "unlock_kvk") {
+      const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
+      await Promise.all(
+        farmVerification.providers.map((provider) =>
+          revokeFarmVerification(fdm, session.principal_id, b_id_farm, provider.verification_id),
+        ),
+      )
+      return dataWithSuccess(null, {
+        message: "Verificatie ingetrokken. Het KvK-nummer is nu aanpasbaar.",
+      })
+    }
 
     const formValues = await extractFormValuesFromRequest(request, FormSchema)
 

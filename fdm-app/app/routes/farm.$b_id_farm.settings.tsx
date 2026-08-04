@@ -9,6 +9,7 @@ import {
 } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -153,15 +154,19 @@ export default function FarmContentBlock() {
         <FarmTitle
           title={"Instellingen"}
           description={
-            "Beheer de instellingen van je bedrijf. Verificatie krijg je door via RVO met eHerkenning minimaal een perceel op te halen voor het opgeslagen KvK-nummer."
+            "Beheer de instellingen van je bedrijf. Dit bedrijf raakt geverifieerd zodra je met eHerkenning minimaal één perceel ophaalt bij RVO en het KvK-nummer overeenkomt."
           }
           rightNode={
             loaderData.farmVerification.isVerified ? (
-              <Badge variant="outline" className="gap-1 border-green-600 text-green-700">
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 border-green-600 text-green-700"
+              >
                 <BadgeCheck className="h-4 w-4" />
                 {loaderData.farmVerification.latest
                   ? `Laatst geverifieerd door ${loaderData.farmVerification.latest.display_name}`
                   : "Geverifieerd"}
+                <FarmVerificationInfo className="ml-0.5" />
               </Badge>
             ) : undefined
           }

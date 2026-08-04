@@ -4,6 +4,7 @@ export interface AccessVerificationProvider {
   principal_id: string
   display_name: string
   verified_at: Date
+  verification_id: string
 }
 
 export const AccessInfoCard = () => {
@@ -35,6 +36,13 @@ export const AccessInfoCard = () => {
         <br />
         <p className="text-muted-foreground text-sm">
           <b>Let op:</b> Een bedrijf heeft minimaal één <i>Eigenaar</i> nodig.
+        </p>
+        <br />
+        <p className="text-muted-foreground text-sm">
+          <b>Geverifieerd bedrijf:</b> Een bedrijf wordt geverifieerd zodra u met eHerkenning
+          minimaal één perceel ophaalt bij RVO en het KvK-nummer daarvan overeenkomt met het
+          KvK-nummer van dit bedrijf. Verwijdert u de enige gebruiker die dit bedrijf zo heeft
+          geverifieerd, dan verliest het bedrijf de geverifieerde status.
         </p>
       </CardContent>
     </Card>

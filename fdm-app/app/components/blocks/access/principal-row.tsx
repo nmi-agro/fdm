@@ -46,6 +46,7 @@ type PrincipalRowProps = {
   hasSharePermission: boolean
   isVerificationProvider: boolean
   isLastVerificationProvider: boolean
+  farmName: string | null
 }
 
 export const PrincipalRow = ({
@@ -61,6 +62,7 @@ export const PrincipalRow = ({
   hasSharePermission,
   isVerificationProvider,
   isLastVerificationProvider,
+  farmName,
 }: PrincipalRowProps) => {
   const fetcher = useFetcher()
 
@@ -128,6 +130,8 @@ export const PrincipalRow = ({
 
   const isPending = status === "pending"
 
+  const farmLabel = farmName || "dit bedrijf"
+
   const expiryLabel =
     isPending && invitation_expires_at
       ? formatDistanceToNow(new Date(invitation_expires_at), {
@@ -145,29 +149,37 @@ export const PrincipalRow = ({
         </Avatar>
         <div>
           <p className="text-sm leading-none font-medium">{displayUserName}</p>
-          {isVerificationProvider && (
-            <Tooltip>
-              <TooltipTrigger>
-                <Badge variant="outline" className="mt-2 gap-1 border-green-600 text-green-700">
-                  <BadgeCheck className="h-3.5 w-3.5" />
-                  Geverifieerd
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                Deze gebruiker heeft een geverifieerde relatie met dit bedrijf.
-              </TooltipContent>
-            </Tooltip>
-          )}
-          {isPending ? (
-            <p className="text-muted-foreground text-sm">
-              Uitnodiging
-              {expiryLabel ? ` · verloopt ${expiryLabel}` : ""}
-            </p>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              {type === "user" ? "Gebruiker" : type === "organization" ? "Organisatie" : "Onbekend"}
-            </p>
-          )}
+          <div className="flex items-center space-x-2">
+            {isPending ? (
+              <p className="text-muted-foreground text-sm">
+                Uitnodiging
+                {expiryLabel ? ` · verloopt ${expiryLabel}` : ""}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                {type === "user"
+                  ? "Gebruiker"
+                  : type === "organization"
+                    ? "Organisatie"
+                    : "Onbekend"}
+              </p>
+            )}
+            {isVerificationProvider && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Badge variant="outline" className="mt-2 gap-1 border-green-600 text-green-700">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    {isLastVerificationProvider ? "Enige verificatiehouder" : "Verificatiehouder"}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isLastVerificationProvider
+                    ? "Als deze gebruiker wordt verwijderd, verliest dit bedrijf de geverifieerde status."
+                    : "Deze gebruiker heeft dit bedrijf via eHerkenning geverifieerd."}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </div>
       {hasSharePermission ? (
@@ -214,14 +226,12 @@ export const PrincipalRow = ({
                 <AlertDialogTrigger asChild>{removeButton}</AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Laatste gebruiker met geverifieerde relatie tot dit bedrijf verwijderen?
-                    </AlertDialogTitle>
+                    <AlertDialogTitle>Laatste verificatiehouder verwijderen?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Deze gebruiker is de enige gebruiker die een geverifieerde relatie met dit
-                      bedrijf heeft. Als u deze gebruiker verwijdert, dan verliest dit bedrijf ook
-                      de geverifieerde status. Weet u zeker dat u de toegang van deze gebruiker tot
-                      bedrijf wilt verwijderen?
+                      Deze gebruiker is de enige gebruiker die {farmLabel} via eHerkenning heeft
+                      geverifieerd. Als u deze gebruiker verwijdert, verliest {farmLabel} direct de
+                      geverifieerde status. Weet u zeker dat u de toegang van deze gebruiker wilt
+                      verwijderen?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

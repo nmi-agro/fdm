@@ -130,6 +130,7 @@ export default function CreateFarmAccessStep() {
               principals={principals}
               hasSharePermission={hasSharePermission}
               verificationProviders={verificationProviders}
+              farmName={b_name_farm}
             />
             <AccessInfoCard />
           </div>

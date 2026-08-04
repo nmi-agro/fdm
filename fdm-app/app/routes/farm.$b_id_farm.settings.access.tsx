@@ -79,6 +79,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Return user information from loader
     return {
       b_id_farm: b_id_farm,
+      farmName: farm.b_name_farm,
       principals: principals,
       hasSharePermission: hasSharePermission,
       verificationProviders: farmVerification.providers,
@@ -89,7 +90,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function FarmSettingsAccessBlock() {
-  const { principals, hasSharePermission, verificationProviders } = useLoaderData<typeof loader>()
+  const { principals, hasSharePermission, verificationProviders, farmName } =
+    useLoaderData<typeof loader>()
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -97,6 +99,7 @@ export default function FarmSettingsAccessBlock() {
         principals={principals}
         hasSharePermission={hasSharePermission}
         verificationProviders={verificationProviders}
+        farmName={farmName}
       />
       <AccessInfoCard />
     </div>
