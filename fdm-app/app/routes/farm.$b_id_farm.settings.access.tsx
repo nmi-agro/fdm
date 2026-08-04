@@ -98,7 +98,7 @@ export default function FarmSettingsAccessBlock() {
         hasSharePermission={hasSharePermission}
         verificationProviders={verificationProviders}
       />
-      <AccessInfoCard verificationProviders={verificationProviders} />
+      <AccessInfoCard />
     </div>
   )
 }

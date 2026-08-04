@@ -87,7 +87,7 @@ export async function addFarmVerification(
       const verification_id = createId()
       const resolvedPrincipalId = Array.isArray(principal_id)
         ? principal_id[0] || "unknown"
-        : principal_id
+        : principal_id || "unknown"
 
       await tx.insert(authZSchema.farmVerification).values({
         verification_id,

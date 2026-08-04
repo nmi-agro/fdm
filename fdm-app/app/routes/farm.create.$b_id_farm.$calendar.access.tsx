@@ -131,7 +131,7 @@ export default function CreateFarmAccessStep() {
               hasSharePermission={hasSharePermission}
               verificationProviders={verificationProviders}
             />
-            <AccessInfoCard verificationProviders={verificationProviders} />
+            <AccessInfoCard />
           </div>
         </div>
       </main>

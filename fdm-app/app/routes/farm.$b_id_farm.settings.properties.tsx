@@ -173,7 +173,7 @@ export default function FarmSettingsPropertiesBlock() {
                         <Input
                           placeholder="bv. 91021934"
                           {...field}
-                          disabled={loaderData.farmVerification.isVerified}
+                          readOnly={loaderData.farmVerification.isVerified}
                         />
                       </FormControl>
                       <FormDescription>
