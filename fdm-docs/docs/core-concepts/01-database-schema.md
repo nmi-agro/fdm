@@ -21,6 +21,8 @@ The FDM database is organized into four distinct PostgreSQL schemas:
 3. **`fdm-authz`**: Manages authorization, defining roles, permissions, and maintaining an audit trail.
 4. **`fdm-calculator`**: Caches calculation results and stores calculation errors to improve performance and provide better debugging capabilities.
 
+Column and table names follow a consistent system of domain prefixes and parameter codes. See [Naming Conventions](./12-naming-conventions.md) for guidance on reading names such as `b_id_farm`, `p_n_rt` and `a_p_al`.
+
 ---
 
 ## `fdm` Schema (Core Farm Data)
