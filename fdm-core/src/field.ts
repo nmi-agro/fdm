@@ -558,6 +558,9 @@ export async function removeField(
       await tx.delete(schema.fieldDiscarding).where(eq(schema.fieldDiscarding.b_id, b_id))
       await tx.delete(schema.fieldAcquiring).where(eq(schema.fieldAcquiring.b_id, b_id))
 
+      // Delete grazing records recorded for this field (grazing.b_id references fields.b_id)
+      await tx.delete(schema.grazing).where(eq(schema.grazing.b_id, b_id))
+
       // Step 13: Finally, delete the field itself
       await tx.delete(schema.fields).where(eq(schema.fields.b_id, b_id))
     })

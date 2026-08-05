@@ -16,7 +16,9 @@ import {
   removeField,
   updateField,
 } from "./field"
+import { addGrazing } from "./grazing"
 import { addHarvest } from "./harvest"
+import { addHerd } from "./herd"
 import { createId } from "./id"
 import { addSoilAnalysis } from "./soil"
 
@@ -777,6 +779,14 @@ describe("Farm Data Model", () => {
         0,
       )
 
+      const l_id_herd = await addHerd(fdm, principal_id, farmId, {
+        l_herd_name: "Melkkoeien",
+        l_herd_category: "rvo_100",
+      })
+      await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-01"), {
+        b_id: fieldId,
+      })
+
       // 2. Action: Remove the field
       await removeField(fdm, principal_id, fieldId)
 
@@ -788,6 +798,12 @@ describe("Farm Data Model", () => {
         .from(schema.cultivations)
         .where(eq(schema.cultivations.b_lu, cultivationId))
       expect(remainingCultivations.length).toBe(0)
+
+      const remainingGrazing = await fdm
+        .select()
+        .from(schema.grazing)
+        .where(eq(schema.grazing.b_id, fieldId))
+      expect(remainingGrazing.length).toBe(0)
 
       const remainingSoilAnalyses = await fdm
         .select()
