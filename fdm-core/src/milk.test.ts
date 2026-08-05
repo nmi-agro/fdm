@@ -103,6 +103,63 @@ describe("Milk Domain", () => {
     expect(totalHerdMilk).toBe(35)
   })
 
+  it("should filter milk deliveries by timeframe and handle farm without tanks", async () => {
+    const d1 = new Date("2025-05-01")
+    const d2 = new Date("2025-06-01")
+
+    await addMilkDelivery(fdm, principal_id, b_id_milktank, d1, 1000)
+    await addMilkDelivery(fdm, principal_id, b_id_milktank, d2, 2000)
+
+    // Filter start only
+    const startOnly = await getMilkDeliveriesForFarm(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-05-15"),
+      end: undefined,
+    })
+    expect(startOnly.length).toBe(1)
+    expect(startOnly[0].b_milk_amount).toBe(2000)
+
+    // Filter end only
+    const endOnly = await getMilkDeliveriesForFarm(fdm, principal_id, b_id_farm, {
+      start: undefined,
+      end: new Date("2025-05-15"),
+    })
+    expect(endOnly.length).toBe(1)
+    expect(endOnly[0].b_milk_amount).toBe(1000)
+
+    // Farm without tanks returns empty
+    const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Street 2", "1234AB")
+    const noTanks = await getMilkDeliveriesForFarm(fdm, principal_id, farm2)
+    expect(noTanks).toEqual([])
+  })
+
+  it("should calculate milk production for herd with start-only or end-only timeframe", async () => {
+    const d1 = new Date("2025-05-01")
+    const d2 = new Date("2025-06-01")
+
+    await addMilking(fdm, principal_id, l_id_herd, b_id_milktank, d1, { b_milk_amount: 500 })
+    await addMilking(fdm, principal_id, l_id_herd, b_id_milktank, d2, { b_milk_amount: 700 })
+
+    const startOnly = await getMilkProductionForHerd(fdm, principal_id, l_id_herd, {
+      start: new Date("2025-05-15"),
+      end: undefined,
+    })
+    expect(startOnly).toBe(700)
+
+    const endOnly = await getMilkProductionForHerd(fdm, principal_id, l_id_herd, {
+      start: undefined,
+      end: new Date("2025-05-15"),
+    })
+    expect(endOnly).toBe(500)
+  })
+
+  it("should throw an error when adding milking with a non-existent milk tank", async () => {
+    await expect(
+      addMilking(fdm, principal_id, l_id_herd, "non_existent_tank_id", new Date(), {
+        b_milk_amount: 100,
+      }),
+    ).rejects.toThrowError("Exception for addMilking")
+  })
+
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(addMilkTank(fdm, invalidUser, b_id_farm)).rejects.toThrowError(

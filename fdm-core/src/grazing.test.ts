@@ -54,6 +54,44 @@ describe("Grazing Domain", () => {
     expect(farmGrazing.length).toBe(1)
   })
 
+  it("should filter grazing actions by timeframe and handle farm without herds", async () => {
+    const d1 = new Date("2025-05-01")
+    const d2 = new Date("2025-06-01")
+
+    await addGrazing(fdm, principal_id, l_id_herd, d1, { l_grazing_days: 10 })
+    await addGrazing(fdm, principal_id, l_id_herd, d2, { l_grazing_days: 20 })
+
+    const herdStartOnly = await getGrazingForHerd(fdm, principal_id, l_id_herd, {
+      start: new Date("2025-05-15"),
+      end: undefined,
+    })
+    expect(herdStartOnly.length).toBe(1)
+    expect(herdStartOnly[0].l_grazing_days).toBe(20)
+
+    const herdEndOnly = await getGrazingForHerd(fdm, principal_id, l_id_herd, {
+      start: undefined,
+      end: new Date("2025-05-15"),
+    })
+    expect(herdEndOnly.length).toBe(1)
+    expect(herdEndOnly[0].l_grazing_days).toBe(10)
+
+    const farmStartOnly = await getGrazingForFarm(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-05-15"),
+      end: undefined,
+    })
+    expect(farmStartOnly.length).toBe(1)
+
+    const farmEndOnly = await getGrazingForFarm(fdm, principal_id, b_id_farm, {
+      start: undefined,
+      end: new Date("2025-05-15"),
+    })
+    expect(farmEndOnly.length).toBe(1)
+
+    const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Pasture 2", "1234AB")
+    const emptyFarm = await getGrazingForFarm(fdm, principal_id, farm2)
+    expect(emptyFarm).toEqual([])
+  })
+
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(addGrazing(fdm, invalidUser, l_id_herd, new Date())).rejects.toThrowError(

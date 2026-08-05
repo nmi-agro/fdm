@@ -119,6 +119,19 @@ describe("Animal Domain", () => {
     expect(farmHerds.map((h) => h.l_herd_category)).toEqual(
       expect.arrayContaining(["rvo_100", "rvo_101"]),
     )
+
+    // Reassign second animal to same category ("rvo_101") - should reuse targetHerdId
+    const l_id_animal2 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL987654322",
+    })
+    const reusedHerdId = await setAnimalCategory(fdm, principal_id, l_id_animal2, "rvo_101")
+    expect(reusedHerdId).toBe(targetHerdId)
+  })
+
+  it("should compute census at a specific date", async () => {
+    const evalDate = new Date("2025-06-01")
+    const census = await getCensusForFarm(fdm, principal_id, b_id_farm, evalDate)
+    expect(census).toBeDefined()
   })
 
   it("should sync l_birth_date and l_arriving_date when l_arriving_method is 'born'", async () => {

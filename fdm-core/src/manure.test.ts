@@ -104,6 +104,51 @@ describe("Manure Domain", () => {
     expect(acquired[0].b_id_manurepit).toBe(b_id_manurepit)
   })
 
+  it("should record excreting with end date, filter disposals by timeframe, and handle 0 pits", async () => {
+    const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
+    const startDate = new Date("2025-04-01")
+    const endDate = new Date("2025-04-30")
+
+    const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
+      l_excreting_start: startDate,
+      l_excreting_end: endDate,
+      p_amount: 12000,
+    })
+    expect(l_id_excreting).toBeDefined()
+
+    const d1 = new Date("2025-04-10")
+    const d2 = new Date("2025-05-10")
+    await addManureDisposing(fdm, principal_id, b_id_manurepit, d1, 5000)
+    await addManureDisposing(fdm, principal_id, b_id_manurepit, d2, 7000)
+
+    const startOnly = await getManureDisposalsForFarm(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-05-01"),
+      end: undefined,
+    })
+    expect(startOnly.length).toBe(1)
+    expect(startOnly[0].p_amount).toBe(7000)
+
+    const endOnly = await getManureDisposalsForFarm(fdm, principal_id, b_id_farm, {
+      start: undefined,
+      end: new Date("2025-05-01"),
+    })
+    expect(endOnly.length).toBe(1)
+    expect(endOnly[0].p_amount).toBe(5000)
+
+    // Farm with 0 pits
+    const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Street 2", "1234AB")
+    const emptyDisposals = await getManureDisposalsForFarm(fdm, principal_id, farm2)
+    expect(emptyDisposals).toEqual([])
+  })
+
+  it("should throw an error when adding excreting with a non-existent manure pit", async () => {
+    await expect(
+      addExcreting(fdm, principal_id, l_id_herd, "non_existent_pit_id", {
+        p_amount: 1000,
+      }),
+    ).rejects.toThrowError("Exception for addExcreting")
+  })
+
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(addManurePit(fdm, invalidUser, b_id_farm)).rejects.toThrowError(

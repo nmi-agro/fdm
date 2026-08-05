@@ -43,10 +43,12 @@ describe("Herd Domain", () => {
 
     await updateHerd(fdm, principal_id, l_id_herd, {
       l_herd_name: "Melkkoeien Groep A",
+      l_herd_category: "rvo_101",
     })
 
     const updated = await getHerd(fdm, principal_id, l_id_herd)
     expect(updated.l_herd_name).toBe("Melkkoeien Groep A")
+    expect(updated.l_herd_category).toBe("rvo_101")
 
     const herds = await getHerdsForFarm(fdm, principal_id, b_id_farm)
     expect(herds.length).toBe(1)

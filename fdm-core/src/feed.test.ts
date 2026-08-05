@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
+import { addAnimal } from "./animal"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import { addFeedBatch, addFeeding, getFeedBatchesForFarm, getFeedSelfSufficiency } from "./feed"
+import { addFeedBatch, addFeeding, addFeedingAnimal, getFeedBatchesForFarm, getFeedSelfSufficiency } from "./feed"
 import { addHerd } from "./herd"
 
 describe("Feed Domain", () => {
@@ -87,6 +88,39 @@ describe("Feed Domain", () => {
     expect(selfSufficiency.totalRoughageDmKg).toBe(6250)
     expect(selfSufficiency.ownLandRoughageDmKg).toBe(4500)
     expect(selfSufficiency.selfSufficiencyRatio).toBeCloseTo(0.72, 2)
+  })
+
+  it("should record animal supplemental feeding, handle 0 batches, and filter self-sufficiency timeframe", async () => {
+    // 0 batches returns zero self-sufficiency
+    const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Street 2", "1234AB")
+    const emptySelfSufficiency = await getFeedSelfSufficiency(fdm, principal_id, farm2)
+    expect(emptySelfSufficiency.totalRoughageDmKg).toBe(0)
+    expect(emptySelfSufficiency.selfSufficiencyRatio).toBe(0)
+
+    // Test addFeedingAnimal
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, { l_id_eartag: "NL101" })
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "concentrate", "purchased", { f_dm: 880 })
+    await addFeedingAnimal(fdm, principal_id, f_id_batch, l_id_animal, new Date("2025-07-01"), { f_amount: 50 })
+
+    // Timeframe filters for getFeedSelfSufficiency
+    const d1 = new Date("2025-07-01")
+    const d2 = new Date("2025-08-01")
+    const bOwn = await addFeedBatch(fdm, principal_id, b_id_farm, "grass_silage", "own_land", { f_dm: 500 })
+
+    await addFeeding(fdm, principal_id, bOwn, l_id_herd, d1, { f_amount: 2000 })
+    await addFeeding(fdm, principal_id, bOwn, l_id_herd, d2, { f_amount: 4000 })
+
+    const startOnly = await getFeedSelfSufficiency(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-07-15"),
+      end: undefined,
+    })
+    expect(startOnly.totalRoughageDmKg).toBe(2000)
+
+    const endOnly = await getFeedSelfSufficiency(fdm, principal_id, b_id_farm, {
+      start: undefined,
+      end: new Date("2025-07-15"),
+    })
+    expect(endOnly.totalRoughageDmKg).toBe(1000)
   })
 
   it("should deny access to unauthorized principal", async () => {

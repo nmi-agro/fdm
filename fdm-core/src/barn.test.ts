@@ -63,20 +63,49 @@ describe("Barn Domain", () => {
     expect(activeBarns.length).toBe(0)
   })
 
-  it("should handle herd housing action", async () => {
+  it("should handle herd housing action with housing end date and update barn properties", async () => {
+    const polygon = {
+      type: "Polygon" as const,
+      coordinates: [
+        [
+          [5.1, 52.1],
+          [5.2, 52.1],
+          [5.2, 52.2],
+          [5.1, 52.2],
+          [5.1, 52.1],
+        ],
+      ],
+    }
+
     const b_id_barn = await addBarn(fdm, principal_id, b_id_farm, {
+      b_barn_name: "Barn 1",
       b_floor_area: 500,
+      b_barn_geometry: polygon,
     })
+
+    await updateBarn(fdm, principal_id, b_id_barn, {
+      b_barn_name: "Barn 1 Updated",
+      b_floor_area: 750,
+      b_barn_geometry: polygon,
+    })
+
+    const updatedBarn = await getBarn(fdm, principal_id, b_id_barn)
+    expect(updatedBarn.b_barn_name).toBe("Barn 1 Updated")
+    expect(updatedBarn.b_floor_area).toBe(750)
+
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
       l_herd_category: "rvo_100",
     })
 
-    await addHousing(fdm, principal_id, l_id_herd, b_id_barn)
+    const hStart = new Date("2025-01-01")
+    const hEnd = new Date("2025-04-15")
+    await addHousing(fdm, principal_id, l_id_herd, b_id_barn, hStart, hEnd)
 
     const housingRecords = await getHousingForHerd(fdm, principal_id, l_id_herd)
     expect(housingRecords.length).toBe(1)
     expect(housingRecords[0].b_id_barn).toBe(b_id_barn)
+    expect(new Date(housingRecords[0].b_housing_end!).toISOString()).toBe(hEnd.toISOString())
   })
 
   it("should deny access to unauthorized principal", async () => {

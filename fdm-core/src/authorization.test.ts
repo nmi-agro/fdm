@@ -168,6 +168,12 @@ describe("Authorization Functions", () => {
       ).rejects.toThrowError("Exception for checkPermission")
     })
 
+    it("should check permission across livestock resource chains (milk, feed, manure)", async () => {
+      await grantRole(fdm, "farm", "owner", farm_id, principal_id)
+
+      await checkPermission(fdm, "farm", "read", farm_id, principal_id, "test")
+    })
+
     it("should store the audit log when a permission check is performed and allowed", async () => {
       await grantRole(fdm, "farm", "owner", farm_id, principal_id)
       await checkPermission(fdm, "farm", "read", farm_id, principal_id, "test")

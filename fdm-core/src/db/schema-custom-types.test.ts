@@ -1,4 +1,14 @@
 import { describe, expect, it } from "vitest"
+import {
+  animalCategoryOptions,
+  animalSexOptions,
+  animalSpeciesOptions,
+  arrivingMethodOptions,
+  feedOriginOptions,
+  feedTypeOptions,
+  grazingTypeOptions,
+  leavingMethodOptions,
+} from "./schema"
 import { GeometryType, parseGeometry, parseHexToGeometry } from "./schema-custom-types"
 
 // WKB hex for a simple square MultiPolygon (1 polygon, 1 ring, 5 points)
@@ -93,5 +103,28 @@ describe("parseGeometry", () => {
     expect(() => parseGeometry(view, true, GeometryType.GeometryCollection, 0)).toThrow(
       "Unsupported geometry type",
     )
+  })
+})
+
+describe("Livestock Schema Options Arrays", () => {
+  it("defines non-empty option arrays with value and label", () => {
+    const optionArrays = [
+      animalCategoryOptions,
+      animalSexOptions,
+      animalSpeciesOptions,
+      arrivingMethodOptions,
+      leavingMethodOptions,
+      feedTypeOptions,
+      feedOriginOptions,
+      grazingTypeOptions,
+    ]
+
+    for (const arr of optionArrays) {
+      expect(arr.length).toBeGreaterThan(0)
+      for (const item of arr) {
+        expect(typeof item.value).toBe("string")
+        expect(typeof item.label).toBe("string")
+      }
+    }
   })
 })
