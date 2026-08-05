@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { getTableConfig } from "drizzle-orm/pg-core"
 import { beforeAll, describe, expect, inject, it } from "vitest"
 import type { FdmAuth } from "./authentication"
@@ -17,6 +17,7 @@ import {
   getLatestFarmVerification,
   isFarmVerifiedForPrincipal,
   revokeFarmVerification,
+  revokeFarmVerificationStatus,
 } from "./verification"
 
 describe("Farm Verification Functions", () => {
@@ -180,9 +181,75 @@ describe("Farm Verification Functions", () => {
     expect(
       history.find((entry) => entry.verification_id === verification_id)?.revoked_at,
     ).toBeInstanceOf(Date)
+    const revocationAudits = await fdm
+      .select({
+        audit_origin: authZSchema.audit.audit_origin,
+        action: authZSchema.audit.action,
+        target_resource: authZSchema.audit.target_resource,
+        target_resource_id: authZSchema.audit.target_resource_id,
+        principal_id: authZSchema.audit.principal_id,
+      })
+      .from(authZSchema.audit)
+      .where(
+        and(
+          eq(authZSchema.audit.audit_origin, "revokeFarmVerification"),
+          eq(authZSchema.audit.target_resource, "farm"),
+          eq(authZSchema.audit.target_resource_id, b_id_farm),
+          eq(authZSchema.audit.principal_id, principal_id),
+        ),
+      )
+    expect(revocationAudits).toEqual([
+      expect.objectContaining({
+        audit_origin: "revokeFarmVerification",
+        action: "write",
+        target_resource: "farm",
+        target_resource_id: b_id_farm,
+        principal_id,
+      }),
+    ])
     await expect(
       revokeFarmVerification(fdm, principal_id, b_id_farm, verification_id),
     ).rejects.toThrowError("Exception for revokeFarmVerification")
+  })
+
+  it("revokes farm verification status for every principal in one operation", async () => {
+    const bulkFarmId = await addFarm(
+      fdm,
+      principal_id,
+      "Bulk Verification Farm",
+      "555556",
+      "Address",
+      "1111AB",
+    )
+    const otherUser = await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: `bulk-verification-${createId().toLowerCase()}@example.com`,
+        name: "bulk-verification-user",
+        username: `bulk${createId().toLowerCase()}`,
+        password: "password",
+      } as any,
+    })
+    const otherPrincipalId = otherUser.user.id
+    await grantRole(fdm, "farm", "owner", bulkFarmId, otherPrincipalId)
+
+    await addFarmVerification(fdm, principal_id, bulkFarmId, {
+      verification_method: "rvo_eherkenning",
+      verification_result: "verified",
+      b_businessid_farm: "555556",
+    })
+    await addFarmVerification(fdm, otherPrincipalId, bulkFarmId, {
+      verification_method: "rvo_eherkenning",
+      verification_result: "verified",
+      b_businessid_farm: "555556",
+    })
+
+    await revokeFarmVerificationStatus(fdm, principal_id, bulkFarmId)
+
+    const history = await getFarmVerifications(fdm, principal_id, bulkFarmId)
+    expect(history).toHaveLength(2)
+    expect(history.every((entry) => entry.revoked_at instanceof Date)).toBe(true)
+    await expect(isFarmVerifiedForPrincipal(fdm, principal_id, bulkFarmId)).resolves.toBe(false)
   })
 
   it("does not expose verification status without farm access", async () => {

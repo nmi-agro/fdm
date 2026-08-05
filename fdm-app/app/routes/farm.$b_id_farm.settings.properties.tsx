@@ -1,6 +1,11 @@
 import type { Control, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { checkPermission, getFarm, revokeFarmVerification, updateFarm } from "@nmi-agro/fdm-core"
+import {
+  checkPermission,
+  getFarm,
+  revokeFarmVerificationStatus,
+  updateFarm,
+} from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import {
   type ActionFunctionArgs,
@@ -329,12 +334,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     // update flow below can still read the full form via extractFormValuesFromRequest.
     const intentFormData = await request.clone().formData()
     if (intentFormData.get("intent") === "unlock_kvk") {
-      const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
-      await Promise.all(
-        farmVerification.providers.map((provider) =>
-          revokeFarmVerification(fdm, session.principal_id, b_id_farm, provider.verification_id),
-        ),
-      )
+      await revokeFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
       return dataWithSuccess(null, {
         message: "Verificatie ingetrokken. Het KvK-nummer is nu aanpasbaar.",
       })

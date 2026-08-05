@@ -383,8 +383,37 @@ export async function revokeFarmVerification(
   verification_id: string,
 ): Promise<void> {
   try {
+    const start = performance.now()
     await fdm.transaction(async (tx) => {
       await checkPermission(tx, "farm", "write", b_id_farm, principal_id, "revokeFarmVerification")
+
+      const verification = await tx
+        .select({ verification_id: authZSchema.farmVerification.verification_id })
+        .from(authZSchema.farmVerification)
+        .where(
+          and(
+            eq(authZSchema.farmVerification.verification_id, verification_id),
+            eq(authZSchema.farmVerification.b_id_farm, b_id_farm),
+            isNull(authZSchema.farmVerification.revoked_at),
+          ),
+        )
+        .limit(1)
+        .for("update")
+
+      if (verification.length === 0) {
+        throw new Error("Active farm verification not found")
+      }
+
+      await writeAuditEntry(
+        tx,
+        "revokeFarmVerification",
+        "farm",
+        "write",
+        principal_id,
+        "farm",
+        b_id_farm,
+        Math.round(performance.now() - start),
+      )
 
       const updated = await tx
         .update(authZSchema.farmVerification)
@@ -407,5 +436,79 @@ export async function revokeFarmVerification(
       b_id_farm,
       verification_id,
     })
+  }
+}
+
+/**
+ * Soft-revokes every active farm verification for a farm.
+ *
+ * The acting principal is used for authorization and audit logging only. The
+ * operation invalidates verification status for every principal on the farm,
+ * which is required when the farm's KvK number changes.
+ *
+ * @param fdm The FDM database instance created with {@link createFdmServer}.
+ * @param principal_id The principal requesting revocation. It is not used to
+ *   filter verification rows.
+ * @param b_id_farm The farm whose active verifications should be revoked.
+ * @returns A promise that resolves after all matching verifications are revoked.
+ * @throws {Error} If the principal lacks write permission or the transaction fails.
+ *
+ * @alpha
+ */
+export async function revokeFarmVerificationStatus(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: string,
+): Promise<void> {
+  try {
+    await fdm.transaction(async (tx) => {
+      const start = performance.now()
+      await checkPermission(
+        tx,
+        "farm",
+        "write",
+        b_id_farm,
+        principal_id,
+        "revokeFarmVerificationStatus",
+      )
+
+      const verifications = await tx
+        .select({ verification_id: authZSchema.farmVerification.verification_id })
+        .from(authZSchema.farmVerification)
+        .where(
+          and(
+            eq(authZSchema.farmVerification.b_id_farm, b_id_farm),
+            isNull(authZSchema.farmVerification.revoked_at),
+          ),
+        )
+        .for("update")
+
+      if (verifications.length === 0) {
+        return
+      }
+
+      await writeAuditEntry(
+        tx,
+        "revokeFarmVerificationStatus",
+        "farm",
+        "write",
+        principal_id,
+        "farm",
+        b_id_farm,
+        Math.round(performance.now() - start),
+      )
+
+      await tx
+        .update(authZSchema.farmVerification)
+        .set({ revoked_at: new Date() })
+        .where(
+          and(
+            eq(authZSchema.farmVerification.b_id_farm, b_id_farm),
+            isNull(authZSchema.farmVerification.revoked_at),
+          ),
+        )
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for revokeFarmVerificationStatus", { b_id_farm })
   }
 }

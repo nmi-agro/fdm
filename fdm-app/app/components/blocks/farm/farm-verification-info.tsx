@@ -16,7 +16,7 @@ export function FarmVerificationInfo({ className }: { className?: string }) {
         </button>
       </TooltipTrigger>
       <TooltipContent className="max-w-70">
-        Een bedrijf wordt geverifieerd zodra u met eHerkenning minimaal één perceel ophaalt bij RVO
+        Een bedrijf wordt geverifieerd zodra u met eHerkenning bij RVO een succesvolle opvraag doet
         en het KvK-nummer daarvan overeenkomt met het KvK-nummer van dit bedrijf.
       </TooltipContent>
     </Tooltip>

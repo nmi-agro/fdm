@@ -177,8 +177,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         year,
         cultivationsCatalogue,
       )
-    } catch (e: any) {
+    } catch (e) {
       console.error("Error with importing from RVO:", e)
+      if (e instanceof Response && e.status === 403) {
+        throw e
+      }
       error = await extractErrorMessage(e)
     }
   } else if (!url.searchParams.has("start_import")) {

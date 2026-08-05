@@ -219,6 +219,7 @@ export {
   getLatestFarmVerification,
   isFarmVerifiedForPrincipal,
   revokeFarmVerification,
+  revokeFarmVerificationStatus,
 } from "./verification"
 export type {
   AddFarmVerificationInput,

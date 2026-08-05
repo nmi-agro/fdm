@@ -154,8 +154,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         year,
         cultivationsCatalogue,
       )
-    } catch (e: any) {
+    } catch (e) {
       console.error("RVO Import Fout:", e)
+      if (e instanceof Response && e.status === 403) {
+        throw e
+      }
       error = await extractErrorMessage(e)
     }
   } else if (!url.searchParams.has("start_import")) {

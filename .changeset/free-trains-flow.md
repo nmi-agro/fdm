@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-rvo": minor
 ---
 
-Add isRvoPermissionDeniedError to seperate permission errors and server errors
+Add isRvoPermissionDeniedError to separate permission errors and server errors
