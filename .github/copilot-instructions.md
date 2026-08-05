@@ -2,6 +2,16 @@
 
 FDM (Farm Data Model) is a pnpm + Turborepo monorepo of TypeScript packages for standardizing, storing, and analyzing farm data. Node `>=24`, `pnpm@11.17.0` (enforced via `only-allow pnpm`), ESM-only (`"type": "module"`).
 
+## This is a public, open-source repository
+
+The repository is MIT-licensed and public, and `fdm-docs` is published as a public site. Everything committed — code, comments, documentation, changesets, commit messages and PR descriptions — is world-readable and permanent. Write accordingly:
+
+- **Write for an outside reader.** Documentation and comments should make sense to a contributor with no access to internal systems. Avoid references to internal tooling, dashboards, meetings or ticket numbers that a reader cannot follow.
+- **Documentation must be accurate.** Verify claims against the code before writing them down; a confidently wrong statement in a public repository is worse than no statement. Update the docs in the same PR as the behaviour they describe.
+- Secrets belong in `.env` files, which are git-ignored. If a secret is ever committed, treat it as compromised and rotate it — removing it in a later commit does not remove it from history.
+- **Never commit personal or sensitive data.** No real farm or field data, business identifiers, customer or colleague names, email addresses, coordinates of real fields, credentials, API keys, tokens, connection strings, or internal URLs. Use clearly synthetic values in examples, fixtures and tests.
+- **Do not paste internal material into the repository.** Application logs, stack traces, database dumps, support tickets, Sentry payloads and error reports routinely contain user data. If an error is worth documenting, describe the failure and the fix in your own words rather than pasting the raw output.
+
 ## Packages and how they depend on each other
 
 - **`fdm-core`** – The foundation: Drizzle ORM schema + all CRUD functions against a PostgreSQL (PostGIS) database. Everything else builds on it.
@@ -45,7 +55,7 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 
 ## Releases / changesets
 
-Versioning is via Changesets on a `development` → `release/*` → `main` flow. Any PR that should bump a published package must include a changeset: run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
+Versioning is via Changesets on a `development` → `release/*` → `main` flow. Any PR that changes a package must include a changeset: run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. This applies to every package in the monorepo, including private, unpublished ones such as `fdm-app` and `fdm-docs` — they are versioned and get a `CHANGELOG.md` too. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
 
 ## Design context (fdm-app)
 

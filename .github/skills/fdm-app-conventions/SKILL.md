@@ -134,7 +134,7 @@ pnpm --filter fdm-app dev        # http://localhost:5173
 
 Run `check-types` after any route change: `typegen` regenerates the route types, so a mismatched loader signature only surfaces there. Migrations run automatically on `dev` startup via `app/lib/fdm-migrate.server.js`.
 
-`fdm-app` is private and unpublished, so a change touching only this package needs no changeset — but one that also changes a library does.
+Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being published to a registry does not exempt it: the package is versioned like any other (`ignore` is empty in `.changeset/config.json`), and its `CHANGELOG.md` is how users and fellow contributors see what shipped.
 
 ## Anti-patterns
 
