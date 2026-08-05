@@ -168,7 +168,7 @@ Run with `cd fdm-api && pnpm test`.
 4. Add `src/tests/<resource>.test.ts`.
 5. Update `fdm-docs/docs/rest-api/06-endpoints.md`.
 6. `pnpm test` and `pnpm check-types` in `fdm-api`.
-7. `pnpm changeset` — the API is a published package.
+7. `pnpm changeset` — every package in the monorepo is versioned, including private ones.
 
 ## Anti-patterns
 
