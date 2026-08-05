@@ -2,6 +2,7 @@ import type * as schema from "./db/schema"
 
 export interface ManurePit {
   b_id_manurepit: schema.manurePitsTypeSelect["b_id_manurepit"]
+  b_id_farm: schema.manurePitsTypeSelect["b_id_farm"]
   b_manurepit_name?: schema.manurePitsTypeSelect["b_manurepit_name"]
   b_pit_area?: schema.manurePitsTypeSelect["b_pit_area"]
   created: schema.manurePitsTypeSelect["created"]

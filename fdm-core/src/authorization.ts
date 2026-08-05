@@ -1170,36 +1170,32 @@ async function getResourceChain(
       }
       chain.push(...buildBeadsFromRow(result[0]))
     } else if (resource === "milk") {
-      const tankResult = await fdm
-        .select({
-          farm: schema.milkTanks.b_id_farm,
-          milk: schema.milkTanks.b_id_milktank,
-        })
-        .from(schema.milkTanks)
-        .where(eq(schema.milkTanks.b_id_milktank, resource_id))
-        .limit(1)
-
-      if (tankResult.length > 0 && tankResult[0].farm) {
-        chain.push(...buildBeadsFromRow(tankResult[0]))
-      } else {
-        const milkingResult = await fdm
-          .select({
-            farm: schema.herdStarting.b_id_farm,
-            herd: schema.milkingHerd.l_id_herd,
-            milk: schema.milkingHerd.l_id_herd,
-          })
-          .from(schema.milkingHerd)
-          .leftJoin(
-            schema.herdStarting,
-            eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
-          )
-          .where(eq(schema.milkingHerd.l_id_herd, resource_id))
-          .limit(1)
-
-        if (milkingResult.length > 0 && milkingResult[0].farm) {
-          chain.push(...buildBeadsFromRow(milkingResult[0]))
-        } else {
-          const deliveringResult = await fdm
+      // Run the independent milk-resource lookups concurrently; take the first
+      // match in precedence order (tank, milking herd, delivering, milking animal).
+      const [tankResult, milkingResult, deliveringResult, milkingAnimalResult] = await Promise.all(
+        [
+          fdm
+            .select({
+              farm: schema.milkTanks.b_id_farm,
+              milk: schema.milkTanks.b_id_milktank,
+            })
+            .from(schema.milkTanks)
+            .where(eq(schema.milkTanks.b_id_milktank, resource_id))
+            .limit(1),
+          fdm
+            .select({
+              farm: schema.herdStarting.b_id_farm,
+              herd: schema.milkingHerd.l_id_herd,
+              milk: schema.milkingHerd.l_id_herd,
+            })
+            .from(schema.milkingHerd)
+            .leftJoin(
+              schema.herdStarting,
+              eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+            )
+            .where(eq(schema.milkingHerd.l_id_herd, resource_id))
+            .limit(1),
+          fdm
             .select({
               farm: schema.milkTanks.b_id_farm,
               milk: schema.milkDelivering.b_id_milk_delivering,
@@ -1210,33 +1206,35 @@ async function getResourceChain(
               eq(schema.milkDelivering.b_id_milktank, schema.milkTanks.b_id_milktank),
             )
             .where(eq(schema.milkDelivering.b_id_milk_delivering, resource_id))
-            .limit(1)
+            .limit(1),
+          fdm
+            .select({
+              farm: schema.animalArriving.b_id_farm,
+              animal: schema.milkingAnimal.l_id_animal,
+              milk: schema.milkingAnimal.l_id_animal,
+            })
+            .from(schema.milkingAnimal)
+            .leftJoin(
+              schema.animalArriving,
+              eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+            )
+            .where(eq(schema.milkingAnimal.l_id_animal, resource_id))
+            .limit(1),
+        ],
+      )
 
-          if (deliveringResult.length > 0 && deliveringResult[0].farm) {
-            chain.push(...buildBeadsFromRow(deliveringResult[0]))
-          } else {
-            const milkingAnimalResult = await fdm
-              .select({
-                farm: schema.animalArriving.b_id_farm,
-                animal: schema.milkingAnimal.l_id_animal,
-                milk: schema.milkingAnimal.l_id_animal,
-              })
-              .from(schema.milkingAnimal)
-              .leftJoin(
-                schema.animalArriving,
-                eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
-              )
-              .where(eq(schema.milkingAnimal.l_id_animal, resource_id))
-              .limit(1)
+      const candidates: Array<Record<string, unknown>>[] = [
+        tankResult,
+        milkingResult,
+        deliveringResult,
+        milkingAnimalResult,
+      ]
+      const match = candidates.find((rows) => rows.length > 0 && rows[0].farm)
 
-            if (milkingAnimalResult.length > 0 && milkingAnimalResult[0].farm) {
-              chain.push(...buildBeadsFromRow(milkingAnimalResult[0]))
-            } else {
-              return []
-            }
-          }
-        }
+      if (!match) {
+        return []
       }
+      chain.push(...buildBeadsFromRow(match[0]))
     } else if (resource === "feed") {
       const batchResult = await fdm
         .select({

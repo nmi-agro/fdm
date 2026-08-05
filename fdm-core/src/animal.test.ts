@@ -3,17 +3,21 @@ import type { FdmType } from "./fdm.types"
 import {
   addAnimal,
   addAnimalsToHerd,
+  assignAnimalToHerd,
+  createHerdWithAnimals,
   getAnimal,
   getAnimalsForFarm,
   getAnimalsForHerd,
   getCensusForFarm,
   removeAnimal,
-  setAnimalCategory,
+  removeAnimalAssigning,
+  removeAnimals,
   updateAnimal,
+  updateAnimalAssigning,
 } from "./animal"
 import { addFarm, getFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import { addHerd, getHerdsForFarm } from "./herd"
+import { addHerd } from "./herd"
 
 describe("Animal Domain", () => {
   let fdm: FdmType
@@ -83,7 +87,7 @@ describe("Animal Domain", () => {
     expect(remainingHerdAnimals.length).toBe(0)
   })
 
-  it("should bulk add animals to herd via addAnimalsToHerd and reduce count", async () => {
+  it("should bulk add animals to herd via addAnimalsToHerd and remove some via removeAnimals", async () => {
     // Add 10 animals
     const animalIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 10)
     expect(animalIds.length).toBe(10)
@@ -92,46 +96,186 @@ describe("Animal Domain", () => {
     const melkkoeienCensus = census.find((c) => c.l_id_herd === l_id_herd)
     expect(melkkoeienCensus?.count).toBe(10)
 
-    // Reduce to 7 animals
-    const reducedIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 7)
-    expect(reducedIds.length).toBe(7)
+    // Explicitly remove 3 specific animals
+    await removeAnimals(fdm, principal_id, animalIds.slice(0, 3), "sold")
 
     census = await getCensusForFarm(fdm, principal_id, b_id_farm)
     const updatedCensus = census.find((c) => c.l_id_herd === l_id_herd)
     expect(updatedCensus?.count).toBe(7)
   })
 
-  it("should reassign animal category via setAnimalCategory and preserve history", async () => {
+  it("should reassign an animal to a different existing herd via assignAnimalToHerd and preserve history", async () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL987654321",
     })
 
-    // Reassign animal to Jongvee category ("rvo_101")
-    const targetHerdId = await setAnimalCategory(fdm, principal_id, l_id_animal, "rvo_101")
-    expect(targetHerdId).toBeDefined()
-    expect(targetHerdId).not.toBe(l_id_herd)
+    const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_herd_category: "rvo_101",
+    })
+
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
 
     const updatedAnimal = await getAnimal(fdm, principal_id, l_id_animal)
     expect(updatedAnimal.l_id_herd).toBe(targetHerdId)
 
-    // Verify a new herd for category rvo_101 was created on farm
-    const farmHerds = await getHerdsForFarm(fdm, principal_id, b_id_farm)
-    expect(farmHerds.map((h) => h.l_herd_category)).toEqual(
-      expect.arrayContaining(["rvo_100", "rvo_101"]),
-    )
+    // A second, distinct herd sharing the same category is allowed and is a
+    // separate destination - the caller always names the herd explicitly.
+    const secondHerdSameCategory = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee 2",
+      l_herd_category: "rvo_101",
+    })
+    expect(secondHerdSameCategory).not.toBe(targetHerdId)
 
-    // Reassign second animal to same category ("rvo_101") - should reuse targetHerdId
     const l_id_animal2 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL987654322",
     })
-    const reusedHerdId = await setAnimalCategory(fdm, principal_id, l_id_animal2, "rvo_101")
-    expect(reusedHerdId).toBe(targetHerdId)
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal2, secondHerdSameCategory)
+    const updatedAnimal2 = await getAnimal(fdm, principal_id, l_id_animal2)
+    expect(updatedAnimal2.l_id_herd).toBe(secondHerdSameCategory)
+  })
+
+  it("should reject assignAnimalToHerd when the target herd belongs to another farm", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL987600001",
+    })
+
+    const otherFarmId = await addFarm(
+      fdm,
+      principal_id,
+      "Other Farm for Reassignment",
+      "654322",
+      "Other Street 2",
+      "4321BB",
+    )
+    const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
+      l_herd_name: "Andere kudde",
+      l_herd_category: "rvo_100",
+    })
+
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, otherHerdId),
+    ).rejects.toThrowError("Exception for assignAnimalToHerd")
+  })
+
+  it("should create a herd with a specific number of animals via createHerdWithAnimals", async () => {
+    const { l_id_herd: newHerdId, l_id_animals } = await createHerdWithAnimals(
+      fdm,
+      principal_id,
+      b_id_farm,
+      { l_herd_name: "Nieuwe kudde", l_herd_category: "rvo_100" },
+      5,
+      { l_species: "cattle", l_arriving_method: "purchased" },
+    )
+
+    expect(l_id_animals.length).toBe(5)
+
+    const herdAnimals = await getAnimalsForHerd(fdm, principal_id, newHerdId)
+    expect(herdAnimals.length).toBe(5)
+    expect(herdAnimals.every((a) => a.l_species === "cattle")).toBe(true)
+    expect(herdAnimals.every((a) => a.l_arriving_method === "purchased")).toBe(true)
+
+    const farm = await getFarm(fdm, principal_id, b_id_farm)
+    expect(farm.b_farm_livestock).toBe(true)
+  })
+
+  it("should correct an animal_assigning record via updateAnimalAssigning", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL700000010",
+    })
+
+    const before = await getAnimal(fdm, principal_id, l_id_animal)
+    const originalStart = before.l_arriving_date as Date
+
+    const correctedStart = new Date(originalStart.getTime() - 60_000)
+    await updateAnimalAssigning(
+      fdm,
+      principal_id,
+      l_id_animal,
+      l_id_herd,
+      originalStart,
+      { l_assigning_start: correctedStart },
+    )
+
+    const after = await getAnimal(fdm, principal_id, l_id_animal)
+    expect(after.l_id_herd).toBe(l_id_herd)
+
+    // Correcting to a herd on another farm must be rejected
+    const otherFarmId = await addFarm(
+      fdm,
+      principal_id,
+      "Other Farm for Assigning Correction",
+      "654323",
+      "Other Street 3",
+      "4321BC",
+    )
+    const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
+      l_herd_name: "Andere kudde 2",
+      l_herd_category: "rvo_100",
+    })
+
+    await expect(
+      updateAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, correctedStart, {
+        l_id_herd: otherHerdId,
+      }),
+    ).rejects.toThrowError("Exception for updateAnimalAssigning")
+  })
+
+  it("should hard-delete an animal_assigning record via removeAnimalAssigning", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL700000011",
+    })
+    const animal = await getAnimal(fdm, principal_id, l_id_animal)
+    const assigningStart = animal.l_arriving_date as Date
+
+    await removeAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, assigningStart)
+
+    const herdAnimals = await getAnimalsForHerd(fdm, principal_id, l_id_herd)
+    expect(herdAnimals.find((a) => a.l_id_animal === l_id_animal)).toBeUndefined()
+
+    // Removing a record that no longer exists is rejected
+    await expect(
+      removeAnimalAssigning(fdm, principal_id, l_id_animal, l_id_herd, assigningStart),
+    ).rejects.toThrowError("Exception for removeAnimalAssigning")
   })
 
   it("should compute census at a specific date", async () => {
     const evalDate = new Date("2025-06-01")
     const census = await getCensusForFarm(fdm, principal_id, b_id_farm, evalDate)
     expect(census).toBeDefined()
+  })
+
+  it("should keep herd in census with count 0 when all animals have departed", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL700000001",
+    })
+    await removeAnimal(fdm, principal_id, l_id_animal, "sold")
+
+    const census = await getCensusForFarm(fdm, principal_id, b_id_farm)
+    const herdCensus = census.find((c) => c.l_id_herd === l_id_herd)
+    expect(herdCensus).toBeDefined()
+    expect(herdCensus?.count).toBe(0)
+  })
+
+  it("should reject assigning an animal to a herd belonging to another farm", async () => {
+    const otherFarmId = await addFarm(
+      fdm,
+      principal_id,
+      "Other Farm for Animals",
+      "654321",
+      "Other Street 1",
+      "4321BA",
+    )
+    const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
+      l_herd_name: "Andere kudde",
+      l_herd_category: "rvo_100",
+    })
+
+    await expect(
+      addAnimal(fdm, principal_id, b_id_farm, otherHerdId, {
+        l_id_eartag: "NL800000001",
+      }),
+    ).rejects.toThrowError("Exception for addAnimal")
   })
 
   it("should sync l_birth_date and l_arriving_date when l_arriving_method is 'born'", async () => {
@@ -186,12 +330,35 @@ describe("Animal Domain", () => {
       "Principal does not have permission to perform this action",
     )
 
+    await expect(removeAnimals(fdm, invalidUser, [l_id_animal])).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
     await expect(addAnimalsToHerd(fdm, invalidUser, l_id_herd, 5)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
 
+    const otherHerdId = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_herd_category: "rvo_101",
+    })
+
     await expect(
-      setAnimalCategory(fdm, invalidUser, l_id_animal, "rvo_101"),
+      assignAnimalToHerd(fdm, invalidUser, l_id_animal, otherHerdId),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      createHerdWithAnimals(fdm, invalidUser, b_id_farm, { l_herd_name: "Kudde" }, 2),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      updateAnimalAssigning(fdm, invalidUser, l_id_animal, l_id_herd, new Date(), {
+        l_assigning_end: new Date(),
+      }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      removeAnimalAssigning(fdm, invalidUser, l_id_animal, l_id_herd, new Date()),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     await expect(getAnimalsForHerd(fdm, invalidUser, l_id_herd)).rejects.toThrowError(

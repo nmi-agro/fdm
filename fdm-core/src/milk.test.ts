@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
-import { addAnimal } from "./animal"
+import { addAnimal, assignAnimalToHerd } from "./animal"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
@@ -89,6 +89,7 @@ describe("Milk Domain", () => {
     // Case 2: Adding an animal and animal-level milking (should override herd-level sum)
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL555555555",
+      l_arriving_date: startDate,
     })
 
     await addMilkingAnimal(fdm, principal_id, l_id_animal, b_id_milktank, startDate, {
@@ -166,6 +167,7 @@ describe("Milk Domain", () => {
 
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL777777777",
+      l_arriving_date: d1,
     })
     await addMilkingAnimal(fdm, principal_id, l_id_animal, b_id_milktank, d1, {
       b_milk_amount: 30,
@@ -185,6 +187,40 @@ describe("Milk Domain", () => {
       end: new Date("2025-05-15"),
     })
     expect(endOnly).toBe(30)
+  })
+
+  it("should not double count milk production across herds after reassignment via assignAnimalToHerd", async () => {
+    const arrivingDate = new Date("2025-01-01")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL999999999",
+      l_arriving_date: arrivingDate,
+    })
+
+    // Milking recorded while the animal is still in the original herd
+    const beforeReassignDate = new Date("2025-02-01")
+    await addMilkingAnimal(fdm, principal_id, l_id_animal, b_id_milktank, beforeReassignDate, {
+      b_milk_amount: 12,
+    })
+
+    // Reassign to a different, already-existing herd (closes the assignment
+    // in l_id_herd and opens a new one in the target herd)
+    const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_herd_category: "rvo_101",
+    })
+    await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
+
+    // Milking recorded after the animal has moved to the new herd
+    const afterReassignDate = new Date(Date.now() + 60_000)
+    await addMilkingAnimal(fdm, principal_id, l_id_animal, b_id_milktank, afterReassignDate, {
+      b_milk_amount: 18,
+    })
+
+    const originalHerdTotal = await getMilkProductionForHerd(fdm, principal_id, l_id_herd)
+    expect(originalHerdTotal).toBe(12)
+
+    const targetHerdTotal = await getMilkProductionForHerd(fdm, principal_id, targetHerdId)
+    expect(targetHerdTotal).toBe(18)
   })
 
   it("should throw an error when adding milking with a non-existent milk tank", async () => {

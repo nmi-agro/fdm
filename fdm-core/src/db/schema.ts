@@ -1091,7 +1091,7 @@ export type soilImageAnnotatingTypeInsert = typeof soilImageAnnotating.$inferIns
 // ─── Livestock Domain ─────────────────────────────────────────────────────────────
 
 // Livestock Enums & Options
-export const animalCategoryOptions = [
+export const herdCategoryOptions = [
   // Rund
   { value: "rvo_100", label: "100 - Melk- en kalfkoeien" },
   {
@@ -1198,7 +1198,7 @@ export const animalCategoryOptions = [
 ] as const
 export const animalCategoryEnum = fdmSchema.enum(
   "l_herd_category",
-  animalCategoryOptions.map((x) => x.value) as [string, ...string[]],
+  herdCategoryOptions.map((x) => x.value) as [string, ...string[]],
 )
 
 export const animalSexOptions = [
@@ -1417,7 +1417,6 @@ export const barns = fdmSchema.table(
     b_barn_geometry: geometry<"Polygon" | "MultiPolygon">("b_barn_geometry", {
       type: "Polygon",
     }),
-    // b_milking_system: text(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1843,20 +1842,20 @@ export type feedingAnimalTypeInsert = typeof feedingAnimal.$inferInsert
 export const grazing = fdmSchema.table(
   "grazing",
   {
+    l_id_grazing: text().primaryKey(),
     b_id: text().references(() => fields.b_id),
     l_id_herd: text()
       .notNull()
       .references(() => herds.l_id_herd),
     l_grazing_start: timestamp({ withTimezone: true }).notNull(),
     l_grazing_end: timestamp({ withTimezone: true }),
-    l_grazing_days: integer(),
-    l_grazing_hours: numericCasted(),
+    l_grazing_hours: numericCasted(), // hours per day
     l_grazing_area: numericCasted(),
     l_grazing_type: grazingTypeEnum(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.l_id_herd, table.l_grazing_start] })],
+  (table) => [index("grazing_l_id_herd_idx").on(table.l_id_herd)],
 )
 
 export type grazingTypeSelect = typeof grazing.$inferSelect

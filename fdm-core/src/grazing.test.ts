@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
+import { addField } from "./field"
 import { addGrazing, getGrazingForFarm, getGrazingForHerd } from "./grazing"
 import { addHerd } from "./herd"
 
@@ -38,7 +39,6 @@ describe("Grazing Domain", () => {
   it("should record grazing action and retrieve for herd and farm", async () => {
     const startDate = new Date("2025-05-15")
     await addGrazing(fdm, principal_id, l_id_herd, startDate, {
-      l_grazing_days: 120,
       l_grazing_hours: 8,
       l_grazing_area: 25,
       l_grazing_type: "full",
@@ -46,34 +46,102 @@ describe("Grazing Domain", () => {
 
     const herdGrazing = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     expect(herdGrazing.length).toBe(1)
-    expect(herdGrazing[0].l_grazing_days).toBe(120)
     expect(herdGrazing[0].l_grazing_hours).toBe(8)
+    expect(herdGrazing[0].l_grazing_area).toBe(25)
     expect(herdGrazing[0].l_grazing_type).toBe("full")
 
     const farmGrazing = await getGrazingForFarm(fdm, principal_id, b_id_farm)
     expect(farmGrazing.length).toBe(1)
   })
 
+  it("should record grazing for a field on the same farm and store the b_id link", async () => {
+    const b_id = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Test Field",
+      "source1",
+      {
+        type: "Polygon" as const,
+        coordinates: [
+          [
+            [-1, -1],
+            [-1, 1],
+            [1, 1],
+            [1, -1],
+            [-1, -1],
+          ],
+        ],
+      },
+      new Date(),
+      "nl_01",
+    )
+
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-15"), { b_id })
+
+    const herdGrazing = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    expect(herdGrazing.length).toBe(1)
+    expect(herdGrazing[0].b_id).toBe(b_id)
+  })
+
+  it("should reject grazing for a field belonging to a different farm", async () => {
+    const otherFarmId = await addFarm(
+      fdm,
+      principal_id,
+      "Other Farm for Grazing",
+      "654321",
+      "Other Pasture 1",
+      "4321BA",
+    )
+    const otherFieldId = await addField(
+      fdm,
+      principal_id,
+      otherFarmId,
+      "Other Farm Field",
+      "source2",
+      {
+        type: "Polygon" as const,
+        coordinates: [
+          [
+            [-2, -2],
+            [-2, 2],
+            [2, 2],
+            [2, -2],
+            [-2, -2],
+          ],
+        ],
+      },
+      new Date(),
+      "nl_01",
+    )
+
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-15"), {
+        b_id: otherFieldId,
+      }),
+    ).rejects.toThrowError("Exception for addGrazing")
+  })
+
   it("should filter grazing actions by timeframe and handle farm without herds", async () => {
     const d1 = new Date("2025-05-01")
     const d2 = new Date("2025-06-01")
 
-    await addGrazing(fdm, principal_id, l_id_herd, d1, { l_grazing_days: 10 })
-    await addGrazing(fdm, principal_id, l_id_herd, d2, { l_grazing_days: 20 })
+    await addGrazing(fdm, principal_id, l_id_herd, d1, { l_grazing_area: 10 })
+    await addGrazing(fdm, principal_id, l_id_herd, d2, { l_grazing_area: 20 })
 
     const herdStartOnly = await getGrazingForHerd(fdm, principal_id, l_id_herd, {
       start: new Date("2025-05-15"),
       end: undefined,
     })
     expect(herdStartOnly.length).toBe(1)
-    expect(herdStartOnly[0].l_grazing_days).toBe(20)
+    expect(herdStartOnly[0].l_grazing_area).toBe(20)
 
     const herdEndOnly = await getGrazingForHerd(fdm, principal_id, l_id_herd, {
       start: undefined,
       end: new Date("2025-05-15"),
     })
     expect(herdEndOnly.length).toBe(1)
-    expect(herdEndOnly[0].l_grazing_days).toBe(10)
+    expect(herdEndOnly[0].l_grazing_area).toBe(10)
 
     const farmStartOnly = await getGrazingForFarm(fdm, principal_id, b_id_farm, {
       start: new Date("2025-05-15"),
@@ -92,7 +160,7 @@ describe("Grazing Domain", () => {
       end: new Date("2025-05-15"),
     })
     expect(herdBoth.length).toBe(1)
-    expect(herdBoth[0].l_grazing_days).toBe(10)
+    expect(herdBoth[0].l_grazing_area).toBe(10)
 
     const farmBoth = await getGrazingForFarm(fdm, principal_id, b_id_farm, {
       start: new Date("2025-04-15"),

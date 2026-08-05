@@ -5,7 +5,6 @@ export interface Barn {
   b_barn_name?: schema.barnsTypeSelect["b_barn_name"]
   b_floor_area?: schema.barnsTypeSelect["b_floor_area"]
   b_barn_geometry?: schema.barnsTypeSelect["b_barn_geometry"]
-  // b_milking_system?: schema.barnsTypeSelect["b_milking_system"]
   b_id_farm: schema.barnConstructingTypeSelect["b_id_farm"]
   b_barn_constructing_date?: schema.barnConstructingTypeSelect["b_barn_constructing_date"]
   b_barn_decommissioning_date?: schema.barnDecommissioningTypeSelect["b_barn_decommissioning_date"]

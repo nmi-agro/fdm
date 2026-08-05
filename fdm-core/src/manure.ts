@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm"
+import { desc, eq, inArray, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { ManureDelivery } from "./manure.types"
@@ -7,6 +7,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { withTimeframe } from "./timeframe"
 
 /**
  * Adds a new manure pit asset to a farm.
@@ -98,7 +99,7 @@ export async function addExcreting(
  * @param principal_id - Identifier of the principal recording the disposal.
  * @param b_id_manurepit - Identifier of the source manure pit.
  * @param p_disposing_date - Disposal/transport dispatch date.
- * @param p_disposing_amount - Quantity of manure disposed/transported (kg or m³).
+ * @param p_disposing_amount - Quantity of manure disposed/transported (kg).
  * @param properties - Optional laboratory nutrient analysis parameters.
  * @returns Unique identifier of the created manure delivery.
  */
@@ -209,20 +210,7 @@ export async function getManureDisposalsForFarm(
       }
 
       let whereClause: SQL | undefined = inArray(schema.manureDisposing.b_id_manurepit, pitIds)
-      if (timeframe?.start && timeframe?.end) {
-        whereClause = and(
-          whereClause,
-          gte(schema.manureDisposing.p_disposing_date, timeframe.start),
-          lte(schema.manureDisposing.p_disposing_date, timeframe.end),
-        )
-      } else if (timeframe?.start) {
-        whereClause = and(
-          whereClause,
-          gte(schema.manureDisposing.p_disposing_date, timeframe.start),
-        )
-      } else if (timeframe?.end) {
-        whereClause = and(whereClause, lte(schema.manureDisposing.p_disposing_date, timeframe.end))
-      }
+      whereClause = withTimeframe(whereClause, schema.manureDisposing.p_disposing_date, timeframe)
 
       const rows = await tx
         .select({

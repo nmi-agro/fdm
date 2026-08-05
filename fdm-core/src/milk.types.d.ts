@@ -2,6 +2,7 @@ import type * as schema from "./db/schema"
 
 export interface MilkTank {
   b_id_milktank: schema.milkTanksTypeSelect["b_id_milktank"]
+  b_id_farm: schema.milkTanksTypeSelect["b_id_farm"]
   b_milktank_name?: schema.milkTanksTypeSelect["b_milktank_name"]
   created: schema.milkTanksTypeSelect["created"]
   updated?: schema.milkTanksTypeSelect["updated"]
@@ -31,7 +32,7 @@ export interface MilkDelivery {
   b_id_milk_delivery: schema.milkDeliveriesTypeSelect["b_id_milk_delivery"]
   b_id_milktank?: schema.milkDeliveringTypeSelect["b_id_milktank"]
   b_id_milk_delivering?: schema.milkDeliveringTypeSelect["b_id_milk_delivering"]
-  b_milk_delivering_date?: schema.milkDeliveringTypeSelect["b_milk_delivering_date"]
+  b_milk_delivery_date?: schema.milkDeliveringTypeSelect["b_milk_delivery_date"]
   b_milk_amount?: schema.milkDeliveringTypeSelect["b_milk_amount"]
   b_id_milk_analysis?: schema.milkAnalysesTypeSelect["b_id_milk_analysis"]
   b_milk_fat?: schema.milkAnalysesTypeSelect["b_milk_fat"]

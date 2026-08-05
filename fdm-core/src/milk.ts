@@ -1,5 +1,5 @@
 import { Decimal } from "decimal.js"
-import { and, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm"
+import { and, desc, eq, gte, inArray, isNull, lte, or, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { MilkDelivery } from "./milk.types"
@@ -8,6 +8,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { withTimeframe } from "./timeframe"
 
 /**
  * Adds a new milk tank to a farm.
@@ -239,23 +240,11 @@ export async function getMilkDeliveriesForFarm(
       }
 
       let whereClause: SQL | undefined = inArray(schema.milkDelivering.b_id_milktank, tankIds)
-      if (timeframe?.start && timeframe?.end) {
-        whereClause = and(
-          whereClause,
-          gte(schema.milkDelivering.b_milk_delivery_date, timeframe.start),
-          lte(schema.milkDelivering.b_milk_delivery_date, timeframe.end),
-        )
-      } else if (timeframe?.start) {
-        whereClause = and(
-          whereClause,
-          gte(schema.milkDelivering.b_milk_delivery_date, timeframe.start),
-        )
-      } else if (timeframe?.end) {
-        whereClause = and(
-          whereClause,
-          lte(schema.milkDelivering.b_milk_delivery_date, timeframe.end),
-        )
-      }
+      whereClause = withTimeframe(
+        whereClause,
+        schema.milkDelivering.b_milk_delivery_date,
+        timeframe,
+      )
 
       const rows = await tx
         .select({
@@ -318,58 +307,42 @@ export async function getMilkProductionForHerd(
     await checkPermission(fdm, "herd", "read", l_id_herd, principal_id, "getMilkProductionForHerd")
 
     return await fdm.transaction(async (tx) => {
-      // Find all animals assigned to this herd
-      const herdAnimals = await tx
-        .select({ l_id_animal: schema.animalAssigning.l_id_animal })
-        .from(schema.animalAssigning)
-        .where(eq(schema.animalAssigning.l_id_herd, l_id_herd))
+      // Scope milking_animal rows to assignments in this herd whose interval
+      // covers the milking date, so a reassigned animal's later milkings are
+      // attributed to its new herd only (no double counting across herds).
+      let animalWhere: SQL | undefined = eq(schema.animalAssigning.l_id_herd, l_id_herd)
+      animalWhere = withTimeframe(animalWhere, schema.milkingAnimal.b_milking_start, timeframe)
 
-      const animalIds = herdAnimals.map((a) => a.l_id_animal)
+      const animalRows = await tx
+        .select({ b_milk_amount: schema.milkingAnimal.b_milk_amount })
+        .from(schema.milkingAnimal)
+        .innerJoin(
+          schema.animalAssigning,
+          and(
+            eq(schema.milkingAnimal.l_id_animal, schema.animalAssigning.l_id_animal),
+            lte(schema.animalAssigning.l_assigning_start, schema.milkingAnimal.b_milking_start),
+            or(
+              isNull(schema.animalAssigning.l_assigning_end),
+              gte(schema.animalAssigning.l_assigning_end, schema.milkingAnimal.b_milking_start),
+            ),
+          ),
+        )
+        .where(animalWhere)
 
-      if (animalIds.length > 0) {
-        let animalWhere: SQL | undefined = inArray(schema.milkingAnimal.l_id_animal, animalIds)
-        if (timeframe?.start && timeframe?.end) {
-          animalWhere = and(
-            animalWhere,
-            gte(schema.milkingAnimal.b_milking_start, timeframe.start),
-            lte(schema.milkingAnimal.b_milking_start, timeframe.end),
-          )
-        } else if (timeframe?.start) {
-          animalWhere = and(animalWhere, gte(schema.milkingAnimal.b_milking_start, timeframe.start))
-        } else if (timeframe?.end) {
-          animalWhere = and(animalWhere, lte(schema.milkingAnimal.b_milking_start, timeframe.end))
-        }
-
-        const animalRows = await tx
-          .select({ b_milk_amount: schema.milkingAnimal.b_milk_amount })
-          .from(schema.milkingAnimal)
-          .where(animalWhere)
-
-        if (animalRows.length > 0) {
-          // Animal-level rows exist: sum animal milk production
-          let total = new Decimal(0)
-          for (const row of animalRows) {
-            if (row.b_milk_amount !== null && row.b_milk_amount !== undefined) {
-              total = total.plus(new Decimal(row.b_milk_amount))
-            }
+      if (animalRows.length > 0) {
+        // Animal-level rows exist: sum animal milk production
+        let total = new Decimal(0)
+        for (const row of animalRows) {
+          if (row.b_milk_amount !== null && row.b_milk_amount !== undefined) {
+            total = total.plus(new Decimal(row.b_milk_amount))
           }
-          return total.toNumber()
         }
+        return total.toNumber()
       }
 
       // Fallback: sum herd-level milking rows
       let herdWhere: SQL | undefined = eq(schema.milkingHerd.l_id_herd, l_id_herd)
-      if (timeframe?.start && timeframe?.end) {
-        herdWhere = and(
-          herdWhere,
-          gte(schema.milkingHerd.b_milking_start, timeframe.start),
-          lte(schema.milkingHerd.b_milking_start, timeframe.end),
-        )
-      } else if (timeframe?.start) {
-        herdWhere = and(herdWhere, gte(schema.milkingHerd.b_milking_start, timeframe.start))
-      } else if (timeframe?.end) {
-        herdWhere = and(herdWhere, lte(schema.milkingHerd.b_milking_start, timeframe.end))
-      }
+      herdWhere = withTimeframe(herdWhere, schema.milkingHerd.b_milking_start, timeframe)
 
       const herdRows = await tx
         .select({ b_milk_amount: schema.milkingHerd.b_milk_amount })

@@ -26,7 +26,6 @@ export async function addBarn(
     b_barn_name?: schema.barnsTypeInsert["b_barn_name"]
     b_floor_area?: schema.barnsTypeInsert["b_floor_area"]
     b_barn_geometry?: schema.barnsTypeInsert["b_barn_geometry"]
-    // b_milking_system?: schema.barnsTypeInsert["b_milking_system"]
     b_barn_constructing_date?: schema.barnConstructingTypeInsert["b_barn_constructing_date"]
   },
 ): Promise<schema.barnsTypeSelect["b_id_barn"]> {
@@ -41,7 +40,6 @@ export async function addBarn(
         b_barn_name: properties?.b_barn_name ?? null,
         b_floor_area: properties?.b_floor_area ?? null,
         b_barn_geometry: properties?.b_barn_geometry ?? null,
-        // b_milking_system: properties?.b_milking_system ?? null,
       })
 
       await tx.insert(schema.barnConstructing).values({
@@ -84,7 +82,6 @@ export async function getBarn(
         b_barn_name: schema.barns.b_barn_name,
         b_floor_area: schema.barns.b_floor_area,
         b_barn_geometry: schema.barns.b_barn_geometry,
-        // b_milking_system: schema.barns.b_milking_system,
         b_id_farm: schema.barnConstructing.b_id_farm,
         b_barn_constructing_date: schema.barnConstructing.b_barn_constructing_date,
         b_barn_decommissioning_date: schema.barnDecommissioning.b_barn_decommissioning_date,
@@ -135,7 +132,6 @@ export async function getBarnsForFarm(
         b_barn_name: schema.barns.b_barn_name,
         b_floor_area: schema.barns.b_floor_area,
         b_barn_geometry: schema.barns.b_barn_geometry,
-        // b_milking_system: schema.barns.b_milking_system,
         b_id_farm: schema.barnConstructing.b_id_farm,
         b_barn_constructing_date: schema.barnConstructing.b_barn_constructing_date,
         b_barn_decommissioning_date: schema.barnDecommissioning.b_barn_decommissioning_date,
@@ -181,7 +177,6 @@ export async function updateBarn(
     b_barn_name?: schema.barnsTypeInsert["b_barn_name"]
     b_floor_area?: schema.barnsTypeInsert["b_floor_area"]
     b_barn_geometry?: schema.barnsTypeInsert["b_barn_geometry"]
-    // b_milking_system?: schema.barnsTypeInsert["b_milking_system"]
   },
 ): Promise<void> {
   try {

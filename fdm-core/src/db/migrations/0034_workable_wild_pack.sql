@@ -136,17 +136,16 @@ CREATE TABLE "fdm"."feeding_herd" (
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."grazing" (
+	"l_id_grazing" text PRIMARY KEY NOT NULL,
 	"b_id" text,
 	"l_id_herd" text NOT NULL,
 	"l_grazing_start" timestamp with time zone NOT NULL,
 	"l_grazing_end" timestamp with time zone,
-	"l_grazing_days" integer,
 	"l_grazing_hours" numeric,
 	"l_grazing_area" numeric,
 	"l_grazing_type" "fdm"."l_grazing_type",
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated" timestamp with time zone,
-	CONSTRAINT "grazing_l_id_herd_l_grazing_start_pk" PRIMARY KEY("l_id_herd","l_grazing_start")
+	"updated" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."herd_ending" (
@@ -339,6 +338,7 @@ CREATE INDEX "b_barn_geom_idx" ON "fdm"."barns" USING gist ("b_barn_geometry");-
 CREATE UNIQUE INDEX "l_id_excreting_idx" ON "fdm"."excreting" USING btree ("l_id_excreting");--> statement-breakpoint
 CREATE UNIQUE INDEX "f_id_feed_analysis_idx" ON "fdm"."feed_analyses" USING btree ("f_id_feed_analysis");--> statement-breakpoint
 CREATE UNIQUE INDEX "f_id_batch_idx" ON "fdm"."feed_batches" USING btree ("f_id_batch");--> statement-breakpoint
+CREATE INDEX "grazing_l_id_herd_idx" ON "fdm"."grazing" USING btree ("l_id_herd");--> statement-breakpoint
 CREATE UNIQUE INDEX "l_id_herd_idx" ON "fdm"."herds" USING btree ("l_id_herd");--> statement-breakpoint
 CREATE UNIQUE INDEX "p_id_analysis_idx" ON "fdm"."manure_analyses" USING btree ("p_id_analysis");--> statement-breakpoint
 CREATE UNIQUE INDEX "p_id_delivery_idx" ON "fdm"."manure_deliveries" USING btree ("p_id_delivery");--> statement-breakpoint

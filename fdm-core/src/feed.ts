@@ -104,6 +104,7 @@ export async function getFeedBatchesForFarm(
     const rows = await fdm
       .select({
         f_id_batch: schema.feedBatches.f_id_batch,
+        b_id_farm: schema.feedBatches.b_id_farm,
         f_batch_name: schema.feedBatches.f_batch_name,
         f_batch_type: schema.feedBatches.f_batch_type,
         f_batch_origin: schema.feedBatches.f_batch_origin,
@@ -183,7 +184,7 @@ export async function addFeedingHerd(
  * @param principal_id - Principal ID.
  * @param f_id_batch - Feed batch ID.
  * @param l_id_animal - Animal ID.
- * @param m_start - Start date/time.
+ * @param f_feeding_start - Start date/time.
  * @param properties - Optional end date and feed amount (kg fresh).
  */
 export async function addFeedingAnimal(

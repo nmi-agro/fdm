@@ -142,11 +142,22 @@ describe("Manure Domain", () => {
   })
 
   it("should throw an error when adding excreting with a non-existent manure pit", async () => {
+    const countBefore = await fdm
+      .select()
+      .from(schema.excreting)
+      .where(eq(schema.excreting.l_id_herd, l_id_herd))
+
     await expect(
       addExcreting(fdm, principal_id, l_id_herd, "non_existent_pit_id", {
         p_excreting_amount: 1000,
       }),
     ).rejects.toThrowError("Exception for addExcreting")
+
+    const countAfter = await fdm
+      .select()
+      .from(schema.excreting)
+      .where(eq(schema.excreting.l_id_herd, l_id_herd))
+    expect(countAfter.length).toBe(countBefore.length)
   })
 
   it("should deny access to unauthorized principal", async () => {

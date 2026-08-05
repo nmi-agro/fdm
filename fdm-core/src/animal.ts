@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gt, isNull, lte, or } from "drizzle-orm"
+import { and, count, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm"
 import type { Animal, HerdCensus } from "./animal.types"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
@@ -40,6 +40,16 @@ export async function addAnimal(
     await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "addAnimal")
 
     return await fdm.transaction(async (tx) => {
+      const herdFarm = await tx
+        .select({ b_id_farm: schema.herdStarting.b_id_farm })
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+        .limit(1)
+
+      if (herdFarm.length === 0 || herdFarm[0].b_id_farm !== b_id_farm) {
+        throw new Error(`Herd ${l_id_herd} does not belong to farm ${b_id_farm}`)
+      }
+
       const l_id_animal = createId()
       const arrivingMethod = properties?.l_arriving_method ?? "born"
       let birthdate = properties?.l_birth_date ?? null
@@ -103,7 +113,7 @@ export async function addAnimal(
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal requesting animal details.
- * @param b_id_animal - Animal ID.
+ * @param l_id_animal - Animal ID.
  * @returns Animal details object.
  */
 export async function getAnimal(
@@ -291,7 +301,7 @@ export async function getAnimalsForFarm(
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal updating the animal.
- * @param b_id_animal - Animal ID.
+ * @param l_id_animal - Animal ID.
  * @param properties - Properties to update.
  */
 export async function updateAnimal(
@@ -373,14 +383,17 @@ export async function removeAnimal(
 }
 
 /**
- * Bulk-adjusts the animal count for a herd.
- * Adding animals creates count placeholder animals; reducing count closes newest assignments and marks animals leaving.
+ * Adds `count` new animals to a herd with shared default attributes.
+ * Pure add — does not remove or reassign any existing animals. To reduce a
+ * herd's population, use {@link removeAnimals} with an explicit list of
+ * animal IDs chosen by the caller.
  *
  * @param fdm - The FDM instance.
- * @param principal_id - Principal executing bulk adjustment.
- * @param l_id_herd - Herd ID.
- * @param count - Target active animal count for the herd.
- * @param defaults - Optional default attributes for newly created animals.
+ * @param principal_id - Principal executing the bulk add.
+ * @param l_id_herd - Herd ID to add the new animals to.
+ * @param count - Number of new animals to create.
+ * @param defaults - Optional default attributes shared by all newly created animals.
+ * @returns IDs of the newly created animals.
  */
 export async function addAnimalsToHerd(
   fdm: FdmType,
@@ -397,11 +410,8 @@ export async function addAnimalsToHerd(
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addAnimalsToHerd")
 
     return await fdm.transaction(async (tx) => {
-      // Find farm for this herd
       const herdRow = await tx
-        .select({
-          b_id_farm: schema.herdStarting.b_id_farm,
-        })
+        .select({ b_id_farm: schema.herdStarting.b_id_farm })
         .from(schema.herdStarting)
         .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
         .limit(1)
@@ -411,109 +421,23 @@ export async function addAnimalsToHerd(
       }
 
       const b_id_farm = herdRow[0].b_id_farm
-
-      // Get current active assignments for this herd
-      const currentActive = await tx
-        .select({
-          l_id_animal: schema.animalAssigning.l_id_animal,
-          l_assigning_start: schema.animalAssigning.l_assigning_start,
-          created: schema.animals.created,
-        })
-        .from(schema.animalAssigning)
-        .innerJoin(
-          schema.animals,
-          eq(schema.animalAssigning.l_id_animal, schema.animals.l_id_animal),
-        )
-        .leftJoin(
-          schema.animalLeaving,
-          eq(schema.animalAssigning.l_id_animal, schema.animalLeaving.l_id_animal),
-        )
-        .where(
-          and(
-            eq(schema.animalAssigning.l_id_herd, l_id_herd),
-            isNull(schema.animalAssigning.l_assigning_end),
-            isNull(schema.animalLeaving.l_leaving_date),
-          ),
-        )
-        .orderBy(desc(schema.animalAssigning.l_assigning_start), desc(schema.animals.created))
-
-      const currentCount = currentActive.length
       const now = new Date()
 
-      if (count > currentCount) {
-        const needed = count - currentCount
-        for (let i = 0; i < needed; i++) {
-          const l_id_animal = createId()
+      const animalIds = buildAnimalRows(count, l_id_herd, b_id_farm, now, defaults)
 
-          await tx.insert(schema.animals).values({
-            l_id_animal,
-            l_species: defaults?.l_species ?? "cattle",
-            l_breed: defaults?.l_breed ?? null,
-          })
-
-          await tx.insert(schema.animalArriving).values({
-            l_id_animal,
-            b_id_farm,
-            l_arriving_date: now,
-            l_arriving_method: defaults?.l_arriving_method ?? "born",
-          })
-
-          await tx.insert(schema.animalAssigning).values({
-            l_id_animal,
-            l_id_herd,
-            l_assigning_start: now,
-            l_assigning_end: null,
-          })
-        }
+      if (animalIds.length > 0) {
+        await tx.insert(schema.animals).values(animalIds.map((r) => r.animalRow))
+        await tx.insert(schema.animalArriving).values(animalIds.map((r) => r.arrivingRow))
+        await tx.insert(schema.animalAssigning).values(animalIds.map((r) => r.assigningRow))
 
         // Set b_farm_livestock = true on farm
         await tx
           .update(schema.farms)
           .set({ b_farm_livestock: true, updated: now })
           .where(eq(schema.farms.b_id_farm, b_id_farm))
-      } else if (count < currentCount) {
-        const surplus = currentCount - count
-        const toRemove = currentActive.slice(0, surplus)
-
-        for (const item of toRemove) {
-          await tx
-            .update(schema.animalAssigning)
-            .set({ l_assigning_end: now, updated: now })
-            .where(
-              and(
-                eq(schema.animalAssigning.l_id_animal, item.l_id_animal),
-                eq(schema.animalAssigning.l_id_herd, l_id_herd),
-                isNull(schema.animalAssigning.l_assigning_end),
-              ),
-            )
-
-          await tx.insert(schema.animalLeaving).values({
-            l_id_animal: item.l_id_animal,
-            l_leaving_date: now,
-            l_leaving_method: "sold",
-          })
-        }
       }
 
-      // Query active animal IDs for this herd after update
-      const activeRows = await tx
-        .select({
-          l_id_animal: schema.animalAssigning.l_id_animal,
-        })
-        .from(schema.animalAssigning)
-        .leftJoin(
-          schema.animalLeaving,
-          eq(schema.animalAssigning.l_id_animal, schema.animalLeaving.l_id_animal),
-        )
-        .where(
-          and(
-            eq(schema.animalAssigning.l_id_herd, l_id_herd),
-            isNull(schema.animalAssigning.l_assigning_end),
-            isNull(schema.animalLeaving.l_leaving_date),
-          ),
-        )
-
-      return activeRows.map((r) => r.l_id_animal)
+      return animalIds.map((r) => r.l_id_animal)
     })
   } catch (err) {
     throw handleError(err, "Exception for addAnimalsToHerd", { l_id_herd, count })
@@ -521,30 +445,140 @@ export async function addAnimalsToHerd(
 }
 
 /**
- * Reassigns an animal to a new RVO statutory category (e.g. transitioning youngstock `rvo_101` to dairy cow `rvo_100` upon calving).
- * Closes the current herd assignment and opens a new assignment in a herd matching the target category (creating the herd if needed).
+ * Builds the insert rows for `count` new placeholder animals arriving onto a
+ * farm and assigned into a herd, sharing default attributes. Used by both
+ * {@link addAnimalsToHerd} and {@link createHerdWithAnimals}.
+ */
+function buildAnimalRows(
+  count: number,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  now: Date,
+  defaults?: {
+    l_species?: schema.animalsTypeInsert["l_species"]
+    l_breed?: schema.animalsTypeInsert["l_breed"]
+    l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
+  },
+): Array<{
+  l_id_animal: string
+  animalRow: typeof schema.animals.$inferInsert
+  arrivingRow: typeof schema.animalArriving.$inferInsert
+  assigningRow: typeof schema.animalAssigning.$inferInsert
+}> {
+  const rows: ReturnType<typeof buildAnimalRows> = []
+
+  for (let i = 0; i < count; i++) {
+    const l_id_animal = createId()
+
+    rows.push({
+      l_id_animal,
+      animalRow: {
+        l_id_animal,
+        l_species: defaults?.l_species ?? "cattle",
+        l_breed: defaults?.l_breed ?? null,
+      },
+      arrivingRow: {
+        l_id_animal,
+        b_id_farm,
+        l_arriving_date: now,
+        l_arriving_method: defaults?.l_arriving_method ?? "born",
+      },
+      assigningRow: {
+        l_id_animal,
+        l_id_herd,
+        l_assigning_start: now,
+        l_assigning_end: null,
+      },
+    })
+  }
+
+  return rows
+}
+
+/**
+ * Removes multiple animals in one call by closing their active herd
+ * assignments and recording animal_leaving for each, sharing the same
+ * leaving method. The caller explicitly chooses which animals leave.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal removing the animals.
+ * @param l_id_animals - IDs of the animals to remove.
+ * @param leavingMethod - Reason for leaving, shared by all animals in this call.
+ */
+export async function removeAnimals(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_animals: schema.animalsTypeSelect["l_id_animal"][],
+  leavingMethod: (typeof schema.leavingMethodOptions)[number]["value"] = "sold",
+): Promise<void> {
+  try {
+    await Promise.all(
+      l_id_animals.map((l_id_animal) =>
+        checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "removeAnimals"),
+      ),
+    )
+
+    if (l_id_animals.length === 0) {
+      return
+    }
+
+    await fdm.transaction(async (tx) => {
+      const now = new Date()
+
+      await tx
+        .update(schema.animalAssigning)
+        .set({ l_assigning_end: now, updated: now })
+        .where(
+          and(
+            inArray(schema.animalAssigning.l_id_animal, l_id_animals),
+            isNull(schema.animalAssigning.l_assigning_end),
+          ),
+        )
+
+      await tx
+        .insert(schema.animalLeaving)
+        .values(
+          l_id_animals.map((l_id_animal) => ({
+            l_id_animal,
+            l_leaving_date: now,
+            l_leaving_method: leavingMethod,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: schema.animalLeaving.l_id_animal,
+          set: { l_leaving_date: now, l_leaving_method: leavingMethod, updated: now },
+        })
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for removeAnimals", { l_id_animals, leavingMethod })
+  }
+}
+
+/**
+ * Reassigns an animal to a different, already-existing herd: closes the
+ * animal's current active assignment (if any) and opens a new one in the
+ * caller-specified target herd. The target herd must belong to the same farm
+ * the animal currently belongs to. Does not inspect or match herd category —
+ * the caller decides which herd to use (a farm may have multiple herds
+ * sharing a category).
  *
  * @param fdm - The FDM instance providing connection to the database.
- * @param principal_id - Identifier of the principal updating the category.
+ * @param principal_id - Identifier of the principal reassigning the animal.
  * @param l_id_animal - Unique identifier of the animal.
- * @param new_category - Target RVO animal category code.
- * @returns Unique identifier of the target herd.
+ * @param target_l_id_herd - Identifier of the herd to move the animal into.
  */
-export async function setAnimalCategory(
+export async function assignAnimalToHerd(
   fdm: FdmType,
   principal_id: PrincipalId,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
-  new_category: (typeof schema.animalCategoryOptions)[number]["value"],
-): Promise<string> {
+  target_l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+): Promise<void> {
   try {
-    await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "setAnimalCategory")
+    await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "assignAnimalToHerd")
 
-    return await fdm.transaction(async (tx) => {
-      // Find farm for this animal
+    await fdm.transaction(async (tx) => {
       const arriving = await tx
-        .select({
-          b_id_farm: schema.animalArriving.b_id_farm,
-        })
+        .select({ b_id_farm: schema.animalArriving.b_id_farm })
         .from(schema.animalArriving)
         .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
         .limit(1)
@@ -553,50 +587,18 @@ export async function setAnimalCategory(
         throw new Error("Animal farm association not found")
       }
 
-      const b_id_farm = arriving[0].b_id_farm
-      const now = new Date()
-
-      // Find existing herd on farm for new_category
-      const categoryHerds = await tx
-        .select({
-          l_id_herd: schema.herds.l_id_herd,
-        })
-        .from(schema.herds)
-        .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
-        .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
-        .where(
-          and(
-            eq(schema.herdStarting.b_id_farm, b_id_farm),
-            eq(schema.herds.l_herd_category, new_category),
-            isNull(schema.herdEnding.l_end),
-          ),
-        )
+      const herdFarm = await tx
+        .select({ b_id_farm: schema.herdStarting.b_id_farm })
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.l_id_herd, target_l_id_herd))
         .limit(1)
 
-      let targetHerdId: string
-      if (categoryHerds.length > 0) {
-        targetHerdId = categoryHerds[0].l_id_herd
-      } else {
-        // Create new herd for this category on the farm
-        targetHerdId = createId()
-        const optionLabel =
-          schema.animalCategoryOptions.find((o) => o.value === new_category)?.label ??
-          `Category ${new_category}`
-
-        await tx.insert(schema.herds).values({
-          l_id_herd: targetHerdId,
-          l_herd_name: optionLabel,
-          l_herd_category: new_category,
-        })
-
-        await tx.insert(schema.herdStarting).values({
-          l_id_herd: targetHerdId,
-          b_id_farm,
-          l_start: now,
-        })
+      if (herdFarm.length === 0 || herdFarm[0].b_id_farm !== arriving[0].b_id_farm) {
+        throw new Error(`Herd ${target_l_id_herd} does not belong to the animal's farm`)
       }
 
-      // Close current active assignment for animal
+      const now = new Date()
+
       await tx
         .update(schema.animalAssigning)
         .set({ l_assigning_end: now, updated: now })
@@ -607,18 +609,225 @@ export async function setAnimalCategory(
           ),
         )
 
-      // Open new assignment into target herd
       await tx.insert(schema.animalAssigning).values({
         l_id_animal,
-        l_id_herd: targetHerdId,
+        l_id_herd: target_l_id_herd,
         l_assigning_start: now,
         l_assigning_end: null,
       })
-
-      return targetHerdId
     })
   } catch (err) {
-    throw handleError(err, "Exception for setAnimalCategory", { l_id_animal, new_category })
+    throw handleError(err, "Exception for assignAnimalToHerd", { l_id_animal, target_l_id_herd })
+  }
+}
+
+/**
+ * Corrects an existing animal_assigning record, identified by its full
+ * composite key. Intended for fixing data-entry errors (wrong herd or
+ * dates), not for day-to-day reassignment — use {@link assignAnimalToHerd}
+ * for that, which preserves history by closing and opening records instead
+ * of mutating one in place.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal correcting the assignment.
+ * @param l_id_animal - Animal ID (part of the composite key).
+ * @param l_id_herd - Herd ID identifying the record to correct (part of the composite key).
+ * @param l_assigning_start - Assignment start date identifying the record to correct (part of the composite key).
+ * @param properties - Fields to correct. If `l_id_herd` is set, the new herd
+ * is re-validated to belong to the same farm as the animal.
+ */
+export async function updateAnimalAssigning(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_animal: schema.animalsTypeSelect["l_id_animal"],
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_assigning_start: schema.animalAssigningTypeSelect["l_assigning_start"],
+  properties: {
+    l_id_herd?: schema.animalAssigningTypeInsert["l_id_herd"]
+    l_assigning_start?: schema.animalAssigningTypeInsert["l_assigning_start"]
+    l_assigning_end?: schema.animalAssigningTypeInsert["l_assigning_end"]
+  },
+): Promise<void> {
+  try {
+    await checkPermission(
+      fdm,
+      "animal",
+      "write",
+      l_id_animal,
+      principal_id,
+      "updateAnimalAssigning",
+    )
+
+    await fdm.transaction(async (tx) => {
+      if (properties.l_id_herd) {
+        const arriving = await tx
+          .select({ b_id_farm: schema.animalArriving.b_id_farm })
+          .from(schema.animalArriving)
+          .where(eq(schema.animalArriving.l_id_animal, l_id_animal))
+          .limit(1)
+
+        const herdFarm = await tx
+          .select({ b_id_farm: schema.herdStarting.b_id_farm })
+          .from(schema.herdStarting)
+          .where(eq(schema.herdStarting.l_id_herd, properties.l_id_herd))
+          .limit(1)
+
+        if (
+          arriving.length === 0 ||
+          herdFarm.length === 0 ||
+          herdFarm[0].b_id_farm !== arriving[0].b_id_farm
+        ) {
+          throw new Error(`Herd ${properties.l_id_herd} does not belong to the animal's farm`)
+        }
+      }
+
+      const result = await tx
+        .update(schema.animalAssigning)
+        .set({ ...properties, updated: new Date() })
+        .where(
+          and(
+            eq(schema.animalAssigning.l_id_animal, l_id_animal),
+            eq(schema.animalAssigning.l_id_herd, l_id_herd),
+            eq(schema.animalAssigning.l_assigning_start, l_assigning_start),
+          ),
+        )
+        .returning({ l_id_animal: schema.animalAssigning.l_id_animal })
+
+      if (result.length === 0) {
+        throw new Error("Animal assignment record not found")
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateAnimalAssigning", {
+      l_id_animal,
+      l_id_herd,
+      l_assigning_start,
+      properties,
+    })
+  }
+}
+
+/**
+ * Hard-deletes an animal_assigning record, identified by its full composite
+ * key. True error correction — erases the record entirely, unlike
+ * {@link removeAnimals}/{@link assignAnimalToHerd} which close assignments by
+ * setting an end date and preserve history.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal removing the assignment record.
+ * @param l_id_animal - Animal ID (part of the composite key).
+ * @param l_id_herd - Herd ID (part of the composite key).
+ * @param l_assigning_start - Assignment start date (part of the composite key).
+ */
+export async function removeAnimalAssigning(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_animal: schema.animalsTypeSelect["l_id_animal"],
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_assigning_start: schema.animalAssigningTypeSelect["l_assigning_start"],
+): Promise<void> {
+  try {
+    await checkPermission(
+      fdm,
+      "animal",
+      "write",
+      l_id_animal,
+      principal_id,
+      "removeAnimalAssigning",
+    )
+
+    const result = await fdm
+      .delete(schema.animalAssigning)
+      .where(
+        and(
+          eq(schema.animalAssigning.l_id_animal, l_id_animal),
+          eq(schema.animalAssigning.l_id_herd, l_id_herd),
+          eq(schema.animalAssigning.l_assigning_start, l_assigning_start),
+        ),
+      )
+      .returning({ l_id_animal: schema.animalAssigning.l_id_animal })
+
+    if (result.length === 0) {
+      throw new Error("Animal assignment record not found")
+    }
+  } catch (err) {
+    throw handleError(err, "Exception for removeAnimalAssigning", {
+      l_id_animal,
+      l_id_herd,
+      l_assigning_start,
+    })
+  }
+}
+
+/**
+ * Creates a new herd on a farm together with `count` new animals sharing the
+ * same default attributes, in a single transaction. Convenience wrapper
+ * combining herd creation with {@link addAnimalsToHerd}'s bulk-insert logic.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal creating the herd and animals.
+ * @param b_id_farm - Farm to create the herd on.
+ * @param herdProperties - Optional herd properties (name, category, start date).
+ * @param count - Number of new animals to create in the herd.
+ * @param animalProperties - Optional default attributes shared by all newly created animals.
+ * @returns The new herd ID and the IDs of the newly created animals.
+ */
+export async function createHerdWithAnimals(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  herdProperties: {
+    l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
+    l_herd_category?: schema.herdsTypeInsert["l_herd_category"]
+    l_start?: schema.herdStartingTypeInsert["l_start"]
+  } | undefined,
+  count: number,
+  animalProperties?: {
+    l_species?: schema.animalsTypeInsert["l_species"]
+    l_breed?: schema.animalsTypeInsert["l_breed"]
+    l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
+  },
+): Promise<{ l_id_herd: string; l_id_animals: string[] }> {
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "createHerdWithAnimals")
+
+    return await fdm.transaction(async (tx) => {
+      const l_id_herd = createId()
+      const now = new Date()
+
+      await tx.insert(schema.herds).values({
+        l_id_herd,
+        l_herd_name: herdProperties?.l_herd_name ?? null,
+        l_herd_category: herdProperties?.l_herd_category ?? null,
+      })
+
+      await tx.insert(schema.herdStarting).values({
+        l_id_herd,
+        b_id_farm,
+        l_start: herdProperties?.l_start ?? now,
+      })
+
+      const animalRows = buildAnimalRows(count, l_id_herd, b_id_farm, now, animalProperties)
+
+      if (animalRows.length > 0) {
+        await tx.insert(schema.animals).values(animalRows.map((r) => r.animalRow))
+        await tx.insert(schema.animalArriving).values(animalRows.map((r) => r.arrivingRow))
+        await tx.insert(schema.animalAssigning).values(animalRows.map((r) => r.assigningRow))
+
+        await tx
+          .update(schema.farms)
+          .set({ b_farm_livestock: true, updated: now })
+          .where(eq(schema.farms.b_id_farm, b_id_farm))
+      }
+
+      return { l_id_herd, l_id_animals: animalRows.map((r) => r.l_id_animal) }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for createHerdWithAnimals", {
+      b_id_farm,
+      herdProperties,
+      count,
+    })
   }
 }
 
@@ -645,7 +854,9 @@ export async function getCensusForFarm(
         l_id_herd: schema.herds.l_id_herd,
         l_herd_name: schema.herds.l_herd_name,
         l_herd_category: schema.herds.l_herd_category,
-        count: count(schema.animalAssigning.l_id_animal),
+        count: count(
+          sql`CASE WHEN ${schema.animalLeaving.l_leaving_date} IS NULL THEN ${schema.animalAssigning.l_id_animal} END`,
+        ),
       })
       .from(schema.herds)
       .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
@@ -669,11 +880,7 @@ export async function getCensusForFarm(
         ),
       )
       .where(
-        and(
-          eq(schema.herdStarting.b_id_farm, b_id_farm),
-          isNull(schema.herdEnding.l_end),
-          isNull(schema.animalLeaving.l_leaving_date),
-        ),
+        and(eq(schema.herdStarting.b_id_farm, b_id_farm), isNull(schema.herdEnding.l_end)),
       )
       .groupBy(schema.herds.l_id_herd, schema.herds.l_herd_name, schema.herds.l_herd_category)
 

@@ -61,7 +61,7 @@ export {
 export type { Cultivation, CultivationCatalogue, CultivationPlan } from "./cultivation.types"
 export {
   acquiringMethodOptions,
-  animalCategoryOptions,
+  herdCategoryOptions,
   animalSexOptions,
   animalSpeciesOptions,
   annotationTypeOptions,
@@ -230,19 +230,23 @@ export type {
   SoilImageAnnotation,
   UpdateSoilImageAnnotationInput,
 } from "./soil-image.types"
-export type { Timeframe } from "./timeframe.d"
+export type { Timeframe } from "./timeframe"
 export { addHerd, getHerd, getHerdsForFarm, removeHerd, updateHerd } from "./herd"
 export type { Herd } from "./herd.types"
 export {
   addAnimal,
   addAnimalsToHerd,
+  assignAnimalToHerd,
+  createHerdWithAnimals,
   getAnimal,
   getAnimalsForFarm,
   getAnimalsForHerd,
   getCensusForFarm,
   removeAnimal,
-  setAnimalCategory,
+  removeAnimalAssigning,
+  removeAnimals,
   updateAnimal,
+  updateAnimalAssigning,
 } from "./animal"
 export type { Animal, HerdCensus } from "./animal.types"
 export {

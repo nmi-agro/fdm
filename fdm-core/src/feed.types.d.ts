@@ -2,6 +2,7 @@ import type * as schema from "./db/schema"
 
 export interface FeedBatch {
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"]
+  b_id_farm: schema.feedBatchesTypeSelect["b_id_farm"]
   f_batch_name?: schema.feedBatchesTypeSelect["f_batch_name"]
   f_batch_type?: schema.feedBatchesTypeSelect["f_batch_type"]
   f_batch_origin?: schema.feedBatchesTypeSelect["f_batch_origin"]

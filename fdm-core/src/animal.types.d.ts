@@ -20,8 +20,8 @@ export interface Animal {
 }
 
 export interface HerdCensus {
-  l_id_herd: string
-  l_herd_name?: string | null
-  l_herd_category?: string | null
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"]
+  l_herd_name?: schema.herdsTypeSelect["l_herd_name"]
+  l_herd_category?: schema.herdsTypeSelect["l_herd_category"]
   count: number
 }
