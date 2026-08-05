@@ -383,7 +383,6 @@ export async function revokeFarmVerification(
   verification_id: string,
 ): Promise<void> {
   try {
-    const start = performance.now()
     await fdm.transaction(async (tx) => {
       await checkPermission(tx, "farm", "write", b_id_farm, principal_id, "revokeFarmVerification")
 
@@ -404,16 +403,6 @@ export async function revokeFarmVerification(
         throw new Error("Active farm verification not found")
       }
 
-      await writeAuditEntry(
-        tx,
-        "revokeFarmVerification",
-        "farm",
-        "write",
-        principal_id,
-        "farm",
-        b_id_farm,
-        Math.round(performance.now() - start),
-      )
 
       const updated = await tx
         .update(authZSchema.farmVerification)
@@ -462,7 +451,6 @@ export async function revokeFarmVerificationStatus(
 ): Promise<void> {
   try {
     await fdm.transaction(async (tx) => {
-      const start = performance.now()
       await checkPermission(
         tx,
         "farm",
@@ -486,17 +474,6 @@ export async function revokeFarmVerificationStatus(
       if (verifications.length === 0) {
         return
       }
-
-      await writeAuditEntry(
-        tx,
-        "revokeFarmVerificationStatus",
-        "farm",
-        "write",
-        principal_id,
-        "farm",
-        b_id_farm,
-        Math.round(performance.now() - start),
-      )
 
       await tx
         .update(authZSchema.farmVerification)

@@ -200,11 +200,11 @@ describe("Farm Verification Functions", () => {
       )
     expect(revocationAudits).toEqual([
       expect.objectContaining({
-        audit_origin: "revokeFarmVerification",
         action: "write",
+        audit_origin: "revokeFarmVerification",
+        principal_id,
         target_resource: "farm",
         target_resource_id: b_id_farm,
-        principal_id,
       }),
     ])
     await expect(
