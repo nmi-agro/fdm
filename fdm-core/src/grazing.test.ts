@@ -87,6 +87,19 @@ describe("Grazing Domain", () => {
     })
     expect(farmEndOnly.length).toBe(1)
 
+    const herdBoth = await getGrazingForHerd(fdm, principal_id, l_id_herd, {
+      start: new Date("2025-04-15"),
+      end: new Date("2025-05-15"),
+    })
+    expect(herdBoth.length).toBe(1)
+    expect(herdBoth[0].l_grazing_days).toBe(10)
+
+    const farmBoth = await getGrazingForFarm(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-04-15"),
+      end: new Date("2025-05-15"),
+    })
+    expect(farmBoth.length).toBe(1)
+
     const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Pasture 2", "1234AB")
     const emptyFarm = await getGrazingForFarm(fdm, principal_id, farm2)
     expect(emptyFarm).toEqual([])
@@ -95,6 +108,18 @@ describe("Grazing Domain", () => {
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(addGrazing(fdm, invalidUser, l_id_herd, new Date())).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+  })
+
+  it("should deny access to unauthorized principal for remaining grazing functions", async () => {
+    const invalidUser = "unauthorized_user"
+
+    await expect(getGrazingForHerd(fdm, invalidUser, l_id_herd)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(getGrazingForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
   })

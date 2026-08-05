@@ -118,4 +118,39 @@ describe("Barn Domain", () => {
       "Principal does not have permission to perform this action",
     )
   })
+
+  it("should deny access to unauthorized principal for remaining barn functions", async () => {
+    const b_id_barn = await addBarn(fdm, principal_id, b_id_farm, {
+      b_floor_area: 500,
+    })
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien",
+      l_herd_category: "rvo_100",
+    })
+    const invalidUser = "unauthorized_user"
+
+    await expect(
+      addBarn(fdm, invalidUser, b_id_farm, { b_floor_area: 500 }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(getBarnsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      updateBarn(fdm, invalidUser, b_id_barn, { b_floor_area: 600 }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(removeBarn(fdm, invalidUser, b_id_barn)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      addHousing(fdm, invalidUser, l_id_herd, b_id_barn, new Date()),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(getHousingForHerd(fdm, invalidUser, l_id_herd)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+  })
 })

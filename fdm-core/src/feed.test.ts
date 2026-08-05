@@ -87,4 +87,24 @@ describe("Feed Domain", () => {
       addFeedBatch(fdm, invalidUser, b_id_farm, "grass_silage", "own_land"),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
+
+  it("should deny access to unauthorized principal for remaining feed functions", async () => {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "grass_silage", "own_land")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL202",
+    })
+    const invalidUser = "unauthorized_user"
+
+    await expect(getFeedBatchesForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      addFeedingHerd(fdm, invalidUser, f_id_batch, l_id_herd, new Date()),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      addFeedingAnimal(fdm, invalidUser, f_id_batch, l_id_animal, new Date()),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+  })
 })

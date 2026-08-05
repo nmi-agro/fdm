@@ -167,4 +167,57 @@ describe("Animal Domain", () => {
       "Principal does not have permission to perform this action",
     )
   })
+
+  it("should deny access to unauthorized principal for remaining animal functions", async () => {
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL333333333",
+    })
+    const invalidUser = "unauthorized_user"
+
+    await expect(
+      addAnimal(fdm, invalidUser, b_id_farm, l_id_herd, { l_id_eartag: "NL444444444" }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      updateAnimal(fdm, invalidUser, l_id_animal, { l_breed: "Jersey" }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(removeAnimal(fdm, invalidUser, l_id_animal)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(addAnimalsToHerd(fdm, invalidUser, l_id_herd, 5)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      setAnimalCategory(fdm, invalidUser, l_id_animal, "rvo_101"),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(getAnimalsForHerd(fdm, invalidUser, l_id_herd)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(getAnimalsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(getCensusForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+  })
+
+  it("should add an animal with a non-'born' arriving method", async () => {
+    const arrivingDate = new Date("2025-02-10")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL666666666",
+      l_arriving_method: "purchased",
+      l_arriving_date: arrivingDate,
+    })
+
+    const animal = await getAnimal(fdm, principal_id, l_id_animal)
+    expect(animal.l_arriving_method).toBe("purchased")
+    expect(animal.l_arriving_date?.toISOString()).toBe(arrivingDate.toISOString())
+  })
+
 })

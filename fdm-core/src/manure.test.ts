@@ -155,4 +155,21 @@ describe("Manure Domain", () => {
       "Principal does not have permission to perform this action",
     )
   })
+
+  it("should deny access to unauthorized principal for remaining manure functions", async () => {
+    const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
+    const invalidUser = "unauthorized_user"
+
+    await expect(
+      addExcreting(fdm, invalidUser, l_id_herd, b_id_manurepit),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      addManureDisposing(fdm, invalidUser, b_id_manurepit, new Date(), 1000),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      getManureDisposalsForFarm(fdm, invalidUser, b_id_farm),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+  })
 })

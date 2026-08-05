@@ -126,6 +126,14 @@ describe("Milk Domain", () => {
     expect(endOnly.length).toBe(1)
     expect(endOnly[0].b_milk_amount).toBe(1000)
 
+    // Filter both start and end
+    const both = await getMilkDeliveriesForFarm(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-04-15"),
+      end: new Date("2025-05-15"),
+    })
+    expect(both.length).toBe(1)
+    expect(both[0].b_milk_amount).toBe(1000)
+
     // Farm without tanks returns empty
     const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Street 2", "1234AB")
     const noTanks = await getMilkDeliveriesForFarm(fdm, principal_id, farm2)
@@ -152,6 +160,33 @@ describe("Milk Domain", () => {
     expect(endOnly).toBe(500)
   })
 
+  it("should calculate animal-level milk production with start-only or end-only timeframe", async () => {
+    const d1 = new Date("2025-05-01")
+    const d2 = new Date("2025-06-01")
+
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL777777777",
+    })
+    await addMilkingAnimal(fdm, principal_id, l_id_animal, b_id_milktank, d1, {
+      b_milk_amount: 30,
+    })
+    await addMilkingAnimal(fdm, principal_id, l_id_animal, b_id_milktank, d2, {
+      b_milk_amount: 40,
+    })
+
+    const startOnly = await getMilkProductionForHerd(fdm, principal_id, l_id_herd, {
+      start: new Date("2025-05-15"),
+      end: undefined,
+    })
+    expect(startOnly).toBe(40)
+
+    const endOnly = await getMilkProductionForHerd(fdm, principal_id, l_id_herd, {
+      start: undefined,
+      end: new Date("2025-05-15"),
+    })
+    expect(endOnly).toBe(30)
+  })
+
   it("should throw an error when adding milking with a non-existent milk tank", async () => {
     await expect(
       addMilkingHerd(fdm, principal_id, l_id_herd, "non_existent_tank_id", new Date(), {
@@ -165,5 +200,32 @@ describe("Milk Domain", () => {
     await expect(addMilkTank(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
+  })
+
+  it("should deny access to unauthorized principal for remaining milk functions", async () => {
+    const invalidUser = "unauthorized_user"
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL222222222",
+    })
+
+    await expect(
+      addMilkingHerd(fdm, invalidUser, l_id_herd, b_id_milktank, new Date()),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      addMilkingAnimal(fdm, invalidUser, l_id_animal, b_id_milktank, new Date()),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      addMilkDelivery(fdm, invalidUser, b_id_milktank, new Date(), 100),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      getMilkDeliveriesForFarm(fdm, invalidUser, b_id_farm),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      getMilkProductionForHerd(fdm, invalidUser, l_id_herd),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 })

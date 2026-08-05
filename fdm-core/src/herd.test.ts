@@ -78,4 +78,28 @@ describe("Herd Domain", () => {
       "Principal does not have permission to perform this action",
     )
   })
+
+  it("should deny access to unauthorized principal for remaining herd functions", async () => {
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Jongvee",
+      l_herd_category: "rvo_101",
+    })
+    const invalidUser = "unauthorized_user"
+
+    await expect(
+      addHerd(fdm, invalidUser, b_id_farm, { l_herd_name: "Should Fail" }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(getHerdsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      updateHerd(fdm, invalidUser, l_id_herd, { l_herd_name: "Should Fail" }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(removeHerd(fdm, invalidUser, l_id_herd)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+  })
 })
