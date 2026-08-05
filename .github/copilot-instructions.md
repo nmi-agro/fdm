@@ -2,6 +2,16 @@
 
 FDM (Farm Data Model) is a pnpm + Turborepo monorepo of TypeScript packages for standardizing, storing, and analyzing farm data. Node `>=24`, `pnpm@11.17.0` (enforced via `only-allow pnpm`), ESM-only (`"type": "module"`).
 
+## This is a public, open-source repository
+
+The repository is MIT-licensed and public, and `fdm-docs` is published as a public site. Everything committed — code, comments, documentation, changesets, commit messages and PR descriptions — is world-readable and permanent. Write accordingly:
+
+- **Write for an outside reader.** Documentation and comments should make sense to a contributor with no access to internal systems. Avoid references to internal tooling, dashboards, meetings or ticket numbers that a reader cannot follow.
+- **Documentation must be accurate.** Verify claims against the code before writing them down; a confidently wrong statement in a public repository is worse than no statement. Update the docs in the same PR as the behaviour they describe.
+- Secrets belong in `.env` files, which are git-ignored. If a secret is ever committed, treat it as compromised and rotate it — removing it in a later commit does not remove it from history.
+- **Never commit personal or sensitive data.** No real farm or field data, business identifiers, customer or colleague names, email addresses, coordinates of real fields, credentials, API keys, tokens, connection strings, or internal URLs. Use clearly synthetic values in examples, fixtures and tests.
+- **Do not paste internal material into the repository.** Application logs, stack traces, database dumps, support tickets, Sentry payloads and error reports routinely contain user data. If an error is worth documenting, describe the failure and the fix in your own words rather than pasting the raw output.
+
 ## Packages and how they depend on each other
 
 - **`fdm-core`** – The foundation: Drizzle ORM schema + all CRUD functions against a PostgreSQL (PostGIS) database. Everything else builds on it.
@@ -24,12 +34,12 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 
 ## Key conventions
 
-- **Column naming uses domain prefixes, not camelCase**: `b_` for farm/field assets (`b_id_farm`, `b_id`, `b_lu` cultivation, `b_lu_catalogue`), `p_` for fertilizer products (`p_id`, `p_id_catalogue`, `p_app_id`), `a_` for soil analysis parameters, and `m_` for measures. Preserve these prefixes; they map directly to the documented schema.
+- **Column naming uses domain prefixes, not camelCase**: `b_` for farm/field assets (`b_id_farm`, `b_id`, `b_lu` cultivation, `b_lu_catalogue`), `p_` for fertilizer products (`p_id`, `p_id_catalogue`, `p_app_id`), `a_` for soil analysis parameters, and `m_` for measures. Preserve these prefixes; they map directly to the documented schema. **Before changing the schema or the data model, load the `fdm-schema` skill (`.github/skills/fdm-schema/SKILL.md`)** — it holds the full Asset–Action rules, the prefix glossary, the migration workflow and the anti-pattern list, and `pnpm check-schema` enforces them in CI. See `.github/skills/README.md` for the wider `fdm-*` skill family.
 - **`fdm-core` function signature pattern**: public functions take the FDM instance and the acting principal first: `fn(fdm: FdmType, principal_id: string, ...)`. Mutations run inside `fdm.transaction(...)`, generate IDs with `createId()` (`src/id.ts`), and enforce access via the authorization helpers (`grantRole`, `checkPermission`, …) in `src/authorization.ts`.
 - **Authentication & authorization live in `fdm-core`**. Authentication uses **better-auth** (`src/authentication.ts`, `createFdmAuth`) with the drizzle adapter and plugins for organizations, username, magic link, generic OAuth, and API keys; tables live in the `fdm-authn` schema. Authorization is a custom role/permission system in `src/authorization.ts` (`fdm-authz` schema): resources (`farm`, `field`, `cultivation`, `soil_analysis`, …), roles (`owner`, `advisor`, `researcher`), and actions (`read`, `write`, `list`, `share`). Core mutations enforce access via its helpers (`grantRole`, `checkPermission`, `getRolesOfPrincipalForResource`, …) and write audit entries; pass and check the acting `principal_id` rather than rolling your own checks.
 - **Error handling**: wrap thrown errors with `handleError(err, message, context)` which returns a `BaseError` (`fdm-core/src/error.ts`). Do not throw raw values.
 - **File layout in `fdm-core/src`**: each domain has `<name>.ts`, `<name>.test.ts`, and `<name>.types.d.ts` colocated.
-- **`fdm-app` routing**: flat file-based routes via `@react-router/fs-routes` (`app/routes.ts` → `app/routes/`). Server-only code lives in `*.server.ts`, client-only in `*.client.ts`. State uses Zustand stores in `app/store/`.
+- **`fdm-app` routing**: flat file-based routes via `@react-router/fs-routes` (`app/routes.ts` → `app/routes/`). Server-only code lives in `*.server.ts`, client-only in `*.client.ts`. State uses Zustand stores in `app/store/`. **Before non-trivial work in `fdm-app`, load the `fdm-app-conventions` skill**; for REST endpoint work in `fdm-api`, load the `fdm-api` skill.
 - This repo is on **React Router v8** (`react-router`, no `react-router-dom`); use `loaderData` in `useMatches`/`MetaArgs`.
 
 ## Commands (run from repo root unless noted)
@@ -38,14 +48,14 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 - Build everything: `pnpm build` (turbo) — respects build order.
 - Lint / format (oxlint + oxfmt, configured at root): `pnpm lint`, `pnpm lint:fix`, `pnpm format`.
 - Type-check: `pnpm check-types` in `fdm-core`, `fdm-rvo`, etc.; in `fdm-app` use `pnpm check-types` (runs `react-router typegen && tsc`).
-- Test (all): `pnpm test` (turbo `test-coverage`). Tests use Vitest and require a running PostgreSQL (PostGIS) — set `POSTGRES_HOST/PORT/DB/USER/PASSWORD`. `docker compose up -d` provides the database locally.
+- Test (all): `pnpm test` (turbo `test-coverage`). Tests use Vitest and require a running PostgreSQL (PostGIS) — set `POSTGRES_HOST/PORT/DB/USER/PASSWORD`. Developers normally run PostgreSQL locally on their machine; do not assume Docker.
 - Test one package: `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`.
 - Test one file/case in a package: `cd fdm-core` then `pnpm exec dotenvx run -- vitest run src/farm.test.ts` (add `-t "name"` for a single case). Tests load env via `dotenvx`.
-- Run the app: `docker compose up -d` then `pnpm --filter fdm-app dev` (http://localhost:5173). Copy `fdm-app/.env.example` to `fdm-app/.env` first.
+- Run the app: `pnpm --filter fdm-app dev` (http://localhost:5173), with a local PostgreSQL/PostGIS running. Copy `fdm-app/.env.example` to `fdm-app/.env` first.
 
 ## Releases / changesets
 
-Versioning is via Changesets on a `development` → `release/*` → `main` flow. Any PR that should bump a published package must include a changeset: run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
+Versioning is via Changesets on a `development` → `release/*` → `main` flow. Any PR that changes a package must include a changeset: run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. This applies to every package in the monorepo, including private, unpublished ones such as `fdm-app` and `fdm-docs` — they are versioned and get a `CHANGELOG.md` too. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
 
 ## Design context (fdm-app)
 
