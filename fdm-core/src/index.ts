@@ -269,9 +269,8 @@ export {
   addFeeding,
   addFeedingAnimal,
   getFeedBatchesForFarm,
-  getFeedSelfSufficiency,
 } from "./feed"
-export type { FeedBatch, Feeding, FeedingAnimal, FeedSelfSufficiency } from "./feed.types"
+export type { FeedBatch, Feeding, FeedingAnimal } from "./feed.types"
 export {
   addExcreting,
   addManureDelivery,

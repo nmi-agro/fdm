@@ -1,9 +1,7 @@
-import { Decimal } from "decimal.js"
-import { and, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
-import type { FeedBatch, FeedSelfSufficiency } from "./feed.types"
-import type { Timeframe } from "./timeframe"
+import type { FeedBatch } from "./feed.types"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
@@ -215,92 +213,5 @@ export async function addFeedingAnimal(
       l_id_animal,
       f_feeding_start,
     })
-  }
-}
-
-/**
- * Calculates feed dry-matter (DM) self-sufficiency for a farm over a period (own land DM / total DM).
- *
- * @param fdm - The FDM instance providing connection to the database.
- * @param principal_id - Identifier of the principal requesting the calculation.
- * @param b_id_farm - Identifier of the farm.
- * @param timeframe - Optional timeframe bounds.
- * @returns Object containing total roughage DM kg, own land roughage DM kg, and self-sufficiency ratio.
- */
-export async function getFeedSelfSufficiency(
-  fdm: FdmType,
-  principal_id: PrincipalId,
-  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-  timeframe?: Timeframe,
-): Promise<FeedSelfSufficiency> {
-  try {
-    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getFeedSelfSufficiency")
-
-    return await fdm.transaction(async (tx) => {
-      const batches = await getFeedBatchesForFarm(fdm, principal_id, b_id_farm)
-      if (batches.length === 0) {
-        return {
-          totalRoughageDmKg: 0,
-          ownLandRoughageDmKg: 0,
-          selfSufficiencyRatio: 0,
-        }
-      }
-
-      const batchMap = new Map<string, FeedBatch>()
-      for (const b of batches) {
-        batchMap.set(b.f_id_batch, b)
-      }
-
-      const batchIds = [...batchMap.keys()]
-
-      let whereClause: SQL | undefined = inArray(schema.feedingHerd.f_id_batch, batchIds)
-      if (timeframe?.start && timeframe?.end) {
-        whereClause = and(
-          whereClause,
-          gte(schema.feedingHerd.f_feeding_start, timeframe.start),
-          lte(schema.feedingHerd.f_feeding_start, timeframe.end),
-        )
-      } else if (timeframe?.start) {
-        whereClause = and(whereClause, gte(schema.feedingHerd.f_feeding_start, timeframe.start))
-      } else if (timeframe?.end) {
-        whereClause = and(whereClause, lte(schema.feedingHerd.f_feeding_start, timeframe.end))
-      }
-
-      const feedingRows = await tx
-        .select({
-          f_id_batch: schema.feedingHerd.f_id_batch,
-          f_amount: schema.feedingHerd.f_amount,
-        })
-        .from(schema.feedingHerd)
-        .where(whereClause)
-
-      let totalDmKg = new Decimal(0)
-      let ownLandDmKg = new Decimal(0)
-
-      for (const row of feedingRows) {
-        const batch = batchMap.get(row.f_id_batch)
-        if (!batch) continue
-        const amountFreshKg = new Decimal(row.f_amount ?? 0)
-        const dmGPerKg = new Decimal(batch.f_dm ?? 1000)
-        const dmKg = amountFreshKg.times(dmGPerKg).dividedBy(1000)
-
-        totalDmKg = totalDmKg.plus(dmKg)
-        if (batch.f_batch_origin === "own_land") {
-          ownLandDmKg = ownLandDmKg.plus(dmKg)
-        }
-      }
-
-      const totalDm = totalDmKg.toNumber()
-      const ownLandDm = ownLandDmKg.toNumber()
-      const ratio = totalDm > 0 ? ownLandDm / totalDm : 0
-
-      return {
-        totalRoughageDmKg: totalDm,
-        ownLandRoughageDmKg: ownLandDm,
-        selfSufficiencyRatio: ratio,
-      }
-    })
-  } catch (err) {
-    throw handleError(err, "Exception for getFeedSelfSufficiency", { b_id_farm })
   }
 }

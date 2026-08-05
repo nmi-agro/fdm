@@ -35,9 +35,3 @@ export interface FeedingAnimal {
   created: schema.feedingAnimalTypeSelect["created"]
   updated?: schema.feedingAnimalTypeSelect["updated"]
 }
-
-export interface FeedSelfSufficiency {
-  totalRoughageDmKg: number
-  ownLandRoughageDmKg: number
-  selfSufficiencyRatio: number
-}
