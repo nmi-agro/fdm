@@ -262,6 +262,3 @@ export async function getManureDisposalsForFarm(
     throw handleError(err, "Exception for getManureDisposalsForFarm", { b_id_farm })
   }
 }
-
-export const addManureDelivery = addManureDisposing
-export const getManureDeliveriesForFarm = getManureDisposalsForFarm

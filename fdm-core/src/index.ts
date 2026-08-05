@@ -273,10 +273,8 @@ export {
 export type { FeedBatch, Feeding, FeedingAnimal } from "./feed.types"
 export {
   addExcreting,
-  addManureDelivery,
   addManureDisposing,
   addManurePit,
-  getManureDeliveriesForFarm,
   getManureDisposalsForFarm,
 } from "./manure"
 export type { Excreting, ManureDelivery, ManurePit } from "./manure.types"
