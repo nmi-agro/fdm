@@ -3,7 +3,7 @@ CREATE TYPE "fdm"."l_sex" AS ENUM('female', 'male');--> statement-breakpoint
 CREATE TYPE "fdm"."l_species" AS ENUM('cattle', 'pig', 'poultry', 'turkey', 'duck', 'goat', 'sheep', 'horse', 'pony', 'other');--> statement-breakpoint
 CREATE TYPE "fdm"."l_arriving_method" AS ENUM('born', 'purchased', 'imported');--> statement-breakpoint
 CREATE TYPE "fdm"."f_batch_origin" AS ENUM('own_land', 'purchased');--> statement-breakpoint
-CREATE TYPE "fdm"."f_batch_type" AS ENUM('grass_silage', 'fresh_grass', 'maize_silage', 'concentrate', 'byproduct', 'mineral', 'other');--> statement-breakpoint
+CREATE TYPE "fdm"."f_batch_type" AS ENUM('snijmais', 'maiskolvenschroot', 'corncobmix_100', 'corncobmix_25', 'korrelmais', 'gehele_plant_silage', 'tarwe', 'erwten', 'gerst', 'aardappelen_vers', 'aardappelen_ingekuild', 'appelen', 'graanstro_rogge', 'graanstro_tarwe', 'gras_hooi', 'gras_kuil', 'gras_vers', 'graszaadstro', 'rogge', 'uien', 'voederbieten', 'witlofwortelen', 'kaaswei', 'krachtvoer', 'mineralen', 'overig');--> statement-breakpoint
 CREATE TYPE "fdm"."l_grazing_type" AS ENUM('full', 'partial');--> statement-breakpoint
 CREATE TYPE "fdm"."l_leaving_method" AS ENUM('died', 'sold', 'slaughtered', 'exported');--> statement-breakpoint
 CREATE TABLE "fdm"."animal_arriving" (
