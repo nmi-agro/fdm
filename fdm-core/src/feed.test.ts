@@ -73,8 +73,12 @@ describe("Feed Domain", () => {
     })
 
     // Animal supplemental feeding
-    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, { l_id_eartag: "NL101" })
-    await addFeedingAnimal(fdm, principal_id, f_id_batch_purchased, l_id_animal, startDate, { f_amount: 50 })
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL101",
+    })
+    await addFeedingAnimal(fdm, principal_id, f_id_batch_purchased, l_id_animal, startDate, {
+      f_amount: 50,
+    })
   })
 
   it("should deny access to unauthorized principal", async () => {

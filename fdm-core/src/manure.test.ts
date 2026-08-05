@@ -47,7 +47,7 @@ describe("Manure Domain", () => {
     expect(b_id_manurepit).toBeDefined()
 
     const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
-      p_amount: 25000,
+      p_excreting_amount: 25000,
     })
     expect(l_id_excreting).toBeDefined()
 
@@ -70,7 +70,7 @@ describe("Manure Domain", () => {
     const deliveries = await getManureDisposalsForFarm(fdm, principal_id, b_id_farm)
     expect(deliveries.length).toBe(1)
     expect(deliveries[0].p_id_delivery).toBe(p_id_delivery)
-    expect(deliveries[0].p_amount).toBe(10000)
+    expect(deliveries[0].p_disposing_amount).toBe(10000)
     expect(deliveries[0].p_n_rt).toBe(4.2)
   })
 
@@ -112,7 +112,7 @@ describe("Manure Domain", () => {
     const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
       l_excreting_start: startDate,
       l_excreting_end: endDate,
-      p_amount: 12000,
+      p_excreting_amount: 12000,
     })
     expect(l_id_excreting).toBeDefined()
 
@@ -126,14 +126,14 @@ describe("Manure Domain", () => {
       end: undefined,
     })
     expect(startOnly.length).toBe(1)
-    expect(startOnly[0].p_amount).toBe(7000)
+    expect(startOnly[0].p_disposing_amount).toBe(7000)
 
     const endOnly = await getManureDisposalsForFarm(fdm, principal_id, b_id_farm, {
       start: undefined,
       end: new Date("2025-05-01"),
     })
     expect(endOnly.length).toBe(1)
-    expect(endOnly[0].p_amount).toBe(5000)
+    expect(endOnly[0].p_disposing_amount).toBe(5000)
 
     // Farm with 0 pits
     const farm2 = await addFarm(fdm, principal_id, "Farm 2", "654321", "Street 2", "1234AB")
@@ -144,7 +144,7 @@ describe("Manure Domain", () => {
   it("should throw an error when adding excreting with a non-existent manure pit", async () => {
     await expect(
       addExcreting(fdm, principal_id, l_id_herd, "non_existent_pit_id", {
-        p_amount: 1000,
+        p_excreting_amount: 1000,
       }),
     ).rejects.toThrowError("Exception for addExcreting")
   })

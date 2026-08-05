@@ -264,19 +264,9 @@ export {
   getMilkProductionForHerd,
 } from "./milk"
 export type { MilkDelivery, Milking, MilkingAnimal, MilkTank } from "./milk.types"
-export {
-  addFeedBatch,
-  addFeedingAnimal,
-  addFeedingHerd,
-  getFeedBatchesForFarm,
-} from "./feed"
+export { addFeedBatch, addFeedingAnimal, addFeedingHerd, getFeedBatchesForFarm } from "./feed"
 export type { FeedBatch, Feeding, FeedingAnimal } from "./feed.types"
-export {
-  addExcreting,
-  addManureDisposing,
-  addManurePit,
-  getManureDisposalsForFarm,
-} from "./manure"
+export { addExcreting, addManureDisposing, addManurePit, getManureDisposalsForFarm } from "./manure"
 export type { Excreting, ManureDelivery, ManurePit } from "./manure.types"
 export { addGrazing, getGrazingForFarm, getGrazingForHerd } from "./grazing"
 export type { Grazing } from "./grazing.types"

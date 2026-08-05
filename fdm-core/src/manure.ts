@@ -65,7 +65,7 @@ export async function addExcreting(
   properties?: {
     l_excreting_start?: schema.excretingTypeInsert["l_excreting_start"]
     l_excreting_end?: schema.excretingTypeInsert["l_excreting_end"]
-    p_amount?: schema.excretingTypeInsert["p_amount"]
+    p_excreting_amount?: schema.excretingTypeInsert["p_excreting_amount"]
   },
 ): Promise<schema.excretingTypeSelect["l_id_excreting"]> {
   try {
@@ -80,7 +80,7 @@ export async function addExcreting(
         b_id_manurepit,
         l_excreting_start: properties?.l_excreting_start ?? new Date(),
         l_excreting_end: properties?.l_excreting_end ?? null,
-        p_amount: properties?.p_amount ?? null,
+        p_excreting_amount: properties?.p_excreting_amount ?? null,
       })
 
       return l_id_excreting
@@ -98,7 +98,7 @@ export async function addExcreting(
  * @param principal_id - Identifier of the principal recording the disposal.
  * @param b_id_manurepit - Identifier of the source manure pit.
  * @param p_disposing_date - Disposal/transport dispatch date.
- * @param p_amount - Quantity of manure disposed/transported (kg or m³).
+ * @param p_disposing_amount - Quantity of manure disposed/transported (kg or m³).
  * @param properties - Optional laboratory nutrient analysis parameters.
  * @returns Unique identifier of the created manure delivery.
  */
@@ -107,7 +107,7 @@ export async function addManureDisposing(
   principal_id: PrincipalId,
   b_id_manurepit: schema.manurePitsTypeSelect["b_id_manurepit"],
   p_disposing_date: Date,
-  p_amount: schema.manureDisposingTypeInsert["p_amount"],
+  p_disposing_amount: schema.manureDisposingTypeInsert["p_disposing_amount"],
   properties?: {
     p_n_rt?: schema.manureAnalysesTypeInsert["p_n_rt"]
     p_p_rt?: schema.manureAnalysesTypeInsert["p_p_rt"]
@@ -139,7 +139,7 @@ export async function addManureDisposing(
         b_id_manurepit,
         p_id_delivery,
         p_disposing_date,
-        p_amount,
+        p_disposing_amount,
       })
 
       if (
@@ -172,7 +172,7 @@ export async function addManureDisposing(
     throw handleError(err, "Exception for addManureDisposing", {
       b_id_manurepit,
       p_disposing_date,
-      p_amount,
+      p_disposing_amount,
     })
   }
 }
@@ -230,7 +230,7 @@ export async function getManureDisposalsForFarm(
           b_id_manurepit: schema.manureDisposing.b_id_manurepit,
           p_id_disposing: schema.manureDisposing.p_id_disposing,
           p_disposing_date: schema.manureDisposing.p_disposing_date,
-          p_amount: schema.manureDisposing.p_amount,
+          p_disposing_amount: schema.manureDisposing.p_disposing_amount,
           p_id_analysis: schema.manureAnalyses.p_id_analysis,
           p_n_rt: schema.manureAnalyses.p_n_rt,
           p_p_rt: schema.manureAnalyses.p_p_rt,

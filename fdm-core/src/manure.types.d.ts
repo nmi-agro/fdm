@@ -14,7 +14,7 @@ export interface Excreting {
   b_id_manurepit: schema.excretingTypeSelect["b_id_manurepit"]
   l_excreting_start?: schema.excretingTypeSelect["l_excreting_start"]
   l_excreting_end?: schema.excretingTypeSelect["l_excreting_end"]
-  p_amount?: schema.excretingTypeSelect["p_amount"]
+  p_excreting_amount?: schema.excretingTypeSelect["p_excreting_amount"]
   created: schema.excretingTypeSelect["created"]
   updated?: schema.excretingTypeSelect["updated"]
 }
@@ -24,7 +24,7 @@ export interface ManureDelivery {
   b_id_manurepit?: schema.manureDisposingTypeSelect["b_id_manurepit"]
   p_id_disposing?: schema.manureDisposingTypeSelect["p_id_disposing"]
   p_disposing_date?: schema.manureDisposingTypeSelect["p_disposing_date"]
-  p_amount?: schema.manureDisposingTypeSelect["p_amount"]
+  p_disposing_amount?: schema.manureDisposingTypeSelect["p_disposing_amount"]
   p_id_analysis?: schema.manureAnalysesTypeSelect["p_id_analysis"]
   p_n_rt?: schema.manureAnalysesTypeSelect["p_n_rt"]
   p_p_rt?: schema.manureAnalysesTypeSelect["p_p_rt"]

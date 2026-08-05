@@ -78,7 +78,7 @@ CREATE TABLE "fdm"."excreting" (
 	"b_id_manurepit" text NOT NULL,
 	"l_excreting_start" timestamp with time zone,
 	"l_excreting_end" timestamp with time zone,
-	"p_amount" numeric,
+	"p_excreting_amount" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );
@@ -204,7 +204,7 @@ CREATE TABLE "fdm"."manure_disposing" (
 	"b_id_manurepit" text NOT NULL,
 	"p_id_delivery" text NOT NULL,
 	"p_disposing_date" timestamp with time zone,
-	"p_amount" numeric,
+	"p_disposing_amount" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );

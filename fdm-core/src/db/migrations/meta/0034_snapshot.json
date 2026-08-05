@@ -1,5 +1,5 @@
 {
-  "id": "9f8e33a6-6b0d-4f13-8fd5-2d59a046bc4c",
+  "id": "fc5c8aea-0902-42ab-bdab-b510162477c5",
   "prevId": "07af4ad1-56f4-40ed-86f3-00c31c8e9d25",
   "version": "7",
   "dialect": "postgresql",
@@ -1178,8 +1178,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "p_amount": {
-          "name": "p_amount",
+        "p_excreting_amount": {
+          "name": "p_excreting_amount",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -3479,8 +3479,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "p_amount": {
-          "name": "p_amount",
+        "p_disposing_amount": {
+          "name": "p_disposing_amount",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false

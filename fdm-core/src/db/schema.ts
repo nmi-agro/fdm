@@ -1652,7 +1652,7 @@ export const excreting = fdmSchema.table(
       .references(() => manurePits.b_id_manurepit),
     l_excreting_start: timestamp({ withTimezone: true }),
     l_excreting_end: timestamp({ withTimezone: true }),
-    p_amount: numericCasted(),
+    p_excreting_amount: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1686,7 +1686,7 @@ export const manureDisposing = fdmSchema.table(
       .notNull()
       .references(() => manureDeliveries.p_id_delivery),
     p_disposing_date: timestamp({ withTimezone: true }),
-    p_amount: numericCasted(),
+    p_disposing_amount: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
