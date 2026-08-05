@@ -1487,6 +1487,9 @@ export const milkTanks = fdmSchema.table(
   "milk_tanks",
   {
     b_id_milktank: text().primaryKey(),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
     b_milktank_name: text(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
@@ -1623,6 +1626,9 @@ export const manurePits = fdmSchema.table(
   "manure_pits",
   {
     b_id_manurepit: text().primaryKey(),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
     b_manurepit_name: text(),
     b_pit_area: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -1731,6 +1737,9 @@ export const feedBatches = fdmSchema.table(
   "feed_batches",
   {
     f_id_batch: text().primaryKey(),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
     f_batch_name: text(),
     f_batch_type: feedTypeEnum(),
     f_batch_origin: feedOriginEnum(),

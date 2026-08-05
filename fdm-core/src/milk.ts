@@ -33,6 +33,7 @@ export async function addMilkTank(
 
       await tx.insert(schema.milkTanks).values({
         b_id_milktank,
+        b_id_farm,
         b_milktank_name: properties?.b_milktank_name ?? null,
       })
 
@@ -225,17 +226,13 @@ export async function getMilkDeliveriesForFarm(
     await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getMilkDeliveriesForFarm")
 
     return await fdm.transaction(async (tx) => {
-      // Find milk tank IDs belonging to herds on this farm
-      const milkingTanks = await tx
-        .select({ b_id_milktank: schema.milkingHerd.b_id_milktank })
-        .from(schema.milkingHerd)
-        .innerJoin(
-          schema.herdStarting,
-          eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
-        )
-        .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
+      // Find milk tank IDs belonging to this farm
+      const farmTanks = await tx
+        .select({ b_id_milktank: schema.milkTanks.b_id_milktank })
+        .from(schema.milkTanks)
+        .where(eq(schema.milkTanks.b_id_farm, b_id_farm))
 
-      const tankIds = [...new Set(milkingTanks.map((t) => t.b_id_milktank))]
+      const tankIds = [...new Set(farmTanks.map((t) => t.b_id_milktank))]
 
       if (tankIds.length === 0) {
         return []

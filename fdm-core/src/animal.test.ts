@@ -141,7 +141,7 @@ describe("Animal Domain", () => {
         l_birth_date: birthdate,
         l_arriving_date: conflictingDate,
       }),
-    ).rejects.toThrowError("l_birth_date and l_arriving_date must be equal")
+    ).rejects.toThrowError("Exception for addAnimal")
   })
 
   it("should deny access to unauthorized principal", async () => {

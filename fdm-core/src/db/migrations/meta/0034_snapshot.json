@@ -1,5 +1,5 @@
 {
-  "id": "06ca59c8-6e2e-4a64-ac85-b63cbe48b2ab",
+  "id": "9f8e33a6-6b0d-4f13-8fd5-2d59a046bc4c",
   "prevId": "07af4ad1-56f4-40ed-86f3-00c31c8e9d25",
   "version": "7",
   "dialect": "postgresql",
@@ -1410,6 +1410,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "b_id_farm": {
+          "name": "b_id_farm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "f_batch_name": {
           "name": "f_batch_name",
           "type": "text",
@@ -1461,7 +1467,18 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "feed_batches_b_id_farm_farms_b_id_farm_fk": {
+          "name": "feed_batches_b_id_farm_farms_b_id_farm_fk",
+          "tableFrom": "feed_batches",
+          "tableTo": "farms",
+          "schemaTo": "fdm",
+          "columnsFrom": ["b_id_farm"],
+          "columnsTo": ["b_id_farm"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3537,6 +3554,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "b_id_farm": {
+          "name": "b_id_farm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "b_manurepit_name": {
           "name": "b_manurepit_name",
           "type": "text",
@@ -3580,7 +3603,18 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "manure_pits_b_id_farm_farms_b_id_farm_fk": {
+          "name": "manure_pits_b_id_farm_farms_b_id_farm_fk",
+          "tableFrom": "manure_pits",
+          "tableTo": "farms",
+          "schemaTo": "fdm",
+          "columnsFrom": ["b_id_farm"],
+          "columnsTo": ["b_id_farm"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4263,6 +4297,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "b_id_farm": {
+          "name": "b_id_farm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "b_milktank_name": {
           "name": "b_milktank_name",
           "type": "text",
@@ -4300,7 +4340,18 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "milk_tanks_b_id_farm_farms_b_id_farm_fk": {
+          "name": "milk_tanks_b_id_farm_farms_b_id_farm_fk",
+          "tableFrom": "milk_tanks",
+          "tableTo": "farms",
+          "schemaTo": "fdm",
+          "columnsFrom": ["b_id_farm"],
+          "columnsTo": ["b_id_farm"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},

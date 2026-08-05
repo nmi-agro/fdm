@@ -96,6 +96,7 @@ CREATE TABLE "fdm"."feed_analyses" (
 --> statement-breakpoint
 CREATE TABLE "fdm"."feed_batches" (
 	"f_id_batch" text PRIMARY KEY NOT NULL,
+	"b_id_farm" text NOT NULL,
 	"f_batch_name" text,
 	"f_batch_type" "fdm"."f_batch_type",
 	"f_batch_origin" "fdm"."f_batch_origin",
@@ -210,6 +211,7 @@ CREATE TABLE "fdm"."manure_disposing" (
 --> statement-breakpoint
 CREATE TABLE "fdm"."manure_pits" (
 	"b_id_manurepit" text PRIMARY KEY NOT NULL,
+	"b_id_farm" text NOT NULL,
 	"b_manurepit_name" text,
 	"b_pit_area" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
@@ -263,6 +265,7 @@ CREATE TABLE "fdm"."milk_sampling" (
 --> statement-breakpoint
 CREATE TABLE "fdm"."milk_tanks" (
 	"b_id_milktank" text PRIMARY KEY NOT NULL,
+	"b_id_farm" text NOT NULL,
 	"b_milktank_name" text,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
@@ -302,6 +305,7 @@ ALTER TABLE "fdm"."barn_constructing" ADD CONSTRAINT "barn_constructing_b_id_far
 ALTER TABLE "fdm"."barn_decommissioning" ADD CONSTRAINT "barn_decommissioning_b_id_barn_barns_b_id_barn_fk" FOREIGN KEY ("b_id_barn") REFERENCES "fdm"."barns"("b_id_barn") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."excreting" ADD CONSTRAINT "excreting_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."excreting" ADD CONSTRAINT "excreting_b_id_manurepit_manure_pits_b_id_manurepit_fk" FOREIGN KEY ("b_id_manurepit") REFERENCES "fdm"."manure_pits"("b_id_manurepit") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."feed_batches" ADD CONSTRAINT "feed_batches_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."feed_sampling" ADD CONSTRAINT "feed_sampling_f_id_batch_feed_batches_f_id_batch_fk" FOREIGN KEY ("f_id_batch") REFERENCES "fdm"."feed_batches"("f_id_batch") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."feed_sampling" ADD CONSTRAINT "feed_sampling_f_id_feed_analysis_feed_analyses_f_id_feed_analysis_fk" FOREIGN KEY ("f_id_feed_analysis") REFERENCES "fdm"."feed_analyses"("f_id_feed_analysis") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."feeding_animal" ADD CONSTRAINT "feeding_animal_l_id_animal_animals_l_id_animal_fk" FOREIGN KEY ("l_id_animal") REFERENCES "fdm"."animals"("l_id_animal") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -317,12 +321,14 @@ ALTER TABLE "fdm"."housing" ADD CONSTRAINT "housing_l_id_herd_herds_l_id_herd_fk
 ALTER TABLE "fdm"."housing" ADD CONSTRAINT "housing_b_id_barn_barns_b_id_barn_fk" FOREIGN KEY ("b_id_barn") REFERENCES "fdm"."barns"("b_id_barn") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."manure_disposing" ADD CONSTRAINT "manure_disposing_b_id_manurepit_manure_pits_b_id_manurepit_fk" FOREIGN KEY ("b_id_manurepit") REFERENCES "fdm"."manure_pits"("b_id_manurepit") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."manure_disposing" ADD CONSTRAINT "manure_disposing_p_id_delivery_manure_deliveries_p_id_delivery_fk" FOREIGN KEY ("p_id_delivery") REFERENCES "fdm"."manure_deliveries"("p_id_delivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."manure_pits" ADD CONSTRAINT "manure_pits_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."manure_sampling" ADD CONSTRAINT "manure_sampling_p_id_delivery_manure_deliveries_p_id_delivery_fk" FOREIGN KEY ("p_id_delivery") REFERENCES "fdm"."manure_deliveries"("p_id_delivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."manure_sampling" ADD CONSTRAINT "manure_sampling_p_id_analysis_manure_analyses_p_id_analysis_fk" FOREIGN KEY ("p_id_analysis") REFERENCES "fdm"."manure_analyses"("p_id_analysis") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milk_delivering" ADD CONSTRAINT "milk_delivering_b_id_milktank_milk_tanks_b_id_milktank_fk" FOREIGN KEY ("b_id_milktank") REFERENCES "fdm"."milk_tanks"("b_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milk_delivering" ADD CONSTRAINT "milk_delivering_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk" FOREIGN KEY ("b_id_milk_delivery") REFERENCES "fdm"."milk_deliveries"("b_id_milk_delivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milk_sampling" ADD CONSTRAINT "milk_sampling_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk" FOREIGN KEY ("b_id_milk_delivery") REFERENCES "fdm"."milk_deliveries"("b_id_milk_delivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milk_sampling" ADD CONSTRAINT "milk_sampling_b_id_milk_analysis_milk_analyses_b_id_milk_analysis_fk" FOREIGN KEY ("b_id_milk_analysis") REFERENCES "fdm"."milk_analyses"("b_id_milk_analysis") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."milk_tanks" ADD CONSTRAINT "milk_tanks_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milking_animal" ADD CONSTRAINT "milking_animal_l_id_animal_animals_l_id_animal_fk" FOREIGN KEY ("l_id_animal") REFERENCES "fdm"."animals"("l_id_animal") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milking_animal" ADD CONSTRAINT "milking_animal_b_id_milktank_milk_tanks_b_id_milktank_fk" FOREIGN KEY ("b_id_milktank") REFERENCES "fdm"."milk_tanks"("b_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milking_herd" ADD CONSTRAINT "milking_herd_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

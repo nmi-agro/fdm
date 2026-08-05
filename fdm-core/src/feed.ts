@@ -44,6 +44,7 @@ export async function addFeedBatch(
 
       await tx.insert(schema.feedBatches).values({
         f_id_batch,
+        b_id_farm,
         f_batch_name: properties?.f_batch_name ?? null,
         f_batch_type,
         f_batch_origin,
@@ -127,6 +128,7 @@ export async function getFeedBatchesForFarm(
         schema.feedAnalyses,
         eq(schema.feedSampling.f_id_feed_analysis, schema.feedAnalyses.f_id_feed_analysis),
       )
+      .where(eq(schema.feedBatches.b_id_farm, b_id_farm))
       .orderBy(desc(schema.feedBatches.created))
 
     return rows as FeedBatch[]

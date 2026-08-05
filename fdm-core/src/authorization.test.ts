@@ -801,6 +801,12 @@ describe("Authorization Functions", () => {
         "soil_analysis",
         "soil_image",
         "harvesting",
+        "barn",
+        "herd",
+        "animal",
+        "milk",
+        "feed",
+        "manure",
       ])
     })
 

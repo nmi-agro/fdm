@@ -1,4 +1,4 @@
-import { and, count, desc, eq, isNull, lte, or, sql } from "drizzle-orm"
+import { and, count, desc, eq, gt, isNull, lte, or } from "drizzle-orm"
 import type { Animal, HerdCensus } from "./animal.types"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
@@ -657,7 +657,7 @@ export async function getCensusForFarm(
           lte(schema.animalAssigning.l_assigning_start, atDate),
           or(
             isNull(schema.animalAssigning.l_assigning_end),
-            sql`${schema.animalAssigning.l_assigning_end} > ${atDate}`,
+            gt(schema.animalAssigning.l_assigning_end, atDate),
           ),
         ),
       )

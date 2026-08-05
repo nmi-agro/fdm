@@ -35,6 +35,7 @@ export async function addManurePit(
 
       await tx.insert(schema.manurePits).values({
         b_id_manurepit,
+        b_id_farm,
         b_manurepit_name: properties?.b_manurepit_name ?? null,
         b_pit_area: properties?.b_pit_area ?? null,
       })
@@ -195,17 +196,13 @@ export async function getManureDisposalsForFarm(
     await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getManureDisposalsForFarm")
 
     return await fdm.transaction(async (tx) => {
-      // Find manure pit IDs belonging to herds on this farm
-      const excretingPits = await tx
-        .select({ b_id_manurepit: schema.excreting.b_id_manurepit })
-        .from(schema.excreting)
-        .innerJoin(
-          schema.herdStarting,
-          eq(schema.excreting.l_id_herd, schema.herdStarting.l_id_herd),
-        )
-        .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
+      // Find manure pit IDs belonging to this farm
+      const farmPits = await tx
+        .select({ b_id_manurepit: schema.manurePits.b_id_manurepit })
+        .from(schema.manurePits)
+        .where(eq(schema.manurePits.b_id_farm, b_id_farm))
 
-      const pitIds = [...new Set(excretingPits.map((p) => p.b_id_manurepit))]
+      const pitIds = [...new Set(farmPits.map((p) => p.b_id_manurepit))]
 
       if (pitIds.length === 0) {
         return []
