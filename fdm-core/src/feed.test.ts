@@ -3,7 +3,7 @@ import type { FdmType } from "./fdm.types"
 import { addAnimal } from "./animal"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-import { addFeedBatch, addFeeding, addFeedingAnimal, getFeedBatchesForFarm } from "./feed"
+import { addFeedBatch, addFeedingAnimal, addFeedingHerd, getFeedBatchesForFarm } from "./feed"
 import { addHerd } from "./herd"
 
 describe("Feed Domain", () => {
@@ -68,7 +68,7 @@ describe("Feed Domain", () => {
     const startDate = new Date("2025-07-01")
 
     // Herd feeding
-    await addFeeding(fdm, principal_id, f_id_batch_own, l_id_herd, startDate, {
+    await addFeedingHerd(fdm, principal_id, f_id_batch_own, l_id_herd, startDate, {
       f_amount: 10000,
     })
 

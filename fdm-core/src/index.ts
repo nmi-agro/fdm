@@ -257,8 +257,8 @@ export {
 export type { Barn, Housing } from "./barn.types"
 export {
   addMilkDelivery,
-  addMilking,
   addMilkingAnimal,
+  addMilkingHerd,
   addMilkTank,
   getMilkDeliveriesForFarm,
   getMilkProductionForHerd,
@@ -266,8 +266,8 @@ export {
 export type { MilkDelivery, Milking, MilkingAnimal, MilkTank } from "./milk.types"
 export {
   addFeedBatch,
-  addFeeding,
   addFeedingAnimal,
+  addFeedingHerd,
   getFeedBatchesForFarm,
 } from "./feed"
 export type { FeedBatch, Feeding, FeedingAnimal } from "./feed.types"

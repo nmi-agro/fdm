@@ -6,8 +6,8 @@ import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
 import {
   addMilkDelivery,
-  addMilking,
   addMilkingAnimal,
+  addMilkingHerd,
   addMilkTank,
   getMilkDeliveriesForFarm,
   getMilkProductionForHerd,
@@ -76,7 +76,7 @@ describe("Milk Domain", () => {
     const startDate = new Date("2025-06-01")
 
     // Case 1: Herd-only milking
-    await addMilking(fdm, principal_id, l_id_herd, b_id_milktank, startDate, {
+    await addMilkingHerd(fdm, principal_id, l_id_herd, b_id_milktank, startDate, {
       b_milk_amount: 800,
     })
 
@@ -136,8 +136,8 @@ describe("Milk Domain", () => {
     const d1 = new Date("2025-05-01")
     const d2 = new Date("2025-06-01")
 
-    await addMilking(fdm, principal_id, l_id_herd, b_id_milktank, d1, { b_milk_amount: 500 })
-    await addMilking(fdm, principal_id, l_id_herd, b_id_milktank, d2, { b_milk_amount: 700 })
+    await addMilkingHerd(fdm, principal_id, l_id_herd, b_id_milktank, d1, { b_milk_amount: 500 })
+    await addMilkingHerd(fdm, principal_id, l_id_herd, b_id_milktank, d2, { b_milk_amount: 700 })
 
     const startOnly = await getMilkProductionForHerd(fdm, principal_id, l_id_herd, {
       start: new Date("2025-05-15"),
@@ -154,10 +154,10 @@ describe("Milk Domain", () => {
 
   it("should throw an error when adding milking with a non-existent milk tank", async () => {
     await expect(
-      addMilking(fdm, principal_id, l_id_herd, "non_existent_tank_id", new Date(), {
+      addMilkingHerd(fdm, principal_id, l_id_herd, "non_existent_tank_id", new Date(), {
         b_milk_amount: 100,
       }),
-    ).rejects.toThrowError("Exception for addMilking")
+    ).rejects.toThrowError("Exception for addMilkingHerd")
   })
 
   it("should deny access to unauthorized principal", async () => {

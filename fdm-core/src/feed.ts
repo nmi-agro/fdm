@@ -145,7 +145,7 @@ export async function getFeedBatchesForFarm(
  * @param f_feeding_start - Feeding start date/time.
  * @param properties - Optional end date and feed amount (kg fresh).
  */
-export async function addFeeding(
+export async function addFeedingHerd(
   fdm: FdmType,
   principal_id: PrincipalId,
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"],
@@ -157,7 +157,7 @@ export async function addFeeding(
   },
 ): Promise<void> {
   try {
-    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addFeeding")
+    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addFeedingHerd")
 
     await fdm.insert(schema.feedingHerd).values({
       f_id_batch,
@@ -167,7 +167,7 @@ export async function addFeeding(
       f_amount: properties?.f_amount ?? null,
     })
   } catch (err) {
-    throw handleError(err, "Exception for addFeeding", {
+    throw handleError(err, "Exception for addFeedingHerd", {
       f_id_batch,
       l_id_herd,
       f_feeding_start,

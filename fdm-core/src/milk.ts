@@ -54,7 +54,7 @@ export async function addMilkTank(
  * @param b_milking_start - Milking start date/time.
  * @param properties - Optional end date and milk yield (kg).
  */
-export async function addMilking(
+export async function addMilkingHerd(
   fdm: FdmType,
   principal_id: PrincipalId,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
@@ -66,7 +66,7 @@ export async function addMilking(
   },
 ): Promise<void> {
   try {
-    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addMilking")
+    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addMilkingHerd")
 
     await fdm.insert(schema.milkingHerd).values({
       l_id_herd,
@@ -76,7 +76,7 @@ export async function addMilking(
       b_milk_amount: properties?.b_milk_amount ?? null,
     })
   } catch (err) {
-    throw handleError(err, "Exception for addMilking", {
+    throw handleError(err, "Exception for addMilkingHerd", {
       l_id_herd,
       b_id_milktank,
       b_milking_start,
