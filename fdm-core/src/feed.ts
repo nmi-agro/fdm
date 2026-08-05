@@ -13,7 +13,7 @@ import { createId } from "./id"
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal adding the feed batch.
  * @param b_id_farm - Identifier of the farm.
- * @param f_batch_type - Feed type (e.g., grass_silage, maize_silage, concentrate).
+ * @param f_batch_type - Feed type (e.g., gras_kuil, snijmais, krachtvoer).
  * @param f_batch_origin - Feed origin (own_land or purchased).
  * @param properties - Optional feed name and analysis parameters.
  * @returns Unique identifier of the new feed batch.

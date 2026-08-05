@@ -42,7 +42,7 @@ describe("Feed Domain", () => {
       fdm,
       principal_id,
       b_id_farm,
-      "grass_silage",
+      "gras_kuil",
       "own_land",
       {
         f_dm: 450,
@@ -55,7 +55,7 @@ describe("Feed Domain", () => {
       fdm,
       principal_id,
       b_id_farm,
-      "maize_silage",
+      "snijmais",
       "purchased",
       {
         f_dm: 350,
@@ -84,12 +84,12 @@ describe("Feed Domain", () => {
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(
-      addFeedBatch(fdm, invalidUser, b_id_farm, "grass_silage", "own_land"),
+      addFeedBatch(fdm, invalidUser, b_id_farm, "gras_kuil", "own_land"),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 
   it("should deny access to unauthorized principal for remaining feed functions", async () => {
-    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "grass_silage", "own_land")
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "gras_kuil", "own_land")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL202",
     })

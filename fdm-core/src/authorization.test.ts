@@ -261,7 +261,7 @@ describe("Authorization Functions", () => {
         fdm,
         principal_id,
         real_farm_id,
-        "grass_silage",
+        "gras_kuil",
         "own_land",
       )
       await checkPermission(fdm, "feed", "read", f_id_batch, principal_id, "test")

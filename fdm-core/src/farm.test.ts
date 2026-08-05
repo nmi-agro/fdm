@@ -768,7 +768,7 @@ describe("Farm Functions", () => {
         fdm,
         testPrincipalId,
         livestockFarmId,
-        "concentrate",
+        "krachtvoer",
         "purchased",
       )
       await addFeedingHerd(fdm, testPrincipalId, f_id_batch, l_id_herd, new Date("2025-02-04"))
