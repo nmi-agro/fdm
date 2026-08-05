@@ -7,7 +7,22 @@ import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
 import { createId } from "./id"
-import { addExcreting, addManureDisposing, addManurePit, getManureDisposalsForFarm } from "./manure"
+import {
+  addExcreting,
+  addManureDisposing,
+  addManurePit,
+  getExcreting,
+  getManureDisposalsForFarm,
+  getManureDisposing,
+  getManurePit,
+  getManurePitsForFarm,
+  removeExcreting,
+  removeManureDisposing,
+  removeManurePit,
+  updateExcreting,
+  updateManureDisposing,
+  updateManurePit,
+} from "./manure"
 
 describe("Manure Domain", () => {
   let fdm: FdmType
@@ -72,6 +87,80 @@ describe("Manure Domain", () => {
     expect(deliveries[0].p_id_delivery).toBe(p_id_delivery)
     expect(deliveries[0].p_disposing_amount).toBe(10000)
     expect(deliveries[0].p_n_rt).toBe(4.2)
+  })
+
+  it("should update and remove a manure pit, excreting record, and disposing record", async () => {
+    const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm, {
+      b_manurepit_name: "Mestkelder A",
+    })
+
+    const pit = await getManurePit(fdm, principal_id, b_id_manurepit)
+    expect(pit.b_manurepit_name).toBe("Mestkelder A")
+
+    const pitsForFarm = await getManurePitsForFarm(fdm, principal_id, b_id_farm)
+    expect(pitsForFarm.map((p) => p.b_id_manurepit)).toContain(b_id_manurepit)
+
+    await updateManurePit(fdm, principal_id, b_id_manurepit, {
+      b_manurepit_name: "Mestkelder A (renamed)",
+      b_pit_area: 350,
+    })
+    const renamedPit = await getManurePit(fdm, principal_id, b_id_manurepit)
+    expect(renamedPit.b_manurepit_name).toBe("Mestkelder A (renamed)")
+
+    const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
+      p_excreting_amount: 1000,
+    })
+
+    const excretingRecord = await getExcreting(fdm, principal_id, l_id_excreting)
+    expect(excretingRecord.p_excreting_amount).toBe(1000)
+
+    await updateExcreting(fdm, principal_id, l_id_excreting, { p_excreting_amount: 1500 })
+    expect((await getExcreting(fdm, principal_id, l_id_excreting)).p_excreting_amount).toBe(1500)
+
+    const p_id_delivery = await addManureDisposing(
+      fdm,
+      principal_id,
+      b_id_manurepit,
+      new Date("2025-04-10"),
+      5000,
+    )
+    const [disposal] = await getManureDisposalsForFarm(fdm, principal_id, b_id_farm)
+    expect(disposal.p_id_delivery).toBe(p_id_delivery)
+
+    const singleDisposal = await getManureDisposing(fdm, principal_id, disposal.p_id_disposing!)
+    expect(singleDisposal.p_disposing_amount).toBe(5000)
+
+    await updateManureDisposing(fdm, principal_id, disposal.p_id_disposing!, {
+      p_disposing_amount: 6000,
+    })
+    const [updatedDisposal] = await getManureDisposalsForFarm(fdm, principal_id, b_id_farm)
+    expect(updatedDisposal.p_disposing_amount).toBe(6000)
+
+    await removeManureDisposing(fdm, principal_id, disposal.p_id_disposing!)
+    expect(await getManureDisposalsForFarm(fdm, principal_id, b_id_farm)).toEqual([])
+
+    await removeExcreting(fdm, principal_id, l_id_excreting)
+    await expect(getExcreting(fdm, principal_id, l_id_excreting)).rejects.toThrowError(
+      "Exception for getExcreting",
+    )
+
+    // Pit can now be removed since no excreting/disposing records reference it
+    await removeManurePit(fdm, principal_id, b_id_manurepit)
+    // checkPermission fails closed since the resource chain can no longer resolve it
+    await expect(getManurePit(fdm, principal_id, b_id_manurepit)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+  })
+
+  it("should reject removing a manure pit that has excreting or disposing records", async () => {
+    const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
+    await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
+      p_excreting_amount: 1000,
+    })
+
+    await expect(removeManurePit(fdm, principal_id, b_id_manurepit)).rejects.toThrowError(
+      "Exception for removeManurePit",
+    )
   })
 
   it("should link own manure pit to acquired fertilizer via b_id_manurepit FK on fertilizer_acquiring", async () => {
@@ -169,6 +258,18 @@ describe("Manure Domain", () => {
 
   it("should deny access to unauthorized principal for remaining manure functions", async () => {
     const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
+    const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
+      p_excreting_amount: 1000,
+    })
+    const p_id_delivery = await addManureDisposing(
+      fdm,
+      principal_id,
+      b_id_manurepit,
+      new Date(),
+      1000,
+    )
+    const [disposal] = await getManureDisposalsForFarm(fdm, principal_id, b_id_farm)
+    expect(disposal.p_id_delivery).toBe(p_id_delivery)
     const invalidUser = "unauthorized_user"
 
     await expect(
@@ -181,6 +282,48 @@ describe("Manure Domain", () => {
 
     await expect(
       getManureDisposalsForFarm(fdm, invalidUser, b_id_farm),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(getManurePit(fdm, invalidUser, b_id_manurepit)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(getManurePitsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(getExcreting(fdm, invalidUser, l_id_excreting)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      getManureDisposing(fdm, invalidUser, disposal.p_id_disposing!),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      updateManurePit(fdm, invalidUser, b_id_manurepit, { b_pit_area: 100 }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(removeManurePit(fdm, invalidUser, b_id_manurepit)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      updateExcreting(fdm, invalidUser, l_id_excreting, { p_excreting_amount: 2000 }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(removeExcreting(fdm, invalidUser, l_id_excreting)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      updateManureDisposing(fdm, invalidUser, disposal.p_id_disposing!, {
+        p_disposing_amount: 2000,
+      }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      removeManureDisposing(fdm, invalidUser, disposal.p_id_disposing!),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 })

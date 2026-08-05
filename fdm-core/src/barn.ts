@@ -27,6 +27,7 @@ export async function addBarn(
     b_floor_area?: schema.barnsTypeInsert["b_floor_area"]
     b_barn_geometry?: schema.barnsTypeInsert["b_barn_geometry"]
     b_barn_constructing_date?: schema.barnConstructingTypeInsert["b_barn_constructing_date"]
+    b_barn_decommissioning_date?: schema.barnDecommissioningTypeInsert["b_barn_decommissioning_date"]
   },
 ): Promise<schema.barnsTypeSelect["b_id_barn"]> {
   try {
@@ -47,6 +48,13 @@ export async function addBarn(
         b_id_farm,
         b_barn_constructing_date: properties?.b_barn_constructing_date ?? new Date(),
       })
+
+      if (properties?.b_barn_decommissioning_date) {
+        await tx.insert(schema.barnDecommissioning).values({
+          b_id_barn,
+          b_barn_decommissioning_date: properties.b_barn_decommissioning_date,
+        })
+      }
 
       return b_id_barn
     })
@@ -162,7 +170,9 @@ export async function getBarnsForFarm(
 }
 
 /**
- * Updates properties of an existing barn.
+ * Updates properties of an existing barn. Setting
+ * `b_barn_decommissioning_date` records that the barn was decommissioned
+ * (upserted into `barn_decommissioning`).
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal updating the barn.
@@ -177,18 +187,31 @@ export async function updateBarn(
     b_barn_name?: schema.barnsTypeInsert["b_barn_name"]
     b_floor_area?: schema.barnsTypeInsert["b_floor_area"]
     b_barn_geometry?: schema.barnsTypeInsert["b_barn_geometry"]
+    b_barn_decommissioning_date?: schema.barnDecommissioningTypeInsert["b_barn_decommissioning_date"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "barn", "write", b_id_barn, principal_id, "updateBarn")
 
-    await fdm
-      .update(schema.barns)
-      .set({
-        ...properties,
-        updated: new Date(),
-      })
-      .where(eq(schema.barns.b_id_barn, b_id_barn))
+    const { b_barn_decommissioning_date, ...barnProperties } = properties
+    const updated = new Date()
+
+    await fdm.transaction(async (tx) => {
+      await tx
+        .update(schema.barns)
+        .set({ ...barnProperties, updated })
+        .where(eq(schema.barns.b_id_barn, b_id_barn))
+
+      if (b_barn_decommissioning_date !== undefined) {
+        await tx
+          .insert(schema.barnDecommissioning)
+          .values({ b_id_barn, b_barn_decommissioning_date })
+          .onConflictDoUpdate({
+            target: schema.barnDecommissioning.b_id_barn,
+            set: { b_barn_decommissioning_date, updated },
+          })
+      }
+    })
   } catch (err) {
     throw handleError(err, "Exception for updateBarn", {
       b_id_barn,
@@ -199,7 +222,11 @@ export async function updateBarn(
 }
 
 /**
- * Removes a barn by setting its end date in barn_decommissioning.
+ * Hard-deletes a barn asset and its own lifecycle rows (`barn_constructing`,
+ * `barn_decommissioning`). Guarded: rejected if any herd is currently or was
+ * ever housed in this barn — that represents another asset's history and
+ * must be cleaned up first. To record that a barn was decommissioned without
+ * deleting it, use {@link updateBarn} with `b_barn_decommissioning_date`.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal removing the barn.
@@ -214,16 +241,23 @@ export async function removeBarn(
     await checkPermission(fdm, "barn", "write", b_id_barn, principal_id, "removeBarn")
 
     await fdm.transaction(async (tx) => {
+      const housingRecords = await tx
+        .select({ b_id_barn: schema.housing.b_id_barn })
+        .from(schema.housing)
+        .where(eq(schema.housing.b_id_barn, b_id_barn))
+        .limit(1)
+
+      if (housingRecords.length > 0) {
+        throw new Error("Cannot remove barn: a herd is or was housed in it")
+      }
+
       await tx
-        .insert(schema.barnDecommissioning)
-        .values({
-          b_id_barn,
-          b_barn_decommissioning_date: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: schema.barnDecommissioning.b_id_barn,
-          set: { b_barn_decommissioning_date: new Date(), updated: new Date() },
-        })
+        .delete(schema.barnDecommissioning)
+        .where(eq(schema.barnDecommissioning.b_id_barn, b_id_barn))
+      await tx
+        .delete(schema.barnConstructing)
+        .where(eq(schema.barnConstructing.b_id_barn, b_id_barn))
+      await tx.delete(schema.barns).where(eq(schema.barns.b_id_barn, b_id_barn))
     })
   } catch (err) {
     throw handleError(err, "Exception for removeBarn", { b_id_barn })

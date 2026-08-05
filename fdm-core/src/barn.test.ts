@@ -63,6 +63,48 @@ describe("Barn Domain", () => {
     expect(activeBarns.length).toBe(0)
   })
 
+  it("should record and correct that a barn was decommissioned via b_barn_decommissioning_date", async () => {
+    const b_id_barn = await addBarn(fdm, principal_id, b_id_farm, {
+      b_barn_name: "Barn to decommission",
+      b_floor_area: 400,
+    })
+
+    const decommissionDate = new Date("2025-06-01")
+    await updateBarn(fdm, principal_id, b_id_barn, {
+      b_barn_decommissioning_date: decommissionDate,
+    })
+
+    const barn = await getBarn(fdm, principal_id, b_id_barn)
+    expect(barn.b_barn_decommissioning_date?.toISOString()).toBe(decommissionDate.toISOString())
+
+    // Correct the decommissioning date (upsert)
+    const correctedDate = new Date("2025-07-01")
+    await updateBarn(fdm, principal_id, b_id_barn, {
+      b_barn_decommissioning_date: correctedDate,
+    })
+    const correctedBarn = await getBarn(fdm, principal_id, b_id_barn)
+    expect(correctedBarn.b_barn_decommissioning_date?.toISOString()).toBe(
+      correctedDate.toISOString(),
+    )
+  })
+
+  it("should reject removing a barn that a herd is or was housed in", async () => {
+    const b_id_barn = await addBarn(fdm, principal_id, b_id_farm, {
+      b_barn_name: "Housing Barn",
+      b_floor_area: 500,
+    })
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien",
+      l_herd_category: "rvo_100",
+    })
+
+    await addHousing(fdm, principal_id, l_id_herd, b_id_barn, new Date())
+
+    await expect(removeBarn(fdm, principal_id, b_id_barn)).rejects.toThrowError(
+      "Exception for removeBarn",
+    )
+  })
+
   it("should handle herd housing action with housing end date and update barn properties", async () => {
     const polygon = {
       type: "Polygon" as const,

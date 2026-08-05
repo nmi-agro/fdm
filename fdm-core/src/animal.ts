@@ -34,6 +34,8 @@ export async function addAnimal(
     l_sex?: schema.animalsTypeInsert["l_sex"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
     l_arriving_date?: schema.animalArrivingTypeInsert["l_arriving_date"]
+    l_leaving_date?: schema.animalLeavingTypeInsert["l_leaving_date"]
+    l_leaving_method?: schema.animalLeavingTypeInsert["l_leaving_method"]
   },
 ): Promise<schema.animalsTypeSelect["l_id_animal"]> {
   try {
@@ -94,6 +96,14 @@ export async function addAnimal(
         l_assigning_start: arrivingDate,
         l_assigning_end: null,
       })
+
+      if (properties?.l_leaving_date) {
+        await tx.insert(schema.animalLeaving).values({
+          l_id_animal,
+          l_leaving_date: properties.l_leaving_date,
+          l_leaving_method: properties.l_leaving_method ?? null,
+        })
+      }
 
       // Set b_farm_livestock = true on farm
       await tx
@@ -297,7 +307,10 @@ export async function getAnimalsForFarm(
 }
 
 /**
- * Updates properties of an existing animal.
+ * Updates properties of an existing animal. Setting `l_leaving_date` and/or
+ * `l_leaving_method` records that the animal left the farm (upserted into
+ * `animal_leaving`) and closes its currently active herd assignment (if any)
+ * with `l_assigning_end` set to `l_leaving_date`.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal updating the animal.
@@ -316,66 +329,81 @@ export async function updateAnimal(
     l_coatcolor?: schema.animalsTypeInsert["l_coatcolor"]
     l_birth_date?: schema.animalsTypeInsert["l_birth_date"]
     l_sex?: schema.animalsTypeInsert["l_sex"]
+    l_leaving_date?: schema.animalLeavingTypeInsert["l_leaving_date"]
+    l_leaving_method?: schema.animalLeavingTypeInsert["l_leaving_method"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "updateAnimal")
 
-    await fdm
-      .update(schema.animals)
-      .set({
-        ...properties,
-        updated: new Date(),
-      })
-      .where(eq(schema.animals.l_id_animal, l_id_animal))
+    const { l_leaving_date, l_leaving_method, ...animalProperties } = properties
+    const updated = new Date()
+
+    await fdm.transaction(async (tx) => {
+      await tx
+        .update(schema.animals)
+        .set({ ...animalProperties, updated })
+        .where(eq(schema.animals.l_id_animal, l_id_animal))
+
+      if (l_leaving_date !== undefined || l_leaving_method !== undefined) {
+        await tx
+          .insert(schema.animalLeaving)
+          .values({
+            l_id_animal,
+            l_leaving_date: l_leaving_date ?? null,
+            l_leaving_method: l_leaving_method ?? null,
+          })
+          .onConflictDoUpdate({
+            target: schema.animalLeaving.l_id_animal,
+            set: { l_leaving_date, l_leaving_method, updated },
+          })
+
+        if (l_leaving_date) {
+          await tx
+            .update(schema.animalAssigning)
+            .set({ l_assigning_end: l_leaving_date, updated })
+            .where(
+              and(
+                eq(schema.animalAssigning.l_id_animal, l_id_animal),
+                isNull(schema.animalAssigning.l_assigning_end),
+              ),
+            )
+        }
+      }
+    })
   } catch (err) {
     throw handleError(err, "Exception for updateAnimal", { l_id_animal, properties })
   }
 }
 
 /**
- * Removes an animal by closing its herd assignment and setting animal_leaving.
+ * Hard-deletes an animal and all of its own history rows (`animal_arriving`,
+ * `animal_assigning`, `animal_leaving`, `milking_animal`, `feeding_animal`).
+ * This erases the animal's record entirely — to record that an animal left
+ * the farm while preserving its history, use {@link updateAnimal} with
+ * `l_leaving_date`/`l_leaving_method` instead.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal removing the animal.
  * @param l_id_animal - Animal ID.
- * @param leavingMethod - Reason for leaving.
  */
 export async function removeAnimal(
   fdm: FdmType,
   principal_id: PrincipalId,
   l_id_animal: schema.animalsTypeSelect["l_id_animal"],
-  leavingMethod: (typeof schema.leavingMethodOptions)[number]["value"] = "sold",
 ): Promise<void> {
   try {
     await checkPermission(fdm, "animal", "write", l_id_animal, principal_id, "removeAnimal")
 
-    return await fdm.transaction(async (tx) => {
-      const now = new Date()
-
-      // Close active assignment
+    await fdm.transaction(async (tx) => {
+      await tx.delete(schema.milkingAnimal).where(eq(schema.milkingAnimal.l_id_animal, l_id_animal))
+      await tx.delete(schema.feedingAnimal).where(eq(schema.feedingAnimal.l_id_animal, l_id_animal))
+      await tx.delete(schema.animalLeaving).where(eq(schema.animalLeaving.l_id_animal, l_id_animal))
       await tx
-        .update(schema.animalAssigning)
-        .set({ l_assigning_end: now, updated: now })
-        .where(
-          and(
-            eq(schema.animalAssigning.l_id_animal, l_id_animal),
-            isNull(schema.animalAssigning.l_assigning_end),
-          ),
-        )
-
-      // Set animal leaving
-      await tx
-        .insert(schema.animalLeaving)
-        .values({
-          l_id_animal,
-          l_leaving_date: now,
-          l_leaving_method: leavingMethod,
-        })
-        .onConflictDoUpdate({
-          target: schema.animalLeaving.l_id_animal,
-          set: { l_leaving_date: now, l_leaving_method: leavingMethod, updated: now },
-        })
+        .delete(schema.animalAssigning)
+        .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+      await tx.delete(schema.animalArriving).where(eq(schema.animalArriving.l_id_animal, l_id_animal))
+      await tx.delete(schema.animals).where(eq(schema.animals.l_id_animal, l_id_animal))
     })
   } catch (err) {
     throw handleError(err, "Exception for removeAnimal", { l_id_animal })
@@ -496,20 +524,21 @@ function buildAnimalRows(
 }
 
 /**
- * Removes multiple animals in one call by closing their active herd
- * assignments and recording animal_leaving for each, sharing the same
- * leaving method. The caller explicitly chooses which animals leave.
+ * Hard-deletes multiple animals and all of their own history rows in one call
+ * (`animal_arriving`, `animal_assigning`, `animal_leaving`, `milking_animal`,
+ * `feeding_animal`). The caller explicitly chooses which animals to remove.
+ * To record that animals left the farm while preserving history, use
+ * {@link updateAnimal} with `l_leaving_date`/`l_leaving_method` for each
+ * animal instead.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal removing the animals.
  * @param l_id_animals - IDs of the animals to remove.
- * @param leavingMethod - Reason for leaving, shared by all animals in this call.
  */
 export async function removeAnimals(
   fdm: FdmType,
   principal_id: PrincipalId,
   l_id_animals: schema.animalsTypeSelect["l_id_animal"][],
-  leavingMethod: (typeof schema.leavingMethodOptions)[number]["value"] = "sold",
 ): Promise<void> {
   try {
     await Promise.all(
@@ -523,34 +552,25 @@ export async function removeAnimals(
     }
 
     await fdm.transaction(async (tx) => {
-      const now = new Date()
-
       await tx
-        .update(schema.animalAssigning)
-        .set({ l_assigning_end: now, updated: now })
-        .where(
-          and(
-            inArray(schema.animalAssigning.l_id_animal, l_id_animals),
-            isNull(schema.animalAssigning.l_assigning_end),
-          ),
-        )
-
+        .delete(schema.milkingAnimal)
+        .where(inArray(schema.milkingAnimal.l_id_animal, l_id_animals))
       await tx
-        .insert(schema.animalLeaving)
-        .values(
-          l_id_animals.map((l_id_animal) => ({
-            l_id_animal,
-            l_leaving_date: now,
-            l_leaving_method: leavingMethod,
-          })),
-        )
-        .onConflictDoUpdate({
-          target: schema.animalLeaving.l_id_animal,
-          set: { l_leaving_date: now, l_leaving_method: leavingMethod, updated: now },
-        })
+        .delete(schema.feedingAnimal)
+        .where(inArray(schema.feedingAnimal.l_id_animal, l_id_animals))
+      await tx
+        .delete(schema.animalLeaving)
+        .where(inArray(schema.animalLeaving.l_id_animal, l_id_animals))
+      await tx
+        .delete(schema.animalAssigning)
+        .where(inArray(schema.animalAssigning.l_id_animal, l_id_animals))
+      await tx
+        .delete(schema.animalArriving)
+        .where(inArray(schema.animalArriving.l_id_animal, l_id_animals))
+      await tx.delete(schema.animals).where(inArray(schema.animals.l_id_animal, l_id_animals))
     })
   } catch (err) {
-    throw handleError(err, "Exception for removeAnimals", { l_id_animals, leavingMethod })
+    throw handleError(err, "Exception for removeAnimals", { l_id_animals })
   }
 }
 

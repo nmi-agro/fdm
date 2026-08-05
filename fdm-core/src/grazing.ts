@@ -174,3 +174,177 @@ export async function getGrazingForFarm(
     throw handleError(err, "Exception for getGrazingForFarm", { b_id_farm })
   }
 }
+
+/**
+ * Retrieves all grazing actions recorded for a specific field.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal ID.
+ * @param b_id - Field ID.
+ * @param timeframe - Optional timeframe filter.
+ * @returns Array of grazing records.
+ */
+export async function getGrazingForField(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: schema.fieldsTypeSelect["b_id"],
+  timeframe?: Timeframe,
+): Promise<Grazing[]> {
+  try {
+    await checkPermission(fdm, "field", "read", b_id, principal_id, "getGrazingForField")
+
+    let dateWhere: SQL | undefined = eq(schema.grazing.b_id, b_id)
+    dateWhere = withTimeframe(dateWhere, schema.grazing.l_grazing_start, timeframe)
+
+    const rows = await fdm
+      .select({
+        l_id_grazing: schema.grazing.l_id_grazing,
+        b_id: schema.grazing.b_id,
+        l_id_herd: schema.grazing.l_id_herd,
+        l_grazing_start: schema.grazing.l_grazing_start,
+        l_grazing_end: schema.grazing.l_grazing_end,
+        l_grazing_hours: schema.grazing.l_grazing_hours,
+        l_grazing_area: schema.grazing.l_grazing_area,
+        l_grazing_type: schema.grazing.l_grazing_type,
+        created: schema.grazing.created,
+        updated: schema.grazing.updated,
+      })
+      .from(schema.grazing)
+      .where(dateWhere)
+      .orderBy(desc(schema.grazing.l_grazing_start))
+
+    return rows as Grazing[]
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazingForField", { b_id })
+  }
+}
+
+/**
+ * Retrieves a single grazing record by its ID.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal requesting the grazing record.
+ * @param l_id_grazing - Grazing record ID.
+ * @returns The grazing record.
+ */
+export async function getGrazing(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_grazing: schema.grazingTypeSelect["l_id_grazing"],
+): Promise<Grazing> {
+  try {
+    const rows = await fdm
+      .select({
+        l_id_grazing: schema.grazing.l_id_grazing,
+        b_id: schema.grazing.b_id,
+        l_id_herd: schema.grazing.l_id_herd,
+        l_grazing_start: schema.grazing.l_grazing_start,
+        l_grazing_end: schema.grazing.l_grazing_end,
+        l_grazing_hours: schema.grazing.l_grazing_hours,
+        l_grazing_area: schema.grazing.l_grazing_area,
+        l_grazing_type: schema.grazing.l_grazing_type,
+        created: schema.grazing.created,
+        updated: schema.grazing.updated,
+      })
+      .from(schema.grazing)
+      .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+      .limit(1)
+
+    if (rows.length === 0) {
+      throw new Error("Grazing record not found")
+    }
+
+    await checkPermission(fdm, "herd", "read", rows[0].l_id_herd, principal_id, "getGrazing")
+
+    return rows[0] as Grazing
+  } catch (err) {
+    throw handleError(err, "Exception for getGrazing", { l_id_grazing })
+  }
+}
+
+/**
+ * Corrects an existing grazing record identified by its ID.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal correcting the grazing record.
+ * @param l_id_grazing - Grazing record ID.
+ * @param properties - Fields to correct.
+ */
+export async function updateGrazing(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_grazing: schema.grazingTypeSelect["l_id_grazing"],
+  properties: {
+    l_grazing_start?: schema.grazingTypeInsert["l_grazing_start"]
+    l_grazing_end?: schema.grazingTypeInsert["l_grazing_end"]
+    l_grazing_hours?: schema.grazingTypeInsert["l_grazing_hours"]
+    l_grazing_area?: schema.grazingTypeInsert["l_grazing_area"]
+    l_grazing_type?: schema.grazingTypeInsert["l_grazing_type"]
+  },
+): Promise<void> {
+  try {
+    const existing = await fdm
+      .select({ l_id_herd: schema.grazing.l_id_herd })
+      .from(schema.grazing)
+      .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+      .limit(1)
+
+    if (existing.length === 0) {
+      throw new Error("Grazing record not found")
+    }
+
+    await checkPermission(
+      fdm,
+      "herd",
+      "write",
+      existing[0].l_id_herd,
+      principal_id,
+      "updateGrazing",
+    )
+
+    await fdm
+      .update(schema.grazing)
+      .set({ ...properties, updated: new Date() })
+      .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+  } catch (err) {
+    throw handleError(err, "Exception for updateGrazing", { l_id_grazing, properties })
+  }
+}
+
+/**
+ * Hard-deletes a grazing record.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal removing the grazing record.
+ * @param l_id_grazing - Grazing record ID.
+ */
+export async function removeGrazing(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_grazing: schema.grazingTypeSelect["l_id_grazing"],
+): Promise<void> {
+  try {
+    const existing = await fdm
+      .select({ l_id_herd: schema.grazing.l_id_herd })
+      .from(schema.grazing)
+      .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+      .limit(1)
+
+    if (existing.length === 0) {
+      throw new Error("Grazing record not found")
+    }
+
+    await checkPermission(
+      fdm,
+      "herd",
+      "write",
+      existing[0].l_id_herd,
+      principal_id,
+      "removeGrazing",
+    )
+
+    await fdm.delete(schema.grazing).where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+  } catch (err) {
+    throw handleError(err, "Exception for removeGrazing", { l_id_grazing })
+  }
+}

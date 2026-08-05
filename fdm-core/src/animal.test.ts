@@ -82,9 +82,15 @@ describe("Animal Domain", () => {
     const farmAnimals = await getAnimalsForFarm(fdm, principal_id, b_id_farm)
     expect(farmAnimals.length).toBe(1)
 
-    await removeAnimal(fdm, principal_id, l_id_animal, "sold")
+    await removeAnimal(fdm, principal_id, l_id_animal)
     const remainingHerdAnimals = await getAnimalsForHerd(fdm, principal_id, l_id_herd)
     expect(remainingHerdAnimals.length).toBe(0)
+
+    // Hard delete: the animal record itself is gone (checkPermission fails
+    // closed since the resource chain can no longer resolve the animal)
+    await expect(getAnimal(fdm, principal_id, l_id_animal)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
   })
 
   it("should bulk add animals to herd via addAnimalsToHerd and remove some via removeAnimals", async () => {
@@ -97,11 +103,17 @@ describe("Animal Domain", () => {
     expect(melkkoeienCensus?.count).toBe(10)
 
     // Explicitly remove 3 specific animals
-    await removeAnimals(fdm, principal_id, animalIds.slice(0, 3), "sold")
+    await removeAnimals(fdm, principal_id, animalIds.slice(0, 3))
 
     census = await getCensusForFarm(fdm, principal_id, b_id_farm)
     const updatedCensus = census.find((c) => c.l_id_herd === l_id_herd)
     expect(updatedCensus?.count).toBe(7)
+
+    // Hard delete: the removed animals no longer exist (checkPermission
+    // fails closed since the resource chain can no longer resolve them)
+    await expect(getAnimal(fdm, principal_id, animalIds[0])).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
   })
 
   it("should reassign an animal to a different existing herd via assignAnimalToHerd and preserve history", async () => {
@@ -245,11 +257,27 @@ describe("Animal Domain", () => {
     expect(census).toBeDefined()
   })
 
-  it("should keep herd in census with count 0 when all animals have departed", async () => {
-    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+  it("should keep herd in census with count 0 when all animals have left (soft) or been removed (hard)", async () => {
+    const leftAnimal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL700000001",
     })
-    await removeAnimal(fdm, principal_id, l_id_animal, "sold")
+    // Record departure while preserving history
+    await updateAnimal(fdm, principal_id, leftAnimal, {
+      l_leaving_date: new Date(Date.now() - 60_000),
+      l_leaving_method: "sold",
+    })
+    const leftAnimalDetails = await getAnimal(fdm, principal_id, leftAnimal)
+    expect(leftAnimalDetails.l_leaving_method).toBe("sold")
+
+    // Recording a departure also closes the animal's active herd assignment
+    const herdAnimalsAfterLeaving = await getAnimalsForHerd(fdm, principal_id, l_id_herd)
+    expect(herdAnimalsAfterLeaving.find((a) => a.l_id_animal === leftAnimal)).toBeUndefined()
+
+    const removedAnimal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL700000002",
+    })
+    // Hard delete entirely
+    await removeAnimal(fdm, principal_id, removedAnimal)
 
     const census = await getCensusForFarm(fdm, principal_id, b_id_farm)
     const herdCensus = census.find((c) => c.l_id_herd === l_id_herd)

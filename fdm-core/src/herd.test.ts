@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
+import { addAnimal } from "./animal"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd, getHerd, getHerdsForFarm, removeHerd, updateHerd } from "./herd"
@@ -65,6 +66,40 @@ describe("Herd Domain", () => {
 
     const herds = await getHerdsForFarm(fdm, principal_id, b_id_farm)
     expect(herds.length).toBe(0)
+  })
+
+  it("should record and update that a herd has ended via l_end", async () => {
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Uitfaseren",
+      l_herd_category: "rvo_101",
+    })
+
+    const endDate = new Date("2025-06-01")
+    await updateHerd(fdm, principal_id, l_id_herd, { l_end: endDate })
+
+    const herd = await getHerd(fdm, principal_id, l_id_herd)
+    expect(herd.l_end?.toISOString()).toBe(endDate.toISOString())
+
+    // Correct the end date (upsert on l_end)
+    const correctedEndDate = new Date("2025-07-01")
+    await updateHerd(fdm, principal_id, l_id_herd, { l_end: correctedEndDate })
+    const correctedHerd = await getHerd(fdm, principal_id, l_id_herd)
+    expect(correctedHerd.l_end?.toISOString()).toBe(correctedEndDate.toISOString())
+  })
+
+  it("should reject removing a herd that still has an animal assigned", async () => {
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Melkkoeien",
+      l_herd_category: "rvo_100",
+    })
+
+    await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL900000001",
+    })
+
+    await expect(removeHerd(fdm, principal_id, l_id_herd)).rejects.toThrowError(
+      "Exception for removeHerd",
+    )
   })
 
   it("should deny access to unauthorized principal", async () => {

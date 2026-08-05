@@ -3,7 +3,15 @@ import type { FdmType } from "./fdm.types"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addField } from "./field"
-import { addGrazing, getGrazingForFarm, getGrazingForHerd } from "./grazing"
+import {
+  addGrazing,
+  getGrazing,
+  getGrazingForFarm,
+  getGrazingForField,
+  getGrazingForHerd,
+  removeGrazing,
+  updateGrazing,
+} from "./grazing"
 import { addHerd } from "./herd"
 
 describe("Grazing Domain", () => {
@@ -82,6 +90,10 @@ describe("Grazing Domain", () => {
     const herdGrazing = await getGrazingForHerd(fdm, principal_id, l_id_herd)
     expect(herdGrazing.length).toBe(1)
     expect(herdGrazing[0].b_id).toBe(b_id)
+
+    const fieldGrazing = await getGrazingForField(fdm, principal_id, b_id)
+    expect(fieldGrazing.length).toBe(1)
+    expect(fieldGrazing[0].l_id_herd).toBe(l_id_herd)
   })
 
   it("should reject grazing for a field belonging to a different farm", async () => {
@@ -173,6 +185,39 @@ describe("Grazing Domain", () => {
     expect(emptyFarm).toEqual([])
   })
 
+  it("should correct and remove a grazing record", async () => {
+    const startDate = new Date("2025-05-15")
+    await addGrazing(fdm, principal_id, l_id_herd, startDate, {
+      l_grazing_hours: 8,
+      l_grazing_area: 25,
+      l_grazing_type: "full",
+    })
+
+    const [grazingRecord] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    expect(grazingRecord.l_grazing_area).toBe(25)
+
+    const single = await getGrazing(fdm, principal_id, grazingRecord.l_id_grazing)
+    expect(single.l_id_grazing).toBe(grazingRecord.l_id_grazing)
+    expect(single.l_grazing_area).toBe(25)
+
+    await updateGrazing(fdm, principal_id, grazingRecord.l_id_grazing, {
+      l_grazing_area: 30,
+      l_grazing_type: "partial",
+    })
+
+    const [updated] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    expect(updated.l_grazing_area).toBe(30)
+    expect(updated.l_grazing_type).toBe("partial")
+
+    await removeGrazing(fdm, principal_id, grazingRecord.l_id_grazing)
+    const remaining = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    expect(remaining.length).toBe(0)
+
+    await expect(getGrazing(fdm, principal_id, grazingRecord.l_id_grazing)).rejects.toThrowError(
+      "Exception for getGrazing",
+    )
+  })
+
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(addGrazing(fdm, invalidUser, l_id_herd, new Date())).rejects.toThrowError(
@@ -183,6 +228,34 @@ describe("Grazing Domain", () => {
   it("should deny access to unauthorized principal for remaining grazing functions", async () => {
     const invalidUser = "unauthorized_user"
 
+    const b_id = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Test Field",
+      "source3",
+      {
+        type: "Polygon" as const,
+        coordinates: [
+          [
+            [-3, -3],
+            [-3, 3],
+            [3, 3],
+            [3, -3],
+            [-3, -3],
+          ],
+        ],
+      },
+      new Date(),
+      "nl_01",
+    )
+
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-05-15"), {
+      b_id,
+      l_grazing_area: 10,
+    })
+    const [grazingRecord] = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+
     await expect(getGrazingForHerd(fdm, invalidUser, l_id_herd)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
@@ -190,5 +263,21 @@ describe("Grazing Domain", () => {
     await expect(getGrazingForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
+
+    await expect(getGrazingForField(fdm, invalidUser, b_id)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(getGrazing(fdm, invalidUser, grazingRecord.l_id_grazing)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      updateGrazing(fdm, invalidUser, grazingRecord.l_id_grazing, { l_grazing_area: 20 }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(
+      removeGrazing(fdm, invalidUser, grazingRecord.l_id_grazing),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 })

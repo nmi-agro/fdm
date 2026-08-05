@@ -29,6 +29,7 @@ export async function addHerd(
     l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
     l_herd_category?: schema.herdsTypeInsert["l_herd_category"]
     l_start?: schema.herdStartingTypeInsert["l_start"]
+    l_end?: schema.herdEndingTypeInsert["l_end"]
   },
 ): Promise<schema.herdsTypeSelect["l_id_herd"]> {
   try {
@@ -48,6 +49,13 @@ export async function addHerd(
         b_id_farm,
         l_start: properties?.l_start ?? new Date(),
       })
+
+      if (properties?.l_end) {
+        await tx.insert(schema.herdEnding).values({
+          l_id_herd,
+          l_end: properties.l_end,
+        })
+      }
 
       return l_id_herd
     })
@@ -142,7 +150,8 @@ export async function getHerdsForFarm(
 }
 
 /**
- * Updates properties of an existing herd asset.
+ * Updates properties of an existing herd asset. Setting `l_end` records that
+ * the herd has ended (upserted into `herd_ending`).
  *
  * @remarks
  * Allows updating display name (`l_herd_name`) or primary RVO animal category (`l_herd_category`).
@@ -160,25 +169,42 @@ export async function updateHerd(
   properties: {
     l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
     l_herd_category?: schema.herdsTypeInsert["l_herd_category"]
+    l_end?: schema.herdEndingTypeInsert["l_end"]
   },
 ): Promise<void> {
   try {
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "updateHerd")
 
-    await fdm
-      .update(schema.herds)
-      .set({
-        ...properties,
-        updated: new Date(),
-      })
-      .where(eq(schema.herds.l_id_herd, l_id_herd))
+    const { l_end, ...herdProperties } = properties
+    const updated = new Date()
+
+    await fdm.transaction(async (tx) => {
+      await tx
+        .update(schema.herds)
+        .set({ ...herdProperties, updated })
+        .where(eq(schema.herds.l_id_herd, l_id_herd))
+
+      if (l_end !== undefined) {
+        await tx
+          .insert(schema.herdEnding)
+          .values({ l_id_herd, l_end })
+          .onConflictDoUpdate({
+            target: schema.herdEnding.l_id_herd,
+            set: { l_end, updated },
+          })
+      }
+    })
   } catch (err) {
     throw handleError(err, "Exception for updateHerd", { l_id_herd, properties })
   }
 }
 
 /**
- * Decommissions/ends a herd by setting an ending timestamp in `herd_ending`.
+ * Hard-deletes a herd asset and its own lifecycle rows (`herd_starting`,
+ * `herd_ending`). Guarded: rejected if any animal is currently or was ever
+ * assigned to this herd, or if the herd is/was housed in a barn — those
+ * represent other assets' history and must be cleaned up first. To record
+ * that a herd ended without deleting it, use {@link updateHerd} with `l_end`.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal removing the herd.
@@ -193,16 +219,29 @@ export async function removeHerd(
     await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "removeHerd")
 
     await fdm.transaction(async (tx) => {
-      await tx
-        .insert(schema.herdEnding)
-        .values({
-          l_id_herd,
-          l_end: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: schema.herdEnding.l_id_herd,
-          set: { l_end: new Date(), updated: new Date() },
-        })
+      const assignedAnimals = await tx
+        .select({ l_id_animal: schema.animalAssigning.l_id_animal })
+        .from(schema.animalAssigning)
+        .where(eq(schema.animalAssigning.l_id_herd, l_id_herd))
+        .limit(1)
+
+      if (assignedAnimals.length > 0) {
+        throw new Error("Cannot remove herd: an animal is assigned to it")
+      }
+
+      const housingRecords = await tx
+        .select({ l_id_herd: schema.housing.l_id_herd })
+        .from(schema.housing)
+        .where(eq(schema.housing.l_id_herd, l_id_herd))
+        .limit(1)
+
+      if (housingRecords.length > 0) {
+        throw new Error("Cannot remove herd: it is or was housed in a barn")
+      }
+
+      await tx.delete(schema.herdEnding).where(eq(schema.herdEnding.l_id_herd, l_id_herd))
+      await tx.delete(schema.herdStarting).where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+      await tx.delete(schema.herds).where(eq(schema.herds.l_id_herd, l_id_herd))
     })
   } catch (err) {
     throw handleError(err, "Exception for removeHerd", { l_id_herd })
