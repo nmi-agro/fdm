@@ -12,7 +12,7 @@ Before you begin, you will need to have the following software installed on your
 - **[Node.js](https://nodejs.org/en/download)**: FDM is a TypeScript and JavaScript project, so you will need to have Node.js installed.
 - **[`pnpm`](https://pnpm.io/installation)**: FDM uses `pnpm` for package management, so you will need to have it installed.
 - **[Git](https://git-scm.com/downloads)**: FDM is hosted on GitHub, so you will need to have Git installed to clone the repository.
-- **[Docker](https://docs.docker.com/get-docker/)**: FDM uses Docker to run the necessary services, such as the PostgreSQL database.
+- **[PostgreSQL](https://www.postgresql.org/download/) with [PostGIS](https://postgis.net/install/)**: FDM stores its data in PostgreSQL and uses PostGIS for field geometry. Install and run it on your machine.
 
 ## Cloning the Repository
 
@@ -42,11 +42,15 @@ You will then need to fill in the values for the environment variables in the `.
 
 ## Running Necessary Services
 
-FDM requires a PostgreSQL database to be running. The easiest way to do this is to use Docker. You can start the database by running the following command from the root of the repository:
+FDM requires a PostgreSQL database with the PostGIS extension enabled. Most developers run PostgreSQL directly on their machine and point the `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER` and `POSTGRES_PASSWORD` variables in the `.env` file at that instance.
 
-```bash
-docker-compose up -d
+Ensure the PostGIS extension is available in the target database:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
 ```
+
+Database migrations are applied automatically when `fdm-app` starts, so no separate migration step is required.
 
 ## External Services
 

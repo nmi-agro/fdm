@@ -24,12 +24,12 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 
 ## Key conventions
 
-- **Column naming uses domain prefixes, not camelCase**: `b_` for farm/field assets (`b_id_farm`, `b_id`, `b_lu` cultivation, `b_lu_catalogue`), `p_` for fertilizer products (`p_id`, `p_id_catalogue`, `p_app_id`), `a_` for soil analysis parameters, and `m_` for measures. Preserve these prefixes; they map directly to the documented schema.
+- **Column naming uses domain prefixes, not camelCase**: `b_` for farm/field assets (`b_id_farm`, `b_id`, `b_lu` cultivation, `b_lu_catalogue`), `p_` for fertilizer products (`p_id`, `p_id_catalogue`, `p_app_id`), `a_` for soil analysis parameters, and `m_` for measures. Preserve these prefixes; they map directly to the documented schema. **Before changing the schema or the data model, load the `fdm-schema` skill (`.github/skills/fdm-schema/SKILL.md`)** — it holds the full Asset–Action rules, the prefix glossary, the migration workflow and the anti-pattern list, and `pnpm check-schema` enforces them in CI. See `.github/skills/README.md` for the wider `fdm-*` skill family.
 - **`fdm-core` function signature pattern**: public functions take the FDM instance and the acting principal first: `fn(fdm: FdmType, principal_id: string, ...)`. Mutations run inside `fdm.transaction(...)`, generate IDs with `createId()` (`src/id.ts`), and enforce access via the authorization helpers (`grantRole`, `checkPermission`, …) in `src/authorization.ts`.
 - **Authentication & authorization live in `fdm-core`**. Authentication uses **better-auth** (`src/authentication.ts`, `createFdmAuth`) with the drizzle adapter and plugins for organizations, username, magic link, generic OAuth, and API keys; tables live in the `fdm-authn` schema. Authorization is a custom role/permission system in `src/authorization.ts` (`fdm-authz` schema): resources (`farm`, `field`, `cultivation`, `soil_analysis`, …), roles (`owner`, `advisor`, `researcher`), and actions (`read`, `write`, `list`, `share`). Core mutations enforce access via its helpers (`grantRole`, `checkPermission`, `getRolesOfPrincipalForResource`, …) and write audit entries; pass and check the acting `principal_id` rather than rolling your own checks.
 - **Error handling**: wrap thrown errors with `handleError(err, message, context)` which returns a `BaseError` (`fdm-core/src/error.ts`). Do not throw raw values.
 - **File layout in `fdm-core/src`**: each domain has `<name>.ts`, `<name>.test.ts`, and `<name>.types.d.ts` colocated.
-- **`fdm-app` routing**: flat file-based routes via `@react-router/fs-routes` (`app/routes.ts` → `app/routes/`). Server-only code lives in `*.server.ts`, client-only in `*.client.ts`. State uses Zustand stores in `app/store/`.
+- **`fdm-app` routing**: flat file-based routes via `@react-router/fs-routes` (`app/routes.ts` → `app/routes/`). Server-only code lives in `*.server.ts`, client-only in `*.client.ts`. State uses Zustand stores in `app/store/`. **Before non-trivial work in `fdm-app`, load the `fdm-app-conventions` skill**; for REST endpoint work in `fdm-api`, load the `fdm-api` skill.
 - This repo is on **React Router v8** (`react-router`, no `react-router-dom`); use `loaderData` in `useMatches`/`MetaArgs`.
 
 ## Commands (run from repo root unless noted)
@@ -38,10 +38,10 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 - Build everything: `pnpm build` (turbo) — respects build order.
 - Lint / format (oxlint + oxfmt, configured at root): `pnpm lint`, `pnpm lint:fix`, `pnpm format`.
 - Type-check: `pnpm check-types` in `fdm-core`, `fdm-rvo`, etc.; in `fdm-app` use `pnpm check-types` (runs `react-router typegen && tsc`).
-- Test (all): `pnpm test` (turbo `test-coverage`). Tests use Vitest and require a running PostgreSQL (PostGIS) — set `POSTGRES_HOST/PORT/DB/USER/PASSWORD`. `docker compose up -d` provides the database locally.
+- Test (all): `pnpm test` (turbo `test-coverage`). Tests use Vitest and require a running PostgreSQL (PostGIS) — set `POSTGRES_HOST/PORT/DB/USER/PASSWORD`. Developers normally run PostgreSQL locally on their machine; do not assume Docker.
 - Test one package: `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`.
 - Test one file/case in a package: `cd fdm-core` then `pnpm exec dotenvx run -- vitest run src/farm.test.ts` (add `-t "name"` for a single case). Tests load env via `dotenvx`.
-- Run the app: `docker compose up -d` then `pnpm --filter fdm-app dev` (http://localhost:5173). Copy `fdm-app/.env.example` to `fdm-app/.env` first.
+- Run the app: `pnpm --filter fdm-app dev` (http://localhost:5173), with a local PostgreSQL/PostGIS running. Copy `fdm-app/.env.example` to `fdm-app/.env` first.
 
 ## Releases / changesets
 

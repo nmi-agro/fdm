@@ -59,3 +59,9 @@ For example, the history of a `field` asset might look like this:
 4. **Harvest Crop:** A `harvesting` action is performed on the `field`, gathering the crop and ending the `cultivation`.
 
 This creates a complete and auditable record of activities on the farm, which is essential for traceability and compliance.
+
+## Further reading
+
+- [Naming Conventions](../core-concepts/12-naming-conventions.md) — how assets, actions and their columns are named in the schema
+- [Database Schema](../core-concepts/01-database-schema.md) — the complete table and column reference
+- [Extending the Schema](../contributing/04-extending-the-schema.md) — applying the model when contributing a schema change
