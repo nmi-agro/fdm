@@ -28,7 +28,6 @@ export const farms = fdmSchema.table(
     b_businessid_farm: text(),
     b_address_farm: text(),
     b_postalcode_farm: text(),
-    b_farm_livestock: boolean().notNull().default(false),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1504,15 +1503,15 @@ export type housingTypeInsert = typeof housing.$inferInsert
 export const milkTanks = fdmSchema.table(
   "milk_tanks",
   {
-    b_id_milktank: text().primaryKey(),
+    l_id_milktank: text().primaryKey(),
     b_id_farm: text()
       .notNull()
       .references(() => farms.b_id_farm),
-    b_milktank_name: text(),
+    l_milktank_name: text(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [uniqueIndex("b_id_milktank_idx").on(table.b_id_milktank)],
+  (table) => [uniqueIndex("l_id_milktank_idx").on(table.l_id_milktank)],
 )
 
 export type milkTanksTypeSelect = typeof milkTanks.$inferSelect
@@ -1524,18 +1523,18 @@ export const milkingHerd = fdmSchema.table(
     l_id_herd: text()
       .notNull()
       .references(() => herds.l_id_herd),
-    b_id_milktank: text()
+    l_id_milktank: text()
       .notNull()
-      .references(() => milkTanks.b_id_milktank),
-    b_milking_start: timestamp({ withTimezone: true }).notNull(),
-    b_milking_end: timestamp({ withTimezone: true }),
-    b_milk_amount: numericCasted(),
+      .references(() => milkTanks.l_id_milktank),
+    l_milking_start: timestamp({ withTimezone: true }).notNull(),
+    l_milking_end: timestamp({ withTimezone: true }),
+    l_milking_amount: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
   (table) => [
     primaryKey({
-      columns: [table.l_id_herd, table.b_id_milktank, table.b_milking_start],
+      columns: [table.l_id_herd, table.l_id_milktank, table.l_milking_start],
     }),
   ],
 )
@@ -1549,18 +1548,18 @@ export const milkingAnimal = fdmSchema.table(
     l_id_animal: text()
       .notNull()
       .references(() => animals.l_id_animal),
-    b_id_milktank: text()
+    l_id_milktank: text()
       .notNull()
-      .references(() => milkTanks.b_id_milktank),
-    b_milking_start: timestamp({ withTimezone: true }).notNull(),
-    b_milking_end: timestamp({ withTimezone: true }),
-    b_milk_amount: numericCasted(),
+      .references(() => milkTanks.l_id_milktank),
+    l_milking_start: timestamp({ withTimezone: true }).notNull(),
+    l_milking_end: timestamp({ withTimezone: true }),
+    l_milking_amount: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
   (table) => [
     primaryKey({
-      columns: [table.l_id_animal, table.b_id_milktank, table.b_milking_start],
+      columns: [table.l_id_animal, table.l_id_milktank, table.l_milking_start],
     }),
   ],
 )
@@ -1571,11 +1570,11 @@ export type milkingAnimalTypeInsert = typeof milkingAnimal.$inferInsert
 export const milkDeliveries = fdmSchema.table(
   "milk_deliveries",
   {
-    b_id_milk_delivery: text().primaryKey(),
+    l_id_milkdelivery: text().primaryKey(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [uniqueIndex("b_id_milk_delivery_idx").on(table.b_id_milk_delivery)],
+  (table) => [uniqueIndex("l_id_milkdelivery_idx").on(table.l_id_milkdelivery)],
 )
 
 export type milkDeliveriesTypeSelect = typeof milkDeliveries.$inferSelect
@@ -1584,19 +1583,18 @@ export type milkDeliveriesTypeInsert = typeof milkDeliveries.$inferInsert
 export const milkDelivering = fdmSchema.table(
   "milk_delivering",
   {
-    b_id_milk_delivering: text().primaryKey(),
-    b_id_milktank: text()
+    l_id_milktank: text()
       .notNull()
-      .references(() => milkTanks.b_id_milktank),
-    b_id_milk_delivery: text()
+      .references(() => milkTanks.l_id_milktank),
+    l_id_milkdelivery: text()
       .notNull()
-      .references(() => milkDeliveries.b_id_milk_delivery),
-    b_milk_delivery_date: timestamp({ withTimezone: true }),
-    b_milk_amount: numericCasted(),
+      .references(() => milkDeliveries.l_id_milkdelivery),
+    l_milkdelivery_date: timestamp({ withTimezone: true }),
+    l_milkdelivery_amount: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [uniqueIndex("b_id_milk_delivering_idx").on(table.b_id_milk_delivering)],
+  (table) => [primaryKey({ columns: [table.l_id_milktank, table.l_id_milkdelivery] })],
 )
 
 export type milkDeliveringTypeSelect = typeof milkDelivering.$inferSelect
@@ -1605,17 +1603,17 @@ export type milkDeliveringTypeInsert = typeof milkDelivering.$inferInsert
 export const milkSampling = fdmSchema.table(
   "milk_sampling",
   {
-    b_id_milk_delivery: text()
+    l_id_milkdelivery: text()
       .notNull()
-      .references(() => milkDeliveries.b_id_milk_delivery),
-    b_id_milk_analysis: text()
+      .references(() => milkDeliveries.l_id_milkdelivery),
+    l_id_milkanalysis: text()
       .notNull()
-      .references(() => milkAnalyses.b_id_milk_analysis),
+      .references(() => milkAnalyses.l_id_milkanalysis),
     b_sampling_date: timestamp({ withTimezone: true }),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.b_id_milk_delivery, table.b_id_milk_analysis] })],
+  (table) => [primaryKey({ columns: [table.l_id_milkdelivery, table.l_id_milkanalysis] })],
 )
 
 export type milkSamplingTypeSelect = typeof milkSampling.$inferSelect
@@ -1624,16 +1622,16 @@ export type milkSamplingTypeInsert = typeof milkSampling.$inferInsert
 export const milkAnalyses = fdmSchema.table(
   "milk_analyses",
   {
-    b_id_milk_analysis: text().primaryKey(),
-    b_milk_fat: numericCasted(),
-    b_milk_protein: numericCasted(),
-    b_milk_lactose: numericCasted(),
-    b_milk_urea: numericCasted(),
-    b_milk_scc: numericCasted(),
+    l_id_milkanalysis: text().primaryKey(),
+    l_milk_fat: numericCasted(),
+    l_milk_protein: numericCasted(),
+    l_milk_lactose: numericCasted(),
+    l_milk_urea: numericCasted(),
+    l_milk_scc: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [uniqueIndex("b_id_milk_analysis_idx").on(table.b_id_milk_analysis)],
+  (table) => [uniqueIndex("l_id_milkanalysis_idx").on(table.l_id_milkanalysis)],
 )
 
 export type milkAnalysesTypeSelect = typeof milkAnalyses.$inferSelect
@@ -1670,7 +1668,7 @@ export const excreting = fdmSchema.table(
       .references(() => manurePits.b_id_manurepit),
     l_excreting_start: timestamp({ withTimezone: true }),
     l_excreting_end: timestamp({ withTimezone: true }),
-    p_excreting_amount: numericCasted(),
+    l_excreting_amount: numericCasted(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1696,7 +1694,6 @@ export type manureDeliveriesTypeInsert = typeof manureDeliveries.$inferInsert
 export const manureDisposing = fdmSchema.table(
   "manure_disposing",
   {
-    p_id_disposing: text().primaryKey(),
     b_id_manurepit: text()
       .notNull()
       .references(() => manurePits.b_id_manurepit),
@@ -1708,7 +1705,7 @@ export const manureDisposing = fdmSchema.table(
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [uniqueIndex("p_id_disposing_idx").on(table.p_id_disposing)],
+  (table) => [primaryKey({ columns: [table.b_id_manurepit, table.p_id_delivery] })],
 )
 
 export type manureDisposingTypeSelect = typeof manureDisposing.$inferSelect

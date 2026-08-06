@@ -1,5 +1,5 @@
 {
-  "id": "f1fae68e-c131-44a2-8d79-6cab0af793da",
+  "id": "83ba3187-baad-4533-a076-5088aad25e6b",
   "prevId": "07af4ad1-56f4-40ed-86f3-00c31c8e9d25",
   "version": "7",
   "dialect": "postgresql",
@@ -1265,8 +1265,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "p_excreting_amount": {
-          "name": "p_excreting_amount",
+        "l_excreting_amount": {
+          "name": "l_excreting_amount",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -1371,13 +1371,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "b_farm_livestock": {
-          "name": "b_farm_livestock",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "created": {
           "name": "created",
@@ -3703,12 +3696,6 @@
       "name": "manure_disposing",
       "schema": "fdm",
       "columns": {
-        "p_id_disposing": {
-          "name": "p_id_disposing",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
         "b_id_manurepit": {
           "name": "b_id_manurepit",
           "type": "text",
@@ -3747,23 +3734,7 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "p_id_disposing_idx": {
-          "name": "p_id_disposing_idx",
-          "columns": [
-            {
-              "expression": "p_id_disposing",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "manure_disposing_b_id_manurepit_manure_pits_b_id_manurepit_fk": {
           "name": "manure_disposing_b_id_manurepit_manure_pits_b_id_manurepit_fk",
@@ -3794,7 +3765,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "manure_disposing_b_id_manurepit_p_id_delivery_pk": {
+          "name": "manure_disposing_b_id_manurepit_p_id_delivery_pk",
+          "columns": [
+            "b_id_manurepit",
+            "p_id_delivery"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -4295,38 +4274,38 @@
       "name": "milk_analyses",
       "schema": "fdm",
       "columns": {
-        "b_id_milk_analysis": {
-          "name": "b_id_milk_analysis",
+        "l_id_milkanalysis": {
+          "name": "l_id_milkanalysis",
           "type": "text",
           "primaryKey": true,
           "notNull": true
         },
-        "b_milk_fat": {
-          "name": "b_milk_fat",
+        "l_milk_fat": {
+          "name": "l_milk_fat",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
         },
-        "b_milk_protein": {
-          "name": "b_milk_protein",
+        "l_milk_protein": {
+          "name": "l_milk_protein",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
         },
-        "b_milk_lactose": {
-          "name": "b_milk_lactose",
+        "l_milk_lactose": {
+          "name": "l_milk_lactose",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
         },
-        "b_milk_urea": {
-          "name": "b_milk_urea",
+        "l_milk_urea": {
+          "name": "l_milk_urea",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
         },
-        "b_milk_scc": {
-          "name": "b_milk_scc",
+        "l_milk_scc": {
+          "name": "l_milk_scc",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -4346,11 +4325,11 @@
         }
       },
       "indexes": {
-        "b_id_milk_analysis_idx": {
-          "name": "b_id_milk_analysis_idx",
+        "l_id_milkanalysis_idx": {
+          "name": "l_id_milkanalysis_idx",
           "columns": [
             {
-              "expression": "b_id_milk_analysis",
+              "expression": "l_id_milkanalysis",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4373,8 +4352,8 @@
       "name": "milk_deliveries",
       "schema": "fdm",
       "columns": {
-        "b_id_milk_delivery": {
-          "name": "b_id_milk_delivery",
+        "l_id_milkdelivery": {
+          "name": "l_id_milkdelivery",
           "type": "text",
           "primaryKey": true,
           "notNull": true
@@ -4394,11 +4373,11 @@
         }
       },
       "indexes": {
-        "b_id_milk_delivery_idx": {
-          "name": "b_id_milk_delivery_idx",
+        "l_id_milkdelivery_idx": {
+          "name": "l_id_milkdelivery_idx",
           "columns": [
             {
-              "expression": "b_id_milk_delivery",
+              "expression": "l_id_milkdelivery",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4421,32 +4400,26 @@
       "name": "milk_delivering",
       "schema": "fdm",
       "columns": {
-        "b_id_milk_delivering": {
-          "name": "b_id_milk_delivering",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "b_id_milktank": {
-          "name": "b_id_milktank",
+        "l_id_milktank": {
+          "name": "l_id_milktank",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "b_id_milk_delivery": {
-          "name": "b_id_milk_delivery",
+        "l_id_milkdelivery": {
+          "name": "l_id_milkdelivery",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "b_milk_delivery_date": {
-          "name": "b_milk_delivery_date",
+        "l_milkdelivery_date": {
+          "name": "l_milkdelivery_date",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
-        "b_milk_amount": {
-          "name": "b_milk_amount",
+        "l_milkdelivery_amount": {
+          "name": "l_milkdelivery_amount",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -4465,54 +4438,46 @@
           "notNull": false
         }
       },
-      "indexes": {
-        "b_id_milk_delivering_idx": {
-          "name": "b_id_milk_delivering_idx",
-          "columns": [
-            {
-              "expression": "b_id_milk_delivering",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "milk_delivering_b_id_milktank_milk_tanks_b_id_milktank_fk": {
-          "name": "milk_delivering_b_id_milktank_milk_tanks_b_id_milktank_fk",
+        "milk_delivering_l_id_milktank_milk_tanks_l_id_milktank_fk": {
+          "name": "milk_delivering_l_id_milktank_milk_tanks_l_id_milktank_fk",
           "tableFrom": "milk_delivering",
           "tableTo": "milk_tanks",
           "schemaTo": "fdm",
           "columnsFrom": [
-            "b_id_milktank"
+            "l_id_milktank"
           ],
           "columnsTo": [
-            "b_id_milktank"
+            "l_id_milktank"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "milk_delivering_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk": {
-          "name": "milk_delivering_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk",
+        "milk_delivering_l_id_milkdelivery_milk_deliveries_l_id_milkdelivery_fk": {
+          "name": "milk_delivering_l_id_milkdelivery_milk_deliveries_l_id_milkdelivery_fk",
           "tableFrom": "milk_delivering",
           "tableTo": "milk_deliveries",
           "schemaTo": "fdm",
           "columnsFrom": [
-            "b_id_milk_delivery"
+            "l_id_milkdelivery"
           ],
           "columnsTo": [
-            "b_id_milk_delivery"
+            "l_id_milkdelivery"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "milk_delivering_l_id_milktank_l_id_milkdelivery_pk": {
+          "name": "milk_delivering_l_id_milktank_l_id_milkdelivery_pk",
+          "columns": [
+            "l_id_milktank",
+            "l_id_milkdelivery"
+          ]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -4522,14 +4487,14 @@
       "name": "milk_sampling",
       "schema": "fdm",
       "columns": {
-        "b_id_milk_delivery": {
-          "name": "b_id_milk_delivery",
+        "l_id_milkdelivery": {
+          "name": "l_id_milkdelivery",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "b_id_milk_analysis": {
-          "name": "b_id_milk_analysis",
+        "l_id_milkanalysis": {
+          "name": "l_id_milkanalysis",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -4556,41 +4521,41 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "milk_sampling_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk": {
-          "name": "milk_sampling_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk",
+        "milk_sampling_l_id_milkdelivery_milk_deliveries_l_id_milkdelivery_fk": {
+          "name": "milk_sampling_l_id_milkdelivery_milk_deliveries_l_id_milkdelivery_fk",
           "tableFrom": "milk_sampling",
           "tableTo": "milk_deliveries",
           "schemaTo": "fdm",
           "columnsFrom": [
-            "b_id_milk_delivery"
+            "l_id_milkdelivery"
           ],
           "columnsTo": [
-            "b_id_milk_delivery"
+            "l_id_milkdelivery"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "milk_sampling_b_id_milk_analysis_milk_analyses_b_id_milk_analysis_fk": {
-          "name": "milk_sampling_b_id_milk_analysis_milk_analyses_b_id_milk_analysis_fk",
+        "milk_sampling_l_id_milkanalysis_milk_analyses_l_id_milkanalysis_fk": {
+          "name": "milk_sampling_l_id_milkanalysis_milk_analyses_l_id_milkanalysis_fk",
           "tableFrom": "milk_sampling",
           "tableTo": "milk_analyses",
           "schemaTo": "fdm",
           "columnsFrom": [
-            "b_id_milk_analysis"
+            "l_id_milkanalysis"
           ],
           "columnsTo": [
-            "b_id_milk_analysis"
+            "l_id_milkanalysis"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "milk_sampling_b_id_milk_delivery_b_id_milk_analysis_pk": {
-          "name": "milk_sampling_b_id_milk_delivery_b_id_milk_analysis_pk",
+        "milk_sampling_l_id_milkdelivery_l_id_milkanalysis_pk": {
+          "name": "milk_sampling_l_id_milkdelivery_l_id_milkanalysis_pk",
           "columns": [
-            "b_id_milk_delivery",
-            "b_id_milk_analysis"
+            "l_id_milkdelivery",
+            "l_id_milkanalysis"
           ]
         }
       },
@@ -4603,8 +4568,8 @@
       "name": "milk_tanks",
       "schema": "fdm",
       "columns": {
-        "b_id_milktank": {
-          "name": "b_id_milktank",
+        "l_id_milktank": {
+          "name": "l_id_milktank",
           "type": "text",
           "primaryKey": true,
           "notNull": true
@@ -4615,8 +4580,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "b_milktank_name": {
-          "name": "b_milktank_name",
+        "l_milktank_name": {
+          "name": "l_milktank_name",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -4636,11 +4601,11 @@
         }
       },
       "indexes": {
-        "b_id_milktank_idx": {
-          "name": "b_id_milktank_idx",
+        "l_id_milktank_idx": {
+          "name": "l_id_milktank_idx",
           "columns": [
             {
-              "expression": "b_id_milktank",
+              "expression": "l_id_milktank",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4684,26 +4649,26 @@
           "primaryKey": false,
           "notNull": true
         },
-        "b_id_milktank": {
-          "name": "b_id_milktank",
+        "l_id_milktank": {
+          "name": "l_id_milktank",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "b_milking_start": {
-          "name": "b_milking_start",
+        "l_milking_start": {
+          "name": "l_milking_start",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },
-        "b_milking_end": {
-          "name": "b_milking_end",
+        "l_milking_end": {
+          "name": "l_milking_end",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
-        "b_milk_amount": {
-          "name": "b_milk_amount",
+        "l_milking_amount": {
+          "name": "l_milking_amount",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -4738,28 +4703,28 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "milking_animal_b_id_milktank_milk_tanks_b_id_milktank_fk": {
-          "name": "milking_animal_b_id_milktank_milk_tanks_b_id_milktank_fk",
+        "milking_animal_l_id_milktank_milk_tanks_l_id_milktank_fk": {
+          "name": "milking_animal_l_id_milktank_milk_tanks_l_id_milktank_fk",
           "tableFrom": "milking_animal",
           "tableTo": "milk_tanks",
           "schemaTo": "fdm",
           "columnsFrom": [
-            "b_id_milktank"
+            "l_id_milktank"
           ],
           "columnsTo": [
-            "b_id_milktank"
+            "l_id_milktank"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "milking_animal_l_id_animal_b_id_milktank_b_milking_start_pk": {
-          "name": "milking_animal_l_id_animal_b_id_milktank_b_milking_start_pk",
+        "milking_animal_l_id_animal_l_id_milktank_l_milking_start_pk": {
+          "name": "milking_animal_l_id_animal_l_id_milktank_l_milking_start_pk",
           "columns": [
             "l_id_animal",
-            "b_id_milktank",
-            "b_milking_start"
+            "l_id_milktank",
+            "l_milking_start"
           ]
         }
       },
@@ -4778,26 +4743,26 @@
           "primaryKey": false,
           "notNull": true
         },
-        "b_id_milktank": {
-          "name": "b_id_milktank",
+        "l_id_milktank": {
+          "name": "l_id_milktank",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "b_milking_start": {
-          "name": "b_milking_start",
+        "l_milking_start": {
+          "name": "l_milking_start",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },
-        "b_milking_end": {
-          "name": "b_milking_end",
+        "l_milking_end": {
+          "name": "l_milking_end",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
-        "b_milk_amount": {
-          "name": "b_milk_amount",
+        "l_milking_amount": {
+          "name": "l_milking_amount",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -4832,28 +4797,28 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "milking_herd_b_id_milktank_milk_tanks_b_id_milktank_fk": {
-          "name": "milking_herd_b_id_milktank_milk_tanks_b_id_milktank_fk",
+        "milking_herd_l_id_milktank_milk_tanks_l_id_milktank_fk": {
+          "name": "milking_herd_l_id_milktank_milk_tanks_l_id_milktank_fk",
           "tableFrom": "milking_herd",
           "tableTo": "milk_tanks",
           "schemaTo": "fdm",
           "columnsFrom": [
-            "b_id_milktank"
+            "l_id_milktank"
           ],
           "columnsTo": [
-            "b_id_milktank"
+            "l_id_milktank"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "milking_herd_l_id_herd_b_id_milktank_b_milking_start_pk": {
-          "name": "milking_herd_l_id_herd_b_id_milktank_b_milking_start_pk",
+        "milking_herd_l_id_herd_l_id_milktank_l_milking_start_pk": {
+          "name": "milking_herd_l_id_herd_l_id_milktank_l_milking_start_pk",
           "columns": [
             "l_id_herd",
-            "b_id_milktank",
-            "b_milking_start"
+            "l_id_milktank",
+            "l_milking_start"
           ]
         }
       },

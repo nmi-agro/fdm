@@ -78,7 +78,7 @@ CREATE TABLE "fdm"."excreting" (
 	"b_id_manurepit" text NOT NULL,
 	"l_excreting_start" timestamp with time zone,
 	"l_excreting_end" timestamp with time zone,
-	"p_excreting_amount" numeric,
+	"l_excreting_amount" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );
@@ -199,13 +199,13 @@ CREATE TABLE "fdm"."manure_deliveries" (
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."manure_disposing" (
-	"p_id_disposing" text PRIMARY KEY NOT NULL,
 	"b_id_manurepit" text NOT NULL,
 	"p_id_delivery" text NOT NULL,
 	"p_disposing_date" timestamp with time zone,
 	"p_disposing_amount" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated" timestamp with time zone
+	"updated" timestamp with time zone,
+	CONSTRAINT "manure_disposing_b_id_manurepit_p_id_delivery_pk" PRIMARY KEY("b_id_manurepit","p_id_delivery")
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."manure_pits" (
@@ -227,72 +227,71 @@ CREATE TABLE "fdm"."manure_sampling" (
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."milk_analyses" (
-	"b_id_milk_analysis" text PRIMARY KEY NOT NULL,
-	"b_milk_fat" numeric,
-	"b_milk_protein" numeric,
-	"b_milk_lactose" numeric,
-	"b_milk_urea" numeric,
-	"b_milk_scc" numeric,
+	"l_id_milkanalysis" text PRIMARY KEY NOT NULL,
+	"l_milk_fat" numeric,
+	"l_milk_protein" numeric,
+	"l_milk_lactose" numeric,
+	"l_milk_urea" numeric,
+	"l_milk_scc" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."milk_deliveries" (
-	"b_id_milk_delivery" text PRIMARY KEY NOT NULL,
+	"l_id_milkdelivery" text PRIMARY KEY NOT NULL,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."milk_delivering" (
-	"b_id_milk_delivering" text PRIMARY KEY NOT NULL,
-	"b_id_milktank" text NOT NULL,
-	"b_id_milk_delivery" text NOT NULL,
-	"b_milk_delivery_date" timestamp with time zone,
-	"b_milk_amount" numeric,
+	"l_id_milktank" text NOT NULL,
+	"l_id_milkdelivery" text NOT NULL,
+	"l_milkdelivery_date" timestamp with time zone,
+	"l_milkdelivery_amount" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated" timestamp with time zone
+	"updated" timestamp with time zone,
+	CONSTRAINT "milk_delivering_l_id_milktank_l_id_milkdelivery_pk" PRIMARY KEY("l_id_milktank","l_id_milkdelivery")
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."milk_sampling" (
-	"b_id_milk_delivery" text NOT NULL,
-	"b_id_milk_analysis" text NOT NULL,
+	"l_id_milkdelivery" text NOT NULL,
+	"l_id_milkanalysis" text NOT NULL,
 	"b_sampling_date" timestamp with time zone,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone,
-	CONSTRAINT "milk_sampling_b_id_milk_delivery_b_id_milk_analysis_pk" PRIMARY KEY("b_id_milk_delivery","b_id_milk_analysis")
+	CONSTRAINT "milk_sampling_l_id_milkdelivery_l_id_milkanalysis_pk" PRIMARY KEY("l_id_milkdelivery","l_id_milkanalysis")
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."milk_tanks" (
-	"b_id_milktank" text PRIMARY KEY NOT NULL,
+	"l_id_milktank" text PRIMARY KEY NOT NULL,
 	"b_id_farm" text NOT NULL,
-	"b_milktank_name" text,
+	"l_milktank_name" text,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."milking_animal" (
 	"l_id_animal" text NOT NULL,
-	"b_id_milktank" text NOT NULL,
-	"b_milking_start" timestamp with time zone NOT NULL,
-	"b_milking_end" timestamp with time zone,
-	"b_milk_amount" numeric,
+	"l_id_milktank" text NOT NULL,
+	"l_milking_start" timestamp with time zone NOT NULL,
+	"l_milking_end" timestamp with time zone,
+	"l_milking_amount" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone,
-	CONSTRAINT "milking_animal_l_id_animal_b_id_milktank_b_milking_start_pk" PRIMARY KEY("l_id_animal","b_id_milktank","b_milking_start")
+	CONSTRAINT "milking_animal_l_id_animal_l_id_milktank_l_milking_start_pk" PRIMARY KEY("l_id_animal","l_id_milktank","l_milking_start")
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."milking_herd" (
 	"l_id_herd" text NOT NULL,
-	"b_id_milktank" text NOT NULL,
-	"b_milking_start" timestamp with time zone NOT NULL,
-	"b_milking_end" timestamp with time zone,
-	"b_milk_amount" numeric,
+	"l_id_milktank" text NOT NULL,
+	"l_milking_start" timestamp with time zone NOT NULL,
+	"l_milking_end" timestamp with time zone,
+	"l_milking_amount" numeric,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone,
-	CONSTRAINT "milking_herd_l_id_herd_b_id_milktank_b_milking_start_pk" PRIMARY KEY("l_id_herd","b_id_milktank","b_milking_start")
+	CONSTRAINT "milking_herd_l_id_herd_l_id_milktank_l_milking_start_pk" PRIMARY KEY("l_id_herd","l_id_milktank","l_milking_start")
 );
 --> statement-breakpoint
-ALTER TABLE "fdm"."farms" ADD COLUMN "b_farm_livestock" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "fdm"."fertilizer_acquiring" ADD COLUMN "b_id_manurepit" text;--> statement-breakpoint
 ALTER TABLE "fdm"."animal_arriving" ADD CONSTRAINT "animal_arriving_l_id_animal_animals_l_id_animal_fk" FOREIGN KEY ("l_id_animal") REFERENCES "fdm"."animals"("l_id_animal") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."animal_arriving" ADD CONSTRAINT "animal_arriving_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -323,15 +322,15 @@ ALTER TABLE "fdm"."manure_disposing" ADD CONSTRAINT "manure_disposing_p_id_deliv
 ALTER TABLE "fdm"."manure_pits" ADD CONSTRAINT "manure_pits_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."manure_sampling" ADD CONSTRAINT "manure_sampling_p_id_delivery_manure_deliveries_p_id_delivery_fk" FOREIGN KEY ("p_id_delivery") REFERENCES "fdm"."manure_deliveries"("p_id_delivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."manure_sampling" ADD CONSTRAINT "manure_sampling_p_id_analysis_manure_analyses_p_id_analysis_fk" FOREIGN KEY ("p_id_analysis") REFERENCES "fdm"."manure_analyses"("p_id_analysis") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "fdm"."milk_delivering" ADD CONSTRAINT "milk_delivering_b_id_milktank_milk_tanks_b_id_milktank_fk" FOREIGN KEY ("b_id_milktank") REFERENCES "fdm"."milk_tanks"("b_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "fdm"."milk_delivering" ADD CONSTRAINT "milk_delivering_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk" FOREIGN KEY ("b_id_milk_delivery") REFERENCES "fdm"."milk_deliveries"("b_id_milk_delivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "fdm"."milk_sampling" ADD CONSTRAINT "milk_sampling_b_id_milk_delivery_milk_deliveries_b_id_milk_delivery_fk" FOREIGN KEY ("b_id_milk_delivery") REFERENCES "fdm"."milk_deliveries"("b_id_milk_delivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "fdm"."milk_sampling" ADD CONSTRAINT "milk_sampling_b_id_milk_analysis_milk_analyses_b_id_milk_analysis_fk" FOREIGN KEY ("b_id_milk_analysis") REFERENCES "fdm"."milk_analyses"("b_id_milk_analysis") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."milk_delivering" ADD CONSTRAINT "milk_delivering_l_id_milktank_milk_tanks_l_id_milktank_fk" FOREIGN KEY ("l_id_milktank") REFERENCES "fdm"."milk_tanks"("l_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."milk_delivering" ADD CONSTRAINT "milk_delivering_l_id_milkdelivery_milk_deliveries_l_id_milkdelivery_fk" FOREIGN KEY ("l_id_milkdelivery") REFERENCES "fdm"."milk_deliveries"("l_id_milkdelivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."milk_sampling" ADD CONSTRAINT "milk_sampling_l_id_milkdelivery_milk_deliveries_l_id_milkdelivery_fk" FOREIGN KEY ("l_id_milkdelivery") REFERENCES "fdm"."milk_deliveries"("l_id_milkdelivery") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."milk_sampling" ADD CONSTRAINT "milk_sampling_l_id_milkanalysis_milk_analyses_l_id_milkanalysis_fk" FOREIGN KEY ("l_id_milkanalysis") REFERENCES "fdm"."milk_analyses"("l_id_milkanalysis") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milk_tanks" ADD CONSTRAINT "milk_tanks_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milking_animal" ADD CONSTRAINT "milking_animal_l_id_animal_animals_l_id_animal_fk" FOREIGN KEY ("l_id_animal") REFERENCES "fdm"."animals"("l_id_animal") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "fdm"."milking_animal" ADD CONSTRAINT "milking_animal_b_id_milktank_milk_tanks_b_id_milktank_fk" FOREIGN KEY ("b_id_milktank") REFERENCES "fdm"."milk_tanks"("b_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."milking_animal" ADD CONSTRAINT "milking_animal_l_id_milktank_milk_tanks_l_id_milktank_fk" FOREIGN KEY ("l_id_milktank") REFERENCES "fdm"."milk_tanks"("l_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milking_herd" ADD CONSTRAINT "milking_herd_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "fdm"."milking_herd" ADD CONSTRAINT "milking_herd_b_id_milktank_milk_tanks_b_id_milktank_fk" FOREIGN KEY ("b_id_milktank") REFERENCES "fdm"."milk_tanks"("b_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."milking_herd" ADD CONSTRAINT "milking_herd_l_id_milktank_milk_tanks_l_id_milktank_fk" FOREIGN KEY ("l_id_milktank") REFERENCES "fdm"."milk_tanks"("l_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "l_id_animal_idx" ON "fdm"."animals" USING btree ("l_id_animal");--> statement-breakpoint
 CREATE UNIQUE INDEX "b_id_barn_idx" ON "fdm"."barns" USING btree ("b_id_barn");--> statement-breakpoint
 CREATE INDEX "b_barn_geom_idx" ON "fdm"."barns" USING gist ("b_barn_geometry");--> statement-breakpoint
@@ -342,10 +341,8 @@ CREATE INDEX "grazing_l_id_herd_idx" ON "fdm"."grazing" USING btree ("l_id_herd"
 CREATE UNIQUE INDEX "l_id_herd_idx" ON "fdm"."herds" USING btree ("l_id_herd");--> statement-breakpoint
 CREATE UNIQUE INDEX "p_id_analysis_idx" ON "fdm"."manure_analyses" USING btree ("p_id_analysis");--> statement-breakpoint
 CREATE UNIQUE INDEX "p_id_delivery_idx" ON "fdm"."manure_deliveries" USING btree ("p_id_delivery");--> statement-breakpoint
-CREATE UNIQUE INDEX "p_id_disposing_idx" ON "fdm"."manure_disposing" USING btree ("p_id_disposing");--> statement-breakpoint
 CREATE UNIQUE INDEX "b_id_manurepit_idx" ON "fdm"."manure_pits" USING btree ("b_id_manurepit");--> statement-breakpoint
-CREATE UNIQUE INDEX "b_id_milk_analysis_idx" ON "fdm"."milk_analyses" USING btree ("b_id_milk_analysis");--> statement-breakpoint
-CREATE UNIQUE INDEX "b_id_milk_delivery_idx" ON "fdm"."milk_deliveries" USING btree ("b_id_milk_delivery");--> statement-breakpoint
-CREATE UNIQUE INDEX "b_id_milk_delivering_idx" ON "fdm"."milk_delivering" USING btree ("b_id_milk_delivering");--> statement-breakpoint
-CREATE UNIQUE INDEX "b_id_milktank_idx" ON "fdm"."milk_tanks" USING btree ("b_id_milktank");--> statement-breakpoint
+CREATE UNIQUE INDEX "l_id_milkanalysis_idx" ON "fdm"."milk_analyses" USING btree ("l_id_milkanalysis");--> statement-breakpoint
+CREATE UNIQUE INDEX "l_id_milkdelivery_idx" ON "fdm"."milk_deliveries" USING btree ("l_id_milkdelivery");--> statement-breakpoint
+CREATE UNIQUE INDEX "l_id_milktank_idx" ON "fdm"."milk_tanks" USING btree ("l_id_milktank");--> statement-breakpoint
 ALTER TABLE "fdm"."fertilizer_acquiring" ADD CONSTRAINT "fertilizer_acquiring_b_id_manurepit_manure_pits_b_id_manurepit_fk" FOREIGN KEY ("b_id_manurepit") REFERENCES "fdm"."manure_pits"("b_id_manurepit") ON DELETE no action ON UPDATE no action;
