@@ -256,7 +256,7 @@ CREATE TABLE "fdm"."milk_delivering" (
 CREATE TABLE "fdm"."milk_sampling" (
 	"l_id_milkdelivery" text NOT NULL,
 	"l_id_milkanalysis" text NOT NULL,
-	"b_sampling_date" timestamp with time zone,
+	"l_milksampling_date" timestamp with time zone,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone,
 	CONSTRAINT "milk_sampling_l_id_milkdelivery_l_id_milkanalysis_pk" PRIMARY KEY("l_id_milkdelivery","l_id_milkanalysis")

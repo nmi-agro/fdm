@@ -1609,7 +1609,7 @@ export const milkSampling = fdmSchema.table(
     l_id_milkanalysis: text()
       .notNull()
       .references(() => milkAnalyses.l_id_milkanalysis),
-    b_sampling_date: timestamp({ withTimezone: true }),
+    l_milksampling_date: timestamp({ withTimezone: true }),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },

@@ -1,5 +1,5 @@
 {
-  "id": "83ba3187-baad-4533-a076-5088aad25e6b",
+  "id": "c3e54fec-92c4-4734-aee6-48faca3daf49",
   "prevId": "07af4ad1-56f4-40ed-86f3-00c31c8e9d25",
   "version": "7",
   "dialect": "postgresql",
@@ -4499,8 +4499,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "b_sampling_date": {
-          "name": "b_sampling_date",
+        "l_milksampling_date": {
+          "name": "l_milksampling_date",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
