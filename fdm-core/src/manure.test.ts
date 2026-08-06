@@ -12,6 +12,7 @@ import {
   addManureDisposing,
   addManurePit,
   getExcreting,
+  getExcretingsForFarm,
   getManureDisposalsForFarm,
   getManureDisposing,
   getManurePit,
@@ -62,7 +63,7 @@ describe("Manure Domain", () => {
     expect(b_id_manurepit).toBeDefined()
 
     const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
-      p_excreting_amount: 25000,
+      l_excreting_amount: 25000,
     })
     expect(l_id_excreting).toBeDefined()
 
@@ -108,14 +109,17 @@ describe("Manure Domain", () => {
     expect(renamedPit.b_manurepit_name).toBe("Mestkelder A (renamed)")
 
     const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
-      p_excreting_amount: 1000,
+      l_excreting_amount: 1000,
     })
 
     const excretingRecord = await getExcreting(fdm, principal_id, l_id_excreting)
-    expect(excretingRecord.p_excreting_amount).toBe(1000)
+    expect(excretingRecord.l_excreting_amount).toBe(1000)
 
-    await updateExcreting(fdm, principal_id, l_id_excreting, { p_excreting_amount: 1500 })
-    expect((await getExcreting(fdm, principal_id, l_id_excreting)).p_excreting_amount).toBe(1500)
+    const excretingsForFarm = await getExcretingsForFarm(fdm, principal_id, b_id_farm)
+    expect(excretingsForFarm.length).toBe(1)
+
+    await updateExcreting(fdm, principal_id, l_id_excreting, { l_excreting_amount: 1500 })
+    expect((await getExcreting(fdm, principal_id, l_id_excreting)).l_excreting_amount).toBe(1500)
 
     const p_id_delivery = await addManureDisposing(
       fdm,
@@ -140,6 +144,7 @@ describe("Manure Domain", () => {
     expect(await getManureDisposalsForFarm(fdm, principal_id, b_id_farm)).toEqual([])
 
     await removeExcreting(fdm, principal_id, l_id_excreting)
+    expect(await getExcretingsForFarm(fdm, principal_id, b_id_farm)).toEqual([])
     await expect(getExcreting(fdm, principal_id, l_id_excreting)).rejects.toThrowError(
       "Exception for getExcreting",
     )
@@ -155,7 +160,7 @@ describe("Manure Domain", () => {
   it("should reject removing a manure pit that has excreting or disposing records", async () => {
     const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
     await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
-      p_excreting_amount: 1000,
+      l_excreting_amount: 1000,
     })
 
     await expect(removeManurePit(fdm, principal_id, b_id_manurepit)).rejects.toThrowError(
@@ -201,7 +206,7 @@ describe("Manure Domain", () => {
     const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
       l_excreting_start: startDate,
       l_excreting_end: endDate,
-      p_excreting_amount: 12000,
+      l_excreting_amount: 12000,
     })
     expect(l_id_excreting).toBeDefined()
 
@@ -230,6 +235,64 @@ describe("Manure Domain", () => {
     expect(emptyDisposals).toEqual([])
   })
 
+  it("should block overlapping excreting intervals for the same herd and manure pit", async () => {
+    const b_id_manurepit_1 = await addManurePit(fdm, principal_id, b_id_farm, {
+      b_manurepit_name: "Pit A",
+    })
+    const b_id_manurepit_2 = await addManurePit(fdm, principal_id, b_id_farm, {
+      b_manurepit_name: "Pit B",
+    })
+
+    const firstId = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit_1, {
+      l_excreting_start: new Date("2025-05-01T00:00:00.000Z"),
+      l_excreting_end: new Date("2025-05-10T00:00:00.000Z"),
+      l_excreting_amount: 1000,
+    })
+    expect(firstId).toBeDefined()
+
+    await expect(
+      addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit_1, {
+        l_excreting_start: new Date("2025-05-05T00:00:00.000Z"),
+        l_excreting_end: new Date("2025-05-12T00:00:00.000Z"),
+        l_excreting_amount: 800,
+      }),
+    ).rejects.toThrowError("Exception for addExcreting")
+
+    await expect(
+      addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit_2, {
+        l_excreting_start: new Date("2025-05-05T00:00:00.000Z"),
+        l_excreting_end: new Date("2025-05-12T00:00:00.000Z"),
+        l_excreting_amount: 700,
+      }),
+    ).resolves.toBeDefined()
+  })
+
+  it("should block excreting updates that create overlap on the same herd and manure pit", async () => {
+    const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm, {
+      b_manurepit_name: "Update Pit",
+    })
+
+    const firstId = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
+      l_excreting_start: new Date("2025-06-01T00:00:00.000Z"),
+      l_excreting_end: new Date("2025-06-10T00:00:00.000Z"),
+      l_excreting_amount: 1000,
+    })
+    const secondId = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
+      l_excreting_start: new Date("2025-06-10T00:00:00.000Z"),
+      l_excreting_end: new Date("2025-06-20T00:00:00.000Z"),
+      l_excreting_amount: 1200,
+    })
+
+    expect(firstId).toBeDefined()
+    expect(secondId).toBeDefined()
+
+    await expect(
+      updateExcreting(fdm, principal_id, firstId, {
+        l_excreting_end: new Date("2025-06-15T00:00:00.000Z"),
+      }),
+    ).rejects.toThrowError("Exception for updateExcreting")
+  })
+
   it("should throw an error when adding excreting with a non-existent manure pit", async () => {
     const countBefore = await fdm
       .select()
@@ -238,7 +301,7 @@ describe("Manure Domain", () => {
 
     await expect(
       addExcreting(fdm, principal_id, l_id_herd, "non_existent_pit_id", {
-        p_excreting_amount: 1000,
+        l_excreting_amount: 1000,
       }),
     ).rejects.toThrowError("Exception for addExcreting")
 
@@ -259,7 +322,7 @@ describe("Manure Domain", () => {
   it("should deny access to unauthorized principal for remaining manure functions", async () => {
     const b_id_manurepit = await addManurePit(fdm, principal_id, b_id_farm)
     const l_id_excreting = await addExcreting(fdm, principal_id, l_id_herd, b_id_manurepit, {
-      p_excreting_amount: 1000,
+      l_excreting_amount: 1000,
     })
     const p_id_delivery = await addManureDisposing(
       fdm,
@@ -272,17 +335,17 @@ describe("Manure Domain", () => {
     expect(disposal.p_id_delivery).toBe(p_id_delivery)
     const invalidUser = "unauthorized_user"
 
-    await expect(
-      addExcreting(fdm, invalidUser, l_id_herd, b_id_manurepit),
-    ).rejects.toThrowError("Principal does not have permission to perform this action")
+    await expect(addExcreting(fdm, invalidUser, l_id_herd, b_id_manurepit)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
 
     await expect(
       addManureDisposing(fdm, invalidUser, b_id_manurepit, new Date(), 1000),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
-    await expect(
-      getManureDisposalsForFarm(fdm, invalidUser, b_id_farm),
-    ).rejects.toThrowError("Principal does not have permission to perform this action")
+    await expect(getManureDisposalsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
 
     await expect(getManurePit(fdm, invalidUser, b_id_manurepit)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
@@ -293,6 +356,10 @@ describe("Manure Domain", () => {
     )
 
     await expect(getExcreting(fdm, invalidUser, l_id_excreting)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(getExcretingsForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
 
@@ -309,7 +376,7 @@ describe("Manure Domain", () => {
     )
 
     await expect(
-      updateExcreting(fdm, invalidUser, l_id_excreting, { p_excreting_amount: 2000 }),
+      updateExcreting(fdm, invalidUser, l_id_excreting, { l_excreting_amount: 2000 }),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     await expect(removeExcreting(fdm, invalidUser, l_id_excreting)).rejects.toThrowError(

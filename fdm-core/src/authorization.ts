@@ -1172,56 +1172,54 @@ async function getResourceChain(
     } else if (resource === "milk") {
       // Run the independent milk-resource lookups concurrently; take the first
       // match in precedence order (tank, milking herd, delivering, milking animal).
-      const [tankResult, milkingResult, deliveringResult, milkingAnimalResult] = await Promise.all(
-        [
-          fdm
-            .select({
-              farm: schema.milkTanks.b_id_farm,
-              milk: schema.milkTanks.b_id_milktank,
-            })
-            .from(schema.milkTanks)
-            .where(eq(schema.milkTanks.b_id_milktank, resource_id))
-            .limit(1),
-          fdm
-            .select({
-              farm: schema.herdStarting.b_id_farm,
-              herd: schema.milkingHerd.l_id_herd,
-              milk: schema.milkingHerd.l_id_herd,
-            })
-            .from(schema.milkingHerd)
-            .leftJoin(
-              schema.herdStarting,
-              eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
-            )
-            .where(eq(schema.milkingHerd.l_id_herd, resource_id))
-            .limit(1),
-          fdm
-            .select({
-              farm: schema.milkTanks.b_id_farm,
-              milk: schema.milkDelivering.b_id_milk_delivering,
-            })
-            .from(schema.milkDelivering)
-            .leftJoin(
-              schema.milkTanks,
-              eq(schema.milkDelivering.b_id_milktank, schema.milkTanks.b_id_milktank),
-            )
-            .where(eq(schema.milkDelivering.b_id_milk_delivering, resource_id))
-            .limit(1),
-          fdm
-            .select({
-              farm: schema.animalArriving.b_id_farm,
-              animal: schema.milkingAnimal.l_id_animal,
-              milk: schema.milkingAnimal.l_id_animal,
-            })
-            .from(schema.milkingAnimal)
-            .leftJoin(
-              schema.animalArriving,
-              eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
-            )
-            .where(eq(schema.milkingAnimal.l_id_animal, resource_id))
-            .limit(1),
-        ],
-      )
+      const [tankResult, milkingResult, deliveringResult, milkingAnimalResult] = await Promise.all([
+        fdm
+          .select({
+            farm: schema.milkTanks.b_id_farm,
+            milk: schema.milkTanks.l_id_milktank,
+          })
+          .from(schema.milkTanks)
+          .where(eq(schema.milkTanks.l_id_milktank, resource_id))
+          .limit(1),
+        fdm
+          .select({
+            farm: schema.herdStarting.b_id_farm,
+            herd: schema.milkingHerd.l_id_herd,
+            milk: schema.milkingHerd.l_id_herd,
+          })
+          .from(schema.milkingHerd)
+          .leftJoin(
+            schema.herdStarting,
+            eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+          )
+          .where(eq(schema.milkingHerd.l_id_herd, resource_id))
+          .limit(1),
+        fdm
+          .select({
+            farm: schema.milkTanks.b_id_farm,
+            milk: schema.milkDelivering.l_id_milkdelivery,
+          })
+          .from(schema.milkDelivering)
+          .leftJoin(
+            schema.milkTanks,
+            eq(schema.milkDelivering.l_id_milktank, schema.milkTanks.l_id_milktank),
+          )
+          .where(eq(schema.milkDelivering.l_id_milkdelivery, resource_id))
+          .limit(1),
+        fdm
+          .select({
+            farm: schema.animalArriving.b_id_farm,
+            animal: schema.milkingAnimal.l_id_animal,
+            milk: schema.milkingAnimal.l_id_animal,
+          })
+          .from(schema.milkingAnimal)
+          .leftJoin(
+            schema.animalArriving,
+            eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+          )
+          .where(eq(schema.milkingAnimal.l_id_animal, resource_id))
+          .limit(1),
+      ])
 
       const candidates: Array<Record<string, unknown>>[] = [
         tankResult,
@@ -1319,14 +1317,14 @@ async function getResourceChain(
           const disposingResult = await fdm
             .select({
               farm: schema.manurePits.b_id_farm,
-              manure: schema.manureDisposing.p_id_disposing,
+              manure: schema.manureDisposing.p_id_delivery,
             })
             .from(schema.manureDisposing)
             .leftJoin(
               schema.manurePits,
               eq(schema.manureDisposing.b_id_manurepit, schema.manurePits.b_id_manurepit),
             )
-            .where(eq(schema.manureDisposing.p_id_disposing, resource_id))
+            .where(eq(schema.manureDisposing.p_id_delivery, resource_id))
             .limit(1)
 
           if (disposingResult.length > 0 && disposingResult[0].farm) {

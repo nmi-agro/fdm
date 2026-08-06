@@ -16,12 +16,12 @@ import {
   updateRole,
 } from "./authorization"
 import { addBarn } from "./barn"
+import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
-import * as schema from "./db/schema"
 import { addFarm } from "./farm"
-import { addFeedBatch, addFeedingAnimal, addFeedingHerd } from "./feed"
 import { createFdmServer } from "./fdm-server"
+import { addFeedBatch, addFeedingAnimal, addFeedingHerd } from "./feed"
 import { addHerd } from "./herd"
 import { createId } from "./id"
 import { addExcreting, addManureDisposing, addManurePit } from "./manure"
@@ -218,26 +218,26 @@ describe("Authorization Functions", () => {
       )
 
       // Branch 1: resource_id matches a milk tank directly
-      const b_id_milktank = await addMilkTank(fdm, principal_id, real_farm_id)
-      await checkPermission(fdm, "milk", "read", b_id_milktank, principal_id, "test")
+      const l_id_milktank = await addMilkTank(fdm, principal_id, real_farm_id)
+      await checkPermission(fdm, "milk", "read", l_id_milktank, principal_id, "test")
 
       // Branch 2: resource_id matches a herd-level milking record (l_id_herd)
       const l_id_herd = await addHerd(fdm, principal_id, real_farm_id)
-      await addMilkingHerd(fdm, principal_id, l_id_herd, b_id_milktank, new Date())
+      await addMilkingHerd(fdm, principal_id, l_id_herd, l_id_milktank, new Date())
       await checkPermission(fdm, "milk", "read", l_id_herd, principal_id, "test")
 
-      // Branch 3: resource_id matches a milk delivering record (b_id_milk_delivering)
-      await addMilkDelivery(fdm, principal_id, b_id_milktank, new Date(), 100)
+      // Branch 3: resource_id matches a milk delivering record (l_id_milkdelivery)
+      await addMilkDelivery(fdm, principal_id, l_id_milktank, new Date(), 100)
       const [delivering] = await fdm
-        .select({ b_id_milk_delivering: schema.milkDelivering.b_id_milk_delivering })
+        .select({ l_id_milkdelivery: schema.milkDelivering.l_id_milkdelivery })
         .from(schema.milkDelivering)
-        .where(eq(schema.milkDelivering.b_id_milktank, b_id_milktank))
+        .where(eq(schema.milkDelivering.l_id_milktank, l_id_milktank))
         .limit(1)
-      await checkPermission(fdm, "milk", "read", delivering.b_id_milk_delivering, principal_id, "test")
+      await checkPermission(fdm, "milk", "read", delivering.l_id_milkdelivery, principal_id, "test")
 
       // Branch 4: resource_id matches an animal-level milking record (l_id_animal)
       const l_id_animal = await addAnimal(fdm, principal_id, real_farm_id, l_id_herd)
-      await addMilkingAnimal(fdm, principal_id, l_id_animal, b_id_milktank, new Date())
+      await addMilkingAnimal(fdm, principal_id, l_id_animal, l_id_milktank, new Date())
       await checkPermission(fdm, "milk", "read", l_id_animal, principal_id, "test")
 
       // No branch matches: chain is empty, permission denied
@@ -304,7 +304,7 @@ describe("Authorization Functions", () => {
       // Branch 3: resource_id matches a manure disposing record (p_id_disposing)
       await addManureDisposing(fdm, principal_id, b_id_manurepit, new Date(), 1000)
       const [disposing] = await fdm
-        .select({ p_id_disposing: schema.manureDisposing.p_id_disposing })
+        .select({ p_id_disposing: schema.manureDisposing.p_id_delivery })
         .from(schema.manureDisposing)
         .where(eq(schema.manureDisposing.b_id_manurepit, b_id_manurepit))
         .limit(1)
@@ -312,7 +312,14 @@ describe("Authorization Functions", () => {
 
       // No branch matches: chain is empty, permission denied
       await expect(
-        checkPermission(fdm, "manure", "read", "non_existent_manure_resource", principal_id, "test"),
+        checkPermission(
+          fdm,
+          "manure",
+          "read",
+          "non_existent_manure_resource",
+          principal_id,
+          "test",
+        ),
       ).rejects.toThrowError("Principal does not have permission to perform this action")
     })
 

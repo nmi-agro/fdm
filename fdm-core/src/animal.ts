@@ -9,7 +9,7 @@ import { createId } from "./id"
 
 /**
  * Adds a single individual animal asset to a farm and assigns it to an active herd.
- * Also sets b_farm_livestock = true on the farm. For animals born on the farm,
+ * For animals born on the farm,
  * l_birth_date and l_arriving_date must be equal.
  *
  * @param fdm - The FDM instance providing connection to the database.
@@ -104,12 +104,6 @@ export async function addAnimal(
           l_leaving_method: properties.l_leaving_method ?? null,
         })
       }
-
-      // Set b_farm_livestock = true on farm
-      await tx
-        .update(schema.farms)
-        .set({ b_farm_livestock: true, updated: new Date() })
-        .where(eq(schema.farms.b_id_farm, b_id_farm))
 
       return l_id_animal
     })
@@ -412,9 +406,8 @@ export async function removeAnimal(
 
 /**
  * Adds `count` new animals to a herd with shared default attributes.
- * Pure add — does not remove or reassign any existing animals. To reduce a
- * herd's population, use {@link removeAnimals} with an explicit list of
- * animal IDs chosen by the caller.
+ * Pure add — does not remove or reassign any existing animals. Use
+ * {@link leaveHerd} or an explicit individual departure when animals leave.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal executing the bulk add.
@@ -457,12 +450,6 @@ export async function addAnimalsToHerd(
         await tx.insert(schema.animals).values(animalIds.map((r) => r.animalRow))
         await tx.insert(schema.animalArriving).values(animalIds.map((r) => r.arrivingRow))
         await tx.insert(schema.animalAssigning).values(animalIds.map((r) => r.assigningRow))
-
-        // Set b_farm_livestock = true on farm
-        await tx
-          .update(schema.farms)
-          .set({ b_farm_livestock: true, updated: now })
-          .where(eq(schema.farms.b_id_farm, b_id_farm))
       }
 
       return animalIds.map((r) => r.l_id_animal)
@@ -638,6 +625,228 @@ export async function assignAnimalToHerd(
     })
   } catch (err) {
     throw handleError(err, "Exception for assignAnimalToHerd", { l_id_animal, target_l_id_herd })
+  }
+}
+
+/**
+ * Ends a herd and records every currently assigned animal as leaving the farm.
+ * Animal and assignment history is preserved; no animal is selected implicitly.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal ending the herd.
+ * @param l_id_herd - Herd to end.
+ * @param l_leaving_date - Date on which the herd and its animals leave.
+ * @param l_leaving_method - Optional departure method applied to all animals.
+ * @returns IDs of the animals marked as leaving.
+ */
+export async function leaveHerd(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_leaving_date: Date = new Date(),
+  l_leaving_method?: schema.animalLeavingTypeInsert["l_leaving_method"],
+): Promise<schema.animalsTypeSelect["l_id_animal"][]> {
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "leaveHerd")
+
+      const herdRows = await tx
+        .select({ l_start: schema.herdStarting.l_start })
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+        .limit(1)
+
+      if (herdRows.length === 0) {
+        throw new Error("Herd does not exist")
+      }
+
+      if (herdRows[0].l_start && l_leaving_date < herdRows[0].l_start) {
+        throw new Error("Herd leaving date cannot be before the herd start date")
+      }
+
+      const activeAssignments = await tx
+        .select({
+          l_id_animal: schema.animalAssigning.l_id_animal,
+          l_assigning_start: schema.animalAssigning.l_assigning_start,
+        })
+        .from(schema.animalAssigning)
+        .leftJoin(
+          schema.animalLeaving,
+          eq(schema.animalAssigning.l_id_animal, schema.animalLeaving.l_id_animal),
+        )
+        .where(
+          and(
+            eq(schema.animalAssigning.l_id_herd, l_id_herd),
+            isNull(schema.animalAssigning.l_assigning_end),
+            isNull(schema.animalLeaving.l_leaving_date),
+          ),
+        )
+
+      if (activeAssignments.some((row) => l_leaving_date < row.l_assigning_start)) {
+        throw new Error("Herd leaving date cannot be before an active animal assignment")
+      }
+
+      const now = new Date()
+      const animalIds = activeAssignments.map((row) => row.l_id_animal)
+
+      if (animalIds.length > 0) {
+        await tx
+          .insert(schema.animalLeaving)
+          .values(
+            animalIds.map((l_id_animal) => ({
+              l_id_animal,
+              l_leaving_date,
+              l_leaving_method: l_leaving_method ?? null,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: schema.animalLeaving.l_id_animal,
+            set: {
+              l_leaving_date,
+              l_leaving_method: l_leaving_method ?? null,
+              updated: now,
+            },
+          })
+
+        await tx
+          .update(schema.animalAssigning)
+          .set({ l_assigning_end: l_leaving_date, updated: now })
+          .where(
+            and(
+              eq(schema.animalAssigning.l_id_herd, l_id_herd),
+              inArray(schema.animalAssigning.l_id_animal, animalIds),
+              isNull(schema.animalAssigning.l_assigning_end),
+            ),
+          )
+      }
+
+      await tx
+        .insert(schema.herdEnding)
+        .values({ l_id_herd, l_end: l_leaving_date })
+        .onConflictDoUpdate({
+          target: schema.herdEnding.l_id_herd,
+          set: { l_end: l_leaving_date, updated: now },
+        })
+
+      return animalIds
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for leaveHerd", { l_id_herd, l_leaving_date })
+  }
+}
+
+/**
+ * Reassigns every currently assigned animal from one herd to another herd.
+ * Each source assignment is closed and a new target assignment is opened at
+ * the same timestamp, preserving the full assignment history.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal performing the reassignment.
+ * @param source_l_id_herd - Herd whose active animals move.
+ * @param target_l_id_herd - Existing active herd receiving the animals.
+ * @param l_reassign_date - Timestamp at which the reassignment happens.
+ * @returns IDs of the reassigned animals.
+ */
+export async function reassignHerdAnimals(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  source_l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  target_l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_reassign_date: Date = new Date(),
+): Promise<schema.animalsTypeSelect["l_id_animal"][]> {
+  try {
+    return await fdm.transaction(async (tx) => {
+      if (source_l_id_herd === target_l_id_herd) {
+        throw new Error("Source and target herd must be different")
+      }
+
+      await checkPermission(tx, "herd", "write", source_l_id_herd, principal_id, "reassignHerdAnimals")
+      await checkPermission(tx, "herd", "write", target_l_id_herd, principal_id, "reassignHerdAnimals")
+
+      const sourceRows = await tx
+        .select({ b_id_farm: schema.herdStarting.b_id_farm })
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.l_id_herd, source_l_id_herd))
+        .limit(1)
+      const targetRows = await tx
+        .select({
+          b_id_farm: schema.herdStarting.b_id_farm,
+          l_end: schema.herdEnding.l_end,
+        })
+        .from(schema.herdStarting)
+        .leftJoin(
+          schema.herdEnding,
+          eq(schema.herdStarting.l_id_herd, schema.herdEnding.l_id_herd),
+        )
+        .where(eq(schema.herdStarting.l_id_herd, target_l_id_herd))
+        .limit(1)
+
+      if (sourceRows.length === 0 || targetRows.length === 0) {
+        throw new Error("Source or target herd does not exist")
+      }
+      if (sourceRows[0].b_id_farm !== targetRows[0].b_id_farm) {
+        throw new Error("Source and target herd must belong to the same farm")
+      }
+      if (targetRows[0].l_end !== null) {
+        throw new Error("Target herd has already ended")
+      }
+
+      const activeAssignments = await tx
+        .select({
+          l_id_animal: schema.animalAssigning.l_id_animal,
+          l_assigning_start: schema.animalAssigning.l_assigning_start,
+        })
+        .from(schema.animalAssigning)
+        .leftJoin(
+          schema.animalLeaving,
+          eq(schema.animalAssigning.l_id_animal, schema.animalLeaving.l_id_animal),
+        )
+        .where(
+          and(
+            eq(schema.animalAssigning.l_id_herd, source_l_id_herd),
+            isNull(schema.animalAssigning.l_assigning_end),
+            isNull(schema.animalLeaving.l_leaving_date),
+          ),
+        )
+
+      if (activeAssignments.some((row) => l_reassign_date < row.l_assigning_start)) {
+        throw new Error("Reassignment date cannot be before an active animal assignment")
+      }
+
+      const animalIds = activeAssignments.map((row) => row.l_id_animal)
+      if (animalIds.length === 0) {
+        return []
+      }
+
+      const now = new Date()
+      await tx
+        .update(schema.animalAssigning)
+        .set({ l_assigning_end: l_reassign_date, updated: now })
+        .where(
+          and(
+            eq(schema.animalAssigning.l_id_herd, source_l_id_herd),
+            inArray(schema.animalAssigning.l_id_animal, animalIds),
+            isNull(schema.animalAssigning.l_assigning_end),
+          ),
+        )
+
+      await tx.insert(schema.animalAssigning).values(
+        animalIds.map((l_id_animal) => ({
+          l_id_animal,
+          l_id_herd: target_l_id_herd,
+          l_assigning_start: l_reassign_date,
+          l_assigning_end: null,
+        })),
+      )
+
+      return animalIds
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for reassignHerdAnimals", {
+      source_l_id_herd,
+      target_l_id_herd,
+      l_reassign_date,
+    })
   }
 }
 
@@ -833,11 +1042,6 @@ export async function createHerdWithAnimals(
         await tx.insert(schema.animals).values(animalRows.map((r) => r.animalRow))
         await tx.insert(schema.animalArriving).values(animalRows.map((r) => r.arrivingRow))
         await tx.insert(schema.animalAssigning).values(animalRows.map((r) => r.assigningRow))
-
-        await tx
-          .update(schema.farms)
-          .set({ b_farm_livestock: true, updated: now })
-          .where(eq(schema.farms.b_id_farm, b_id_farm))
       }
 
       return { l_id_herd, l_id_animals: animalRows.map((r) => r.l_id_animal) }

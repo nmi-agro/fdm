@@ -6,6 +6,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
 
 /**
  * Adds a new barn asset to a farm and records its construction/acquisition event.
@@ -268,6 +269,7 @@ export async function removeBarn(
  * Assigns a herd to a barn for a period (housing action).
  * Tracking indoor housing periods alongside outdoor grazing events is fundamental for calculating ammonia emission factors,
  * floor slurry accumulation, and seasonal housing vs grazing days.
+ * Housing intervals for the same herd may not overlap, regardless of barn.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal making the housing assignment.
@@ -285,16 +287,174 @@ export async function addHousing(
   b_housing_end?: Date,
 ): Promise<void> {
   try {
-    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addHousing")
+    await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addHousing")
+      assertIntervalEndNotBeforeStart(b_housing_start, b_housing_end, "b_housing")
+      await assertNoOverlappingHousingForHerd(
+        tx,
+        l_id_herd,
+        b_housing_start,
+        b_housing_end ?? null,
+      )
 
-    await fdm.insert(schema.housing).values({
-      l_id_herd,
-      b_id_barn,
-      b_housing_start,
-      b_housing_end: b_housing_end ?? null,
+      await tx.insert(schema.housing).values({
+        l_id_herd,
+        b_id_barn,
+        b_housing_start,
+        b_housing_end: b_housing_end ?? null,
+      })
     })
   } catch (err) {
     throw handleError(err, "Exception for addHousing", { l_id_herd, b_id_barn, b_housing_start })
+  }
+}
+
+/**
+ * Corrects an existing housing action, identified by its full composite key.
+ * The updated interval must remain non-overlapping with other housing intervals for the same herd.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal correcting the housing action.
+ * @param l_id_herd - Herd ID.
+ * @param b_id_barn - Barn ID.
+ * @param b_housing_start - Housing start date/time.
+ * @param properties - Fields to correct.
+ */
+export async function updateHousing(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  b_id_barn: schema.barnsTypeSelect["b_id_barn"],
+  b_housing_start: schema.housingTypeSelect["b_housing_start"],
+  properties: {
+    b_housing_end?: schema.housingTypeInsert["b_housing_end"]
+  },
+): Promise<void> {
+  try {
+    await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "updateHousing")
+
+      const existingRows = await tx
+        .select({
+          b_housing_end: schema.housing.b_housing_end,
+        })
+        .from(schema.housing)
+        .where(
+          and(
+            eq(schema.housing.l_id_herd, l_id_herd),
+            eq(schema.housing.b_id_barn, b_id_barn),
+            eq(schema.housing.b_housing_start, b_housing_start),
+          ),
+        )
+        .limit(1)
+
+      if (existingRows.length === 0) {
+        throw new Error("Housing record not found")
+      }
+
+      const nextEnd =
+        properties.b_housing_end === undefined ? existingRows[0].b_housing_end : properties.b_housing_end
+
+      assertIntervalEndNotBeforeStart(b_housing_start, nextEnd, "b_housing")
+      await assertNoOverlappingHousingForHerd(tx, l_id_herd, b_housing_start, nextEnd, {
+        b_id_barn,
+        b_housing_start,
+      })
+
+      await tx
+        .update(schema.housing)
+        .set({ ...properties, updated: new Date() })
+        .where(
+          and(
+            eq(schema.housing.l_id_herd, l_id_herd),
+            eq(schema.housing.b_id_barn, b_id_barn),
+            eq(schema.housing.b_housing_start, b_housing_start),
+          ),
+        )
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateHousing", {
+      l_id_herd,
+      b_id_barn,
+      b_housing_start,
+      properties,
+    })
+  }
+}
+
+async function assertNoOverlappingHousingForHerd(
+  tx: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  b_housing_start: Date,
+  b_housing_end: Date | null,
+  exclude?: {
+    b_id_barn: schema.barnsTypeSelect["b_id_barn"]
+    b_housing_start: schema.housingTypeSelect["b_housing_start"]
+  },
+): Promise<void> {
+  const housingRows = await tx
+    .select({
+      b_id_barn: schema.housing.b_id_barn,
+      b_housing_start: schema.housing.b_housing_start,
+      b_housing_end: schema.housing.b_housing_end,
+    })
+    .from(schema.housing)
+    .where(eq(schema.housing.l_id_herd, l_id_herd))
+
+  for (const row of housingRows) {
+    if (
+      exclude &&
+      row.b_id_barn === exclude.b_id_barn &&
+      row.b_housing_start.getTime() === exclude.b_housing_start.getTime()
+    ) {
+      continue
+    }
+
+    if (overlapsHalfOpen(b_housing_start, b_housing_end, row.b_housing_start, row.b_housing_end)) {
+      throw new Error("Housing interval overlaps an existing housing interval for this herd")
+    }
+  }
+}
+
+/**
+ * Hard-deletes a housing action, identified by its full composite key.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal removing the housing action.
+ * @param l_id_herd - Herd ID.
+ * @param b_id_barn - Barn ID.
+ * @param b_housing_start - Housing start date/time.
+ */
+export async function removeHousing(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  b_id_barn: schema.barnsTypeSelect["b_id_barn"],
+  b_housing_start: schema.housingTypeSelect["b_housing_start"],
+): Promise<void> {
+  try {
+    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "removeHousing")
+
+    const result = await fdm
+      .delete(schema.housing)
+      .where(
+        and(
+          eq(schema.housing.l_id_herd, l_id_herd),
+          eq(schema.housing.b_id_barn, b_id_barn),
+          eq(schema.housing.b_housing_start, b_housing_start),
+        ),
+      )
+      .returning({ l_id_herd: schema.housing.l_id_herd })
+
+    if (result.length === 0) {
+      throw new Error("Housing record not found")
+    }
+  } catch (err) {
+    throw handleError(err, "Exception for removeHousing", {
+      l_id_herd,
+      b_id_barn,
+      b_housing_start,
+    })
   }
 }
 
@@ -330,5 +490,44 @@ export async function getHousingForHerd(
     return rows as Housing[]
   } catch (err) {
     throw handleError(err, "Exception for getHousingForHerd", { l_id_herd })
+  }
+}
+
+/**
+ * Retrieves housing records for a farm.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal requesting housing records.
+ * @param b_id_farm - Farm ID.
+ * @returns Array of housing records for the farm.
+ */
+export async function getHousingForFarm(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<Housing[]> {
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getHousingForFarm")
+
+    const rows = await fdm
+      .select({
+        l_id_herd: schema.housing.l_id_herd,
+        b_id_barn: schema.housing.b_id_barn,
+        b_housing_start: schema.housing.b_housing_start,
+        b_housing_end: schema.housing.b_housing_end,
+        created: schema.housing.created,
+        updated: schema.housing.updated,
+      })
+      .from(schema.housing)
+      .innerJoin(
+        schema.barnConstructing,
+        eq(schema.housing.b_id_barn, schema.barnConstructing.b_id_barn),
+      )
+      .where(eq(schema.barnConstructing.b_id_farm, b_id_farm))
+      .orderBy(desc(schema.housing.b_housing_start))
+
+    return rows as Housing[]
+  } catch (err) {
+    throw handleError(err, "Exception for getHousingForFarm", { b_id_farm })
   }
 }

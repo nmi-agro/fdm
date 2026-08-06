@@ -1290,8 +1290,8 @@ export const feedOriginEnum = fdmSchema.enum(
 )
 
 export const grazingTypeOptions = [
-  { value: "full", label: "Volledig weiden" },
-  { value: "partial", label: "Gedeeltelijk weiden" },
+  { value: "full", label: "Volledig perceel" },
+  { value: "partial", label: "Gedeeltelijk perceel" },
 ] as const
 export const grazingTypeEnum = fdmSchema.enum(
   "l_grazing_type",

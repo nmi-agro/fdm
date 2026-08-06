@@ -242,6 +242,8 @@ export {
   getAnimalsForFarm,
   getAnimalsForHerd,
   getCensusForFarm,
+  leaveHerd,
+  reassignHerdAnimals,
   removeAnimal,
   removeAnimalAssigning,
   removeAnimals,
@@ -254,9 +256,12 @@ export {
   addHousing,
   getBarn,
   getBarnsForFarm,
+  getHousingForFarm,
   getHousingForHerd,
   removeBarn,
+  removeHousing,
   updateBarn,
+  updateHousing,
 } from "./barn"
 export type { Barn, Housing } from "./barn.types"
 export {
@@ -264,6 +269,8 @@ export {
   addMilkingAnimal,
   addMilkingHerd,
   addMilkTank,
+  getMilkingEventsForAnimal,
+  getMilkingSummaryForAnimal,
   getMilkDelivery,
   getMilkDeliveriesForFarm,
   getMilkingAnimal,
@@ -280,14 +287,50 @@ export {
   updateMilkingHerd,
   updateMilkTank,
 } from "./milk"
-export type { MilkDelivery, Milking, MilkingAnimal, MilkTank } from "./milk.types"
-export { addFeedBatch, addFeedingAnimal, addFeedingHerd, getFeedBatchesForFarm } from "./feed"
-export type { FeedBatch, Feeding, FeedingAnimal } from "./feed.types"
+export type {
+  MilkDelivery,
+  Milking,
+  MilkingEventForAnimal,
+  MilkingEventFromAnimal,
+  MilkingEventFromHerd,
+  MilkingSummaryForAnimal,
+  MilkingHerd,
+  MilkingAnimal,
+  MilkTank,
+} from "./milk.types"
+export {
+  addFeedBatch,
+  addFeedingAnimal,
+  addFeedingHerd,
+  getFeedingEventsForAnimal,
+  getFeedingSummaryForAnimal,
+  getFeedBatch,
+  getFeedBatchesForFarm,
+  getFeedingAnimalForFarm,
+  getFeedingHerdForFarm,
+  removeFeedBatch,
+  removeFeedingAnimal,
+  removeFeedingHerd,
+  updateFeedBatch,
+  updateFeedingAnimal,
+  updateFeedingHerd,
+} from "./feed"
+export type {
+  FeedBatch,
+  Feeding,
+  FeedingEventForAnimal,
+  FeedingEventFromAnimal,
+  FeedingEventFromHerd,
+  FeedingSummaryForAnimal,
+  FeedingHerd,
+  FeedingAnimal,
+} from "./feed.types"
 export {
   addExcreting,
   addManureDisposing,
   addManurePit,
   getExcreting,
+  getExcretingsForFarm,
   getManureDisposalsForFarm,
   getManureDisposing,
   getManurePit,

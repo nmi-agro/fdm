@@ -5,9 +5,12 @@ import {
   addHousing,
   getBarn,
   getBarnsForFarm,
+  getHousingForFarm,
   getHousingForHerd,
   removeBarn,
+  removeHousing,
   updateBarn,
+  updateHousing,
 } from "./barn"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -148,6 +151,89 @@ describe("Barn Domain", () => {
     expect(housingRecords.length).toBe(1)
     expect(housingRecords[0].b_id_barn).toBe(b_id_barn)
     expect(new Date(housingRecords[0].b_housing_end!).toISOString()).toBe(hEnd.toISOString())
+
+    const farmHousing = await getHousingForFarm(fdm, principal_id, b_id_farm)
+    expect(farmHousing.length).toBe(1)
+
+    const correctedEnd = new Date("2025-05-01")
+    await updateHousing(fdm, principal_id, l_id_herd, b_id_barn, hStart, {
+      b_housing_end: correctedEnd,
+    })
+    expect((await getHousingForHerd(fdm, principal_id, l_id_herd))[0].b_housing_end?.toISOString()).toBe(
+      correctedEnd.toISOString(),
+    )
+
+    await removeHousing(fdm, principal_id, l_id_herd, b_id_barn, hStart)
+    expect(await getHousingForHerd(fdm, principal_id, l_id_herd)).toEqual([])
+  })
+
+  it("should reject overlapping housing intervals for the same herd even across barns", async () => {
+    const b_id_barn_1 = await addBarn(fdm, principal_id, b_id_farm, { b_barn_name: "Barn A" })
+    const b_id_barn_2 = await addBarn(fdm, principal_id, b_id_farm, { b_barn_name: "Barn B" })
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Overlap Kudde",
+      l_herd_category: "rvo_101",
+    })
+
+    const firstStart = new Date("2025-01-01T00:00:00.000Z")
+    const firstEnd = new Date("2025-01-10T00:00:00.000Z")
+    await addHousing(fdm, principal_id, l_id_herd, b_id_barn_1, firstStart, firstEnd)
+
+    await expect(
+      addHousing(
+        fdm,
+        principal_id,
+        l_id_herd,
+        b_id_barn_2,
+        new Date("2025-01-05T00:00:00.000Z"),
+        new Date("2025-01-15T00:00:00.000Z"),
+      ),
+    ).rejects.toThrowError("Exception for addHousing")
+
+    await expect(
+      addHousing(
+        fdm,
+        principal_id,
+        l_id_herd,
+        b_id_barn_2,
+        new Date("2025-01-10T00:00:00.000Z"),
+        new Date("2025-01-20T00:00:00.000Z"),
+      ),
+    ).resolves.not.toThrow()
+  })
+
+  it("should reject housing update when interval would overlap another housing interval", async () => {
+    const b_id_barn_1 = await addBarn(fdm, principal_id, b_id_farm, { b_barn_name: "Barn C" })
+    const b_id_barn_2 = await addBarn(fdm, principal_id, b_id_farm, { b_barn_name: "Barn D" })
+    const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Update overlap kudde",
+      l_herd_category: "rvo_101",
+    })
+
+    const firstStart = new Date("2025-02-01T00:00:00.000Z")
+    const secondStart = new Date("2025-02-06T00:00:00.000Z")
+    await addHousing(
+      fdm,
+      principal_id,
+      l_id_herd,
+      b_id_barn_1,
+      firstStart,
+      new Date("2025-02-05T00:00:00.000Z"),
+    )
+    await addHousing(
+      fdm,
+      principal_id,
+      l_id_herd,
+      b_id_barn_2,
+      secondStart,
+      new Date("2025-02-10T00:00:00.000Z"),
+    )
+
+    await expect(
+      updateHousing(fdm, principal_id, l_id_herd, b_id_barn_1, firstStart, {
+        b_housing_end: new Date("2025-02-08T00:00:00.000Z"),
+      }),
+    ).rejects.toThrowError("Exception for updateHousing")
   })
 
   it("should deny access to unauthorized principal", async () => {
@@ -192,6 +278,23 @@ describe("Barn Domain", () => {
     ).rejects.toThrowError("Principal does not have permission to perform this action")
 
     await expect(getHousingForHerd(fdm, invalidUser, l_id_herd)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    const hStart = new Date("2025-01-01")
+    await addHousing(fdm, principal_id, l_id_herd, b_id_barn, hStart)
+
+    await expect(getHousingForFarm(fdm, invalidUser, b_id_farm)).rejects.toThrowError(
+      "Principal does not have permission to perform this action",
+    )
+
+    await expect(
+      updateHousing(fdm, invalidUser, l_id_herd, b_id_barn, hStart, {
+        b_housing_end: new Date("2025-02-01"),
+      }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+
+    await expect(removeHousing(fdm, invalidUser, l_id_herd, b_id_barn, hStart)).rejects.toThrowError(
       "Principal does not have permission to perform this action",
     )
   })

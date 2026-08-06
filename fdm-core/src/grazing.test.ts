@@ -12,6 +12,7 @@ import {
   removeGrazing,
   updateGrazing,
 } from "./grazing"
+import { getGrazingIntention, setGrazingIntention } from "./grazing_intention"
 import { addHerd } from "./herd"
 
 describe("Grazing Domain", () => {
@@ -62,6 +63,41 @@ describe("Grazing Domain", () => {
     expect(farmGrazing.length).toBe(1)
   })
 
+  it("should set grazing intention to true when first grazing is added for a farm year", async () => {
+    const grazingDate = new Date("2025-05-15T08:00:00.000Z")
+
+    await setGrazingIntention(fdm, principal_id, b_id_farm, 2025, false)
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(false)
+
+    await addGrazing(fdm, principal_id, l_id_herd, grazingDate, {
+      l_grazing_type: "full",
+    })
+
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
+  })
+
+  it("should not overwrite other years when setting first-grazing intention", async () => {
+    await setGrazingIntention(fdm, principal_id, b_id_farm, 2024, false)
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-06-01T08:00:00.000Z"))
+
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2024)).toBe(false)
+  })
+
+  it("should only auto-set intention on the first grazing in a year", async () => {
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-01-05T08:00:00.000Z"), {
+      l_grazing_end: new Date("2025-01-06T08:00:00.000Z"),
+    })
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(true)
+
+    await setGrazingIntention(fdm, principal_id, b_id_farm, 2025, false)
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-02-05T08:00:00.000Z"), {
+      l_grazing_end: new Date("2025-02-06T08:00:00.000Z"),
+    })
+
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2025)).toBe(false)
+  })
+
   it("should record grazing for a field on the same farm and store the b_id link", async () => {
     const b_id = await addField(
       fdm,
@@ -94,6 +130,38 @@ describe("Grazing Domain", () => {
     const fieldGrazing = await getGrazingForField(fdm, principal_id, b_id)
     expect(fieldGrazing.length).toBe(1)
     expect(fieldGrazing[0].l_id_herd).toBe(l_id_herd)
+  })
+
+  it("should reject overlapping grazing intervals for the same herd", async () => {
+    const firstStart = new Date("2025-04-10T00:00:00.000Z")
+    const firstEnd = new Date("2025-04-20T00:00:00.000Z")
+    await addGrazing(fdm, principal_id, l_id_herd, firstStart, {
+      l_grazing_end: firstEnd,
+    })
+
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, new Date("2025-04-15T00:00:00.000Z"), {
+        l_grazing_end: new Date("2025-04-25T00:00:00.000Z"),
+        l_grazing_type: "full",
+        l_grazing_hours: 24,
+      }),
+    ).rejects.toThrowError("Exception for addGrazing")
+
+    const secondStart = new Date("2025-04-20T00:00:00.000Z")
+    await addGrazing(fdm, principal_id, l_id_herd, secondStart, {
+      l_grazing_end: new Date("2025-04-25T00:00:00.000Z"),
+    })
+    const grazingRecords = await getGrazingForHerd(fdm, principal_id, l_id_herd)
+    const secondRecord = grazingRecords.find(
+      (record) => record.l_grazing_start.getTime() === secondStart.getTime(),
+    )
+    expect(secondRecord).toBeDefined()
+
+    await expect(
+      updateGrazing(fdm, principal_id, secondRecord!.l_id_grazing, {
+        l_grazing_start: new Date("2025-04-15T00:00:00.000Z"),
+      }),
+    ).rejects.toThrowError("Exception for updateGrazing")
   })
 
   it("should reject grazing for a field belonging to a different farm", async () => {
@@ -138,8 +206,14 @@ describe("Grazing Domain", () => {
     const d1 = new Date("2025-05-01")
     const d2 = new Date("2025-06-01")
 
-    await addGrazing(fdm, principal_id, l_id_herd, d1, { l_grazing_area: 10 })
-    await addGrazing(fdm, principal_id, l_id_herd, d2, { l_grazing_area: 20 })
+    await addGrazing(fdm, principal_id, l_id_herd, d1, {
+      l_grazing_end: new Date("2025-05-02"),
+      l_grazing_area: 10,
+    })
+    await addGrazing(fdm, principal_id, l_id_herd, d2, {
+      l_grazing_end: new Date("2025-06-02"),
+      l_grazing_area: 20,
+    })
 
     const herdStartOnly = await getGrazingForHerd(fdm, principal_id, l_id_herd, {
       start: new Date("2025-05-15"),

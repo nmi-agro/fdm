@@ -17,7 +17,7 @@ export interface FeedBatch {
   updated?: schema.feedBatchesTypeSelect["updated"]
 }
 
-export interface Feeding {
+export interface FeedingHerd {
   f_id_batch: schema.feedingHerdTypeSelect["f_id_batch"]
   l_id_herd: schema.feedingHerdTypeSelect["l_id_herd"]
   f_feeding_start: schema.feedingHerdTypeSelect["f_feeding_start"]
@@ -35,4 +35,38 @@ export interface FeedingAnimal {
   f_amount?: schema.feedingAnimalTypeSelect["f_amount"]
   created: schema.feedingAnimalTypeSelect["created"]
   updated?: schema.feedingAnimalTypeSelect["updated"]
+}
+
+export interface FeedingEventFromHerd {
+  l_feeding_type: "herd"
+  l_id_herd: schema.feedingHerdTypeSelect["l_id_herd"]
+  f_id_batch: schema.feedingHerdTypeSelect["f_id_batch"]
+  f_feeding_start: schema.feedingHerdTypeSelect["f_feeding_start"]
+  f_feeding_end?: schema.feedingHerdTypeSelect["f_feeding_end"]
+  f_amount?: schema.feedingHerdTypeSelect["f_amount"]
+  created: schema.feedingHerdTypeSelect["created"]
+  updated?: schema.feedingHerdTypeSelect["updated"]
+}
+
+export interface FeedingEventFromAnimal {
+  l_feeding_type: "animal"
+  l_id_animal: schema.feedingAnimalTypeSelect["l_id_animal"]
+  f_id_batch: schema.feedingAnimalTypeSelect["f_id_batch"]
+  f_feeding_start: schema.feedingAnimalTypeSelect["f_feeding_start"]
+  f_feeding_end?: schema.feedingAnimalTypeSelect["f_feeding_end"]
+  f_amount?: schema.feedingAnimalTypeSelect["f_amount"]
+  created: schema.feedingAnimalTypeSelect["created"]
+  updated?: schema.feedingAnimalTypeSelect["updated"]
+}
+
+export type FeedingEventForAnimal = FeedingEventFromHerd | FeedingEventFromAnimal
+export type Feeding = FeedingHerd | FeedingAnimal
+
+export interface FeedingSummaryForAnimal {
+  f_amount: number | null
+  f_dm: number | null
+  f_cp: number | null
+  f_vem: number | null
+  f_oeb: number | null
+  f_ndf: number | null
 }

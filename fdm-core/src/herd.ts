@@ -12,8 +12,6 @@ import { createId } from "./id"
  *
  * In Dutch livestock reporting (such as RVO compliance and statutory manure standards), animals are grouped into herds
  * sharing common management, feeding, and statutory categories (e.g. `rvo_100` for dairy cows, `rvo_101` for youngstock <1 year).
- * Creating a herd on a farm does not automatically flag the farm as having livestock;
- * `farms.b_farm_livestock` is set when an animal is added via `addAnimal`.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal creating the herd.
@@ -179,6 +177,16 @@ export async function updateHerd(
     const updated = new Date()
 
     await fdm.transaction(async (tx) => {
+      const herdStart = await tx
+        .select({ b_id_farm: schema.herdStarting.b_id_farm })
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+        .limit(1)
+
+      if (herdStart.length === 0) {
+        throw new Error("Herd does not exist")
+      }
+
       await tx
         .update(schema.herds)
         .set({ ...herdProperties, updated })

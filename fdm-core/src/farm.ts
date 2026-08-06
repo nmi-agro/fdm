@@ -99,9 +99,10 @@ export async function getFarm(
   b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
   b_address_farm: schema.farmsTypeSelect["b_address_farm"]
   b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
-  b_farm_livestock: schema.farmsTypeSelect["b_farm_livestock"]
   b_id_principal: PrincipalId
   b_id_principal_owner: PrincipalId
+  b_farm_livestock: boolean
+  b_farm_dairy: boolean
   roles: PrincipalWithRoles[]
 }> {
   try {
@@ -115,7 +116,6 @@ export async function getFarm(
           b_businessid_farm: schema.farms.b_businessid_farm,
           b_address_farm: schema.farms.b_address_farm,
           b_postalcode_farm: schema.farms.b_postalcode_farm,
-          b_farm_livestock: schema.farms.b_farm_livestock,
         })
         .from(schema.farms)
         .where(eq(schema.farms.b_id_farm, b_id_farm))
@@ -127,11 +127,13 @@ export async function getFarm(
       // Get all principals for the farm to find the owner
       const allPrincipals = await listPrincipalsForResource(tx, "farm", b_id_farm)
       const ownerPrincipal = allPrincipals.find((p) => p.role === "owner")
+      const farmFlags = await deriveFarmFlags(tx, b_id_farm)
 
       const farm = {
         ...results[0],
         b_id_principal: principal_id,
         b_id_principal_owner: ownerPrincipal?.principal_id || "", // Fallback if no owner is found
+        ...farmFlags,
         roles: roles,
       }
 
@@ -162,7 +164,6 @@ export async function getFarms(
     b_businessid_farm: schema.farmsTypeSelect["b_businessid_farm"]
     b_address_farm: schema.farmsTypeSelect["b_address_farm"]
     b_postalcode_farm: schema.farmsTypeSelect["b_postalcode_farm"]
-    b_farm_livestock: schema.farmsTypeSelect["b_farm_livestock"]
     roles: {
       principal_id: string
       principal_type: "user" | "organization"
@@ -199,7 +200,6 @@ export async function getFarms(
           b_businessid_farm: schema.farms.b_businessid_farm,
           b_address_farm: schema.farms.b_address_farm,
           b_postalcode_farm: schema.farms.b_postalcode_farm,
-          b_farm_livestock: schema.farms.b_farm_livestock,
         })
         .from(schema.farms)
         .where(inArray(schema.farms.b_id_farm, resources))
@@ -239,6 +239,75 @@ export async function getFarms(
   }
 }
 
+async function deriveFarmFlags(
+  tx: FdmType,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<{
+  b_farm_livestock: boolean
+  b_farm_dairy: boolean
+}> {
+  const [
+    herdsForFarm,
+    animalsForFarm,
+    milkTanksForFarm,
+    milkingHerdForFarm,
+    milkingAnimalForFarm,
+    milkDeliveringForFarm,
+  ] = await Promise.all([
+    tx
+      .select({ l_id_herd: schema.herdStarting.l_id_herd })
+      .from(schema.herdStarting)
+      .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
+      .limit(1),
+    tx
+      .select({ l_id_animal: schema.animalArriving.l_id_animal })
+      .from(schema.animalArriving)
+      .where(eq(schema.animalArriving.b_id_farm, b_id_farm))
+      .limit(1),
+    tx
+      .select({ l_id_milktank: schema.milkTanks.l_id_milktank })
+      .from(schema.milkTanks)
+      .where(eq(schema.milkTanks.b_id_farm, b_id_farm))
+      .limit(1),
+    tx
+      .select({ l_id_herd: schema.milkingHerd.l_id_herd })
+      .from(schema.milkingHerd)
+      .innerJoin(
+        schema.herdStarting,
+        eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+      )
+      .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
+      .limit(1),
+    tx
+      .select({ l_id_animal: schema.milkingAnimal.l_id_animal })
+      .from(schema.milkingAnimal)
+      .innerJoin(
+        schema.animalArriving,
+        eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+      )
+      .where(eq(schema.animalArriving.b_id_farm, b_id_farm))
+      .limit(1),
+    tx
+      .select({ l_id_milkdelivery: schema.milkDelivering.l_id_milkdelivery })
+      .from(schema.milkDelivering)
+      .innerJoin(
+        schema.milkTanks,
+        eq(schema.milkDelivering.l_id_milktank, schema.milkTanks.l_id_milktank),
+      )
+      .where(eq(schema.milkTanks.b_id_farm, b_id_farm))
+      .limit(1),
+  ])
+
+  return {
+    b_farm_livestock: herdsForFarm.length > 0 || animalsForFarm.length > 0,
+    b_farm_dairy:
+      milkTanksForFarm.length > 0 ||
+      milkingHerdForFarm.length > 0 ||
+      milkingAnimalForFarm.length > 0 ||
+      milkDeliveringForFarm.length > 0,
+  }
+}
+
 /**
  * Updates a farm's details after confirming the principal has write access.
  *
@@ -268,29 +337,39 @@ export async function updateFarm(
   b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"],
 ): Promise<schema.farmsTypeSelect> {
   try {
-    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "updateFarm")
-    const updatedFarm = await fdm
-      .update(schema.farms)
-      .set({
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "farm", "write", b_id_farm, principal_id, "updateFarm")
+      const updated = new Date()
+      const farmUpdate: {
+        b_name_farm: schema.farmsTypeInsert["b_name_farm"]
+        b_businessid_farm: schema.farmsTypeInsert["b_businessid_farm"]
+        b_address_farm: schema.farmsTypeInsert["b_address_farm"]
+        b_postalcode_farm: schema.farmsTypeInsert["b_postalcode_farm"]
+        updated: Date
+      } = {
         b_name_farm,
         b_businessid_farm,
         b_address_farm,
         b_postalcode_farm,
-        updated: new Date(),
-      })
-      .where(eq(schema.farms.b_id_farm, b_id_farm))
-      .returning({
-        b_id_farm: schema.farms.b_id_farm,
-        b_name_farm: schema.farms.b_name_farm,
-        b_businessid_farm: schema.farms.b_businessid_farm,
-        b_address_farm: schema.farms.b_address_farm,
-        b_postalcode_farm: schema.farms.b_postalcode_farm,
-        b_farm_livestock: schema.farms.b_farm_livestock,
-        created: schema.farms.created,
-        updated: schema.farms.updated,
-      })
+        updated,
+      }
 
-    return updatedFarm[0]
+      const updatedFarm = await tx
+        .update(schema.farms)
+        .set(farmUpdate)
+        .where(eq(schema.farms.b_id_farm, b_id_farm))
+        .returning({
+          b_id_farm: schema.farms.b_id_farm,
+          b_name_farm: schema.farms.b_name_farm,
+          b_businessid_farm: schema.farms.b_businessid_farm,
+          b_address_farm: schema.farms.b_address_farm,
+          b_postalcode_farm: schema.farms.b_postalcode_farm,
+          created: schema.farms.created,
+          updated: schema.farms.updated,
+        })
+
+      return updatedFarm[0]
+    })
   } catch (err) {
     throw handleError(err, "Exception for updateFarm", {
       b_id_farm,
@@ -998,7 +1077,9 @@ async function removeLivestockDataForFarm(
     .select({ l_id_herd: schema.herdStarting.l_id_herd })
     .from(schema.herdStarting)
     .where(eq(schema.herdStarting.b_id_farm, b_id_farm))
-  const herdIds = herdRows.map((h: { l_id_herd: schema.herdsTypeSelect["l_id_herd"] }) => h.l_id_herd)
+  const herdIds = herdRows.map(
+    (h: { l_id_herd: schema.herdsTypeSelect["l_id_herd"] }) => h.l_id_herd,
+  )
 
   const animalRows = await tx
     .select({ l_id_animal: schema.animalArriving.l_id_animal })
@@ -1012,14 +1093,16 @@ async function removeLivestockDataForFarm(
     .select({ b_id_barn: schema.barnConstructing.b_id_barn })
     .from(schema.barnConstructing)
     .where(eq(schema.barnConstructing.b_id_farm, b_id_farm))
-  const barnIds = barnRows.map((b: { b_id_barn: schema.barnsTypeSelect["b_id_barn"] }) => b.b_id_barn)
+  const barnIds = barnRows.map(
+    (b: { b_id_barn: schema.barnsTypeSelect["b_id_barn"] }) => b.b_id_barn,
+  )
 
   const milkTankRows = await tx
-    .select({ b_id_milktank: schema.milkTanks.b_id_milktank })
+    .select({ l_id_milktank: schema.milkTanks.l_id_milktank })
     .from(schema.milkTanks)
     .where(eq(schema.milkTanks.b_id_farm, b_id_farm))
   const milkTankIds = milkTankRows.map(
-    (m: { b_id_milktank: schema.milkTanksTypeSelect["b_id_milktank"] }) => m.b_id_milktank,
+    (m: { l_id_milktank: schema.milkTanksTypeSelect["l_id_milktank"] }) => m.l_id_milktank,
   )
 
   const manurePitRows = await tx
@@ -1040,7 +1123,9 @@ async function removeLivestockDataForFarm(
 
   // Milk: milking records, deliveries (+ sampling/analyses), tanks
   if (animalIds.length > 0) {
-    await tx.delete(schema.milkingAnimal).where(inArray(schema.milkingAnimal.l_id_animal, animalIds))
+    await tx
+      .delete(schema.milkingAnimal)
+      .where(inArray(schema.milkingAnimal.l_id_animal, animalIds))
   }
   if (herdIds.length > 0) {
     await tx.delete(schema.milkingHerd).where(inArray(schema.milkingHerd.l_id_herd, herdIds))
@@ -1048,46 +1133,50 @@ async function removeLivestockDataForFarm(
   if (milkTankIds.length > 0) {
     await tx
       .delete(schema.milkingAnimal)
-      .where(inArray(schema.milkingAnimal.b_id_milktank, milkTankIds))
-    await tx.delete(schema.milkingHerd).where(inArray(schema.milkingHerd.b_id_milktank, milkTankIds))
+      .where(inArray(schema.milkingAnimal.l_id_milktank, milkTankIds))
+    await tx
+      .delete(schema.milkingHerd)
+      .where(inArray(schema.milkingHerd.l_id_milktank, milkTankIds))
 
     const deliveringRows = await tx
-      .select({ b_id_milk_delivery: schema.milkDelivering.b_id_milk_delivery })
+      .select({ l_id_milkdelivery: schema.milkDelivering.l_id_milkdelivery })
       .from(schema.milkDelivering)
-      .where(inArray(schema.milkDelivering.b_id_milktank, milkTankIds))
+      .where(inArray(schema.milkDelivering.l_id_milktank, milkTankIds))
     const milkDeliveryIds = deliveringRows.map(
-      (d: { b_id_milk_delivery: schema.milkDeliveriesTypeSelect["b_id_milk_delivery"] }) =>
-        d.b_id_milk_delivery,
+      (d: { l_id_milkdelivery: schema.milkDeliveriesTypeSelect["l_id_milkdelivery"] }) =>
+        d.l_id_milkdelivery,
     )
 
     if (milkDeliveryIds.length > 0) {
       const samplingRows = await tx
-        .select({ b_id_milk_analysis: schema.milkSampling.b_id_milk_analysis })
+        .select({ l_id_milkanalysis: schema.milkSampling.l_id_milkanalysis })
         .from(schema.milkSampling)
-        .where(inArray(schema.milkSampling.b_id_milk_delivery, milkDeliveryIds))
+        .where(inArray(schema.milkSampling.l_id_milkdelivery, milkDeliveryIds))
       const milkAnalysisIds = samplingRows.map(
-        (s: { b_id_milk_analysis: schema.milkAnalysesTypeSelect["b_id_milk_analysis"] }) =>
-          s.b_id_milk_analysis,
+        (s: { l_id_milkanalysis: schema.milkAnalysesTypeSelect["l_id_milkanalysis"] }) =>
+          s.l_id_milkanalysis,
       )
 
       await tx
         .delete(schema.milkSampling)
-        .where(inArray(schema.milkSampling.b_id_milk_delivery, milkDeliveryIds))
+        .where(inArray(schema.milkSampling.l_id_milkdelivery, milkDeliveryIds))
       if (milkAnalysisIds.length > 0) {
         await tx
           .delete(schema.milkAnalyses)
-          .where(inArray(schema.milkAnalyses.b_id_milk_analysis, milkAnalysisIds))
+          .where(inArray(schema.milkAnalyses.l_id_milkanalysis, milkAnalysisIds))
       }
     }
 
-    await tx.delete(schema.milkDelivering).where(inArray(schema.milkDelivering.b_id_milktank, milkTankIds))
+    await tx
+      .delete(schema.milkDelivering)
+      .where(inArray(schema.milkDelivering.l_id_milktank, milkTankIds))
     if (milkDeliveryIds.length > 0) {
       await tx
         .delete(schema.milkDeliveries)
-        .where(inArray(schema.milkDeliveries.b_id_milk_delivery, milkDeliveryIds))
+        .where(inArray(schema.milkDeliveries.l_id_milkdelivery, milkDeliveryIds))
     }
 
-    await tx.delete(schema.milkTanks).where(inArray(schema.milkTanks.b_id_milktank, milkTankIds))
+    await tx.delete(schema.milkTanks).where(inArray(schema.milkTanks.l_id_milktank, milkTankIds))
   }
 
   // Manure: excreting, disposing (+ deliveries/sampling/analyses), pits
@@ -1133,12 +1222,16 @@ async function removeLivestockDataForFarm(
         .where(inArray(schema.manureDeliveries.p_id_delivery, manureDeliveryIds))
     }
 
-    await tx.delete(schema.manurePits).where(inArray(schema.manurePits.b_id_manurepit, manurePitIds))
+    await tx
+      .delete(schema.manurePits)
+      .where(inArray(schema.manurePits.b_id_manurepit, manurePitIds))
   }
 
   // Feed: feeding records (+ sampling/analyses), batches
   if (animalIds.length > 0) {
-    await tx.delete(schema.feedingAnimal).where(inArray(schema.feedingAnimal.l_id_animal, animalIds))
+    await tx
+      .delete(schema.feedingAnimal)
+      .where(inArray(schema.feedingAnimal.l_id_animal, animalIds))
   }
   if (herdIds.length > 0) {
     await tx.delete(schema.feedingHerd).where(inArray(schema.feedingHerd.l_id_herd, herdIds))
@@ -1158,7 +1251,9 @@ async function removeLivestockDataForFarm(
         f.f_id_feed_analysis,
     )
 
-    await tx.delete(schema.feedSampling).where(inArray(schema.feedSampling.f_id_batch, feedBatchIds))
+    await tx
+      .delete(schema.feedSampling)
+      .where(inArray(schema.feedSampling.f_id_batch, feedBatchIds))
     if (feedAnalysisIds.length > 0) {
       await tx
         .delete(schema.feedAnalyses)
@@ -1182,14 +1277,20 @@ async function removeLivestockDataForFarm(
     await tx
       .delete(schema.barnDecommissioning)
       .where(inArray(schema.barnDecommissioning.b_id_barn, barnIds))
-    await tx.delete(schema.barnConstructing).where(inArray(schema.barnConstructing.b_id_barn, barnIds))
+    await tx
+      .delete(schema.barnConstructing)
+      .where(inArray(schema.barnConstructing.b_id_barn, barnIds))
     await tx.delete(schema.barns).where(inArray(schema.barns.b_id_barn, barnIds))
   }
 
   // Animals (own history + the asset itself)
   if (animalIds.length > 0) {
-    await tx.delete(schema.milkingAnimal).where(inArray(schema.milkingAnimal.l_id_animal, animalIds))
-    await tx.delete(schema.animalLeaving).where(inArray(schema.animalLeaving.l_id_animal, animalIds))
+    await tx
+      .delete(schema.milkingAnimal)
+      .where(inArray(schema.milkingAnimal.l_id_animal, animalIds))
+    await tx
+      .delete(schema.animalLeaving)
+      .where(inArray(schema.animalLeaving.l_id_animal, animalIds))
     await tx
       .delete(schema.animalAssigning)
       .where(inArray(schema.animalAssigning.l_id_animal, animalIds))

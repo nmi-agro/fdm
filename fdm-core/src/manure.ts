@@ -1,4 +1,4 @@
-import { desc, eq, inArray, type SQL } from "drizzle-orm"
+import { and, desc, eq, inArray, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Excreting, ManureDelivery, ManurePit } from "./manure.types"
@@ -7,6 +7,7 @@ import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
 import { withTimeframe } from "./timeframe"
 
 /**
@@ -180,7 +181,7 @@ export async function removeManurePit(
       }
 
       const disposingRecords = await tx
-        .select({ p_id_disposing: schema.manureDisposing.p_id_disposing })
+        .select({ p_id_disposing: schema.manureDisposing.p_id_delivery })
         .from(schema.manureDisposing)
         .where(eq(schema.manureDisposing.b_id_manurepit, b_id_manurepit))
         .limit(1)
@@ -198,6 +199,8 @@ export async function removeManurePit(
 
 /**
  * Records an excreting action connecting a herd to a target manure pit where produced slurry is accumulated.
+ * For a given herd+manure-pit pair, excreting intervals may not overlap.
+ * Overlap across different manure pits is allowed.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal recording the excreting action.
@@ -214,22 +217,34 @@ export async function addExcreting(
   properties?: {
     l_excreting_start?: schema.excretingTypeInsert["l_excreting_start"]
     l_excreting_end?: schema.excretingTypeInsert["l_excreting_end"]
-    p_excreting_amount?: schema.excretingTypeInsert["p_excreting_amount"]
+    l_excreting_amount?: schema.excretingTypeInsert["l_excreting_amount"]
   },
 ): Promise<schema.excretingTypeSelect["l_id_excreting"]> {
   try {
-    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addExcreting")
-
     return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addExcreting")
+
+      const l_excreting_start = properties?.l_excreting_start ?? new Date()
+      const l_excreting_end = properties?.l_excreting_end ?? null
+      assertIntervalEndNotBeforeStart(l_excreting_start, l_excreting_end, "l_excreting")
+
+      await assertNoOverlappingExcretingForHerdPit(
+        tx,
+        l_id_herd,
+        b_id_manurepit,
+        l_excreting_start,
+        l_excreting_end,
+      )
+
       const l_id_excreting = createId()
 
       await tx.insert(schema.excreting).values({
         l_id_excreting,
         l_id_herd,
         b_id_manurepit,
-        l_excreting_start: properties?.l_excreting_start ?? new Date(),
-        l_excreting_end: properties?.l_excreting_end ?? null,
-        p_excreting_amount: properties?.p_excreting_amount ?? null,
+        l_excreting_start,
+        l_excreting_end,
+        l_excreting_amount: properties?.l_excreting_amount ?? null,
       })
 
       return l_id_excreting
@@ -260,7 +275,7 @@ export async function getExcreting(
         b_id_manurepit: schema.excreting.b_id_manurepit,
         l_excreting_start: schema.excreting.l_excreting_start,
         l_excreting_end: schema.excreting.l_excreting_end,
-        p_excreting_amount: schema.excreting.p_excreting_amount,
+        l_excreting_amount: schema.excreting.l_excreting_amount,
         created: schema.excreting.created,
         updated: schema.excreting.updated,
       })
@@ -281,7 +296,52 @@ export async function getExcreting(
 }
 
 /**
+ * Retrieves excreting records for a farm, optionally filtered by timeframe.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal requesting the excreting records.
+ * @param b_id_farm - Farm ID.
+ * @param timeframe - Optional timeframe filter.
+ * @returns Array of excreting records.
+ */
+export async function getExcretingsForFarm(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  timeframe?: Timeframe,
+): Promise<Excreting[]> {
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getExcretingsForFarm")
+
+    let whereClause: SQL | undefined = eq(schema.herdStarting.b_id_farm, b_id_farm)
+    whereClause = withTimeframe(whereClause, schema.excreting.l_excreting_start, timeframe)
+
+    const rows = await fdm
+      .select({
+        l_id_excreting: schema.excreting.l_id_excreting,
+        l_id_herd: schema.excreting.l_id_herd,
+        b_id_manurepit: schema.excreting.b_id_manurepit,
+        l_excreting_start: schema.excreting.l_excreting_start,
+        l_excreting_end: schema.excreting.l_excreting_end,
+        l_excreting_amount: schema.excreting.l_excreting_amount,
+        created: schema.excreting.created,
+        updated: schema.excreting.updated,
+      })
+      .from(schema.excreting)
+      .innerJoin(schema.herdStarting, eq(schema.excreting.l_id_herd, schema.herdStarting.l_id_herd))
+      .where(whereClause)
+      .orderBy(desc(schema.excreting.l_excreting_start))
+
+    return rows as Excreting[]
+  } catch (err) {
+    throw handleError(err, "Exception for getExcretingsForFarm", { b_id_farm })
+  }
+}
+
+/**
  * Corrects an existing excreting action.
+ * For a given herd+manure-pit pair, excreting intervals may not overlap.
+ * Overlap across different manure pits is allowed.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal correcting the excreting action.
@@ -296,35 +356,108 @@ export async function updateExcreting(
     b_id_manurepit?: schema.excretingTypeInsert["b_id_manurepit"]
     l_excreting_start?: schema.excretingTypeInsert["l_excreting_start"]
     l_excreting_end?: schema.excretingTypeInsert["l_excreting_end"]
-    p_excreting_amount?: schema.excretingTypeInsert["p_excreting_amount"]
+    l_excreting_amount?: schema.excretingTypeInsert["l_excreting_amount"]
   },
 ): Promise<void> {
   try {
-    const existing = await fdm
-      .select({ l_id_herd: schema.excreting.l_id_herd })
-      .from(schema.excreting)
-      .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
-      .limit(1)
+    await fdm.transaction(async (tx) => {
+      const existing = await tx
+        .select({
+          l_id_herd: schema.excreting.l_id_herd,
+          b_id_manurepit: schema.excreting.b_id_manurepit,
+          l_excreting_start: schema.excreting.l_excreting_start,
+          l_excreting_end: schema.excreting.l_excreting_end,
+        })
+        .from(schema.excreting)
+        .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+        .limit(1)
 
-    if (existing.length === 0) {
-      throw new Error("Excreting record not found")
-    }
+      if (existing.length === 0) {
+        throw new Error("Excreting record not found")
+      }
 
-    await checkPermission(
-      fdm,
-      "herd",
-      "write",
-      existing[0].l_id_herd,
-      principal_id,
-      "updateExcreting",
-    )
+      await checkPermission(
+        tx,
+        "herd",
+        "write",
+        existing[0].l_id_herd,
+        principal_id,
+        "updateExcreting",
+      )
 
-    await fdm
-      .update(schema.excreting)
-      .set({ ...properties, updated: new Date() })
-      .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+      const nextManurePit = properties.b_id_manurepit ?? existing[0].b_id_manurepit
+      const nextStart = properties.l_excreting_start ?? existing[0].l_excreting_start
+      const nextEnd =
+        properties.l_excreting_end === undefined
+          ? existing[0].l_excreting_end
+          : properties.l_excreting_end
+
+      if (!nextStart) {
+        throw new Error("l_excreting_start is required")
+      }
+      assertIntervalEndNotBeforeStart(nextStart, nextEnd, "l_excreting")
+
+      await assertNoOverlappingExcretingForHerdPit(
+        tx,
+        existing[0].l_id_herd,
+        nextManurePit,
+        nextStart,
+        nextEnd,
+        l_id_excreting,
+      )
+
+      await tx
+        .update(schema.excreting)
+        .set({ ...properties, updated: new Date() })
+        .where(eq(schema.excreting.l_id_excreting, l_id_excreting))
+    })
   } catch (err) {
     throw handleError(err, "Exception for updateExcreting", { l_id_excreting, properties })
+  }
+}
+
+async function assertNoOverlappingExcretingForHerdPit(
+  tx: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  b_id_manurepit: schema.manurePitsTypeSelect["b_id_manurepit"],
+  l_excreting_start: Date,
+  l_excreting_end: Date | null,
+  excludeExcretingId?: schema.excretingTypeSelect["l_id_excreting"],
+): Promise<void> {
+  const excretingRows = await tx
+    .select({
+      l_id_excreting: schema.excreting.l_id_excreting,
+      l_excreting_start: schema.excreting.l_excreting_start,
+      l_excreting_end: schema.excreting.l_excreting_end,
+    })
+    .from(schema.excreting)
+    .where(
+      and(
+        eq(schema.excreting.l_id_herd, l_id_herd),
+        eq(schema.excreting.b_id_manurepit, b_id_manurepit),
+      ),
+    )
+
+  for (const row of excretingRows) {
+    if (excludeExcretingId && row.l_id_excreting === excludeExcretingId) {
+      continue
+    }
+    if (!row.l_excreting_start) {
+      continue
+    }
+
+    if (
+      overlapsHalfOpen(
+        l_excreting_start,
+        l_excreting_end,
+        row.l_excreting_start,
+        row.l_excreting_end,
+      )
+    ) {
+      throw new Error(
+        "Excreting interval overlaps an existing excreting interval for this herd and manure pit",
+      )
+    }
   }
 }
 
@@ -404,14 +537,12 @@ export async function addManureDisposing(
 
     return await fdm.transaction(async (tx) => {
       const p_id_delivery = createId()
-      const p_id_disposing = createId()
 
       await tx.insert(schema.manureDeliveries).values({
         p_id_delivery,
       })
 
       await tx.insert(schema.manureDisposing).values({
-        p_id_disposing,
         b_id_manurepit,
         p_id_delivery,
         p_disposing_date,
@@ -465,14 +596,14 @@ export async function addManureDisposing(
 export async function getManureDisposing(
   fdm: FdmType,
   principal_id: PrincipalId,
-  p_id_disposing: schema.manureDisposingTypeSelect["p_id_disposing"],
+  p_id_disposing: schema.manureDisposingTypeSelect["p_id_delivery"],
 ): Promise<ManureDelivery> {
   try {
     const rows = await fdm
       .select({
         p_id_delivery: schema.manureDeliveries.p_id_delivery,
         b_id_manurepit: schema.manureDisposing.b_id_manurepit,
-        p_id_disposing: schema.manureDisposing.p_id_disposing,
+        p_id_disposing: schema.manureDisposing.p_id_delivery,
         p_disposing_date: schema.manureDisposing.p_disposing_date,
         p_disposing_amount: schema.manureDisposing.p_disposing_amount,
         p_id_analysis: schema.manureAnalyses.p_id_analysis,
@@ -497,7 +628,7 @@ export async function getManureDisposing(
         schema.manureAnalyses,
         eq(schema.manureSampling.p_id_analysis, schema.manureAnalyses.p_id_analysis),
       )
-      .where(eq(schema.manureDisposing.p_id_disposing, p_id_disposing))
+      .where(eq(schema.manureDisposing.p_id_delivery, p_id_disposing))
       .limit(1)
 
     if (rows.length === 0) {
@@ -530,7 +661,7 @@ export async function getManureDisposing(
 export async function updateManureDisposing(
   fdm: FdmType,
   principal_id: PrincipalId,
-  p_id_disposing: schema.manureDisposingTypeSelect["p_id_disposing"],
+  p_id_disposing: schema.manureDisposingTypeSelect["p_id_delivery"],
   properties: {
     p_disposing_date?: schema.manureDisposingTypeInsert["p_disposing_date"]
     p_disposing_amount?: schema.manureDisposingTypeInsert["p_disposing_amount"]
@@ -540,7 +671,7 @@ export async function updateManureDisposing(
     const existing = await fdm
       .select({ b_id_manurepit: schema.manureDisposing.b_id_manurepit })
       .from(schema.manureDisposing)
-      .where(eq(schema.manureDisposing.p_id_disposing, p_id_disposing))
+      .where(eq(schema.manureDisposing.p_id_delivery, p_id_disposing))
       .limit(1)
 
     if (existing.length === 0) {
@@ -559,7 +690,7 @@ export async function updateManureDisposing(
     await fdm
       .update(schema.manureDisposing)
       .set({ ...properties, updated: new Date() })
-      .where(eq(schema.manureDisposing.p_id_disposing, p_id_disposing))
+      .where(eq(schema.manureDisposing.p_id_delivery, p_id_disposing))
   } catch (err) {
     throw handleError(err, "Exception for updateManureDisposing", { p_id_disposing, properties })
   }
@@ -576,7 +707,7 @@ export async function updateManureDisposing(
 export async function removeManureDisposing(
   fdm: FdmType,
   principal_id: PrincipalId,
-  p_id_disposing: schema.manureDisposingTypeSelect["p_id_disposing"],
+  p_id_disposing: schema.manureDisposingTypeSelect["p_id_delivery"],
 ): Promise<void> {
   try {
     const existing = await fdm
@@ -585,7 +716,7 @@ export async function removeManureDisposing(
         p_id_delivery: schema.manureDisposing.p_id_delivery,
       })
       .from(schema.manureDisposing)
-      .where(eq(schema.manureDisposing.p_id_disposing, p_id_disposing))
+      .where(eq(schema.manureDisposing.p_id_delivery, p_id_disposing))
       .limit(1)
 
     if (existing.length === 0) {
@@ -621,7 +752,7 @@ export async function removeManureDisposing(
 
       await tx
         .delete(schema.manureDisposing)
-        .where(eq(schema.manureDisposing.p_id_disposing, p_id_disposing))
+        .where(eq(schema.manureDisposing.p_id_delivery, p_id_disposing))
       await tx
         .delete(schema.manureDeliveries)
         .where(eq(schema.manureDeliveries.p_id_delivery, p_id_delivery))
@@ -669,7 +800,7 @@ export async function getManureDisposalsForFarm(
         .select({
           p_id_delivery: schema.manureDeliveries.p_id_delivery,
           b_id_manurepit: schema.manureDisposing.b_id_manurepit,
-          p_id_disposing: schema.manureDisposing.p_id_disposing,
+          p_id_disposing: schema.manureDisposing.p_id_delivery,
           p_disposing_date: schema.manureDisposing.p_disposing_date,
           p_disposing_amount: schema.manureDisposing.p_disposing_amount,
           p_id_analysis: schema.manureAnalyses.p_id_analysis,

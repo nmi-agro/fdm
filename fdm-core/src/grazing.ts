@@ -1,4 +1,4 @@
-import { desc, eq, inArray, type SQL } from "drizzle-orm"
+import { and, desc, eq, inArray, lt, gte, type SQL } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Grazing } from "./grazing.types"
@@ -6,14 +6,17 @@ import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
+import { setGrazingIntention } from "./grazing_intention"
 import { createId } from "./id"
+import { assertIntervalEndNotBeforeStart, overlapsHalfOpen } from "./interval"
 import { withTimeframe } from "./timeframe"
 
 /**
  * Records an outdoor pasture grazing action for a herd on a farm field parcel.
  * Allows logging grazing start/end dates, daily grazing hours, grazed area in hectares,
- * and grazing regime (full vs partial day). Total grazing days are derived from the
+ * and spatial extent (full vs partial field). Total grazing days are derived from the
  * start/end dates in the calculator layer rather than stored here.
+ * Grazing intervals for the same herd may not overlap.
  *
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal recording the grazing action.
@@ -35,16 +38,24 @@ export async function addGrazing(
   },
 ): Promise<void> {
   try {
-    await checkPermission(fdm, "herd", "write", l_id_herd, principal_id, "addGrazing")
-
     return await fdm.transaction(async (tx) => {
-      if (properties?.b_id) {
-        const herdFarm = await tx
-          .select({ b_id_farm: schema.herdStarting.b_id_farm })
-          .from(schema.herdStarting)
-          .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
-          .limit(1)
+      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "addGrazing")
+      const grazingEnd = properties?.l_grazing_end ?? null
+      assertIntervalEndNotBeforeStart(l_grazing_start, grazingEnd, "l_grazing")
 
+      const herdFarm = await tx
+        .select({ b_id_farm: schema.herdStarting.b_id_farm })
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.l_id_herd, l_id_herd))
+        .limit(1)
+
+      if (herdFarm.length === 0) {
+        throw new Error(`Herd ${l_id_herd} does not belong to a farm`)
+      }
+
+      const b_id_farm = herdFarm[0].b_id_farm
+
+      if (properties?.b_id) {
         const fieldFarm = await tx
           .select({ b_id_farm: schema.fieldAcquiring.b_id_farm })
           .from(schema.fieldAcquiring)
@@ -52,12 +63,37 @@ export async function addGrazing(
           .limit(1)
 
         if (
-          herdFarm.length === 0 ||
           fieldFarm.length === 0 ||
           herdFarm[0].b_id_farm !== fieldFarm[0].b_id_farm
         ) {
           throw new Error(`Field ${properties.b_id} does not belong to the herd's farm`)
         }
+      }
+
+      await assertNoOverlappingGrazingForHerd(tx, l_id_herd, l_grazing_start, grazingEnd)
+
+      const grazingYear = l_grazing_start.getUTCFullYear()
+      const grazingYearStart = new Date(Date.UTC(grazingYear, 0, 1))
+      const grazingNextYearStart = new Date(Date.UTC(grazingYear + 1, 0, 1))
+
+      const firstGrazingInYear = await tx
+        .select({ l_id_grazing: schema.grazing.l_id_grazing })
+        .from(schema.grazing)
+        .innerJoin(
+          schema.herdStarting,
+          eq(schema.grazing.l_id_herd, schema.herdStarting.l_id_herd),
+        )
+        .where(
+          and(
+            eq(schema.herdStarting.b_id_farm, b_id_farm),
+            gte(schema.grazing.l_grazing_start, grazingYearStart),
+            lt(schema.grazing.l_grazing_start, grazingNextYearStart),
+          ),
+        )
+        .limit(1)
+
+      if (firstGrazingInYear.length === 0) {
+        await setGrazingIntention(tx, principal_id, b_id_farm, grazingYear, true)
       }
 
       await tx.insert(schema.grazing).values({
@@ -264,6 +300,7 @@ export async function getGrazing(
 
 /**
  * Corrects an existing grazing record identified by its ID.
+ * The updated interval may not overlap another grazing interval for the same herd.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal correcting the grazing record.
@@ -283,31 +320,76 @@ export async function updateGrazing(
   },
 ): Promise<void> {
   try {
-    const existing = await fdm
-      .select({ l_id_herd: schema.grazing.l_id_herd })
-      .from(schema.grazing)
-      .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
-      .limit(1)
+    await fdm.transaction(async (tx) => {
+      const existing = await tx
+        .select({
+          l_id_herd: schema.grazing.l_id_herd,
+          l_grazing_start: schema.grazing.l_grazing_start,
+          l_grazing_end: schema.grazing.l_grazing_end,
+        })
+        .from(schema.grazing)
+        .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+        .limit(1)
 
-    if (existing.length === 0) {
-      throw new Error("Grazing record not found")
-    }
+      if (existing.length === 0) {
+        throw new Error("Grazing record not found")
+      }
 
-    await checkPermission(
-      fdm,
-      "herd",
-      "write",
-      existing[0].l_id_herd,
-      principal_id,
-      "updateGrazing",
-    )
+      await checkPermission(
+        tx,
+        "herd",
+        "write",
+        existing[0].l_id_herd,
+        principal_id,
+        "updateGrazing",
+      )
 
-    await fdm
-      .update(schema.grazing)
-      .set({ ...properties, updated: new Date() })
-      .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+      const nextStart = properties.l_grazing_start ?? existing[0].l_grazing_start
+      const nextEnd =
+        properties.l_grazing_end === undefined ? existing[0].l_grazing_end : properties.l_grazing_end
+      assertIntervalEndNotBeforeStart(nextStart, nextEnd, "l_grazing")
+      await assertNoOverlappingGrazingForHerd(
+        tx,
+        existing[0].l_id_herd,
+        nextStart,
+        nextEnd,
+        l_id_grazing,
+      )
+
+      await tx
+        .update(schema.grazing)
+        .set({ ...properties, updated: new Date() })
+        .where(eq(schema.grazing.l_id_grazing, l_id_grazing))
+    })
   } catch (err) {
     throw handleError(err, "Exception for updateGrazing", { l_id_grazing, properties })
+  }
+}
+
+async function assertNoOverlappingGrazingForHerd(
+  tx: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  l_grazing_start: Date,
+  l_grazing_end: Date | null,
+  exclude_l_id_grazing?: schema.grazingTypeSelect["l_id_grazing"],
+): Promise<void> {
+  const grazingRows = await tx
+    .select({
+      l_id_grazing: schema.grazing.l_id_grazing,
+      l_grazing_start: schema.grazing.l_grazing_start,
+      l_grazing_end: schema.grazing.l_grazing_end,
+    })
+    .from(schema.grazing)
+    .where(eq(schema.grazing.l_id_herd, l_id_herd))
+
+  for (const row of grazingRows) {
+    if (row.l_id_grazing === exclude_l_id_grazing) {
+      continue
+    }
+
+    if (overlapsHalfOpen(l_grazing_start, l_grazing_end, row.l_grazing_start, row.l_grazing_end)) {
+      throw new Error("Grazing interval overlaps an existing grazing interval for this herd")
+    }
   }
 }
 

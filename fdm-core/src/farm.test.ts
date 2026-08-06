@@ -128,6 +128,8 @@ describe("Farm Functions", () => {
           b_businessid_farm: farmBusinessId,
           b_address_farm: farmAddress,
           b_postalcode_farm: farmPostalCode,
+          b_farm_livestock: false,
+          b_farm_dairy: false,
           roles: [
             {
               principal_id: principal_id,
@@ -164,7 +166,6 @@ describe("Farm Functions", () => {
       )
     })
   })
-
   describe("getFarms", () => {
     it("should retrieve a list of farms accessible by the principal", async () => {
       const farms = await getFarms(fdm, principal_id)
@@ -262,7 +263,37 @@ describe("Farm Functions", () => {
           updatedFarmPostalCode,
         ),
       ).rejects.toThrowError("Exception for updateFarm")
-    })
+    }    )
+  })
+
+  it("should include livestock and dairy flags in the getFarm response", async () => {
+  const herdId = await addHerd(fdm, principal_id, b_id_farm, {
+    l_herd_name: "Status Kudde",
+    l_herd_category: "rvo_100",
+  })
+  await addAnimal(fdm, principal_id, b_id_farm, herdId, {
+    l_id_eartag: "NL_STATUS_1",
+  })
+
+  const farmAfterAnimals = await getFarm(fdm, principal_id, b_id_farm)
+  expect(farmAfterAnimals.b_farm_livestock).toBe(true)
+  expect(farmAfterAnimals.b_farm_dairy).toBe(false)
+
+  const l_id_milktank = await addMilkTank(fdm, principal_id, b_id_farm, {
+    l_milktank_name: "Status Tank",
+  })
+  await addMilkingHerd(
+    fdm,
+    principal_id,
+    herdId,
+    l_id_milktank,
+    new Date("2025-05-15T06:00:00.000Z"),
+    { l_milking_amount: 80 },
+  )
+
+  const farmAfterDairy = await getFarm(fdm, principal_id, b_id_farm)
+  expect(farmAfterDairy.b_farm_livestock).toBe(true)
+  expect(farmAfterDairy.b_farm_dairy).toBe(true)
   })
 
   describe("grantRoleToFarm", () => {
@@ -743,26 +774,21 @@ describe("Farm Functions", () => {
       })
       await addHousing(fdm, testPrincipalId, l_id_herd, b_id_barn, new Date("2025-01-01"))
 
-      const b_id_milktank = await addMilkTank(fdm, testPrincipalId, livestockFarmId)
-      await addMilkingHerd(fdm, testPrincipalId, l_id_herd, b_id_milktank, new Date("2025-02-01"), {
-        b_milk_amount: 100,
+      const l_id_milktank = await addMilkTank(fdm, testPrincipalId, livestockFarmId)
+      await addMilkingHerd(fdm, testPrincipalId, l_id_herd, l_id_milktank, new Date("2025-02-01"), {
+        l_milking_amount: 100,
       })
-      await addMilkDelivery(fdm, testPrincipalId, b_id_milktank, new Date("2025-02-02"), 500, {
-        b_milk_fat: 4.1,
+      await addMilkDelivery(fdm, testPrincipalId, l_id_milktank, new Date("2025-02-02"), 500, {
+        l_milk_fat: 4.1,
       })
 
       const b_id_manurepit = await addManurePit(fdm, testPrincipalId, livestockFarmId)
       await addExcreting(fdm, testPrincipalId, l_id_herd, b_id_manurepit, {
-        p_excreting_amount: 1000,
+        l_excreting_amount: 1000,
       })
-      await addManureDisposing(
-        fdm,
-        testPrincipalId,
-        b_id_manurepit,
-        new Date("2025-02-03"),
-        800,
-        { p_n_rt: 4.0 },
-      )
+      await addManureDisposing(fdm, testPrincipalId, b_id_manurepit, new Date("2025-02-03"), 800, {
+        p_n_rt: 4.0,
+      })
 
       const f_id_batch = await addFeedBatch(
         fdm,
@@ -807,19 +833,19 @@ describe("Farm Functions", () => {
         await fdm
           .select()
           .from(schema.milkTanks)
-          .where(eq(schema.milkTanks.b_id_milktank, b_id_milktank)),
+          .where(eq(schema.milkTanks.l_id_milktank, l_id_milktank)),
       ).toEqual([])
       expect(
         await fdm
           .select()
           .from(schema.milkingHerd)
-          .where(eq(schema.milkingHerd.b_id_milktank, b_id_milktank)),
+          .where(eq(schema.milkingHerd.l_id_milktank, l_id_milktank)),
       ).toEqual([])
       expect(
         await fdm
           .select()
           .from(schema.milkDelivering)
-          .where(eq(schema.milkDelivering.b_id_milktank, b_id_milktank)),
+          .where(eq(schema.milkDelivering.l_id_milktank, l_id_milktank)),
       ).toEqual([])
 
       expect(
