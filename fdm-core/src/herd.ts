@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm"
+import { and, desc, eq, gt, isNull, lte, or } from "drizzle-orm"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type { Herd } from "./herd.types"
@@ -120,6 +120,7 @@ export async function getHerdsForFarm(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  atDate = new Date(),
 ): Promise<Herd[]> {
   try {
     await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getHerdsForFarm")
@@ -138,12 +139,18 @@ export async function getHerdsForFarm(
       .from(schema.herds)
       .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
       .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
-      .where(and(eq(schema.herdStarting.b_id_farm, b_id_farm), isNull(schema.herdEnding.l_end)))
+      .where(
+        and(
+          eq(schema.herdStarting.b_id_farm, b_id_farm),
+          or(isNull(schema.herdStarting.l_start), lte(schema.herdStarting.l_start, atDate)),
+          or(isNull(schema.herdEnding.l_end), gt(schema.herdEnding.l_end, atDate)),
+        ),
+      )
       .orderBy(desc(schema.herds.created))
 
     return rows as Herd[]
   } catch (err) {
-    throw handleError(err, "Exception for getHerdsForFarm", { b_id_farm })
+    throw handleError(err, "Exception for getHerdsForFarm", { b_id_farm, atDate })
   }
 }
 

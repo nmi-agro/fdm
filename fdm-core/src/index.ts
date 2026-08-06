@@ -238,6 +238,7 @@ export {
   addAnimalsToHerd,
   assignAnimalToHerd,
   createHerdWithAnimals,
+  getAnimalAssignmentHistory,
   getAnimal,
   getAnimalsForFarm,
   getAnimalsForHerd,
@@ -250,7 +251,7 @@ export {
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
-export type { Animal, HerdCensus } from "./animal.types"
+export type { Animal, AnimalAssignmentHistory, HerdCensus } from "./animal.types"
 export {
   addBarn,
   addHousing,

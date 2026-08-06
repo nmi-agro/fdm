@@ -6,6 +6,7 @@ import {
   assignAnimalToHerd,
   createHerdWithAnimals,
   getAnimal,
+  getAnimalAssignmentHistory,
   getAnimalsForFarm,
   getAnimalsForHerd,
   getCensusForFarm,
@@ -95,6 +96,13 @@ describe("Animal Domain", () => {
     // Add 10 animals
     const animalIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 10)
     expect(animalIds.length).toBe(10)
+    const createdAnimals = await getAnimalsForHerd(fdm, principal_id, l_id_herd)
+    expect(createdAnimals.map((animal) => animal.l_id_worknumber).sort()).toEqual(
+      Array.from({ length: 10 }, (_, index) => String(10001 + index)).sort(),
+    )
+    await expect(
+      addAnimal(fdm, principal_id, b_id_farm, l_id_herd, { l_id_worknumber: "10001" }),
+    ).rejects.toThrowError("Exception for addAnimal")
 
     let census = await getCensusForFarm(fdm, principal_id, b_id_farm)
     const melkkoeienCensus = census.find((c) => c.l_id_herd === l_id_herd)
@@ -279,6 +287,37 @@ describe("Animal Domain", () => {
     const herdCensus = census.find((c) => c.l_id_herd === l_id_herd)
     expect(herdCensus).toBeDefined()
     expect(herdCensus?.count).toBe(0)
+  })
+
+  it("should return animals present at a historical status date and their assignment history", async () => {
+    const arrivingDate = new Date("2025-01-01T00:00:00.000Z")
+    const leavingDate = new Date("2025-08-01T00:00:00.000Z")
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL-HISTORY-1",
+      l_arriving_date: arrivingDate,
+      l_leaving_date: leavingDate,
+      l_leaving_method: "sold",
+    })
+
+    const presentOnJulyFirst = await getAnimalsForFarm(
+      fdm,
+      principal_id,
+      b_id_farm,
+      new Date("2025-07-01T23:59:59.999Z"),
+    )
+    expect(presentOnJulyFirst.map((animal) => animal.l_id_animal)).toContain(l_id_animal)
+
+    const presentAfterLeaving = await getAnimalsForFarm(
+      fdm,
+      principal_id,
+      b_id_farm,
+      new Date("2025-08-02T00:00:00.000Z"),
+    )
+    expect(presentAfterLeaving.map((animal) => animal.l_id_animal)).not.toContain(l_id_animal)
+
+    const history = await getAnimalAssignmentHistory(fdm, principal_id, l_id_animal)
+    expect(history).toHaveLength(1)
+    expect(history[0].l_id_herd).toBe(l_id_herd)
   })
 
   it("should leave every animal when a herd leaves the farm", async () => {

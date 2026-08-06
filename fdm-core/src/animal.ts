@@ -1,5 +1,5 @@
 import { and, count, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm"
-import type { Animal, HerdCensus } from "./animal.types"
+import type { Animal, AnimalAssignmentHistory, HerdCensus } from "./animal.types"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import { checkPermission } from "./authorization"
@@ -52,10 +52,17 @@ export async function addAnimal(
         throw new Error(`Herd ${l_id_herd} does not belong to farm ${b_id_farm}`)
       }
 
+      await lockFarmWorknumbers(tx, b_id_farm)
       const l_id_animal = createId()
       const arrivingMethod = properties?.l_arriving_method ?? "born"
       let birthdate = properties?.l_birth_date ?? null
       let arrivingDate = properties?.l_arriving_date ?? birthdate ?? new Date()
+      const l_id_worknumber =
+        properties?.l_id_worknumber ?? String(await getNextWorknumber(tx, b_id_farm))
+
+      if (properties?.l_id_worknumber) {
+        await assertWorknumberAvailable(tx, b_id_farm, properties.l_id_worknumber)
+      }
 
       if (arrivingMethod === "born") {
         if (birthdate && properties?.l_arriving_date) {
@@ -75,7 +82,7 @@ export async function addAnimal(
       await tx.insert(schema.animals).values({
         l_id_animal,
         l_id_eartag: properties?.l_id_eartag ?? null,
-        l_id_worknumber: properties?.l_id_worknumber ?? null,
+        l_id_worknumber,
         l_species: properties?.l_species ?? "cattle",
         l_breed: properties?.l_breed ?? null,
         l_coatcolor: properties?.l_coatcolor ?? null,
@@ -243,12 +250,14 @@ export async function getAnimalsForHerd(
  * @param fdm - The FDM instance.
  * @param principal_id - Principal requesting animals.
  * @param b_id_farm - Farm ID.
- * @returns Array of active animals for the farm.
+ * @param atDate - Optional status date. The default is the current timestamp.
+ * @returns Array of animals present on the farm at the status date.
  */
 export async function getAnimalsForFarm(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  atDate = new Date(),
 ): Promise<Animal[]> {
   try {
     await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getAnimalsForFarm")
@@ -288,15 +297,66 @@ export async function getAnimalsForFarm(
         schema.animalAssigning,
         and(
           eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
-          isNull(schema.animalAssigning.l_assigning_end),
+          lte(schema.animalAssigning.l_assigning_start, atDate),
+          or(
+            isNull(schema.animalAssigning.l_assigning_end),
+            gt(schema.animalAssigning.l_assigning_end, atDate),
+          ),
         ),
       )
-      .where(isNull(schema.animalLeaving.l_leaving_date))
+      .where(
+        and(
+          or(isNull(schema.animalArriving.l_arriving_date), lte(schema.animalArriving.l_arriving_date, atDate)),
+          or(isNull(schema.animalLeaving.l_leaving_date), gt(schema.animalLeaving.l_leaving_date, atDate)),
+        ),
+      )
       .orderBy(desc(schema.animals.created))
 
     return rows as Animal[]
   } catch (err) {
-    throw handleError(err, "Exception for getAnimalsForFarm", { b_id_farm })
+    throw handleError(err, "Exception for getAnimalsForFarm", { b_id_farm, atDate })
+  }
+}
+
+/**
+ * Retrieves the complete herd-assignment history for an animal.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal requesting the history.
+ * @param l_id_animal - Animal ID.
+ * @returns Assignment intervals ordered newest first.
+ */
+export async function getAnimalAssignmentHistory(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_animal: schema.animalsTypeSelect["l_id_animal"],
+): Promise<AnimalAssignmentHistory[]> {
+  try {
+    await checkPermission(
+      fdm,
+      "animal",
+      "read",
+      l_id_animal,
+      principal_id,
+      "getAnimalAssignmentHistory",
+    )
+
+    const rows = await fdm
+      .select({
+        l_id_herd: schema.animalAssigning.l_id_herd,
+        l_herd_name: schema.herds.l_herd_name,
+        l_herd_category: schema.herds.l_herd_category,
+        l_assigning_start: schema.animalAssigning.l_assigning_start,
+        l_assigning_end: schema.animalAssigning.l_assigning_end,
+      })
+      .from(schema.animalAssigning)
+      .innerJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
+      .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+      .orderBy(desc(schema.animalAssigning.l_assigning_start))
+
+    return rows as AnimalAssignmentHistory[]
+  } catch (err) {
+    throw handleError(err, "Exception for getAnimalAssignmentHistory", { l_id_animal })
   }
 }
 
@@ -443,8 +503,10 @@ export async function addAnimalsToHerd(
 
       const b_id_farm = herdRow[0].b_id_farm
       const now = new Date()
+      await lockFarmWorknumbers(tx, b_id_farm)
+      const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
 
-      const animalIds = buildAnimalRows(count, l_id_herd, b_id_farm, now, defaults)
+      const animalIds = buildAnimalRows(count, l_id_herd, b_id_farm, now, firstWorknumber, defaults)
 
       if (animalIds.length > 0) {
         await tx.insert(schema.animals).values(animalIds.map((r) => r.animalRow))
@@ -464,11 +526,67 @@ export async function addAnimalsToHerd(
  * farm and assigned into a herd, sharing default attributes. Used by both
  * {@link addAnimalsToHerd} and {@link createHerdWithAnimals}.
  */
+async function getNextWorknumber(
+  tx: FdmType,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<number> {
+  const rows = await tx
+    .select({ l_id_worknumber: schema.animals.l_id_worknumber })
+    .from(schema.animals)
+    .innerJoin(
+      schema.animalArriving,
+      and(
+        eq(schema.animals.l_id_animal, schema.animalArriving.l_id_animal),
+        eq(schema.animalArriving.b_id_farm, b_id_farm),
+      ),
+    )
+
+  let nextWorknumber = 10001
+  for (const row of rows) {
+    if (row.l_id_worknumber && /^\d+$/.test(row.l_id_worknumber)) {
+      nextWorknumber = Math.max(nextWorknumber, Number(row.l_id_worknumber) + 1)
+    }
+  }
+
+  return nextWorknumber
+}
+
+async function lockFarmWorknumbers(
+  tx: FdmType,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${b_id_farm}))`)
+}
+
+async function assertWorknumberAvailable(
+  tx: FdmType,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  l_id_worknumber: string,
+): Promise<void> {
+  const rows = await tx
+    .select({ l_id_animal: schema.animals.l_id_animal })
+    .from(schema.animals)
+    .innerJoin(
+      schema.animalArriving,
+      and(
+        eq(schema.animals.l_id_animal, schema.animalArriving.l_id_animal),
+        eq(schema.animalArriving.b_id_farm, b_id_farm),
+      ),
+    )
+    .where(eq(schema.animals.l_id_worknumber, l_id_worknumber))
+    .limit(1)
+
+  if (rows.length > 0) {
+    throw new Error(`Work number ${l_id_worknumber} is already used on farm ${b_id_farm}`)
+  }
+}
+
 function buildAnimalRows(
   count: number,
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
   now: Date,
+  firstWorknumber: number,
   defaults?: {
     l_species?: schema.animalsTypeInsert["l_species"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
@@ -489,6 +607,7 @@ function buildAnimalRows(
       l_id_animal,
       animalRow: {
         l_id_animal,
+        l_id_worknumber: String(firstWorknumber + i),
         l_species: defaults?.l_species ?? "cattle",
         l_breed: defaults?.l_breed ?? null,
       },
@@ -1023,6 +1142,7 @@ export async function createHerdWithAnimals(
     return await fdm.transaction(async (tx) => {
       const l_id_herd = createId()
       const now = new Date()
+      await lockFarmWorknumbers(tx, b_id_farm)
 
       await tx.insert(schema.herds).values({
         l_id_herd,
@@ -1036,7 +1156,15 @@ export async function createHerdWithAnimals(
         l_start: herdProperties?.l_start ?? now,
       })
 
-      const animalRows = buildAnimalRows(count, l_id_herd, b_id_farm, now, animalProperties)
+      const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
+      const animalRows = buildAnimalRows(
+        count,
+        l_id_herd,
+        b_id_farm,
+        now,
+        firstWorknumber,
+        animalProperties,
+      )
 
       if (animalRows.length > 0) {
         await tx.insert(schema.animals).values(animalRows.map((r) => r.animalRow))

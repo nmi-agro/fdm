@@ -25,3 +25,11 @@ export interface HerdCensus {
   l_herd_category?: schema.herdsTypeSelect["l_herd_category"]
   count: number
 }
+
+export interface AnimalAssignmentHistory {
+  l_id_herd: schema.animalAssigningTypeSelect["l_id_herd"]
+  l_herd_name?: schema.herdsTypeSelect["l_herd_name"]
+  l_herd_category?: schema.herdsTypeSelect["l_herd_category"]
+  l_assigning_start: schema.animalAssigningTypeSelect["l_assigning_start"]
+  l_assigning_end?: schema.animalAssigningTypeSelect["l_assigning_end"]
+}
