@@ -4,7 +4,6 @@ import {
   animalSpeciesOptions,
   arrivingMethodOptions,
   feedOriginOptions,
-  feedTypeOptions,
   grazingTypeOptions,
   leavingMethodOptions,
 } from "./schema"
@@ -15,7 +14,6 @@ describe("Livestock Schema Options Arrays", () => {
     animalSpeciesOptions,
     arrivingMethodOptions,
     leavingMethodOptions,
-    feedTypeOptions,
     feedOriginOptions,
     grazingTypeOptions,
   ]

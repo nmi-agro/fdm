@@ -1,9 +1,12 @@
-import { and, desc, eq, gte, inArray, isNull, lte, or, type SQL } from "drizzle-orm"
+import { feedTypeOptions, hashFeed } from "@nmi-agro/fdm-data"
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, or, type SQL } from "drizzle-orm"
+import { getEnabledFeedCatalogues } from "./catalogues"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
 import type {
   FeedingEventForAnimal,
   FeedingSummaryForAnimal,
+  FeedCatalogue,
   FeedBatch,
   FeedingHerd,
   FeedingAnimal,
@@ -11,9 +14,135 @@ import type {
 import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
+import * as authNSchema from "./db/schema-authn"
+import * as authZSchema from "./db/schema-authz"
 import { handleError } from "./error"
 import { createId } from "./id"
 import { withTimeframe } from "./timeframe"
+
+type FeedCatalogueReference = string
+
+type FeedTransaction = Parameters<Parameters<FdmType["transaction"]>[0]>[0]
+
+async function resolveFeedCatalogueId(
+  tx: FeedTransaction,
+  reference: FeedCatalogueReference,
+): Promise<schema.feedsCatalogueTypeSelect["f_id_catalogue"]> {
+  const rows = await tx
+    .select({ f_id_catalogue: schema.feedsCatalogue.f_id_catalogue })
+    .from(schema.feedsCatalogue)
+    .where(
+      or(
+        eq(schema.feedsCatalogue.f_id_catalogue, reference),
+        eq(schema.feedsCatalogue.f_type_rvo, reference),
+      ),
+    )
+    .limit(1)
+
+  if (rows.length === 0) {
+    throw new Error(`Feed catalogue item not found: ${reference}`)
+  }
+
+  return rows[0].f_id_catalogue
+}
+
+export async function getFeedsFromCatalogue(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<FeedCatalogue[]> {
+  try {
+    const catalogueSources = await getEnabledFeedCatalogues(fdm, principal_id, b_id_farm)
+    return await getFeedsFromCatalogues(fdm, principal_id, catalogueSources)
+  } catch (err) {
+    throw handleError(err, "Exception for getFeedsFromCatalogue", { b_id_farm })
+  }
+}
+
+export async function getFeedsFromCatalogues(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  catalogueSources: schema.feedsCatalogueTypeSelect["f_source"][],
+): Promise<FeedCatalogue[]> {
+  try {
+    if (catalogueSources.length === 0) {
+      return []
+    }
+
+    const principalIds = [principal_id].flat()
+    const authorizedRows = await fdm
+      .selectDistinct({ f_source: schema.feedCatalogueEnabling.f_source })
+      .from(schema.feedCatalogueEnabling)
+      .innerJoin(
+        authZSchema.role,
+        and(
+          eq(authZSchema.role.resource, "farm"),
+          eq(authZSchema.role.resource_id, schema.feedCatalogueEnabling.b_id_farm),
+          isNull(authZSchema.role.deleted),
+        ),
+      )
+      .leftJoin(
+        authNSchema.member,
+        and(
+          eq(authZSchema.role.principal_id, authNSchema.member.organizationId),
+          inArray(authNSchema.member.userId, principalIds),
+        ),
+      )
+      .where(
+        and(
+          inArray(schema.feedCatalogueEnabling.f_source, catalogueSources),
+          or(
+            inArray(authZSchema.role.principal_id, principalIds),
+            isNotNull(authNSchema.member.userId),
+          ),
+        ),
+      )
+
+    const authorizedSources = new Set(authorizedRows.map((row) => row.f_source))
+    const filteredSources = catalogueSources.filter((source) => authorizedSources.has(source))
+    if (filteredSources.length === 0) {
+      return []
+    }
+
+    return await fdm
+      .select()
+      .from(schema.feedsCatalogue)
+      .where(inArray(schema.feedsCatalogue.f_source, filteredSources))
+      .orderBy(asc(schema.feedsCatalogue.f_source), asc(schema.feedsCatalogue.f_name_nl))
+  } catch (err) {
+    throw handleError(err, "Exception for getFeedsFromCatalogues", { catalogueSources })
+  }
+}
+
+export async function addFeedToCatalogue(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  properties: {
+    f_name_nl: schema.feedsCatalogueTypeInsert["f_name_nl"]
+    f_type_rvo: schema.feedsCatalogueTypeInsert["f_type_rvo"]
+    f_dm: schema.feedsCatalogueTypeInsert["f_dm"]
+    f_n_dm: schema.feedsCatalogueTypeInsert["f_n_dm"]
+    f_p_dm: schema.feedsCatalogueTypeInsert["f_p_dm"]
+  },
+): Promise<schema.feedsCatalogueTypeSelect["f_id_catalogue"]> {
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "addFeedToCatalogue")
+
+    const f_id_catalogue = createId()
+    const item: schema.feedsCatalogueTypeInsert = {
+      ...properties,
+      f_id_catalogue,
+      f_source: b_id_farm,
+      hash: null,
+    }
+    item.hash = await hashFeed(item)
+    await fdm.insert(schema.feedsCatalogue).values(item)
+    return f_id_catalogue
+  } catch (err) {
+    throw handleError(err, "Exception for addFeedToCatalogue", { b_id_farm, properties })
+  }
+}
 
 /**
  * Adds a new feed batch to a farm, optionally with feed analysis parameters (f_dm, f_cp, f_vem, f_oeb, f_ndf).
@@ -21,7 +150,7 @@ import { withTimeframe } from "./timeframe"
  * @param fdm - The FDM instance providing connection to the database.
  * @param principal_id - Identifier of the principal adding the feed batch.
  * @param b_id_farm - Identifier of the farm.
- * @param f_batch_type - Feed type (e.g., gras_kuil, snijmais, krachtvoer).
+ * @param f_id_catalogue - Feed catalogue item ID.
  * @param f_batch_origin - Feed origin (own_land or purchased).
  * @param properties - Optional feed name and analysis parameters.
  * @returns Unique identifier of the new feed batch.
@@ -30,7 +159,7 @@ export async function addFeedBatch(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
-  f_batch_type: (typeof schema.feedTypeOptions)[number]["value"],
+  f_id_catalogue: FeedCatalogueReference,
   f_batch_origin: (typeof schema.feedOriginOptions)[number]["value"],
   properties?: {
     f_batch_name?: schema.feedBatchesTypeInsert["f_batch_name"]
@@ -47,12 +176,13 @@ export async function addFeedBatch(
 
     return await fdm.transaction(async (tx) => {
       const f_id_batch = createId()
+      const resolvedCatalogueId = await resolveFeedCatalogueId(tx, f_id_catalogue)
 
       await tx.insert(schema.feedBatches).values({
         f_id_batch,
         b_id_farm,
         f_batch_name: properties?.f_batch_name ?? null,
-        f_batch_type,
+        f_id_catalogue: resolvedCatalogueId,
         f_batch_origin,
       })
 
@@ -87,7 +217,7 @@ export async function addFeedBatch(
   } catch (err) {
     throw handleError(err, "Exception for addFeedBatch", {
       b_id_farm,
-      f_batch_type,
+      f_id_catalogue,
       f_batch_origin,
     })
   }
@@ -114,7 +244,8 @@ export async function getFeedBatchesForFarm(
         f_id_batch: schema.feedBatches.f_id_batch,
         b_id_farm: schema.feedBatches.b_id_farm,
         f_batch_name: schema.feedBatches.f_batch_name,
-        f_batch_type: schema.feedBatches.f_batch_type,
+        f_id_catalogue: schema.feedBatches.f_id_catalogue,
+        f_batch_type: schema.feedsCatalogue.f_type_rvo,
         f_batch_origin: schema.feedBatches.f_batch_origin,
         f_id_feed_analysis: schema.feedAnalyses.f_id_feed_analysis,
         f_dm: schema.feedAnalyses.f_dm,
@@ -127,6 +258,10 @@ export async function getFeedBatchesForFarm(
         updated: schema.feedBatches.updated,
       })
       .from(schema.feedBatches)
+      .leftJoin(
+        schema.feedsCatalogue,
+        eq(schema.feedBatches.f_id_catalogue, schema.feedsCatalogue.f_id_catalogue),
+      )
       .leftJoin(
         schema.feedSampling,
         eq(schema.feedBatches.f_id_batch, schema.feedSampling.f_id_batch),
@@ -165,7 +300,8 @@ export async function getFeedBatch(
         f_id_batch: schema.feedBatches.f_id_batch,
         b_id_farm: schema.feedBatches.b_id_farm,
         f_batch_name: schema.feedBatches.f_batch_name,
-        f_batch_type: schema.feedBatches.f_batch_type,
+        f_id_catalogue: schema.feedBatches.f_id_catalogue,
+        f_batch_type: schema.feedsCatalogue.f_type_rvo,
         f_batch_origin: schema.feedBatches.f_batch_origin,
         f_id_feed_analysis: schema.feedAnalyses.f_id_feed_analysis,
         f_dm: schema.feedAnalyses.f_dm,
@@ -178,6 +314,10 @@ export async function getFeedBatch(
         updated: schema.feedBatches.updated,
       })
       .from(schema.feedBatches)
+      .leftJoin(
+        schema.feedsCatalogue,
+        eq(schema.feedBatches.f_id_catalogue, schema.feedsCatalogue.f_id_catalogue),
+      )
       .leftJoin(
         schema.feedSampling,
         eq(schema.feedBatches.f_id_batch, schema.feedSampling.f_id_batch),
@@ -213,7 +353,8 @@ export async function updateFeedBatch(
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"],
   properties: {
     f_batch_name?: schema.feedBatchesTypeInsert["f_batch_name"]
-    f_batch_type?: schema.feedBatchesTypeInsert["f_batch_type"]
+    f_id_catalogue?: schema.feedBatchesTypeInsert["f_id_catalogue"]
+    f_batch_type?: (typeof feedTypeOptions)[number]["value"]
     f_batch_origin?: schema.feedBatchesTypeInsert["f_batch_origin"]
     f_dm?: schema.feedAnalysesTypeInsert["f_dm"]
     f_cp?: schema.feedAnalysesTypeInsert["f_cp"]
@@ -232,15 +373,16 @@ export async function updateFeedBatch(
       const batchUpdate: {
         updated: Date
         f_batch_name?: schema.feedBatchesTypeInsert["f_batch_name"]
-        f_batch_type?: schema.feedBatchesTypeInsert["f_batch_type"]
+        f_id_catalogue?: schema.feedBatchesTypeInsert["f_id_catalogue"]
         f_batch_origin?: schema.feedBatchesTypeInsert["f_batch_origin"]
       } = { updated }
 
       if (properties.f_batch_name !== undefined) {
         batchUpdate.f_batch_name = properties.f_batch_name
       }
-      if (properties.f_batch_type !== undefined) {
-        batchUpdate.f_batch_type = properties.f_batch_type
+      const catalogueReference = properties.f_id_catalogue ?? properties.f_batch_type
+      if (catalogueReference !== undefined) {
+        batchUpdate.f_id_catalogue = await resolveFeedCatalogueId(tx, catalogueReference)
       }
       if (properties.f_batch_origin !== undefined) {
         batchUpdate.f_batch_origin = properties.f_batch_origin

@@ -1,10 +1,24 @@
 import type * as schema from "./db/schema"
 
+export interface FeedCatalogue {
+  f_id_catalogue: schema.feedsCatalogueTypeSelect["f_id_catalogue"]
+  f_source: schema.feedsCatalogueTypeSelect["f_source"]
+  f_name_nl: schema.feedsCatalogueTypeSelect["f_name_nl"]
+  f_type_rvo: schema.feedsCatalogueTypeSelect["f_type_rvo"]
+  f_dm: schema.feedsCatalogueTypeSelect["f_dm"]
+  f_n_dm: schema.feedsCatalogueTypeSelect["f_n_dm"]
+  f_p_dm: schema.feedsCatalogueTypeSelect["f_p_dm"]
+  hash: schema.feedsCatalogueTypeSelect["hash"]
+  created: schema.feedsCatalogueTypeSelect["created"]
+  updated?: schema.feedsCatalogueTypeSelect["updated"]
+}
+
 export interface FeedBatch {
   f_id_batch: schema.feedBatchesTypeSelect["f_id_batch"]
   b_id_farm: schema.feedBatchesTypeSelect["b_id_farm"]
   f_batch_name?: schema.feedBatchesTypeSelect["f_batch_name"]
-  f_batch_type?: schema.feedBatchesTypeSelect["f_batch_type"]
+  f_id_catalogue: schema.feedBatchesTypeSelect["f_id_catalogue"]
+  f_batch_type?: schema.feedsCatalogueTypeSelect["f_type_rvo"] | null
   f_batch_origin?: schema.feedBatchesTypeSelect["f_batch_origin"]
   f_id_feed_analysis?: schema.feedAnalysesTypeSelect["f_id_feed_analysis"]
   f_dm?: schema.feedAnalysesTypeSelect["f_dm"]

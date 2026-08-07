@@ -1439,6 +1439,9 @@ export async function removeFarm(
         .delete(schema.fertilizerCatalogueEnabling)
         .where(eq(schema.fertilizerCatalogueEnabling.b_id_farm, b_id_farm))
       await tx
+        .delete(schema.feedCatalogueEnabling)
+        .where(eq(schema.feedCatalogueEnabling.b_id_farm, b_id_farm))
+      await tx
         .delete(schema.cultivationCatalogueSelecting)
         .where(eq(schema.cultivationCatalogueSelecting.b_id_farm, b_id_farm))
       await tx
@@ -1452,6 +1455,7 @@ export async function removeFarm(
       await tx
         .delete(schema.fertilizersCatalogue)
         .where(eq(schema.fertilizersCatalogue.p_source, b_id_farm))
+      await tx.delete(schema.feedsCatalogue).where(eq(schema.feedsCatalogue.f_source, b_id_farm))
 
       // Delete fertilizers if they are no longer associated with any farm
       if (fertilizerIdsToDelete.length > 0) {

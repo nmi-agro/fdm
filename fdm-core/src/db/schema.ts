@@ -353,6 +353,26 @@ export const fertilizersCatalogue = fdmSchema.table(
 export type fertilizersCatalogueTypeSelect = typeof fertilizersCatalogue.$inferSelect
 export type fertilizersCatalogueTypeInsert = typeof fertilizersCatalogue.$inferInsert
 
+export const feedsCatalogue = fdmSchema.table(
+  "feeds_catalogue",
+  {
+    f_id_catalogue: text().primaryKey(),
+    f_source: text().notNull(),
+    f_name_nl: text().notNull(),
+    f_type_rvo: text().notNull(),
+    f_dm: numericCasted(), // g DM / kg fresh product
+    f_n_dm: numericCasted(), // g N / kg DM
+    f_p_dm: numericCasted(), // g P2O5 / kg DM
+    hash: text(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("f_id_catalogue_idx").on(table.f_id_catalogue)],
+)
+
+export type feedsCatalogueTypeSelect = typeof feedsCatalogue.$inferSelect
+export type feedsCatalogueTypeInsert = typeof feedsCatalogue.$inferInsert
+
 // Define fertilizer_picking table
 export const fertilizerPicking = fdmSchema.table("fertilizer_picking", {
   p_id: text()
@@ -888,6 +908,24 @@ export const fertilizerCatalogueEnabling = fdmSchema.table(
 export type fertilizerCatalogueEnablingTypeSelect = typeof fertilizerCatalogueEnabling.$inferSelect
 export type fertilizerCatalogueEnablingTypeInsert = typeof fertilizerCatalogueEnabling.$inferInsert
 
+export const feedCatalogueEnabling = fdmSchema.table(
+  "feed_catalogue_enabling",
+  {
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
+    f_source: text().notNull(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => {
+    return [primaryKey({ columns: [table.b_id_farm, table.f_source] })]
+  },
+)
+
+export type feedCatalogueEnablingTypeSelect = typeof feedCatalogueEnabling.$inferSelect
+export type feedCatalogueEnablingTypeInsert = typeof feedCatalogueEnabling.$inferInsert
+
 // Define cultivation_catalogue_selecting table
 export const cultivationCatalogueSelecting = fdmSchema.table(
   "cultivation_catalogue_selecting",
@@ -1178,39 +1216,6 @@ export const leavingMethodOptions = [
 export const leavingMethodEnum = fdmSchema.enum(
   "l_leaving_method",
   leavingMethodOptions.map((x) => x.value) as [string, ...string[]],
-)
-
-export const feedTypeOptions = [
-  { value: "snijmais", label: "Snijmaïs" },
-  { value: "maiskolvenschroot", label: "Maïskolvenschroot" },
-  { value: "corncobmix_100", label: "Corncobmix (100% spil)" },
-  { value: "corncobmix_25", label: "Corncobmix (25% spil)" },
-  { value: "korrelmais", label: "Korrelmaïs" },
-  { value: "gehele_plant_silage", label: "Gehele plant silage" },
-  { value: "tarwe", label: "Tarwe" },
-  { value: "erwten", label: "Erwten" },
-  { value: "gerst", label: "Gerst" },
-  { value: "aardappelen_vers", label: "Aardappelen (vers)" },
-  { value: "aardappelen_ingekuild", label: "Aardappelen (ingekuild)" },
-  { value: "appelen", label: "Appelen" },
-  { value: "graanstro_rogge", label: "Graanstro (rogge)" },
-  { value: "graanstro_tarwe", label: "Graanstro (tarwe)" },
-  { value: "gras_hooi", label: "Gras (hooi)" },
-  { value: "gras_kuil", label: "Gras (ingekuild)" },
-  { value: "gras_vers", label: "Gras (vers)" },
-  { value: "graszaadstro", label: "Graszaadstro" },
-  { value: "rogge", label: "Rogge" },
-  { value: "uien", label: "Uien" },
-  { value: "voederbieten", label: "Voederbieten" },
-  { value: "witlofwortelen", label: "Witlofwortelen" },
-  { value: "kaaswei", label: "Kaaswei" },
-  { value: "krachtvoer", label: "Krachtvoer / brokken" },
-  { value: "mineralen", label: "Mineralen" },
-  { value: "overig", label: "Overig" },
-] as const
-export const feedTypeEnum = fdmSchema.enum(
-  "f_batch_type",
-  feedTypeOptions.map((x) => x.value) as [string, ...string[]],
 )
 
 export const feedOriginOptions = [
@@ -1689,7 +1694,9 @@ export const feedBatches = fdmSchema.table(
       .notNull()
       .references(() => farms.b_id_farm),
     f_batch_name: text(),
-    f_batch_type: feedTypeEnum(),
+    f_id_catalogue: text()
+      .notNull()
+      .references(() => feedsCatalogue.f_id_catalogue),
     f_batch_origin: feedOriginEnum(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),

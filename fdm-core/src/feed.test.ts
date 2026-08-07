@@ -1,18 +1,25 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
-import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
+import { getAnimalCategoriesCatalogue, getFeedCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmType } from "./fdm.types"
 import type { Feeding } from "./feed.types"
 import { addAnimal, assignAnimalToHerd } from "./animal"
+import {
+  enableFeedCatalogue,
+  syncAnimalCategoryCatalogueArray,
+  syncFeedCatalogueArray,
+} from "./catalogues"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import {
   addFeedBatch,
+  addFeedToCatalogue,
   addFeedingAnimal,
   addFeedingHerd,
   getFeedingEventsForAnimal,
   getFeedingSummaryForAnimal,
   getFeedBatch,
   getFeedBatchesForFarm,
+  getFeedsFromCatalogue,
   getFeedingAnimalForFarm,
   getFeedingHerdForFarm,
   removeFeedBatch,
@@ -23,7 +30,6 @@ import {
   updateFeedingHerd,
 } from "./feed"
 import { addHerd } from "./herd"
-import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Feed Domain", () => {
   let fdm: FdmType
@@ -39,6 +45,7 @@ describe("Feed Domain", () => {
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
     await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
+    await syncFeedCatalogueArray(fdm, await getFeedCatalogue("nmi"))
     principal_id = "test_principal"
 
     b_id_farm = await addFarm(
@@ -56,13 +63,30 @@ describe("Feed Domain", () => {
     })
   })
 
+  it("supports farm-specific feed catalogue entries", async () => {
+    const f_id_catalogue = await addFeedToCatalogue(fdm, principal_id, b_id_farm, {
+      f_name_nl: "Eigen krachtvoer",
+      f_type_rvo: "custom_feed",
+      f_dm: 900,
+      f_n_dm: 25,
+      f_p_dm: 7,
+    })
+    await enableFeedCatalogue(fdm, principal_id, b_id_farm, b_id_farm)
+
+    const feeds = await getFeedsFromCatalogue(fdm, principal_id, b_id_farm)
+    expect(feeds.find((feed) => feed.f_id_catalogue === f_id_catalogue)).toMatchObject({
+      f_source: b_id_farm,
+      f_name_nl: "Eigen krachtvoer",
+    })
+  })
+
   it("should create feed batch, list batches, record herd feeding, and record animal feeding", async () => {
     // Batch 1: Own land grass silage (450 g/kg DM)
     const f_id_batch_own = await addFeedBatch(
       fdm,
       principal_id,
       b_id_farm,
-      "gras_kuil",
+      "nmi_016",
       "own_land",
       {
         f_dm: 450,
@@ -75,7 +99,7 @@ describe("Feed Domain", () => {
       fdm,
       principal_id,
       b_id_farm,
-      "snijmais",
+      "nmi_001",
       "purchased",
       {
         f_dm: 350,
@@ -102,7 +126,7 @@ describe("Feed Domain", () => {
   })
 
   it("should update and remove feed batches and feeding records via farm-scoped helpers", async () => {
-    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "gras_kuil", "own_land", {
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_016", "own_land", {
       f_batch_name: "Batch 1",
       f_dm: 420,
       f_cp: 150,
@@ -127,7 +151,7 @@ describe("Feed Domain", () => {
     const correctedSampling = new Date("2025-07-15")
     await updateFeedBatch(fdm, principal_id, f_id_batch, {
       f_batch_name: "Batch 1 corrected",
-      f_batch_type: "snijmais",
+      f_id_catalogue: "nmi_001",
       f_batch_origin: "purchased",
       f_dm: 440,
       f_cp: 155,
@@ -135,7 +159,7 @@ describe("Feed Domain", () => {
     })
     const updatedBatch = await getFeedBatch(fdm, principal_id, f_id_batch)
     expect(updatedBatch.f_batch_name).toBe("Batch 1 corrected")
-    expect(updatedBatch.f_batch_type).toBe("snijmais")
+    expect(updatedBatch.f_id_catalogue).toBe("nmi_001")
     expect(updatedBatch.f_batch_origin).toBe("purchased")
     expect(updatedBatch.f_dm).toBe(440)
     expect(updatedBatch.f_cp).toBe(155)
@@ -162,7 +186,7 @@ describe("Feed Domain", () => {
   })
 
   it("should allow farm-wide Feeding union arrays from herd and animal records", async () => {
-    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "gras_kuil", "own_land")
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_016", "own_land")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL-FEED-UNION-1",
     })
@@ -181,12 +205,12 @@ describe("Feed Domain", () => {
   it("should deny access to unauthorized principal", async () => {
     const invalidUser = "unauthorized_user"
     await expect(
-      addFeedBatch(fdm, invalidUser, b_id_farm, "gras_kuil", "own_land"),
+      addFeedBatch(fdm, invalidUser, b_id_farm, "nmi_016", "own_land"),
     ).rejects.toThrowError("Principal does not have permission to perform this action")
   })
 
   it("should deny access to unauthorized principal for remaining feed functions", async () => {
-    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "gras_kuil", "own_land")
+    const f_id_batch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_016", "own_land")
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL202",
     })
@@ -258,8 +282,8 @@ describe("Feed Domain", () => {
     const beforeReassign = new Date(Date.now() - 120_000)
     const afterReassign = new Date(Date.now() + 120_000)
 
-    const primaryBatch = await addFeedBatch(fdm, principal_id, b_id_farm, "gras_kuil", "own_land")
-    const supplementBatch = await addFeedBatch(fdm, principal_id, b_id_farm, "snijmais", "purchased")
+    const primaryBatch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_016", "own_land")
+    const supplementBatch = await addFeedBatch(fdm, principal_id, b_id_farm, "nmi_001", "purchased")
 
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL404",

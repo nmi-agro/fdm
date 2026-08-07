@@ -35,24 +35,29 @@ export {
 export {
   disableCultivationCatalogue,
   disableAnimalCategoryCatalogue,
+  disableFeedCatalogue,
   disableFertilizerCatalogue,
   disableMeasureCatalogue,
   enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
+  enableFeedCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
   getEnabledAnimalCategoryCatalogues,
   getEnabledCultivationCatalogues,
   getEnabledCultivationCataloguesForFarms,
+  getEnabledFeedCatalogues,
   getEnabledFertilizerCatalogues,
   getEnabledFertilizerCataloguesForFarms,
   getEnabledMeasureCatalogues,
   isAnimalCategoryCatalogueEnabled,
   isCultivationCatalogueEnabled,
+  isFeedCatalogueEnabled,
   isFertilizerCatalogueEnabled,
   isMeasureCatalogueEnabled,
   syncCatalogues,
   syncAnimalCategoryCatalogueArray,
+  syncFeedCatalogueArray,
   syncMeasuresCatalogueArray,
 } from "./catalogues"
 export {
@@ -69,6 +74,7 @@ export {
   updateCultivation,
 } from "./cultivation"
 export type { Cultivation, CultivationCatalogue, CultivationPlan } from "./cultivation.types"
+export { feedTypeOptions } from "@nmi-agro/fdm-data"
 export {
   acquiringMethodOptions,
   animalSexOptions,
@@ -77,7 +83,6 @@ export {
   arrivingMethodOptions,
   bcsIndicatorOptions,
   feedOriginOptions,
-  feedTypeOptions,
   grazingTypeOptions,
   gwlClassesOptions,
   leavingMethodOptions,
@@ -315,12 +320,15 @@ export type {
 } from "./milk.types"
 export {
   addFeedBatch,
+  addFeedToCatalogue,
   addFeedingAnimal,
   addFeedingHerd,
   getFeedingEventsForAnimal,
   getFeedingSummaryForAnimal,
   getFeedBatch,
   getFeedBatchesForFarm,
+  getFeedsFromCatalogue,
+  getFeedsFromCatalogues,
   getFeedingAnimalForFarm,
   getFeedingHerdForFarm,
   removeFeedBatch,
@@ -331,6 +339,7 @@ export {
   updateFeedingHerd,
 } from "./feed"
 export type {
+  FeedCatalogue,
   FeedBatch,
   Feeding,
   FeedingEventForAnimal,

@@ -1,5 +1,6 @@
 import type {
   CatalogueAnimalCategories,
+  CatalogueFeed,
   CatalogueFertilizer,
   CatalogueFertilizerItem,
   CatalogueMeasure,
@@ -7,10 +8,12 @@ import type {
 import {
   getAnimalCategoriesCatalogue,
   getCultivationCatalogue,
+  getFeedCatalogue,
   getFertilizersCatalogue,
   getMeasuresCatalogue,
   hashAnimalCategory,
   hashCultivation,
+  hashFeed,
   hashFertilizer,
   hashMeasure,
 } from "@nmi-agro/fdm-data"
@@ -56,6 +59,26 @@ export async function getEnabledFertilizerCatalogues(
     return result.map((row: { p_source: string }) => row.p_source)
   } catch (err) {
     throw handleError(err, "Exception for getEnabledFertilizerCatalogues", {
+      principal_id,
+      b_id_farm,
+    })
+  }
+}
+
+export async function getEnabledFeedCatalogues(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<string[]> {
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "getEnabledFeedCatalogues")
+    const result = await fdm
+      .select({ f_source: schema.feedCatalogueEnabling.f_source })
+      .from(schema.feedCatalogueEnabling)
+      .where(eq(schema.feedCatalogueEnabling.b_id_farm, b_id_farm))
+    return result.map((row) => row.f_source)
+  } catch (err) {
+    throw handleError(err, "Exception for getEnabledFeedCatalogues", {
       principal_id,
       b_id_farm,
     })
@@ -239,6 +262,24 @@ export async function enableFertilizerCatalogue(
   }
 }
 
+export async function enableFeedCatalogue(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  f_source: string,
+): Promise<void> {
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "enableFeedCatalogue")
+    await fdm.insert(schema.feedCatalogueEnabling).values({ b_id_farm, f_source })
+  } catch (err) {
+    throw handleError(err, "Exception for enableFeedCatalogue", {
+      principal_id,
+      b_id_farm,
+      f_source,
+    })
+  }
+}
+
 /**
  * Enables a cultivation catalogue for a farm.
  *
@@ -315,6 +356,31 @@ export async function disableFertilizerCatalogue(
       principal_id,
       b_id_farm,
       p_source,
+    })
+  }
+}
+
+export async function disableFeedCatalogue(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  f_source: string,
+): Promise<void> {
+  try {
+    await checkPermission(fdm, "farm", "write", b_id_farm, principal_id, "disableFeedCatalogue")
+    await fdm
+      .delete(schema.feedCatalogueEnabling)
+      .where(
+        and(
+          eq(schema.feedCatalogueEnabling.b_id_farm, b_id_farm),
+          eq(schema.feedCatalogueEnabling.f_source, f_source),
+        ),
+      )
+  } catch (err) {
+    throw handleError(err, "Exception for disableFeedCatalogue", {
+      principal_id,
+      b_id_farm,
+      f_source,
     })
   }
 }
@@ -405,6 +471,33 @@ export async function isFertilizerCatalogueEnabled(
       principal_id,
       b_id_farm,
       p_source,
+    })
+  }
+}
+
+export async function isFeedCatalogueEnabled(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  f_source: string,
+): Promise<boolean> {
+  try {
+    await checkPermission(fdm, "farm", "read", b_id_farm, principal_id, "isFeedCatalogueEnabled")
+    const result = await fdm
+      .select({ b_id_farm: schema.feedCatalogueEnabling.b_id_farm })
+      .from(schema.feedCatalogueEnabling)
+      .where(
+        and(
+          eq(schema.feedCatalogueEnabling.b_id_farm, b_id_farm),
+          eq(schema.feedCatalogueEnabling.f_source, f_source),
+        ),
+      )
+    return result.length > 0
+  } catch (err) {
+    throw handleError(err, "Exception for isFeedCatalogueEnabled", {
+      principal_id,
+      b_id_farm,
+      f_source,
     })
   }
 }
@@ -753,10 +846,48 @@ export async function syncCatalogues(
   await syncAnimalCategoryCatalogue(fdm)
   await ensureAnimalCategoryCatalogueSelection(fdm)
   await syncFertilizerCatalogue(fdm)
+  await syncFeedCatalogue(fdm)
   await syncCultivationCatalogue(fdm)
   if (options?.nmiApiKey) {
     await syncMeasuresCatalogue(fdm, options.nmiApiKey)
   }
+}
+
+async function syncFeedCatalogue(fdm: FdmType): Promise<void> {
+  return syncFeedCatalogueArray(fdm, await getFeedCatalogue("nmi"))
+}
+
+export async function syncFeedCatalogueArray(
+  fdm: FdmType,
+  catalogue: CatalogueFeed,
+): Promise<void> {
+  await fdm.transaction(async (tx) => {
+    try {
+      for (const catalogueItem of catalogue) {
+        const item = { ...catalogueItem, hash: await hashFeed(catalogueItem) }
+        const existing = await tx
+          .select({ hash: schema.feedsCatalogue.hash })
+          .from(schema.feedsCatalogue)
+          .where(eq(schema.feedsCatalogue.f_id_catalogue, item.f_id_catalogue))
+          .limit(1)
+
+        if (existing.length === 0) {
+          await tx.insert(schema.feedsCatalogue).values(item)
+        } else if (
+          existing[0].hash === null ||
+          existing[0].hash === undefined ||
+          existing[0].hash !== item.hash
+        ) {
+          await tx
+            .update(schema.feedsCatalogue)
+            .set({ ...item, updated: new Date() })
+            .where(eq(schema.feedsCatalogue.f_id_catalogue, item.f_id_catalogue))
+        }
+      }
+    } catch (error) {
+      throw handleError(error, "Exception for syncFeedCatalogue")
+    }
+  })
 }
 
 async function ensureAnimalCategoryCatalogueSelection(fdm: FdmType): Promise<void> {

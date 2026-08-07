@@ -1,5 +1,5 @@
 {
-  "id": "c59a8734-914b-4526-8253-6ace982f60a8",
+  "id": "aff416fa-6ee1-40ac-9a71-a10788f613f3",
   "prevId": "07af4ad1-56f4-40ed-86f3-00c31c8e9d25",
   "version": "7",
   "dialect": "postgresql",
@@ -1570,12 +1570,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "f_batch_type": {
-          "name": "f_batch_type",
-          "type": "f_batch_type",
-          "typeSchema": "fdm",
+        "f_id_catalogue": {
+          "name": "f_id_catalogue",
+          "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "f_batch_origin": {
           "name": "f_batch_origin",
@@ -1625,9 +1624,73 @@
           "columnsTo": ["b_id_farm"],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "feed_batches_f_id_catalogue_feeds_catalogue_f_id_catalogue_fk": {
+          "name": "feed_batches_f_id_catalogue_feeds_catalogue_f_id_catalogue_fk",
+          "tableFrom": "feed_batches",
+          "tableTo": "feeds_catalogue",
+          "schemaTo": "fdm",
+          "columnsFrom": ["f_id_catalogue"],
+          "columnsTo": ["f_id_catalogue"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.feed_catalogue_enabling": {
+      "name": "feed_catalogue_enabling",
+      "schema": "fdm",
+      "columns": {
+        "b_id_farm": {
+          "name": "b_id_farm",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_source": {
+          "name": "f_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "feed_catalogue_enabling_b_id_farm_farms_b_id_farm_fk": {
+          "name": "feed_catalogue_enabling_b_id_farm_farms_b_id_farm_fk",
+          "tableFrom": "feed_catalogue_enabling",
+          "tableTo": "farms",
+          "schemaTo": "fdm",
+          "columnsFrom": ["b_id_farm"],
+          "columnsTo": ["b_id_farm"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "feed_catalogue_enabling_b_id_farm_f_source_pk": {
+          "name": "feed_catalogue_enabling_b_id_farm_f_source_pk",
+          "columns": ["b_id_farm", "f_source"]
+        }
+      },
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -1862,6 +1925,96 @@
           "columns": ["f_id_batch", "l_id_herd", "f_feeding_start"]
         }
       },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "fdm.feeds_catalogue": {
+      "name": "feeds_catalogue",
+      "schema": "fdm",
+      "columns": {
+        "f_id_catalogue": {
+          "name": "f_id_catalogue",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "f_source": {
+          "name": "f_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_name_nl": {
+          "name": "f_name_nl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_type_rvo": {
+          "name": "f_type_rvo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "f_dm": {
+          "name": "f_dm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "f_n_dm": {
+          "name": "f_n_dm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "f_p_dm": {
+          "name": "f_p_dm",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hash": {
+          "name": "hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created": {
+          "name": "created",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated": {
+          "name": "updated",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "f_id_catalogue_idx": {
+          "name": "f_id_catalogue_idx",
+          "columns": [
+            {
+              "expression": "f_id_catalogue",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
@@ -6914,38 +7067,6 @@
       "name": "f_batch_origin",
       "schema": "fdm",
       "values": ["own_land", "purchased"]
-    },
-    "fdm.f_batch_type": {
-      "name": "f_batch_type",
-      "schema": "fdm",
-      "values": [
-        "snijmais",
-        "maiskolvenschroot",
-        "corncobmix_100",
-        "corncobmix_25",
-        "korrelmais",
-        "gehele_plant_silage",
-        "tarwe",
-        "erwten",
-        "gerst",
-        "aardappelen_vers",
-        "aardappelen_ingekuild",
-        "appelen",
-        "graanstro_rogge",
-        "graanstro_tarwe",
-        "gras_hooi",
-        "gras_kuil",
-        "gras_vers",
-        "graszaadstro",
-        "rogge",
-        "uien",
-        "voederbieten",
-        "witlofwortelen",
-        "kaaswei",
-        "krachtvoer",
-        "mineralen",
-        "overig"
-      ]
     },
     "fdm.l_grazing_type": {
       "name": "l_grazing_type",
