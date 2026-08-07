@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmType } from "./fdm.types"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -14,6 +15,7 @@ import {
 } from "./grazing"
 import { getGrazingIntention, setGrazingIntention } from "./grazing_intention"
 import { addHerd } from "./herd"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Grazing Domain", () => {
   let fdm: FdmType
@@ -28,6 +30,7 @@ describe("Grazing Domain", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
     principal_id = "test_principal"
 
     b_id_farm = await addFarm(
@@ -41,7 +44,7 @@ describe("Grazing Domain", () => {
 
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
   })
 

@@ -909,6 +909,27 @@ export type cultivationCatalogueSelectingTypeSelect =
 export type cultivationCatalogueSelectingTypeInsert =
   typeof cultivationCatalogueSelecting.$inferInsert
 
+// Define animal_category_catalogue_selecting table
+export const animalCategoryCatalogueSelecting = fdmSchema.table(
+  "animal_category_catalogue_selecting",
+  {
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
+    l_category_source: text().notNull(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => {
+    return [primaryKey({ columns: [table.b_id_farm, table.l_category_source] })]
+  },
+)
+
+export type animalCategoryCatalogueSelectingTypeSelect =
+  typeof animalCategoryCatalogueSelecting.$inferSelect
+export type animalCategoryCatalogueSelectingTypeInsert =
+  typeof animalCategoryCatalogueSelecting.$inferInsert
+
 // Define measures_catalogue table
 export const stageApplicabilityTypeOptions = [
   { value: "farm", label: "Bedrijf" },
@@ -1090,116 +1111,6 @@ export type soilImageAnnotatingTypeInsert = typeof soilImageAnnotating.$inferIns
 // ─── Livestock Domain ─────────────────────────────────────────────────────────────
 
 // Livestock Enums & Options
-export const herdCategoryOptions = [
-  // Rund
-  { value: "rvo_100", label: "100 - Melk- en kalfkoeien" },
-  {
-    value: "rvo_101",
-    label: "101 - Jongvee <1 jaar (melkveehouderij) / opfokkalveren <1 jaar (vleesveehouderij)",
-  },
-  {
-    value: "rvo_102",
-    label:
-      "102 - Vrouwelijk jongvee ≥1 jaar (melkveehouderij) / opfokkalveren ≥1 jaar (vleesveehouderij)",
-  },
-  { value: "rvo_104", label: "104 - Fokstieren ≥1 jaar" },
-  { value: "rvo_112", label: "112 - Witvleeskalveren ca. 14 dagen tot ca. 8 maanden" },
-  {
-    value: "rvo_115",
-    label: "115 - Startkalveren voor rosévlees of roodvlees ca. 14 dagen tot ca. 3 maanden",
-  },
-  { value: "rvo_116", label: "116 - Rosévleeskalveren ca. 3 maanden tot ca. 8 maanden" },
-  { value: "rvo_117", label: "117 - Rosévleeskalveren ca. 14 dagen tot ca. 8 maanden" },
-  { value: "rvo_120", label: "120 - Weide- en zoogkoeien" },
-  { value: "rvo_122", label: "122 - Roodvleesstieren ca. 3 maanden tot de slacht" },
-
-  // Schaap
-  { value: "rvo_550", label: "550 - Schapen voor de vlees- en melkproductie" },
-  { value: "rvo_551", label: "551 - Vleesschapen tot ca. 4 maanden (niet op geboortebedrijf)" },
-  { value: "rvo_552", label: "552 - Opfokooien, weideschapen en vleesschapen ≥ ca. 4 maanden" },
-
-  // Geit
-  { value: "rvo_600", label: "600 - Melkgeiten ≥1 jaar" },
-  { value: "rvo_601", label: "601 - Opfokgeiten en vleesgeiten tot ca. 4 maanden" },
-  { value: "rvo_602", label: "602 - Opfokgeiten ≥ ca. 4 maanden" },
-
-  // Paard
-  { value: "rvo_941", label: "941 - Pony's (schofthoogte tot 1,56m)" },
-  { value: "rvo_943", label: "943 - Paarden (schofthoogte vanaf 1,56m)" },
-
-  // Ezel
-  { value: "rvo_961", label: "961 - Ezels" },
-
-  // Middeneuropees edelhert
-  { value: "rvo_971", label: "971 - Hinden (edelhert) voor de fokkerij" },
-  { value: "rvo_973", label: "973 - Herten (edelhert) 6 tot 12 maanden voor de slacht" },
-  { value: "rvo_974", label: "974 - Herten (edelhert) ≥12 maanden voor de slacht" },
-
-  // Damhert
-  { value: "rvo_981", label: "981 - Hinden (damhert) voor de fokkerij" },
-  { value: "rvo_982", label: "982 - Herten (damhert) ≥3 maanden voor de slacht" },
-
-  // Waterbuffel
-  { value: "rvo_991", label: "991 - Waterbuffelkoeien" },
-  { value: "rvo_992", label: "992 - Waterbuffeljongvee (<2 jaar)" },
-
-  // Varken
-  { value: "rvo_400", label: "400 - Fokzeugen (gespeende biggen op ander bedrijf)" },
-  { value: "rvo_401", label: "401 - Fokzeugen incl. biggen tot ca. 25 kg" },
-  {
-    value: "rvo_404",
-    label: "404 - Opfokzeugen en -beren van ca. 25 kg tot geslachtsrijpheid",
-  },
-  { value: "rvo_406", label: "406 - Dekberen en zoekberen" },
-  {
-    value: "rvo_407",
-    label: "407 - Gespeende biggen tot ca. 25 kg zonder moederdier op eigen bedrijf",
-  },
-  { value: "rvo_411", label: "411 - Vleesvarkens" },
-
-  // Kip
-  { value: "rvo_300", label: "300 - Leghennen en (groot)ouderdieren <18 weken" },
-  { value: "rvo_301", label: "301 - Leghennen en (groot)ouderdieren ≥18 weken" },
-  { value: "rvo_310", label: "310 - (Groot)ouderdieren van vleeskuikens <20 weken" },
-  { value: "rvo_311", label: "311 - (Groot)ouderdieren van vleeskuikens ≥20 weken" },
-  { value: "rvo_312", label: "312 - Vleeskuikens" },
-
-  // Kalkoen
-  { value: "rvo_200", label: "200 - Jonge kalkoenen 0-6 weken" },
-  { value: "rvo_201", label: "201 - Opfokkalkoenen 6-30 weken" },
-  { value: "rvo_202", label: "202 - Kalkoenen ouderdieren ≥30 weken" },
-  { value: "rvo_210", label: "210 - Vleeskalkoenen" },
-
-  // Nerts
-  { value: "rvo_751", label: "751 - Fokteven (nertsen)" },
-
-  // Konijn
-  { value: "rvo_900", label: "900 - Voedsters en fokrammen (konijnen)" },
-  { value: "rvo_901", label: "901 - Vleeskonijnen" },
-
-  // Peking eend
-  { value: "rvo_801", label: "801 - Vleeseenden" },
-  {
-    value: "rvo_802",
-    label: "802 - Ouderdieren van vleeseenden in opfok (<20 weken)",
-  },
-  { value: "rvo_803", label: "803 - Ouderdieren van vleeseenden (≥20 weken)" },
-
-  // Overige diersoorten
-  {
-    value: "rvo_15",
-    label: "15 - Bruine rat, tamme muis, cavia, goudhamster, gerbil",
-  },
-  { value: "rvo_25", label: "25 - Struisvogel, emoe, nandoe" },
-  { value: "rvo_28", label: "28 - Knobbelgans, grauwe gans" },
-  { value: "rvo_35", label: "35 - Fazant, patrijs" },
-  { value: "rvo_37", label: "37 - Vleesduif, helmparelhoen" },
-] as const
-export const animalCategoryEnum = fdmSchema.enum(
-  "l_herd_category",
-  herdCategoryOptions.map((x) => x.value) as [string, ...string[]],
-)
-
 export const animalSexOptions = [
   { value: "female", label: "Vrouwelijk" },
   { value: "male", label: "Mannelijk" },
@@ -1222,9 +1133,31 @@ export const animalSpeciesOptions = [
   { value: "other", label: "Overige diersoorten" },
 ] as const
 export const animalSpeciesEnum = fdmSchema.enum(
-  "l_species",
+  "l_specie",
   animalSpeciesOptions.map((x) => x.value) as [string, ...string[]],
 )
+
+export const animalCategoriesCatalogue = fdmSchema.table(
+  "animal_categories_catalogue",
+  {
+    l_id_category: text().primaryKey(),
+    l_category_source: text().notNull(),
+    l_category: text().notNull(),
+    l_specie: animalSpeciesEnum().notNull(),
+    l_sex_options: animalSexEnum().array().notNull(),
+    l_lsu: numericCasted().notNull(), // livestock units / animal
+    hash: text(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("l_id_category_idx").on(table.l_id_category),
+    index("l_category_source_idx").on(table.l_category_source),
+  ],
+)
+
+export type animalCategoriesCatalogueTypeSelect = typeof animalCategoriesCatalogue.$inferSelect
+export type animalCategoriesCatalogueTypeInsert = typeof animalCategoriesCatalogue.$inferInsert
 
 export const arrivingMethodOptions = [
   { value: "born", label: "Geboren" },
@@ -1304,7 +1237,7 @@ export const herds = fdmSchema.table(
   {
     l_id_herd: text().primaryKey(),
     l_herd_name: text(),
-    l_herd_category: animalCategoryEnum(),
+    l_id_category: text().references(() => animalCategoriesCatalogue.l_id_category),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
@@ -1353,7 +1286,7 @@ export const animals = fdmSchema.table(
     l_id_animal: text().primaryKey(),
     l_id_eartag: text(),
     l_id_worknumber: text(),
-    l_species: animalSpeciesEnum().notNull().default("cattle"),
+    l_specie: animalSpeciesEnum().notNull().default("cattle"),
     l_breed: text(),
     l_coatcolor: text(),
     l_birth_date: timestamp({ withTimezone: true }),

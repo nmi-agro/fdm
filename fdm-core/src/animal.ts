@@ -1,11 +1,126 @@
-import { and, count, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm"
-import type { Animal, AnimalAssignmentHistory, HerdCensus } from "./animal.types"
+import { and, asc, count, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm"
+import type {
+  Animal,
+  AnimalAssignmentHistory,
+  AnimalCategoryCatalogue,
+  HerdCensus,
+} from "./animal.types"
 import type { PrincipalId } from "./authorization.types"
 import type { FdmType } from "./fdm.types"
+import { getEnabledAnimalCategoryCatalogues } from "./catalogues"
 import { checkPermission } from "./authorization"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
+
+/**
+ * Retrieves animal categories from the catalogues selected for a farm.
+ */
+export async function getAnimalCategoriesForFarm(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+): Promise<AnimalCategoryCatalogue[]> {
+  try {
+    const sources = await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)
+    return await getAnimalCategoriesFromCatalogues(fdm, sources)
+  } catch (err) {
+    throw handleError(err, "Exception for getAnimalCategoriesForFarm", {
+      principal_id,
+      b_id_farm,
+    })
+  }
+}
+
+/**
+ * Retrieves animal categories from the specified catalogue sources.
+ *
+ * No permission check is performed because catalogue rows are shared reference data.
+ */
+export async function getAnimalCategoriesFromCatalogues(
+  fdm: FdmType,
+  sources: schema.animalCategoryCatalogueSelectingTypeSelect["l_category_source"][],
+): Promise<AnimalCategoryCatalogue[]> {
+  try {
+    if (sources.length === 0) {
+      return []
+    }
+
+    return await fdm
+      .select()
+      .from(schema.animalCategoriesCatalogue)
+      .where(inArray(schema.animalCategoriesCatalogue.l_category_source, sources))
+      .orderBy(
+        asc(schema.animalCategoriesCatalogue.l_category_source),
+        asc(schema.animalCategoriesCatalogue.l_category),
+      )
+  } catch (err) {
+    throw handleError(err, "Exception for getAnimalCategoriesFromCatalogues", { sources })
+  }
+}
+
+export const getAnimalCategoriesFromCatalogue = getAnimalCategoriesForFarm
+
+type AnimalCategory = Pick<
+  schema.animalCategoriesCatalogueTypeSelect,
+  "l_id_category" | "l_specie" | "l_sex_options"
+>
+
+async function getAnimalCategory(
+  fdm: FdmType,
+  l_id_category: schema.animalCategoriesCatalogueTypeSelect["l_id_category"],
+): Promise<AnimalCategory> {
+  const categories = await fdm
+    .select({
+      l_id_category: schema.animalCategoriesCatalogue.l_id_category,
+      l_specie: schema.animalCategoriesCatalogue.l_specie,
+      l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+    })
+    .from(schema.animalCategoriesCatalogue)
+    .where(eq(schema.animalCategoriesCatalogue.l_id_category, l_id_category))
+    .limit(1)
+
+  if (categories.length === 0) {
+    throw new Error(`Animal category ${l_id_category} does not exist`)
+  }
+
+  return categories[0]
+}
+
+async function getHerdCategory(
+  fdm: FdmType,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+): Promise<AnimalCategory> {
+  const herds = await fdm
+    .select({ l_id_category: schema.herds.l_id_category })
+    .from(schema.herds)
+    .where(eq(schema.herds.l_id_herd, l_id_herd))
+    .limit(1)
+
+  if (herds.length === 0) {
+    throw new Error(`Herd ${l_id_herd} does not exist`)
+  }
+  if (!herds[0].l_id_category) {
+    throw new Error(`Herd ${l_id_herd} has no animal category`)
+  }
+
+  return getAnimalCategory(fdm, herds[0].l_id_category)
+}
+
+function assertAnimalMatchesCategory(
+  category: AnimalCategory,
+  l_specie: schema.animalsTypeSelect["l_specie"],
+  l_sex: schema.animalsTypeSelect["l_sex"],
+): void {
+  if (l_specie !== category.l_specie) {
+    throw new Error(
+      `Animal species ${l_specie} does not match category ${category.l_id_category} species ${category.l_specie}`,
+    )
+  }
+  if (l_sex && !category.l_sex_options.includes(l_sex)) {
+    throw new Error(`Animal sex ${l_sex} is not allowed for category ${category.l_id_category}`)
+  }
+}
 
 /**
  * Adds a single individual animal asset to a farm and assigns it to an active herd.
@@ -27,7 +142,7 @@ export async function addAnimal(
   properties?: {
     l_id_eartag?: schema.animalsTypeInsert["l_id_eartag"]
     l_id_worknumber?: schema.animalsTypeInsert["l_id_worknumber"]
-    l_species?: schema.animalsTypeInsert["l_species"]
+    l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_coatcolor?: schema.animalsTypeInsert["l_coatcolor"]
     l_birth_date?: schema.animalsTypeInsert["l_birth_date"]
@@ -51,6 +166,11 @@ export async function addAnimal(
       if (herdFarm.length === 0 || herdFarm[0].b_id_farm !== b_id_farm) {
         throw new Error(`Herd ${l_id_herd} does not belong to farm ${b_id_farm}`)
       }
+
+      const category = await getHerdCategory(tx, l_id_herd)
+      const l_specie = properties?.l_specie ?? category.l_specie
+      const l_sex = properties?.l_sex ?? null
+      assertAnimalMatchesCategory(category, l_specie, l_sex)
 
       await lockFarmWorknumbers(tx, b_id_farm)
       const l_id_animal = createId()
@@ -83,11 +203,11 @@ export async function addAnimal(
         l_id_animal,
         l_id_eartag: properties?.l_id_eartag ?? null,
         l_id_worknumber,
-        l_species: properties?.l_species ?? "cattle",
+        l_specie,
         l_breed: properties?.l_breed ?? null,
         l_coatcolor: properties?.l_coatcolor ?? null,
         l_birth_date: birthdate,
-        l_sex: properties?.l_sex ?? null,
+        l_sex,
       })
 
       await tx.insert(schema.animalArriving).values({
@@ -140,7 +260,7 @@ export async function getAnimal(
         l_id_animal: schema.animals.l_id_animal,
         l_id_eartag: schema.animals.l_id_eartag,
         l_id_worknumber: schema.animals.l_id_worknumber,
-        l_species: schema.animals.l_species,
+        l_specie: schema.animals.l_specie,
         l_breed: schema.animals.l_breed,
         l_coatcolor: schema.animals.l_coatcolor,
         l_birth_date: schema.animals.l_birth_date,
@@ -151,6 +271,10 @@ export async function getAnimal(
         l_leaving_date: schema.animalLeaving.l_leaving_date,
         l_leaving_method: schema.animalLeaving.l_leaving_method,
         l_id_herd: schema.animalAssigning.l_id_herd,
+        l_id_category: schema.herds.l_id_category,
+        l_category: schema.animalCategoriesCatalogue.l_category,
+        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         created: schema.animals.created,
         updated: schema.animals.updated,
       })
@@ -169,6 +293,11 @@ export async function getAnimal(
           eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
           isNull(schema.animalAssigning.l_assigning_end),
         ),
+      )
+      .leftJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
+      .leftJoin(
+        schema.animalCategoriesCatalogue,
+        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
       )
       .where(eq(schema.animals.l_id_animal, l_id_animal))
       .limit(1)
@@ -204,7 +333,7 @@ export async function getAnimalsForHerd(
         l_id_animal: schema.animals.l_id_animal,
         l_id_eartag: schema.animals.l_id_eartag,
         l_id_worknumber: schema.animals.l_id_worknumber,
-        l_species: schema.animals.l_species,
+        l_specie: schema.animals.l_specie,
         l_breed: schema.animals.l_breed,
         l_coatcolor: schema.animals.l_coatcolor,
         l_birth_date: schema.animals.l_birth_date,
@@ -215,6 +344,10 @@ export async function getAnimalsForHerd(
         l_leaving_date: schema.animalLeaving.l_leaving_date,
         l_leaving_method: schema.animalLeaving.l_leaving_method,
         l_id_herd: schema.animalAssigning.l_id_herd,
+        l_id_category: schema.herds.l_id_category,
+        l_category: schema.animalCategoriesCatalogue.l_category,
+        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         created: schema.animals.created,
         updated: schema.animals.updated,
       })
@@ -230,6 +363,11 @@ export async function getAnimalsForHerd(
           eq(schema.animalAssigning.l_id_herd, l_id_herd),
           isNull(schema.animalAssigning.l_assigning_end),
         ),
+      )
+      .innerJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
+      .leftJoin(
+        schema.animalCategoriesCatalogue,
+        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
       )
       .leftJoin(
         schema.animalLeaving,
@@ -267,7 +405,7 @@ export async function getAnimalsForFarm(
         l_id_animal: schema.animals.l_id_animal,
         l_id_eartag: schema.animals.l_id_eartag,
         l_id_worknumber: schema.animals.l_id_worknumber,
-        l_species: schema.animals.l_species,
+        l_specie: schema.animals.l_specie,
         l_breed: schema.animals.l_breed,
         l_coatcolor: schema.animals.l_coatcolor,
         l_birth_date: schema.animals.l_birth_date,
@@ -278,6 +416,10 @@ export async function getAnimalsForFarm(
         l_leaving_date: schema.animalLeaving.l_leaving_date,
         l_leaving_method: schema.animalLeaving.l_leaving_method,
         l_id_herd: schema.animalAssigning.l_id_herd,
+        l_id_category: schema.herds.l_id_category,
+        l_category: schema.animalCategoriesCatalogue.l_category,
+        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         created: schema.animals.created,
         updated: schema.animals.updated,
       })
@@ -303,6 +445,11 @@ export async function getAnimalsForFarm(
             gt(schema.animalAssigning.l_assigning_end, atDate),
           ),
         ),
+      )
+      .leftJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
+      .leftJoin(
+        schema.animalCategoriesCatalogue,
+        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
       )
       .where(
         and(
@@ -345,12 +492,20 @@ export async function getAnimalAssignmentHistory(
       .select({
         l_id_herd: schema.animalAssigning.l_id_herd,
         l_herd_name: schema.herds.l_herd_name,
-        l_herd_category: schema.herds.l_herd_category,
+        l_id_category: schema.herds.l_id_category,
+        l_category: schema.animalCategoriesCatalogue.l_category,
+        l_specie: schema.animalCategoriesCatalogue.l_specie,
+        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         l_assigning_start: schema.animalAssigning.l_assigning_start,
         l_assigning_end: schema.animalAssigning.l_assigning_end,
       })
       .from(schema.animalAssigning)
       .innerJoin(schema.herds, eq(schema.animalAssigning.l_id_herd, schema.herds.l_id_herd))
+      .leftJoin(
+        schema.animalCategoriesCatalogue,
+        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
+      )
       .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
       .orderBy(desc(schema.animalAssigning.l_assigning_start))
 
@@ -378,7 +533,7 @@ export async function updateAnimal(
   properties: {
     l_id_eartag?: schema.animalsTypeInsert["l_id_eartag"]
     l_id_worknumber?: schema.animalsTypeInsert["l_id_worknumber"]
-    l_species?: schema.animalsTypeInsert["l_species"]
+    l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_coatcolor?: schema.animalsTypeInsert["l_coatcolor"]
     l_birth_date?: schema.animalsTypeInsert["l_birth_date"]
@@ -394,6 +549,39 @@ export async function updateAnimal(
     const updated = new Date()
 
     await fdm.transaction(async (tx) => {
+      if (properties.l_specie !== undefined || properties.l_sex !== undefined) {
+        const current = await tx
+          .select({
+            l_specie: schema.animals.l_specie,
+            l_sex: schema.animals.l_sex,
+            l_id_herd: schema.animalAssigning.l_id_herd,
+          })
+          .from(schema.animals)
+          .leftJoin(
+            schema.animalAssigning,
+            and(
+              eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
+              isNull(schema.animalAssigning.l_assigning_end),
+            ),
+          )
+          .where(eq(schema.animals.l_id_animal, l_id_animal))
+          .limit(1)
+
+        if (current.length === 0) {
+          throw new Error("Animal does not exist")
+        }
+        if (!current[0].l_id_herd) {
+          throw new Error("Animal is not assigned to a herd")
+        }
+
+        const category = await getHerdCategory(tx, current[0].l_id_herd)
+        assertAnimalMatchesCategory(
+          category,
+          properties.l_specie ?? current[0].l_specie,
+          properties.l_sex === undefined ? current[0].l_sex : properties.l_sex,
+        )
+      }
+
       await tx
         .update(schema.animals)
         .set({ ...animalProperties, updated })
@@ -482,7 +670,7 @@ export async function addAnimalsToHerd(
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   count: number,
   defaults?: {
-    l_species?: schema.animalsTypeInsert["l_species"]
+    l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
   },
@@ -502,11 +690,17 @@ export async function addAnimalsToHerd(
       }
 
       const b_id_farm = herdRow[0].b_id_farm
+      const category = await getHerdCategory(tx, l_id_herd)
+      const l_specie = defaults?.l_specie ?? category.l_specie
+      assertAnimalMatchesCategory(category, l_specie, null)
       const now = new Date()
       await lockFarmWorknumbers(tx, b_id_farm)
       const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
 
-      const animalIds = buildAnimalRows(count, l_id_herd, b_id_farm, now, firstWorknumber, defaults)
+      const animalIds = buildAnimalRows(count, l_id_herd, b_id_farm, now, firstWorknumber, {
+        ...defaults,
+        l_specie,
+      })
 
       if (animalIds.length > 0) {
         await tx.insert(schema.animals).values(animalIds.map((r) => r.animalRow))
@@ -588,7 +782,7 @@ function buildAnimalRows(
   now: Date,
   firstWorknumber: number,
   defaults?: {
-    l_species?: schema.animalsTypeInsert["l_species"]
+    l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
   },
@@ -608,7 +802,7 @@ function buildAnimalRows(
       animalRow: {
         l_id_animal,
         l_id_worknumber: String(firstWorknumber + i),
-        l_species: defaults?.l_species ?? "cattle",
+        l_specie: defaults?.l_specie ?? "cattle",
         l_breed: defaults?.l_breed ?? null,
       },
       arrivingRow: {
@@ -722,6 +916,22 @@ export async function assignAnimalToHerd(
       if (herdFarm.length === 0 || herdFarm[0].b_id_farm !== arriving[0].b_id_farm) {
         throw new Error(`Herd ${target_l_id_herd} does not belong to the animal's farm`)
       }
+
+      const animal = await tx
+        .select({
+          l_specie: schema.animals.l_specie,
+          l_sex: schema.animals.l_sex,
+        })
+        .from(schema.animals)
+        .where(eq(schema.animals.l_id_animal, l_id_animal))
+        .limit(1)
+
+      if (animal.length === 0) {
+        throw new Error("Animal does not exist")
+      }
+
+      const category = await getHerdCategory(tx, target_l_id_herd)
+      assertAnimalMatchesCategory(category, animal[0].l_specie, animal[0].l_sex)
 
       const now = new Date()
 
@@ -914,8 +1124,14 @@ export async function reassignHerdAnimals(
         .select({
           l_id_animal: schema.animalAssigning.l_id_animal,
           l_assigning_start: schema.animalAssigning.l_assigning_start,
+          l_specie: schema.animals.l_specie,
+          l_sex: schema.animals.l_sex,
         })
         .from(schema.animalAssigning)
+        .innerJoin(
+          schema.animals,
+          eq(schema.animalAssigning.l_id_animal, schema.animals.l_id_animal),
+        )
         .leftJoin(
           schema.animalLeaving,
           eq(schema.animalAssigning.l_id_animal, schema.animalLeaving.l_id_animal),
@@ -930,6 +1146,11 @@ export async function reassignHerdAnimals(
 
       if (activeAssignments.some((row) => l_reassign_date < row.l_assigning_start)) {
         throw new Error("Reassignment date cannot be before an active animal assignment")
+      }
+
+      const targetCategory = await getHerdCategory(tx, target_l_id_herd)
+      for (const animal of activeAssignments) {
+        assertAnimalMatchesCategory(targetCategory, animal.l_specie, animal.l_sex)
       }
 
       const animalIds = activeAssignments.map((row) => row.l_id_animal)
@@ -1027,6 +1248,22 @@ export async function updateAnimalAssigning(
         ) {
           throw new Error(`Herd ${properties.l_id_herd} does not belong to the animal's farm`)
         }
+
+        const animal = await tx
+          .select({
+            l_specie: schema.animals.l_specie,
+            l_sex: schema.animals.l_sex,
+          })
+          .from(schema.animals)
+          .where(eq(schema.animals.l_id_animal, l_id_animal))
+          .limit(1)
+
+        if (animal.length === 0) {
+          throw new Error("Animal does not exist")
+        }
+
+        const category = await getHerdCategory(tx, properties.l_id_herd)
+        assertAnimalMatchesCategory(category, animal[0].l_specie, animal[0].l_sex)
       }
 
       const result = await tx
@@ -1126,12 +1363,12 @@ export async function createHerdWithAnimals(
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
   herdProperties: {
     l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
-    l_herd_category?: schema.herdsTypeInsert["l_herd_category"]
+    l_id_category?: schema.herdsTypeInsert["l_id_category"]
     l_start?: schema.herdStartingTypeInsert["l_start"]
   } | undefined,
   count: number,
   animalProperties?: {
-    l_species?: schema.animalsTypeInsert["l_species"]
+    l_specie?: schema.animalsTypeInsert["l_specie"]
     l_breed?: schema.animalsTypeInsert["l_breed"]
     l_arriving_method?: schema.animalArrivingTypeInsert["l_arriving_method"]
   },
@@ -1144,10 +1381,17 @@ export async function createHerdWithAnimals(
       const now = new Date()
       await lockFarmWorknumbers(tx, b_id_farm)
 
+      const category = herdProperties?.l_id_category
+        ? await getAnimalCategory(tx, herdProperties.l_id_category)
+        : null
+      if (count > 0 && !category) {
+        throw new Error("An animal category is required when creating animals")
+      }
+
       await tx.insert(schema.herds).values({
         l_id_herd,
         l_herd_name: herdProperties?.l_herd_name ?? null,
-        l_herd_category: herdProperties?.l_herd_category ?? null,
+        l_id_category: herdProperties?.l_id_category ?? null,
       })
 
       await tx.insert(schema.herdStarting).values({
@@ -1157,13 +1401,17 @@ export async function createHerdWithAnimals(
       })
 
       const firstWorknumber = await getNextWorknumber(tx, b_id_farm)
+      const l_specie = animalProperties?.l_specie ?? category?.l_specie ?? "cattle"
+      if (category) {
+        assertAnimalMatchesCategory(category, l_specie, null)
+      }
       const animalRows = buildAnimalRows(
         count,
         l_id_herd,
         b_id_farm,
         now,
         firstWorknumber,
-        animalProperties,
+        { ...animalProperties, l_specie },
       )
 
       if (animalRows.length > 0) {
@@ -1205,7 +1453,11 @@ export async function getCensusForFarm(
       .select({
         l_id_herd: schema.herds.l_id_herd,
         l_herd_name: schema.herds.l_herd_name,
-        l_herd_category: schema.herds.l_herd_category,
+        l_id_category: schema.herds.l_id_category,
+        l_category: schema.animalCategoriesCatalogue.l_category,
+        l_specie: schema.animalCategoriesCatalogue.l_specie,
+        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         count: count(
           sql`CASE WHEN ${schema.animalLeaving.l_leaving_date} IS NULL THEN ${schema.animalAssigning.l_id_animal} END`,
         ),
@@ -1213,6 +1465,10 @@ export async function getCensusForFarm(
       .from(schema.herds)
       .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
       .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
+      .leftJoin(
+        schema.animalCategoriesCatalogue,
+        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
+      )
       .leftJoin(
         schema.animalAssigning,
         and(
@@ -1234,14 +1490,26 @@ export async function getCensusForFarm(
       .where(
         and(eq(schema.herdStarting.b_id_farm, b_id_farm), isNull(schema.herdEnding.l_end)),
       )
-      .groupBy(schema.herds.l_id_herd, schema.herds.l_herd_name, schema.herds.l_herd_category)
+      .groupBy(
+        schema.herds.l_id_herd,
+        schema.herds.l_herd_name,
+        schema.herds.l_id_category,
+        schema.animalCategoriesCatalogue.l_category,
+        schema.animalCategoriesCatalogue.l_specie,
+        schema.animalCategoriesCatalogue.l_sex_options,
+        schema.animalCategoriesCatalogue.l_lsu,
+      )
 
     return rows.map((r) => ({
       l_id_herd: r.l_id_herd,
       l_herd_name: r.l_herd_name,
-      l_herd_category: r.l_herd_category,
+      l_id_category: r.l_id_category,
+      l_category: r.l_category,
+      l_specie: r.l_specie,
+      l_sex_options: r.l_sex_options,
+      l_lsu: r.l_lsu,
       count: Number(r.count),
-    }))
+    })) as HerdCensus[]
   } catch (err) {
     throw handleError(err, "Exception for getCensusForFarm", { b_id_farm, atDate })
   }

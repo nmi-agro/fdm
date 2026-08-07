@@ -25,7 +25,7 @@ export async function addHerd(
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
   properties?: {
     l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
-    l_herd_category?: schema.herdsTypeInsert["l_herd_category"]
+    l_id_category?: schema.herdsTypeInsert["l_id_category"]
     l_start?: schema.herdStartingTypeInsert["l_start"]
     l_end?: schema.herdEndingTypeInsert["l_end"]
   },
@@ -36,10 +36,14 @@ export async function addHerd(
     return await fdm.transaction(async (tx) => {
       const l_id_herd = createId()
 
+      if (properties?.l_id_category) {
+        await getAnimalCategory(tx, properties.l_id_category, b_id_farm)
+      }
+
       await tx.insert(schema.herds).values({
         l_id_herd,
         l_herd_name: properties?.l_herd_name ?? null,
-        l_herd_category: properties?.l_herd_category ?? null,
+        l_id_category: properties?.l_id_category ?? null,
       })
 
       await tx.insert(schema.herdStarting).values({
@@ -85,7 +89,11 @@ export async function getHerd(
       .select({
         l_id_herd: schema.herds.l_id_herd,
         l_herd_name: schema.herds.l_herd_name,
-        l_herd_category: schema.herds.l_herd_category,
+        l_id_category: schema.herds.l_id_category,
+        l_category: schema.animalCategoriesCatalogue.l_category,
+        l_specie: schema.animalCategoriesCatalogue.l_specie,
+        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         b_id_farm: schema.herdStarting.b_id_farm,
         l_start: schema.herdStarting.l_start,
         l_end: schema.herdEnding.l_end,
@@ -95,6 +103,10 @@ export async function getHerd(
       .from(schema.herds)
       .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
       .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
+      .leftJoin(
+        schema.animalCategoriesCatalogue,
+        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
+      )
       .where(eq(schema.herds.l_id_herd, l_id_herd))
       .limit(1)
 
@@ -129,7 +141,11 @@ export async function getHerdsForFarm(
       .select({
         l_id_herd: schema.herds.l_id_herd,
         l_herd_name: schema.herds.l_herd_name,
-        l_herd_category: schema.herds.l_herd_category,
+        l_id_category: schema.herds.l_id_category,
+        l_category: schema.animalCategoriesCatalogue.l_category,
+        l_specie: schema.animalCategoriesCatalogue.l_specie,
+        l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+        l_lsu: schema.animalCategoriesCatalogue.l_lsu,
         b_id_farm: schema.herdStarting.b_id_farm,
         l_start: schema.herdStarting.l_start,
         l_end: schema.herdEnding.l_end,
@@ -139,6 +155,10 @@ export async function getHerdsForFarm(
       .from(schema.herds)
       .innerJoin(schema.herdStarting, eq(schema.herds.l_id_herd, schema.herdStarting.l_id_herd))
       .leftJoin(schema.herdEnding, eq(schema.herds.l_id_herd, schema.herdEnding.l_id_herd))
+      .leftJoin(
+        schema.animalCategoriesCatalogue,
+        eq(schema.herds.l_id_category, schema.animalCategoriesCatalogue.l_id_category),
+      )
       .where(
         and(
           eq(schema.herdStarting.b_id_farm, b_id_farm),
@@ -159,7 +179,7 @@ export async function getHerdsForFarm(
  * the herd has ended (upserted into `herd_ending`).
  *
  * @remarks
- * Allows updating display name (`l_herd_name`) or primary RVO animal category (`l_herd_category`).
+ * Allows updating display name (`l_herd_name`) or animal category (`l_id_category`).
  * Checks write permission on the herd resource chain.
  *
  * @param fdm - The FDM database connection instance.
@@ -173,7 +193,7 @@ export async function updateHerd(
   l_id_herd: schema.herdsTypeSelect["l_id_herd"],
   properties: {
     l_herd_name?: schema.herdsTypeInsert["l_herd_name"]
-    l_herd_category?: schema.herdsTypeInsert["l_herd_category"]
+    l_id_category?: schema.herdsTypeInsert["l_id_category"]
     l_end?: schema.herdEndingTypeInsert["l_end"]
   },
 ): Promise<void> {
@@ -194,23 +214,109 @@ export async function updateHerd(
         throw new Error("Herd does not exist")
       }
 
+      if (herdProperties.l_id_category) {
+        const category = await getAnimalCategory(
+          tx,
+          herdProperties.l_id_category,
+          herdStart[0].b_id_farm,
+        )
+        const assignedAnimals = await tx
+          .select({
+            l_specie: schema.animals.l_specie,
+            l_sex: schema.animals.l_sex,
+          })
+          .from(schema.animalAssigning)
+          .innerJoin(
+            schema.animals,
+            eq(schema.animalAssigning.l_id_animal, schema.animals.l_id_animal),
+          )
+          .where(
+            and(
+              eq(schema.animalAssigning.l_id_herd, l_id_herd),
+              isNull(schema.animalAssigning.l_assigning_end),
+            ),
+          )
+
+        for (const animal of assignedAnimals) {
+          assertAnimalMatchesCategory(category, animal.l_specie, animal.l_sex)
+        }
+      }
+
       await tx
         .update(schema.herds)
         .set({ ...herdProperties, updated })
         .where(eq(schema.herds.l_id_herd, l_id_herd))
 
       if (l_end !== undefined) {
-        await tx
-          .insert(schema.herdEnding)
-          .values({ l_id_herd, l_end })
-          .onConflictDoUpdate({
-            target: schema.herdEnding.l_id_herd,
-            set: { l_end, updated },
-          })
+        await tx.insert(schema.herdEnding).values({ l_id_herd, l_end }).onConflictDoUpdate({
+          target: schema.herdEnding.l_id_herd,
+          set: { l_end, updated },
+        })
       }
     })
   } catch (err) {
     throw handleError(err, "Exception for updateHerd", { l_id_herd, properties })
+  }
+}
+
+type AnimalCategory = Pick<
+  schema.animalCategoriesCatalogueTypeSelect,
+  "l_id_category" | "l_specie" | "l_sex_options"
+>
+
+async function getAnimalCategory(
+  fdm: FdmType,
+  l_id_category: schema.animalCategoriesCatalogueTypeSelect["l_id_category"],
+  b_id_farm?: schema.farmsTypeSelect["b_id_farm"],
+): Promise<AnimalCategory> {
+  const query = fdm
+    .select({
+      l_id_category: schema.animalCategoriesCatalogue.l_id_category,
+      l_specie: schema.animalCategoriesCatalogue.l_specie,
+      l_sex_options: schema.animalCategoriesCatalogue.l_sex_options,
+    })
+    .from(schema.animalCategoriesCatalogue)
+  const categories = b_id_farm
+    ? await query
+        .innerJoin(
+          schema.animalCategoryCatalogueSelecting,
+          eq(
+            schema.animalCategoriesCatalogue.l_category_source,
+            schema.animalCategoryCatalogueSelecting.l_category_source,
+          ),
+        )
+        .where(
+          and(
+            eq(schema.animalCategoriesCatalogue.l_id_category, l_id_category),
+            eq(schema.animalCategoryCatalogueSelecting.b_id_farm, b_id_farm),
+          ),
+        )
+        .limit(1)
+    : await query.where(eq(schema.animalCategoriesCatalogue.l_id_category, l_id_category)).limit(1)
+
+  if (categories.length === 0) {
+    throw new Error(
+      b_id_farm
+        ? `Animal category ${l_id_category} is not enabled for farm ${b_id_farm}`
+        : `Animal category ${l_id_category} does not exist`,
+    )
+  }
+
+  return categories[0]
+}
+
+function assertAnimalMatchesCategory(
+  category: AnimalCategory,
+  l_specie: schema.animalsTypeSelect["l_specie"],
+  l_sex: schema.animalsTypeSelect["l_sex"],
+): void {
+  if (l_specie !== category.l_specie) {
+    throw new Error(
+      `Animal species ${l_specie} does not match category ${category.l_id_category} species ${category.l_specie}`,
+    )
+  }
+  if (l_sex && !category.l_sex_options.includes(l_sex)) {
+    throw new Error(`Animal sex ${l_sex} is not allowed for category ${category.l_id_category}`)
   }
 }
 

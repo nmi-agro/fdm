@@ -1,4 +1,5 @@
 import {
+  getAnimalCategoriesCatalogue,
   getCultivationCatalogue,
   getFertilizersCatalogue,
   getMeasuresCatalogue,
@@ -6,17 +7,22 @@ import {
 import { and, eq, isNotNull } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
 import type { FdmType } from "./fdm.types"
+import { getAnimalCategoriesForFarm } from "./animal"
 import {
   disableCultivationCatalogue,
+  disableAnimalCategoryCatalogue,
   disableFertilizerCatalogue,
   disableMeasureCatalogue,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
+  getEnabledAnimalCategoryCatalogues,
   getEnabledCultivationCatalogues,
   getEnabledFertilizerCatalogues,
   getEnabledMeasureCatalogues,
   isCultivationCatalogueEnabled,
+  isAnimalCategoryCatalogueEnabled,
   isFertilizerCatalogueEnabled,
   isMeasureCatalogueEnabled,
   syncCatalogues,
@@ -353,6 +359,59 @@ describe("Catalogues syncing", () => {
 
     const brpCatalogueOriginal = await getCultivationCatalogue("brp")
     expect(brpCatalogue.length).toBe(brpCatalogueOriginal.length)
+
+    const animalCategories = await fdm
+      .select()
+      .from(schema.animalCategoriesCatalogue)
+      .where(eq(schema.animalCategoriesCatalogue.l_category_source, "rvo"))
+    const animalCategoriesOriginal = await getAnimalCategoriesCatalogue("rvo")
+    expect(animalCategories.length).toBe(animalCategoriesOriginal.length)
+  })
+
+  it("should enable the RVO animal catalogue for existing farms during sync", async () => {
+    const principal_id = "existing_farm_sync"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Existing Farm",
+      "123456",
+      "Farm Street 1",
+      "1234AB",
+    )
+    await fdm
+      .delete(schema.animalCategoryCatalogueSelecting)
+      .where(eq(schema.animalCategoryCatalogueSelecting.b_id_farm, b_id_farm))
+
+    expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toEqual([])
+
+    await syncCatalogues(fdm)
+
+    expect(await getEnabledAnimalCategoryCatalogues(fdm, principal_id, b_id_farm)).toContain("rvo")
+    expect((await getAnimalCategoriesForFarm(fdm, principal_id, b_id_farm)).length).toBeGreaterThan(
+      0,
+    )
+  })
+
+  it("should enable, disable, and check animal category catalogues", async () => {
+    const principal_id = "animal_category_catalogue"
+    const b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Animal Category Farm",
+      "654321",
+      "Farm Street 2",
+      "2345BC",
+    )
+    await syncCatalogues(fdm)
+
+    await disableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
+    expect(await isAnimalCategoryCatalogueEnabled(fdm, principal_id, b_id_farm, "rvo")).toBe(false)
+
+    await enableAnimalCategoryCatalogue(fdm, principal_id, b_id_farm, "rvo")
+    expect(await isAnimalCategoryCatalogueEnabled(fdm, principal_id, b_id_farm, "rvo")).toBe(true)
+
+    const categories = await getAnimalCategoriesForFarm(fdm, principal_id, b_id_farm)
+    expect(categories.length).toBeGreaterThan(0)
   })
 
   it("should update fertilizer catalogue", async () => {

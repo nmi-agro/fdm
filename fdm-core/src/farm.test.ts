@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmAuth } from "./authentication"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
@@ -33,6 +34,7 @@ import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
 import { addGrazing } from "./grazing"
 import { addHerd } from "./herd"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { createId } from "./id"
 import { acceptInvitation, declineInvitation } from "./invitation"
 import { addExcreting, addManureDisposing, addManurePit } from "./manure"
@@ -59,6 +61,7 @@ describe("Farm Functions", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
 
     const googleAuth = {
       clientId: "mock_google_client_id",
@@ -269,7 +272,7 @@ describe("Farm Functions", () => {
   it("should include livestock and dairy flags in the getFarm response", async () => {
   const herdId = await addHerd(fdm, principal_id, b_id_farm, {
     l_herd_name: "Status Kudde",
-    l_herd_category: "rvo_100",
+    l_id_category: "rvo_100",
   })
   await addAnimal(fdm, principal_id, b_id_farm, herdId, {
     l_id_eartag: "NL_STATUS_1",
@@ -763,7 +766,7 @@ describe("Farm Functions", () => {
 
       const l_id_herd = await addHerd(fdm, testPrincipalId, livestockFarmId, {
         l_herd_name: "Melkkoeien",
-        l_herd_category: "rvo_100",
+        l_id_category: "rvo_100",
       })
       const l_id_animal = await addAnimal(fdm, testPrincipalId, livestockFarmId, l_id_herd, {
         l_id_eartag: "NL_LIVESTOCK_TEST",

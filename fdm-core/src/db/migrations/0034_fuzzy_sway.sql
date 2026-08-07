@@ -1,6 +1,5 @@
-CREATE TYPE "fdm"."l_herd_category" AS ENUM('rvo_100', 'rvo_101', 'rvo_102', 'rvo_104', 'rvo_112', 'rvo_115', 'rvo_116', 'rvo_117', 'rvo_120', 'rvo_122', 'rvo_550', 'rvo_551', 'rvo_552', 'rvo_600', 'rvo_601', 'rvo_602', 'rvo_941', 'rvo_943', 'rvo_961', 'rvo_971', 'rvo_973', 'rvo_974', 'rvo_981', 'rvo_982', 'rvo_991', 'rvo_992', 'rvo_400', 'rvo_401', 'rvo_404', 'rvo_406', 'rvo_407', 'rvo_411', 'rvo_300', 'rvo_301', 'rvo_310', 'rvo_311', 'rvo_312', 'rvo_200', 'rvo_201', 'rvo_202', 'rvo_210', 'rvo_751', 'rvo_900', 'rvo_901', 'rvo_801', 'rvo_802', 'rvo_803', 'rvo_15', 'rvo_25', 'rvo_28', 'rvo_35', 'rvo_37');--> statement-breakpoint
 CREATE TYPE "fdm"."l_sex" AS ENUM('female', 'male');--> statement-breakpoint
-CREATE TYPE "fdm"."l_species" AS ENUM('cattle', 'pig', 'poultry', 'turkey', 'duck', 'goat', 'sheep', 'horse', 'pony', 'other');--> statement-breakpoint
+CREATE TYPE "fdm"."l_specie" AS ENUM('cattle', 'pig', 'poultry', 'turkey', 'duck', 'goat', 'sheep', 'horse', 'pony', 'other');--> statement-breakpoint
 CREATE TYPE "fdm"."l_arriving_method" AS ENUM('born', 'purchased', 'imported');--> statement-breakpoint
 CREATE TYPE "fdm"."f_batch_origin" AS ENUM('own_land', 'purchased');--> statement-breakpoint
 CREATE TYPE "fdm"."f_batch_type" AS ENUM('snijmais', 'maiskolvenschroot', 'corncobmix_100', 'corncobmix_25', 'korrelmais', 'gehele_plant_silage', 'tarwe', 'erwten', 'gerst', 'aardappelen_vers', 'aardappelen_ingekuild', 'appelen', 'graanstro_rogge', 'graanstro_tarwe', 'gras_hooi', 'gras_kuil', 'gras_vers', 'graszaadstro', 'rogge', 'uien', 'voederbieten', 'witlofwortelen', 'kaaswei', 'krachtvoer', 'mineralen', 'overig');--> statement-breakpoint
@@ -26,6 +25,26 @@ CREATE TABLE "fdm"."animal_assigning" (
 	CONSTRAINT "animal_assigning_l_id_animal_l_id_herd_l_assigning_start_pk" PRIMARY KEY("l_id_animal","l_id_herd","l_assigning_start")
 );
 --> statement-breakpoint
+CREATE TABLE "fdm"."animal_categories_catalogue" (
+	"l_id_category" text PRIMARY KEY NOT NULL,
+	"l_category_source" text NOT NULL,
+	"l_category" text NOT NULL,
+	"l_specie" "fdm"."l_specie" NOT NULL,
+	"l_sex_options" "fdm"."l_sex"[] NOT NULL,
+	"l_lsu" numeric NOT NULL,
+	"hash" text,
+	"created" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated" timestamp with time zone
+);
+--> statement-breakpoint
+CREATE TABLE "fdm"."animal_category_catalogue_selecting" (
+	"b_id_farm" text NOT NULL,
+	"l_category_source" text NOT NULL,
+	"created" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated" timestamp with time zone,
+	CONSTRAINT "animal_category_catalogue_selecting_b_id_farm_l_category_source_pk" PRIMARY KEY("b_id_farm","l_category_source")
+);
+--> statement-breakpoint
 CREATE TABLE "fdm"."animal_leaving" (
 	"l_id_animal" text PRIMARY KEY NOT NULL,
 	"l_leaving_date" timestamp with time zone,
@@ -38,7 +57,7 @@ CREATE TABLE "fdm"."animals" (
 	"l_id_animal" text PRIMARY KEY NOT NULL,
 	"l_id_eartag" text,
 	"l_id_worknumber" text,
-	"l_species" "fdm"."l_species" DEFAULT 'cattle' NOT NULL,
+	"l_specie" "fdm"."l_specie" DEFAULT 'cattle' NOT NULL,
 	"l_breed" text,
 	"l_coatcolor" text,
 	"l_birth_date" timestamp with time zone,
@@ -167,7 +186,7 @@ CREATE TABLE "fdm"."herd_starting" (
 CREATE TABLE "fdm"."herds" (
 	"l_id_herd" text PRIMARY KEY NOT NULL,
 	"l_herd_name" text,
-	"l_herd_category" "fdm"."l_herd_category",
+	"l_id_category" text,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone
 );
@@ -297,6 +316,7 @@ ALTER TABLE "fdm"."animal_arriving" ADD CONSTRAINT "animal_arriving_l_id_animal_
 ALTER TABLE "fdm"."animal_arriving" ADD CONSTRAINT "animal_arriving_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."animal_assigning" ADD CONSTRAINT "animal_assigning_l_id_animal_animals_l_id_animal_fk" FOREIGN KEY ("l_id_animal") REFERENCES "fdm"."animals"("l_id_animal") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."animal_assigning" ADD CONSTRAINT "animal_assigning_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."animal_category_catalogue_selecting" ADD CONSTRAINT "animal_category_catalogue_selecting_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."animal_leaving" ADD CONSTRAINT "animal_leaving_l_id_animal_animals_l_id_animal_fk" FOREIGN KEY ("l_id_animal") REFERENCES "fdm"."animals"("l_id_animal") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."barn_constructing" ADD CONSTRAINT "barn_constructing_b_id_barn_barns_b_id_barn_fk" FOREIGN KEY ("b_id_barn") REFERENCES "fdm"."barns"("b_id_barn") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."barn_constructing" ADD CONSTRAINT "barn_constructing_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -315,6 +335,7 @@ ALTER TABLE "fdm"."grazing" ADD CONSTRAINT "grazing_l_id_herd_herds_l_id_herd_fk
 ALTER TABLE "fdm"."herd_ending" ADD CONSTRAINT "herd_ending_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."herd_starting" ADD CONSTRAINT "herd_starting_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."herd_starting" ADD CONSTRAINT "herd_starting_b_id_farm_farms_b_id_farm_fk" FOREIGN KEY ("b_id_farm") REFERENCES "fdm"."farms"("b_id_farm") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "fdm"."herds" ADD CONSTRAINT "herds_l_id_category_animal_categories_catalogue_l_id_category_fk" FOREIGN KEY ("l_id_category") REFERENCES "fdm"."animal_categories_catalogue"("l_id_category") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."housing" ADD CONSTRAINT "housing_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."housing" ADD CONSTRAINT "housing_b_id_barn_barns_b_id_barn_fk" FOREIGN KEY ("b_id_barn") REFERENCES "fdm"."barns"("b_id_barn") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."manure_disposing" ADD CONSTRAINT "manure_disposing_b_id_manurepit_manure_pits_b_id_manurepit_fk" FOREIGN KEY ("b_id_manurepit") REFERENCES "fdm"."manure_pits"("b_id_manurepit") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -331,6 +352,8 @@ ALTER TABLE "fdm"."milking_animal" ADD CONSTRAINT "milking_animal_l_id_animal_an
 ALTER TABLE "fdm"."milking_animal" ADD CONSTRAINT "milking_animal_l_id_milktank_milk_tanks_l_id_milktank_fk" FOREIGN KEY ("l_id_milktank") REFERENCES "fdm"."milk_tanks"("l_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milking_herd" ADD CONSTRAINT "milking_herd_l_id_herd_herds_l_id_herd_fk" FOREIGN KEY ("l_id_herd") REFERENCES "fdm"."herds"("l_id_herd") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "fdm"."milking_herd" ADD CONSTRAINT "milking_herd_l_id_milktank_milk_tanks_l_id_milktank_fk" FOREIGN KEY ("l_id_milktank") REFERENCES "fdm"."milk_tanks"("l_id_milktank") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "l_id_category_idx" ON "fdm"."animal_categories_catalogue" USING btree ("l_id_category");--> statement-breakpoint
+CREATE INDEX "l_category_source_idx" ON "fdm"."animal_categories_catalogue" USING btree ("l_category_source");--> statement-breakpoint
 CREATE UNIQUE INDEX "l_id_animal_idx" ON "fdm"."animals" USING btree ("l_id_animal");--> statement-breakpoint
 CREATE UNIQUE INDEX "b_id_barn_idx" ON "fdm"."barns" USING btree ("b_id_barn");--> statement-breakpoint
 CREATE INDEX "b_barn_geom_idx" ON "fdm"."barns" USING gist ("b_barn_geometry");--> statement-breakpoint

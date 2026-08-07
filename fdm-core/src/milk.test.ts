@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmType } from "./fdm.types"
 import type { MilkingAnimal, MilkingHerd } from "./milk.types"
 import { addAnimal, assignAnimalToHerd } from "./animal"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import {
   addMilkDelivery,
   addMilkingAnimal,
@@ -43,6 +45,7 @@ describe("Milk Domain", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
     principal_id = "test_principal"
 
     b_id_farm = await addFarm(
@@ -56,7 +59,7 @@ describe("Milk Domain", () => {
 
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
 
     l_id_milktank = await addMilkTank(fdm, principal_id, b_id_farm)
@@ -379,7 +382,7 @@ describe("Milk Domain", () => {
     // in l_id_herd and opens a new one in the target herd)
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Jongvee",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
     await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
 
@@ -414,7 +417,7 @@ describe("Milk Domain", () => {
 
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Droogstand",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
     await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
 

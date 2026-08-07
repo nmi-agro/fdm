@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmType } from "./fdm.types"
 import {
   addAnimal,
@@ -21,6 +22,7 @@ import {
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Animal Domain", () => {
   let fdm: FdmType
@@ -35,6 +37,7 @@ describe("Animal Domain", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
     principal_id = "test_principal"
 
     b_id_farm = await addFarm(
@@ -48,7 +51,7 @@ describe("Animal Domain", () => {
 
     l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
   })
 
@@ -56,7 +59,7 @@ describe("Animal Domain", () => {
     const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
       l_id_eartag: "NL123456789",
       l_id_worknumber: "0123",
-      l_species: "cattle",
+      l_specie: "cattle",
       l_sex: "female",
     })
 
@@ -67,6 +70,9 @@ describe("Animal Domain", () => {
     expect(animal.l_id_worknumber).toBe("0123")
     expect(animal.l_sex).toBe("female")
     expect(animal.l_id_herd).toBe(l_id_herd)
+    expect(animal.l_id_category).toBe("rvo_100")
+    expect(animal.l_category).toBe("100 - Melk- en kalfkoeien")
+    expect(animal.l_lsu).toBe(1)
 
     await updateAnimal(fdm, principal_id, l_id_animal, {
       l_breed: "Holstein Friesian",
@@ -129,7 +135,7 @@ describe("Animal Domain", () => {
 
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Jongvee",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
 
     await assignAnimalToHerd(fdm, principal_id, l_id_animal, targetHerdId)
@@ -141,7 +147,7 @@ describe("Animal Domain", () => {
     // separate destination - the caller always names the herd explicitly.
     const secondHerdSameCategory = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Jongvee 2",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
     expect(secondHerdSameCategory).not.toBe(targetHerdId)
 
@@ -168,7 +174,7 @@ describe("Animal Domain", () => {
     )
     const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
       l_herd_name: "Andere kudde",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
 
     await expect(
@@ -181,16 +187,16 @@ describe("Animal Domain", () => {
       fdm,
       principal_id,
       b_id_farm,
-      { l_herd_name: "Nieuwe kudde", l_herd_category: "rvo_100" },
+      { l_herd_name: "Nieuwe kudde", l_id_category: "rvo_100" },
       5,
-      { l_species: "cattle", l_arriving_method: "purchased" },
+      { l_specie: "cattle", l_arriving_method: "purchased" },
     )
 
     expect(l_id_animals.length).toBe(5)
 
     const herdAnimals = await getAnimalsForHerd(fdm, principal_id, newHerdId)
     expect(herdAnimals.length).toBe(5)
-    expect(herdAnimals.every((a) => a.l_species === "cattle")).toBe(true)
+    expect(herdAnimals.every((a) => a.l_specie === "cattle")).toBe(true)
     expect(herdAnimals.every((a) => a.l_arriving_method === "purchased")).toBe(true)
 
   })
@@ -227,7 +233,7 @@ describe("Animal Domain", () => {
     )
     const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
       l_herd_name: "Andere kudde 2",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
 
     await expect(
@@ -322,7 +328,7 @@ describe("Animal Domain", () => {
 
   it("should leave every animal when a herd leaves the farm", async () => {
     const animalIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 3, {
-      l_species: "cattle",
+      l_specie: "cattle",
       l_arriving_method: "purchased",
     })
     const leavingDate = new Date(Date.now() + 60_000)
@@ -350,7 +356,7 @@ describe("Animal Domain", () => {
   it("should reassign every active animal in a herd together", async () => {
     const targetHerdId = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Jongvee",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
     const animalIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 2)
     const reassignmentDate = new Date(Date.now() + 60_000)
@@ -386,7 +392,7 @@ describe("Animal Domain", () => {
     )
     const otherHerdId = await addHerd(fdm, principal_id, otherFarmId, {
       l_herd_name: "Andere kudde",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
 
     await expect(
@@ -462,7 +468,7 @@ describe("Animal Domain", () => {
 
     const otherHerdId = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Jongvee",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
 
     await expect(
@@ -511,6 +517,41 @@ describe("Animal Domain", () => {
     const animal = await getAnimal(fdm, principal_id, l_id_animal)
     expect(animal.l_arriving_method).toBe("purchased")
     expect(animal.l_arriving_date?.toISOString()).toBe(arrivingDate.toISOString())
+  })
+
+  it("should enforce herd category species and sex compatibility", async () => {
+    await expect(
+      addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_specie: "sheep",
+      }),
+    ).rejects.toThrowError("Exception for addAnimal")
+
+    await expect(
+      addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+        l_sex: "male",
+      }),
+    ).rejects.toThrowError("Exception for addAnimal")
+
+    const l_id_animal = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_sex: "female",
+    })
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_specie: "sheep" }),
+    ).rejects.toThrowError("Exception for updateAnimal")
+    await expect(
+      updateAnimal(fdm, principal_id, l_id_animal, { l_sex: "male" }),
+    ).rejects.toThrowError("Exception for updateAnimal")
+
+    const sheepHerd = await addHerd(fdm, principal_id, b_id_farm, {
+      l_herd_name: "Schapen",
+      l_id_category: "rvo_550",
+    })
+    const sheep = await addAnimal(fdm, principal_id, b_id_farm, sheepHerd)
+    expect((await getAnimal(fdm, principal_id, sheep)).l_specie).toBe("sheep")
+
+    await expect(
+      assignAnimalToHerd(fdm, principal_id, l_id_animal, sheepHerd),
+    ).rejects.toThrowError("Exception for assignAnimalToHerd")
   })
 
 })

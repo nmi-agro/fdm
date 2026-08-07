@@ -22,6 +22,11 @@ export { createDisplayUsername, createFdmAuth, updateUserProfile } from "./authe
 export { checkPermission, withAuditContext, writeAuditEntry } from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
+  getAnimalCategoriesForFarm,
+  getAnimalCategoriesFromCatalogue,
+  getAnimalCategoriesFromCatalogues,
+} from "./animal"
+export {
   getCachedCalculation,
   setCachedCalculation,
   setCalculationError,
@@ -29,20 +34,25 @@ export {
 } from "./calculator"
 export {
   disableCultivationCatalogue,
+  disableAnimalCategoryCatalogue,
   disableFertilizerCatalogue,
   disableMeasureCatalogue,
+  enableAnimalCategoryCatalogue,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
+  getEnabledAnimalCategoryCatalogues,
   getEnabledCultivationCatalogues,
   getEnabledCultivationCataloguesForFarms,
   getEnabledFertilizerCatalogues,
   getEnabledFertilizerCataloguesForFarms,
   getEnabledMeasureCatalogues,
+  isAnimalCategoryCatalogueEnabled,
   isCultivationCatalogueEnabled,
   isFertilizerCatalogueEnabled,
   isMeasureCatalogueEnabled,
   syncCatalogues,
+  syncAnimalCategoryCatalogueArray,
   syncMeasuresCatalogueArray,
 } from "./catalogues"
 export {
@@ -61,7 +71,6 @@ export {
 export type { Cultivation, CultivationCatalogue, CultivationPlan } from "./cultivation.types"
 export {
   acquiringMethodOptions,
-  herdCategoryOptions,
   animalSexOptions,
   animalSpeciesOptions,
   annotationTypeOptions,
@@ -251,7 +260,12 @@ export {
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
-export type { Animal, AnimalAssignmentHistory, HerdCensus } from "./animal.types"
+export type {
+  Animal,
+  AnimalAssignmentHistory,
+  AnimalCategoryCatalogue,
+  HerdCensus,
+} from "./animal.types"
 export {
   addBarn,
   addHousing,

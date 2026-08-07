@@ -6,13 +6,11 @@ import {
   feedOriginOptions,
   feedTypeOptions,
   grazingTypeOptions,
-  herdCategoryOptions,
   leavingMethodOptions,
 } from "./schema"
 
 describe("Livestock Schema Options Arrays", () => {
   const optionArrays = [
-    herdCategoryOptions,
     animalSexOptions,
     animalSpeciesOptions,
     arrivingMethodOptions,

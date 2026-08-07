@@ -61,6 +61,10 @@ export async function addFarm(
         b_postalcode_farm,
       }
       await tx.insert(schema.farms).values(farmData)
+      await tx.insert(schema.animalCategoryCatalogueSelecting).values({
+        b_id_farm,
+        l_category_source: "rvo",
+      })
 
       // Grant owner role to farm
       await grantRole(tx, "farm", "owner", b_id_farm, principal_id)
@@ -1437,6 +1441,9 @@ export async function removeFarm(
       await tx
         .delete(schema.cultivationCatalogueSelecting)
         .where(eq(schema.cultivationCatalogueSelecting.b_id_farm, b_id_farm))
+      await tx
+        .delete(schema.animalCategoryCatalogueSelecting)
+        .where(eq(schema.animalCategoryCatalogueSelecting.b_id_farm, b_id_farm))
       await tx
         .delete(schema.measureCatalogueEnabling)
         .where(eq(schema.measureCatalogueEnabling.b_id_farm, b_id_farm))

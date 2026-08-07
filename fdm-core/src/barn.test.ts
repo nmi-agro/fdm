@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmType } from "./fdm.types"
 import {
   addBarn,
@@ -15,6 +16,7 @@ import {
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import { addHerd } from "./herd"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 
 describe("Barn Domain", () => {
   let fdm: FdmType
@@ -28,6 +30,7 @@ describe("Barn Domain", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
     principal_id = "test_principal"
 
     b_id_farm = await addFarm(
@@ -98,7 +101,7 @@ describe("Barn Domain", () => {
     })
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
 
     await addHousing(fdm, principal_id, l_id_herd, b_id_barn, new Date())
@@ -140,7 +143,7 @@ describe("Barn Domain", () => {
 
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
 
     const hStart = new Date("2025-01-01")
@@ -172,7 +175,7 @@ describe("Barn Domain", () => {
     const b_id_barn_2 = await addBarn(fdm, principal_id, b_id_farm, { b_barn_name: "Barn B" })
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Overlap Kudde",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
 
     const firstStart = new Date("2025-01-01T00:00:00.000Z")
@@ -207,7 +210,7 @@ describe("Barn Domain", () => {
     const b_id_barn_2 = await addBarn(fdm, principal_id, b_id_farm, { b_barn_name: "Barn D" })
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Update overlap kudde",
-      l_herd_category: "rvo_101",
+      l_id_category: "rvo_101",
     })
 
     const firstStart = new Date("2025-02-01T00:00:00.000Z")
@@ -253,7 +256,7 @@ describe("Barn Domain", () => {
     })
     const l_id_herd = await addHerd(fdm, principal_id, b_id_farm, {
       l_herd_name: "Melkkoeien",
-      l_herd_category: "rvo_100",
+      l_id_category: "rvo_100",
     })
     const invalidUser = "unauthorized_user"
 
