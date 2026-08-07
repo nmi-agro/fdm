@@ -10,7 +10,7 @@
  */
 
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
+import { ChevronDown, ChevronUp, ExternalLink, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import {
@@ -24,6 +24,13 @@ import {
 import { cn } from "~/lib/utils"
 import { ScoreBadge } from "./score-badge"
 
+/** A measure recommended to improve a specific indicator on this field. */
+export type RecommendedMeasure = {
+  m_id: string
+  m_name: string
+  measure_impact: number
+}
+
 type IndicatorCardProps = {
   info: IndicatorInfo
   result: Bln3IndicatorResult
@@ -33,6 +40,8 @@ type IndicatorCardProps = {
   measuresHref: string
   /** When true, display index instead of score */
   showIndex: boolean
+  /** Top recommended measures for this indicator (already filtered by applicability and active-measure exclusion) */
+  recommendedMeasures?: RecommendedMeasure[]
 }
 
 const CATEGORY_COLORS: Record<Ecosysteemdienst, string> = {
@@ -106,6 +115,7 @@ export function IndicatorCard({
   fieldMeasures,
   measuresHref,
   showIndex,
+  recommendedMeasures = [],
 }: IndicatorCardProps) {
   const [expanded, setExpanded] = useState(false)
 
@@ -262,6 +272,56 @@ export function IndicatorCard({
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Recommended measures for this indicator (non-green only) */}
+          {tier !== "green" && (
+            <div>
+              <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+                Aanbevolen maatregelen
+              </p>
+              {recommendedMeasures.length === 0 ? (
+                <p className="text-muted-foreground text-xs italic">
+                  Geen maatregelen met noemenswaardig effect gevonden voor deze indicator.
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {recommendedMeasures.map((measure) => {
+                    const maxImpact = Math.max(
+                      ...recommendedMeasures.map((m) => m.measure_impact),
+                      0.0001,
+                    )
+                    const barWidth = Math.max(4, (measure.measure_impact / maxImpact) * 100)
+                    return (
+                      <li
+                        key={measure.m_id}
+                        className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50/50 px-2 py-1.5 text-xs dark:border-emerald-900/40 dark:bg-emerald-950/10"
+                      >
+                        <Sparkles className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-muted-foreground mr-1.5 font-mono">
+                            {measure.m_id.replace("bln_", "")}
+                          </span>
+                          <span className="text-foreground font-medium">{measure.m_name}</span>
+                          <div className="bg-muted mt-1 h-1 w-full max-w-24 overflow-hidden rounded-full">
+                            <div
+                              className="h-full rounded-full bg-emerald-500"
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+                        </div>
+                        <Link
+                          to={`${measuresHref}?openMeasure=${encodeURIComponent(measure.m_id)}&indicator=${encodeURIComponent(info.id)}`}
+                          className="shrink-0 font-semibold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-200"
+                        >
+                          + Toevoegen
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </div>
           )}
 

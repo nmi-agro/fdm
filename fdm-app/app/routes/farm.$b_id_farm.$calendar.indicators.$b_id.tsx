@@ -5,6 +5,7 @@ import {
   getCultivations,
   getField,
   getFields,
+  getMeasuresFromCatalogue,
   getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
@@ -45,6 +46,8 @@ import {
   getFieldMeasuresForIndicators,
   getIndicatorsForFarm,
   getIndicatorsForField,
+  getMeasureAdviceForField,
+  getMeasureApplicabilityForField,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { AGG_IDS, type AggregationId, getFieldAggregationScore } from "~/lib/aggregations"
@@ -203,6 +206,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldMeasures,
       cultivations,
       brpCatalogue,
+      measureCatalogue,
+      applicabilityMap,
+      advice,
       fieldWritePermission,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
@@ -219,6 +225,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }),
       getCultivations(fdm, session.principal_id, b_id),
       getCultivationCatalogue("brp"),
+      getMeasuresFromCatalogue(fdm),
+      getMeasureApplicabilityForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year: calendarYear,
+        timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 applicability check failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
+      getMeasureAdviceForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year: calendarYear,
+        timeframe,
+      }),
       checkPermission(
         fdm,
         "field",
@@ -361,6 +386,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
+    // Build per-indicator recommended measures: raw advice, cross-referenced
+    // against a fresh applicability check and already-active measures (the
+    // advice endpoint's own list is never trusted to be pre-filtered), keyed
+    // by indicator ID, top 3 per indicator, with catalogue names resolved.
+    const measureNameById = new Map(measureCatalogue.map((m) => [m.m_id, m.m_name]))
+    const activeMeasureIds = new Set(fieldMeasures.map((m) => m.m_id))
+    const indicatorAdvice: Record<
+      string,
+      { m_id: string; m_name: string; measure_impact: number }[]
+    > = {}
+    for (const entry of advice.indicator_advice) {
+      const recommendations = entry.measures
+        .filter(
+          (measure) =>
+            applicabilityMap?.[measure.m_id]?.applicability === "applicable" &&
+            !activeMeasureIds.has(measure.m_id),
+        )
+        .sort((a, b) => b.measure_impact - a.measure_impact)
+        .slice(0, 3)
+        .map((measure) => ({
+          m_id: measure.m_id,
+          m_name: measureNameById.get(measure.m_id) ?? measure.m_id.replace("bln_", ""),
+          measure_impact: measure.measure_impact,
+        }))
+      indicatorAdvice[entry.indicator] = recommendations
+    }
+
     return {
       field,
       fieldScore,
@@ -371,6 +423,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       currentCultivationName: currentCultivation?.b_lu_name ?? null,
       currentCultivationCropRotation: currentCultivation?.b_lu_croprotation ?? null,
       cultivationSummaries,
+      indicatorAdvice,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
@@ -433,6 +486,7 @@ export default function IndicatorsFieldDetail() {
     currentCultivationName,
     currentCultivationCropRotation,
     cultivationSummaries,
+    indicatorAdvice,
     soilData,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
@@ -606,6 +660,7 @@ export default function IndicatorsFieldDetail() {
                     fieldMeasures={fieldMeasures}
                     measuresHref={measuresHref}
                     showIndex={!withMeasures}
+                    recommendedMeasures={indicatorAdvice[info.id] ?? []}
                   />
                 ))}
               </div>

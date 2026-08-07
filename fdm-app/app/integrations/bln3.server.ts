@@ -8,6 +8,9 @@
  */
 
 import {
+  type Bln3IndicatorAdvice,
+  type Bln3IndicatorMeasureAdvice,
+  type Bln3MeasureAdviceResult,
   type Bln3MeasureApplicabilityItem,
   type Bln3MeasureApplicabilityResult,
   type Bln3MeasureApplicabilityStatus,
@@ -15,6 +18,7 @@ import {
   type Bln3ScoreCollectedInputs,
   collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
+  getBln3MeasureAdvice,
   getBln3MeasureApplicability,
   getBln3Score,
 } from "@nmi-agro/fdm-calculator"
@@ -25,11 +29,15 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
+import { getScoreTier, scoreToDisplay } from "~/lib/indicators"
 import type { FieldMeasure } from "~/lib/indicators"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
 
 export type {
+  Bln3IndicatorAdvice,
+  Bln3IndicatorMeasureAdvice,
+  Bln3MeasureAdviceResult,
   Bln3MeasureApplicabilityItem,
   Bln3MeasureApplicabilityResult,
   Bln3MeasureApplicabilityStatus,
@@ -242,4 +250,197 @@ export async function getMeasureApplicabilityForFields({
   })
 
   return fieldApplicabilityMap
+}
+
+const EMPTY_ADVICE: Bln3MeasureAdviceResult = { indicator_advice: [] }
+
+/**
+ * Collects inputs and fetches BLN3 measure advice for a single field.
+ *
+ * This is a best-effort enhancement, never a blocker: if the NMI request
+ * fails, an empty advice result is returned and the failure is logged,
+ * matching the pattern used by `getIndicatorsForField`/`getMeasureApplicabilityForField`.
+ *
+ * Note: the NMI `measure/advice` endpoint is marked **experimental** — its
+ * interface may change without the usual advance notice NMI gives for
+ * stable endpoints.
+ */
+export async function getMeasureAdviceForField({
+  principal_id,
+  b_id,
+  b_year,
+  timeframe,
+}: {
+  principal_id: PrincipalId
+  b_id: string
+  b_year: number
+  timeframe?: Timeframe
+}): Promise<Bln3MeasureAdviceResult> {
+  try {
+    const nmiApiKey = getNmiApiKey()
+    const inputs = await collectInputForBln3MeasureApplicability(
+      fdm,
+      principal_id,
+      b_id,
+      b_year,
+      timeframe,
+    )
+    return await getBln3MeasureAdvice(fdm, {
+      ...inputs,
+      nmiApiKey,
+    })
+  } catch (err) {
+    console.error(
+      `BLN3 measure advice failed for field ${b_id}:`,
+      err instanceof Error ? err.message : String(err),
+    )
+    return EMPTY_ADVICE
+  }
+}
+
+/**
+ * Fetches BLN3 measure advice for multiple fields in parallel using bounded batches.
+ *
+ * Uses `Promise.allSettled` in batches of 5 (matching `getMeasureApplicabilityForFields`)
+ * so a farm-level page never fires 50+ concurrent NMI requests, and an individual
+ * field's failure returns an empty advice result for that field rather than failing
+ * the whole request.
+ *
+ * @returns A record mapping `b_id` to a `Bln3MeasureAdviceResult`.
+ */
+export async function getMeasureAdviceForFields({
+  principal_id,
+  b_ids,
+  b_year,
+  timeframe,
+}: {
+  principal_id: PrincipalId
+  b_ids: string[]
+  b_year: number
+  timeframe?: Timeframe
+}): Promise<Record<string, Bln3MeasureAdviceResult>> {
+  const BATCH_SIZE = 5
+  const results = await mapInBatches(b_ids, BATCH_SIZE, (b_id) =>
+    getMeasureAdviceForField({
+      principal_id,
+      b_id,
+      b_year,
+      timeframe,
+    }),
+  )
+
+  const fieldAdviceMap: Record<string, Bln3MeasureAdviceResult> = {}
+
+  results.forEach((result, index) => {
+    const b_id = b_ids[index]
+    if (result.status === "fulfilled") {
+      fieldAdviceMap[b_id] = result.value
+    } else {
+      console.error(
+        `BLN3 measure advice failed for field ${b_id}:`,
+        result.reason instanceof Error ? result.reason.message : String(result.reason),
+      )
+      fieldAdviceMap[b_id] = EMPTY_ADVICE
+    }
+  })
+
+  return fieldAdviceMap
+}
+
+/**
+ * A measure recommended for a specific field/indicator combination, already
+ * cross-referenced against a fresh applicability check and the field's
+ * active measures. Used to build farm-level "where to start" panels
+ * (`indicators._index`'s "Waar te beginnen", `measures._index`'s
+ * "Aanbevolen volgende stappen").
+ */
+export type FarmMeasureRecommendation = {
+  b_id: string
+  indicator_id: string
+  m_id: string
+  m_name: string
+  measure_impact: number
+}
+
+/**
+ * A measure recommended for a field, aggregated across the field's currently
+ * weak (non-green) indicators. `aggregateImpact` sums `measure_impact` across
+ * those indicators — valid because `measure_impact` uses a consistent unit
+ * across indicators (confirmed with NMI), so no normalization is required.
+ */
+export type FieldTopOpportunity = {
+  m_id: string
+  /** Indicators this measure would help on this field, with their impact */
+  indicatorImpacts: { indicator_id: string; measure_impact: number }[]
+  /** Sum of measure_impact across the field's currently weak (non-green) indicators */
+  aggregateImpact: number
+}
+
+/**
+ * Derives a ranked list of recommended measures for a field from raw BLN3
+ * measure advice, cross-referenced against the field's current score and a
+ * fresh applicability check.
+ *
+ * Steps:
+ * 1. Keep only indicators that are not green (`getScoreTier` !== "green").
+ * 2. Drop any `m_id` that is not `"applicable"` per `applicability` — the
+ *    advice endpoint's own list must never be trusted as pre-filtered for
+ *    applicability — and drop measures already in `activeMeasureIds`.
+ * 3. Group remaining entries by `m_id`, summing `measure_impact` across the
+ *    field's weak indicators.
+ * 4. Sort descending by `aggregateImpact`.
+ *
+ * This is a pure function (no NMI call) so it can be reused both for a
+ * single field's "best next measure" view and, area-weighted across fields,
+ * for farm-level aggregations.
+ */
+export function getTopOpportunitiesForField({
+  advice,
+  score,
+  applicability,
+  activeMeasureIds,
+}: {
+  advice: Bln3MeasureAdviceResult
+  score: Bln3Score | null
+  applicability: Record<string, MeasureApplicabilityInfo>
+  activeMeasureIds: Set<string>
+}): FieldTopOpportunity[] {
+  const weakIndicatorIds = new Set(
+    (score?.indicators ?? [])
+      .filter((ind) => getScoreTier(scoreToDisplay(ind.score)) !== "green")
+      .map((ind) => ind.indicator_id),
+  )
+
+  const byMeasure = new Map<string, FieldTopOpportunity>()
+
+  for (const indicatorAdvice of advice.indicator_advice) {
+    if (!weakIndicatorIds.has(indicatorAdvice.indicator)) continue
+
+    for (const candidate of indicatorAdvice.measures) {
+      if (activeMeasureIds.has(candidate.m_id)) continue
+      if (applicability[candidate.m_id]?.applicability !== "applicable") continue
+
+      const existing = byMeasure.get(candidate.m_id)
+      if (existing) {
+        existing.aggregateImpact += candidate.measure_impact
+        existing.indicatorImpacts.push({
+          indicator_id: indicatorAdvice.indicator,
+          measure_impact: candidate.measure_impact,
+        })
+      } else {
+        byMeasure.set(candidate.m_id, {
+          m_id: candidate.m_id,
+          aggregateImpact: candidate.measure_impact,
+          indicatorImpacts: [
+            {
+              indicator_id: indicatorAdvice.indicator,
+              measure_impact: candidate.measure_impact,
+            },
+          ],
+        })
+      }
+    }
+  }
+
+  return [...byMeasure.values()].sort((a, b) => b.aggregateImpact - a.aggregateImpact)
 }

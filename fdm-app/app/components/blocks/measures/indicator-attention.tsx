@@ -33,7 +33,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 type IndicatorAttentionProps = {
   indicators: Bln3IndicatorResult[]
-  onAddMeasure: () => void
+  onAddMeasure: (indicator_id?: string) => void
   indicatorsHref: string
   canAddMeasure?: boolean
 }
@@ -131,6 +131,17 @@ export function IndicatorAttention({
                 </span>
               </div>
               <ScoreBadge score={display} className="shrink-0" />
+              {canAddMeasure && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0"
+                  title={`Maatregel toevoegen voor ${info.name}`}
+                  onClick={() => onAddMeasure(result.indicator_id)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           ))}
 
@@ -138,7 +149,7 @@ export function IndicatorAttention({
             <Button
               size="sm"
               variant="outline"
-              onClick={onAddMeasure}
+              onClick={() => onAddMeasure()}
               className={cn(!canAddMeasure && "invisible")}
               disabled={!canAddMeasure}
             >

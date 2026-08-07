@@ -8,16 +8,20 @@ import {
   getFields,
   getMeasuresForFarm,
   getMeasuresFromCatalogue,
+  type PrincipalId,
   removeMeasure,
+  type Timeframe,
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import { ClipboardList } from "lucide-react"
+import { ClipboardList, Sparkles } from "lucide-react"
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
+  Await,
   data,
+  Link,
   type LoaderFunctionArgs,
   type MetaFunction,
   useFetcher,
@@ -52,7 +56,13 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
-import { getMeasureApplicabilityForFields } from "~/integrations/bln3.server"
+import { Spinner } from "~/components/ui/spinner"
+import {
+  getIndicatorsForFarm,
+  getMeasureAdviceForFields,
+  getMeasureApplicabilityForFields,
+  getTopOpportunitiesForField,
+} from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -60,8 +70,91 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { INDICATORS } from "~/lib/indicators"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
+
+/** A ranked measure × field recommendation for the farm-wide "Aanbevolen
+ * maatregelen" card, derived from `getTopOpportunitiesForField` run per
+ * field then flattened across the farm — deliberately cross-field and
+ * cross-indicator, matching this route's "whole farm" framing. */
+type FarmNextStep = {
+  b_id: string
+  b_name: string | null
+  m_id: string
+  m_name: string
+  indicatorName: string
+  aggregateImpact: number
+}
+
+/**
+ * Fetches BLN3 score, applicability, and advice for every farm field and
+ * derives ranked measure × field recommendations. Deliberately not awaited
+ * by the loader — consumed lazily via `<Await>`/`<Suspense>` so this
+ * potentially-slow batched fetch never blocks the rest of the page.
+ */
+async function getFarmNextSteps({
+  principal_id,
+  b_id_farm,
+  fields,
+  b_year,
+  timeframe,
+  measuresMap,
+  catalogue,
+}: {
+  principal_id: PrincipalId
+  b_id_farm: string
+  fields: { b_id: string; b_name: string | null }[]
+  b_year: number
+  timeframe?: Timeframe
+  measuresMap: Map<string, { m_id: string }[]>
+  catalogue: { m_id: string; m_name: string }[]
+}): Promise<FarmNextStep[]> {
+  const b_ids = fields.map((f) => f.b_id)
+
+  const [scores, applicabilityByField, adviceByField] = await Promise.all([
+    getIndicatorsForFarm({ principal_id, b_id_farm, timeframe }),
+    getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
+    getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
+  ])
+
+  const measureNameById = new Map(catalogue.map((m) => [m.m_id, m.m_name]))
+  const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
+  const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
+  const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
+
+  const steps: FarmNextStep[] = []
+
+  for (const b_id of b_ids) {
+    const activeMeasureIds = new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))
+    const opportunities = getTopOpportunitiesForField({
+      advice: adviceByField[b_id] ?? { indicator_advice: [] },
+      score: scoreByBid.get(b_id) ?? null,
+      applicability: applicabilityByField[b_id] ?? {},
+      activeMeasureIds,
+    })
+    const top = opportunities[0]
+    if (!top) continue
+
+    const topIndicatorId = [...top.indicatorImpacts].sort(
+      (a, b) => b.measure_impact - a.measure_impact,
+    )[0]?.indicator_id
+
+    steps.push({
+      b_id,
+      b_name: fieldNameByBid.get(b_id) ?? null,
+      m_id: top.m_id,
+      m_name: measureNameById.get(top.m_id) ?? top.m_id.replace("bln_", ""),
+      indicatorName: topIndicatorId
+        ? (indicatorNameById.get(topIndicatorId) ?? topIndicatorId)
+        : "",
+      aggregateImpact: top.aggregateImpact,
+    })
+  }
+
+  return steps.sort((a, b) => b.aggregateImpact - a.aggregateImpact).slice(0, 5)
+}
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -105,17 +198,30 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ])
 
     const calendarYear = Number(calendar)
+    const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
     const fieldIds = fields.map((f) => f.b_id)
 
     const [applicabilityByField, fieldCultivations] = await Promise.all([
       getMeasureApplicabilityForFields({
         principal_id: session.principal_id,
         b_ids: fieldIds,
-        b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+        b_year,
         timeframe,
       }).catch(() => ({})),
       Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
     ])
+
+    // Lazy, batched farm-wide advice fetch for the "Aanbevolen
+    // maatregelen" card — not awaited so it never blocks the rest of the page.
+    const farmNextStepsPromise = getFarmNextSteps({
+      principal_id: session.principal_id,
+      b_id_farm,
+      fields: fields.map((f) => ({ b_id: f.b_id, b_name: f.b_name ?? null })),
+      b_year,
+      timeframe,
+      measuresMap,
+      catalogue,
+    })
     const fieldList = fields.map((f, i) => {
       const cultivations = fieldCultivations[i]
       const main = getMainCultivation(cultivations, calendar) ?? null
@@ -234,6 +340,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         totalMeasures,
         fieldsWithMeasures,
         fieldsWithoutMeasures,
+      },
+      asyncInsights: {
+        farmNextSteps: farmNextStepsPromise,
       },
     }
   } catch (error) {
@@ -509,6 +618,7 @@ export default function MeasuresFarmIndex() {
     fieldSummaries,
     applicabilityByField,
     farmWritePermission,
+    asyncInsights,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/measures`
@@ -616,6 +726,54 @@ export default function MeasuresFarmIndex() {
               </div>
             </div>
           )}
+
+          {/* Recommended measures: top measure × field opportunities ranked
+              across the whole farm, lazily loaded so this potentially-slow
+              batched NMI fetch never blocks the rest of the page. */}
+          <Suspense
+            fallback={
+              <div className="bg-muted/20 flex items-center gap-2 rounded-lg border p-4 text-sm">
+                <Spinner className="text-muted-foreground h-4 w-4" />
+                <span className="text-muted-foreground">
+                  Aanbevolen maatregelen worden berekend…
+                </span>
+              </div>
+            }
+          >
+            <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
+              {(steps) =>
+                steps.length > 0 && (
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/10">
+                    <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                      <Sparkles className="h-4 w-4" />
+                      Aanbevolen maatregelen
+                    </p>
+                    <ul className="space-y-1.5">
+                      {steps.map((step) => (
+                        <li key={`${step.b_id}-${step.m_id}`} className="text-sm">
+                          <Link
+                            to={`${basePath}/${step.b_id}`}
+                            className="text-foreground hover:text-primary font-medium transition-colors hover:underline"
+                          >
+                            <span className="text-muted-foreground mr-1.5 font-mono text-xs">
+                              {step.m_id.replace("bln_", "")}
+                            </span>
+                            {step.m_name} op {step.b_name ?? step.b_id}
+                          </Link>
+                          {step.indicatorName && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              — grootste verwachte verbetering voor {step.indicatorName}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )
+              }
+            </Await>
+          </Suspense>
 
           <div className="flex flex-col items-start gap-6 xl:flex-row">
             <div className="min-w-0 flex-1">{tableOrEmpty}</div>

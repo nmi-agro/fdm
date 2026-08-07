@@ -28,6 +28,7 @@ import {
   useNavigate,
   useNavigation,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -56,7 +57,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/u
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { getIndicatorsForField, getMeasureApplicabilityForField } from "~/integrations/bln3.server"
+import {
+  getIndicatorsForField,
+  getMeasureAdviceForField,
+  getMeasureApplicabilityForField,
+  getTopOpportunitiesForField,
+} from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -103,6 +109,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const timeframe = getTimeframe(params)
     const calendarYear = Number(calendar)
 
+    const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
+
     const [
       field,
       fields,
@@ -112,6 +120,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       cultivations,
       bln3Result,
       applicabilityMap,
+      advice,
       fieldWritePermission,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
@@ -128,7 +137,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getMeasureApplicabilityForField({
         principal_id: session.principal_id,
         b_id,
-        b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+        b_year,
         timeframe,
       }).catch((err) => {
         console.error(
@@ -136,6 +145,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           err instanceof Error ? err.message : String(err),
         )
         return null
+      }),
+      getMeasureAdviceForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year,
+        timeframe,
       }),
       checkPermission(
         fdm,
@@ -191,6 +206,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       features: selectedFeature ? [selectedFeature] : [],
     }
 
+    // Compute ranked measure recommendations for this field, cross-referenced
+    // against current score, fresh applicability, and already-active measures.
+    const activeMeasureIds = new Set(measures.map((m) => m.m_id))
+    const topOpportunities = getTopOpportunitiesForField({
+      advice,
+      score: bln3Result?.score ?? null,
+      applicability: applicabilityMap ?? {},
+      activeMeasureIds,
+    })
+
     return {
       field,
       fieldWritePermission,
@@ -207,6 +232,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })),
       fieldScore: bln3Result?.score ?? null,
       applicabilityMap,
+      topOpportunities,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -498,16 +524,47 @@ export default function MeasuresFieldDetail() {
     calendarYearStart,
     fieldScore,
     applicabilityMap,
+    topOpportunities,
     fieldWritePermission,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
   const navigation = useNavigation()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [focusIndicatorId, setFocusIndicatorId] = useState<string | undefined>(undefined)
+  const [initialMeasureId, setInitialMeasureId] = useState<string | undefined>(undefined)
   const [editingMeasure, setEditingMeasure] = useState<EditingMeasure | null>(null)
   const [closingMeasure, setClosingMeasure] = useState<EditingMeasure | null>(null)
 
   const indicatorsHref = `/farm/${b_id_farm}/${calendar}/indicators/${b_id}`
+
+  const handleOpenAddMeasure = (indicator_id?: string) => {
+    setFocusIndicatorId(indicator_id)
+    setInitialMeasureId(undefined)
+    setDialogOpen(true)
+  }
+
+  // Deep-link support: opening this page with ?openMeasure=<m_id>&indicator=<id>
+  // (e.g. from the Indicatoren page's "+ Toevoegen" quick action) auto-opens
+  // the dialog pre-selected on that measure, then clears the query params.
+  useEffect(() => {
+    const openMeasure = searchParams.get("openMeasure")
+    if (!openMeasure) return
+    setInitialMeasureId(openMeasure)
+    setFocusIndicatorId(searchParams.get("indicator") ?? undefined)
+    setDialogOpen(true)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete("openMeasure")
+        next.delete("indicator")
+        return next
+      },
+      { replace: true },
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   return (
     <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">
@@ -525,7 +582,7 @@ export default function MeasuresFieldDetail() {
         </div>
         {fieldWritePermission && (
           <div className="flex shrink-0 items-center gap-2">
-            <Button onClick={() => setDialogOpen(true)} size="sm">
+            <Button onClick={() => handleOpenAddMeasure()} size="sm">
               <Plus className="mr-1 h-4 w-4" />
               Toevoegen
             </Button>
@@ -542,7 +599,7 @@ export default function MeasuresFieldDetail() {
       {fieldScore && fieldScore.indicators.length > 0 && (
         <IndicatorAttention
           indicators={fieldScore.indicators}
-          onAddMeasure={() => setDialogOpen(true)}
+          onAddMeasure={handleOpenAddMeasure}
           indicatorsHref={indicatorsHref}
           canAddMeasure={fieldWritePermission}
         />
@@ -690,12 +747,21 @@ export default function MeasuresFieldDetail() {
       {/* Add Measure dialog */}
       <AddMeasureDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(next) => {
+          setDialogOpen(next)
+          if (!next) {
+            setFocusIndicatorId(undefined)
+            setInitialMeasureId(undefined)
+          }
+        }}
         catalogue={catalogue}
         activeMeasures={measures}
         calendarYearStart={calendarYearStart}
         harvestDate={harvestDate}
         applicabilityMap={applicabilityMap ?? undefined}
+        topOpportunities={topOpportunities}
+        focusIndicatorId={focusIndicatorId}
+        initialMeasureId={initialMeasureId}
       />
 
       {/* Edit Measure dialog */}
