@@ -11,6 +11,18 @@
  * @packageDocumentation
  */
 
+export { getAnimalCategoriesCatalogue, getAnimalCategoryCatalogue } from "./animal-categories"
+export type {
+  AnimalCategorySex,
+  AnimalCategorySpecies,
+  CatalogueAnimalCategorySource,
+  CatalogueAnimalCategories,
+  CatalogueAnimalCategoriesName,
+  CatalogueAnimalCategory,
+  CatalogueAnimalCategoryItem,
+  CatalogueAnimalCategoryName,
+} from "./animal-categories/d"
+export { hashAnimalCategory } from "./animal-categories/hash"
 export { getCultivationCatalogue } from "./cultivations"
 export type {
   CatalogueCultivation,
