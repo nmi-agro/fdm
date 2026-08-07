@@ -68,6 +68,7 @@ const ALLOWLIST = {
     "fdm.measures_catalogue.hash": "content hash used to detect fdm-data catalogue changes",
     "fdm.animal_categories_catalogue.hash":
       "content hash used to detect fdm-data catalogue changes",
+    "fdm.feeds_catalogue.hash": "content hash used to detect fdm-data catalogue changes",
   },
 }
 
