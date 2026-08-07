@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.35.1
+
+### Patch Changes
+
+- [#738](https://github.com/nmi-agro/fdm/pull/738) [`4e30cdb`](https://github.com/nmi-agro/fdm/commit/4e30cdbab27e8c49cbdae2ad15030ff9d4d1874d) Thanks [@SvenVw](https://github.com/SvenVw)! - Restore the card that lets new users create a farm on the initial signed-in screen.
+
 ## 0.35.0
 
 ### Minor Changes
