@@ -77,14 +77,20 @@ export { calcPhDelta } from "./bcs/ph-delta"
 export {
   collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
+  getBln3MeasureAdvice,
   getBln3MeasureApplicability,
   getBln3Score,
+  requestBln3MeasureAdvice,
   requestBln3MeasureApplicability,
   requestBln3Score,
 } from "./bln3"
 export type {
   Bln3AggregationResult,
+  Bln3IndicatorAdvice,
+  Bln3IndicatorMeasureAdvice,
   Bln3IndicatorResult,
+  Bln3MeasureAdviceInputs,
+  Bln3MeasureAdviceResult,
   Bln3MeasureApplicabilityCollectedInputs,
   Bln3MeasureApplicabilityInputs,
   Bln3MeasureApplicabilityItem,
