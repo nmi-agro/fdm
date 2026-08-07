@@ -282,7 +282,7 @@ export default function AppIndex() {
       </Header>
       <main className="flex flex-1 flex-col">
         {loaderData.farms.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center p-6 md:p-10">
+          <div className="flex flex-1 flex-col items-center justify-center p-6 md:p-10">
             <div className="mx-auto flex w-full max-w-212.5 flex-col items-center space-y-8 text-center">
               <div className="space-y-4">
                 <h1 className="text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-6xl">
@@ -315,62 +315,137 @@ export default function AppIndex() {
                 </div>
               )}
 
-              <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
-                <NavLink
-                  to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/fields`}
-                  className="flex h-full flex-col"
-                >
-                  <CardHeader className="pb-4">
-                    <div
-                      aria-hidden="true"
-                      className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
-                    >
-                      <MapIcon className="h-7 w-7" />
-                    </div>
-                    <CardTitle className="text-left text-2xl">Atlas verkennen</CardTitle>
-                    <CardDescription className="text-left text-base">
-                      Verken openbare kaartdata over percelen, bodem en hoogte in Nederland — geen
-                      bedrijf nodig.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground grow text-left text-sm">
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span>
-                          <b>Percelen:</b> Gewashistorie en ruimtelijke kenmerken van alle percelen
-                          in Nederland.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span>
-                          <b>Hoogtekaart:</b> AHN4-data voor inzicht in het microreliëf van uw
-                          percelen.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <Check className="text-primary mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-                        <span>
-                          <b>Bodemkaart:</b> Bodemtype en grondwatertrappen op perceel niveau.
-                        </span>
-                      </li>
-                    </ul>
-                  </CardContent>
-                  <CardFooter className="pt-2">
-                    <span
-                      className={buttonVariants({
-                        variant: "outline",
-                        size: "lg",
-                        className: "w-full",
-                      })}
-                      aria-hidden="true"
-                    >
-                      Verken de Atlas
-                    </span>
-                  </CardFooter>
-                </NavLink>
-              </Card>
+              <div className="grid w-full gap-6 sm:grid-cols-2">
+                <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
+                  <NavLink to="/farm/create" className="flex h-full flex-col">
+                    <CardHeader className="pb-4">
+                      <div
+                        aria-hidden="true"
+                        className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
+                      >
+                        <Plus className="h-7 w-7" />
+                      </div>
+                      <CardTitle className="text-left text-2xl">Bedrijf aanmaken</CardTitle>
+                      <CardDescription className="text-left text-base">
+                        Beheer uw percelen en bereken bemestingsadviezen conform de actuele
+                        gebruiksnormen.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-muted-foreground grow text-left text-sm">
+                      <ul className="space-y-3">
+                        <li className="flex items-start gap-3">
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <b>Balansen:</b> Inzicht in stikstof- en organische stofbalansen voor
+                            effectieve doelsturing.
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <b>Bemestingsadvies:</b> Adviezen op basis van bodemanalyse en
+                            gewasbehoefte.
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <b>Gebruiksruimte:</b> Houd uw gebruiksruimte voor stikstof, dierlijke
+                            mest en fosfaat in de gaten.
+                          </span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                    <CardFooter className="pt-2">
+                      <span
+                        className={buttonVariants({
+                          size: "lg",
+                          className: "w-full",
+                        })}
+                        aria-hidden="true"
+                      >
+                        Maak een bedrijf aan
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </span>
+                    </CardFooter>
+                  </NavLink>
+                </Card>
+
+                <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
+                  <NavLink
+                    to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/fields`}
+                    className="flex h-full flex-col"
+                  >
+                    <CardHeader className="pb-4">
+                      <div
+                        aria-hidden="true"
+                        className="bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-left transition-colors"
+                      >
+                        <MapIcon className="h-7 w-7" />
+                      </div>
+                      <CardTitle className="text-left text-2xl">Atlas verkennen</CardTitle>
+                      <CardDescription className="text-left text-base">
+                        Verken openbare kaartdata over percelen, bodem en hoogte in Nederland. Dit
+                        kan ook zonder een bedrijf aan te maken.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-muted-foreground grow text-left text-sm">
+                      <ul className="space-y-3">
+                        <li className="flex items-start gap-3">
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <b>Percelen:</b> Gewashistorie en ruimtelijke kenmerken van alle
+                            percelen in Nederland.
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <b>Hoogtekaart:</b> AHN4-data voor inzicht in het microreliëf van uw
+                            percelen.
+                          </span>
+                        </li>
+                        <li className="flex items-start gap-3">
+                          <Check
+                            className="text-primary mt-1 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span>
+                            <b>Bodemkaart:</b> Bodemtype en grondwatertrappen op perceel niveau.
+                          </span>
+                        </li>
+                      </ul>
+                    </CardContent>
+                    <CardFooter className="pt-2">
+                      <span
+                        className={buttonVariants({
+                          variant: "outline",
+                          size: "lg",
+                          className: "w-full",
+                        })}
+                        aria-hidden="true"
+                      >
+                        Verken de Atlas
+                      </span>
+                    </CardFooter>
+                  </NavLink>
+                </Card>
+              </div>
             </div>
 
             <SupportNote />
@@ -569,7 +644,7 @@ export default function AppIndex() {
                     </Button>
                   </div>
                   <p className="text-muted-foreground text-center text-sm">
-                    Of vraagt u een organisatie om u uit te nodigen.
+                    Of vraag een organisatie om u uit te nodigen.
                   </p>
                 </div>
               </>
