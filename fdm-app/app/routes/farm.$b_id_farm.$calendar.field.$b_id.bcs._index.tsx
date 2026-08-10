@@ -40,7 +40,7 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
-import { deriveBcsScores } from "~/lib/bcs-derived.server"
+import { deriveBcsContextFromRawInputs, fetchBcsRawInputs } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -102,20 +102,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       field,
       fieldWritePermission,
-      assessments: await Promise.all(
-        bcsAnalyses.map(async (analysis) => {
-          const { labContext } = await deriveBcsScores(
-            fdm,
-            session.principal_id,
-            b_id,
-            new Date(analysis.b_sampling_date ?? analysis.a_date ?? new Date()),
-          )
-          return {
-            analysis,
-            computed: computeBcs(analysis as BcsScores, labContext ?? undefined),
-          }
-        }),
-      ),
+      assessments:
+        bcsAnalyses.length === 0
+          ? []
+          : await (async () => {
+              const rawInputs = await fetchBcsRawInputs(fdm, session.principal_id, b_id)
+              return bcsAnalyses.map((analysis) => {
+                const { labContext } = deriveBcsContextFromRawInputs(
+                  rawInputs,
+                  new Date(analysis.b_sampling_date ?? analysis.a_date ?? new Date()),
+                )
+                return {
+                  analysis,
+                  computed: computeBcs(analysis as BcsScores, labContext ?? undefined),
+                }
+              })
+            })(),
     }
   } catch (error) {
     throw handleLoaderError(error)
