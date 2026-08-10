@@ -4,6 +4,7 @@ import {
   BCS_SCORE_DOT,
   type BcsColor,
   type BcsScores,
+  formatIndicatorScore,
   indicatorScoreColor,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { Badge } from "~/components/ui/badge"
@@ -91,7 +92,7 @@ export function BcsScoreCard({
                 <div className="text-muted-foreground text-sm">Weging x{indicator.weight}</div>
               </div>
               <div className="text-muted-foreground text-sm font-medium">
-                {score == null ? "Onbekend" : `Score ${score}`}
+                {score == null ? "Onbekend" : `Score ${formatIndicatorScore(score, indicator.direction)}`}
               </div>
               <div className="flex items-center justify-end gap-2">
                 <span
