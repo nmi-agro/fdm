@@ -66,6 +66,7 @@ import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getFieldAggregationScore } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
+import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -485,11 +486,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       )[0]
 
     const bcsSummary = latestBcsAnalysis
-      ? {
-          scores: latestBcsAnalysis,
-          ...computeBcs(latestBcsAnalysis),
-          measuredAt: toIsoString(latestBcsAnalysis.b_sampling_date ?? latestBcsAnalysis.a_date),
-        }
+      ? await (async () => {
+          const { labContext } = await deriveBcsScores(
+            fdm,
+            session.principal_id,
+            b_id,
+            new Date(latestBcsAnalysis.b_sampling_date ?? latestBcsAnalysis.a_date ?? new Date()),
+          )
+          return {
+            scores: latestBcsAnalysis,
+            ...computeBcs(latestBcsAnalysis, labContext ?? undefined),
+            measuredAt: toIsoString(latestBcsAnalysis.b_sampling_date ?? latestBcsAnalysis.a_date),
+          }
+        })()
       : null
 
     const cultivationHistoryPromise = (async (): Promise<
