@@ -227,13 +227,9 @@ describe("runStreamAgent", () => {
     expect(chainEnd.data.result).toBe("")
   })
 
-  it("should use posthog callbacks when provided and require succeeds", async () => {
-    // posthog.client is present but require('@posthog/ai/langchain') will throw
-    // in the test environment — the catch branch returns undefined, which is still
-    // the defined behaviour when the optional dep is absent.
+  it("should use posthog callbacks when provided", async () => {
     const posthog = { client: { capture: () => {} }, distinctId: "user-1" }
     const agent = makeAgent([])
-    // Should not throw — buildCallbacks degrades gracefully
     const events = await collect(runStreamAgent(agent, "test", { b_id_farm: "f1" }, posthog))
     expect(events[0].event).toBe("on_chain_end")
   })
