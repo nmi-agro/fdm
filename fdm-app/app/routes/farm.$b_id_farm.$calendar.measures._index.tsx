@@ -126,33 +126,141 @@ async function getFarmNextSteps({
   const steps: FarmNextStep[] = []
 
   for (const b_id of b_ids) {
+    const advice = adviceByField[b_id]
+    if (!advice) continue // advice fetch failed for this field — skip, never fake-empty
+
     const activeMeasureIds = new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))
     const opportunities = getTopOpportunitiesForField({
-      advice: adviceByField[b_id] ?? { indicator_advice: [] },
+      advice,
       score: scoreByBid.get(b_id) ?? null,
       applicability: applicabilityByField[b_id] ?? {},
       activeMeasureIds,
     })
-    const top = opportunities[0]
-    if (!top) continue
 
-    const topIndicatorId = [...top.indicatorImpacts].sort(
-      (a, b) => b.measure_impact - a.measure_impact,
-    )[0]?.indicator_id
+    // All opportunities per field, not just the top one — grouping by
+    // measure happens in the component, so a field's #2 measure can still
+    // contribute to a farm-wide measure group.
+    for (const opportunity of opportunities) {
+      const topIndicatorId = [...opportunity.indicatorImpacts].sort(
+        (a, b) => b.measure_impact - a.measure_impact,
+      )[0]?.indicator_id
 
-    steps.push({
-      b_id,
-      b_name: fieldNameByBid.get(b_id) ?? null,
-      m_id: top.m_id,
-      m_name: measureNameById.get(top.m_id) ?? top.m_id.replace("bln_", ""),
-      indicatorName: topIndicatorId
-        ? (indicatorNameById.get(topIndicatorId) ?? topIndicatorId)
-        : "",
-      aggregateImpact: top.aggregateImpact,
-    })
+      steps.push({
+        b_id,
+        b_name: fieldNameByBid.get(b_id) ?? null,
+        m_id: opportunity.m_id,
+        m_name: measureNameById.get(opportunity.m_id) ?? opportunity.m_id.replace("bln_", ""),
+        indicatorName: topIndicatorId
+          ? (indicatorNameById.get(topIndicatorId) ?? topIndicatorId)
+          : "",
+        aggregateImpact: opportunity.aggregateImpact,
+      })
+    }
   }
 
-  return steps.sort((a, b) => b.aggregateImpact - a.aggregateImpact).slice(0, 5)
+  return steps.sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+}
+
+/** Groups farm-wide measure × field recommendations by measure — one row per
+ * measure with its fields as compact links, ranked by summed impact — instead
+ * of one long row per field repeating the same measure name. */
+function GroupedRecommendations({ steps, basePath }: { steps: FarmNextStep[]; basePath: string }) {
+  const [expanded, setExpanded] = useState(false)
+
+  const groups = useMemo(() => {
+    const byMeasure = new Map<
+      string,
+      {
+        m_name: string
+        indicatorNames: string[]
+        fields: { b_id: string; b_name: string | null; aggregateImpact: number }[]
+        totalImpact: number
+      }
+    >()
+    for (const step of steps) {
+      const existing = byMeasure.get(step.m_id) ?? {
+        m_name: step.m_name,
+        indicatorNames: [],
+        fields: [],
+        totalImpact: 0,
+      }
+      if (step.indicatorName && !existing.indicatorNames.includes(step.indicatorName)) {
+        existing.indicatorNames.push(step.indicatorName)
+      }
+      existing.fields.push({
+        b_id: step.b_id,
+        b_name: step.b_name,
+        aggregateImpact: step.aggregateImpact,
+      })
+      existing.totalImpact += step.aggregateImpact
+      byMeasure.set(step.m_id, existing)
+    }
+    return [...byMeasure.entries()]
+      .map(([m_id, g]) => ({
+        m_id,
+        ...g,
+        fields: g.fields.sort((a, b) => b.aggregateImpact - a.aggregateImpact),
+      }))
+      .sort((a, b) => b.totalImpact - a.totalImpact)
+  }, [steps])
+
+  const visible = expanded ? groups : groups.slice(0, 3)
+
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/10">
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+        <Sparkles className="h-4 w-4" />
+        Aanbevolen maatregelen
+      </p>
+      <ul className="space-y-3">
+        {visible.map((group, index) => (
+          <li key={group.m_id} className="text-sm">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <span className="text-muted-foreground font-mono text-xs">
+                {group.m_id.replace("bln_", "")}
+              </span>
+              <span className="font-medium">{group.m_name}</span>
+              {index === 0 && (
+                <span className="text-muted-foreground text-xs">
+                  — grootste verwachte verbetering
+                </span>
+              )}
+            </div>
+            {group.indicatorNames.length > 0 && (
+              <p className="text-muted-foreground text-xs">
+                Verbetert vooral: {group.indicatorNames.slice(0, 2).join(", ")}
+              </p>
+            )}
+            <p className="mt-0.5 text-xs">
+              {group.fields.slice(0, 4).map((field, i) => (
+                <span key={field.b_id}>
+                  {i > 0 && <span className="text-muted-foreground"> · </span>}
+                  <Link
+                    to={`${basePath}/${field.b_id}`}
+                    className="text-foreground hover:text-primary transition-colors hover:underline"
+                  >
+                    {field.b_name ?? "Perceel"}
+                  </Link>
+                </span>
+              ))}
+              {group.fields.length > 4 && (
+                <span className="text-muted-foreground"> +{group.fields.length - 4}</span>
+              )}
+            </p>
+          </li>
+        ))}
+      </ul>
+      {groups.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="text-muted-foreground hover:text-foreground mt-2 text-xs transition-colors"
+        >
+          {expanded ? "Toon minder" : `Toon alle ${groups.length} maatregelen`}
+        </button>
+      )}
+    </div>
+  )
 }
 
 export const meta: MetaFunction = () => {
@@ -727,56 +835,31 @@ export default function MeasuresFarmIndex() {
             </div>
           )}
 
-          {/* Recommended measures: top measure × field opportunities ranked
-              across the whole farm, lazily loaded so this potentially-slow
-              batched NMI fetch never blocks the rest of the page. */}
-          <Suspense
-            fallback={
-              <div className="bg-muted/20 flex items-center gap-2 rounded-lg border p-4 text-sm">
-                <Spinner className="text-muted-foreground h-4 w-4" />
-                <span className="text-muted-foreground">
-                  Aanbevolen maatregelen worden berekend…
-                </span>
-              </div>
-            }
-          >
-            <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
-              {(steps) =>
-                steps.length > 0 && (
-                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/10">
-                    <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                      <Sparkles className="h-4 w-4" />
-                      Aanbevolen maatregelen
-                    </p>
-                    <ul className="space-y-1.5">
-                      {steps.map((step) => (
-                        <li key={`${step.b_id}-${step.m_id}`} className="text-sm">
-                          <Link
-                            to={`${basePath}/${step.b_id}`}
-                            className="text-foreground hover:text-primary font-medium transition-colors hover:underline"
-                          >
-                            <span className="text-muted-foreground mr-1.5 font-mono text-xs">
-                              {step.m_id.replace("bln_", "")}
-                            </span>
-                            {step.m_name} op {step.b_name ?? step.b_id}
-                          </Link>
-                          {step.indicatorName && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              — grootste verwachte verbetering voor {step.indicatorName}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )
-              }
-            </Await>
-          </Suspense>
-
           <div className="flex flex-col items-start gap-6 xl:flex-row">
-            <div className="min-w-0 flex-1">{tableOrEmpty}</div>
+            <div className="min-w-0 flex-1 space-y-6">
+              {tableOrEmpty}
+
+              {/* Recommended measures, grouped by measure across the farm and
+                  lazily loaded so this potentially-slow batched NMI fetch never
+                  blocks the page. Placed below the table to use the empty space
+                  left of the (taller) map instead of a full-width banner. */}
+              <Suspense
+                fallback={
+                  <div className="bg-muted/20 flex items-center gap-2 rounded-lg border p-4 text-sm">
+                    <Spinner className="text-muted-foreground h-4 w-4" />
+                    <span className="text-muted-foreground">
+                      Aanbevolen maatregelen worden berekend…
+                    </span>
+                  </div>
+                }
+              >
+                <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
+                  {(steps: FarmNextStep[]) =>
+                    steps.length > 0 && <GroupedRecommendations steps={steps} basePath={basePath} />
+                  }
+                </Await>
+              </Suspense>
+            </div>
 
             <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
               <Suspense fallback={<div className="bg-muted h-80 animate-pulse rounded-lg" />}>

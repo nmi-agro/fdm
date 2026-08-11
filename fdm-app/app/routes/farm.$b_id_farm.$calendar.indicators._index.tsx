@@ -33,9 +33,12 @@ import { Switch } from "~/components/ui/switch"
 import { useAnalytics } from "~/hooks/use-analytics"
 import {
   type FarmMeasureRecommendation,
+  type FarmMeasureRecommendationsResult,
+  type FieldBln3Score,
   getIndicatorsForFarm,
   getMeasureAdviceForFields,
   getMeasureApplicabilityForFields,
+  getTopOpportunitiesForField,
 } from "~/integrations/bln3.server"
 import { type AggregationId, computeAreaWeightedAggregation } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
@@ -64,13 +67,15 @@ async function getFarmMeasureRecommendations({
   b_ids,
   b_year,
   timeframe,
+  fieldScores,
 }: {
   principal_id: PrincipalId
   b_id_farm: string
   b_ids: string[]
   b_year: number
   timeframe?: Timeframe
-}): Promise<FarmMeasureRecommendation[]> {
+  fieldScores: FieldBln3Score[]
+}): Promise<FarmMeasureRecommendationsResult> {
   const [applicabilityByField, adviceByField, measuresByField, catalogue] = await Promise.all([
     getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
     getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
@@ -79,30 +84,41 @@ async function getFarmMeasureRecommendations({
   ])
 
   const measureNameById = new Map(catalogue.map((m) => [m.m_id, m.m_name]))
+  const scoreByBid = new Map(fieldScores.map((s) => [s.b_id, s.score]))
   const recommendations: FarmMeasureRecommendation[] = []
+  let adviceAvailable = false
 
   for (const b_id of b_ids) {
-    const activeMeasureIds = new Set((measuresByField.get(b_id) ?? []).map((m) => m.m_id))
-    const applicability = applicabilityByField[b_id] ?? {}
     const advice = adviceByField[b_id]
-    if (!advice) continue
+    if (!advice) continue // advice fetch failed for this field — never treat as empty
 
-    for (const indicatorAdvice of advice.indicator_advice) {
-      for (const measure of indicatorAdvice.measures) {
-        if (activeMeasureIds.has(measure.m_id)) continue
-        if (applicability[measure.m_id]?.applicability !== "applicable") continue
+    adviceAvailable = true
+
+    // Same filtering as the field-level views: only the field's currently
+    // weak (non-green) indicators, only applicable measures, never measures
+    // already active on the field. One helper, one rule.
+    const opportunities = getTopOpportunitiesForField({
+      advice,
+      score: scoreByBid.get(b_id) ?? null,
+      applicability: applicabilityByField[b_id] ?? {},
+      activeMeasureIds: new Set((measuresByField.get(b_id) ?? []).map((m) => m.m_id)),
+    })
+
+    for (const opportunity of opportunities) {
+      const m_name = measureNameById.get(opportunity.m_id) ?? opportunity.m_id.replace("bln_", "")
+      for (const impact of opportunity.indicatorImpacts) {
         recommendations.push({
           b_id,
-          indicator_id: indicatorAdvice.indicator,
-          m_id: measure.m_id,
-          m_name: measureNameById.get(measure.m_id) ?? measure.m_id.replace("bln_", ""),
-          measure_impact: measure.measure_impact,
+          indicator_id: impact.indicator_id,
+          m_id: opportunity.m_id,
+          m_name,
+          measure_impact: impact.measure_impact,
         })
       }
     }
   }
 
-  return recommendations
+  return { recommendations, adviceAvailable }
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -137,12 +153,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Lazy, batched farm-wide advice fetch — not awaited so it never blocks
     // the rest of the page; resolved client-side via <Await>/<Suspense>.
+    // Note: the fetch starts in the loader even when the user never opens the
+    // "Indicatoren" pivot that displays it. Accepted trade-off: gating it
+    // behind the pivot would require a client-driven resource route; the
+    // results are cached by withCalculationCache, so repeat visits are cheap.
     const farmMeasureRecommendationsPromise = getFarmMeasureRecommendations({
       principal_id: session.principal_id,
       b_id_farm,
       b_ids: fields.map((f) => f.b_id),
       b_year,
       timeframe,
+      fieldScores,
     })
 
     return {

@@ -1,12 +1,15 @@
 import { AlertCircle, ArrowRight, CheckCircle2, CornerDownRight, Sparkles } from "lucide-react"
 import { Suspense, useMemo, useState } from "react"
 import { Await, Link } from "react-router"
+import type {
+  FarmMeasureRecommendation,
+  FarmMeasureRecommendationsResult,
+} from "~/integrations/bln3.server"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { ScrollArea } from "~/components/ui/scroll-area"
 import { Spinner } from "~/components/ui/spinner"
-import type { FarmMeasureRecommendation } from "~/integrations/bln3.server"
 import {
   type AggregationId,
   computeAreaWeightedAggregation,
@@ -36,8 +39,10 @@ type AggregationPainpointsProps = {
    * Lazily-resolved, farm-wide BLN3 measure recommendations (per field ×
    * indicator), used to power the "Waar te beginnen" panel when an indicator
    * is selected. Omitted on the organization overview (out of scope).
+   * When `adviceAvailable` is false (all advice fetches failed), the panel
+   * is hidden entirely rather than showing a false empty state.
    */
-  farmMeasureRecommendationsPromise?: Promise<FarmMeasureRecommendation[]>
+  farmMeasureRecommendationsPromise?: Promise<FarmMeasureRecommendationsResult>
 } & (
   | {
       basePath: string // e.g. /farm/123/2026/indicators
@@ -441,17 +446,21 @@ export function AggregationPainpoints({
         {leftMode === "indicators" && activeIndId && farmMeasureRecommendationsPromise && (
           <Suspense fallback={<RecommendationsLoadingPanel />}>
             <Await resolve={farmMeasureRecommendationsPromise} errorElement={null}>
-              {(recommendations) => (
-                <WhereToStartPanel
-                  recommendations={recommendations}
-                  activeIndId={activeIndId}
-                  activeIndName={activeIndName ?? activeIndId}
-                  fields={fields}
-                  domain={domain}
-                  basePath={basePath}
-                  basePathFormatter={basePathFormatter}
-                />
-              )}
+              {(result) =>
+                // Hide the panel entirely when every advice fetch failed —
+                // an unavailable recommendation must never look like "no
+                // recommendations exist for this indicator".
+                result.adviceAvailable ? (
+                  <WhereToStartPanel
+                    recommendations={result.recommendations}
+                    activeIndId={activeIndId}
+                    activeIndName={activeIndName ?? activeIndId}
+                    fields={fields}
+                    basePath={basePath}
+                    basePathFormatter={basePathFormatter}
+                  />
+                ) : null
+              }
             </Await>
           </Suspense>
         )}
@@ -477,7 +486,6 @@ type WhereToStartPanelProps = {
   activeIndId: string
   activeIndName: string
   fields: (FieldAreaInput & { b_name: string | null | undefined })[]
-  domain: "organization" | "farm"
   basePath?: string
   basePathFormatter?: (b_id: string) => string
 }
@@ -487,7 +495,6 @@ function WhereToStartPanel({
   activeIndId,
   activeIndName,
   fields,
-  domain,
   basePath,
   basePathFormatter,
 }: WhereToStartPanelProps) {
@@ -495,7 +502,7 @@ function WhereToStartPanel({
     const areaByBid = new Map(fields.map((f) => [f.b_id, f.b_area ?? 0]))
     const grouped = new Map<
       string,
-      { m_name: string; fieldIds: Set<string>; areaSum: number; weightedImpact: number }
+      { m_name: string; fieldIds: string[]; areaSum: number; weightedImpact: number }
     >()
 
     for (const rec of recommendations) {
@@ -503,12 +510,12 @@ function WhereToStartPanel({
       const area = areaByBid.get(rec.b_id) ?? 0
       const existing = grouped.get(rec.m_id) ?? {
         m_name: rec.m_name,
-        fieldIds: new Set<string>(),
+        fieldIds: [],
         areaSum: 0,
         weightedImpact: 0,
       }
-      if (!existing.fieldIds.has(rec.b_id)) {
-        existing.fieldIds.add(rec.b_id)
+      if (!existing.fieldIds.includes(rec.b_id)) {
+        existing.fieldIds.push(rec.b_id)
         existing.areaSum += area
       }
       existing.weightedImpact += rec.measure_impact * (area || 1)
@@ -519,9 +526,10 @@ function WhereToStartPanel({
       .map(([m_id, g]) => ({
         m_id,
         m_name: g.m_name,
-        fieldCount: g.fieldIds.size,
+        fieldIds: g.fieldIds,
+        fieldCount: g.fieldIds.length,
         area: g.areaSum,
-        topFieldId: [...g.fieldIds][0],
+        topFieldId: g.fieldIds[0],
         weightedImpact: g.weightedImpact,
       }))
       .sort((a, b) => b.weightedImpact - a.weightedImpact)
@@ -542,19 +550,25 @@ function WhereToStartPanel({
     )
   }
 
+  // Links land on the field's indicators page with ?indicator=<id> so the
+  // selected indicator's card — including its recommended measures — is
+  // expanded and scrolled into view on arrival.
+  const fieldHref = (b_id: string) =>
+    `${basePathFormatter ? basePathFormatter(b_id) : `${basePath}/${b_id}`}?indicator=${encodeURIComponent(activeIndId)}`
+
+  const nameByBid = new Map(fields.map((f) => [f.b_id, f.b_name ?? "Perceel"]))
+
   return (
     <div className="rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/10">
       <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
         <Sparkles className="h-3.5 w-3.5" />
         Waar te beginnen — {activeIndName}
       </p>
-      <ul className="mt-1.5 space-y-1">
-        {ranked.map((item) => (
+      <ul className="mt-1.5 space-y-1.5">
+        {ranked.map((item, index) => (
           <li key={item.m_id} className="text-xs">
             <Link
-              to={
-                basePathFormatter ? basePathFormatter(item.topFieldId) : `${basePath}/${item.topFieldId}`
-              }
+              to={fieldHref(item.topFieldId)}
               className="text-foreground hover:text-primary transition-colors hover:underline"
             >
               <span className="text-muted-foreground mr-1 font-mono">
@@ -564,10 +578,20 @@ function WhereToStartPanel({
             </Link>
             <span className="text-muted-foreground">
               {" "}
-              zou op {item.fieldCount} {item.fieldCount === 1 ? "perceel" : "percelen"}
-              {domain === "organization" ? "" : ` (${item.area.toFixed(1)} ha)`} de grootste
-              verbetering geven voor {activeIndName}.
+              — {index === 0 ? "grootste" : "grote"} verwachte verbetering op{" "}
             </span>
+            {item.fieldIds.slice(0, 3).map((b_id, i) => (
+              <span key={b_id}>
+                {i > 0 && <span className="text-muted-foreground"> · </span>}
+                <Link to={fieldHref(b_id)} className="hover:text-foreground hover:underline">
+                  {nameByBid.get(b_id)}
+                </Link>
+              </span>
+            ))}
+            {item.fieldCount > 3 && (
+              <span className="text-muted-foreground"> +{item.fieldCount - 3}</span>
+            )}
+            <span className="text-muted-foreground"> ({item.area.toFixed(1)} ha)</span>
           </li>
         ))}
       </ul>

@@ -115,6 +115,13 @@ type AddMeasureDialogProps = {
    * blocked. Used for quick-add actions from recommendation cards.
    */
   initialMeasureId?: string
+  /**
+   * Raw per-indicator impact per measure (all indicators, not only weak
+   * ones), shown on the configure step so any selected measure — not just
+   * recommended ones — can answer "what will this measure do?". `undefined`
+   * means advice was unavailable: the section is then hidden entirely.
+   */
+  measureImpacts?: Record<string, { indicator_id: string; measure_impact: number }[]>
 }
 
 export function AddMeasureDialog({
@@ -132,6 +139,7 @@ export function AddMeasureDialog({
   topOpportunities,
   focusIndicatorId,
   initialMeasureId,
+  measureImpacts,
 }: AddMeasureDialogProps) {
   const fetcher = useFetcher()
   const [query, setQuery] = useState("")
@@ -387,16 +395,11 @@ export function AddMeasureDialog({
     })
   }, [filteredCatalogue, computedApplicabilityMap, sortMode, opportunityMap, focusIndicatorId])
 
-  // Maximum impact among visible measures, used to normalize relative-impact bars.
-  const maxVisibleImpact = useMemo(() => {
-    let max = 0
-    for (const item of sortedCatalogue) {
-      const v = impactFor(item.m_id)
-      if (v > max) max = v
-    }
-    return max
-  }, [sortedCatalogue, opportunityMap, focusIndicatorId])
-
+  // Impact bars use the true scale: NMI confirms measure_impact is always
+  // between 0 and 1, so a bar is simply impact × 100% — comparable across
+  // lists and surfaces, no per-list normalization needed.
+  const impactBarWidth = (impact: number) =>
+    impact > 0 ? Math.max(4, Math.min(100, impact * 100)) : 0
 
   // Determine end date to submit based on preset — sync to form state
   const handleDatePresetChange = (preset: DatePreset) => {
@@ -571,7 +574,7 @@ export function AddMeasureDialog({
                         key={opp.m_id}
                         type="button"
                         onClick={() => handleSelectMeasure(item)}
-                        className="bg-background hover:border-emerald-400 flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors"
+                        className="bg-background flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors hover:border-emerald-400"
                       >
                         <span className="min-w-0 flex-1 truncate">
                           <span className="text-muted-foreground mr-1.5 font-mono">
@@ -584,7 +587,7 @@ export function AddMeasureDialog({
                             </span>
                           )}
                         </span>
-                        <span className="text-emerald-700 shrink-0 font-semibold dark:text-emerald-400">
+                        <span className="shrink-0 font-semibold text-emerald-700 dark:text-emerald-400">
                           + Toevoegen
                         </span>
                       </button>
@@ -620,8 +623,7 @@ export function AddMeasureDialog({
                     const opportunity = opportunityMap.get(item.m_id)
                     const isRecommended = topRecommendedIds.has(item.m_id)
                     const impact = impactFor(item.m_id)
-                    const barWidth =
-                      maxVisibleImpact > 0 ? Math.max(4, (impact / maxVisibleImpact) * 100) : 0
+                    const barWidth = impactBarWidth(impact)
                     const topIndicators = opportunity
                       ? [...opportunity.indicatorImpacts]
                           .sort((a, b) => b.measure_impact - a.measure_impact)
@@ -693,7 +695,10 @@ export function AddMeasureDialog({
                               Verbetert vooral: {topIndicators.join(", ")}
                             </p>
                           )}
-                          {isRecommended && (
+                          {/* Impact bar (true 0-1 scale) only together with the
+                              "Aanbevolen" badge and its "Verbetert vooral"
+                              explanation — a bar alone is meaningless chrome. */}
+                          {isRecommended && impact > 0 && (
                             <div className="bg-muted mt-1.5 h-1 w-24 overflow-hidden rounded-full">
                               <div
                                 className="h-full rounded-full bg-emerald-500"
@@ -762,6 +767,59 @@ export function AddMeasureDialog({
                   Andere maatregel
                 </Button>
               </div>
+
+              {/* Expected impact per indicator for the selected measure —
+                  shown for any measure with known impact, not only
+                  recommended ones. Hidden entirely when advice was
+                  unavailable (measureImpacts undefined). */}
+              {measureImpacts !== undefined && (
+                <div className="pt-1">
+                  {(() => {
+                    const impacts = (measureImpacts[selected.m_id] ?? []).filter(
+                      (i) => i.measure_impact > 0,
+                    )
+                    if (impacts.length === 0) {
+                      return (
+                        <p className="text-muted-foreground text-xs italic">
+                          Geen noemenswaardige impact op bodemindicatoren gevonden voor deze
+                          maatregel.
+                        </p>
+                      )
+                    }
+                    return (
+                      <div>
+                        <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+                          Verwachte impact op indicatoren
+                        </p>
+                        <ul className="space-y-1.5">
+                          {impacts.map((impact) => {
+                            const indicatorName =
+                              getIndicatorInfo(impact.indicator_id)?.name ?? impact.indicator_id
+                            // True scale: measure_impact is always 0-1.
+                            const barWidth = Math.max(4, Math.min(100, impact.measure_impact * 100))
+                            return (
+                              <li key={impact.indicator_id} className="text-xs">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-foreground">{indicatorName}</span>
+                                  <span className="text-muted-foreground font-mono">
+                                    {impact.indicator_id}
+                                  </span>
+                                </div>
+                                <div className="bg-muted mt-0.5 h-1 w-full max-w-32 overflow-hidden rounded-full">
+                                  <div
+                                    className="h-full rounded-full bg-emerald-500"
+                                    style={{ width: `${barWidth}%` }}
+                                  />
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
+                    )
+                  })()}
+                </div>
+              )}
             </div>
 
             {/* Form */}

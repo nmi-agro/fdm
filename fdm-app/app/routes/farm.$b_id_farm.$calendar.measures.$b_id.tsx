@@ -208,13 +208,43 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Compute ranked measure recommendations for this field, cross-referenced
     // against current score, fresh applicability, and already-active measures.
+    // `advice` is null when the NMI fetch failed — omit recommendations
+    // entirely in that case rather than deriving them from empty data.
     const activeMeasureIds = new Set(measures.map((m) => m.m_id))
-    const topOpportunities = getTopOpportunitiesForField({
-      advice,
-      score: bln3Result?.score ?? null,
-      applicability: applicabilityMap ?? {},
-      activeMeasureIds,
-    })
+    const topOpportunities = advice
+      ? getTopOpportunitiesForField({
+          advice,
+          score: bln3Result?.score ?? null,
+          applicability: applicabilityMap ?? {},
+          activeMeasureIds,
+        })
+      : undefined
+
+    // Raw per-indicator impact per measure (all indicators, not only weak
+    // ones) for the configure step of the add-measure dialog: "what will
+    // this measure do?" for any measure, not just recommended ones.
+    // Undefined when advice was unavailable — the dialog then hides the
+    // impact section rather than implying zero impact.
+    const measureImpacts:
+      | Record<string, { indicator_id: string; measure_impact: number }[]>
+      | undefined = advice
+      ? (() => {
+          const map: Record<string, { indicator_id: string; measure_impact: number }[]> = {}
+          for (const entry of advice.indicator_advice) {
+            for (const measure of entry.measures) {
+              if (measure.measure_impact <= 0) continue
+              ;(map[measure.m_id] ??= []).push({
+                indicator_id: entry.indicator,
+                measure_impact: measure.measure_impact,
+              })
+            }
+          }
+          for (const impacts of Object.values(map)) {
+            impacts.sort((a, b) => b.measure_impact - a.measure_impact)
+          }
+          return map
+        })()
+      : undefined
 
     return {
       field,
@@ -233,6 +263,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldScore: bln3Result?.score ?? null,
       applicabilityMap,
       topOpportunities,
+      measureImpacts,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -525,6 +556,7 @@ export default function MeasuresFieldDetail() {
     fieldScore,
     applicabilityMap,
     topOpportunities,
+    measureImpacts,
     fieldWritePermission,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
@@ -547,22 +579,15 @@ export default function MeasuresFieldDetail() {
 
   // Deep-link support: opening this page with ?openMeasure=<m_id>&indicator=<id>
   // (e.g. from the Indicatoren page's "+ Toevoegen" quick action) auto-opens
-  // the dialog pre-selected on that measure, then clears the query params.
+  // the dialog pre-selected on that measure. The params are kept while the
+  // dialog is open — clearing them immediately would lose the context on
+  // refresh — and removed when the dialog closes.
   useEffect(() => {
     const openMeasure = searchParams.get("openMeasure")
     if (!openMeasure) return
     setInitialMeasureId(openMeasure)
     setFocusIndicatorId(searchParams.get("indicator") ?? undefined)
     setDialogOpen(true)
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        next.delete("openMeasure")
-        next.delete("indicator")
-        return next
-      },
-      { replace: true },
-    )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
@@ -752,6 +777,17 @@ export default function MeasuresFieldDetail() {
           if (!next) {
             setFocusIndicatorId(undefined)
             setInitialMeasureId(undefined)
+            if (searchParams.has("openMeasure")) {
+              setSearchParams(
+                (prev) => {
+                  const nextParams = new URLSearchParams(prev)
+                  nextParams.delete("openMeasure")
+                  nextParams.delete("indicator")
+                  return nextParams
+                },
+                { replace: true },
+              )
+            }
           }
         }}
         catalogue={catalogue}
@@ -760,6 +796,7 @@ export default function MeasuresFieldDetail() {
         harvestDate={harvestDate}
         applicabilityMap={applicabilityMap ?? undefined}
         topOpportunities={topOpportunities}
+        measureImpacts={measureImpacts}
         focusIndicatorId={focusIndicatorId}
         initialMeasureId={initialMeasureId}
       />

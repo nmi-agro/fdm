@@ -40,8 +40,15 @@ type IndicatorCardProps = {
   measuresHref: string
   /** When true, display index instead of score */
   showIndex: boolean
-  /** Top recommended measures for this indicator (already filtered by applicability and active-measure exclusion) */
-  recommendedMeasures?: RecommendedMeasure[]
+  /** Start expanded — used when deep-linked via ?indicator=<id> */
+  defaultExpanded?: boolean
+  /**
+   * Top recommended measures for this indicator (already filtered by
+   * applicability and active-measure exclusion). `null` means the advice
+   * fetch failed — the section is then hidden entirely rather than showing
+   * a false "no measures found" empty state.
+   */
+  recommendedMeasures?: RecommendedMeasure[] | null
 }
 
 const CATEGORY_COLORS: Record<Ecosysteemdienst, string> = {
@@ -115,9 +122,10 @@ export function IndicatorCard({
   fieldMeasures,
   measuresHref,
   showIndex,
+  defaultExpanded = false,
   recommendedMeasures = [],
 }: IndicatorCardProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded)
 
   const indexDisplay = scoreToDisplay(result.index)
   const scoreDisplay = scoreToDisplay(result.score)
@@ -131,6 +139,7 @@ export function IndicatorCard({
 
   return (
     <div
+      id={`indicator-${info.id}`}
       className={cn(
         "overflow-hidden rounded-lg border transition-shadow",
         tier === "red" && "border-red-200 dark:border-red-900/40",
@@ -275,8 +284,10 @@ export function IndicatorCard({
             </div>
           )}
 
-          {/* Recommended measures for this indicator (non-green only) */}
-          {tier !== "green" && (
+          {/* Recommended measures for this indicator (non-green only).
+              Hidden entirely when advice is unavailable (null) — a failed
+              fetch must never render as a false "no measures found" state. */}
+          {tier !== "green" && recommendedMeasures !== null && (
             <div>
               <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
                 Aanbevolen maatregelen
@@ -288,11 +299,9 @@ export function IndicatorCard({
               ) : (
                 <ul className="space-y-1.5">
                   {recommendedMeasures.map((measure) => {
-                    const maxImpact = Math.max(
-                      ...recommendedMeasures.map((m) => m.measure_impact),
-                      0.0001,
-                    )
-                    const barWidth = Math.max(4, (measure.measure_impact / maxImpact) * 100)
+                    // True scale: NMI confirms measure_impact is always 0-1,
+                    // so the bar is impact × 100% — comparable across cards.
+                    const barWidth = Math.max(4, Math.min(100, measure.measure_impact * 100))
                     return (
                       <li
                         key={measure.m_id}
