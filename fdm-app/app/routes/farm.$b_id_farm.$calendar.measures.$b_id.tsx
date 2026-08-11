@@ -70,6 +70,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { cn } from "~/lib/utils"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
 
@@ -533,7 +534,9 @@ function MeasureEditDialog({
                 <Button type="button" variant="outline" onClick={onClose}>
                   Annuleren
                 </Button>
-                <Button type="submit">{closeMode ? "Afsluiten" : "Opslaan"}</Button>
+                <Button type="submit" disabled={fetcher.state !== "idle"}>
+                  {fetcher.state !== "idle" ? "Opslaan…" : closeMode ? "Afsluiten" : "Opslaan"}
+                </Button>
               </div>
             </FieldGroup>
           </form>
@@ -593,12 +596,14 @@ export default function MeasuresFieldDetail() {
 
   return (
     <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">
-      <Bln3BetaBanner />
-
-      {/* Title + actions */}
+      {/* Title + actions — the beta badge scopes the BLN3 content below, so
+          it lives in the header as a title attribute, not as a separate slab. */}
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{field.b_name ?? b_id}</h2>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-2xl font-bold tracking-tight">{field.b_name ?? b_id}</h2>
+            <Bln3BetaBanner />
+          </div>
           <p className="text-muted-foreground mt-0.5">
             {measures.length === 0
               ? "Nog geen maatregelen vastgelegd"
@@ -615,29 +620,50 @@ export default function MeasuresFieldDetail() {
         )}
       </div>
 
-      {/* Indicator impact summary (shown when BLN3 data is available) */}
+      {/* Indicator status cluster — the two blocks are peers ("what needs
+          attention" vs. "what measures already achieve"): side by side on xl,
+          stacked attention-first below. With no active measures the impact
+          block is meaningless and hidden, and the cluster stays single-column. */}
       {fieldScore && fieldScore.indicators.length > 0 && (
-        <ImpactSummary indicators={fieldScore.indicators} />
+        <div
+          className={cn(
+            "flex flex-col gap-3",
+            measures.length > 0 && "xl:grid xl:grid-cols-2 xl:items-start",
+          )}
+        >
+          <IndicatorAttention
+            indicators={fieldScore.indicators}
+            onAddMeasure={handleOpenAddMeasure}
+            indicatorsHref={indicatorsHref}
+            canAddMeasure={fieldWritePermission}
+          />
+          {/* No active measures → nothing to attribute influence to, so the
+              block is hidden rather than showing a misleading empty state. */}
+          {measures.length > 0 && (
+            <ImpactSummary
+              indicators={fieldScore.indicators}
+              activeMeasures={measures.map((m) => ({ m_id: m.m_id, m_name: m.m_name }))}
+              measureImpacts={measureImpacts}
+            />
+          )}
+        </div>
       )}
 
-      {/* Indicators needing attention (or compliment when all green) */}
-      {fieldScore && fieldScore.indicators.length > 0 && (
-        <IndicatorAttention
-          indicators={fieldScore.indicators}
-          onAddMeasure={handleOpenAddMeasure}
-          indicatorsHref={indicatorsHref}
-          canAddMeasure={fieldWritePermission}
-        />
-      )}
-
-      {/* List + map side-by-side on xl screens */}
-      <div className="flex flex-col items-start gap-6 xl:flex-row">
+      {/* List + map side-by-side on xl screens; the wider break above (mt-2 on
+          top of gap-6) separates this content region from the status cluster. */}
+      <div className="mt-2 flex flex-col items-start gap-6 xl:flex-row">
         {/* Active measures list */}
         <div className="min-w-0 flex-1">
           {measures.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border py-12 text-center">
               <p className="text-sm font-medium">Geen maatregelen actief</p>
-              <p className="mt-1 text-xs">Voeg maatregelen toe via de knop hierboven.</p>
+              <p className="mt-1 text-xs">Voeg de eerste maatregel toe om te beginnen.</p>
+              {fieldWritePermission && (
+                <Button onClick={() => handleOpenAddMeasure()} size="sm" className="mt-4">
+                  <Plus className="mr-1 h-4 w-4" />
+                  Toevoegen
+                </Button>
+              )}
             </div>
           ) : (
             <div className="divide-y overflow-hidden rounded-lg border">
@@ -667,7 +693,7 @@ export default function MeasuresFieldDetail() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-5 px-2 text-xs"
+                          className="h-6 px-2 text-xs"
                           onClick={() =>
                             setClosingMeasure({
                               b_id_measure: m.b_id_measure,
@@ -690,6 +716,7 @@ export default function MeasuresFieldDetail() {
                         size="icon"
                         className="text-muted-foreground hover:text-foreground h-8 w-8"
                         title="Bewerken / afsluiten"
+                        aria-label={`${m.m_name} bewerken of afsluiten`}
                         onClick={() =>
                           setEditingMeasure({
                             b_id_measure: m.b_id_measure,
@@ -709,6 +736,7 @@ export default function MeasuresFieldDetail() {
                             size="icon"
                             className="text-muted-foreground hover:text-destructive h-8 w-8"
                             title="Verwijderen"
+                            aria-label={`${m.m_name} verwijderen`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -754,15 +782,15 @@ export default function MeasuresFieldDetail() {
           )}
         </div>
 
-        {/* Mini map */}
-        <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
+        {/* Mini map — a field-switcher, subordinate to the list */}
+        <div className="w-full overflow-hidden rounded-lg border xl:w-80 xl:shrink-0">
           <Suspense fallback={<div className="bg-muted h-64 animate-pulse rounded-lg" />}>
             <MeasuresMap
               fieldsGeoJSON={fieldsGeoJSON}
               selectedFieldGeoJSON={selectedFieldGeoJSON}
               initialFitGeoJSON={selectedFieldGeoJSON}
               mapStyle={mapStyle}
-              height="400px"
+              className="h-64 md:h-[400px]"
               onFieldClick={(b_id) => navigate(`/farm/${b_id_farm}/${calendar}/measures/${b_id}`)}
             />
           </Suspense>

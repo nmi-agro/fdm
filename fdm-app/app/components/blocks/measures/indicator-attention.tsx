@@ -24,13 +24,6 @@ type AttentionItem = {
   display: number
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  Productie: "bg-orange-100 text-orange-700 dark:bg-orange-950/30 dark:text-orange-400",
-  Klimaat: "bg-stone-100 text-stone-700 dark:bg-stone-950/30 dark:text-stone-400",
-  Water: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400",
-  Nutriëntenkringloop: "bg-violet-100 text-violet-700 dark:bg-violet-950/30 dark:text-violet-400",
-}
-
 type IndicatorAttentionProps = {
   indicators: Bln3IndicatorResult[]
   onAddMeasure: (indicator_id?: string) => void
@@ -99,8 +92,8 @@ export function IndicatorAttention({
           </p>
           <p className="mt-0.5 text-xs text-orange-700 dark:text-orange-400">
             {redCount > 0
-              ? `${redCount} met onvoldoende score — overweeg een maatregel`
-              : "Matige scores — overweeg een maatregel"}
+              ? `${redCount} met onvoldoende score. Overweeg een maatregel`
+              : "Matige scores. Overweeg een maatregel"}
           </p>
         </div>
         {expanded ? (
@@ -124,11 +117,6 @@ export function IndicatorAttention({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{info.name}</p>
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[info.ecosysteemdienst] ?? "bg-muted text-muted-foreground"}`}
-                >
-                  {info.ecosysteemdienst}
-                </span>
               </div>
               <ScoreBadge score={display} className="shrink-0" />
               {canAddMeasure && (

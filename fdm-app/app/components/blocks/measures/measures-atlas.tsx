@@ -21,6 +21,7 @@ import {
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { cn } from "~/lib/utils"
 
 const FIELDS_LAYER = "measuresMapFields"
 const FIELDS_OUTLINE_LAYER = "measuresMapFieldsOutline"
@@ -80,6 +81,12 @@ type MeasuresMapProps = {
   mapStyle: string | StyleSpecification
   height?: string
   /**
+   * Optional classes for the outer container. When provided, the fixed
+   * `height` is ignored so callers can use responsive height classes
+   * (e.g. "h-64 md:h-[400px]") instead of one fixed pixel height.
+   */
+  className?: string
+  /**
    * When provided, the initial view is fitted to this GeoJSON instead of `fieldsGeoJSON`.
    * Use this on field detail pages to zoom to the selected field rather than the whole farm.
    */
@@ -96,6 +103,7 @@ export default function MeasuresMap({
   selectedFieldGeoJSON,
   mapStyle,
   height = "320px",
+  className,
   initialFitGeoJSON,
   onFieldClick,
 }: MeasuresMapProps) {
@@ -137,7 +145,10 @@ export default function MeasuresMap({
   }, [fieldsGeoJSON, hoveredFieldId])
 
   return (
-    <div className="relative" style={{ height, isolation: "isolate" }}>
+    <div
+      className={cn("relative", className)}
+      style={className ? { isolation: "isolate" } : { height, isolation: "isolate" }}
+    >
       <MapGL
         {...viewState}
         style={{

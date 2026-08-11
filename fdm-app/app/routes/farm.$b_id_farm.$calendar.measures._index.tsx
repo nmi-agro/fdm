@@ -813,10 +813,13 @@ export default function MeasuresFarmIndex() {
       />
 
       <FarmContent>
-        <div className="space-y-6 pb-10">
+        {/* One flex context with order utilities: on mobile the map moves to
+            the end of the page (after the Percelen summary) as graceful
+            degradation; on xl it sits beside the measures table again. */}
+        <div className="flex flex-col gap-6 pb-10 xl:flex-row xl:flex-wrap xl:items-start">
           {/* Summary stats banner */}
           {stats.totalFields > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="order-1 grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="bg-card rounded-lg border px-4 py-3">
                 <p className="text-muted-foreground text-xs">Actieve maatregelen</p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.totalMeasures}</p>
@@ -835,65 +838,63 @@ export default function MeasuresFarmIndex() {
             </div>
           )}
 
-          <div className="flex flex-col items-start gap-6 xl:flex-row">
-            <div className="min-w-0 flex-1 space-y-6">
-              {tableOrEmpty}
+          <div className="order-2 min-w-0 flex-1 space-y-6">
+            {tableOrEmpty}
 
-              {/* Recommended measures, grouped by measure across the farm and
-                  lazily loaded so this potentially-slow batched NMI fetch never
-                  blocks the page. Placed below the table to use the empty space
-                  left of the (taller) map instead of a full-width banner. */}
-              <Suspense
-                fallback={
-                  <div className="bg-muted/20 flex items-center gap-2 rounded-lg border p-4 text-sm">
-                    <Spinner className="text-muted-foreground h-4 w-4" />
-                    <span className="text-muted-foreground">
-                      Aanbevolen maatregelen worden berekend…
-                    </span>
-                  </div>
+            {/* Recommended measures, grouped by measure across the farm and
+                lazily loaded so this potentially-slow batched NMI fetch never
+                blocks the page. Placed below the table to use the empty space
+                left of the (taller) map instead of a full-width banner. */}
+            <Suspense
+              fallback={
+                <div className="bg-muted/20 flex items-center gap-2 rounded-lg border p-4 text-sm">
+                  <Spinner className="text-muted-foreground h-4 w-4" />
+                  <span className="text-muted-foreground">
+                    Aanbevolen maatregelen worden berekend…
+                  </span>
+                </div>
+              }
+            >
+              <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
+                {(steps: FarmNextStep[]) =>
+                  steps.length > 0 && <GroupedRecommendations steps={steps} basePath={basePath} />
                 }
-              >
-                <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
-                  {(steps: FarmNextStep[]) =>
-                    steps.length > 0 && <GroupedRecommendations steps={steps} basePath={basePath} />
-                  }
-                </Await>
-              </Suspense>
-            </div>
-
-            <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
-              <Suspense fallback={<div className="bg-muted h-80 animate-pulse rounded-lg" />}>
-                <MeasuresMap
-                  fieldsGeoJSON={fieldsGeoJSON}
-                  selectedFieldGeoJSON={emptyGeoJSON}
-                  mapStyle={mapStyle}
-                  height="480px"
-                  onFieldClick={handleFieldClick}
-                />
-              </Suspense>
-            </div>
+              </Await>
+            </Suspense>
           </div>
 
           {/* Per-field summary table */}
           {fieldSummaryRows.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
-                  Percelen
-                </h3>
-                <FieldSummaryTable
-                  columns={fieldSummaryColumns}
-                  data={fieldSummaryRows}
-                  onAddMeasure={(selectedIds) => {
-                    setInitialFieldIds(selectedIds)
-                    setAddDialogOpen(true)
-                  }}
-                  canModify={farmWritePermission}
-                />
-              </div>
-            </>
+            <div className="order-3 w-full xl:order-4">
+              <Separator className="mb-6" />
+              <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
+                Percelen
+              </h3>
+              <FieldSummaryTable
+                columns={fieldSummaryColumns}
+                data={fieldSummaryRows}
+                onAddMeasure={(selectedIds) => {
+                  setInitialFieldIds(selectedIds)
+                  setAddDialogOpen(true)
+                }}
+                canModify={farmWritePermission}
+              />
+            </div>
           )}
+
+          {/* Map — beside the table on xl, last on mobile (still available,
+              just deprioritized), shorter on small screens. */}
+          <div className="order-4 w-full overflow-hidden rounded-lg border xl:order-3 xl:w-96 xl:shrink-0">
+            <Suspense fallback={<div className="bg-muted h-64 animate-pulse rounded-lg" />}>
+              <MeasuresMap
+                fieldsGeoJSON={fieldsGeoJSON}
+                selectedFieldGeoJSON={emptyGeoJSON}
+                mapStyle={mapStyle}
+                className="h-64 md:h-[480px]"
+                onFieldClick={handleFieldClick}
+              />
+            </Suspense>
+          </div>
         </div>
       </FarmContent>
 

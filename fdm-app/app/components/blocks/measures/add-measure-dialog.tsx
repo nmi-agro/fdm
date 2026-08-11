@@ -597,8 +597,10 @@ export function AddMeasureDialog({
               </div>
             )}
 
-            {/* Catalogue list */}
-            <div className="max-h-[55vh] overflow-y-auto rounded-md border">
+            {/* Catalogue list — capped lower than the dialog so the
+                recommendations block above keeps room on short viewports;
+                the dialog itself already scrolls. */}
+            <div className="max-h-[45vh] overflow-y-auto rounded-md border">
               {sortedCatalogue.length === 0 ? (
                 <p className="text-muted-foreground py-8 text-center text-sm">
                   Geen maatregelen gevonden voor &ldquo;

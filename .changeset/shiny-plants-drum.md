@@ -9,5 +9,7 @@ Add BLN3 measure advice UI: the Maatregelen and Indicatoren apps now show ranked
 - Farm indicators overview (`indicators`): the Knelpunten panel gains a lazily-loaded "Waar te beginnen" section ranking the best measure(s) for the selected indicator across the farm, area-weighted by field.
 - Farm measures overview (`measures`): a lazily-loaded "Aanbevolen maatregelen" card below the measures table groups recommendations by measure and links the affected fields.
 
-Impact bars use the true 0–1 `measure_impact` scale (confirmed with NMI), so bars are comparable across surfaces; a failed advice fetch hides the recommendations UI entirely instead of showing a false "no measures found" state. The "Wat is BLN3?" help dialog now explains the recommendations and the relative impact scale.
+Impact bars use the true 0–1 `measure_impact` scale, so bars are comparable across surfaces; a failed advice fetch hides the recommendations UI entirely instead of showing a false "no measures found" state. The "Wat is BLN3?" help dialog now explains the recommendations and the relative impact scale.
 Also fixes horizontal overflow in the shared `DialogContent` component by constraining its grid columns (`grid-cols-[minmax(0,1fr)]`), which affects all dialogs in the app.
+
+Layout pass on the field measures page (`measures/:b_id`): the beta badge moved into the title row, the two indicator blocks now form one tight status cluster (`ImpactSummary` lost its heavy card chrome and fixed-height scroll area), the empty state carries its own "Toevoegen" action, long field names truncate, and the map is narrower (`xl:w-80`) so the measures list clearly leads. "Invloed op bodemindicatoren" now attributes each improved indicator to the active measure(s) causing it ("Door: BM…").
