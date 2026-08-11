@@ -114,7 +114,7 @@ export default function FieldMap({
       <AtlasTooltip
         layers={[FIELDS_LAYER]}
         onFeatureClicked={onFeatureClicked}
-        render={({ feature, mode }) => {
+        render={({ feature }) => {
           if (feature === null) return null
           const hoveredScore =
             typeof feature?.properties?.[scoreKey] === "number" && feature.properties[scoreKey] >= 0
