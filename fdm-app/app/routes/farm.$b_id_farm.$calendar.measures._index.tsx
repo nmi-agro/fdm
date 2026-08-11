@@ -58,16 +58,15 @@ import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import {
-  getIndicatorsForFarm,
-  getMeasureAdviceForFields,
   getMeasureApplicabilityForFields,
-  getTopOpportunitiesForField,
+  getIndicatorsForFarm,
+  getFarmMeasureOpportunities,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { INDICATORS } from "~/lib/indicators"
@@ -87,12 +86,6 @@ type FarmNextStep = {
   aggregateImpact: number
 }
 
-/**
- * Fetches BLN3 score, applicability, and advice for every farm field and
- * derives ranked measure × field recommendations. Deliberately not awaited
- * by the loader — consumed lazily via `<Await>`/`<Suspense>` so this
- * potentially-slow batched fetch never blocks the rest of the page.
- */
 async function getFarmNextSteps({
   principal_id,
   b_id_farm,
@@ -111,54 +104,40 @@ async function getFarmNextSteps({
   catalogue: { m_id: string; m_name: string }[]
 }): Promise<FarmNextStep[]> {
   const b_ids = fields.map((f) => f.b_id)
-
-  const [scores, applicabilityByField, adviceByField] = await Promise.all([
-    getIndicatorsForFarm({ principal_id, b_id_farm, timeframe }),
-    getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
-    getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
-  ])
-
-  const measureNameById = new Map(catalogue.map((m) => [m.m_id, m.m_name]))
+  const scores = await getIndicatorsForFarm({ principal_id, b_id_farm, timeframe })
   const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
   const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
   const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
+  const activeMeasureIdsByField = new Map(
+    b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
+  )
+  const { opportunities } = await getFarmMeasureOpportunities({
+    principal_id,
+    b_ids,
+    b_year,
+    timeframe,
+    scoreByBid,
+    activeMeasureIdsByField,
+    measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+  })
 
-  const steps: FarmNextStep[] = []
-
-  for (const b_id of b_ids) {
-    const advice = adviceByField[b_id]
-    if (!advice) continue // advice fetch failed for this field — skip, never fake-empty
-
-    const activeMeasureIds = new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))
-    const opportunities = getTopOpportunitiesForField({
-      advice,
-      score: scoreByBid.get(b_id) ?? null,
-      applicability: applicabilityByField[b_id] ?? {},
-      activeMeasureIds,
-    })
-
-    // All opportunities per field, not just the top one — grouping by
-    // measure happens in the component, so a field's #2 measure can still
-    // contribute to a farm-wide measure group.
-    for (const opportunity of opportunities) {
+  return opportunities
+    .map((opportunity) => {
       const topIndicatorId = [...opportunity.indicatorImpacts].sort(
         (a, b) => b.measure_impact - a.measure_impact,
       )[0]?.indicator_id
-
-      steps.push({
-        b_id,
-        b_name: fieldNameByBid.get(b_id) ?? null,
+      return {
+        b_id: opportunity.b_id,
+        b_name: fieldNameByBid.get(opportunity.b_id) ?? null,
         m_id: opportunity.m_id,
-        m_name: measureNameById.get(opportunity.m_id) ?? opportunity.m_id.replace("bln_", ""),
+        m_name: opportunity.m_name,
         indicatorName: topIndicatorId
           ? (indicatorNameById.get(topIndicatorId) ?? topIndicatorId)
           : "",
         aggregateImpact: opportunity.aggregateImpact,
-      })
-    }
-  }
-
-  return steps.sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+      }
+    })
+    .sort((a, b) => b.aggregateImpact - a.aggregateImpact)
 }
 
 /** Groups farm-wide measure × field recommendations by measure — one row per
@@ -315,7 +294,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_ids: fieldIds,
         b_year,
         timeframe,
-      }).catch(() => ({})),
+      }).catch((error) => {
+        reportError(error, { page: "farm measures applicability" })
+        return {}
+      }),
       Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
     ])
 
@@ -329,6 +311,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       measuresMap,
       catalogue,
+    }).catch((error) => {
+      reportError(error, { page: "farm measures recommendations" })
+      return []
     })
     const fieldList = fields.map((f, i) => {
       const cultivations = fieldCultivations[i]

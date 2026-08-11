@@ -152,6 +152,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id,
         b_year,
         timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 measure advice failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
       }),
       checkPermission(
         fdm,
@@ -212,14 +218,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // `advice` is null when the NMI fetch failed — omit recommendations
     // entirely in that case rather than deriving them from empty data.
     const activeMeasureIds = new Set(measures.map((m) => m.m_id))
-    const topOpportunities = advice
-      ? getTopOpportunitiesForField({
-          advice,
-          score: bln3Result?.score ?? null,
-          applicability: applicabilityMap ?? {},
-          activeMeasureIds,
-        })
-      : undefined
+    const topOpportunities =
+      advice && applicabilityMap
+        ? getTopOpportunitiesForField({
+            advice,
+            score: bln3Result?.score ?? null,
+            applicability: applicabilityMap,
+            activeMeasureIds,
+          })
+        : undefined
 
     // Raw per-indicator impact per measure (all indicators, not only weak
     // ones) for the configure step of the add-measure dialog: "what will
@@ -585,14 +592,16 @@ export default function MeasuresFieldDetail() {
   // the dialog pre-selected on that measure. The params are kept while the
   // dialog is open — clearing them immediately would lose the context on
   // refresh — and removed when the dialog closes.
+  const openMeasure = searchParams.get("openMeasure")
+  const indicator = searchParams.get("indicator") ?? undefined
+
   useEffect(() => {
-    const openMeasure = searchParams.get("openMeasure")
     if (!openMeasure) return
     setInitialMeasureId(openMeasure)
-    setFocusIndicatorId(searchParams.get("indicator") ?? undefined)
+    setFocusIndicatorId(indicator)
     setDialogOpen(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [openMeasure, indicator])
 
   return (
     <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">

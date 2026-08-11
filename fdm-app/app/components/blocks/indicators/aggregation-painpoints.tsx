@@ -502,36 +502,50 @@ function WhereToStartPanel({
     const areaByBid = new Map(fields.map((f) => [f.b_id, f.b_area ?? 0]))
     const grouped = new Map<
       string,
-      { m_name: string; fieldIds: string[]; areaSum: number; weightedImpact: number }
+      {
+        m_name: string
+        fieldImpacts: Map<string, number>
+        areaSum: number
+        weightedImpact: number
+      }
     >()
 
     for (const rec of recommendations) {
       if (rec.indicator_id !== activeIndId) continue
       const area = areaByBid.get(rec.b_id) ?? 0
+      if (area <= 0) continue
       const existing = grouped.get(rec.m_id) ?? {
         m_name: rec.m_name,
-        fieldIds: [],
+        fieldImpacts: new Map<string, number>(),
         areaSum: 0,
         weightedImpact: 0,
       }
-      if (!existing.fieldIds.includes(rec.b_id)) {
-        existing.fieldIds.push(rec.b_id)
+      if (!existing.fieldImpacts.has(rec.b_id)) {
         existing.areaSum += area
       }
-      existing.weightedImpact += rec.measure_impact * (area || 1)
+      existing.fieldImpacts.set(
+        rec.b_id,
+        (existing.fieldImpacts.get(rec.b_id) ?? 0) + rec.measure_impact,
+      )
+      existing.weightedImpact += rec.measure_impact * area
       grouped.set(rec.m_id, existing)
     }
 
     return [...grouped.entries()]
-      .map(([m_id, g]) => ({
-        m_id,
-        m_name: g.m_name,
-        fieldIds: g.fieldIds,
-        fieldCount: g.fieldIds.length,
-        area: g.areaSum,
-        topFieldId: g.fieldIds[0],
-        weightedImpact: g.weightedImpact,
-      }))
+      .map(([m_id, g]) => {
+        const fieldIds = [...g.fieldImpacts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([b_id]) => b_id)
+        return {
+          m_id,
+          m_name: g.m_name,
+          fieldIds,
+          fieldCount: fieldIds.length,
+          area: g.areaSum,
+          topFieldId: fieldIds[0],
+          weightedImpact: g.weightedImpact,
+        }
+      })
       .sort((a, b) => b.weightedImpact - a.weightedImpact)
       .slice(0, 3)
   }, [recommendations, activeIndId, fields])

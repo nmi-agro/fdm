@@ -244,6 +244,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id,
         b_year: calendarYear,
         timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 measure advice failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
       }),
       checkPermission(
         fdm,
@@ -395,16 +401,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // null so cards hide the section instead of showing a false empty state.
     const measureNameById = new Map(measureCatalogue.map((m) => [m.m_id, m.m_name]))
     const activeMeasureIds = new Set(fieldMeasures.map((m) => m.m_id))
+    const adviceUnavailable = applicabilityMap === null || advice === null
     const indicatorAdvice: Record<
       string,
       { m_id: string; m_name: string; measure_impact: number }[]
-    > | null = advice === null ? null : {}
-    if (advice !== null && indicatorAdvice !== null) {
-      for (const entry of advice.indicator_advice) {
+    > | null = adviceUnavailable ? null : {}
+    if (applicabilityMap !== null && advice !== null && indicatorAdvice !== null) {
+      for (const entry of advice?.indicator_advice ?? []) {
         const recommendations = entry.measures
           .filter(
             (measure) =>
-              applicabilityMap?.[measure.m_id]?.applicability === "applicable" &&
+              applicabilityMap[measure.m_id]?.applicability === "applicable" &&
               !activeMeasureIds.has(measure.m_id),
           )
           .sort((a, b) => b.measure_impact - a.measure_impact)
@@ -429,6 +436,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       currentCultivationCropRotation: currentCultivation?.b_lu_croprotation ?? null,
       cultivationSummaries,
       indicatorAdvice,
+      adviceUnavailable,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
@@ -492,6 +500,7 @@ export default function IndicatorsFieldDetail() {
     currentCultivationCropRotation,
     cultivationSummaries,
     indicatorAdvice,
+    adviceUnavailable,
     soilData,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
@@ -526,14 +535,15 @@ export default function IndicatorsFieldDetail() {
   // beginnen" panel) expands that indicator's card — recommended measures
   // included — and scrolls it into view.
   const [searchParams] = useSearchParams()
-  const focusIndicatorId = searchParams.get("indicator")
+  const indicatorParam = searchParams.get("indicator")
+  const indicatorId = INDICATORS.find((info) => info.id === indicatorParam)?.id
 
   useEffect(() => {
-    if (!focusIndicatorId) return
+    if (!indicatorId) return
     document
-      .getElementById(`indicator-${focusIndicatorId}`)
+      .getElementById(`indicator-${indicatorId}`)
       ?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }, [focusIndicatorId])
+  }, [indicatorId])
 
   const handleCategoryToggle = (dienst: Ecosysteemdienst) => {
     setActiveCategories((prev) =>
@@ -678,9 +688,9 @@ export default function IndicatorsFieldDetail() {
                     fieldMeasures={fieldMeasures}
                     measuresHref={measuresHref}
                     showIndex={!withMeasures}
-                    defaultExpanded={info.id === focusIndicatorId}
+                    defaultExpanded={info.id === indicatorId}
                     recommendedMeasures={
-                      indicatorAdvice === null ? null : (indicatorAdvice[info.id] ?? [])
+                      adviceUnavailable ? null : (indicatorAdvice?.[info.id] ?? [])
                     }
                   />
                 ))}

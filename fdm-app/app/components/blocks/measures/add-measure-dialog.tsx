@@ -148,6 +148,7 @@ export function AddMeasureDialog({
   const [datePreset, setDatePreset] = useState<DatePreset>("doorlopend")
   const [sortMode, setSortMode] = useState<SortMode>(focusIndicatorId ? "impact" : "default")
   const searchRef = useRef<HTMLInputElement>(null)
+  const appliedInitialMeasureIdRef = useRef<string | undefined>(undefined)
   // Multi-field selection: default to initialFieldIds or empty
   const [selectedFieldIds, setSelectedFieldIds] = useState<Set<string>>(
     () => new Set(initialFieldIds ?? []),
@@ -490,11 +491,23 @@ export function AddMeasureDialog({
     setStep("select")
   }
 
+  const selectedPositiveImpacts = useMemo(
+    () =>
+      selected && measureImpacts
+        ? (measureImpacts[selected.m_id] ?? []).filter((impact) => impact.measure_impact > 0)
+        : [],
+    [measureImpacts, selected],
+  )
+
   // Quick-add: when opened with `initialMeasureId`, jump straight to the
   // configure step with that measure pre-selected, skipping search — unless
   // the measure is blocked (already active, conflicting, or inapplicable).
   useEffect(() => {
-    if (!open || !initialMeasureId) return
+    if (!open) {
+      appliedInitialMeasureIdRef.current = undefined
+      return
+    }
+    if (!initialMeasureId || appliedInitialMeasureIdRef.current === initialMeasureId) return
     const item = catalogue.find((c) => c.m_id === initialMeasureId)
     if (!item) return
     const isAlreadyActive = activeMeasureIds.has(item.m_id)
@@ -503,6 +516,7 @@ export function AddMeasureDialog({
     const isNotApplicable = appInfo?.isBlocked
     if (isAlreadyActive || hasConflict || isNotApplicable) return
     handleSelectMeasure(item)
+    appliedInitialMeasureIdRef.current = initialMeasureId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialMeasureId, catalogue, activeMeasureIds, conflictMap, computedApplicabilityMap])
 
@@ -542,6 +556,7 @@ export function AddMeasureDialog({
                   type="button"
                   size="sm"
                   variant={sortMode === "impact" ? "secondary" : "outline"}
+                  aria-pressed={sortMode === "impact"}
                   onClick={() => setSortMode(sortMode === "impact" ? "default" : "impact")}
                   className="shrink-0 gap-1.5"
                 >
@@ -776,50 +791,41 @@ export function AddMeasureDialog({
                   unavailable (measureImpacts undefined). */}
               {measureImpacts !== undefined && (
                 <div className="pt-1">
-                  {(() => {
-                    const impacts = (measureImpacts[selected.m_id] ?? []).filter(
-                      (i) => i.measure_impact > 0,
-                    )
-                    if (impacts.length === 0) {
-                      return (
-                        <p className="text-muted-foreground text-xs italic">
-                          Geen noemenswaardige impact op bodemindicatoren gevonden voor deze
-                          maatregel.
-                        </p>
-                      )
-                    }
-                    return (
-                      <div>
-                        <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
-                          Verwachte impact op indicatoren
-                        </p>
-                        <ul className="space-y-1.5">
-                          {impacts.map((impact) => {
-                            const indicatorName =
-                              getIndicatorInfo(impact.indicator_id)?.name ?? impact.indicator_id
-                            // True scale: measure_impact is always 0-1.
-                            const barWidth = Math.max(4, Math.min(100, impact.measure_impact * 100))
-                            return (
-                              <li key={impact.indicator_id} className="text-xs">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-foreground">{indicatorName}</span>
-                                  <span className="text-muted-foreground font-mono">
-                                    {impact.indicator_id}
-                                  </span>
-                                </div>
-                                <div className="bg-muted mt-0.5 h-1 w-full max-w-32 overflow-hidden rounded-full">
-                                  <div
-                                    className="h-full rounded-full bg-emerald-500"
-                                    style={{ width: `${barWidth}%` }}
-                                  />
-                                </div>
-                              </li>
-                            )
-                          })}
-                        </ul>
-                      </div>
-                    )
-                  })()}
+                  {selectedPositiveImpacts.length === 0 ? (
+                    <p className="text-muted-foreground text-xs italic">
+                      Geen noemenswaardige impact op bodemindicatoren gevonden voor deze maatregel.
+                    </p>
+                  ) : (
+                    <div>
+                      <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+                        Verwachte impact op indicatoren
+                      </p>
+                      <ul className="space-y-1.5">
+                        {selectedPositiveImpacts.map((impact) => {
+                          const indicatorName =
+                            getIndicatorInfo(impact.indicator_id)?.name ?? impact.indicator_id
+                          // True scale: measure_impact is always 0-1.
+                          const barWidth = Math.max(4, Math.min(100, impact.measure_impact * 100))
+                          return (
+                            <li key={impact.indicator_id} className="text-xs">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-foreground">{indicatorName}</span>
+                                <span className="text-muted-foreground font-mono">
+                                  {impact.indicator_id}
+                                </span>
+                              </div>
+                              <div className="bg-muted mt-0.5 h-1 w-full max-w-32 overflow-hidden rounded-full">
+                                <div
+                                  className="h-full rounded-full bg-emerald-500"
+                                  style={{ width: `${barWidth}%` }}
+                                />
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

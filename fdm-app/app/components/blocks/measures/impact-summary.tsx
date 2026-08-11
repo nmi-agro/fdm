@@ -75,7 +75,11 @@ export function ImpactSummary({ indicators, activeMeasures, measureImpacts }: Im
         {/* Native scroll region: max-h so the block hugs short lists and only
             scrolls when long (ScrollArea's h-full viewport requires a fixed
             height and would clip instead of scroll under max-h). */}
-        <div className="max-h-[160px] w-full overflow-y-auto pr-3">
+        <div
+          tabIndex={0}
+          aria-label="Invloed op bodemindicatoren"
+          className="max-h-[160px] w-full overflow-y-auto pr-3"
+        >
           <div className="space-y-2">
             {improvedIndicators.map((ind) => {
               const contributors = contributingMeasures(ind.id)

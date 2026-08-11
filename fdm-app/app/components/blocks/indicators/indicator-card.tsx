@@ -322,6 +322,7 @@ export function IndicatorCard({
                         </div>
                         <Link
                           to={`${measuresHref}?openMeasure=${encodeURIComponent(measure.m_id)}&indicator=${encodeURIComponent(info.id)}`}
+                          aria-label={`${measure.m_name} toevoegen`}
                           className="shrink-0 font-semibold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-200"
                         >
                           + Toevoegen

@@ -389,6 +389,11 @@ export type FieldTopOpportunity = {
   aggregateImpact: number
 }
 
+export type FarmMeasureOpportunity = FieldTopOpportunity & {
+  b_id: string
+  m_name: string
+}
+
 /**
  * Derives a ranked list of recommended measures for a field from raw BLN3
  * measure advice, cross-referenced against the field's current score and a
@@ -456,4 +461,59 @@ export function getTopOpportunitiesForField({
   }
 
   return [...byMeasure.values()].sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+}
+
+/**
+ * Fetches and filters farm-wide measure opportunities using the same
+ * applicability, advice, score, and active-measure rules as field views.
+ *
+ * Advice failures are represented by missing entries and skipped. A rejection
+ * of either batch fetch is intentionally propagated so route loaders can
+ * report it and hide the lazy recommendation surface.
+ */
+export async function getFarmMeasureOpportunities({
+  principal_id,
+  b_ids,
+  b_year,
+  timeframe,
+  scoreByBid,
+  activeMeasureIdsByField,
+  measureNameById,
+}: {
+  principal_id: PrincipalId
+  b_ids: string[]
+  b_year: number
+  timeframe?: Timeframe
+  scoreByBid: Map<string, Bln3Score | null>
+  activeMeasureIdsByField: Map<string, Set<string>>
+  measureNameById: Map<string, string>
+}): Promise<{ opportunities: FarmMeasureOpportunity[]; adviceAvailable: boolean }> {
+  const [applicabilityByField, adviceByField] = await Promise.all([
+    getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
+    getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
+  ])
+
+  const opportunities: FarmMeasureOpportunity[] = []
+  let adviceAvailable = false
+
+  for (const b_id of b_ids) {
+    const advice = adviceByField[b_id]
+    if (!advice) continue
+
+    adviceAvailable = true
+    for (const opportunity of getTopOpportunitiesForField({
+      advice,
+      score: scoreByBid.get(b_id) ?? null,
+      applicability: applicabilityByField[b_id] ?? {},
+      activeMeasureIds: activeMeasureIdsByField.get(b_id) ?? new Set(),
+    })) {
+      opportunities.push({
+        b_id,
+        ...opportunity,
+        m_name: measureNameById.get(opportunity.m_id) ?? opportunity.m_id.replace("bln_", ""),
+      })
+    }
+  }
+
+  return { opportunities, adviceAvailable }
 }

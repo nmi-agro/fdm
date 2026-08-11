@@ -32,13 +32,10 @@ import { Separator } from "~/components/ui/separator"
 import { Switch } from "~/components/ui/switch"
 import { useAnalytics } from "~/hooks/use-analytics"
 import {
-  type FarmMeasureRecommendation,
   type FarmMeasureRecommendationsResult,
   type FieldBln3Score,
   getIndicatorsForFarm,
-  getMeasureAdviceForFields,
-  getMeasureApplicabilityForFields,
-  getTopOpportunitiesForField,
+  getFarmMeasureOpportunities,
 } from "~/integrations/bln3.server"
 import { type AggregationId, computeAreaWeightedAggregation } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
@@ -76,49 +73,37 @@ async function getFarmMeasureRecommendations({
   timeframe?: Timeframe
   fieldScores: FieldBln3Score[]
 }): Promise<FarmMeasureRecommendationsResult> {
-  const [applicabilityByField, adviceByField, measuresByField, catalogue] = await Promise.all([
-    getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
-    getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
+  const [measuresByField, catalogue] = await Promise.all([
     getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe),
     getMeasuresFromCatalogue(fdm),
   ])
-
-  const measureNameById = new Map(catalogue.map((m) => [m.m_id, m.m_name]))
   const scoreByBid = new Map(fieldScores.map((s) => [s.b_id, s.score]))
-  const recommendations: FarmMeasureRecommendation[] = []
-  let adviceAvailable = false
+  const activeMeasureIdsByField = new Map(
+    b_ids.map((b_id) => [b_id, new Set((measuresByField.get(b_id) ?? []).map((m) => m.m_id))]),
+  )
 
-  for (const b_id of b_ids) {
-    const advice = adviceByField[b_id]
-    if (!advice) continue // advice fetch failed for this field — never treat as empty
+  const { opportunities, adviceAvailable } = await getFarmMeasureOpportunities({
+    principal_id,
+    b_ids,
+    b_year,
+    timeframe,
+    scoreByBid,
+    activeMeasureIdsByField,
+    measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+  })
 
-    adviceAvailable = true
-
-    // Same filtering as the field-level views: only the field's currently
-    // weak (non-green) indicators, only applicable measures, never measures
-    // already active on the field. One helper, one rule.
-    const opportunities = getTopOpportunitiesForField({
-      advice,
-      score: scoreByBid.get(b_id) ?? null,
-      applicability: applicabilityByField[b_id] ?? {},
-      activeMeasureIds: new Set((measuresByField.get(b_id) ?? []).map((m) => m.m_id)),
-    })
-
-    for (const opportunity of opportunities) {
-      const m_name = measureNameById.get(opportunity.m_id) ?? opportunity.m_id.replace("bln_", "")
-      for (const impact of opportunity.indicatorImpacts) {
-        recommendations.push({
-          b_id,
-          indicator_id: impact.indicator_id,
-          m_id: opportunity.m_id,
-          m_name,
-          measure_impact: impact.measure_impact,
-        })
-      }
-    }
+  return {
+    adviceAvailable,
+    recommendations: opportunities.flatMap((opportunity) =>
+      opportunity.indicatorImpacts.map((impact) => ({
+        b_id: opportunity.b_id,
+        indicator_id: impact.indicator_id,
+        m_id: opportunity.m_id,
+        m_name: opportunity.m_name,
+        measure_impact: impact.measure_impact,
+      })),
+    ),
   }
-
-  return { recommendations, adviceAvailable }
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -134,7 +119,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
     const calendarYear = Number(params.calendar)
-    const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
+    const b_year =
+      params.calendar === "all"
+        ? new Date().getFullYear()
+        : Number.isFinite(calendarYear)
+          ? calendarYear
+          : new Date().getFullYear()
 
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
 
@@ -164,6 +154,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_year,
       timeframe,
       fieldScores,
+    }).catch((error) => {
+      reportError(error, { page: "farm indicators recommendations" })
+      return { recommendations: [], adviceAvailable: false }
     })
 
     return {
