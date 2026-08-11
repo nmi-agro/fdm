@@ -1,13 +1,18 @@
+import { ChevronDown, ChevronUp } from "lucide-react"
 import type { ReactNode } from "react"
+import { useState } from "react"
 import {
   BCS_COLOR_CLASSES,
   BCS_SCORE_DOT,
   type BcsColor,
   type BcsScores,
+  formatIndicatorScore,
   indicatorScoreColor,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { Badge } from "~/components/ui/badge"
+import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { BCS_INDICATORS } from "~/lib/bcs"
 import { cn } from "~/lib/utils"
 
@@ -21,6 +26,7 @@ interface BcsScoreCardProps {
   scoreLabel: string
   measuredAt?: string | null
   actions?: ReactNode
+  collapsibleIndicators?: boolean
 }
 
 export function BcsScoreCard({
@@ -33,7 +39,53 @@ export function BcsScoreCard({
   scoreLabel,
   measuredAt,
   actions,
+  collapsibleIndicators = false,
 }: BcsScoreCardProps) {
+  const [isExpanded, setIsExpanded] = useState(!collapsibleIndicators)
+
+  const indicatorList = (
+    <div className="space-y-3">
+      {BCS_INDICATORS.map((indicator) => {
+        const score =
+          indicator.key === "a_ph_bcs"
+            ? (a_ph_bcs ?? null)
+            : indicator.key === "a_som_bcs"
+              ? (a_som_bcs ?? null)
+              : (scores[indicator.key] ?? null)
+
+        const color = score == null ? null : indicatorScoreColor(score, indicator.direction)
+
+        return (
+          <div
+            key={indicator.key}
+            className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border p-3"
+          >
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{indicator.name}</span>
+                {indicator.source === "lab" ? (
+                  <span className="text-muted-foreground text-xs">(afgeleid)</span>
+                ) : null}
+              </div>
+              <div className="text-muted-foreground text-sm">Weging x{indicator.weight}</div>
+            </div>
+            <div className="text-muted-foreground text-sm font-medium">
+              {score == null ? "Onbekend" : `Score ${formatIndicatorScore(score, indicator.direction)}`}
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <span
+                className={cn(
+                  "size-3 rounded-full",
+                  color ? BCS_SCORE_DOT[color] : "bg-muted-foreground/30",
+                )}
+              />
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+
   return (
     <Card>
       <CardHeader className="space-y-4">
@@ -65,46 +117,28 @@ export function BcsScoreCard({
           <div className="mt-2 text-sm">{(i_bcs * 100).toFixed(0)}% van de maximale score</div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {BCS_INDICATORS.map((indicator) => {
-          const score =
-            indicator.key === "a_ph_bcs"
-              ? (a_ph_bcs ?? null)
-              : indicator.key === "a_som_bcs"
-                ? (a_som_bcs ?? null)
-                : (scores[indicator.key] ?? null)
-
-          const color = score == null ? null : indicatorScoreColor(score, indicator.direction)
-
-          return (
-            <div
-              key={indicator.key}
-              className="grid grid-cols-[1fr_auto_auto] items-center gap-3 rounded-lg border p-3"
-            >
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{indicator.name}</span>
-                  {indicator.source === "lab" ? (
-                    <span className="text-muted-foreground text-xs">(afgeleid)</span>
-                  ) : null}
-                </div>
-                <div className="text-muted-foreground text-sm">Weging x{indicator.weight}</div>
-              </div>
-              <div className="text-muted-foreground text-sm font-medium">
-                {score == null ? "Onbekend" : `Score ${score}`}
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <span
-                  className={cn(
-                    "size-3 rounded-full",
-                    color ? BCS_SCORE_DOT[color] : "bg-muted-foreground/30",
-                  )}
-                />
-              </div>
-            </div>
-          )
-        })}
+      <CardContent>
+        {collapsibleIndicators ? (
+          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="h-auto w-full justify-between p-0">
+                <span className="text-sm font-medium">
+                  Deelscores ({BCS_INDICATORS.length})
+                </span>
+                {isExpanded ? (
+                  <ChevronUp className="size-4" />
+                ) : (
+                  <ChevronDown className="size-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">{indicatorList}</CollapsibleContent>
+          </Collapsible>
+        ) : (
+          indicatorList
+        )}
       </CardContent>
     </Card>
   )
 }
+

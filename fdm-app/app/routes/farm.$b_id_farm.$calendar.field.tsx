@@ -34,6 +34,7 @@ import { SidebarInset } from "~/components/ui/sidebar"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getSession } from "~/lib/auth.server"
 import { isBcsAnalysis } from "~/lib/bcs"
+import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -222,18 +223,27 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           return db - da
         })[0]
         const bcs = latestBcs
-          ? (() => {
-              const { d_bcs, scoreColor, scoreLabel } = computeBcs({
-                a_ss_bcs: latestBcs.a_ss_bcs,
-                a_sc_bcs: latestBcs.a_sc_bcs,
-                a_rd_bcs: latestBcs.a_rd_bcs,
-                a_ew_bcs: latestBcs.a_ew_bcs,
-                a_cc_bcs: latestBcs.a_cc_bcs,
-                a_gs_bcs: latestBcs.a_gs_bcs,
-                a_p_bcs: latestBcs.a_p_bcs,
-                a_c_bcs: latestBcs.a_c_bcs,
-                a_rt_bcs: latestBcs.a_rt_bcs,
-              })
+          ? await (async () => {
+              const { labContext } = await deriveBcsScores(
+                fdm,
+                session.principal_id,
+                field.b_id,
+                new Date(latestBcs.b_sampling_date ?? latestBcs.a_date ?? new Date()),
+              )
+              const { d_bcs, scoreColor, scoreLabel } = computeBcs(
+                {
+                  a_ss_bcs: latestBcs.a_ss_bcs,
+                  a_sc_bcs: latestBcs.a_sc_bcs,
+                  a_rd_bcs: latestBcs.a_rd_bcs,
+                  a_ew_bcs: latestBcs.a_ew_bcs,
+                  a_cc_bcs: latestBcs.a_cc_bcs,
+                  a_gs_bcs: latestBcs.a_gs_bcs,
+                  a_p_bcs: latestBcs.a_p_bcs,
+                  a_c_bcs: latestBcs.a_c_bcs,
+                  a_rt_bcs: latestBcs.a_rt_bcs,
+                },
+                labContext ?? undefined,
+              )
               return {
                 a_id: latestBcs.a_id,
                 d_bcs,

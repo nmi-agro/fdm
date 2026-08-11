@@ -37,6 +37,15 @@ export function indicatorScoreColor(
   return direction === "negative" ? NEGATIVE_COLORS[normalized] : POSITIVE_COLORS[normalized]
 }
 
+/**
+ * Formats an indicator score for display, prefixing a minus sign for negative-direction
+ * indicators (e.g. Plasvorming, Scheuren, Spoorvorming) to make clear they subtract from
+ * the total BodemConditieScore. A score of 0 is shown without a sign.
+ */
+export function formatIndicatorScore(score: number, direction: "positive" | "negative"): string {
+  return direction === "negative" && score > 0 ? `-${score}` : `${score}`
+}
+
 export const BCS_COLOR_CLASSES: Record<BcsColor, string> = {
   red: "border-red-200 bg-red-50 text-red-700",
   orange: "border-orange-200 bg-orange-50 text-orange-700",

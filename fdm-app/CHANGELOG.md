@@ -1,5 +1,18 @@
 # Changelog fdm-app
 
+## 0.35.2
+
+### Patch Changes
+
+- [#742](https://github.com/nmi-agro/fdm/pull/742) [`4deb343`](https://github.com/nmi-agro/fdm/commit/4deb3437f44037fba8081ae3d08c59b6b62ff001) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix BodemConditieScore (BCS) showing an inconsistent, lower score on the BCS overview page by including the missing lab-based pH and organic matter sub-scores.
+
+- [#742](https://github.com/nmi-agro/fdm/pull/742) [`b6d44e2`](https://github.com/nmi-agro/fdm/commit/b6d44e247b0e5badfc10d5c27f16ef838be9a061) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix missing AI observability events for Gerrit in PostHog in production
+
+- [#742](https://github.com/nmi-agro/fdm/pull/742) [`2148993`](https://github.com/nmi-agro/fdm/commit/21489938699a9fe7795dac0132a3a32a04425c02) Thanks [@SvenVw](https://github.com/SvenVw)! - Show a minus sign for negative-direction BCS indicator scores (Plasvorming, Scheuren, Spoorvorming) on the BCS detail page, the field indicators dialog, and the new-measurement wizard, to make clear these indicators subtract from the total BodemConditieScore.
+
+- Updated dependencies [[`b6d44e2`](https://github.com/nmi-agro/fdm/commit/b6d44e247b0e5badfc10d5c27f16ef838be9a061)]:
+  - @nmi-agro/fdm-agents@0.5.1
+
 ## 0.35.1
 
 ### Patch Changes
