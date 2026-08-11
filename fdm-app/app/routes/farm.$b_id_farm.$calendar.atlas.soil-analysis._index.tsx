@@ -235,7 +235,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
 
   return (
     <div className="relative">
-      <Atlas interactive={true}>
+      <Atlas interactive={true} interactiveLayerIds={[heatmapLayerId]}>
         <Controls
           showFlyToFields={fieldsData && fieldsData.features.length > 0}
           initialViewState={initialViewState}

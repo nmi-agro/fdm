@@ -11,21 +11,17 @@
 import type { FeatureCollection } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
 import maplibregl from "maplibre-gl"
-import { useCallback, useMemo, useState } from "react"
-import {
-  Layer,
-  Map as MapGL,
-  type MapMouseEvent,
-  type ViewState,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
+import { useCallback, useMemo } from "react"
+import { Layer } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
   getFieldsScoreOutlineStyle,
   getFieldsScoreStyle,
 } from "~/components/blocks/atlas/atlas-styles"
+import { AtlasTooltip } from "~/components/blocks/atlas/atlas-tooltip"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { getScoreColor, getScoreVerdict } from "~/lib/indicators"
 
@@ -58,7 +54,6 @@ const SELECTED_SOURCE = "fieldMapSelectedSource"
 export default function FieldMap({
   fieldsGeoJSON,
   selectedFieldGeoJSON,
-  mapStyle,
   basePath,
   scoreKey = "avg",
   scoreLabel,
@@ -66,24 +61,10 @@ export default function FieldMap({
 }: FieldMapProps) {
   const navigate = useNavigate()
   const initialViewState = getViewState(fieldsGeoJSON)
-  const [viewState, setViewState] = useState<ViewState>(initialViewState as ViewState)
-  const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null)
 
-  const onViewportChange = useCallback(
-    (event: ViewStateChangeEvent) => setViewState(event.viewState),
-    [],
-  )
-
-  const onMouseMove = useCallback((e: MapMouseEvent) => {
-    const feature = e.features?.[0]
-    setHoveredFieldId(feature ? ((feature.properties?.b_id as string) ?? null) : null)
-  }, [])
-
-  const onMouseLeave = useCallback(() => setHoveredFieldId(null), [])
-
-  const onClick = useCallback(
-    (e: MapMouseEvent) => {
-      const b_id = e.features?.[0]?.properties?.b_id as string | undefined
+  const onFeatureClicked = useCallback(
+    (feature: maplibregl.MapGeoJSONFeature) => {
+      const b_id = feature.properties?.b_id as string | undefined
       if (b_id) void navigate(`${basePath}/${b_id}`)
     },
     [navigate, basePath],
@@ -95,81 +76,69 @@ export default function FieldMap({
     [scoreKey],
   )
 
-  // Hover data for tooltip
-  const hoveredFeature = useMemo(() => {
-    if (!hoveredFieldId) return null
-    return fieldsGeoJSON.features.find((f) => f.properties?.b_id === hoveredFieldId) ?? null
-  }, [fieldsGeoJSON, hoveredFieldId])
-
-  const hoveredScore =
-    typeof hoveredFeature?.properties?.[scoreKey] === "number" &&
-    hoveredFeature.properties[scoreKey] >= 0
-      ? (hoveredFeature.properties[scoreKey] as number)
-      : null
-
   return (
-    <div className="relative" style={{ height }}>
-      <MapGL
-        {...viewState}
-        style={{
-          height: "100%",
-          width: "100%",
-          borderRadius: "0.5rem",
-        }}
-        mapStyle={mapStyle as any}
-        mapLib={maplibregl}
-        interactiveLayerIds={[FIELDS_LAYER]}
-        onMove={onViewportChange}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-        onClick={onClick}
-        cursor={hoveredFieldId ? "pointer" : "default"}
-      >
-        <MapTilerAttribution />
+    <Atlas
+      interactive={true}
+      interactiveLayerIds={[FIELDS_LAYER]}
+      initialViewState={initialViewState}
+      style={{ height }}
+    >
+      <MapTilerAttribution />
 
-        {/* All farm fields coloured by score */}
-        <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
-          <Layer {...(scoreStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
-          <Layer {...(scoreOutlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
-        </FieldsSourceNotClickable>
+      {/* All farm fields coloured by score */}
+      <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
+        <Layer {...(scoreStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
+        <Layer {...(scoreOutlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
+      </FieldsSourceNotClickable>
 
-        {/* Selected field: yellow outline highlight */}
-        <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
-          <Layer
-            id={SELECTED_LAYER}
-            source={SELECTED_SOURCE}
-            type="fill"
-            paint={{
-              "fill-color": "#ffcf0d",
-              "fill-opacity": 0.25,
-            }}
-          />
-          <Layer
-            id={SELECTED_OUTLINE_LAYER}
-            source={SELECTED_SOURCE}
-            type="line"
-            paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
-          />
-        </FieldsSourceNotClickable>
-      </MapGL>
+      {/* Selected field: yellow outline highlight */}
+      <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
+        <Layer
+          id={SELECTED_LAYER}
+          source={SELECTED_SOURCE}
+          type="fill"
+          paint={{
+            "fill-color": "#ffcf0d",
+            "fill-opacity": 0.25,
+          }}
+        />
+        <Layer
+          id={SELECTED_OUTLINE_LAYER}
+          source={SELECTED_SOURCE}
+          type="line"
+          paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
+        />
+      </FieldsSourceNotClickable>
 
       {/* Hover tooltip */}
-      {hoveredFeature && (
-        <div className="bg-background/95 pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-md backdrop-blur-sm">
-          <p className="font-semibold">{hoveredFeature.properties?.b_name ?? "Onbekend perceel"}</p>
-          {scoreLabel && <p className="text-muted-foreground text-[10px]">{scoreLabel}</p>}
-          {hoveredScore !== null && (
-            <span
-              className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
-              style={{
-                backgroundColor: getScoreColor(hoveredScore),
-              }}
-            >
-              {hoveredScore} – {getScoreVerdict(hoveredScore)}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
+      <AtlasTooltip
+        layers={[FIELDS_LAYER]}
+        onFeatureClicked={onFeatureClicked}
+        render={({ feature, mode }) => {
+          if (feature === null) return null
+          const hoveredScore =
+            typeof feature?.properties?.[scoreKey] === "number" && feature.properties[scoreKey] >= 0
+              ? (feature.properties[scoreKey] as number)
+              : null
+
+          return (
+            <>
+              <p className="font-semibold">{feature.properties?.b_name ?? "Onbekend perceel"}</p>
+              {scoreLabel && <p className="text-muted-foreground text-[10px]">{scoreLabel}</p>}
+              {hoveredScore !== null && (
+                <span
+                  className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                  style={{
+                    backgroundColor: getScoreColor(hoveredScore),
+                  }}
+                >
+                  {hoveredScore} – {getScoreVerdict(hoveredScore)}
+                </span>
+              )}
+            </>
+          )
+        }}
+      />
+    </Atlas>
   )
 }

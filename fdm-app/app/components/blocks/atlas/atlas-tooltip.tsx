@@ -368,7 +368,7 @@ function AtlasTooltipCard({
     <div
       ref={tooltipContainerRef}
       className={cn(
-        "flex absolute cursor-default",
+        "flex absolute cursor-default max-w-65 min-w-45",
         !interactive && "pointer-events-none",
         anchorY !== "center" && "flex-col",
         AnchorPositioning({ anchorX, anchorY }),

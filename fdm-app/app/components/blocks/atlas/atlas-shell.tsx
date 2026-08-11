@@ -40,7 +40,16 @@ export function Atlas(
     children?: any
   },
 ) {
-  const { ref, initialViewState, interactive, children, style, ...mapGlProps } = props
+  const {
+    ref,
+    initialViewState,
+    interactive,
+    interactiveLayerIds,
+    children,
+    style,
+    ...mapGlProps
+  } = props
+  const mapRef = useRef<MapRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const mapStyle = getMapStyle("satellite")
@@ -71,25 +80,68 @@ export function Atlas(
     }
   }, [interactive, viewState])
 
+  const onMouseMove = useCallback((e: maplibregl.MapLayerMouseEvent) => {
+    if (mapRef.current) {
+      mapRef.current.getCanvas().style.cursor =
+        interactiveLayerIds && e.features?.some((x) => interactiveLayerIds.includes(x.layer.id))
+          ? "pointer"
+          : interactive
+            ? "grab"
+            : ""
+    }
+  }, [])
+
+  const onMouseLeave = useCallback(() => {
+    if (mapRef.current) {
+      mapRef.current.getCanvas().style.cursor = interactive ? "grab" : ""
+    }
+  }, [])
+
   const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
     setViewState(event.viewState)
   }, [])
 
   return (
-    <div className="relative h-full w-full overflow-hidden" ref={containerRef}>
+    <div
+      className="relative overflow-hidden"
+      style={{
+        height: "calc(100vh - 64px)",
+        width: "100%",
+        ...style,
+      }}
+      ref={containerRef}
+    >
       <MapContainerContext.Provider value={containerRef}>
         <ViewStateContext.Provider value={viewStateContext}>
           <MapGL
             {...viewState}
             {...mapGlProps}
-            ref={ref}
-            style={{ ...style, height: "calc(100vh - 64px)", width: "100%" }}
+            style={{ width: "100%", height: "100%" }}
+            ref={(map) => {
+              if (ref) {
+                if (typeof ref === "function") {
+                  ref(map)
+                } else {
+                  ref.current = map
+                }
+              }
+              mapRef.current = map
+            }}
             interactive={interactive}
+            interactiveLayerIds={interactiveLayerIds}
             mapStyle={mapStyle}
             mapLib={maplibregl}
             onMove={(e) => {
               onViewportChange(e)
               mapGlProps.onMove?.(e)
+            }}
+            onMouseMove={(e) => {
+              onMouseMove(e)
+              mapGlProps.onMouseMove?.(e)
+            }}
+            onMouseLeave={(e) => {
+              onMouseLeave()
+              mapGlProps.onMouseLeave?.(e)
             }}
           >
             {children}

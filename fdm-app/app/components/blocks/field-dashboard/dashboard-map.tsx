@@ -70,7 +70,12 @@ export default function FieldDashboardMap({
   const [showFields, setShowFields] = useState(true)
 
   return (
-    <Atlas initialViewState={initialViewState} interactive={true}>
+    <Atlas
+      initialViewState={initialViewState}
+      interactive={true}
+      interactiveLayerIds={[fieldsSaved.id]}
+      style={{ height: "360px", width: "100%" }}
+    >
       <Controls
         initialViewState={initialViewState}
         showFlyToFields={dashboard.farmFieldsGeoJson.features.length > 0}
