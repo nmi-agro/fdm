@@ -148,8 +148,6 @@ export default function FarmAtlasFieldsBlock() {
 
   const [showFields, setShowFields] = useState(true)
 
-  const mapRef = useRef<MapRef>(null)
-
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
@@ -175,27 +173,12 @@ export default function FarmAtlasFieldsBlock() {
   } as LayerProps
 
   return (
-    <Atlas {...viewState} ref={mapRef} interactive={true}>
+    <Atlas interactive={true}>
       <Controls
-        onViewportChange={({ longitude, latitude, zoom }) =>
-          setViewState((currentViewState) => ({
-            ...currentViewState,
-            longitude,
-            latitude,
-            zoom,
-            pitch: currentViewState.pitch, // Ensure pitch is carried over
-            bearing: currentViewState.bearing, // Ensure bearing is carried over
-          }))
-        }
         showFields={showFields}
         onToggleFields={() => setShowFields(!showFields)}
         showFlyToFields={fields && fields.features.length > 0 ? true : undefined}
-        onFlyToFields={() => {
-          setViewState({ ...initialViewState })
-          if (initialViewState.bounds) {
-            mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-          }
-        }}
+        initialViewState={initialViewState}
       />
 
       <MapTilerAttribution />

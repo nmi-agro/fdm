@@ -2,12 +2,12 @@ import { cva } from "class-variance-authority"
 import throttle from "lodash.throttle"
 import { X } from "lucide-react"
 import maplibregl from "maplibre-gl"
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import { ComponentProps, ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useMap, MapRef } from "react-map-gl/maplibre"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
-import { Card } from "~/components/ui/card"
+import { Card, CardHeader, CardContent, CardFooter } from "~/components/ui/card"
 import { useMapContainer } from "./atlas-shell"
 import { useStableSet } from "./atlas-util"
 
@@ -206,7 +206,7 @@ export function AtlasTooltip({
         <Button
           type="button"
           variant="ghost"
-          className="has-[>svg]:p-1 absolute right-2 top-2"
+          className="has-[>svg]:p-1 absolute right-0.5 top-0.5"
           title="Sluiten"
           aria-label="Sluiten"
           onClick={() => {
@@ -230,14 +230,14 @@ export function AtlasTooltip({
 
   if (hoverPosition) {
     return createPortal(
-      <AtlasTooltipContent x={hoverPosition.x} y={hoverPosition.y} interactive={false}>
+      <AtlasTooltipCard x={hoverPosition.x} y={hoverPosition.y} interactive={false}>
         {render({
           feature: hoveredFeature,
           mode: "tooltip",
           longitude: hoverPosition.lngLat.lng,
           latitude: hoverPosition.lngLat.lat,
         })}
-      </AtlasTooltipContent>,
+      </AtlasTooltipCard>,
       mapContainer,
     )
   }
@@ -263,7 +263,7 @@ const AnchorPositioning = cva("", {
 })
 
 /**
- * A component that places a `AtlasTooltipContent` at the given longitude and latitude.
+ * A component that places a `AtlasTooltipCard` at the given longitude and latitude.
  */
 function AtlasPopup({
   longitude,
@@ -299,14 +299,14 @@ function AtlasPopup({
     }
   }, [map, longitude, latitude])
 
-  return <AtlasTooltipContent x={x} y={y} children={children} />
+  return <AtlasTooltipCard x={x} y={y} children={children} />
 }
 
 /**
  * A `Card` wrapper that has a speech bubble tip. The tip is moved based on the distance to the edges of the
  * relative container.
  */
-function AtlasTooltipContent({
+function AtlasTooltipCard({
   x,
   y,
   interactive = true,
@@ -375,20 +375,20 @@ function AtlasTooltipContent({
       }}
     >
       {anchorX === "left" && anchorY === "top" && (
-        <div className="size-0 border-transparent border-l-card border-x-6 border-y-8 border-b-0 self-start" />
+        <div className="size-0 border-transparent border-l-background/95 border-x-6 border-y-8 border-b-0 self-start z-10" />
       )}
       {anchorX === "right" && anchorY === "top" && (
-        <div className="size-0 border-transparent border-r-card border-x-6 border-y-8 border-b-0 self-end" />
+        <div className="size-0 border-transparent border-r-background/95 border-x-6 border-y-8 border-b-0 self-end z-10" />
       )}
       {anchorX === "center" && anchorY === "top" && (
-        <div className="size-0 border-transparent border-b-card border-8 border-t-0 self-center" />
+        <div className="size-0 border-transparent border-b-background/95 border-8 border-t-0 self-center z-10" />
       )}
       {anchorX === "left" && anchorY === "center" && (
-        <div className="size-0 border-transparent border-r-card border-8 border-l-0 self-center" />
+        <div className="size-0 border-transparent border-r-background/95 border-8 border-l-0 self-center z-10" />
       )}
       <Card
         className={cn(
-          "border-0 relative",
+          "border-0 relative backdrop-blur-sm bg-background/95 p-3 text-xs shadow-md",
           anchorX === "left" && anchorY === "top" && "rounded-tl-none",
           anchorX === "right" && anchorY === "top" && "rounded-tr-none",
           anchorX === "left" && anchorY === "bottom" && "rounded-bl-none",
@@ -398,17 +398,34 @@ function AtlasTooltipContent({
         {children}
       </Card>
       {anchorX === "right" && anchorY === "center" && (
-        <div className="size-0 border-transparent border-l-card border-8 border-r-0 self-center" />
+        <div className="size-0 border-transparent border-l-background/95 border-8 border-r-0 self-center z-10" />
       )}
       {anchorX === "left" && anchorY === "bottom" && (
-        <div className="size-0 border-transparent border-l-card border-x-6 border-y-8 border-t-0 self-start" />
+        <div className="size-0 border-transparent border-l-background/95 border-x-6 border-y-8 border-t-0 self-start z-10" />
       )}
       {anchorX === "right" && anchorY === "bottom" && (
-        <div className="size-0 border-transparent border-r-card border-x-6 border-y-8 border-t-0 self-end" />
+        <div className="size-0 border-transparent border-r-background/95 border-x-6 border-y-8 border-t-0 self-end z-10" />
       )}
       {anchorX === "center" && anchorY === "bottom" && (
-        <div className="size-0 border-transparent border-t-card border-8 border-b-0 self-center" />
+        <div className="size-0 border-transparent border-t-background/95 border-8 border-b-0 self-center z-10" />
       )}
     </div>
   )
+}
+
+export function AtlasTooltipHeader(props: ComponentProps<typeof CardHeader>) {
+  return <CardHeader {...props} className={cn("p-0 mb-1.5 last:mb-0", props.className)} />
+}
+
+export function AtlasTooltipContent(props: ComponentProps<typeof CardContent>) {
+  return (
+    <CardContent
+      {...props}
+      className={cn("flex items-center justify-between gap-3 border-t p-0 pt-1.5", props.className)}
+    />
+  )
+}
+
+export function AtlasTooltipFooter(props: ComponentProps<typeof CardFooter>) {
+  return <CardFooter {...props} className={cn("mt-1.5 p-0", props.className)} />
 }

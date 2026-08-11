@@ -2,20 +2,21 @@ import type { ControlPosition, IControl, Map as MapLibreMap } from "maplibre-gl"
 import { Layers, Mountain, PanelsRightBottom, Scan } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { createRoot, type Root } from "react-dom/client"
-import { GeolocateControl, NavigationControl, useControl } from "react-map-gl/maplibre"
+import { GeolocateControl, NavigationControl, useControl, useMap } from "react-map-gl/maplibre"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { GeocoderControl } from "./atlas-geocoder"
+import { useAtlasViewState } from "./atlas-shell"
+import { AtlasViewState } from "./atlas-viewstate"
 
 type ControlsProps = {
-  onViewportChange: (viewport: { longitude: number; latitude: number; zoom: number }) => void
+  showFlyToFields?: boolean
+  initialViewState?: AtlasViewState
   showFields?: boolean
   onToggleFields?: () => void
   showElevation?: boolean
   onToggleElevation?: () => void
   showSoil?: boolean
   onToggleSoil?: () => void
-  showFlyToFields?: boolean
-  onFlyToFields?: () => void
 }
 
 /**
@@ -25,9 +26,12 @@ type ControlsProps = {
  */
 export function Controls(props: ControlsProps) {
   const isMobile = useIsMobile()
+  const [, setViewState] = useAtlasViewState()
+  const { current: map } = useMap()
+
   return (
     <>
-      <GeocoderControl onViewportChange={props.onViewportChange} collapsed={isMobile} />
+      <GeocoderControl onViewportChange={setViewState} collapsed={isMobile} />
       <AtlasControls position="top-right">
         {props.showFields !== undefined && props.onToggleFields && (
           <FieldsControl showFields={props.showFields} onToggle={props.onToggleFields} />
@@ -41,8 +45,19 @@ export function Controls(props: ControlsProps) {
         {props.showSoil !== undefined && props.onToggleSoil && (
           <SoilControl showSoil={props.showSoil} onToggle={props.onToggleSoil} />
         )}
-        {props.showFlyToFields !== undefined && props.onFlyToFields && (
-          <FlyToFieldsControl onClick={props.onFlyToFields} />
+        {props.showFlyToFields && (
+          <FlyToFieldsControl
+            onClick={() => {
+              if (!props.initialViewState) return
+              setViewState({ ...props.initialViewState })
+              if (props.initialViewState.bounds) {
+                map?.fitBounds(
+                  props.initialViewState.bounds,
+                  props.initialViewState.fitBoundsOptions,
+                )
+              }
+            }}
+          />
         )}
       </AtlasControls>
       <GeolocateControl positionOptions={{ enableHighAccuracy: true }} trackUserLocation={true} />

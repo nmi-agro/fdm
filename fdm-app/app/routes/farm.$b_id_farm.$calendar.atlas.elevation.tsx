@@ -5,22 +5,16 @@ import { simplify } from "@turf/simplify"
 import throttle from "lodash.throttle"
 import maplibregl from "maplibre-gl"
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  Layer,
-  Map as MapGL,
-  type MapLayerMouseEvent,
-  type MapRef,
-  Source,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
+import { Layer, type MapLayerMouseEvent, type MapRef, Source } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { ElevationLegend } from "~/components/blocks/atlas/atlas-legend"
 import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
@@ -136,7 +130,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmAtlasElevationBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const fields = loaderData.fields
-  const mapStyle = loaderData.mapStyle
   const params = useParams()
   const { capture } = useAnalytics()
 
@@ -170,35 +163,7 @@ export default function FarmAtlasElevationBlock() {
     setShowElevation((prev) => !prev)
   }, [])
 
-  // ViewState logic
   const initialViewState = getViewState(fields)
-  const [viewState, setViewState] = useState<AtlasViewState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const savedViewState = sessionStorage.getItem("mapViewState")
-        if (savedViewState) {
-          return JSON.parse(savedViewState)
-        }
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-    return initialViewState
-  })
-
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-  }, [viewState])
 
   // Fetch COG Index once
   useEffect(() => {
@@ -558,42 +523,25 @@ export default function FarmAtlasElevationBlock() {
     [],
   )
 
-  const currentZoom = viewState.zoom ?? 0
+  const currentZoom = mapRef.current?.getZoom() ?? 0
 
   return (
     <div className="relative h-full w-full">
-      <MapGL
+      <Atlas
         ref={mapRef}
-        {...viewState}
-        style={{ height: "calc(100vh - 64px)", width: "100%" }}
+        initialViewState={initialViewState}
         interactive={true}
-        mapStyle={mapStyle}
-        mapLib={maplibregl}
-        onMove={onViewportChange}
         onMoveEnd={throttledUpdate}
         onLoad={throttledUpdate}
         onMouseMove={showElevation ? handleMouseMove : undefined}
       >
         <Controls
-          onViewportChange={({ longitude, latitude, zoom }) =>
-            setViewState((currentViewState) => ({
-              ...currentViewState,
-              longitude,
-              latitude,
-              zoom,
-            }))
-          }
+          showFlyToFields={fields && fields.features.length > 0}
+          initialViewState={initialViewState}
           showFields={showFields}
           onToggleFields={() => setShowFields(!showFields)}
           showElevation={showElevation}
           onToggleElevation={onToggleElevation}
-          showFlyToFields={fields && fields.features.length > 0 ? true : undefined}
-          onFlyToFields={() => {
-            setViewState({ ...initialViewState })
-            if (initialViewState.bounds) {
-              mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-            }
-          }}
         />
 
         <MapTilerAttribution />
@@ -675,7 +623,7 @@ export default function FarmAtlasElevationBlock() {
           />
           <FieldTooltip zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
         </div>
-      </MapGL>
+      </Atlas>
     </div>
   )
 }

@@ -19,7 +19,7 @@ import {
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { AtlasTooltip } from "./atlas-tooltip"
+import { AtlasTooltip, AtlasTooltipFooter, AtlasTooltipHeader } from "./atlas-tooltip"
 
 /**
  * Renders a tooltip or popup showing the field name or the cultivation name and the corresponding area,
@@ -73,7 +73,7 @@ export function FieldTooltip({
           : "Naam"
         return (
           <>
-            <CardHeader>
+            <AtlasTooltipHeader>
               <CardTitle>{name}</CardTitle>
               <CardDescription>
                 {layer === "fieldsSaved"
@@ -84,9 +84,9 @@ export function FieldTooltip({
                       ? "Klik om te selecteren"
                       : "Klik om te verwijderen"}
               </CardDescription>
-            </CardHeader>
+            </AtlasTooltipHeader>
             {mode === "popup" && clickRedirectsToDetailsPage && (
-              <CardFooter>
+              <AtlasTooltipFooter>
                 <Button
                   type="button"
                   className="grow"
@@ -102,7 +102,7 @@ export function FieldTooltip({
                       ? "Selecteren"
                       : "Verwijderen"}
                 </Button>
-              </CardFooter>
+              </AtlasTooltipFooter>
             )}
           </>
         )
