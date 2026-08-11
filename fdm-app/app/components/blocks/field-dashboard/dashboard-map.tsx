@@ -6,12 +6,13 @@
  * dashboard tile — it's only fetched once this tile actually renders.
  */
 
-import maplibregl from "maplibre-gl"
-import { useEffect, useMemo, useRef } from "react"
-import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
+import { useMemo, useState } from "react"
+import { Layer } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
+import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   FieldSourceClickable,
   FieldsSourceNotClickable,
@@ -28,19 +29,12 @@ export default function FieldDashboardMap({
   fieldCroprotationById: Record<string, string | null>
 }) {
   const navigate = useNavigate()
-  const mapRef = useRef<MapRef>(null)
   // Zoom in on the selected field rather than the full farm extent, so the field itself
   // is legible; neighbouring fields remain visible/clickable at the map's edges.
   const initialViewState = useMemo(
     () => getViewState(dashboard.selectedFieldGeoJson ?? dashboard.farmFieldsGeoJson),
     [dashboard],
   )
-
-  useEffect(() => {
-    if (initialViewState.bounds) {
-      mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-    }
-  }, [initialViewState])
 
   const coloredFieldsGeoJson = useMemo(
     () => ({
@@ -73,38 +67,41 @@ export default function FieldDashboardMap({
     id: "dashboard-selected-outline",
   }
 
+  const [showFields, setShowFields] = useState(true)
+
   return (
-    <MapGL
-      {...initialViewState}
-      ref={mapRef}
-      style={{ height: 360, width: "100%" }}
-      mapStyle={dashboard.mapStyle}
-      mapLib={maplibregl}
-      interactiveLayerIds={["fieldsSaved"]}
-    >
+    <Atlas initialViewState={initialViewState} interactive={true}>
+      <Controls
+        initialViewState={initialViewState}
+        showFlyToFields={dashboard.farmFieldsGeoJson.features.length > 0}
+        showFields={showFields}
+        onToggleFields={() => setShowFields(!showFields)}
+      />
       <MapTilerAttribution />
-      <FieldSourceClickable
-        id="fieldsSaved"
-        fieldsData={coloredFieldsGeoJson}
-        onFieldClick={(feature) => {
-          const b_id = feature.properties?.b_id
-          if (!b_id || b_id === dashboard.b_id) return
-          void navigate(`/farm/${dashboard.b_id_farm}/${dashboard.calendar}/field/${b_id}`)
-        }}
-      >
-        <Layer {...fieldsColorFill} />
-        <Layer {...fieldsSavedOutline} />
-        <Layer {...fieldsSaved} />
-      </FieldSourceClickable>
-      <FieldsSourceNotClickable
-        id="dashboard-selected-source"
-        fieldsData={dashboard.selectedFieldGeoJson}
-      >
-        <Layer {...selectedOutline} />
-      </FieldsSourceNotClickable>
-      <div className="fields-panel">
-        <FieldsPanelHover zoomLevelFields={-1} layer="fieldsSaved" />
-      </div>
-    </MapGL>
+      {showFields && (
+        <FieldSourceClickable
+          id="fieldsSaved"
+          fieldsData={coloredFieldsGeoJson}
+          onFieldClick={(feature) => {
+            const b_id = feature.properties?.b_id
+            if (!b_id || b_id === dashboard.b_id) return
+            void navigate(`/farm/${dashboard.b_id_farm}/${dashboard.calendar}/field/${b_id}`)
+          }}
+        >
+          <Layer {...fieldsColorFill} />
+          <Layer {...fieldsSavedOutline} />
+          <Layer {...fieldsSaved} />
+        </FieldSourceClickable>
+      )}
+      {showFields && (
+        <FieldsSourceNotClickable
+          id="dashboard-selected-source"
+          fieldsData={dashboard.selectedFieldGeoJson}
+        >
+          <Layer {...selectedOutline} />
+        </FieldsSourceNotClickable>
+      )}
+      <FieldTooltip zoomLevelFields={-1} layer="fieldsSaved" />
+    </Atlas>
   )
 }

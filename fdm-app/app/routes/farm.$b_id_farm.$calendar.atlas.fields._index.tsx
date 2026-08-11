@@ -3,8 +3,8 @@ import type { MetaFunction } from "react-router"
 import { getFields } from "@nmi-agro/fdm-core"
 import centroid from "@turf/centroid"
 import { simplify } from "@turf/simplify"
-import { useEffect, useRef, useState } from "react"
-import { Layer, type LayerProps, type MapRef } from "react-map-gl/maplibre"
+import { useEffect, useState } from "react"
+import { Layer, type LayerProps } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, useLoaderData, useNavigate, useParams } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
@@ -16,7 +16,7 @@ import {
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
@@ -132,31 +132,8 @@ export default function FarmAtlasFieldsBlock() {
   const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
   // ViewState logic
   const initialViewState = getViewState(fields)
-  const [viewState, setViewState] = useState<AtlasViewState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const savedViewState = sessionStorage.getItem("mapViewState")
-        if (savedViewState) {
-          return JSON.parse(savedViewState)
-        }
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-    return initialViewState
-  })
 
   const [showFields, setShowFields] = useState(true)
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-  }, [viewState])
 
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const
   const fieldsAvailableLayer = {

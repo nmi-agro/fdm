@@ -66,11 +66,8 @@ export function FieldTooltip({
         if (!feature) return null
 
         const layer = feature.layer.id
-        const name = feature
-          ? layer === "fieldsSaved"
-            ? feature.properties.b_name
-            : feature.properties.b_lu_name
-          : "Naam"
+        const name =
+          layer === "fieldsSaved" ? feature.properties.b_name : feature.properties.b_lu_name
         return (
           <>
             <AtlasTooltipHeader>
@@ -96,11 +93,7 @@ export function FieldTooltip({
                     }
                   }}
                 >
-                  {clickRedirectsToDetailsPage
-                    ? "Meer details"
-                    : layer === "fieldsAvailable"
-                      ? "Selecteren"
-                      : "Verwijderen"}
+                  Meer details
                 </Button>
               </AtlasTooltipFooter>
             )}

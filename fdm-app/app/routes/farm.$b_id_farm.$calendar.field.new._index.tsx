@@ -9,11 +9,9 @@ import {
   getFarms,
   getFields,
 } from "@nmi-agro/fdm-core"
-import { featureCollection } from "@turf/helpers"
 import { simplify } from "@turf/simplify"
-import maplibregl from "maplibre-gl"
-import { useCallback, useRef, useState } from "react"
-import { Layer, Map as MapGL, type MapRef, type ViewStateChangeEvent } from "react-map-gl/maplibre"
+import { useState } from "react"
+import { Layer } from "react-map-gl/maplibre"
 import {
   type ActionFunctionArgs,
   data,
@@ -31,6 +29,7 @@ import {
   FieldsPanelSelection,
   FieldsPanelZoom,
 } from "~/components/blocks/atlas/atlas-panels"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   FieldsSourceAvailable,
   FieldsSourceNotClickable,
@@ -38,7 +37,7 @@ import {
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import FieldDetailsInfoPopup from "~/components/blocks/field/popup"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -193,13 +192,6 @@ export default function Index() {
   const initialViewState = getViewState(loaderData.fieldsSaved)
   const fieldsAvailableStyle = getFieldsStyle(fieldsAvailableId)
 
-  const [viewState, setViewState] = useState<AtlasViewState>(initialViewState)
-
-  // onViewportChange handler as Controls requires it
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
-
   const [open, setOpen] = useState(false)
 
   const [selectedField, setSelectedField] = useState<Feature<Polygon> | null>(null)
@@ -225,8 +217,6 @@ export default function Index() {
 
   const [showFields, setShowFields] = useState(true) // Added showFields state
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const // Define layerLayout
-
-  const mapRef = useRef<MapRef>(null)
 
   return (
     <SidebarInset>
@@ -267,18 +257,9 @@ export default function Index() {
         <div>
           <ClientOnly fallback={<Skeleton className="h-full w-full rounded-xl" />}>
             {() => (
-              <MapGL
-                {...viewState} // Use viewState directly
-                ref={mapRef}
-                style={{
-                  height: "calc(100vh - 64px - 123px - 24px)",
-                  width: "100%",
-                }}
+              <Atlas
                 interactive={true}
-                mapStyle={loaderData.mapStyle}
-                mapLib={maplibregl}
                 interactiveLayerIds={[fieldsAvailableId, fieldsSelectedId, fieldsSavedId]}
-                onMove={onViewportChange}
                 onClick={(evt) => {
                   if (!evt.features) return
                   const polygonFeature = evt.features.find(
@@ -290,33 +271,14 @@ export default function Index() {
                 }}
               >
                 <Controls
-                  onViewportChange={(viewport) =>
-                    setViewState((currentViewState) => ({
-                      ...currentViewState,
-                      ...viewport,
-                      pitch: currentViewState.pitch,
-                      bearing: currentViewState.bearing,
-                    }))
-                  }
                   showFields={showFields}
                   onToggleFields={() => setShowFields(!showFields)}
+                  initialViewState={initialViewState}
                   showFlyToFields={
                     fieldsSaved.features.length + selectedFieldsData.features.length > 0
                       ? true
                       : undefined
                   }
-                  onFlyToFields={() => {
-                    const overallViewState = getViewState(
-                      featureCollection([...fieldsSaved.features, ...selectedFieldsData.features]),
-                    )
-                    setViewState(overallViewState)
-                    if (overallViewState.bounds) {
-                      mapRef.current?.fitBounds(
-                        overallViewState.bounds,
-                        overallViewState.fitBoundsOptions,
-                      )
-                    }
-                  }}
                 />
 
                 <MapTilerAttribution />
@@ -375,7 +337,7 @@ export default function Index() {
                   />
                   <FieldsPanelZoom zoomLevelFields={ZOOM_LEVEL_FIELDS} />
                 </div>
-              </MapGL>
+              </Atlas>
             )}
           </ClientOnly>
         </div>

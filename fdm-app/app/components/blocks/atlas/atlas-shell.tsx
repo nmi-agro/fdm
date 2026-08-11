@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { Map as MapGL, ViewStateChangeEvent, MapRef, MapCallbacks } from "react-map-gl/maplibre"
+import { Map as MapGL, ViewStateChangeEvent, MapRef, MapProps } from "react-map-gl/maplibre"
 import { getMapStyle } from "@/app/integrations/map"
 import { AtlasViewState } from "./atlas-viewstate"
 
@@ -33,14 +33,14 @@ export function useAtlasViewState() {
  * It can be composed with different atlas panels and atlas sources in order to display the desired data.
  */
 export function Atlas(
-  props: MapCallbacks & {
+  props: MapProps & {
     ref?: Ref<MapRef>
     initialViewState?: AtlasViewState
     interactive?: boolean
     children?: any
   },
 ) {
-  const { ref, initialViewState, interactive, children, ...mapGlProps } = props
+  const { ref, initialViewState, interactive, children, style, ...mapGlProps } = props
   const containerRef = useRef<HTMLDivElement>(null)
 
   const mapStyle = getMapStyle("satellite")
@@ -62,14 +62,14 @@ export function Atlas(
   const [viewState, setViewState] = viewStateContext
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (interactive && typeof window !== "undefined") {
       try {
         sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
       } catch {
         // ignore storage errors (e.g., private mode)
       }
     }
-  }, [viewState])
+  }, [interactive, viewState])
 
   const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
     setViewState(event.viewState)
@@ -81,13 +81,16 @@ export function Atlas(
         <ViewStateContext.Provider value={viewStateContext}>
           <MapGL
             {...viewState}
+            {...mapGlProps}
             ref={ref}
-            style={{ height: "calc(100vh - 64px)", width: "100%" }}
+            style={{ ...style, height: "calc(100vh - 64px)", width: "100%" }}
             interactive={interactive}
             mapStyle={mapStyle}
             mapLib={maplibregl}
-            onMove={onViewportChange}
-            {...mapGlProps}
+            onMove={(e) => {
+              onViewportChange(e)
+              mapGlProps.onMove?.(e)
+            }}
           >
             {children}
           </MapGL>

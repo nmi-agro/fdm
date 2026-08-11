@@ -265,13 +265,15 @@ const AnchorPositioning = cva("", {
 /**
  * A component that places a `AtlasTooltipCard` at the given longitude and latitude.
  */
-function AtlasPopup({
+export function AtlasPopup({
   longitude,
   latitude,
+  className,
   children,
 }: {
   longitude: number
   latitude: number
+  className?: string
   children: ReactNode
 }) {
   const { current: map } = useMap()
@@ -299,7 +301,7 @@ function AtlasPopup({
     }
   }, [map, longitude, latitude])
 
-  return <AtlasTooltipCard x={x} y={y} children={children} />
+  return <AtlasTooltipCard x={x} y={y} className={className} children={children} />
 }
 
 /**
@@ -310,11 +312,13 @@ function AtlasTooltipCard({
   x,
   y,
   interactive = true,
+  className,
   children,
 }: {
   x: number
   y: number
   interactive?: boolean
+  className?: string
   children: ReactNode
 }) {
   const { current: mapContainer } = useMapContainer()
@@ -368,6 +372,7 @@ function AtlasTooltipCard({
         !interactive && "pointer-events-none",
         anchorY !== "center" && "flex-col",
         AnchorPositioning({ anchorX, anchorY }),
+        className,
       )}
       style={{
         left: `${x}px`,
