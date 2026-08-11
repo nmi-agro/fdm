@@ -15,11 +15,11 @@ import {
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
+import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Badge } from "~/components/ui/badge"
 import { Spinner } from "~/components/ui/spinner"
@@ -498,11 +498,7 @@ export default function FarmAtlasSoilBlock() {
           </Popup>
         )}
 
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-4">
-          <div className="grid w-87.5 gap-4">
-            <FieldsPanelHover zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
-          </div>
-        </div>
+        <FieldTooltip zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
       </MapGL>
     </div>
   )

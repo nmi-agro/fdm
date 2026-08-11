@@ -1,26 +1,21 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MetaFunction } from "react-router"
 import { getFields } from "@nmi-agro/fdm-core"
+import centroid from "@turf/centroid"
 import { simplify } from "@turf/simplify"
-import maplibregl from "maplibre-gl"
-import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  Layer,
-  type LayerProps,
-  Map as MapGL,
-  type MapRef,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
-import { type LoaderFunctionArgs, useLoaderData, useParams } from "react-router"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
+import { useEffect, useRef, useState } from "react"
+import { Layer, type LayerProps, type MapRef } from "react-map-gl/maplibre"
+import { type LoaderFunctionArgs, useLoaderData, useNavigate, useParams } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
+import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   FieldsSourceAvailable,
   FieldsSourceNotClickable,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
@@ -118,6 +113,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmAtlasFieldsBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const params = useParams()
+  const navigate = useNavigate()
   const { capture } = useAnalytics()
 
   useEffect(() => {
@@ -152,10 +148,6 @@ export default function FarmAtlasFieldsBlock() {
 
   const [showFields, setShowFields] = useState(true)
 
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
-
   const mapRef = useRef<MapRef>(null)
 
   useEffect(() => {
@@ -183,16 +175,7 @@ export default function FarmAtlasFieldsBlock() {
   } as LayerProps
 
   return (
-    <MapGL
-      {...viewState}
-      ref={mapRef}
-      style={{ height: "calc(100vh - 64px)", width: "100%" }}
-      interactive={true}
-      mapStyle={loaderData.mapStyle}
-      mapLib={maplibregl}
-      interactiveLayerIds={[id, fieldsAvailableId]}
-      onMove={onViewportChange}
-    >
+    <Atlas {...viewState} ref={mapRef} interactive={true}>
       <Controls
         onViewportChange={({ longitude, latitude, zoom }) =>
           setViewState((currentViewState) => ({
@@ -221,7 +204,7 @@ export default function FarmAtlasFieldsBlock() {
         id={fieldsAvailableId}
         calendar={loaderData.calendar}
         zoomLevelFields={ZOOM_LEVEL_FIELDS}
-        redirectToDetailsPage={true}
+        redirectToDetailsPage={false}
       >
         <Layer {...fieldsAvailableLayer} />
       </FieldsSourceAvailable>
@@ -233,13 +216,16 @@ export default function FarmAtlasFieldsBlock() {
         </FieldsSourceNotClickable>
       )}
 
-      <div className="fields-panel">
-        <FieldsPanelHover
-          zoomLevelFields={ZOOM_LEVEL_FIELDS}
-          layer={[fieldsAvailableId, id]}
-          clickRedirectsToDetailsPage={true}
-        />
-      </div>
-    </MapGL>
+      <FieldTooltip
+        zoomLevelFields={ZOOM_LEVEL_FIELDS}
+        layer={[fieldsAvailableId, id]}
+        clickRedirectsToDetailsPage={true}
+        onFeatureClicked={(clickedFeature) => {
+          const featureCentroid = centroid(clickedFeature)
+          const featureCentroidCoordinates = featureCentroid.geometry.coordinates.join(",")
+          void navigate(featureCentroidCoordinates)
+        }}
+      />
+    </Atlas>
   )
 }

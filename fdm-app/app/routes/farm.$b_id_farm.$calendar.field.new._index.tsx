@@ -23,12 +23,11 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { ClientOnly } from "remix-utils/client-only"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { generateFeatureClass } from "~/components/blocks/atlas/atlas-functions"
 import {
-  FieldsPanelHover,
+  FieldTooltip,
   FieldsPanelSelection,
   FieldsPanelZoom,
 } from "~/components/blocks/atlas/atlas-panels"
@@ -38,6 +37,7 @@ import {
   FieldsSourceSelected,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import FieldDetailsInfoPopup from "~/components/blocks/field/popup"
 import { Header } from "~/components/blocks/header/base"
@@ -361,6 +361,12 @@ export default function Index() {
                   <Layer {...fieldsSavedStyle} />
                 </FieldsSourceNotClickable>
 
+                <FieldTooltip
+                  zoomLevelFields={ZOOM_LEVEL_FIELDS}
+                  layer={[fieldsAvailableId, fieldsSelectedId]}
+                  layerExclude={[fieldsSavedId]}
+                />
+
                 <div className="fields-panel">
                   <FieldsPanelSelection
                     fields={selectedFieldsData}
@@ -368,11 +374,6 @@ export default function Index() {
                     continueTo={loaderData.continueTo}
                   />
                   <FieldsPanelZoom zoomLevelFields={ZOOM_LEVEL_FIELDS} />
-                  <FieldsPanelHover
-                    zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                    layer={[fieldsAvailableId, fieldsSelectedId]}
-                    layerExclude={[fieldsSavedId]}
-                  />
                 </div>
               </MapGL>
             )}

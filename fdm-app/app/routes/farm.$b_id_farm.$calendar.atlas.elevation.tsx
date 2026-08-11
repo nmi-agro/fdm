@@ -14,12 +14,12 @@ import {
   type ViewStateChangeEvent,
 } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { ElevationLegend } from "~/components/blocks/atlas/atlas-legend"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
+import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
+import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
 import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
@@ -673,9 +673,7 @@ export default function FarmAtlasElevationBlock() {
             networkStatus={networkStatus}
             message={showElevation && currentZoom < 13 ? "Zoom in voor meer detail" : undefined}
           />
-          <div className="grid w-[350px] gap-4">
-            <FieldsPanelHover zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
-          </div>
+          <FieldTooltip zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
         </div>
       </MapGL>
     </div>
