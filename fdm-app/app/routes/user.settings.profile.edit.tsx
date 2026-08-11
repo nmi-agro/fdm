@@ -120,7 +120,7 @@ export async function action({ request }: Route.ActionArgs) {
       fileBuffer = result.buffer
       detectedMime = result.mime
 
-      const imagePixelSize = imageSize(fileBuffer)
+      const imagePixelSize = imageSize(new Uint8Array(fileBuffer))
       if (imagePixelSize.width > MAX_DIMENSIONS || imagePixelSize.height > MAX_DIMENSIONS) {
         throw new Error("De foto is te groot of te breed.")
       }
