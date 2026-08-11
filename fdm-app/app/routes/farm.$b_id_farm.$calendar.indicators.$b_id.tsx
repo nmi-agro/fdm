@@ -20,6 +20,7 @@ import {
   type MetaFunction,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
@@ -390,27 +391,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // against a fresh applicability check and already-active measures (the
     // advice endpoint's own list is never trusted to be pre-filtered), keyed
     // by indicator ID, top 3 per indicator, with catalogue names resolved.
+    // `advice` is null when the NMI fetch failed — signal unavailability with
+    // null so cards hide the section instead of showing a false empty state.
     const measureNameById = new Map(measureCatalogue.map((m) => [m.m_id, m.m_name]))
     const activeMeasureIds = new Set(fieldMeasures.map((m) => m.m_id))
     const indicatorAdvice: Record<
       string,
       { m_id: string; m_name: string; measure_impact: number }[]
-    > = {}
-    for (const entry of advice.indicator_advice) {
-      const recommendations = entry.measures
-        .filter(
-          (measure) =>
-            applicabilityMap?.[measure.m_id]?.applicability === "applicable" &&
-            !activeMeasureIds.has(measure.m_id),
-        )
-        .sort((a, b) => b.measure_impact - a.measure_impact)
-        .slice(0, 3)
-        .map((measure) => ({
-          m_id: measure.m_id,
-          m_name: measureNameById.get(measure.m_id) ?? measure.m_id.replace("bln_", ""),
-          measure_impact: measure.measure_impact,
-        }))
-      indicatorAdvice[entry.indicator] = recommendations
+    > | null = advice === null ? null : {}
+    if (advice !== null && indicatorAdvice !== null) {
+      for (const entry of advice.indicator_advice) {
+        const recommendations = entry.measures
+          .filter(
+            (measure) =>
+              applicabilityMap?.[measure.m_id]?.applicability === "applicable" &&
+              !activeMeasureIds.has(measure.m_id),
+          )
+          .sort((a, b) => b.measure_impact - a.measure_impact)
+          .slice(0, 3)
+          .map((measure) => ({
+            m_id: measure.m_id,
+            m_name: measureNameById.get(measure.m_id) ?? measure.m_id.replace("bln_", ""),
+            measure_impact: measure.measure_impact,
+          }))
+        indicatorAdvice[entry.indicator] = recommendations
+      }
     }
 
     return {
@@ -516,6 +521,19 @@ export default function IndicatorsFieldDetail() {
       sessionStorage.setItem(SESSION_KEY_MAP_SCORE, mapScoreKey)
     } catch {}
   }, [mapScoreKey])
+
+  // Deep-link: ?indicator=<id> (e.g. from the farm overview's "Waar te
+  // beginnen" panel) expands that indicator's card — recommended measures
+  // included — and scrolls it into view.
+  const [searchParams] = useSearchParams()
+  const focusIndicatorId = searchParams.get("indicator")
+
+  useEffect(() => {
+    if (!focusIndicatorId) return
+    document
+      .getElementById(`indicator-${focusIndicatorId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [focusIndicatorId])
 
   const handleCategoryToggle = (dienst: Ecosysteemdienst) => {
     setActiveCategories((prev) =>
@@ -660,7 +678,10 @@ export default function IndicatorsFieldDetail() {
                     fieldMeasures={fieldMeasures}
                     measuresHref={measuresHref}
                     showIndex={!withMeasures}
-                    recommendedMeasures={indicatorAdvice[info.id] ?? []}
+                    defaultExpanded={info.id === focusIndicatorId}
+                    recommendedMeasures={
+                      indicatorAdvice === null ? null : (indicatorAdvice[info.id] ?? [])
+                    }
                   />
                 ))}
               </div>

@@ -29,10 +29,10 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
-import { getScoreTier, scoreToDisplay } from "~/lib/indicators"
 import type { FieldMeasure } from "~/lib/indicators"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
+import { getScoreTier, scoreToDisplay } from "~/lib/indicators"
 
 export type {
   Bln3IndicatorAdvice,
@@ -252,14 +252,16 @@ export async function getMeasureApplicabilityForFields({
   return fieldApplicabilityMap
 }
 
-const EMPTY_ADVICE: Bln3MeasureAdviceResult = { indicator_advice: [] }
-
 /**
  * Collects inputs and fetches BLN3 measure advice for a single field.
  *
  * This is a best-effort enhancement, never a blocker: if the NMI request
- * fails, an empty advice result is returned and the failure is logged,
- * matching the pattern used by `getIndicatorsForField`/`getMeasureApplicabilityForField`.
+ * fails, `null` is returned and the failure is logged. `null` signals
+ * "advice unavailable" — callers must treat it differently from a
+ * successful-but-empty result and never render empty-state copy (e.g.
+ * "no measures with noteworthy effect") for it, since that would present
+ * a failed fetch as an agronomic fact. The usual response is to hide the
+ * recommendations section entirely.
  *
  * Note: the NMI `measure/advice` endpoint is marked **experimental** — its
  * interface may change without the usual advance notice NMI gives for
@@ -275,7 +277,7 @@ export async function getMeasureAdviceForField({
   b_id: string
   b_year: number
   timeframe?: Timeframe
-}): Promise<Bln3MeasureAdviceResult> {
+}): Promise<Bln3MeasureAdviceResult | null> {
   try {
     const nmiApiKey = getNmiApiKey()
     const inputs = await collectInputForBln3MeasureApplicability(
@@ -294,7 +296,7 @@ export async function getMeasureAdviceForField({
       `BLN3 measure advice failed for field ${b_id}:`,
       err instanceof Error ? err.message : String(err),
     )
-    return EMPTY_ADVICE
+    return null
   }
 }
 
@@ -302,11 +304,11 @@ export async function getMeasureAdviceForField({
  * Fetches BLN3 measure advice for multiple fields in parallel using bounded batches.
  *
  * Uses `Promise.allSettled` in batches of 5 (matching `getMeasureApplicabilityForFields`)
- * so a farm-level page never fires 50+ concurrent NMI requests, and an individual
- * field's failure returns an empty advice result for that field rather than failing
- * the whole request.
+ * so a farm-level page never fires 50+ concurrent NMI requests. An individual
+ * field's failure maps to `null` (advice unavailable) rather than failing
+ * the whole request — callers must not treat `null` as "no recommendations".
  *
- * @returns A record mapping `b_id` to a `Bln3MeasureAdviceResult`.
+ * @returns A record mapping `b_id` to a `Bln3MeasureAdviceResult`, or `null` for failed fields.
  */
 export async function getMeasureAdviceForFields({
   principal_id,
@@ -318,7 +320,7 @@ export async function getMeasureAdviceForFields({
   b_ids: string[]
   b_year: number
   timeframe?: Timeframe
-}): Promise<Record<string, Bln3MeasureAdviceResult>> {
+}): Promise<Record<string, Bln3MeasureAdviceResult | null>> {
   const BATCH_SIZE = 5
   const results = await mapInBatches(b_ids, BATCH_SIZE, (b_id) =>
     getMeasureAdviceForField({
@@ -329,7 +331,7 @@ export async function getMeasureAdviceForFields({
     }),
   )
 
-  const fieldAdviceMap: Record<string, Bln3MeasureAdviceResult> = {}
+  const fieldAdviceMap: Record<string, Bln3MeasureAdviceResult | null> = {}
 
   results.forEach((result, index) => {
     const b_id = b_ids[index]
@@ -340,7 +342,7 @@ export async function getMeasureAdviceForFields({
         `BLN3 measure advice failed for field ${b_id}:`,
         result.reason instanceof Error ? result.reason.message : String(result.reason),
       )
-      fieldAdviceMap[b_id] = EMPTY_ADVICE
+      fieldAdviceMap[b_id] = null
     }
   })
 
@@ -360,6 +362,17 @@ export type FarmMeasureRecommendation = {
   m_id: string
   m_name: string
   measure_impact: number
+}
+
+/**
+ * Farm-wide measure recommendations plus an availability flag. When every
+ * field's advice fetch failed, `adviceAvailable` is false and consumers
+ * should hide the recommendations UI entirely rather than render an
+ * empty state that would present a fetch failure as "no recommendations".
+ */
+export type FarmMeasureRecommendationsResult = {
+  recommendations: FarmMeasureRecommendation[]
+  adviceAvailable: boolean
 }
 
 /**
