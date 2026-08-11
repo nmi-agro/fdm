@@ -1,0 +1,117 @@
+name: Weekly Dependency Update
+
+# Runs every Friday at 09:00 Europe/Amsterdam. GitHub Actions cron is UTC-only, so we
+# schedule both the CET (UTC+1) and CEST (UTC+2) equivalents and use a guard step to
+# only proceed on the run that actually matches 09:00 local time.
+#
+# The Copilot agent task is pinned to the "gemini-3.6-flash" model (see the "Start
+# Copilot coding agent task" step below) to keep the AI cost of this weekly automation
+# predictable and low.
+on:
+  schedule:
+    - cron: "0 7 * * 5" # 09:00 Europe/Amsterdam during CEST (summer)
+    - cron: "0 8 * * 5" # 09:00 Europe/Amsterdam during CET (winter)
+  workflow_dispatch: # Allows manual runs for testing
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  trigger-copilot-agent:
+    name: Trigger Copilot coding agent
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check it's actually 09:00 Europe/Amsterdam on a Friday
+        id: schedule_check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          current="$(TZ=Europe/Amsterdam date +'%u %H')"
+          if [ "$current" = "5 09" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "Not 09:00 on a Friday in Europe/Amsterdam (got '$current'), skipping this trigger."
+          fi
+
+      - name: Checkout repo
+        if: steps.schedule_check.outputs.proceed == 'true'
+        uses: actions/checkout@v7
+
+      - name: Skip if a weekly dependency PR is already open
+        id: existing_pr_check
+        if: steps.schedule_check.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --json headRefName \
+            --jq '[.[] | select(.headRefName | startswith("agent/dependencies/"))] | length')
+          if [ "$existing" != "0" ]; then
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            echo "A weekly dependency update PR (branch agent/dependencies/*) is already open, skipping this run."
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify Copilot coding agent is available for this repo
+        id: copilot_check
+        if: steps.schedule_check.outputs.proceed == 'true' && steps.existing_pr_check.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::COPILOT_AGENT_PAT secret is not set. See fdm-docs contributing guide for setup instructions."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          owner="${{ github.repository_owner }}"
+          name="$(basename "${{ github.repository }}")"
+          result=$(gh api graphql \
+            -H "GraphQL-Features: issues_copilot_assignment_api_support" \
+            -f query='
+              query($owner: String!, $name: String!) {
+                repository(owner: $owner, name: $name) {
+                  suggestedActors(capabilities: [CAN_BE_ASSIGNED], first: 100) {
+                    nodes { login }
+                  }
+                }
+              }' -f owner="$owner" -f name="$name" \
+            --jq '.data.repository.suggestedActors.nodes[].login')
+          if echo "$result" | grep -q "copilot-swe-agent"; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Copilot coding agent (copilot-swe-agent) is not enabled/assignable for this repository."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Start Copilot coding agent task
+        if: steps.schedule_check.outputs.proceed == 'true' && steps.existing_pr_check.outputs.proceed == 'true' && steps.copilot_check.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
+        run: |
+          branch_date="$(TZ=Europe/Amsterdam date +'%Y%m%d')"
+          head_ref="agent/dependencies/${branch_date}"
+          prompt_body="$(sed "s/{{BRANCH_DATE}}/${branch_date}/g" .github/copilot/weekly-dependency-update.prompt.md)"
+          prompt_json=$(jq -n \
+            --arg prompt "$prompt_body" \
+            --arg base_ref "development" \
+            --arg head_ref "$head_ref" \
+            --arg model "gemini-3.6-flash" \
+            '{prompt: $prompt, base_ref: $base_ref, head_ref: $head_ref, model: $model, create_pull_request: true}')
+
+          response=$(gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "agents/repos/${{ github.repository }}/tasks" \
+            --input - <<< "$prompt_json")
+
+          echo "$response"
