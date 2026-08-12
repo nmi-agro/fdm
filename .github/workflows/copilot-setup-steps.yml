@@ -46,21 +46,17 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/setup@v2
         with:
           version: 11.17.0
+          install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
@@ -86,4 +82,10 @@ jobs:
       # this environment for real dependency-migration work.
       - name: Verify Postgres connectivity by running fdm-core tests
         run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
 
