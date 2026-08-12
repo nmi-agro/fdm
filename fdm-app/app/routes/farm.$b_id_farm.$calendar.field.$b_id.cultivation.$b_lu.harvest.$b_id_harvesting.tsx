@@ -19,7 +19,7 @@ import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { FormSchema } from "~/components/blocks/harvest/schema"
 import {
   getEffectiveHarvestable,
-  getHarvestCapitalizedTerm,
+  getHarvestTerm,
 } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -33,7 +33,12 @@ type HarvestParameter = HarvestParameters[number]
 
 // Meta
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
-  const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+  const term = getHarvestTerm(
+    loaderData?.cultivation?.b_lu_croprotation,
+    false,
+    loaderData?.cultivation?.b_lu_harvestable,
+    true,
+  )
   return [
     { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
     {
@@ -274,7 +279,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
         harvestProperties,
       )
 
-      const term = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+      const term = getHarvestTerm(
+        cultivation.b_lu_croprotation,
+        false,
+        cultivation.b_lu_harvestable,
+        true,
+      )
       return redirectWithSuccess(
         `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation/${b_lu}`,
         {
@@ -292,7 +302,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       // Just use a generic or fetch cultivation if we want the exact term.
       // Let's just fetch it quickly since it's a small read:
       const cultivation = await getCultivation(fdm, session.principal_id, b_lu)
-      const term = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
+      const term = getHarvestTerm(
+        cultivation?.b_lu_croprotation,
+        false,
+        cultivation?.b_lu_harvestable,
+        true,
+      )
 
       await removeHarvest(fdm, session.principal_id, b_id_harvesting)
       return redirectWithSuccess(

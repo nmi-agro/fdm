@@ -1,14 +1,17 @@
 import { Info } from "lucide-react"
 import { Button } from "~/components/ui/button"
+import type { HarvestableType } from "./types"
 import { getHarvestTerm } from "./utils"
 
 export function HarvestModeSwitchAlert({
   isBatchMode,
   b_lu_croprotation,
+  b_lu_harvestable,
   onSwitch,
 }: {
   isBatchMode: boolean
   b_lu_croprotation?: string | null
+  b_lu_harvestable?: HarvestableType | null
   onSwitch: React.MouseEventHandler<HTMLButtonElement>
 }) {
   return (
@@ -17,8 +20,8 @@ export function HarvestModeSwitchAlert({
         <Info className="text-primary h-4 w-4 shrink-0" />
         <p>
           {isBatchMode
-            ? `Wilt u liever een enkele ${getHarvestTerm(b_lu_croprotation)} toevoegen of bijwerken?`
-            : `Voor dit gewas is het mogelijk om meerdere ${getHarvestTerm(b_lu_croprotation, true)} tegelijk toe te voegen.`}
+            ? `Wilt u liever een enkele ${getHarvestTerm(b_lu_croprotation, false, b_lu_harvestable)} toevoegen of bijwerken?`
+            : `Voor dit gewas is het mogelijk om meerdere ${getHarvestTerm(b_lu_croprotation, true, b_lu_harvestable)} tegelijk toe te voegen.`}
         </p>
       </div>
       <Button

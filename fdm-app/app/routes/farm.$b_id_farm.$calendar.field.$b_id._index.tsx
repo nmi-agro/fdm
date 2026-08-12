@@ -381,8 +381,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             activeCultivation.b_lu_harvestable,
             activeCultivation.b_lu_croprotation,
           ),
-          harvestTermPlural: getHarvestTerm(activeCultivation.b_lu_croprotation, true),
-          harvestDateTerm: getHarvestDateTerm(activeCultivation.b_lu_croprotation),
+          harvestTermPlural: getHarvestTerm(
+            activeCultivation.b_lu_croprotation,
+            true,
+            activeCultivation.b_lu_harvestable,
+          ),
+          harvestDateTerm: getHarvestDateTerm(
+            activeCultivation.b_lu_croprotation,
+            activeCultivation.b_lu_harvestable,
+          ),
           harvests: (harvestsByCultivation[activeCultivation.b_lu] ?? [])
             .slice()
             .sort(

@@ -34,7 +34,6 @@ import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters
 import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
 import {
   getEffectiveHarvestable,
-  getHarvestCapitalizedTerm,
   getHarvestTerm,
 } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
@@ -73,7 +72,12 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { modifySearchParams } from "~/lib/url-utils"
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
-  const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+  const term = getHarvestTerm(
+    loaderData?.cultivation?.b_lu_croprotation,
+    false,
+    loaderData?.cultivation?.b_lu_harvestable,
+    true,
+  )
   return [
     { title: `${term} toevoegen | ${clientConfig.name}` },
     {
@@ -347,11 +351,26 @@ export default function FarmRotationHarvestAddIndex() {
 
   const isSelected = (fieldId: string) => selectedFieldIds.includes(fieldId)
 
-  const getTermSingular = getHarvestTerm(loaderData.cultivation.b_lu_croprotation)
-  const getTermPlural = getHarvestTerm(loaderData.cultivation.b_lu_croprotation, true)
-  const getCapitalizedTerm = getHarvestCapitalizedTerm(loaderData.cultivation.b_lu_croprotation)
-  const getCapitalizedTermPlural = getHarvestCapitalizedTerm(
+  const getTermSingular = getHarvestTerm(
     loaderData.cultivation.b_lu_croprotation,
+    false,
+    loaderData.b_lu_harvestable,
+  )
+  const getTermPlural = getHarvestTerm(
+    loaderData.cultivation.b_lu_croprotation,
+    true,
+    loaderData.b_lu_harvestable,
+  )
+  const getCapitalizedTerm = getHarvestTerm(
+    loaderData.cultivation.b_lu_croprotation,
+    false,
+    loaderData.b_lu_harvestable,
+    true,
+  )
+  const getCapitalizedTermPlural = getHarvestTerm(
+    loaderData.cultivation.b_lu_croprotation,
+    true,
+    loaderData.b_lu_harvestable,
     true,
   )
 
@@ -747,9 +766,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
       ? `/farm/create/${b_id_farm}/${calendar}/rotation`
       : `/farm/${b_id_farm}/${calendar}/rotation`
 
-    const termCapitalizedSingular = getHarvestCapitalizedTerm(targetCultivation.b_lu_croprotation)
-    const termCapitalizedPlural = getHarvestCapitalizedTerm(
+    const termCapitalizedSingular = getHarvestTerm(
       targetCultivation.b_lu_croprotation,
+      false,
+      targetCultivation.b_lu_harvestable,
+      true,
+    )
+    const termCapitalizedPlural = getHarvestTerm(
+      targetCultivation.b_lu_croprotation,
+      true,
+      targetCultivation.b_lu_harvestable,
       true,
     )
 

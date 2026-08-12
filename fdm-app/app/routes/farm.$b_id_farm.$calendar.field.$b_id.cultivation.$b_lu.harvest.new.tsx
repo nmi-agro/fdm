@@ -22,7 +22,7 @@ import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters
 import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
 import {
   getEffectiveHarvestable,
-  getHarvestCapitalizedTerm,
+  getHarvestTerm,
 } from "~/components/blocks/harvest/utils"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
@@ -34,7 +34,12 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 
 // Meta
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
-  const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+  const term = getHarvestTerm(
+    loaderData?.cultivation?.b_lu_croprotation,
+    false,
+    loaderData?.cultivation?.b_lu_harvestable,
+    true,
+  )
   return [
     { title: `${term} toevoegen - Gewas | ${clientConfig.name}` },
     {
@@ -217,8 +222,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
       const term =
         formValues.harvests.length === 1
-          ? getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
-          : getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
+          ? getHarvestTerm(
+              cultivation.b_lu_croprotation,
+              false,
+              cultivation.b_lu_harvestable,
+              true,
+            )
+          : getHarvestTerm(
+              cultivation.b_lu_croprotation,
+              true,
+              cultivation.b_lu_harvestable,
+              true,
+            )
       const verb = formValues.harvests.length === 1 ? "is" : "zijn"
       return redirectWithSuccess("..", {
         message: `${term} ${verb} succesvol toegevoegd! 🎉`,
@@ -243,7 +258,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       count: 1,
     })
 
-    const term = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+    const term = getHarvestTerm(
+      cultivation.b_lu_croprotation,
+      false,
+      cultivation.b_lu_harvestable,
+      true,
+    )
     return redirectWithSuccess("..", {
       message: `${term} succesvol toegevoegd! 🎉`,
     })
