@@ -111,6 +111,7 @@ export default function HarvestNewBlock() {
       <BatchHarvestFormDialog
         calendar={loaderData.calendar}
         b_lu_croprotation={loaderData.cultivation.b_lu_croprotation}
+        b_lu_harvestable={loaderData.effectiveHarvestable}
         b_lu_start={loaderData.cultivation.b_lu_start}
         b_lu_end={loaderData.cultivation.b_lu_end}
         harvestParameters={loaderData.harvestParameters}

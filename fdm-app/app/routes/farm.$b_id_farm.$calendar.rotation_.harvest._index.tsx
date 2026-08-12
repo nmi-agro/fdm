@@ -621,6 +621,7 @@ export default function FarmRotationHarvestAddIndex() {
                       <BatchHarvestForm
                         calendar={loaderData.calendar}
                         b_lu_croprotation={loaderData.cultivation.b_lu_croprotation}
+                        b_lu_harvestable={loaderData.b_lu_harvestable}
                         onBack={() => setIsBatchAdd(false)}
                         b_lu_start={loaderData.b_lu_start ?? null}
                         b_lu_end={loaderData.b_lu_end ?? null}

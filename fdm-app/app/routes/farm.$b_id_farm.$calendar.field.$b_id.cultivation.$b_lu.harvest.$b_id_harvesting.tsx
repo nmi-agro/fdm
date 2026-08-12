@@ -159,6 +159,7 @@ export default function FarmFieldsOverviewBlock() {
   return (
     <HarvestFormDialog
       harvestParameters={loaderData.harvestParameters}
+      b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
       b_lu_harvest_date={loaderData.harvest.b_lu_harvest_date}
       b_lu_yield={loaderData.harvestableAnalysis.b_lu_yield ?? undefined}
       b_lu_yield_fresh={loaderData.harvestableAnalysis.b_lu_yield_fresh ?? undefined}

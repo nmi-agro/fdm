@@ -197,6 +197,7 @@ export default function ModifyHarvestingDialog() {
   return (
     <HarvestFormDialog
       harvestParameters={loaderData.harvestParameters}
+      b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
       exampleHarvestableAnalysis={loaderData.exampleHarvestableAnalysis}
       example_b_lu_harvest_date={loaderData.example_b_lu_harvest_date}
       b_lu_harvest_date={loaderData.b_lu_harvest_date}
