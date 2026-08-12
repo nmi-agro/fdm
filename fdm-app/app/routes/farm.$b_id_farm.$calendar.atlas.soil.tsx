@@ -346,6 +346,19 @@ export default function FarmAtlasSoilBlock() {
     setShowFields((prev) => !prev)
   }, [])
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPopupInfo(null)
+      }
+    }
+    addEventListener("keydown", onKeyDown)
+
+    return () => {
+      removeEventListener("keydown", onKeyDown)
+    }
+  }, [])
+
   return (
     <div className="relative h-full w-full">
       <Atlas
