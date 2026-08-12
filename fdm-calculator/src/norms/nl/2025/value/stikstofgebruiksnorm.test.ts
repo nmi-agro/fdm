@@ -157,7 +157,7 @@ describe("calculateNL2025StikstofGebruiksNorm", () => {
 
     // The base norm for Grasland in zand_nwc is 200 in nv-gebied.
     expect(result.normValue).toBe(200)
-    expect(result.normSource).toEqual("Grasland (beweiden).")
+    expect(result.normSource).toContain("Grasland (beweiden)")
   })
 
   it("should apply 0 korting if Tijdelijk grasland is present in zand_nwc region", async () => {
@@ -904,7 +904,144 @@ describe("calculateNL2025StikstofGebruiksNorm - Korting Logic", () => {
     })
   })
 
+  describe("Conditional Winter Crops (Beet & Maize with undersowing)", () => {
+    it("should apply 0 korting if sugar beet was harvested on or after Nov 1 in preceding year", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+        field: { b_id: "1", b_centroid: sandCentroid } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_256", // Sugar beet (hoofdteelt 2024)
+            b_lu_start: new Date(2024, 3, 1),
+            b_lu_end: new Date(2024, 10, 5), // Harvested Nov 5, 2024 (>= Nov 1)
+          },
+          {
+            b_lu_catalogue: "nl_2751", // Vruchtgewassen (2025)
+            b_lu_start: new Date(2025, 0, 1),
+            b_lu_end: new Date(2025, 5, 1),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      expect(result.normSource).toContain("Geen korting: winterteelt aanwezig in voorafgaand jaar")
+    })
+
+    it("should apply 20 korting if sugar beet was harvested before Nov 1 and no catch crop was grown", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+        field: { b_id: "1", b_centroid: sandCentroid } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_256", // Sugar beet (hoofdteelt 2024)
+            b_lu_start: new Date(2024, 3, 1),
+            b_lu_end: new Date(2024, 9, 10), // Harvested Oct 10, 2024 (< Nov 1)
+          },
+          {
+            b_lu_catalogue: "nl_2751", // Vruchtgewassen (2025)
+            b_lu_start: new Date(2025, 0, 1),
+            b_lu_end: new Date(2025, 5, 1),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      expect(result.normSource).toContain("Korting: 20kg N/ha: geen vanggewas of winterteelt")
+    })
+
+    it("should apply 0 korting if maize in preceding year had undersowing", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+        field: { b_id: "1", b_centroid: sandCentroid } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_316", // Grain maize (hoofdteelt 2024)
+            b_lu_start: new Date(2024, 4, 1),
+            b_lu_end: new Date(2024, 9, 15),
+          },
+          {
+            b_lu_catalogue: "nl_428", // Undersown grass/catch crop
+            b_lu_start: new Date(2024, 5, 1), // Sown during maize
+            b_lu_end: new Date(2025, 1, 1), // Stands until Feb 1
+          },
+          {
+            b_lu_catalogue: "nl_2751", // Vruchtgewassen (2025)
+            b_lu_start: new Date(2025, 0, 1),
+            b_lu_end: new Date(2025, 5, 1),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      expect(result.normSource).toContain("Geen korting: winterteelt aanwezig in voorafgaand jaar")
+    })
+
+    it("should apply 20 korting if maize in preceding year had no undersowing and no catch crop", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+        field: { b_id: "1", b_centroid: sandCentroid } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_316", // Grain maize (hoofdteelt 2024) without undersowing
+            b_lu_start: new Date(2024, 4, 1),
+            b_lu_end: new Date(2024, 9, 15),
+          },
+          {
+            b_lu_catalogue: "nl_2751", // Vruchtgewassen (2025)
+            b_lu_start: new Date(2025, 0, 1),
+            b_lu_end: new Date(2025, 5, 1),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      expect(result.normSource).toContain("Korting: 20kg N/ha: geen vanggewas of winterteelt")
+    })
+  })
+
   describe("Grassland Destruction (Gras-naar-Bouwland) - 65 kg N/ha", () => {
+    it("should cumulate grassland renewal discount (50) with catch crop discount (20) when both apply on Sand", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: {
+          is_derogatie_bedrijf: false,
+          has_grazing_intention: false,
+        },
+        field: {
+          b_id: "1",
+          b_centroid: sandCentroid,
+        } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_2014", // Potatoes in 2024 (hoofdteelt 2024, not a winter crop)
+            b_lu_start: new Date(2024, 3, 1),
+            b_lu_end: new Date(2024, 8, 1),
+          },
+          {
+            b_lu_catalogue: "nl_265", // Grass 1 sown in spring 2025 (no crop over winter)
+            b_lu_start: new Date(2025, 3, 1), // April 1, 2025
+            b_lu_end: new Date(2025, 5, 15), // June 15, 2025
+          },
+          {
+            b_lu_catalogue: "nl_265", // Grass 2 in 2025 (Grassland renewal on June 15)
+            b_lu_start: new Date(2025, 5, 16),
+            b_lu_end: new Date(2025, 11, 31),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      // Grassland (volledig maaien) base norm on zand_nwc NV area is 256.
+      // 256 - (50 + 20) = 186.
+      expect(result.normValue).toBe(186)
+      expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
+      expect(result.normSource).toContain("Korting: 20kg N/ha: geen vanggewas of winterteelt")
+    })
+
     it("should apply 65 discount on Sand (Maize, Feb 1 - May 10)", async () => {
       const mockInput: NL2025NormsInput = {
         farm: {
@@ -1069,7 +1206,7 @@ describe("calculateNL2025StikstofGebruiksNorm - Additional Korting Edge Cases", 
     expect(result.normSource).toContain("Korting: 20kg N/ha: vanggewas staat niet tot 1 februari")
   })
 
-  it("should apply 20 korting if vanggewas is sown too early (before July 15)", async () => {
+  it("should apply 0 korting if vanggewas is sown before July 15 (e.g. after early potatoes)", async () => {
     setupMock(4, 0) // Sand, Non-NV
     const mockInput: NL2025NormsInput = {
       farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
@@ -1079,13 +1216,18 @@ describe("calculateNL2025StikstofGebruiksNorm - Additional Korting Edge Cases", 
       } as Field,
       cultivations: [
         {
-          b_lu_catalogue: "nl_2751", // Vruchtgewassen
+          b_lu_catalogue: "nl_1911", // Early potatoes (2024 hoofdteelt)
+          b_lu_start: new Date(2024, 3, 1), // April 1, 2024
+          b_lu_end: new Date(2024, 6, 5), // July 5, 2024
+        } as Partial<NL2025NormsInputForCultivation>,
+        {
+          b_lu_catalogue: "nl_2751", // Vruchtgewassen (2025 hoofdteelt)
           b_lu_start: new Date(2025, 0, 1),
           b_lu_end: new Date(2025, 5, 1),
         } as Partial<NL2025NormsInputForCultivation>,
         {
           b_lu_catalogue: "nl_428", // Gele mosterd
-          b_lu_start: new Date(2024, 6, 10), // July 10 (Too early)
+          b_lu_start: new Date(2024, 6, 10), // July 10 (Sown before Oct 1)
           b_lu_end: new Date(2025, 1, 15),
         } as Partial<NL2025NormsInputForCultivation>,
       ] as NL2025NormsInputForCultivation[],
@@ -1093,7 +1235,7 @@ describe("calculateNL2025StikstofGebruiksNorm - Additional Korting Edge Cases", 
     }
 
     const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
-    expect(result.normSource).toContain("Korting: 20kg N/ha: geen vanggewas of winterteelt")
+    expect(result.normSource).toContain("Geen korting: vanggewas gezaaid uiterlijk 1 oktober")
   })
 
   it("should apply 50 discount for Graslandvernieuwing on Clay (No Derogation) - Valid Date (Feb 10)", async () => {

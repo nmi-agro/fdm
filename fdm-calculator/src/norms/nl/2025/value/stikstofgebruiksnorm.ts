@@ -13,6 +13,7 @@ import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"
 import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
 import { nonBouwlandCodes } from "../../constant"
+import { isVanggewas, isVanggewasEnWinterteelt, isWinterteelt } from "../../vanggewas-winterteelt"
 import { determineNLHoofdteelt } from "./hoofdteelt"
 import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 
@@ -439,6 +440,9 @@ function calculateKorting(
   const sandyOrLoessRegions: RegionKey[] = ["zand_nwc", "zand_zuid", "loess"]
   const clayOrPeatRegions: RegionKey[] = ["klei", "veen"]
 
+  let totalAmount = new Decimal(0)
+  const descriptions: string[] = []
+
   // Sort cultivations by start date
   const sortedCultivations = [...cultivations].sort((a, b) => {
     if (!a.b_lu_start || !b.b_lu_start) return 0
@@ -522,10 +526,8 @@ function calculateKorting(
       }
 
       if (isValidRenewal) {
-        return {
-          amount: new Decimal(50),
-          description: ". Korting: 50kg N/ha: graslandvernieuwing",
-        }
+        totalAmount = totalAmount.plus(50)
+        descriptions.push("Korting: 50kg N/ha: graslandvernieuwing")
       }
     }
 
@@ -587,122 +589,132 @@ function calculateKorting(
       }
 
       if (isValidDestruction) {
-        return {
-          amount: new Decimal(65),
-          description: ". Korting: 65kg N/ha: graslandvernietiging",
+        totalAmount = totalAmount.plus(65)
+        descriptions.push("Korting: 65kg N/ha: graslandvernietiging")
+      }
+    }
+  }
+
+  // Check if field is in regions with catch crop korting (sand/loess)
+  if (sandyOrLoessRegions.includes(region)) {
+    // Determine hoofdteelt of previous year (N-1 = 2024)
+    const hoofdteeltPrevYear = determineNLHoofdteelt(cultivations, previousYear)
+    const hoofdteeltPrevCultivation = cultivations.find(
+      (c) => c.b_lu_catalogue === hoofdteeltPrevYear,
+    )
+
+    // Determine hoofdteelt of current year (N = 2025)
+    const hoofdteelt2025 = determineNLHoofdteelt(cultivations, currentYear)
+    const hoofdteelt2025Cultivation = cultivations.find((c) => c.b_lu_catalogue === hoofdteelt2025)
+
+    let catchCropExempt = false
+
+    // If hoofdteelt(N-1) is itself a winterteelt-only crop (e.g. beet lifted >= Nov 1, chicory, asparagus, top fruit, maize with undersowing)
+    if (
+      isWinterteelt(hoofdteeltPrevYear, previousYear, hoofdteeltPrevCultivation, cultivations) &&
+      !isVanggewas(hoofdteeltPrevYear, previousYear)
+    ) {
+      catchCropExempt = true
+      descriptions.push("Geen korting: winterteelt aanwezig in voorafgaand jaar")
+    }
+
+    if (!catchCropExempt) {
+      // Check for winter cereals & grasses (both vanggewas & winterteelt) as hoofdteelt(N):
+      if (isVanggewasEnWinterteelt(hoofdteelt2025, currentYear) && hoofdteelt2025Cultivation) {
+        const end = hoofdteelt2025Cultivation.b_lu_end
+        const notDestroyedBeforeMay16 =
+          !end || end.getTime() >= new Date(currentYear, 4, 16).getTime()
+        if (notDestroyedBeforeMay16) {
+          catchCropExempt = true
+          descriptions.push("Geen korting: winterteelt aanwezig")
+        }
+      }
+    }
+
+    if (!catchCropExempt) {
+      // Find candidate catch crops or winter crops in previous year N-1
+      const candidateCultivations = cultivations.filter((c) => {
+        if (!c.b_lu_start) return false
+        const sownInWindow =
+          c.b_lu_start.getFullYear() === previousYear ||
+          (c.b_lu_start.getFullYear() === currentYear && c.b_lu_start.getMonth() === 0)
+        if (!sownInWindow) return false
+
+        const isCatchOrWinter =
+          isVanggewas(c.b_lu_catalogue, previousYear) ||
+          isWinterteelt(c.b_lu_catalogue, previousYear, c, cultivations)
+        return isCatchOrWinter && c.b_lu_catalogue !== hoofdteeltPrevYear
+      })
+
+      // Check if an autumn-sown winterteelt-only crop follows hoofdteelt(N-1)
+      const followingWinterCrop = candidateCultivations.find(
+        (c) =>
+          isWinterteelt(c.b_lu_catalogue, previousYear, c, cultivations) &&
+          !isVanggewas(c.b_lu_catalogue, previousYear),
+      )
+      if (followingWinterCrop) {
+        catchCropExempt = true
+        descriptions.push("Geen korting: winterteelt aanwezig")
+      } else {
+        // Filter to valid vanggewassen (catch crops)
+        const vanggewassen2024 = candidateCultivations.filter((c) =>
+          isVanggewas(c.b_lu_catalogue, previousYear),
+        )
+
+        if (vanggewassen2024.length === 0) {
+          totalAmount = totalAmount.plus(20)
+          descriptions.push("Korting: 20kg N/ha: geen vanggewas of winterteelt")
+        } else {
+          // Check if a vanggewas is present to February 1st
+          const vanggewassenCompleted2024 = vanggewassen2024.filter((prevCultivation) => {
+            return (
+              prevCultivation.b_lu_end === null ||
+              (prevCultivation.b_lu_end &&
+                prevCultivation.b_lu_end.getTime() >= new Date(currentYear, 1).getTime())
+            )
+          })
+          if (vanggewassenCompleted2024.length === 0) {
+            totalAmount = totalAmount.plus(20)
+            descriptions.push("Korting: 20kg N/ha: vanggewas staat niet tot 1 februari")
+          } else {
+            const sortedVanggewassen = vanggewassenCompleted2024
+              .filter((v) => v.b_lu_start !== undefined)
+              .sort((a, b) => {
+                if (!a.b_lu_start || !b.b_lu_start) return 0
+                return a.b_lu_start.getTime() - b.b_lu_start.getTime()
+              })
+            const vanggewas2024 = sortedVanggewassen[0]
+            const sowDate = vanggewas2024.b_lu_start
+
+            if (!sowDate) {
+              totalAmount = totalAmount.plus(20)
+              descriptions.push("Korting: 20kg N/ha, geen zaaidatum bekend")
+            } else {
+              const october1 = new Date(previousYear, 9, 1)
+              const october15 = new Date(previousYear, 9, 15)
+              const november1 = new Date(previousYear, 10, 1)
+
+              if (sowDate <= october1) {
+                descriptions.push("Geen korting: vanggewas gezaaid uiterlijk 1 oktober")
+              } else if (sowDate > october1 && sowDate < october15) {
+                totalAmount = totalAmount.plus(5)
+                descriptions.push("Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober")
+              } else if (sowDate >= october15 && sowDate < november1) {
+                totalAmount = totalAmount.plus(10)
+                descriptions.push("Korting: 10kg N/ha, vanggewas gezaaid tussen 15 t/m 31 oktober")
+              } else {
+                totalAmount = totalAmount.plus(20)
+                descriptions.push("Korting: 20kg N/ha, vanggewas gezaaid op of na 1 november")
+              }
+            }
+          }
         }
       }
     }
   }
 
-  // Check if field is outside regions with korting
-  if (!sandyOrLoessRegions.includes(region)) {
-    return {
-      amount: new Decimal(0),
-      description: ".",
-    }
-  }
-
-  // Determine hoofdteelt for the current year (2025)
-  const hoofdteelt2025 = determineNLHoofdteelt(cultivations, 2025)
-  const hoofdteelt2025Standard = nitrogenStandardsData.find((ns) =>
-    ns.b_lu_catalogue_match.includes(hoofdteelt2025),
-  )
-
-  // Grasland is exlcuded from korting
-  if (nonBouwlandCodes.includes(hoofdteelt2025)) {
-    return {
-      amount: new Decimal(0),
-      description: ".",
-    }
-  }
-
-  // Check for winterteelt exception (hoofdteelt of 2025 is winterteelt, sown in late 2024)
-  if (hoofdteelt2025Standard?.is_winterteelt) {
-    return {
-      amount: new Decimal(0),
-      description: ". Geen korting: winterteelt aanwezig",
-    }
-  }
-
-  // Filter cultivations for the previous year (2024)
-  const cultivations2024 = cultivations.filter(
-    (c) => c.b_lu_start && c.b_lu_start.getFullYear() === previousYear,
-  )
-
-  // Check for vanggewas exception in 2024
-  const vanggewassen2024 = cultivations2024.filter((prevCultivation) => {
-    const matchingStandard = nitrogenStandardsData.find((ns) =>
-      ns.b_lu_catalogue_match.includes(prevCultivation.b_lu_catalogue),
-    )
-    const matchingYear =
-      prevCultivation.b_lu_start &&
-      prevCultivation.b_lu_start.getTime() < new Date(currentYear, 1, 1).getTime() &&
-      prevCultivation.b_lu_start.getTime() > new Date(previousYear, 6, 15).getTime() // Vanggewas should be sown between July 15th, 2024 and February 1st 2025 (exclusive)
-    return matchingStandard?.is_vanggewas === true && matchingYear === true
-  })
-  if (vanggewassen2024.length === 0) {
-    return {
-      amount: new Decimal(20),
-      description: ". Korting: 20kg N/ha: geen vanggewas of winterteelt",
-    }
-  }
-
-  // Check if a vanggewas is present to February 1st
-  const vanggewassenCompleted2024 = vanggewassen2024.filter((prevCultivation) => {
-    return (
-      prevCultivation.b_lu_end === null ||
-      (prevCultivation.b_lu_end &&
-        prevCultivation.b_lu_end.getTime() >= new Date(currentYear, 1).getTime()) // Month 1 is February
-    )
-  })
-  if (vanggewassenCompleted2024.length === 0) {
-    return {
-      amount: new Decimal(20),
-      description: ". Korting: 20kg N/ha: vanggewas staat niet tot 1 februari",
-    }
-  }
-  // If multiple vanggewassen are completed to February 1st select the vangewas that was first sown
-  const sortedVanggewassen = vanggewassenCompleted2024
-    .filter((v) => v.b_lu_start !== undefined)
-    .sort((a, b) => {
-      if (!a.b_lu_start || !b.b_lu_start) {
-        return 0
-      }
-      return a.b_lu_start.getTime() - b.b_lu_start.getTime()
-    })
-  const vanggewas2024 = sortedVanggewassen[0]
-
-  const sowDate = vanggewas2024.b_lu_start
-  if (!sowDate) {
-    return {
-      amount: new Decimal(20),
-      description: ". Korting: 20kg N/ha, geen zaaidatum bekend",
-    }
-  }
-
-  const october1 = new Date(previousYear, 9, 1) // October 1st
-  const october15 = new Date(previousYear, 9, 15) // October 15th
-  const november1 = new Date(previousYear, 10, 1) // November 1st
-
-  let kortingAmount: Decimal
-  let kortingDescription: string
-
-  if (sowDate <= october1) {
-    kortingAmount = new Decimal(0)
-    kortingDescription = ". Geen korting: vanggewas gezaaid uiterlijk 1 oktober"
-  } else if (sowDate > october1 && sowDate < october15) {
-    kortingAmount = new Decimal(5)
-    kortingDescription = ". Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober"
-  } else if (sowDate >= october15 && sowDate < november1) {
-    kortingAmount = new Decimal(10)
-    kortingDescription = ". Korting: 10kg N/ha, vanggewas gezaaid tussen 15 t/m 31 oktober"
-  } else {
-    kortingAmount = new Decimal(20)
-    kortingDescription = ". Korting: 20kg N/ha, vanggewas gezaaid op of na 1 november"
-  }
-
-  return { amount: kortingAmount, description: kortingDescription }
+  const descriptionStr = descriptions.length > 0 ? `. ${descriptions.join(". ")}` : "."
+  return { amount: totalAmount, description: descriptionStr }
 }
 
 /**

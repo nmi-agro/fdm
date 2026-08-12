@@ -15,7 +15,7 @@ import { findHoofdteelt } from "../../../../shared/hoofdteelt"
  */
 export function determineNLHoofdteelt(
   cultivations: NL2025NormsInputForCultivation[],
-  year: 2025 | 2026,
+  year: number,
 ): string {
   const normalized = cultivations.map((c) => ({
     ...c,
