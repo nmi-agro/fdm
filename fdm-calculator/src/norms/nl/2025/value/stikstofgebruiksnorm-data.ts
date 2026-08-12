@@ -580,7 +580,7 @@ export const nitrogenStandardsData = [
         },
       },
       {
-        omschrijving: "non-derogatie",
+        omschrijving: "geen derogatie",
         norms: {
           klei: { standard: 185, nv_area: 148 },
           zand_nwc: { standard: 140, nv_area: 112 },

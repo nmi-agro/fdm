@@ -328,7 +328,7 @@ function determineSubTypeOmschrijving(
 
   // Maize logic based on derogation status
   if (standard.cultivation_rvo_table2 === "Akkerbouwgewassen, mais") {
-    return is_derogatie_bedrijf ? "derogatie" : "non-derogatie"
+    return is_derogatie_bedrijf ? "derogatie" : "geen derogatie"
   }
 
   // Luzerne logic based on cultivation history
