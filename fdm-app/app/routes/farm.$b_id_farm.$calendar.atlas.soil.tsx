@@ -365,6 +365,7 @@ export default function FarmAtlasSoilBlock() {
         ref={mapRef}
         initialViewState={initialViewState}
         interactive={true}
+        mapStyle="satellite"
         interactiveLayerIds={[SOIL_WMS_LAYER_ID]}
         onClick={onMapClick}
       >
@@ -375,6 +376,7 @@ export default function FarmAtlasSoilBlock() {
           onToggleSoil={onToggleSoil}
           initialViewState={initialViewState}
           showFlyToFields={fields && fields.features.length > 0 ? true : undefined}
+          showStyleSelect={false}
         />
 
         <MapTilerAttribution />

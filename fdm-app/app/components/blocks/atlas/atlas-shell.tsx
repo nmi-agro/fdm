@@ -1,7 +1,8 @@
 import maplibregl from "maplibre-gl"
 import { createContext, Ref, RefObject, useCallback, useContext, useEffect, useRef } from "react"
 import { Map as MapGL, ViewStateChangeEvent, MapRef, MapProps } from "react-map-gl/maplibre"
-import { getMapStyle } from "@/app/integrations/map"
+import { getMapStyle, MapStyleVariant } from "@/app/integrations/map"
+import { useAtlasStyle } from "~/store/atlas-style"
 import { useAtlasViewState } from "~/store/atlas-view-state"
 import { useStableSet } from "./atlas-util"
 import { AtlasViewState } from "./atlas-viewstate"
@@ -27,10 +28,11 @@ export function useMapContainer() {
  * It can be composed with different atlas panels and atlas sources in order to display the desired data.
  */
 export function Atlas(
-  props: MapProps & {
+  props: Omit<MapProps, "mapStyle"> & {
     ref?: Ref<MapRef>
     initialViewState?: AtlasViewState
     interactive?: boolean
+    mapStyle?: MapStyleVariant
     children?: any
   },
 ) {
@@ -41,12 +43,15 @@ export function Atlas(
     interactiveLayerIds,
     children,
     style,
+    mapStyle,
     ...mapGlProps
   } = props
   const mapRef = useRef<MapRef>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const mapStyle = getMapStyle("satellite")
+  const { style: storedMapStyle } = useAtlasStyle()
+
+  const mapStyleInfo = getMapStyle(mapStyle ?? (interactive ? storedMapStyle : "satellite"))
 
   const interactiveLayerIdsSet = useStableSet(interactiveLayerIds)
 
@@ -114,7 +119,7 @@ export function Atlas(
           }}
           interactive={interactive}
           interactiveLayerIds={interactiveLayerIds}
-          mapStyle={mapStyle}
+          mapStyle={mapStyleInfo}
           mapLib={maplibregl}
           onMove={(e) => {
             onViewportChange(e)

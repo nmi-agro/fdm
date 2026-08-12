@@ -531,6 +531,7 @@ export default function FarmAtlasElevationBlock() {
         ref={mapRef}
         initialViewState={initialViewState}
         interactive={true}
+        mapStyle="satellite"
         onMoveEnd={throttledUpdate}
         onMouseMove={showElevation ? handleMouseMove : undefined}
         onZoom={(e) => setCurrentZoom(e.viewState.zoom)}
@@ -541,6 +542,7 @@ export default function FarmAtlasElevationBlock() {
       >
         <Controls
           showFlyToFields={fields && fields.features.length > 0}
+          showStyleSelect={false}
           initialViewState={initialViewState}
           showFields={showFields}
           onToggleFields={() => setShowFields(!showFields)}

@@ -7,6 +7,7 @@ import { useIsMobile } from "~/hooks/use-mobile"
 import { useAtlasViewState } from "~/store/atlas-view-state"
 import { GeocoderControl } from "./atlas-geocoder"
 import { AtlasLayerSwitch } from "./atlas-layer-switch"
+import { AtlasStyleSelect } from "./atlas-style-select"
 import { AtlasViewState } from "./atlas-viewstate"
 
 type ControlsProps = {
@@ -18,6 +19,7 @@ type ControlsProps = {
   onToggleElevation?: () => void
   showSoil?: boolean
   onToggleSoil?: () => void
+  showStyleSelect?: boolean
 }
 
 /**
@@ -30,11 +32,14 @@ export function Controls(props: ControlsProps) {
   const { setViewState } = useAtlasViewState()
   const { current: map } = useMap()
 
+  const showStyleSelect = props.showStyleSelect ?? true
+
   return (
     <>
       <GeocoderControl onViewportChange={setViewState} collapsed={isMobile} />
       <AtlasLayerSwitch position="top-right" />
       <AtlasControls position="top-right">
+        {showStyleSelect && <AtlasStyleSelect />}
         {props.showFields !== undefined && props.onToggleFields && (
           <FieldsControl showFields={props.showFields} onToggle={props.onToggleFields} />
         )}
