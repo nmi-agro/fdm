@@ -2,4 +2,4 @@
 "@nmi-agro/fdm-app": patch
 ---
 
-For 'grass' at b_lu_croprotation' that can only be harvested once, show the term 'oogst' instead of 'snede'
+For cultivations with `b_lu_croprotation: "grass"` and `b_lu_harvestable: "once"`, use "oogst" instead of "snede".
