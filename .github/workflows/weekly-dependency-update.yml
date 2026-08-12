@@ -50,12 +50,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          existing=$(gh pr list \
-            --repo "${{ github.repository }}" \
-            --state open \
-            --limit 1000 \
-            --json headRefName \
-            --jq '[.[] | select(.headRefName | startswith("agent/dependencies/"))] | length')
+          existing=$(gh api --paginate \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${{ github.repository }}/pulls?state=open&per_page=100" \
+            --jq '[.[] | select(.head.ref | startswith("agent/dependencies/"))] | length')
           if [ "$existing" != "0" ]; then
             echo "proceed=false" >> "$GITHUB_OUTPUT"
             echo "A weekly dependency update PR (branch agent/dependencies/*) is already open, skipping this run."
@@ -87,7 +85,7 @@ jobs:
                 }
               }' -f owner="$owner" -f name="$name" \
             --jq '.data.repository.suggestedActors.nodes[].login')
-          if echo "$result" | grep -q "copilot-swe-agent"; then
+          if echo "$result" | grep -Fxq "copilot-swe-agent"; then
             echo "proceed=true" >> "$GITHUB_OUTPUT"
           else
             echo "::error::Copilot coding agent (copilot-swe-agent) is not enabled/assignable for this repository."
@@ -101,13 +99,11 @@ jobs:
           GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
         run: |
           branch_date="$(TZ=Europe/Amsterdam date +'%Y%m%d')"
-          head_ref="agent/dependencies/${branch_date}"
           prompt_body="$(sed "s/{{BRANCH_DATE}}/${branch_date}/g" .github/copilot/weekly-dependency-update.prompt.md)"
           prompt_json=$(jq -n \
             --arg prompt "$prompt_body" \
             --arg base_ref "development" \
-            --arg head_ref "$head_ref" \
-            '{prompt: $prompt, base_ref: $base_ref, head_ref: $head_ref, create_pull_request: true}')
+            '{prompt: $prompt, base_ref: $base_ref, create_pull_request: true}')
 
           response=$(gh api \
             --method POST \
