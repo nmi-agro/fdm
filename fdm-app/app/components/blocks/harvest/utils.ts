@@ -22,7 +22,7 @@ export function getHarvestTerm(
   capitalized = false,
 ): string {
   let term: string
-  if (croprotation === "grass" && harvestable !== "once") {
+  if (croprotation === "grass" && harvestable === "multiple") {
     term = plural ? "sneden" : "snede"
   } else {
     term = plural ? "oogsten" : "oogst"
@@ -34,5 +34,5 @@ export function getHarvestDateTerm(
   croprotation?: string | null,
   harvestable?: HarvestableType | null,
 ): string {
-  return croprotation === "grass" && harvestable !== "once" ? "Maaidatum" : "Oogstdatum"
+  return croprotation === "grass" && harvestable === "multiple" ? "Maaidatum" : "Oogstdatum"
 }
