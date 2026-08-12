@@ -46,7 +46,6 @@ import {
   getIndicatorsForFarm,
   getIndicatorsForField,
 } from "~/integrations/bln3.server"
-import { getMapStyle } from "~/integrations/map"
 import { AGG_IDS, type AggregationId, getFieldAggregationScore } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
@@ -367,7 +366,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldMeasures,
       fieldsGeoJSON,
       selectedFieldGeoJSON,
-      mapStyle: getMapStyle("satellite"),
       currentCultivationName: currentCultivation?.b_lu_name ?? null,
       currentCultivationCropRotation: currentCultivation?.b_lu_croprotation ?? null,
       cultivationSummaries,
@@ -429,7 +427,6 @@ export default function IndicatorsFieldDetail() {
     fieldMeasures,
     fieldsGeoJSON,
     selectedFieldGeoJSON,
-    mapStyle,
     currentCultivationName,
     currentCultivationCropRotation,
     cultivationSummaries,
@@ -678,7 +675,6 @@ export default function IndicatorsFieldDetail() {
                 <FieldMap
                   fieldsGeoJSON={fieldsGeoJSON as FeatureCollection}
                   selectedFieldGeoJSON={selectedFieldGeoJSON as FeatureCollection}
-                  mapStyle={mapStyle}
                   basePath={basePath}
                   scoreKey={mapScoreKey}
                   scoreLabel={findScoreLabel(mapScoreKey)}

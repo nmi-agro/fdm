@@ -9,11 +9,11 @@
  */
 
 import type { FeatureCollection } from "geojson"
-import type { StyleSpecification } from "maplibre-gl"
 import maplibregl from "maplibre-gl"
 import { useCallback, useMemo } from "react"
 import { Layer } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
+import { MapStyleVariant } from "@/app/integrations/map"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
@@ -31,7 +31,7 @@ type FieldMapProps = {
   fieldsGeoJSON: FeatureCollection
   /** GeoJSON with only the currently-selected field, for the yellow highlight. */
   selectedFieldGeoJSON: FeatureCollection
-  mapStyle: string | StyleSpecification
+  mapStyle?: MapStyleVariant
   /** Base path to navigate to — the b_id will be appended: `${basePath}/${b_id}` */
   basePath: string
   /**
