@@ -6,7 +6,7 @@ export function useStableSet<T>(array?: T[]) {
   const [set, setSet] = useState<Set<T>>(new Set(array))
   useEffect(() => {
     // if items have changed update our set
-    const newSorted = set ? [...set].sort() : []
+    const newSorted = [...(array || [])].sort()
     const currentSorted = [...set].sort()
     if (
       newSorted.length !== currentSorted.length ||
@@ -14,6 +14,6 @@ export function useStableSet<T>(array?: T[]) {
     ) {
       setSet(new Set(newSorted))
     }
-  }, [array])
+  }, [array, set])
   return set
 }

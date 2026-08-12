@@ -19,9 +19,16 @@ type AtlasTooltipRenderProps = {
 }
 
 /**
+ * Minimum distance in pixels from the initial position that would cause the touch action to be interpreted
+ * as a drag instead of a tap.
+ */
+const TOUCH_DRAG_TOLERANCE = 8
+
+/**
  * A `Card` wrapper that places itself onto the map. It follows the mouse or moves to where the user tapped
  * with their finger. When its position changes it determines the rendered map feature under it, and the
- * feature is passed to the `render` function.
+ * feature is passed to the `render` function. If there is no feature null is passed instead. If the render
+ * function returns null or undefined, nothing is rendered at all, including the tooltip speech bubble.
  */
 export function AtlasTooltip({
   render,
@@ -72,12 +79,13 @@ export function AtlasTooltip({
 
       return features.length > 0 ? features[0] : null
     },
-    [map, map?.style, layersSet, layersExcludeSet],
+    [map, layersSet, layersExcludeSet],
   )
 
-  const updateHoveredFeatureThrottled = useCallback(
-    // Throttle to reduce visual flashing
-    throttle(
+  const [updateHoveredFeatureThrottled, setUpdateHoveredFeatureThrottled] = useState(() => () => {})
+
+  useEffect(() => {
+    const fn = throttle(
       () => {
         const currentHoverPosition = hoverPositionRef.current
         if (map && currentHoverPosition) {
@@ -92,9 +100,14 @@ export function AtlasTooltip({
       },
       200,
       { trailing: true },
-    ),
-    [map, getHoveredFeature],
-  )
+    )
+
+    setUpdateHoveredFeatureThrottled(() => fn)
+
+    return () => {
+      fn.cancel()
+    }
+  }, [map, getHoveredFeature])
 
   useEffect(() => {
     const currentMap = map
@@ -103,7 +116,7 @@ export function AtlasTooltip({
     if (!currentMap || !currentMapContainer) return
 
     const onZoom = () => {
-      if (!hoverPosition) return
+      if (!hoverPositionRef.current) return
       updateHoveredFeatureThrottled()
     }
 
@@ -125,7 +138,10 @@ export function AtlasTooltip({
       }
 
       // Distinguish between taps and drags
-      if (!info.moved && Math.abs(e.clientX - info.startX) + Math.abs(e.clientY - info.startY)) {
+      if (
+        !info.moved &&
+        Math.abs(e.clientX - info.startX) + Math.abs(e.clientY - info.startY) > TOUCH_DRAG_TOLERANCE
+      ) {
         info.moved = true
       }
 
@@ -183,11 +199,21 @@ export function AtlasTooltip({
       pointers.delete(e.pointerId)
     }
 
+    // ESC key to dismiss the popup
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && hoverPositionRef.current?.mode === "popup") {
+        hoverPositionRef.current = null
+        setHoverPosition(null)
+        setHoveredFeature(null)
+      }
+    }
+
     currentMap.on("zoom", onZoom)
     currentMapContainer.addEventListener("pointerdown", onPointerDown)
     currentMapContainer.addEventListener("pointermove", onPointerMove)
     currentMapContainer.addEventListener("pointerup", onPointerUp)
     currentMapContainer.addEventListener("pointerleave", onPointerLeave)
+    addEventListener("keydown", onKeyDown)
 
     return () => {
       currentMap.off("zoom", onZoom)
@@ -195,8 +221,16 @@ export function AtlasTooltip({
       currentMapContainer.removeEventListener("pointermove", onPointerMove)
       currentMapContainer.removeEventListener("pointerup", onPointerUp)
       currentMapContainer.removeEventListener("pointerleave", onPointerLeave)
+      removeEventListener("keydown", onKeyDown)
     }
-  }, [getHoveredFeature, map, mapContainer])
+  }, [
+    getHoveredFeature,
+    map,
+    mapContainer,
+    updateHoveredFeatureThrottled,
+    touchDisplaysPopupInstead,
+    onFeatureClicked,
+  ])
 
   if (!mapContainer) return
 
@@ -206,7 +240,7 @@ export function AtlasTooltip({
         <Button
           type="button"
           variant="ghost"
-          className="has-[>svg]:p-1 absolute right-0.5 top-0.5"
+          className="absolute top-0.5 right-0.5 has-[>svg]:p-1"
           title="Sluiten"
           aria-label="Sluiten"
           onClick={() => {
@@ -301,7 +335,11 @@ export function AtlasPopup({
     }
   }, [map, longitude, latitude])
 
-  return <AtlasTooltipCard x={x} y={y} className={className} children={children} />
+  return (
+    <AtlasTooltipCard x={x} y={y} className={className}>
+      {children}
+    </AtlasTooltipCard>
+  )
 }
 
 /**
@@ -368,7 +406,7 @@ function AtlasTooltipCard({
     <div
       ref={tooltipContainerRef}
       className={cn(
-        "flex absolute cursor-default max-w-65 min-w-45",
+        "absolute flex max-w-65 min-w-45 cursor-default",
         !interactive && "pointer-events-none",
         anchorY !== "center" && "flex-col",
         AnchorPositioning({ anchorX, anchorY }),
@@ -380,20 +418,20 @@ function AtlasTooltipCard({
       }}
     >
       {anchorX === "left" && anchorY === "top" && (
-        <div className="size-0 border-transparent border-l-background/95 border-x-6 border-y-8 border-b-0 self-start z-10" />
+        <div className="border-l-background/95 z-10 size-0 self-start border-x-6 border-y-8 border-b-0 border-transparent" />
       )}
       {anchorX === "right" && anchorY === "top" && (
-        <div className="size-0 border-transparent border-r-background/95 border-x-6 border-y-8 border-b-0 self-end z-10" />
+        <div className="border-r-background/95 z-10 size-0 self-end border-x-6 border-y-8 border-b-0 border-transparent" />
       )}
       {anchorX === "center" && anchorY === "top" && (
-        <div className="size-0 border-transparent border-b-background/95 border-8 border-t-0 self-center z-10" />
+        <div className="border-b-background/95 z-10 size-0 self-center border-8 border-t-0 border-transparent" />
       )}
       {anchorX === "left" && anchorY === "center" && (
-        <div className="size-0 border-transparent border-r-background/95 border-8 border-l-0 self-center z-10" />
+        <div className="border-r-background/95 z-10 size-0 self-center border-8 border-l-0 border-transparent" />
       )}
       <Card
         className={cn(
-          "border-0 relative backdrop-blur-sm bg-background/95 p-3 text-xs shadow-md",
+          "bg-background/95 relative border-0 p-3 text-xs shadow-md backdrop-blur-sm",
           anchorX === "left" && anchorY === "top" && "rounded-tl-none",
           anchorX === "right" && anchorY === "top" && "rounded-tr-none",
           anchorX === "left" && anchorY === "bottom" && "rounded-bl-none",
@@ -403,23 +441,23 @@ function AtlasTooltipCard({
         {children}
       </Card>
       {anchorX === "right" && anchorY === "center" && (
-        <div className="size-0 border-transparent border-l-background/95 border-8 border-r-0 self-center z-10" />
+        <div className="border-l-background/95 z-10 size-0 self-center border-8 border-r-0 border-transparent" />
       )}
       {anchorX === "left" && anchorY === "bottom" && (
-        <div className="size-0 border-transparent border-l-background/95 border-x-6 border-y-8 border-t-0 self-start z-10" />
+        <div className="border-l-background/95 z-10 size-0 self-start border-x-6 border-y-8 border-t-0 border-transparent" />
       )}
       {anchorX === "right" && anchorY === "bottom" && (
-        <div className="size-0 border-transparent border-r-background/95 border-x-6 border-y-8 border-t-0 self-end z-10" />
+        <div className="border-r-background/95 z-10 size-0 self-end border-x-6 border-y-8 border-t-0 border-transparent" />
       )}
       {anchorX === "center" && anchorY === "bottom" && (
-        <div className="size-0 border-transparent border-t-background/95 border-8 border-b-0 self-center z-10" />
+        <div className="border-t-background/95 z-10 size-0 self-center border-8 border-b-0 border-transparent" />
       )}
     </div>
   )
 }
 
 export function AtlasTooltipHeader(props: ComponentProps<typeof CardHeader>) {
-  return <CardHeader {...props} className={cn("p-0 mb-1.5 last:mb-0", props.className)} />
+  return <CardHeader {...props} className={cn("mb-1.5 p-0 last:mb-0", props.className)} />
 }
 
 export function AtlasTooltipContent(props: ComponentProps<typeof CardContent>) {

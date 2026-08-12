@@ -34,13 +34,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { getScoreColor, getScoreVerdict, INDICATORS } from "~/lib/indicators"
+import { INDICATORS } from "~/lib/indicators"
 import {
   AtlasTooltip,
-  AtlasTooltipContent,
   AtlasTooltipFooter,
   AtlasTooltipHeader,
 } from "../atlas/atlas-tooltip"
+import { ScoreTooltipBody } from "./score-tooltip-body"
 
 type ChildScoreEntry = {
   id: string
@@ -94,9 +94,16 @@ export default function IndicatorsMap({
   )
 
   const onFeatureClicked = (feature: maplibregl.MapGeoJSONFeature) => {
+    if (basePathFormatter) {
+      const formatted = basePathFormatter(feature.properties)
+      if (typeof formatted === "string") {
+        navigate(formatted)
+      }
+      return
+    }
     const b_id = feature.properties.b_id
     if (!b_id) return
-    navigate(basePathFormatter ? basePathFormatter(b_id) : `${basePath}/${b_id}`)
+    navigate(`${basePath}/${b_id}`)
   }
 
   return (
@@ -142,76 +149,19 @@ export default function IndicatorsMap({
                     <p className="text-muted-foreground mt-0.5">{feature.properties.b_name_farm}</p>
                   )}
                 </AtlasTooltipHeader>
-                {label ? (
-                  <AtlasTooltipContent>
-                    <span className="text-muted-foreground truncate">{label}</span>
-                    {hoverScore != null ? (
-                      <span
-                        className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                        style={{
-                          backgroundColor: getScoreColor(hoverScore),
-                        }}
-                      >
-                        {hoverScore} – {getScoreVerdict(hoverScore)}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground italic">Geen data</span>
-                    )}
-                  </AtlasTooltipContent>
-                ) : (
-                  <p className="text-muted-foreground mt-0.5">
-                    {hoverScore != null ? (
-                      <>
-                        Score:{" "}
-                        <span
-                          className="font-semibold"
-                          style={{
-                            color: getScoreColor(hoverScore),
-                          }}
-                        >
-                          {hoverScore}
-                        </span>
-                        {" – "}
-                        {getScoreVerdict(hoverScore)}
-                      </>
-                    ) : (
-                      "Geen data"
-                    )}
-                  </p>
-                )}
-                {/* Child sub-scores (one level below the selected layer) */}
-                {childEntries && childEntries.length > 0 && (
-                  <AtlasTooltipContent className="flex-wrap">
-                    {childEntries.map((child) => {
-                      const childScore =
-                        typeof feature.properties[child.id] === "number" &&
-                        (feature.properties[child.id] as number) >= 0
-                          ? (feature.properties[child.id] as number)
-                          : null
-                      return (
-                        <div key={child.id} className="flex items-center justify-between gap-2">
-                          <span className="text-muted-foreground truncate text-[10px]">
-                            {child.label}
-                          </span>
-                          {childScore != null ? (
-                            <span
-                              className="shrink-0 text-[10px] font-semibold tabular-nums"
-                              style={{
-                                color: getScoreColor(childScore),
-                              }}
-                            >
-                              {childScore}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground shrink-0 text-[10px] italic">
-                              –
-                            </span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </AtlasTooltipContent>
-                )}
+                <ScoreTooltipBody
+                  score={hoverScore}
+                  label={label}
+                  childScores={childEntries?.map((child) => ({
+                    id: child.id,
+                    label: child.label,
+                    score:
+                      typeof feature.properties[child.id] === "number" &&
+                      (feature.properties[child.id] as number) >= 0
+                        ? (feature.properties[child.id] as number)
+                        : null,
+                  }))}
+                />
                 {mode === "popup" && (
                   <AtlasTooltipFooter>
                     <Button

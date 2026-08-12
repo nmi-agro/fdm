@@ -258,6 +258,7 @@ export default function Index() {
           <ClientOnly fallback={<Skeleton className="h-full w-full rounded-xl" />}>
             {() => (
               <Atlas
+                initialViewState={initialViewState}
                 interactive={true}
                 interactiveLayerIds={[fieldsAvailableId, fieldsSelectedId, fieldsSavedId]}
                 onClick={(evt) => {

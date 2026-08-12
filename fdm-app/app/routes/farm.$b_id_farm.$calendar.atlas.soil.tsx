@@ -1,9 +1,9 @@
 import type { FeatureCollection, Geometry } from "geojson"
+import type { MapMouseEvent } from "maplibre-gl"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import DOMPurify from "dompurify"
 import { X } from "lucide-react"
-import { MapMouseEvent } from "maplibre-gl"
 import proj4 from "proj4"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Layer, type MapRef, Source } from "react-map-gl/maplibre"
@@ -101,6 +101,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+const SOIL_WMS_LAYER_ID = "soil-wms"
+
 export default function FarmAtlasSoilBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const fields = loaderData.fields
@@ -113,7 +115,7 @@ export default function FarmAtlasSoilBlock() {
       calendar: routeParams.calendar,
       layer: "soil_map",
     })
-  }, [])
+  }, [capture, routeParams.b_id_farm, routeParams.calendar])
   const mapRef = useRef<MapRef>(null)
 
   // State
@@ -350,7 +352,7 @@ export default function FarmAtlasSoilBlock() {
         ref={mapRef}
         initialViewState={initialViewState}
         interactive={true}
-        cursor={showSoil ? "pointer" : undefined}
+        interactiveLayerIds={[SOIL_WMS_LAYER_ID]}
         onClick={onMapClick}
       >
         <Controls
@@ -367,7 +369,7 @@ export default function FarmAtlasSoilBlock() {
         {/* Soil WMS Layer */}
         {showSoil && (
           <Source
-            id="soil-wms"
+            id={SOIL_WMS_LAYER_ID}
             type="raster"
             tiles={[
               "https://service.pdok.nl/bzk/bro-bodemkaart/wms/v1_0?service=WMS&request=GetMap&layers=soilarea&styles=&format=image/png&transparent=true&version=1.3.0&width=256&height=256&crs=EPSG:3857&bbox={bbox-epsg-3857}",
@@ -414,7 +416,7 @@ export default function FarmAtlasSoilBlock() {
             <Button
               type="button"
               variant="ghost"
-              className="has-[>svg]:p-1 absolute right-0.5 top-0.5"
+              className="absolute top-0.5 right-0.5 has-[>svg]:p-1"
               title="Sluiten"
               aria-label="Sluiten"
               onClick={() => {

@@ -197,6 +197,7 @@
   margin-left: 44px;
   padding-block: 32px;
   gap: 16px;
+  z-index: 15;
   /* margin: 20px; */
   /* font-size: 13px; */
   /* line-height: 2; */

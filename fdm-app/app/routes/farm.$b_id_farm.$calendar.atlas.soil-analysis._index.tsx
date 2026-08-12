@@ -228,14 +228,20 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   } as LayerProps
 
   function onFieldClick(feature: maplibregl.MapGeoJSONFeature) {
-    void navigate(
-      `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
-    )
+    if (feature.properties.b_id) {
+      void navigate(
+        `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
+      )
+    }
   }
 
   return (
     <div className="relative">
-      <Atlas interactive={true} interactiveLayerIds={[heatmapLayerId]}>
+      <Atlas
+        initialViewState={initialViewState}
+        interactive={true}
+        interactiveLayerIds={[heatmapLayerId]}
+      >
         <Controls
           showFlyToFields={fieldsData && fieldsData.features.length > 0}
           initialViewState={initialViewState}
@@ -272,7 +278,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
                     <p>Geen data</p>
                   ) : parameterDescription?.type === "date" ? (
                     <p>
-                      {formatDate(typeof feature.properties[selectedParameter], "PP", {
+                      {formatDate(feature.properties[selectedParameter], "PP", {
                         locale: nl,
                       })}
                     </p>

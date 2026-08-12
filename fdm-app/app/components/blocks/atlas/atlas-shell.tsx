@@ -11,18 +11,36 @@ import {
 } from "react"
 import { Map as MapGL, ViewStateChangeEvent, MapRef, MapProps } from "react-map-gl/maplibre"
 import { getMapStyle } from "@/app/integrations/map"
+import { useStableSet } from "./atlas-util"
 import { AtlasViewState } from "./atlas-viewstate"
 
-/** Context to get the outer */
+/**
+ * Context that holds a reference to the wrapper div around the MapGL map, that is used to position the
+ * tooltips and other map overlays not native to maplibregl.
+ */
 const MapContainerContext = createContext<RefObject<HTMLDivElement | null>>({ current: null })
+
+/**
+ * Gets a ref to the wrapper div around the MapGL map, that is used to position the
+ * tooltips and other map overlays not native to maplibregl.
+ * @returns a reference to a <div> element.
+ */
 export function useMapContainer() {
   return useContext(MapContainerContext)
 }
 
+/**
+ * The controlling state for the map position, orientation, and tilt.
+ */
 const ViewStateContext = createContext<[AtlasViewState, (viewState: AtlasViewState) => void]>([
   {},
   () => {},
 ])
+
+/**
+ * Gets the controlling state for the map position, orientation, and tilt, and its setter.
+ * @returns an array of the current view state, and the setter function.
+ */
 export function useAtlasViewState() {
   return useContext(ViewStateContext)
 }
@@ -54,6 +72,8 @@ export function Atlas(
 
   const mapStyle = getMapStyle("satellite")
 
+  const interactiveLayerIdsSet = useStableSet(interactiveLayerIds)
+
   const viewStateContext = useState<AtlasViewState>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -80,26 +100,33 @@ export function Atlas(
     }
   }, [interactive, viewState])
 
-  const onMouseMove = useCallback((e: maplibregl.MapLayerMouseEvent) => {
-    if (mapRef.current) {
-      mapRef.current.getCanvas().style.cursor =
-        interactiveLayerIds && e.features?.some((x) => interactiveLayerIds.includes(x.layer.id))
-          ? "pointer"
-          : interactive
-            ? "grab"
-            : ""
-    }
-  }, [])
+  const onMouseMove = useCallback(
+    (e: maplibregl.MapLayerMouseEvent) => {
+      if (mapRef.current) {
+        mapRef.current.getCanvas().style.cursor =
+          interactiveLayerIdsSet.size > 0 &&
+          e.features?.some((x) => interactiveLayerIdsSet.has(x.layer.id))
+            ? "pointer"
+            : interactive
+              ? "grab"
+              : ""
+      }
+    },
+    [interactive, interactiveLayerIdsSet],
+  )
 
   const onMouseLeave = useCallback(() => {
     if (mapRef.current) {
       mapRef.current.getCanvas().style.cursor = interactive ? "grab" : ""
     }
-  }, [])
+  }, [interactive])
 
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
+  const onViewportChange = useCallback(
+    (event: ViewStateChangeEvent) => {
+      setViewState(event.viewState)
+    },
+    [setViewState],
+  )
 
   return (
     <div

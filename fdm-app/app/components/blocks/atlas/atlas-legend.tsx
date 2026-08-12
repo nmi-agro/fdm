@@ -121,7 +121,7 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
   const title = parameterDescription ? `${parameterDescription.name}${unitDisplay}` : undefined
 
   return (
-    <Card className="min-h-0 flex-initial space-y-2 overflow-y-auto p-4">
+    <Card className="bg-background/90 min-h-0 flex-initial space-y-2 overflow-y-auto p-4 shadow-sm backdrop-blur-sm">
       <CardHeader className="p-0">
         <CardTitle className="text-muted-foreground text-center text-xs">{title}</CardTitle>
       </CardHeader>
@@ -206,8 +206,8 @@ function GradientSoilAnalysisLegend(
   return (
     <ChartContainer
       config={{}}
-      initialDimension={{ width: 200, height: 50 }}
-      className="-mx-3 aspect-24/5 min-w-60 last:-mbe-3"
+      initialDimension={{ width: 150, height: 40 }}
+      className="-mx-3 aspect-3/1 min-w-40 last:-mbe-3"
     >
       <BarChart
         className="overflow-visible"
@@ -215,8 +215,8 @@ function GradientSoilAnalysisLegend(
         data={chartData}
         layout="vertical"
         margin={{
-          left: 15,
-          right: 15,
+          left: 12,
+          right: 12,
           top: 0,
           bottom: 0,
         }}

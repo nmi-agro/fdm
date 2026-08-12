@@ -150,7 +150,11 @@ export default function FarmAtlasFieldsBlock() {
   } as LayerProps
 
   return (
-    <Atlas interactive={true} interactiveLayerIds={[fieldsSavedLayer.id ?? "", fieldsAvailableId]}>
+    <Atlas
+      initialViewState={initialViewState}
+      interactive={true}
+      interactiveLayerIds={[fieldsSavedLayer.id ?? "", fieldsAvailableId]}
+    >
       <Controls
         showFields={showFields}
         onToggleFields={() => setShowFields(!showFields)}

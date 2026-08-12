@@ -23,7 +23,8 @@ import {
 } from "~/components/blocks/atlas/atlas-styles"
 import { AtlasTooltip } from "~/components/blocks/atlas/atlas-tooltip"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { getScoreColor, getScoreVerdict } from "~/lib/indicators"
+import { Button } from "~/components/ui/button"
+import { ScoreTooltipBody } from "./score-tooltip-body"
 
 type FieldMapProps = {
   /** GeoJSON with all farm fields. Each feature needs b_id, b_name and score properties. */
@@ -54,6 +55,7 @@ const SELECTED_SOURCE = "fieldMapSelectedSource"
 export default function FieldMap({
   fieldsGeoJSON,
   selectedFieldGeoJSON,
+  mapStyle,
   basePath,
   scoreKey = "avg",
   scoreLabel,
@@ -82,6 +84,7 @@ export default function FieldMap({
       interactiveLayerIds={[FIELDS_LAYER]}
       initialViewState={initialViewState}
       style={{ height }}
+      mapStyle={mapStyle}
     >
       <MapTilerAttribution />
 
@@ -114,7 +117,7 @@ export default function FieldMap({
       <AtlasTooltip
         layers={[FIELDS_LAYER]}
         onFeatureClicked={onFeatureClicked}
-        render={({ feature }) => {
+        render={({ feature, mode }) => {
           if (feature === null) return null
           const hoveredScore =
             typeof feature?.properties?.[scoreKey] === "number" && feature.properties[scoreKey] >= 0
@@ -124,16 +127,11 @@ export default function FieldMap({
           return (
             <>
               <p className="font-semibold">{feature.properties?.b_name ?? "Onbekend perceel"}</p>
-              {scoreLabel && <p className="text-muted-foreground text-[10px]">{scoreLabel}</p>}
-              {hoveredScore !== null && (
-                <span
-                  className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                  style={{
-                    backgroundColor: getScoreColor(hoveredScore),
-                  }}
-                >
-                  {hoveredScore} – {getScoreVerdict(hoveredScore)}
-                </span>
+              <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="stack" />
+              {mode === "popup" && (
+                <Button type="button" onClick={() => onFeatureClicked(feature)}>
+                  Meer details
+                </Button>
               )}
             </>
           )

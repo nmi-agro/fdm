@@ -96,6 +96,7 @@ export default function MeasuresMap({
   fieldsGeoJSON,
   selectedFieldGeoJSON,
   initialFitGeoJSON,
+  height,
   onFieldClick,
 }: MeasuresMapProps) {
   const fitTarget =
@@ -117,7 +118,12 @@ export default function MeasuresMap({
   const outlineStyle = useMemo(() => getMeasureCountOutlineStyle(FIELDS_OUTLINE_LAYER), [])
 
   return (
-    <Atlas initialViewState={initialViewState}>
+    <Atlas
+      initialViewState={initialViewState}
+      interactive={true}
+      interactiveLayerIds={[FIELDS_LAYER]}
+      style={{ height }}
+    >
       <MapTilerAttribution />
 
       {/* All farm fields coloured by measure count */}
@@ -147,6 +153,7 @@ export default function MeasuresMap({
 
       <AtlasTooltip
         layers={[FIELDS_LAYER]}
+        onFeatureClicked={onFeatureClicked}
         render={({ feature, mode }) => {
           if (feature === null) return null
           return (

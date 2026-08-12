@@ -139,7 +139,7 @@ export default function FarmAtlasElevationBlock() {
       calendar: params.calendar,
       layer: "elevation",
     })
-  }, [])
+  }, [capture, params.b_id_farm, params.calendar])
 
   const mapRef = useRef<MapRef>(null)
 
@@ -523,7 +523,7 @@ export default function FarmAtlasElevationBlock() {
     [],
   )
 
-  const currentZoom = mapRef.current?.getZoom() ?? 0
+  const [currentZoom, setCurrentZoom] = useState<number>(0)
 
   return (
     <div className="relative h-full w-full">
@@ -532,8 +532,12 @@ export default function FarmAtlasElevationBlock() {
         initialViewState={initialViewState}
         interactive={true}
         onMoveEnd={throttledUpdate}
-        onLoad={throttledUpdate}
         onMouseMove={showElevation ? handleMouseMove : undefined}
+        onZoom={(e) => setCurrentZoom(e.viewState.zoom)}
+        onLoad={(e) => {
+          setCurrentZoom(e.target.getZoom())
+          throttledUpdate()
+        }}
       >
         <Controls
           showFlyToFields={fields && fields.features.length > 0}

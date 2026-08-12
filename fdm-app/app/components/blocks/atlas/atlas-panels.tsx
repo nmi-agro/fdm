@@ -3,7 +3,7 @@ import type { FeatureCollection } from "geojson"
 import type { MapGeoJSONFeature } from "maplibre-gl"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -49,16 +49,32 @@ export function FieldTooltip({
   touchDisplaysPopupInstead?: boolean
 }) {
   const { current: map } = useMap()
-  if (!map || map.getZoom() < zoomLevelFields) {
+  const [zoom, setZoom] = useState<number | null>(map ? map.getZoom() : null)
+
+  useEffect(() => {
+    if (!map) return
+    const onZoom = () => setZoom(map.getZoom())
+    onZoom()
+    map.on("zoom", onZoom)
+    return () => {
+      map.off("zoom", onZoom)
+    }
+  }, [map])
+
+  const layers = useMemo(() => (Array.isArray(layer) ? layer : [layer]), [layer])
+  const layersExclude = useMemo(
+    () => (!layerExclude ? [] : Array.isArray(layerExclude) ? layerExclude : [layerExclude]),
+    [layerExclude],
+  )
+
+  if (!map || zoom === null || zoom < zoomLevelFields) {
     return null
   }
 
   return (
     <AtlasTooltip
-      layers={Array.isArray(layer) ? layer : [layer]}
-      layersExclude={
-        !layerExclude ? [] : Array.isArray(layerExclude) ? layerExclude : [layerExclude]
-      }
+      layers={layers}
+      layersExclude={layersExclude}
       onFeatureClicked={onFeatureClicked}
       touchDisplaysPopupInstead={touchDisplaysPopupInstead}
       render={(props) => {
