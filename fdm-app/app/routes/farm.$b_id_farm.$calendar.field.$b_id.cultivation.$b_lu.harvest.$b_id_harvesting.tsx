@@ -17,10 +17,7 @@ import {
 import { dataWithWarning, redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { FormSchema } from "~/components/blocks/harvest/schema"
-import {
-  getEffectiveHarvestable,
-  getHarvestTerm,
-} from "~/components/blocks/harvest/utils"
+import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"

@@ -15,10 +15,7 @@ import { redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { FormSchema } from "~/components/blocks/harvest/schema"
-import {
-  getEffectiveHarvestable,
-  getHarvestTerm,
-} from "~/components/blocks/harvest/utils"
+import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"

@@ -20,10 +20,7 @@ import { BatchHarvestFormDialog } from "~/components/blocks/harvest/batch-form"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { BatchFormSchema, FormSchema } from "~/components/blocks/harvest/schema"
-import {
-  getEffectiveHarvestable,
-  getHarvestTerm,
-} from "~/components/blocks/harvest/utils"
+import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -222,18 +219,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
       const term =
         formValues.harvests.length === 1
-          ? getHarvestTerm(
-              cultivation.b_lu_croprotation,
-              false,
-              cultivation.b_lu_harvestable,
-              true,
-            )
-          : getHarvestTerm(
-              cultivation.b_lu_croprotation,
-              true,
-              cultivation.b_lu_harvestable,
-              true,
-            )
+          ? getHarvestTerm(cultivation.b_lu_croprotation, false, cultivation.b_lu_harvestable, true)
+          : getHarvestTerm(cultivation.b_lu_croprotation, true, cultivation.b_lu_harvestable, true)
       const verb = formValues.harvests.length === 1 ? "is" : "zijn"
       return redirectWithSuccess("..", {
         message: `${term} ${verb} succesvol toegevoegd! 🎉`,
