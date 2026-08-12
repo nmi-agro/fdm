@@ -5,6 +5,7 @@ import { createRoot, type Root } from "react-dom/client"
 import { GeolocateControl, NavigationControl, useControl, useMap } from "react-map-gl/maplibre"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { GeocoderControl } from "./atlas-geocoder"
+import { AtlasLayerSwitch } from "./atlas-layer-switch"
 import { useAtlasViewState } from "./atlas-shell"
 import { AtlasViewState } from "./atlas-viewstate"
 
@@ -32,6 +33,7 @@ export function Controls(props: ControlsProps) {
   return (
     <>
       <GeocoderControl onViewportChange={setViewState} collapsed={isMobile} />
+      <AtlasLayerSwitch position="top-right" />
       <AtlasControls position="top-right">
         {props.showFields !== undefined && props.onToggleFields && (
           <FieldsControl showFields={props.showFields} onToggle={props.onToggleFields} />
@@ -87,6 +89,10 @@ class CustomControl implements IControl {
   onAdd(map: MapLibreMap): HTMLElement {
     this._map = map
     this._container = document.createElement("div")
+    // Prevent the responsive map click logic from picking it up.
+    this._container.onpointerdown = (e) => {
+      e.stopPropagation()
+    }
 
     this._root = createRoot(this._container)
     this._render()
@@ -211,7 +217,7 @@ function AtlasToggle(props: ToggleProps) {
  *
  * Multiple AtlasButtons and AtlasToggles can be added as children to create button groups.
  */
-function AtlasControlGroup({ children }: { children: ReactNode }) {
+export function AtlasControlGroup({ children }: { children: ReactNode }) {
   return <div className="maplibregl-ctrl maplibregl-ctrl-group">{children}</div>
 }
 

@@ -137,6 +137,10 @@ class GeocoderControlClass implements IControl {
   onAdd(map: MapLibreMap): HTMLElement {
     this._map = map
     this._container = this._geocoder.onAdd(map as any)
+    // Prevent the responsive map click logic from picking it up.
+    this._container.onpointerdown = (e) => {
+      e.stopPropagation()
+    }
     return this._container
   }
 
