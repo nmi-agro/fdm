@@ -1,16 +1,8 @@
 import maplibregl from "maplibre-gl"
-import {
-  createContext,
-  Ref,
-  RefObject,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { createContext, Ref, RefObject, useCallback, useContext, useEffect, useRef } from "react"
 import { Map as MapGL, ViewStateChangeEvent, MapRef, MapProps } from "react-map-gl/maplibre"
 import { getMapStyle } from "@/app/integrations/map"
+import { useAtlasViewState } from "~/store/atlas-view-state"
 import { useStableSet } from "./atlas-util"
 import { AtlasViewState } from "./atlas-viewstate"
 
@@ -27,22 +19,6 @@ const MapContainerContext = createContext<RefObject<HTMLDivElement | null>>({ cu
  */
 export function useMapContainer() {
   return useContext(MapContainerContext)
-}
-
-/**
- * The controlling state for the map position, orientation, and tilt.
- */
-const ViewStateContext = createContext<[AtlasViewState, (viewState: AtlasViewState) => void]>([
-  {},
-  () => {},
-])
-
-/**
- * Gets the controlling state for the map position, orientation, and tilt, and its setter.
- * @returns an array of the current view state, and the setter function.
- */
-export function useAtlasViewState() {
-  return useContext(ViewStateContext)
 }
 
 /**
@@ -74,31 +50,14 @@ export function Atlas(
 
   const interactiveLayerIdsSet = useStableSet(interactiveLayerIds)
 
-  const viewStateContext = useState<AtlasViewState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const savedViewState = sessionStorage.getItem("mapViewState")
-        if (savedViewState) {
-          return JSON.parse(savedViewState)
-        }
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-    return initialViewState
-  })
-
-  const [viewState, setViewState] = viewStateContext
+  const { viewState: storedViewState, setViewState } = useAtlasViewState()
+  const viewState = storedViewState ?? initialViewState
 
   useEffect(() => {
-    if (interactive && typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
+    if (interactive) {
+      setViewState(viewState)
     }
-  }, [interactive, viewState])
+  }, [interactive, viewState, setViewState])
 
   const onMouseMove = useCallback(
     (e: maplibregl.MapLayerMouseEvent) => {
@@ -139,41 +98,39 @@ export function Atlas(
       ref={containerRef}
     >
       <MapContainerContext.Provider value={containerRef}>
-        <ViewStateContext.Provider value={viewStateContext}>
-          <MapGL
-            {...viewState}
-            {...mapGlProps}
-            style={{ width: "100%", height: "100%" }}
-            ref={(map) => {
-              if (ref) {
-                if (typeof ref === "function") {
-                  ref(map)
-                } else {
-                  ref.current = map
-                }
+        <MapGL
+          {...viewState}
+          {...mapGlProps}
+          style={{ width: "100%", height: "100%" }}
+          ref={(map) => {
+            if (ref) {
+              if (typeof ref === "function") {
+                ref(map)
+              } else {
+                ref.current = map
               }
-              mapRef.current = map
-            }}
-            interactive={interactive}
-            interactiveLayerIds={interactiveLayerIds}
-            mapStyle={mapStyle}
-            mapLib={maplibregl}
-            onMove={(e) => {
-              onViewportChange(e)
-              mapGlProps.onMove?.(e)
-            }}
-            onMouseMove={(e) => {
-              onMouseMove(e)
-              mapGlProps.onMouseMove?.(e)
-            }}
-            onMouseLeave={(e) => {
-              onMouseLeave()
-              mapGlProps.onMouseLeave?.(e)
-            }}
-          >
-            {children}
-          </MapGL>
-        </ViewStateContext.Provider>
+            }
+            mapRef.current = map
+          }}
+          interactive={interactive}
+          interactiveLayerIds={interactiveLayerIds}
+          mapStyle={mapStyle}
+          mapLib={maplibregl}
+          onMove={(e) => {
+            onViewportChange(e)
+            mapGlProps.onMove?.(e)
+          }}
+          onMouseMove={(e) => {
+            onMouseMove(e)
+            mapGlProps.onMouseMove?.(e)
+          }}
+          onMouseLeave={(e) => {
+            onMouseLeave()
+            mapGlProps.onMouseLeave?.(e)
+          }}
+        >
+          {children}
+        </MapGL>
       </MapContainerContext.Provider>
     </div>
   )

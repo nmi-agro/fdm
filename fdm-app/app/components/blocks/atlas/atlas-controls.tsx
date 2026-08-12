@@ -4,9 +4,9 @@ import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { GeolocateControl, NavigationControl, useControl, useMap } from "react-map-gl/maplibre"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { useAtlasViewState } from "~/store/atlas-view-state"
 import { GeocoderControl } from "./atlas-geocoder"
 import { AtlasLayerSwitch } from "./atlas-layer-switch"
-import { useAtlasViewState } from "./atlas-shell"
 import { AtlasViewState } from "./atlas-viewstate"
 
 type ControlsProps = {
@@ -27,7 +27,7 @@ type ControlsProps = {
  */
 export function Controls(props: ControlsProps) {
   const isMobile = useIsMobile()
-  const [, setViewState] = useAtlasViewState()
+  const { setViewState } = useAtlasViewState()
   const { current: map } = useMap()
 
   return (
