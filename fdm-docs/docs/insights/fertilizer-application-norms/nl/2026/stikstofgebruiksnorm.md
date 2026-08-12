@@ -1,9 +1,13 @@
 ---
-title: Stikstofgebruiksnorm 2025
+title: Stikstofgebruiksnorm 2026
 sidebar_label: "Stikstofgebruiksnorm"
 ---
 
-This document provides a detailed explanation of the Dutch legal usage norm (`gebruiksnorm`) for nitrogen in 2025. It covers how the norm is calculated, the rules for catch crops and winter crops, and how the applied nitrogen counts towards this norm (`opvulling`).
+This document provides a detailed explanation of the Dutch legal usage norm (`gebruiksnorm`) for nitrogen in 2026. It covers how the norm is calculated, the rules for catch crops and winter crops, and how the applied nitrogen counts towards this norm (`opvulling`).
+
+:::note
+Derogation ended after 2025, so the nitrogen norm no longer depends on a farm's derogation status. Where the 2025 maize norm varied by derogation, the 2026 norm does not.
+:::
 
 ---
 
@@ -15,25 +19,27 @@ The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) t
 
 #### Calculation Steps
 
-1. **Identify Main Crop**: The main crop for 2025 is determined from your cultivation plan.
+1. **Identify Main Crop**: The main crop for 2026 is determined from your cultivation plan — the crop present longest between 15 May and 15 July. If no crop covers that window, the field is treated as green fallow (`Groene braak, spontane opkomst`).
 2. **Determine Geographical Context**: The field's location is used to check:
    - If it is in a **Nutrient-Polluted Area (`NV-gebied`)**, which results in a stricter (lower) norm.
    - The dominant **soil region** (`zand_nwc`, `zand_zuid`, `klei`, `veen`, or `loess`).
-3. **Find the Standard Norm**: The main crop is looked up in the official RVO Table 2 (or Tabel 2g for NV-gebieden).
+3. **Find the Standard Norm**: The main crop is looked up in the official RVO Table 2 (or the NV-gebied variant).
 4. **Apply Specific Rules**: The standard norm is refined with additional rules for certain crops:
-   - **Temporary Grassland (`Tijdelijk grasland`)**: The norm is adjusted based on the cultivation end date.
-   - **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety. See [RVO Tabel 2c](https://www.rvo.nl/sites/default/files/2024-12/Tabel-2c-Consumptieaardappelen%20hoge%20of%20lage%20norm-2025.pdf).
-   - **Maize (`Maïs`)**: The norm depends on the farm's derogation status.
+   - **Grassland (`Grasland`)**: The norm depends on whether the grassland is grazed (`beweiden`) or fully mown (`volledig maaien`).
+   - **Temporary Grassland (`Tijdelijk grasland`)**: The norm is adjusted based on the cultivation period.
+   - **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety.
    - **Outdoor Flowers (`Buitenbloemen`)**: A higher norm is applied for specific varieties.
 5. **Select the Final Norm**: The final value is selected based on the field's soil region and `NV-gebied` status.
-6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: The norm is reduced if catch crop (`vanggewas`) or winter crop (`winterteelt`) requirements were not met in the **previous** year on sand and loess soils, and/or if grassland was renewed or destroyed. Reductions are **cumulative**: they are added together rather than applied as alternatives. If the result would be negative, it is set to 0.
+6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: The norm is reduced if catch crop or winter crop requirements were not met in the **previous** year on sand and loess soils, and/or if grassland was renewed or destroyed. Reductions are **cumulative**: they are added together rather than applied as alternatives. If the result would be negative, it is set to 0.
+
+A field marked as a buffer strip (`b_bufferstrip`) receives a norm of 0.
 
 ### How the FDM Calculator Determines the Norm
 
-The `fdm-calculator` uses the `calculateNitrogenUsageNorm` function in `fdm-calculator/src/norms/nl/2025/value/stikstofgebruiksnorm.ts`, which relies on:
+The `fdm-calculator` uses the `calculateNL2026StikstofGebruiksNorm` function in `fdm-calculator/src/norms/nl/2026/value/stikstofgebruiksnorm.ts`, which relies on:
 
-- **`stikstofgebruiksnorm-data.ts`**: Contains the data from RVO Tabel 2 and Tabel 2g.
-- **`input.ts`**: Defines the required inputs, such as derogation status, location, and crop data. Note that cultivations are collected from **1 January of the previous year**, because the catch crop rules depend on what was grown then.
+- **`stikstofgebruiksnorm-data.ts`**: Contains the norm data per crop, soil region and `NV-gebied` status.
+- **`input.ts`**: Defines the required inputs. Cultivations are collected from **1 January 2025**, because the catch crop rules depend on what was grown in the previous year.
 - **`../../vanggewas-winterteelt.ts`**: Determines whether a crop is a catch crop and/or a winter crop, and evaluates the statutory conditions attached to specific crops.
 
 ---
@@ -44,10 +50,10 @@ The `fdm-calculator` uses the `calculateNitrogenUsageNorm` function in `fdm-calc
 
 On sand and loess soils, the land must be covered over winter to prevent nitrogen leaching. Under article 28d of the Uitvoeringsregeling Meststoffenwet, this obligation attaches to the crop grown **after the main crop (`na de hoofdteelt`) of the previous year**. Failing to meet it reduces the nitrogen usage norm in the **following** year.
 
-For the 2025 norm this means the calculator looks at the **2024** growing season: was a catch crop grown after the 2024 main crop, when was it sown, and did it stand until 1 February 2025?
+For the 2026 norm this means the calculator looks at the **2025** growing season: was a catch crop grown after the 2025 main crop, when was it sown, and did it stand until 1 February 2026?
 
 :::info Which year is assessed
-The reduction applied to the 2025 norm is caused by what happened in autumn 2024. Cultivations from the previous year must therefore be present in the data, or the calculator cannot tell a compliant field from a non-compliant one.
+The reduction applied to the 2026 norm is caused by what happened in autumn 2025. Cultivations from the previous year must therefore be present in the data, or the calculator cannot tell a compliant field from a non-compliant one.
 :::
 
 #### 1. Winter Crop Exception
@@ -80,6 +86,10 @@ If no winter crop applies, a **catch crop (`vanggewas`)** must be grown after th
 
 **Undersowing counts.** A catch crop undersown into a standing crop in May or June is a valid catch crop, sown well before 1 October, and therefore attracts no reduction. The same holds for a catch crop sown early after an early-harvested main crop, such as early ware potatoes.
 
+:::info Destruction date for norm year 2026
+The catch crop assessed here was sown in autumn 2025, under the 7th Action Programme, so the **1 February** date applies. A shorter standing period is among the measures proposed for the 8th Action Programme, but that programme has been postponed and the date is unchanged until it is adopted and in force.
+:::
+
 **Official sources**:
 
 - [Article 28d Uitvoeringsregeling Meststoffenwet](https://wetten.overheid.nl/BWBR0018989)
@@ -93,7 +103,7 @@ Membership of the catch crop and winter crop lists is evaluated **per crop code*
 The lists and the conditional rules live in:
 
 - **`fdm-calculator/src/norms/nl/vanggewas-winterteelt.ts`**: `isVanggewas()`, `isWinterteelt()` and `isVanggewasEnWinterteelt()`, including the harvest-date and undersowing conditions.
-- **`fdm-calculator/src/norms/nl/2025/value/vanggewas-winterteelt-data.ts`**: the crop-code sets for the norm year.
+- **`fdm-calculator/src/norms/nl/2026/value/vanggewas-winterteelt-data.ts`**: the crop-code sets for 2026. These currently reuse the 2025 sets, because the underlying RVO lists did not change between the two years.
 
 Because the reduction is expressed per hectare, the calculator applies it at field level; `aggregateNormsToFarmLevel()` then multiplies by field area and sums, giving the farm total against which compliance is assessed.
 
@@ -101,35 +111,36 @@ Because the reduction is expressed per hectare, the calculator applies it at fie
 
 ## Grassland Renewal and Destruction Reductions
 
-In 2025, specific nitrogen usage norm reductions (`kortingen`) apply when grassland is renewed or destroyed (scheuren). These reductions account for the nitrogen released during the decomposition of the sod.
+Specific nitrogen usage norm reductions (`kortingen`) apply when grassland is renewed or destroyed (scheuren). These reductions account for the nitrogen released during the decomposition of the sod.
 
 ### 1. Grassland Renewal (Gras-na-Gras)
 
 When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. This is only allowed within specific periods:
 
 - **Sand and Loess Soils**: June 1st – August 31st.
-- **Clay and Peat Soils**:
-  - **Derogation Farm + NV-Area**: June 1st – August 31st.
-  - **Derogation Farm + Non-NV-Area**: June 1st – September 15th.
-  - **Non-Derogation Farm**: February 1st – September 15th.
+- **Clay and Peat Soils**: February 1st – September 15th.
+
+Because derogation ended after 2025, the clay and peat period no longer varies by derogation status or `NV-gebied`.
 
 ### 2. Grassland Destruction (Gras-naar-Bouwland)
 
-When grassland is replaced by Maize or specific Potato types, a reduction of **65 kg N/ha** applies.
+When grassland is replaced by maize or specific potato types, a reduction of **65 kg N/ha** applies.
 
-- **Eligible Crops**: Maize, Consumption Potatoes, and Factory Potatoes.
-- **Excluded Crops**: **Seed Potatoes (`Pootaardappelen`)** do not trigger this reduction.
+- **Eligible Crops**: Maize, consumption potatoes and factory potatoes.
+- **Excluded Crops**: **Seed potatoes (`Pootaardappelen`)** do not trigger this reduction.
 - **Allowed Periods**:
   - **Sand and Loess Soils**: February 1st – May 10th.
   - **Clay and Peat Soils**:
     - **NV-Area**: February 1st – March 15th.
     - **Non-NV-Area**: February 1st – May 31st.
 
+The reduction is not applied when the preceding crop was itself a catch crop, since incorporating a catch crop is not grassland destruction.
+
 ### How the FDM Calculator Implements These Rules
 
-The `fdm-calculator` automatically detects grassland renewal and destruction events by analyzing the sequence of cultivations. It verifies the soil type, location (NV-gebied), and farm derogation status to apply the correct reduction.
+The `fdm-calculator` detects grassland renewal and destruction events by analysing the sequence of cultivations, then verifies the soil region and `NV-gebied` status to apply the correct reduction.
 
-If a renewal or destruction action is performed **outside** the legally allowed periods, the calculator will provide a descriptive error message to ensure compliance.
+If a renewal or destruction action is performed **outside** the legally allowed periods, the calculator raises a descriptive error rather than returning a norm.
 
 :::info Reductions are cumulative
 Article 28d applies alongside the grassland provisions, so a grassland reduction and a catch crop reduction can both apply to the same field and are added together. A field that was destroyed for maize without a catch crop the previous autumn therefore receives 65 + 20 = 85 kg N/ha. The `normSource` lists every reduction that was applied.
@@ -142,8 +153,6 @@ Article 28d applies alongside the grassland provisions, so a grassland reduction
 ### How the Filling Works
 
 The filling is based on the **effective nitrogen** (`werkzame stikstof`) applied, which is calculated using an efficiency coefficient (`werkingscoëfficiënt`).
-
-**Official Source**: [RVO Tabel 9 Werkzame stikstof landbouwgrond 2025](https://www.rvo.nl/sites/default/files/2024-12/Tabel-9-Werkzame-stikstof-landbouwgrond-2025.pdf)
 
 #### Calculation Formula
 
@@ -171,6 +180,8 @@ The filling is based on the **effective nitrogen** (`werkzame stikstof`) applied
 | Compost / Champost                          |                          | 10 / 25                 |
 | Kunstmest (Mineral fertilizer)              |                          | 100                     |
 
+Renure products count toward this nitrogen norm in the same way as other fertilizers, in addition to filling their own [Renure norm](./renure-gebruiksnorm.md).
+
 ### How the FDM Calculator Determines the Filling
 
-The `calculateNitrogenFilling` function in `fdm-calculator/src/norms/nl/2025/filling/stikstofgebruiksnorm.ts` uses the fertilizer type, application method, and the coefficients from `table-9.ts` to calculate the effective nitrogen.
+The `calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm` function in `fdm-calculator/src/norms/nl/2026/filling/stikstofgebruiksnorm.ts` uses the fertilizer type, application method, and the coefficients from `table-9.ts` to calculate the effective nitrogen.
