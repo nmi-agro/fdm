@@ -101,8 +101,6 @@ function uri(stringParts: TemplateStringsArray, ...substitutions: string[]) {
  */
 export function AtlasLayerSwitch({ position }: { position: ControlPosition }) {
   const matches = useMatches()
-  const params = useParams()
-  const navigate = useNavigate()
 
   let currentLayer: MapLayer | null = null
 
@@ -116,9 +114,7 @@ export function AtlasLayerSwitch({ position }: { position: ControlPosition }) {
 
   return (
     <AtlasControls position={position}>
-      {currentLayer ? (
-        <AtlasLayerSwitchInner currentLayer={currentLayer} params={params} navigate={navigate} />
-      ) : null}
+      {currentLayer ? <AtlasLayerSwitchInner currentLayer={currentLayer} /> : null}
     </AtlasControls>
   )
 }
@@ -126,22 +122,10 @@ export function AtlasLayerSwitch({ position }: { position: ControlPosition }) {
 /**
  * Dropdown menu that can be displayed on the atlas, providing atlas page options that are able to be
  * navigated to with the given route parameters.
- *
- * It takes the relevant React Router functions as props since this component does not have access to
- * the React Router hooks at where it is used.
  */
-function AtlasLayerSwitchInner({
-  currentLayer,
-  params,
-  navigate,
-}: {
-  currentLayer: MapLayer
-  params: Record<string, string | undefined>
-  navigate: ReturnType<typeof useNavigate>
-}) {
-  // This component does not have access to React Router hooks since it is rendered inside a separate
-  // ReactDOM root.
-
+function AtlasLayerSwitchInner({ currentLayer }: { currentLayer: MapLayer }) {
+  const params = useParams()
+  const navigate = useNavigate()
   const layerOptions = useMemo(() => {
     const context = params.slug ? "organization" : "farm"
     const labelKey = "nameNL"
@@ -171,7 +155,7 @@ function AtlasLayerSwitchInner({
           }
         }
       }}
-      className="maplibregl-ctrl maplibregl-ctrl-geocoder"
+      className="maplibregl-ctrl"
       style={{ width: "auto", minWidth: "0px", maxWidth: "200px" }}
     >
       <Select
@@ -183,7 +167,7 @@ function AtlasLayerSwitchInner({
           }
         }}
       >
-        <SelectTrigger>
+        <SelectTrigger className="bg-background hover:bg-accent!">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

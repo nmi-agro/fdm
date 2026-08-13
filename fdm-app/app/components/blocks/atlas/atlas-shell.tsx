@@ -31,6 +31,8 @@ export function Atlas(
   props: Omit<MapProps, "mapStyle"> & {
     ref?: Ref<MapRef>
     initialViewState?: AtlasViewState
+    useStoredViewState?: boolean
+    updateFromInitialViewState?: boolean
     interactive?: boolean
     mapStyle?: MapStyleVariant
     children?: any
@@ -39,6 +41,8 @@ export function Atlas(
   const {
     ref,
     initialViewState,
+    useStoredViewState = true,
+    updateFromInitialViewState = false,
     interactive,
     interactiveLayerIds,
     children,
@@ -56,13 +60,28 @@ export function Atlas(
   const interactiveLayerIdsSet = useStableSet(interactiveLayerIds)
 
   const { viewState: storedViewState, setViewState } = useAtlasViewState()
-  const viewState = storedViewState ?? initialViewState
+  const viewState = useStoredViewState && storedViewState ? storedViewState : initialViewState
 
   useEffect(() => {
-    if (interactive) {
+    if (interactive && useStoredViewState) {
       setViewState(viewState)
     }
-  }, [interactive, viewState, setViewState])
+  }, [interactive, useStoredViewState, viewState, setViewState])
+
+  useEffect(() => {
+    if (updateFromInitialViewState && initialViewState) {
+      if (initialViewState.bounds) {
+        mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
+      } else if (initialViewState.longitude != null && initialViewState.latitude != null) {
+        mapRef.current?.flyTo({
+          center: [initialViewState.longitude, initialViewState.latitude],
+          zoom: initialViewState.zoom,
+          pitch: initialViewState.pitch,
+          bearing: initialViewState.bearing,
+        })
+      }
+    }
+  }, [updateFromInitialViewState, initialViewState])
 
   const onMouseMove = useCallback(
     (e: maplibregl.MapLayerMouseEvent) => {

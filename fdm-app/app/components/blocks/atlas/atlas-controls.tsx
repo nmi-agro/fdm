@@ -1,9 +1,8 @@
 import type { ControlPosition, IControl, Map as MapLibreMap } from "maplibre-gl"
 import { Layers, Mountain, PanelsRightBottom, Scan } from "lucide-react"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
-import { createRoot, type Root } from "react-dom/client"
+import { type ReactNode, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { GeolocateControl, NavigationControl, useControl, useMap } from "react-map-gl/maplibre"
-import { useIsMobile } from "~/hooks/use-mobile"
 import { useAtlasViewState } from "~/store/atlas-view-state"
 import { GeocoderControl } from "./atlas-geocoder"
 import { AtlasLayerSwitch } from "./atlas-layer-switch"
@@ -11,15 +10,16 @@ import { AtlasStyleSelect } from "./atlas-style-select"
 import { AtlasViewState } from "./atlas-viewstate"
 
 type ControlsProps = {
-  showFlyToFields?: boolean
   initialViewState?: AtlasViewState
+  showGeocoder?: boolean
+  showStyleSelect?: boolean
+  showFlyToFields?: boolean
   showFields?: boolean
   onToggleFields?: () => void
   showElevation?: boolean
   onToggleElevation?: () => void
   showSoil?: boolean
   onToggleSoil?: () => void
-  showStyleSelect?: boolean
 }
 
 /**
@@ -28,15 +28,15 @@ type ControlsProps = {
  * To hide a button you can pass undefined to the corresponding `show...` or just not provide the corresponding `on...` callback.
  */
 export function Controls(props: ControlsProps) {
-  const isMobile = useIsMobile()
   const { setViewState } = useAtlasViewState()
   const { current: map } = useMap()
 
+  const showGeocoder = props.showGeocoder ?? true
   const showStyleSelect = props.showStyleSelect ?? true
 
   return (
     <>
-      <GeocoderControl onViewportChange={setViewState} collapsed={isMobile} />
+      {showGeocoder && <GeocoderControl onViewportChange={setViewState} />}
       <AtlasLayerSwitch position="top-right" />
       <AtlasControls position="top-right">
         {showStyleSelect && <AtlasStyleSelect />}
@@ -79,16 +79,22 @@ interface AtlasControlsProps {
 }
 
 /**
- * MapGL control that is compatible with `useControl` that maintains a ReactDOM root and renders it whenever its props change
+ * MapGL control that is compatible with `useControl` that maintains a div inside the map controls container.
+ *
+ * Then, `AtlasControls` works by creating a portal to that div.
  */
 class CustomControl implements IControl {
   _map: MapLibreMap | undefined
   _container: HTMLDivElement | undefined
-  _root: Root | undefined
   _props: AtlasControlsProps
+  _onContainerReady: (container: HTMLDivElement) => void
 
-  constructor(initialProps: AtlasControlsProps) {
+  constructor(
+    initialProps: AtlasControlsProps,
+    onContainerReady: (container: HTMLDivElement) => void,
+  ) {
     this._props = initialProps
+    this._onContainerReady = onContainerReady
   }
 
   onAdd(map: MapLibreMap): HTMLElement {
@@ -98,21 +104,11 @@ class CustomControl implements IControl {
     this._container.onpointerdown = (e) => {
       e.stopPropagation()
     }
-
-    this._root = createRoot(this._container)
-    this._render()
-
+    this._onContainerReady(this._container)
     return this._container
   }
 
   onRemove(): void {
-    if (this._root) {
-      const root = this._root
-      setTimeout(() => {
-        root.unmount()
-      }, 0)
-      this._root = undefined
-    }
     this._container?.parentNode?.removeChild(this._container)
     this._container = undefined
     this._map = undefined
@@ -121,33 +117,27 @@ class CustomControl implements IControl {
   getDefaultPosition(): ControlPosition {
     return "top-right"
   }
-
-  updateProps(newProps: AtlasControlsProps) {
-    this._props = newProps
-    this._render()
-  }
-
-  _render() {
-    if (this._root) {
-      this._root.render(this._props.children)
-    }
-  }
 }
 
 /**
- * React root that can be added to a react-map-gl Map to include buttons etc. on it
+ * Control container that can be added to a react-map-gl `Map` to include buttons etc. on it
  *
  * - position will tell MapGL where to put the controls
  */
 export function AtlasControls(props: AtlasControlsProps) {
-  const control = useControl(() => new CustomControl(props), {
+  const [container, setContainer] = useState<HTMLDivElement | undefined>(undefined)
+  const setContainerRef = useRef(setContainer)
+  setContainerRef.current = setContainer
+
+  useControl(() => new CustomControl(props, (c) => setContainerRef.current(c)), {
     position: props.position,
   })
 
-  useEffect(() => control.updateProps(props), [props, control])
-
-  // Buttons are shown using side effects
-  return null
+  if (container && document.body.contains(container)) {
+    return createPortal(props.children, container)
+  } else {
+    return null
+  }
 }
 
 interface CommonButtonProps {

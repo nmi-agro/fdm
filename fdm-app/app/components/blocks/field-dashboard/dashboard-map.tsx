@@ -74,10 +74,13 @@ export default function FieldDashboardMap({
       initialViewState={initialViewState}
       interactive={true}
       interactiveLayerIds={[fieldsSaved.id]}
+      useStoredViewState={false}
+      updateFromInitialViewState={true}
       style={{ height: "360px", width: "100%" }}
     >
       <Controls
         initialViewState={initialViewState}
+        showGeocoder={false}
         showFlyToFields={dashboard.farmFieldsGeoJson.features.length > 0}
         showFields={showFields}
         onToggleFields={() => setShowFields(!showFields)}
