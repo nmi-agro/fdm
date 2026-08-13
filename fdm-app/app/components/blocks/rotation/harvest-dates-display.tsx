@@ -132,7 +132,7 @@ export const HarvestDatesDisplay: React.FC<HarvestDatesDisplayProps> = ({ row })
           {harvestsByOrder.map((record, idx) => {
             return (
               <HarvestDatesDisplayButton key={record.id} record={record}>
-                {`${idx + 1}e ${getHarvestTerm(row.original.b_lu_croprotation)}:`}
+                {`${idx + 1}e ${getHarvestTerm(row.original.b_lu_croprotation, false, row.original.b_lu_harvestable)}:`}
                 <br />
                 {formatDateRange(record.dates)}
               </HarvestDatesDisplayButton>
