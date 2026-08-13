@@ -67,7 +67,7 @@ describe("collectNL2026InputForNorms", () => {
       mockFieldId,
       operations,
     )
-    expect(result.soilAnalysis).toEqual({ a_p_cc: undefined, a_p_al: undefined })
+    expect(result.soilAnalysis).toEqual({ a_p_cc: null, a_p_al: null })
   })
 })
 

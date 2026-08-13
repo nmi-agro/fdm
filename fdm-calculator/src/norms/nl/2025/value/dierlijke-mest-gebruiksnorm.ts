@@ -140,6 +140,7 @@ export async function isFieldInDerogatieVrijeZone(
  */
 export async function calculateNL2025DierlijkeMestGebruiksNorm(
   input: NL2025NormsInput,
+  getGeoTiffValueFn: typeof getGeoTiffValue = getGeoTiffValue,
 ): Promise<DierlijkeMestGebruiksnormResult> {
   const is_derogatie_bedrijf = input.farm.is_derogatie_bedrijf ?? false
   const field = input.field
@@ -154,10 +155,10 @@ export async function calculateNL2025DierlijkeMestGebruiksNorm(
 
   const [is_nv_gebied, is_gwbg_gebied, is_natura2000_gebied, is_derogatie_vrije_zone] =
     await Promise.all([
-      isFieldInNVGebied(field.b_centroid),
-      isFieldInGWGBGebied(field.b_centroid),
-      isFieldInNatura2000Gebied(field.b_centroid),
-      isFieldInDerogatieVrijeZone(field.b_centroid),
+      isFieldInNVGebied(field.b_centroid, getGeoTiffValueFn),
+      isFieldInGWGBGebied(field.b_centroid, getGeoTiffValueFn),
+      isFieldInNatura2000Gebied(field.b_centroid, getGeoTiffValueFn),
+      isFieldInDerogatieVrijeZone(field.b_centroid, getGeoTiffValueFn),
     ])
 
   let normValue: number

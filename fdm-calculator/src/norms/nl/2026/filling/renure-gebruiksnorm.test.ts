@@ -163,7 +163,7 @@ describe("calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm", () 
     ).toThrow("Fertilizer no_rvo_id has no p_type_rvo")
   })
 
-  it("should fallback to table nitrogen values and zero amount defaults", () => {
+  it("should default missing p_n_rt to zero for zero-amount Renure applications", () => {
     const result = calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
       applications: [
         {

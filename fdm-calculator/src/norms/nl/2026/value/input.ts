@@ -97,12 +97,16 @@ export async function collectNL2026InputForNorms(
     timeframe2026,
   )
   const soilAnalysisPicked = {
-    a_p_cc: soilAnalysis.find((x: { parameter: string }) => x.parameter === "a_p_cc")?.value as
-      | number
-      | null,
-    a_p_al: soilAnalysis.find((x: { parameter: string }) => x.parameter === "a_p_al")?.value as
-      | number
-      | null,
+    a_p_cc:
+      (soilAnalysis.find((x: { parameter: string }) => x.parameter === "a_p_cc")?.value as
+        | number
+        | null
+        | undefined) ?? null,
+    a_p_al:
+      (soilAnalysis.find((x: { parameter: string }) => x.parameter === "a_p_al")?.value as
+        | number
+        | null
+        | undefined) ?? null,
   }
 
   return {

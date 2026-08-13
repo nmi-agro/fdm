@@ -11,8 +11,8 @@ import type {
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { getGeoTiffValue } from "../../../../shared/geotiff"
-import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
 import { findHoofdteelt } from "../../../../shared/hoofdteelt"
+import { getFdmPublicDataUrl } from "../../../../shared/public-data-url"
 import { nonBouwlandCodes } from "../../constant"
 import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 import { calculateVanggewasWinterteeltKorting } from "./vanggewas-winterteelt"
@@ -28,12 +28,15 @@ import { calculateVanggewasWinterteeltKorting } from "./vanggewas-winterteelt"
  *   and `false` if the value is 0.
  * @throws {Error} If the GeoTIFF returns an unexpected value, or if there are issues fetching or processing the file.
  */
-export async function isFieldInNVGebied(b_centroid: Field["b_centroid"]): Promise<boolean> {
+export async function isFieldInNVGebied(
+  b_centroid: Field["b_centroid"],
+  getGeoTiffValueFn: typeof getGeoTiffValue = getGeoTiffValue,
+): Promise<boolean> {
   const fdmPublicDataUrl = getFdmPublicDataUrl()
   const url = `${fdmPublicDataUrl}norms/nl/2025/nv.tiff`
   const longitude = b_centroid[0]
   const latitude = b_centroid[1]
-  const NVGebiedCode = await getGeoTiffValue(url, longitude, latitude)
+  const NVGebiedCode = await getGeoTiffValueFn(url, longitude, latitude)
 
   switch (NVGebiedCode) {
     case 1: {
