@@ -5,21 +5,18 @@ import {
   getFertilizerApplications,
   getFertilizers,
   getField,
+  getHarvests,
 } from "@nmi-agro/fdm-core"
 import { Suspense, use, useEffect } from "react"
-import {
-  type LoaderFunctionArgs,
-  type MetaFunction,
-  useLoaderData,
-  useLocation,
-} from "react-router"
+import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import type { NutrientDescription } from "~/components/blocks/nutrient-advice/types"
+import { CutAdviceCard } from "~/components/blocks/nutrient-advice/cut-advice-card"
 import { FieldNutrientAdviceLayout } from "~/components/blocks/nutrient-advice/layout"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
 import { KPISection, NutrientAdviceSection } from "~/components/blocks/nutrient-advice/sections"
 import { FieldNutrientAdviceSkeleton } from "~/components/blocks/nutrient-advice/skeletons"
+import { NutrientAdviceUnavailable } from "~/components/blocks/nutrient-advice/unavailable"
 import { CultivationSelector } from "~/components/custom/cultivation-selector"
-import { ErrorBlock } from "~/components/custom/error"
 import { Separator } from "~/components/ui/separator"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
@@ -109,6 +106,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const [resolvedCurrentSoilData, resolvedFertilizerApplications, resolvedFertilizers] =
           await Promise.all([currentSoilData, fertilizerApplications, fertilizers])
 
+        // Get harvests of the active cultivation, to relate per-cut advice to recorded cuts
+        const harvests = await getHarvests(
+          fdm,
+          session.principal_id,
+          activeCultivation.b_lu,
+          timeframe,
+        )
+
         const b_lu_catalogue = activeCultivation.b_lu_catalogue
 
         const doses = calculateDose({
@@ -131,6 +136,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           doses: doses,
           fertilizerApplications: resolvedFertilizerApplications,
           fertilizers: resolvedFertilizers,
+          harvests: harvests,
+          // Server-side "today" so state on the season strip cannot drift between server
+          // render and hydration.
+          today: new Date().toISOString(),
           errorMessage: undefined,
           cultivations,
           activeCultivation,
@@ -214,19 +223,23 @@ function FieldNutrientAdvice({
 }) {
   const { field, calendar, nutrientsDescription } = loaderData
   const asyncData = use(loaderData.asyncData)
-  const location = useLocation()
 
   if (typeof asyncData.errorMessage === "string") {
     return (
-      <ErrorBlock
-        status={500}
-        message={asyncData.errorMessage}
-        stacktrace={undefined}
-        page={location.pathname}
-        timestamp={new Date().toISOString()}
-      />
+      <div className="p-10">
+        <NutrientAdviceUnavailable
+          message={asyncData.errorMessage}
+          cultivationTo={`/farm/${field.b_id_farm}/${calendar}/field/${field.b_id}/cultivation`}
+        />
+      </div>
     )
   }
+  const cuts = asyncData.nutrientAdvice.cuts
+  const showCutAdvice =
+    asyncData.activeCultivation.b_lu_croprotation === "grass" &&
+    Array.isArray(cuts) &&
+    cuts.length > 0
+
   return (
     <>
       <div className="space-y-6 p-10 pb-0">
@@ -254,6 +267,21 @@ function FieldNutrientAdvice({
               calendar={calendar}
               asyncData={asyncData}
             />
+          }
+          cutAdviceSection={
+            showCutAdvice ? (
+              <CutAdviceCard
+                cuts={cuts}
+                harvests={asyncData.harvests}
+                fertilizerApplications={asyncData.fertilizerApplications}
+                doses={asyncData.doses.applications}
+                today={asyncData.today}
+                isCurrentYear={calendar === String(new Date(asyncData.today).getFullYear())}
+                harvestTo={(b_id_harvesting) =>
+                  `/farm/${field.b_id_farm}/${calendar}/field/${field.b_id}/cultivation/${asyncData.activeCultivation.b_lu}/harvest/${b_id_harvesting}`
+                }
+              />
+            ) : undefined
           }
           kpiSection={
             <KPISection asyncData={asyncData} nutrientsDescription={nutrientsDescription} />
