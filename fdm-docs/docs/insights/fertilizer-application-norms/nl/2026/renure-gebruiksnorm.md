@@ -43,7 +43,7 @@ The filling uses the **total nitrogen** applied, with no efficiency coefficient:
 
 `Total Nitrogen (kg N) = Applied Amount (ton) × Total Nitrogen Content (kg N/ton)`
 
-If a specific analysis value for the nitrogen content (`p_n_rt`) is known, it is used; otherwise it falls back to 0 when it is missing for RVO codes 130–134 (as Tabel 11 has no forfaitair nitrogen content for Renure codes). Any cumulative Renure nitrogen above 80 kg N/ha spills over to the [animal manure usage norm](./dierlijke-mest-gebruiksnorm.md).
+If a specific analysis value for the nitrogen content (`p_n_rt`) is known, it is used; otherwise it falls back to 0 when it is missing for RVO codes 130–134 (as Table 11 has no fixed nitrogen content for Renure codes). Any cumulative Renure nitrogen above 80 kg N/ha spills over to the [animal manure usage norm](./dierlijke-mest-gebruiksnorm.md).
 
 ### How the FDM Calculator Determines the Filling
 

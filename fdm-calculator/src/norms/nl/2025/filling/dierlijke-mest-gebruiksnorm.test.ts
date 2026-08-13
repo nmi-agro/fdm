@@ -262,4 +262,32 @@ describe("calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNor
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling).toEqual([{ p_app_id: "app_defaults", normFilling: 0 }])
   })
+
+  it("should use the Table 11 nitrogen fallback with a positive amount", () => {
+    const result = calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app_fallback_n",
+          p_id_catalogue: "fallback_n",
+          p_app_amount: 10,
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "fallback_n",
+          p_id_catalogue: "fallback_n",
+          p_type_rvo: "11",
+          p_n_rt: null,
+        } as unknown as Fertilizer,
+      ],
+      cultivations: [],
+      has_organic_certification: false,
+      has_grazing_intention: false,
+      fosfaatgebruiksnorm: 0,
+      b_centroid: [0, 0],
+    } as NL2025NormsFillingInput)
+
+    expect(result.normFilling).toBe(0.04)
+    expect(result.applicationFilling).toEqual([{ p_app_id: "app_fallback_n", normFilling: 0.04 }])
+  })
 })

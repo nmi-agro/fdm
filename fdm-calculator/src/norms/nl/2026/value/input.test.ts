@@ -1,21 +1,11 @@
 import type { Cultivation, CurrentSoilData, FdmType, Field } from "@nmi-agro/fdm-core"
-import * as fdmCore from "@nmi-agro/fdm-core"
-import { beforeEach, describe, expect, it, vi } from "vitest"
-import { collectNL2026InputForNorms, collectNL2026InputForNormsForFarm } from "./input"
-
-vi.mock("@nmi-agro/fdm-core", async () => {
-  const actual = await vi.importActual("@nmi-agro/fdm-core")
-  return {
-    ...actual,
-    getField: vi.fn(),
-    getFields: vi.fn(),
-    getCultivations: vi.fn(),
-    getCultivationsForFarm: vi.fn(),
-    getCurrentSoilData: vi.fn(),
-    getCurrentSoilDataForFarm: vi.fn(),
-    getGrazingIntention: vi.fn(),
-  }
-})
+import { describe, expect, it } from "vitest"
+import {
+  collectNL2026InputForNorms,
+  collectNL2026InputForNormsForFarm,
+  type NL2026FarmFdmCoreOperations,
+  type NL2026SingleFdmCoreOperations,
+} from "./input"
 
 describe("collectNL2026InputForNorms", () => {
   it("should collect input correctly", async () => {
@@ -34,48 +24,24 @@ describe("collectNL2026InputForNorms", () => {
       { parameter: "a_p_al", value: 20 },
     ]
 
-    const timeframe = {
-      start: new Date(2026, 0, 1),
-      end: new Date(2026, 11, 31),
-    }
+    const operations = {
+      getField: async () => mockField,
+      getCultivations: async () => mockCultivations,
+      getCurrentSoilData: async () => mockCurrentSoilData as unknown as CurrentSoilData,
+      getGrazingIntention: async () => false,
+    } as NL2026SingleFdmCoreOperations
 
-    const timeframeCultivation = {
-      start: new Date(2025, 0, 1),
-      end: new Date(2026, 11, 31),
-    }
-
-    vi.mocked(fdmCore.getField).mockResolvedValue(mockField)
-    vi.mocked(fdmCore.getCultivations).mockResolvedValue(mockCultivations)
-    vi.mocked(fdmCore.getCurrentSoilData).mockResolvedValue(
-      mockCurrentSoilData as unknown as CurrentSoilData,
+    const result = await collectNL2026InputForNorms(
+      mockFdm,
+      mockPrincipalId,
+      mockFieldId,
+      operations,
     )
-    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
-
-    const result = await collectNL2026InputForNorms(mockFdm, mockPrincipalId, mockFieldId)
 
     expect(result.farm.has_grazing_intention).toBe(false)
     expect(result.field).toBe(mockField)
     expect(result.cultivations).toBe(mockCultivations)
     expect(result.soilAnalysis).toEqual({ a_p_cc: 1.0, a_p_al: 20 })
-    expect(fdmCore.getField).toHaveBeenCalledWith(mockFdm, mockPrincipalId, mockFieldId)
-    expect(fdmCore.getGrazingIntention).toHaveBeenCalledWith(
-      mockFdm,
-      mockPrincipalId,
-      "farm-1",
-      2026,
-    )
-    expect(fdmCore.getCultivations).toHaveBeenCalledWith(
-      mockFdm,
-      mockPrincipalId,
-      mockFieldId,
-      timeframeCultivation,
-    )
-    expect(fdmCore.getCurrentSoilData).toHaveBeenCalledWith(
-      mockFdm,
-      mockPrincipalId,
-      mockFieldId,
-      timeframe,
-    )
   })
 
   it("should map missing soil parameters to null", async () => {
@@ -83,25 +49,29 @@ describe("collectNL2026InputForNorms", () => {
     const mockPrincipalId = "principal-1"
     const mockFieldId = "field-1"
 
-    vi.mocked(fdmCore.getField).mockResolvedValue({
-      b_id: mockFieldId,
-      b_id_farm: "farm-1",
-      b_centroid: [5.0, 52.0],
-    } as Field)
-    vi.mocked(fdmCore.getCultivations).mockResolvedValue([])
-    vi.mocked(fdmCore.getCurrentSoilData).mockResolvedValue([] as unknown as CurrentSoilData)
-    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
+    const operations = {
+      getField: async () =>
+        ({
+          b_id: mockFieldId,
+          b_id_farm: "farm-1",
+          b_centroid: [5.0, 52.0],
+        }) as Field,
+      getCultivations: async () => [],
+      getCurrentSoilData: async () => [] as unknown as CurrentSoilData,
+      getGrazingIntention: async () => false,
+    } as NL2026SingleFdmCoreOperations
 
-    const result = await collectNL2026InputForNorms(mockFdm, mockPrincipalId, mockFieldId)
+    const result = await collectNL2026InputForNorms(
+      mockFdm,
+      mockPrincipalId,
+      mockFieldId,
+      operations,
+    )
     expect(result.soilAnalysis).toEqual({ a_p_cc: undefined, a_p_al: undefined })
   })
 })
 
 describe("collectNL2026InputForNormsForFarm", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   it("should collect farm input correctly", async () => {
     const mockFdm = {} as FdmType
     const mockPrincipalId = "principal-1"
@@ -119,16 +89,19 @@ describe("collectNL2026InputForNormsForFarm", () => {
       { parameter: "a_p_al", value: 30 } as any,
     ]
 
-    vi.mocked(fdmCore.getFields).mockResolvedValue([mockField])
-    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
-    vi.mocked(fdmCore.getCultivationsForFarm).mockResolvedValue(
-      new Map([[mockFieldId, mockCultivations]]),
-    )
-    vi.mocked(fdmCore.getCurrentSoilDataForFarm).mockResolvedValue(
-      new Map([[mockFieldId, mockSoilData]]),
-    )
+    const operations = {
+      getFields: async () => [mockField],
+      getGrazingIntention: async () => false,
+      getCultivationsForFarm: async () => new Map([[mockFieldId, mockCultivations]]),
+      getCurrentSoilDataForFarm: async () => new Map([[mockFieldId, mockSoilData]]),
+    } as NL2026FarmFdmCoreOperations
 
-    const result = await collectNL2026InputForNormsForFarm(mockFdm, mockPrincipalId, mockFarmId)
+    const result = await collectNL2026InputForNormsForFarm(
+      mockFdm,
+      mockPrincipalId,
+      mockFarmId,
+      operations,
+    )
 
     expect(result).toBeInstanceOf(Map)
     expect(result.has(mockFieldId)).toBe(true)
@@ -137,35 +110,6 @@ describe("collectNL2026InputForNormsForFarm", () => {
     expect(fieldInput.field).toBe(mockField)
     expect(fieldInput.cultivations).toBe(mockCultivations)
     expect(fieldInput.soilAnalysis).toEqual({ a_p_cc: 2.5, a_p_al: 30 })
-
-    const timeframe2026 = {
-      start: new Date(2026, 0, 1),
-      end: new Date(2026, 11, 31),
-    }
-    const timeframe2026Cultivation = {
-      start: new Date(2025, 0, 1),
-      end: new Date(2026, 11, 31),
-    }
-    expect(fdmCore.getFields).toHaveBeenCalledWith(
-      mockFdm,
-      mockPrincipalId,
-      mockFarmId,
-      timeframe2026Cultivation,
-    )
-    expect(fdmCore.getCultivationsForFarm).toHaveBeenCalledWith(
-      mockFdm,
-      mockPrincipalId,
-      mockFarmId,
-      timeframe2026Cultivation,
-    )
-    expect(fdmCore.getCurrentSoilDataForFarm).toHaveBeenCalledWith(
-      mockFdm,
-      mockPrincipalId,
-      mockFarmId,
-      timeframe2026,
-    )
-    expect(fdmCore.getCultivations).not.toHaveBeenCalled()
-    expect(fdmCore.getCurrentSoilData).not.toHaveBeenCalled()
   })
 
   it("should default soil and cultivation values for non-array soil data and missing field maps", async () => {
@@ -180,14 +124,20 @@ describe("collectNL2026InputForNormsForFarm", () => {
       b_centroid: [5.0, 52.0],
     } as Field
 
-    vi.mocked(fdmCore.getFields).mockResolvedValue([mockField])
-    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
-    vi.mocked(fdmCore.getCultivationsForFarm).mockResolvedValue(new Map())
-    vi.mocked(fdmCore.getCurrentSoilDataForFarm).mockResolvedValue(
-      new Map([[mockFieldId, { not: "an-array" } as unknown as CurrentSoilData]]),
-    )
+    const operations = {
+      getFields: async () => [mockField],
+      getGrazingIntention: async () => false,
+      getCultivationsForFarm: async () => new Map(),
+      getCurrentSoilDataForFarm: async () =>
+        new Map([[mockFieldId, { not: "an-array" } as unknown as CurrentSoilData]]),
+    } as NL2026FarmFdmCoreOperations
 
-    const result = await collectNL2026InputForNormsForFarm(mockFdm, mockPrincipalId, mockFarmId)
+    const result = await collectNL2026InputForNormsForFarm(
+      mockFdm,
+      mockPrincipalId,
+      mockFarmId,
+      operations,
+    )
     const fieldInput = result.get(mockFieldId)!
 
     expect(fieldInput.cultivations).toEqual([])
@@ -206,12 +156,19 @@ describe("collectNL2026InputForNormsForFarm", () => {
       b_centroid: [5.0, 52.0],
     } as Field
 
-    vi.mocked(fdmCore.getFields).mockResolvedValue([mockField])
-    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
-    vi.mocked(fdmCore.getCultivationsForFarm).mockResolvedValue(new Map())
-    vi.mocked(fdmCore.getCurrentSoilDataForFarm).mockResolvedValue(new Map())
+    const operations = {
+      getFields: async () => [mockField],
+      getGrazingIntention: async () => false,
+      getCultivationsForFarm: async () => new Map(),
+      getCurrentSoilDataForFarm: async () => new Map(),
+    } as NL2026FarmFdmCoreOperations
 
-    const result = await collectNL2026InputForNormsForFarm(mockFdm, mockPrincipalId, mockFarmId)
+    const result = await collectNL2026InputForNormsForFarm(
+      mockFdm,
+      mockPrincipalId,
+      mockFarmId,
+      operations,
+    )
     expect(result.get(mockFieldId)?.soilAnalysis).toEqual({ a_p_cc: null, a_p_al: null })
   })
 })

@@ -4,8 +4,8 @@ import type { FosfaatGebruiksnormResult } from "../../types"
 import type { FosfaatKlasse, NL2025NormsInput } from "./types.d"
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
-import { fosfaatNormsData } from "./fosfaatgebruiksnorm-data"
 import { findHoofdteelt } from "../../../../shared/hoofdteelt"
+import { fosfaatNormsData } from "./fosfaatgebruiksnorm-data"
 
 /**
  * Determines if a cultivation is a type of grassland based on its catalogue entry.
@@ -129,6 +129,7 @@ function getFosfaatKlasse(a_p_cc: number, a_p_al: number, is_grasland: boolean):
  */
 export async function calculateNL2025FosfaatGebruiksNorm(
   input: NL2025NormsInput,
+  normsData: Partial<typeof fosfaatNormsData> = fosfaatNormsData,
 ): Promise<FosfaatGebruiksnormResult> {
   const field = input.field
   // Check for buffer strip
@@ -154,7 +155,7 @@ export async function calculateNL2025FosfaatGebruiksNorm(
   const fosfaatKlasse = getFosfaatKlasse(a_p_cc, a_p_al, is_grasland)
 
   // Retrieve the base norms for the determined phosphate class.
-  const normsForKlasse = fosfaatNormsData[fosfaatKlasse]
+  const normsForKlasse = normsData[fosfaatKlasse]
 
   if (!normsForKlasse) {
     throw new Error(`No phosphate norms found for class ${fosfaatKlasse}.`)

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import type { NL2025NormsInput } from "./types"
 import {
   calculateNL2025DierlijkeMestGebruiksNorm,
@@ -6,7 +6,6 @@ import {
   isFieldInNatura2000Gebied,
   isFieldInDerogatieVrijeZone,
 } from "./dierlijke-mest-gebruiksnorm"
-import * as GeoTiff from "../../../../shared/geotiff"
 
 describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
   it("should return the default norm value", async () => {
@@ -204,9 +203,10 @@ describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
   })
 
   it("should return false for unknown geotiff codes in GWBG and Natura helpers", async () => {
-    const spy = vi.spyOn(GeoTiff, "getGeoTiffValue").mockResolvedValue(99)
-    await expect(isFieldInGWGBGebied([5.0, 52.0])).resolves.toBe(false)
-    await expect(isFieldInNatura2000Gebied([5.0, 52.0])).resolves.toBe(false)
-    spy.mockRestore()
+    const getUnknownGeoTiffValue = async () => 99
+    await expect(isFieldInGWGBGebied([5.0, 52.0], getUnknownGeoTiffValue)).resolves.toBe(false)
+    await expect(
+      isFieldInNatura2000Gebied([5.0, 52.0], getUnknownGeoTiffValue),
+    ).resolves.toBe(false)
   })
 })

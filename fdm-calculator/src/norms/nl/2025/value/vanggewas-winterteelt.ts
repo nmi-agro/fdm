@@ -55,10 +55,10 @@
  */
 
 import Decimal from "decimal.js"
-import { VANGGEWAS_2025, WINTERTEELT_2025 } from "./vanggewas-winterteelt-data"
+import type { RegionKey } from "./types"
+import { findHoofdteelt, type CultivationForHoofdteelt } from "../../../../shared/hoofdteelt"
 import { VANGGEWAS_2026, WINTERTEELT_2026 } from "../../2026/value/vanggewas-winterteelt-data"
-import { findHoofdteelt } from "../../../../shared/hoofdteelt"
-import type { NL2025NormsInputForCultivation, RegionKey } from "./types"
+import { VANGGEWAS_2025, WINTERTEELT_2025 } from "./vanggewas-winterteelt-data"
 
 /**
  * Soil regions where the article 28d reduction applies.
@@ -296,7 +296,7 @@ export function isVanggewasEnWinterteelt(b_lu_catalogue: string, year: number = 
  * @returns The reduction in kg N/ha, as a {@link Decimal}.
  */
 export function calculateVanggewasWinterteeltKorting(
-  cultivations: NL2025NormsInputForCultivation[],
+  cultivations: CultivationForHoofdteelt[],
   region: RegionKey,
   currentYear: number,
   descriptions: string[],
@@ -362,7 +362,7 @@ export function calculateVanggewasWinterteeltKorting(
       const isCatchOrWinter =
         isVanggewas(c.b_lu_catalogue, previousYear) ||
         isWinterteelt(c.b_lu_catalogue, previousYear, c, cultivations)
-      return isCatchOrWinter && c.b_lu_catalogue !== hoofdteeltPrevYear
+      return isCatchOrWinter && c !== hoofdteeltPrevCultivation
     })
 
     // An autumn-sown table 7 crop (e.g. spinach sown after 1 August) exempts on its own.
@@ -400,44 +400,35 @@ export function calculateVanggewasWinterteeltKorting(
           // When multiple qualifying catch crops stand until February 1st,
           // the statutory rule uses the qualifying catch crop with the earliest
           // sowing date, resulting in the smallest reduction.
-          const sortedVanggewassen = vanggewassenCompleted
-            .filter((v) => v.b_lu_start !== undefined)
-            .sort((a, b) => {
-              if (!a.b_lu_start || !b.b_lu_start) return 0
-              return a.b_lu_start.getTime() - b.b_lu_start.getTime()
-            })
+          const sortedVanggewassen = vanggewassenCompleted.sort(
+            (a, b) => a.b_lu_start!.getTime() - b.b_lu_start!.getTime(),
+          )
           const vanggewas = sortedVanggewassen[0]
-          const sowDate = vanggewas.b_lu_start
+          const sowDate = new Date(vanggewas.b_lu_start!)
+          sowDate.setHours(0, 0, 0, 0)
 
-          // RVO applies the maximum reduction when no sowing date was reported. Within FDM
-          // this is a data quality gap rather than a breach, but the outcome is the same.
-          if (!sowDate) {
-            descriptions.push("Korting: 20kg N/ha, geen zaaidatum bekend")
-            return new Decimal(20)
+          // Lid 2 onderdelen a-c. Note that sowing *on* 1 October is still reduction-free;
+          // the 5 kg band starts on 2 October.
+          const october1 = new Date(previousYear, 9, 1)
+          const october15 = new Date(previousYear, 9, 15)
+          const november1 = new Date(previousYear, 10, 1)
+
+          if (sowDate <= october1) {
+            descriptions.push(
+              winterteeltDestroyedBeforeMay16
+                ? "Geen korting: winterteelt beëindigd vóór 16 mei"
+                : "Geen korting: vanggewas gezaaid uiterlijk 1 oktober",
+            )
+            return new Decimal(0)
+          } else if (sowDate > october1 && sowDate < october15) {
+            descriptions.push("Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober")
+            return new Decimal(5)
+          } else if (sowDate >= october15 && sowDate < november1) {
+            descriptions.push("Korting: 10kg N/ha, vanggewas gezaaid tussen 15 t/m 31 oktober")
+            return new Decimal(10)
           } else {
-            // Lid 2 onderdelen a-c. Note that sowing *on* 1 October is still reduction-free;
-            // the 5 kg band starts on 2 October.
-            const october1 = new Date(previousYear, 9, 1)
-            const october15 = new Date(previousYear, 9, 15)
-            const november1 = new Date(previousYear, 10, 1)
-
-            if (sowDate <= october1) {
-              descriptions.push(
-                winterteeltDestroyedBeforeMay16
-                  ? "Geen korting: winterteelt beëindigd vóór 16 mei"
-                  : "Geen korting: vanggewas gezaaid uiterlijk 1 oktober",
-              )
-              return new Decimal(0)
-            } else if (sowDate > october1 && sowDate < october15) {
-              descriptions.push("Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober")
-              return new Decimal(5)
-            } else if (sowDate >= october15 && sowDate < november1) {
-              descriptions.push("Korting: 10kg N/ha, vanggewas gezaaid tussen 15 t/m 31 oktober")
-              return new Decimal(10)
-            } else {
-              descriptions.push("Korting: 20kg N/ha, vanggewas gezaaid op of na 1 november")
-              return new Decimal(20)
-            }
+            descriptions.push("Korting: 20kg N/ha, vanggewas gezaaid op of na 1 november")
+            return new Decimal(20)
           }
         }
       }
