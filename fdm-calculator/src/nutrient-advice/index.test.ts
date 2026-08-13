@@ -60,6 +60,31 @@ const mockNutrientAdviceResponse: NutrientAdviceResponse = {
   },
 }
 
+const mockGrasslandNutrientAdviceResponse: NutrientAdviceResponse = {
+  ...mockNutrientAdviceResponse,
+  data: {
+    ...mockNutrientAdviceResponse.data,
+    cut: [
+      {
+        yieldclass: "G",
+        cut: 1,
+        d_n_req: 70,
+        d_p_req: 20,
+        d_k_req: 35,
+        d_s_req: 8,
+      },
+      {
+        yieldclass: "M",
+        cut: 2,
+        d_n_req: 60,
+        d_p_req: 15,
+        d_k_req: 30,
+        d_s_req: 6,
+      },
+    ],
+  },
+}
+
 describe("requestNutrientAdvice", () => {
   // Mock the global fetch function
   beforeAll(() => {
@@ -121,6 +146,25 @@ describe("requestNutrientAdvice", () => {
       }),
     )
     expect(result).toEqual(mockNutrientAdviceResponse.data.year)
+    expect(result.cuts).toBeUndefined()
+  })
+
+  it("should return per-cut advice when the API provides it", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockGrasslandNutrientAdviceResponse,
+    } as Response)
+
+    const inputs: NutrientAdviceInputs = {
+      b_lu_catalogue: "nl_265",
+      b_centroid: [4.3, 52.4],
+      currentSoilData: mockCurrentSoilData,
+      nmiApiKey: "mock-api-key",
+    }
+
+    const result = await requestNutrientAdvice(inputs)
+
+    expect(result.cuts).toEqual(mockGrasslandNutrientAdviceResponse.data.cut)
   })
 
   it("should throw an error if NMI API request fails", async () => {
@@ -157,5 +201,6 @@ describe("requestNutrientAdvice", () => {
     expect(result.d_n_req).toBe(0)
     expect(result.d_p_req).toBe(0)
     expect(result.d_k_req).toBe(0)
+    expect(result.cuts).toBeUndefined()
   })
 })

@@ -110,6 +110,7 @@ export async function requestNutrientAdvice({
     d_na_req,
     d_b_req,
   } = result.data.year
+  const cuts = result.data.cut
 
   return {
     d_n_req,
@@ -126,6 +127,7 @@ export async function requestNutrientAdvice({
     d_mo_req,
     d_na_req,
     d_b_req,
+    ...(cuts ? { cuts } : {}),
   }
 }
 
