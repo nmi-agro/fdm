@@ -1157,6 +1157,34 @@ describe("tool execute functions", () => {
       })
     })
 
+    it("should warn when the proposed nitrogen dose falls short of the nutrient advice", async () => {
+      // mockDosage has p_dose_nw: 20, advice has d_n_req: 100 -> 80 kg/ha shortfall (> 5%)
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput(),
+        makeConfigurable({ nmiApiKey: "test-nmi-key" }),
+      )
+      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort (Stikstof)"))).toBe(
+        true,
+      )
+    })
+
+    it("should not warn about nutrient advice shortfall when the proposed dose meets advice", async () => {
+      ;(calculateDose as any).mockReturnValue({
+        dose: { ...mockDosage.dose, p_dose_nw: 100, p_dose_p: 20, p_dose_k: 80 },
+      })
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput(),
+        makeConfigurable({ nmiApiKey: "test-nmi-key" }),
+      )
+      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(false)
+    })
+
+    it("should not warn about nutrient advice shortfall when no advice is available", async () => {
+      // No nmiApiKey configured -> advice stays null/skipped.
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(false)
+    })
+
     it("should handle omBalance calculation error gracefully", async () => {
       ;(calculateOrganicMatterBalanceField as any).mockImplementation(() => {
         throw new Error("OM calculation failed")

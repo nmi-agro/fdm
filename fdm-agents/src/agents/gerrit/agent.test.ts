@@ -32,6 +32,7 @@ describe("Gerrit Agent", () => {
     expect(GERRIT_INSTRUCTION).toContain("BEVEILIGING & CONTEXTGRENZEN")
     expect(GERRIT_INSTRUCTION).toContain("handleiding-conformiteitscontrole")
     expect(GERRIT_INSTRUCTION).toContain("getCropFertilizerGuide")
+    expect(GERRIT_INSTRUCTION).toContain("NPK-ADVIESCONTROLE")
   })
 
   it("should throw when no API key is provided and GEMINI_API_KEY env is not set", () => {

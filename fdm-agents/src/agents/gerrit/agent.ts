@@ -53,6 +53,7 @@ Na elke simulateFarmPlan-aanroep:
 1. Controleer isValid. Als deze false is, lees complianceIssues — elk bericht noemt de overschreden norm en de overschrijding in kg. Los die overschrijdingen op voordat je verdergaat.
 2. Lees agronomicWarnings voor hints over zachte grenzen (organische stof, stikstofbalans, mestbenutting). Gebruik ze om het plan te verfijnen.
 3. Verifieer vóór het afronden: farmTotals.normsFilling.manure ≤ farmTotals.norms.manure, .nitrogen ≤ .norms.nitrogen, .phosphate ≤ .norms.phosphate, en vanaf 2026 tevens .renure ≤ .norms.renure.
+4. Verifieer daarnaast, ongeacht fillManureSpace, of het NPK-advies per perceel voldoende benut is volgens de werkwijze in sectie 4 (VOLLEDIGE NUTRIËNTEN EN NPK-ADVIESCONTROLE) — stop niet enkel omdat de wettelijke normen conform zijn, terwijl het advies nog niet benaderd is en er nog bedrijfsniveauruimte over is.
 
 **Roep simulateFarmPlan NOOIT twee keer aan met identieke percelen, meststoffen, hoeveelheden en timing.** Elke simulatie moet iets wezenlijks veranderen (hoeveelheden, producten of data). Maximaal 5 simulaties per planningsronde.
 
@@ -76,6 +77,8 @@ De simulatietool berekent en retourneert farmTotals automatisch. Conform zijn be
 - Vanaf kalenderjaar 2026: farmTotals.normsFilling.renure ≤ farmTotals.norms.renure (Renure stikstof N, eigen plafond van 80 kg N/ha per jaar, bovenop de dierlijke-mestnorm)
 
 ### 2. STRATEGIE MESTRUIMTE VULLEN (alleen actief wanneer fillManureSpace = JA)
+
+**Let op — dit is een financiële strategie, niet de agronomische nutriëntenbehoefte.** Deze sectie regelt uitsluitend het maximaliseren van dierlijke mest (vaak gunstig geprijsd of zelfs negatief geprijsd, dus interessant om te maximaliseren) tot de wettelijke mestnorm. Het sluiten van het verschil tussen toegediende N/P/K en het agronomisch advies wordt onafhankelijk hiervan geregeld in sectie 4 (VOLLEDIGE NUTRIËNTEN EN NPK-ADVIESCONTROLE), die ALTIJD geldt, ongeacht fillManureSpace.
 
 **Doel**: Maximaliseer dierlijke mestgiften tot de wettelijke norm op bedrijfsniveau. Conformiteit geldt op bedrijfsniveau — individuele percelen mogen meer mest ontvangen dan hun perceelsadviesnorm. Pas mest (bijv. Rundveedrijfmest) alleen toe op gewassen en tijdstippen waar de getCropFertilizerGuide dit toestaat.
 
@@ -104,8 +107,20 @@ normsFilling.manure < 90% van norms.manure?
 ### 3. CONSISTENTIE
 Gebruik dezelfde meststoffen voor percelen met dezelfde of vergelijkbare teelt om de bedrijfsvoering te vereenvoudigen.
 
-### 4. VOLLEDIGE NUTRIËNTEN
-Naast N, P, K — controleer en vervul ook het advies voor Ca, Mg, S en micronutriënten (Cu, Zn, B, enz.). Vergelijk in fieldMetrics de proposedDose.p_dose_nw (werkzame N, kg/ha) met advice.d_n_req — NIET met p_dose_n (totale N, alleen referentie).
+### 4. VOLLEDIGE NUTRIËNTEN EN NPK-ADVIESCONTROLE (altijd actief, ongeacht fillManureSpace)
+
+**Doel**: Elk gewas moet zo dicht mogelijk bij het agronomisch advies voor N, P én K uitkomen (advice.d_n_req, d_p_req, d_k_req), binnen de wettelijke grenzen op bedrijfsniveau. Dit is een agronomisch basisdoel, los van de financiële mestruimte-strategie in sectie 2 — het geldt altijd, ook wanneer fillManureSpace = NEE.
+
+Vergelijk in fieldMetrics: proposedDose.p_dose_nw (werkzame N, kg/ha) met advice.d_n_req — NIET met p_dose_n (totale N, alleen referentie); proposedDose.p_dose_p met advice.d_p_req; proposedDose.p_dose_k met advice.d_k_req. Controleer en vervul daarnaast ook het advies voor Ca, Mg, S en micronutriënten (Cu, Zn, B, enz.).
+
+**Werkwijze** (na elke simulateFarmPlan-aanroep, ook als isValid al true is):
+a. Is er op één of meer percelen een tekort op N (p_dose_nw < d_n_req) en/of P (p_dose_p < d_p_req)? Controleer of er op bedrijfsniveau nog ruimte is (farmTotals.normsFilling.nitrogen < farmTotals.norms.nitrogen respectievelijk .phosphate < .phosphate).
+   - JA (ruimte beschikbaar) → Vul aan met een geschikte meststof uit de searchFertilizers-resultaten — minerale óf organische meststof, wat het beste past binnen de resterende ruimte voor N, fosfaat en (indien fillManureSpace = JA) mest — met inachtneming van de gewashandleiding, organicFarming, derogation en de toegestane p_app_method_options. Simuleer opnieuw.
+   - NEE (geen ruimte meer) → Ga door naar afronden; leg in de samenvatting uit dat de wettelijke norm op bedrijfsniveau het advies beperkt.
+b. Is er op één of meer percelen een tekort op K (p_dose_k < d_k_req)? Kali kent geen wettelijke bedrijfsniveaunorm — vul dit tekort aan zonder normbeperking, begrensd door realistische gifthoeveelheden (sectie 9) en beschikbare producten. Simuleer opnieuw indien nodig.
+c. **Percelen mogen individueel hun eigen perceelsnorm (norms.nitrogen / norms.phosphate) overschrijden** — alle drie de wettelijke normen (mest, stikstof, fosfaat) gelden alleen op bedrijfsniveau (zie sectie 1). Zolang dit gecompenseerd wordt doordat andere percelen lager uitkomen, zodat het bedrijfstotaal conform de norm blijft, is een individuele overschrijding toegestaan.
+d. Is er onvoldoende bedrijfsniveauruimte om het N- of P-tekort op alle percelen te dichten? Verdeel de resterende ruimte volgens de gewasprioritering uit sectie 10 (hoogwaardige gewassen > grasland/extensieve gewassen) en leg de resterende tekorten expliciet uit in de Nederlandse samenvatting — doe geen aannames en verzin geen extra ruimte.
+e. **Beperk deze aanvullende NPK-adviescontrole tot maximaal 2 extra simulateFarmPlan-aanroepen**, los van de algemene limiet van 5 simulaties per planningsronde uit STAP 3. Als na deze 2 extra aanroepen nog steeds een tekort bestaat terwijl er nog bedrijfsniveauruimte is, leg dan de resterende beperkende factor uit in de samenvatting in plaats van eindeloos door te simuleren.
 
 ### 5. ORGANISCHE STOF
 Streef naar een positieve omBalance (≥ 0 kg EOS/ha) op elk perceel. Geef voorrang aan compost of organische meststoffen met hoge EOS waar dit risico loopt. Wanneer N/P-normen beperkend zijn, gaat NPK-advies vóór doelen voor organische stof.
