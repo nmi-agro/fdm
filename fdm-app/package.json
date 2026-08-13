@@ -27,7 +27,6 @@
     "@langchain/google-genai": "^2.2.0",
     "@lucide/lab": "^0.1.2",
     "@mapbox/geojson-extent": "^1.0.1",
-    "@maplibre/maplibre-gl-geocoder": "^1.9.4",
     "@nmi-agro/fdm-agents": "workspace:*",
     "@nmi-agro/fdm-calculator": "workspace:^",
     "@nmi-agro/fdm-core": "workspace:^",

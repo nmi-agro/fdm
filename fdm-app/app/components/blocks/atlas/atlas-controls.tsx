@@ -36,7 +36,7 @@ export function Controls(props: ControlsProps) {
 
   return (
     <>
-      {showGeocoder && <GeocoderControl onViewportChange={setViewState} />}
+      {showGeocoder && <GeocoderControl position="top-right" />}
       <AtlasLayerSwitch position="top-right" />
       <AtlasControls position="top-right">
         {showStyleSelect && <AtlasStyleSelect />}

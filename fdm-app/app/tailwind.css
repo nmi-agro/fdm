@@ -213,17 +213,6 @@
   transform: rotate(180deg);
 }
 
-/* MapLibre Geocoder Fixes */
-.maplibregl-ctrl-geocoder--icon-close {
-  background-repeat: no-repeat;
-}
-.maplibregl-ctrl-geocoder--icon-close svg {
-  display: none;
-}
-.maplibregl-ctrl-geocoder--input::-webkit-search-cancel-button {
-  display: none;
-}
-
 /* MapLibre Popup Close Button Fix */
 .maplibregl-popup-close-button {
   font-size: 24px;

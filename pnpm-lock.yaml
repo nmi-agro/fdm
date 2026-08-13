@@ -229,9 +229,6 @@ importers:
       '@mapbox/geojson-extent':
         specifier: ^1.0.1
         version: 1.0.1
-      '@maplibre/maplibre-gl-geocoder':
-        specifier: ^1.9.4
-        version: 1.9.4(maplibre-gl@5.24.0)
       '@nmi-agro/fdm-agents':
         specifier: workspace:*
         version: link:../fdm-agents
@@ -3296,12 +3293,6 @@ packages:
 
   '@maplibre/geojson-vt@6.1.1':
     resolution: {integrity: sha512-FVMOcmSP/yqol45t7StApEyTL5/vmqBCuFhH9n+fFuINenhaX+YgHHIt1yJ86S8kln3uJLcMvmEU2cfn6E2eCQ==}
-
-  '@maplibre/maplibre-gl-geocoder@1.9.4':
-    resolution: {integrity: sha512-ss0NMpjUgK1/8YrrikrAtdda41jERiGg+XqwPkj52AhwvQTLZEnZSU7IhqdyuE1FZ/QhlzAauMbyzJUTTxDscw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      maplibre-gl: '>=4.0.0'
 
   '@maplibre/maplibre-gl-style-spec@19.3.3':
     resolution: {integrity: sha512-cOZZOVhDSulgK0meTsTkmNXb1ahVvmTmWmfx9gRBwc6hq98wS9JP35ESIoNq3xqEan+UN+gn8187Z6E4NKhLsw==}
@@ -8245,10 +8236,6 @@ packages:
   functions-have-names@1.2.3:
     resolution: {integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==}
 
-  fuzzy@0.1.3:
-    resolution: {integrity: sha512-/gZffu4ykarLrCiP3Ygsa86UAo1E5vEVlvTrpkKywXSbP9Xhln3oSp9QSV57gEq3JFFpGJ4GZ+5zdEp3FcUh4w==}
-    engines: {node: '>= 0.6.0'}
-
   fuzzysort@3.1.0:
     resolution: {integrity: sha512-sR9BNCjBg6LNgwvxlBd0sBABvQitkLzoVY9MYYROQVX/FvfJ4Mai9LsGhDgd8qYdds0bY77VzYd5iuB+v5rwQQ==}
 
@@ -11832,12 +11819,6 @@ packages:
     engines: {node: ^14 || ^16 || >=18.0}
     peerDependencies:
       postcss: ^8.4.31
-
-  subtag@0.5.0:
-    resolution: {integrity: sha512-CaIBcTSb/nyk4xiiSOtZYz1B+F12ZxW8NEp54CdT+84vmh/h4sUnHGC6+KQXUfED8u22PQjCYWfZny8d2ELXwg==}
-
-  suggestions-list@0.0.2:
-    resolution: {integrity: sha512-Yw0fdq14c6RQWQIfE1/8WEi9Dp8rjyCD6FhYA/Tit2/ADbE9Y4ADG4ezlvivsa8Civ5nz++pyVVBMjOMlgIUJw==}
 
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
@@ -15995,15 +15976,6 @@ snapshots:
   '@maplibre/geojson-vt@6.1.1':
     dependencies:
       kdbush: 4.1.0
-
-  '@maplibre/maplibre-gl-geocoder@1.9.4(maplibre-gl@5.24.0)':
-    dependencies:
-      events: 3.3.0
-      lodash.debounce: 4.0.8
-      maplibre-gl: 5.24.0
-      subtag: 0.5.0
-      suggestions-list: 0.0.2
-      xtend: 4.0.2
 
   '@maplibre/maplibre-gl-style-spec@19.3.3':
     dependencies:
@@ -21006,8 +20978,6 @@ snapshots:
 
   functions-have-names@1.2.3: {}
 
-  fuzzy@0.1.3: {}
-
   fuzzysort@3.1.0: {}
 
   gaxios@6.7.1(supports-color@8.1.1):
@@ -25488,13 +25458,6 @@ snapshots:
       postcss-selector-parser: 6.1.4
     optional: true
 
-  subtag@0.5.0: {}
-
-  suggestions-list@0.0.2:
-    dependencies:
-      fuzzy: 0.1.3
-      xtend: 4.0.2
-
   supports-color@7.2.0:
     dependencies:
       has-flag: 4.0.0
@@ -26422,7 +26385,8 @@ snapshots:
 
   xmlbuilder@11.0.1: {}
 
-  xtend@4.0.2: {}
+  xtend@4.0.2:
+    optional: true
 
   xxhash-wasm@1.1.0: {}
 
