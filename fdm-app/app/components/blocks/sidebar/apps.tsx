@@ -4,8 +4,6 @@ import { NavLink, useLocation, useNavigate, useParams, useSearchParams } from "r
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
 import {
-  AtlasLayerConfig,
-  AvailableAtlasLayerInfo,
   useAvailableAtlasLayers,
   useCurrentAtlasLayer,
 } from "~/components/blocks/atlas/atlas-layer"
