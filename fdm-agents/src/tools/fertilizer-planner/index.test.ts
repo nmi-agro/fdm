@@ -227,6 +227,24 @@ function setupDefaultMocks() {
   ;(getNutrientAdvice as any).mockResolvedValue({
     d_n_req: 100,
     d_p_req: 20,
+    cuts: [
+      {
+        cut: 1,
+        yieldclass: "M",
+        d_n_req: 60,
+        d_p_req: 12,
+        d_k_req: 80,
+        d_s_req: 10,
+      },
+      {
+        cut: 2,
+        yieldclass: "G",
+        d_n_req: 40,
+        d_p_req: 8,
+        d_k_req: 50,
+        d_s_req: 6,
+      },
+    ],
   })
 }
 
@@ -394,11 +412,46 @@ describe("tool execute functions", () => {
       expect(result.advicePerField[0].advice).toEqual({
         d_n_req: 100,
         d_p_req: 20,
+        cuts: [
+          {
+            cut: 1,
+            yieldclass: "M",
+            d_n_req: 60,
+            d_p_req: 12,
+            d_k_req: 80,
+            d_s_req: 10,
+          },
+          {
+            cut: 2,
+            yieldclass: "G",
+            d_n_req: 40,
+            d_p_req: 8,
+            d_k_req: 50,
+            d_s_req: 6,
+          },
+        ],
       })
       expect(getNutrientAdvice).toHaveBeenCalledWith(
         mockFdm,
         expect.objectContaining({ nmiApiKey: "test-key" }),
       )
+    })
+
+    it("should preserve advice without cuts", async () => {
+      ;(getNutrientAdvice as any).mockResolvedValueOnce({
+        d_n_req: 100,
+        d_p_req: 20,
+      })
+
+      const result = await getTool("getFarmNutrientAdvice").invoke(
+        { b_ids: ["field-1"] },
+        makeConfigurable({ nmiApiKey: "test-key" }),
+      )
+
+      expect(result.advicePerField[0].advice).toEqual({
+        d_n_req: 100,
+        d_p_req: 20,
+      })
     })
 
     it("should throw before fetching fields when principalId is missing", async () => {
@@ -1083,6 +1136,24 @@ describe("tool execute functions", () => {
       expect(result.fieldResults[0].fieldMetrics?.advice).toEqual({
         d_n_req: 100,
         d_p_req: 20,
+        cuts: [
+          {
+            cut: 1,
+            yieldclass: "M",
+            d_n_req: 60,
+            d_p_req: 12,
+            d_k_req: 80,
+            d_s_req: 10,
+          },
+          {
+            cut: 2,
+            yieldclass: "G",
+            d_n_req: 40,
+            d_p_req: 8,
+            d_k_req: 50,
+            d_s_req: 6,
+          },
+        ],
       })
     })
 

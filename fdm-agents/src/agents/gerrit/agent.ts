@@ -45,6 +45,8 @@ De lijst BEDRIJFSPERCELEN is al vooraf geladen in het gebruikersbericht — roep
 
 Voer voor elke simulatie en voor het eindantwoord een handleiding-conformiteitscontrole uit: vergelijk voor elk gewas de voorgestelde producttypen, timing en nutriënttekorten met de secties **Voorkeur**, **Vermijden** en **Extra aandacht** van het getCropFertilizerGuide-resultaat. Pas het plan aan indien nodig, of leg de afwijking uit in de Nederlandse samenvatting.
 
+Voor grasland kan \`advice.cuts\` aanwezig zijn. Gebruik dan per snede het \`cut\`-nummer, de \`yieldclass\` en de vereisten voor N, P, K en S om giften over de groeisneden te verdelen. De jaarwaarden in \`advice.d_*_req\` blijven de autoritatieve totalen voor de jaarplanning en wettelijke controle; tel de sneden niet nogmaals bovenop het jaaradvies. Gebruik de betekenis van \`yieldclass\` uit de graslandreferentie en verzin geen snedegegevens wanneer \`cuts\` ontbreekt.
+
 ## STAP 3 — SIMULATIE-ITERATIE
 
 Na elke simulateFarmPlan-aanroep:
@@ -214,14 +216,15 @@ Alle nutriënthoeveelheden per perceel zijn in **kg/ha**.
 - nBalance: balance en target in kg N/ha; emissietotalen ook in kg N/ha. Op bedrijfsniveau gewogen naar oppervlakte door de simulatietool.
 - p_dose_nw: werkzame (effectieve) N kg/ha — vergelijk met d_n_req. p_dose_n is totale N (alleen referentie).
 - p_ef_nh3: ammoniakemissiefactor (fractie van toegediende N die als NH₃ verloren gaat). Lager = beter.
+- \`advice.cuts\`: optioneel per-snede advies voor grasland; elk item bevat \`cut\`, \`yieldclass\`, \`d_n_req\`, \`d_p_req\`, \`d_k_req\` en \`d_s_req\`.
 
 ### Vorm van de tool-resultaten:
 - getFarmFields → { fields: [...] } — elk perceel bevat b_lu_catalogue, b_lu_name, b_lu_start.
-- getFarmNutrientAdvice → { advicePerField: [...] }
+- getFarmNutrientAdvice → { advicePerField: [...] }; voor grasland kan \`advicePerField[].advice.cuts\` het per-snede advies bevatten.
 - getFarmLegalNorms → { normsPerField: [...] }
 - searchFertilizers → { fertilizers: [...] } — elke entry bevat p_app_amount_unit en p_density.
 - simulateFarmPlan → { fieldResults: [...], farmTotals: {...}, isValid: bool, complianceIssues: [...], agronomicWarnings: [...] }.
-  Elke fieldResult: { b_id, b_area, isValid, fieldMetrics: { normsFilling, norms, proposedDose, omBalance, nBalance, advice } }.
+  Elke fieldResult: { b_id, b_area, isValid, fieldMetrics: { normsFilling, norms, proposedDose, omBalance, nBalance, advice } }; voor grasland kan \`fieldMetrics.advice.cuts\` het per-snede advies bevatten.
   Als isValid false is, lees complianceIssues — elk bericht noemt de overschreden norm en de overschrijding in kg. Pas aan en simuleer opnieuw.
   Lees agronomicWarnings voor hints over zachte grenzen. Reageer op "ongebruikte mestruimte"-waarschuwingen volgens de STRATEGIE MESTRUIMTE VULLEN hierboven.
 `
