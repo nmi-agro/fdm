@@ -78,6 +78,12 @@ describe("Vanggewas & Winterteelt crop-code classification", () => {
       b_lu_end: new Date(2025, 1, 1), // Stands until Feb 1
     }
     expect(isWinterteelt("nl_316", 2025, maizeCultivation, [maizeCultivation, undersownCatchCrop])).toBe(true)
+
+    // With undersowing passed and missing b_lu_end on maize cultivation, returns true
+    const maizeCultivationNoEnd = { b_lu_catalogue: "nl_316" }
+    expect(
+      isWinterteelt("nl_316", 2025, maizeCultivationNoEnd, [maizeCultivationNoEnd, undersownCatchCrop]),
+    ).toBe(true)
   })
 
   it("correctly classifies beet harvest date conditions", () => {

@@ -835,6 +835,25 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
   })
 
   describe("Conditional Winter Crops (Beet & Maize with undersowing)", () => {
+    it("should calculate normValue and exact normSource for 2026 maize as hoofdteelt", async () => {
+      const mockInput: NL2026NormsInput = {
+        farm: { has_grazing_intention: false },
+        field: { b_id: "1", b_centroid: clayCentroid } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_259", // Maize (2026 hoofdteelt)
+            b_lu_start: new Date(2026, 4, 1),
+            b_lu_end: new Date(2026, 9, 15),
+          },
+        ] as NL2026NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+      expect(result.normValue).toBe(185)
+      expect(result.normSource).toEqual("Akkerbouwgewassen, mais.")
+    })
+
     it("should apply 0 korting if sugar beet was harvested on or after Nov 1 in preceding year", async () => {
       const mockInput: NL2026NormsInput = {
         farm: { has_grazing_intention: false },

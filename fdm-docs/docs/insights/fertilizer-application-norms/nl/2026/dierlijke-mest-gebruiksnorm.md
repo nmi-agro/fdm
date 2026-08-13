@@ -50,7 +50,7 @@ The forfaitair nitrogen content per ton of manure is determined by the animal sp
 | Varkens (Pigs)             | Drijfmest vleesvarkens     | 46       | 6.4                 | 2.4                |
 | Kippen (Chickens)          | Mestband (Belt manure)     | 32       | 26.0                | 3.8                |
 
-Manure codes **130 to 134** are Renure and are excluded from this norm.
+Manure codes **130 to 134** are Renure. Nitrogen from Renure up to 80 kg N/ha is excluded from this norm; any cumulative Renure nitrogen above 80 kg N/ha counts towards the animal manure norm.
 
 ### How the FDM Calculator Determines the Filling
 

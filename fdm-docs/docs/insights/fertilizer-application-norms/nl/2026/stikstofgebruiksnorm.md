@@ -156,7 +156,7 @@ The filling is based on the **effective nitrogen** (`werkzame stikstof`) applied
 
 #### Calculation Formula
 
-`Effective Nitrogen (kg N) = Applied Amount (kg or ton) × Total Nitrogen Content (%) × Efficiency Coefficient (%)`
+`Effective Nitrogen (kg N/ha) = Applied Amount (kg/ha) × Total Nitrogen Content (g N/kg) × (Efficiency Coefficient / 100) / 1000`
 
 #### Efficiency Coefficients (`Werkingscoëfficiënten`)
 
