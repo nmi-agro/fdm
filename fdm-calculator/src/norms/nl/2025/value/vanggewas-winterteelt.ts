@@ -1,7 +1,7 @@
 import Decimal from "decimal.js"
 import { VANGGEWAS_2025, WINTERTEELT_2025 } from "./vanggewas-winterteelt-data"
 import { VANGGEWAS_2026, WINTERTEELT_2026 } from "../../2026/value/vanggewas-winterteelt-data"
-import { determineNLHoofdteelt } from "./hoofdteelt"
+import { findHoofdteelt } from "../../../../shared/hoofdteelt"
 import type { NL2025NormsInputForCultivation, RegionKey } from "./types"
 
 const sandyOrLoessRegions: RegionKey[] = ["zand_nwc", "zand_zuid", "loess"]
@@ -140,12 +140,12 @@ export function calculateVanggewasWinterteeltKorting(
   const previousYear = currentYear - 1
 
   // Determine hoofdteelt of previous year (N-1) using year-aware lookup
-  const hoofdteeltPrevYear = determineNLHoofdteelt(cultivations, previousYear)
-  const hoofdteeltPrevCultivation = determineNLHoofdteelt(cultivations, previousYear, true)
+  const hoofdteeltPrevCultivation = findHoofdteelt(cultivations, previousYear, false, true)
+  const hoofdteeltPrevYear = hoofdteeltPrevCultivation.b_lu_catalogue
 
   // Determine hoofdteelt of current year (N)
-  const hoofdteeltCurrYear = determineNLHoofdteelt(cultivations, currentYear)
-  const hoofdteeltCurrCultivation = determineNLHoofdteelt(cultivations, currentYear, true)
+  const hoofdteeltCurrCultivation = findHoofdteelt(cultivations, currentYear, false, true)
+  const hoofdteeltCurrYear = hoofdteeltCurrCultivation.b_lu_catalogue
 
   let catchCropExempt = false
 

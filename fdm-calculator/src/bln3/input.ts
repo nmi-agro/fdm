@@ -118,8 +118,8 @@ export async function collectInputForBln3Score(
       }, maxYear)
 
       for (let year = maxYear; year >= minYear; year--) {
-        const catalogue = findHoofdteelt(cultivations, year)
-        const match = /^nl_(\d+)$/.exec(catalogue)
+        const hoofdteelt = findHoofdteelt(cultivations, year)
+        const match = /^nl_(\d+)$/.exec(hoofdteelt.b_lu_catalogue)
         if (!match) continue
         bln3Cultivations.push({
           b_lu_brp: Number(match[1]),
@@ -242,8 +242,8 @@ export async function collectInputForBln3MeasureApplicability(
       }, maxYear)
 
       for (let year = maxYear; year >= minYear; year--) {
-        const catalogue = findHoofdteelt(cultivations, year)
-        const match = /^nl_(\d+)$/.exec(catalogue)
+        const hoofdteelt = findHoofdteelt(cultivations, year)
+        const match = /^nl_(\d+)$/.exec(hoofdteelt.b_lu_catalogue)
         if (!match) continue
         bln3Cultivations.push({
           b_lu_brp: Number(match[1]),

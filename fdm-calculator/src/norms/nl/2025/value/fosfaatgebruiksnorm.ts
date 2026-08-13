@@ -5,7 +5,7 @@ import type { FosfaatKlasse, NL2025NormsInput } from "./types.d"
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { fosfaatNormsData } from "./fosfaatgebruiksnorm-data"
-import { determineNLHoofdteelt } from "./hoofdteelt"
+import { findHoofdteelt } from "../../../../shared/hoofdteelt"
 
 /**
  * Determines if a cultivation is a type of grassland based on its catalogue entry.
@@ -147,7 +147,7 @@ export async function calculateNL2025FosfaatGebruiksNorm(
     throw new NormNotApplicableError("Missing soil analysis data for NL 2025 Fosfaatgebruiksnorm")
   }
 
-  const b_lu_catalogue = determineNLHoofdteelt(cultivations, 2025)
+  const b_lu_catalogue = findHoofdteelt(cultivations, 2025, false, true).b_lu_catalogue
   const is_grasland = isCultivationGrasland(b_lu_catalogue)
 
   // Determine the phosphate class based on soil analysis values and land type.

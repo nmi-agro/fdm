@@ -8,6 +8,16 @@ export type CultivationForHoofdteelt = {
   b_lu_end: Date | null | undefined
 }
 
+export type CompleteHoofdteeltCultivation = Omit<
+  CultivationForHoofdteelt,
+  "b_lu_start" | "b_lu_end"
+> & {
+  b_lu: string
+  b_lu_start: Date | null
+  b_lu_end: Date | null
+  b_lu_variety: string | null
+}
+
 /**
  * BRP/catalogue code for "Groene braak, spontane opkomst" — the Dutch regulatory
  * default when no cultivation is present in the reference period.
@@ -30,34 +40,39 @@ export const GROENE_BRAAK = "nl_6794"
  * @param returnNull - When `true`, returns `null` instead of `GROENE_BRAAK` if no
  *   cultivation overlaps the window. Defaults to `false`, preserving the regulatory
  *   fallback behaviour required for compliance calculations.
- * @returns The `b_lu_catalogue` of the hoofdteelt. If no cultivation overlaps with the
- *          May 15–July 15 window, returns `GROENE_BRAAK` (`"nl_6794"`) by default, or
- *          `null` when `returnNull` is `true`.
+ * @param treatMissingStartAsPresent - When `true`, treats a missing start date as
+ *   the start of time. This preserves the Dutch norms rule for unknown start dates.
+ * @returns The hoofdteelt cultivation object. If no cultivation overlaps with the
+ *          May 15–July 15 window, returns a complete synthetic `GROENE_BRAAK`
+ *          object by default, or `null` when `returnNull` is `true`.
  */
-export function findHoofdteelt(
-  cultivations: CultivationForHoofdteelt[],
+export function findHoofdteelt<T extends CultivationForHoofdteelt>(
+  cultivations: T[],
   year: number,
   returnNull?: false,
-): string
-export function findHoofdteelt(
-  cultivations: CultivationForHoofdteelt[],
+  treatMissingStartAsPresent?: boolean,
+): T | CompleteHoofdteeltCultivation
+export function findHoofdteelt<T extends CultivationForHoofdteelt>(
+  cultivations: T[],
   year: number,
   returnNull: true,
-): string | null
-export function findHoofdteelt(
-  cultivations: CultivationForHoofdteelt[],
+  treatMissingStartAsPresent?: boolean,
+): T | null
+export function findHoofdteelt<T extends CultivationForHoofdteelt>(
+  cultivations: T[],
   year: number,
   returnNull = false,
-): string | null {
+  treatMissingStartAsPresent = false,
+): T | CompleteHoofdteeltCultivation | null {
   const windowStart = new Date(`${year}-05-15`)
   const windowEnd = new Date(`${year}-07-15`)
 
   let maxDuration = -1
-  let result: string | null = null
+  let result: T | null = null
 
   for (const c of cultivations) {
-    if (!c.b_lu_start) continue
-    const start = new Date(c.b_lu_start)
+    if (!c.b_lu_start && !treatMissingStartAsPresent) continue
+    const start = c.b_lu_start ? new Date(c.b_lu_start) : new Date(0)
     const end = c.b_lu_end ? new Date(c.b_lu_end) : windowEnd
 
     const effectiveStart = start > windowStart ? start : windowStart
@@ -67,17 +82,23 @@ export function findHoofdteelt(
       const duration = effectiveEnd.getTime() - effectiveStart.getTime()
       if (duration > maxDuration) {
         maxDuration = duration
-        result = c.b_lu_catalogue
+        result = c
       } else if (duration === maxDuration && result !== null) {
-        if (c.b_lu_catalogue.localeCompare(result) < 0) {
-          result = c.b_lu_catalogue
+        if (c.b_lu_catalogue.localeCompare(result.b_lu_catalogue) < 0) {
+          result = c
         }
       }
     }
   }
 
-  if (result !== null) {
-    return result
+  if (result !== null) return result
+  if (returnNull) return null
+
+  return {
+    b_lu: "Groene braak, spontane opkomst",
+    b_lu_catalogue: GROENE_BRAAK,
+    b_lu_start: new Date(`${year}-01-01`),
+    b_lu_end: new Date(`${year}-12-31`),
+    b_lu_variety: null,
   }
-  return returnNull ? null : GROENE_BRAAK
 }

@@ -10,7 +10,7 @@ import type {
 } from "./types"
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
-import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
+import { findHoofdteelt } from "../../../../shared/hoofdteelt"
 import { getRegion, isFieldInNVGebied } from "../../2025/value/stikstofgebruiksnorm"
 import { calculateVanggewasWinterteeltKorting } from "../../2025/value/vanggewas-winterteelt"
 import { nonBouwlandCodes } from "../../constant"
@@ -311,7 +311,7 @@ function determineSubTypeOmschrijving(
   ]
 
   if (bladgewasRvoTable2s.includes(standard.cultivation_rvo_table2)) {
-    const hoofdteeltCatalogue = determineNLHoofdteelt(cultivations, 2026)
+    const hoofdteeltCatalogue = findHoofdteelt(cultivations, 2026, false, true).b_lu_catalogue
     if (cultivation.b_lu_catalogue === hoofdteeltCatalogue) {
       return "1e teelt"
     }
@@ -523,7 +523,7 @@ function calculateKorting(
  * correct nitrogen norm:
  *
  * 1.  **Identify Main Crop (`hoofdteelt`)**:
- *     The `determineNLHoofdteelt` function is called to identify the primary cultivation
+ *     The `findHoofdteelt` function is called to identify the primary cultivation
  *     (`b_lu_catalogue`) for the field based on the provided `cultivations` array. This is
  *     the first step to narrow down the applicable nitrogen standards.
  *
@@ -592,22 +592,8 @@ export async function calculateNL2026StikstofGebruiksNorm(
   }
 
   // Determine hoofdteelt
-  const b_lu_catalogue = determineNLHoofdteelt(cultivations, 2026)
-  let cultivation = determineNLHoofdteelt(cultivations, 2026, true)
-
-  //Create cultivation in case of braak
-  if (b_lu_catalogue === "nl_6794") {
-    cultivation = {
-      b_lu: "Groene braak, spontane opkomst",
-      b_lu_catalogue: "nl_6794",
-      b_lu_start: new Date("2026-01-01"),
-      b_lu_end: new Date("2026-12-31"),
-      b_lu_variety: null,
-    }
-  }
-  if (!cultivation) {
-    throw new NormNotApplicableError(`Cultivation with b_lu_catalogue ${b_lu_catalogue} not found`)
-  }
+  const cultivation = findHoofdteelt(cultivations, 2026, false, true)
+  const b_lu_catalogue = cultivation.b_lu_catalogue
 
   // Determine region and NV gebied
   const is_nv_area = await isFieldInNVGebied(field.b_centroid)

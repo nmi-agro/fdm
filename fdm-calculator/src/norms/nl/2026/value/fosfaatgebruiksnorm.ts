@@ -5,7 +5,7 @@ import type { FosfaatKlasse, NL2026NormsInput } from "./types.d"
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { isCultivationGrasland } from "../../2025/value/fosfaatgebruiksnorm"
-import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
+import { findHoofdteelt } from "../../../../shared/hoofdteelt"
 import { fosfaatNormsData } from "./fosfaatgebruiksnorm-data"
 
 /**
@@ -137,7 +137,7 @@ export async function calculateNL2026FosfaatGebruiksNorm(
     throw new NormNotApplicableError("Missing soil analysis data for NL 2026 Fosfaatgebruiksnorm")
   }
 
-  const b_lu_catalogue = determineNLHoofdteelt(cultivations, 2026)
+  const b_lu_catalogue = findHoofdteelt(cultivations, 2026, false, true).b_lu_catalogue
   const is_grasland = isCultivationGrasland(b_lu_catalogue)
 
   // Determine the phosphate class based on soil analysis values and land type.
