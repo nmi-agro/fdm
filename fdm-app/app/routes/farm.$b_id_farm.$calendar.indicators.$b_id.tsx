@@ -1,5 +1,5 @@
 import type { FeatureCollection, Geometry } from "geojson"
-import { type CultivationForHoofdteelt, findHoofdteelt } from "@nmi-agro/fdm-calculator"
+import { GROENE_BRAAK, findHoofdteelt } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivations,
@@ -363,11 +363,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // window) — exactly consistent with what is submitted to the BLN3 API.
     // Only show years within the range of known cultivation data; gaps get groene braak.
     const maxCalendarYear = calendarYear
-    const cultivationsForHoofdteelt: CultivationForHoofdteelt[] = cultivations.map((c) => ({
-      b_lu_catalogue: c.b_lu_catalogue,
-      b_lu_start: c.b_lu_start ?? null,
-      b_lu_end: c.b_lu_end ?? null,
-    }))
     const minCalendarYear = cultivations.reduce((min, c) => {
       const y = c.b_lu_start?.getFullYear()
       return y !== undefined && y < min ? y : min
@@ -383,12 +378,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       croprotation: string | null
     }> = []
     for (let year = maxCalendarYear; year >= minCalendarYear; year--) {
-      const catalogue = findHoofdteelt(cultivationsForHoofdteelt, year)
-      const match = cultivations.find((c) => c.b_lu_catalogue === catalogue)
+      const hoofdteelt = findHoofdteelt(cultivations, year, true)
+      const catalogue = hoofdteelt?.b_lu_catalogue ?? GROENE_BRAAK
       cultivationSummaries.push({
-        name: match?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
+        name: hoofdteelt?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
         year,
-        croprotation: match?.b_lu_croprotation ?? null,
+        croprotation: hoofdteelt?.b_lu_croprotation ?? null,
       })
     }
 
