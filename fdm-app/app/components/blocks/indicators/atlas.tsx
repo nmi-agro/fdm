@@ -35,11 +35,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { INDICATORS } from "~/lib/indicators"
-import {
-  AtlasTooltip,
-  AtlasTooltipFooter,
-  AtlasTooltipHeader,
-} from "../atlas/atlas-tooltip"
+import { AtlasTooltip, AtlasTooltipFooter, AtlasTooltipHeader } from "../atlas/atlas-tooltip"
 import { ScoreTooltipBody } from "./score-tooltip-body"
 
 type ChildScoreEntry = {
@@ -108,7 +104,12 @@ export default function IndicatorsMap({
 
   return (
     <div className="relative" style={{ height }}>
-      <Atlas ref={mapRef} interactive={true} interactiveLayerIds={[SCORE_LAYER]}>
+      <Atlas
+        ref={mapRef}
+        initialViewState={initialViewState}
+        interactive={true}
+        interactiveLayerIds={[SCORE_LAYER]}
+      >
         <Controls
           initialViewState={initialViewState}
           showFlyToFields={fieldsGeoJSON.features.length > 0 ? true : undefined}

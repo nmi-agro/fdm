@@ -5,7 +5,7 @@ import { createPortal } from "react-dom"
 import { GeolocateControl, NavigationControl, useControl, useMap } from "react-map-gl/maplibre"
 import { useAtlasViewState } from "~/store/atlas-view-state"
 import { GeocoderControl } from "./atlas-geocoder"
-import { AtlasLayerSwitch } from "./atlas-layer-switch"
+import { AtlasLayerSwitch } from "./atlas-layer"
 import { AtlasStyleSelect } from "./atlas-style-select"
 import { AtlasViewState } from "./atlas-viewstate"
 

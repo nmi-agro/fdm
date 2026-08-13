@@ -1,12 +1,17 @@
 import { ChevronDown } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
+import {
+  AvailableAtlasLayerInfo,
+  useAvailableAtlasLayers,
+  useCurrentAtlasLayer,
+} from "~/components/blocks/atlas/atlas-layer"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -14,22 +19,22 @@ import {
 
 export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
   const calendar = useCalendarStore((state) => state.calendar)
-  const location = useLocation()
 
-  const isElevation = location.pathname.includes("/elevation")
-  const isSoilAnalysis = location.pathname.includes("/soil-analysis")
-  const isSoil = location.pathname.includes("/soil")
-  const isIndicators = location.pathname.includes("/indicators")
-  const currentName = isElevation
-    ? "Hoogtekaart"
-    : isSoilAnalysis
-      ? "Bodemanalyses"
-      : isSoil
-        ? "Bodemkaart"
-        : isIndicators
-          ? "Indicatoren"
-          : "Gewaspercelen"
-  const isFarmSelected = b_id_farm && b_id_farm !== "undefined"
+  const currentLayer = useCurrentAtlasLayer()
+  const availableLayers = useAvailableAtlasLayers()
+
+  const farmLayers = availableLayers.filter((layer) => layer.requiresFarm)
+  const otherLayers = availableLayers.filter((layer) => !layer.requiresFarm)
+
+  function makeOption(info: AvailableAtlasLayerInfo) {
+    return (
+      <NavLink key={info.value} to={info.url}>
+        <DropdownMenuCheckboxItem checked={currentLayer === info.value}>
+          {info.label}
+        </DropdownMenuCheckboxItem>
+      </NavLink>
+    )
+  }
 
   return (
     <>
@@ -41,53 +46,31 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
       <BreadcrumbItem>
         <DropdownMenu>
           <DropdownMenuTrigger className="focus-visible:ring-ring flex max-w-30 items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:max-w-50 md:max-w-none">
-            <span className="truncate">{currentName}</span>
+            <span className="truncate">
+              {availableLayers.find((option) => option.value === currentLayer)?.label ?? "Onbekend"}
+            </span>
             <ChevronDown className="h-4 w-4 shrink-0" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            {isFarmSelected && (
+            {farmLayers.length > 0 && (
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="text-muted-foreground text-xs">
                   Bedrijf
                 </DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
-                    Gewaspercelen
-                  </NavLink>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/soil-analysis`}>
-                    Bodemanalyses
-                  </NavLink>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}>
-                    Indicatoren
-                  </NavLink>
-                </DropdownMenuItem>
+                {farmLayers.map((info) => makeOption(info))}
               </DropdownMenuGroup>
             )}
-            {isFarmSelected && <DropdownMenuSeparator />}
-            <DropdownMenuGroup>
-              {isFarmSelected && (
-                <DropdownMenuLabel className="text-muted-foreground text-xs">
-                  Overig
-                </DropdownMenuLabel>
-              )}
-              {!isFarmSelected && (
-                <DropdownMenuItem asChild>
-                  <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/fields`}>
-                    Gewaspercelen
-                  </NavLink>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem asChild>
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/elevation`}>Hoogtekaart</NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/soil`}>Bodemkaart</NavLink>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+            {farmLayers.length > 0 && availableLayers.length > 0 && <DropdownMenuSeparator />}
+            {otherLayers.length > 0 && (
+              <DropdownMenuGroup>
+                {farmLayers.length > 0 && (
+                  <DropdownMenuLabel className="text-muted-foreground text-xs">
+                    Overig
+                  </DropdownMenuLabel>
+                )}
+                {otherLayers.map((info) => makeOption(info))}
+              </DropdownMenuGroup>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </BreadcrumbItem>
