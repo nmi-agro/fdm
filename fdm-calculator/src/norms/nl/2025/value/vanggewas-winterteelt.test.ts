@@ -5,6 +5,8 @@ import {
   isVanggewasEnWinterteelt,
   getWinterCropCondition,
   getCatchCrops,
+  getWinterCrops,
+  calculateVanggewasWinterteeltKorting,
 } from "./vanggewas-winterteelt"
 
 describe("Vanggewas & Winterteelt crop-code classification", () => {
@@ -143,5 +145,133 @@ describe("Vanggewas & Winterteelt crop-code classification", () => {
     expect(isVanggewasEnWinterteelt("nl_233")).toBe(true)
     expect(isVanggewasEnWinterteelt("nl_235")).toBe(true)
     expect(isVanggewasEnWinterteelt("nl_237")).toBe(true)
+  })
+
+  it("uses the 2026 winter crop set for year >= 2026", () => {
+    expect(getWinterCrops(2026).size).toBeGreaterThan(0)
+    expect(getWinterCrops(2027)).toBe(getWinterCrops(2026))
+  })
+
+  it("returns false for harvest-date winter crops when harvest date is missing", () => {
+    expect(isWinterteelt("nl_256", 2025, { b_lu_catalogue: "nl_256" })).toBe(false)
+  })
+
+  it("returns false when undersown catch crop has no sowing date", () => {
+    const maizeCultivation = { b_lu_catalogue: "nl_316", b_lu_end: new Date(2024, 9, 1) }
+    const undersownWithoutStart = {
+      b_lu_catalogue: "nl_428",
+      b_lu_start: null,
+      b_lu_end: new Date(2025, 1, 1),
+    }
+
+    expect(
+      isWinterteelt("nl_316", 2025, maizeCultivation, [maizeCultivation, undersownWithoutStart]),
+    ).toBe(false)
+  })
+
+  it("exempts korting when winterteelt overlap in current year is not destroyed before 16 May", () => {
+    const descriptions: string[] = []
+    const korting = calculateVanggewasWinterteeltKorting(
+      [
+        {
+          b_lu_catalogue: "nl_233",
+          b_lu_start: new Date(2024, 9, 1),
+          b_lu_end: new Date(2025, 5, 30),
+        },
+      ] as any,
+      "zand_nwc",
+      2025,
+      descriptions,
+    )
+
+    expect(korting.toNumber()).toBe(0)
+    expect(descriptions).toContain("Geen korting: winterteelt aanwezig")
+  })
+
+  it("does not exempt overlap winterteelt destroyed before 16 May", () => {
+    const descriptions: string[] = []
+    const korting = calculateVanggewasWinterteeltKorting(
+      [
+        {
+          b_lu_catalogue: "nl_233",
+          b_lu_start: new Date(2024, 9, 1),
+          b_lu_end: new Date(2025, 4, 15, 12),
+        },
+      ] as any,
+      "zand_nwc",
+      2025,
+      descriptions,
+    )
+
+    expect(korting.toNumber()).toBe(0)
+    expect(descriptions).toContain("Geen korting: winterteelt beëindigd vóór 16 mei")
+  })
+
+  it("considers January-sown catch crops and sorts multiple qualifying sowing dates", () => {
+    const descriptions: string[] = []
+    const korting = calculateVanggewasWinterteeltKorting(
+      [
+        {
+          b_lu_catalogue: "nl_2751",
+          b_lu_start: new Date(2024, 3, 1),
+          b_lu_end: new Date(2024, 8, 1),
+        },
+        {
+          b_lu_catalogue: "nl_2751",
+          b_lu_start: new Date(2025, 3, 1),
+          b_lu_end: new Date(2025, 8, 1),
+        },
+        {
+          b_lu_catalogue: "nl_428",
+          b_lu_start: new Date(2024, 9, 10),
+          b_lu_end: new Date(2025, 1, 10),
+        },
+        {
+          b_lu_catalogue: "nl_428",
+          b_lu_start: new Date(2025, 0, 10),
+          b_lu_end: new Date(2025, 1, 20),
+        },
+      ] as any,
+      "zand_nwc",
+      2025,
+      descriptions,
+    )
+
+    expect(korting.toNumber()).toBe(5)
+    expect(descriptions).toContain("Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober")
+  })
+
+  it("ignores post-main-crop candidates without sowing dates", () => {
+    const descriptions: string[] = []
+    const korting = calculateVanggewasWinterteeltKorting(
+      [
+        {
+          b_lu_catalogue: "nl_2751",
+          b_lu_start: new Date(2024, 3, 1),
+          b_lu_end: new Date(2024, 8, 1),
+        },
+        {
+          b_lu_catalogue: "nl_2751",
+          b_lu_start: new Date(2025, 3, 1),
+          b_lu_end: new Date(2025, 8, 1),
+        },
+        {
+          b_lu_catalogue: "nl_428",
+          b_lu_start: null,
+          b_lu_end: new Date(2025, 1, 10),
+        },
+        {
+          b_lu_catalogue: "nl_428",
+          b_lu_start: new Date(2024, 8, 20),
+          b_lu_end: new Date(2025, 1, 10),
+        },
+      ] as any,
+      "zand_nwc",
+      2025,
+      descriptions,
+    )
+
+    expect(korting.toNumber()).toBe(0)
+    expect(descriptions).toContain("Geen korting: vanggewas gezaaid uiterlijk 1 oktober")
   })
 })

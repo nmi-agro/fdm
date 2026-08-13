@@ -297,4 +297,46 @@ describe("calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNor
     expect(result.normFilling).toBe(0)
     expect(result.applicationFilling).toEqual([])
   })
+
+  it("should use default values when amount or nitrogen values are missing", () => {
+    const result = calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app_defaults",
+          p_id_catalogue: "defaults",
+          p_app_amount: undefined,
+        } as unknown as FertilizerApplication,
+        {
+          p_app_id: "app_renure_defaults",
+          p_id_catalogue: "renure_defaults",
+          p_app_amount: undefined,
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "defaults",
+          p_id_catalogue: "defaults",
+          p_type_rvo: "11",
+          p_n_rt: null,
+        } as unknown as Fertilizer,
+        {
+          p_id: "renure_defaults",
+          p_id_catalogue: "renure_defaults",
+          p_type_rvo: "132",
+          p_n_rt: null,
+        } as unknown as Fertilizer,
+      ],
+      cultivations: [],
+      has_organic_certification: false,
+      has_grazing_intention: false,
+      fosfaatgebruiksnorm: 0,
+      b_centroid: [0, 0],
+    } as NL2026NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling).toEqual([
+      { p_app_id: "app_defaults", normFilling: 0 },
+      { p_app_id: "app_renure_defaults", normFilling: 0 },
+    ])
+  })
 })

@@ -89,6 +89,18 @@ describe("isBouwland", () => {
     const applicationDate = new Date("2025-07-01")
     expect(isBouwland(cultivations as unknown as Cultivation[], applicationDate)).toBe(false)
   })
+
+  it("should return false when cultivation has no start date", () => {
+    const cultivations = [
+      {
+        b_lu: "cult1",
+        b_lu_start: null,
+        b_lu_catalogue: "nl_2014",
+      },
+    ] as unknown as Cultivation[]
+    const applicationDate = new Date("2025-07-01")
+    expect(isBouwland(cultivations as unknown as Cultivation[], applicationDate)).toBe(false)
+  })
 })
 
 describe("getWorkingCoefficient", () => {
@@ -416,6 +428,25 @@ describe("getWorkingCoefficient", () => {
     expect(result.description).toBe("Mineralenconcentraat")
     expect(result.subTypeDescription).toBeUndefined()
   })
+
+  it("should match non-period subtype when date is outside Sep-Jan", () => {
+    const result = getWorkingCoefficient("10", "klei", true, true, new Date("2025-02-01"), true)
+    expect(result.p_n_wcl).toBe(0.45)
+    expect(result.description).toContain("Vaste mest van graasdieren")
+    expect(result.subTypeDescription).toContain("beweiding")
+  })
+
+  it("should return default details when no subtype matches an entry with subtypes", () => {
+    const result = getWorkingCoefficient("46", undefined, false, true, new Date("2025-06-15"), false)
+    expect(result.p_n_wcl).toBe(1)
+    expect(result.description).toBe("Kunstmest")
+  })
+
+  it("should evaluate bouwland mismatch in subtype checks", () => {
+    const result = getWorkingCoefficient("10", "klei", false, false, new Date("2025-10-15"), true)
+    expect(result.p_n_wcl).toBe(0.6)
+    expect(result.subTypeDescription).toContain("zonder beweiding")
+  })
 })
 
 describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", () => {
@@ -683,5 +714,71 @@ describe("calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm", (
     expect(result.applicationFilling[0].normFillingDetails).toBe(
       "Werkingscoëfficiënt: 30% - Vaste mest van graasdieren aangevoerd - Op bouwland op klei en veen, van 1 september t/m 31 januari",
     )
+  })
+
+  it("should use table11 fallback nitrogen and default zero amount", async () => {
+    vi.mocked(getRegion).mockResolvedValue("klei")
+
+    const result = await calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app-defaults",
+          p_id: "app-defaults",
+          b_id: "field1",
+          p_app_date: new Date("2025-10-15"),
+          p_app_amount: undefined,
+          p_id_catalogue: "fert-defaults",
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "fert-defaults",
+          p_id_catalogue: "fert-defaults",
+          p_n_rt: null,
+          p_type_rvo: "14",
+        } as unknown as Fertilizer,
+      ],
+      b_centroid: [0, 0],
+      has_grazing_intention: false,
+      cultivations: [],
+      has_organic_certification: false,
+      fosfaatgebruiksnorm: 0,
+    } as NL2025NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling[0].normFilling).toBe(0)
+  })
+
+  it("should default nitrogen content to zero when table11 has no matching type", async () => {
+    vi.mocked(getRegion).mockResolvedValue("klei")
+
+    const result = await calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app-no-table11",
+          p_id: "app-no-table11",
+          b_id: "field1",
+          p_app_date: new Date("2025-10-15"),
+          p_app_amount: 1000,
+          p_id_catalogue: "fert-no-table11",
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "fert-no-table11",
+          p_id_catalogue: "fert-no-table11",
+          p_n_rt: null,
+          p_type_rvo: "9999",
+        } as unknown as Fertilizer,
+      ],
+      b_centroid: [0, 0],
+      has_grazing_intention: false,
+      cultivations: [],
+      has_organic_certification: false,
+      fosfaatgebruiksnorm: 0,
+    } as NL2025NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling[0].normFilling).toBe(0)
   })
 })

@@ -162,4 +162,32 @@ describe("calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm", () 
       } as NL2026NormsFillingInput),
     ).toThrow("Fertilizer no_rvo_id has no p_type_rvo")
   })
+
+  it("should fallback to table nitrogen values and zero amount defaults", () => {
+    const result = calculateNL2026FertilizerApplicationFillingForRenureGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app_default_n",
+          p_id_catalogue: "fallback_n",
+          p_app_amount: undefined,
+        } as unknown as FertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "fallback_n",
+          p_id_catalogue: "fallback_n",
+          p_type_rvo: "132",
+          p_n_rt: null,
+        } as unknown as Fertilizer,
+      ],
+      cultivations: [],
+      has_organic_certification: false,
+      has_grazing_intention: false,
+      fosfaatgebruiksnorm: 0,
+      b_centroid: [0, 0],
+    } as NL2026NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling).toEqual([{ p_app_id: "app_default_n", normFilling: 0 }])
+  })
 })

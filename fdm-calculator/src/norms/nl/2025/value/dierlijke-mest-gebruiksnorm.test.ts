@@ -1,9 +1,12 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { NL2025NormsInput } from "./types"
 import {
   calculateNL2025DierlijkeMestGebruiksNorm,
+  isFieldInGWGBGebied,
+  isFieldInNatura2000Gebied,
   isFieldInDerogatieVrijeZone,
 } from "./dierlijke-mest-gebruiksnorm"
+import * as GeoTiff from "../../../../shared/geotiff"
 
 describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
   it("should return the default norm value", async () => {
@@ -156,6 +159,22 @@ describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
     expect(result.normSource).toBe("Derogatie - Natura2000 Gebied")
   })
 
+  it("should return the adjusted norm value for derogation in derogatie-vrije zone", async () => {
+    const mockInput: NL2025NormsInput = {
+      farm: { is_derogatie_bedrijf: true, has_grazing_intention: false },
+      field: {
+        b_id: "1",
+        b_centroid: [5.698110435483986, 51.967321021267445],
+        b_bufferstrip: false,
+      },
+      cultivations: [],
+      soilAnalysis: { a_p_cc: 0, a_p_al: 0 },
+    }
+    const result = await calculateNL2025DierlijkeMestGebruiksNorm(mockInput)
+    expect(result.normValue).toBe(170)
+    expect(result.normSource).toBe("Derogatie - Derogatie-vrije zone")
+  })
+
   it("should return 0 for buffer strips", async () => {
     const mockInput: NL2025NormsInput = {
       farm: { is_derogatie_bedrijf: true, has_grazing_intention: false },
@@ -182,5 +201,12 @@ describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
       const locationOutside: [number, number] = [5.642031564776303, 51.9733216807388]
       await expect(isFieldInDerogatieVrijeZone(locationOutside)).resolves.toBe(false)
     })
+  })
+
+  it("should return false for unknown geotiff codes in GWBG and Natura helpers", async () => {
+    const spy = vi.spyOn(GeoTiff, "getGeoTiffValue").mockResolvedValue(99)
+    await expect(isFieldInGWGBGebied([5.0, 52.0])).resolves.toBe(false)
+    await expect(isFieldInNatura2000Gebied([5.0, 52.0])).resolves.toBe(false)
+    spy.mockRestore()
   })
 })

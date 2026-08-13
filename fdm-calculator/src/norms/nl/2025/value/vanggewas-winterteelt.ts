@@ -316,6 +316,7 @@ export function calculateVanggewasWinterteeltKorting(
   const hoofdteeltCurrYear = hoofdteeltCurrCultivation.b_lu_catalogue
 
   let catchCropExempt = false
+  let winterteeltDestroyedBeforeMay16 = false
 
   // Step 2: hoofdteelt(N-1) is itself a winterteelt-only crop (e.g. beet lifted >= Nov 1,
   // chicory, asparagus, top fruit, maize with undersowing). Codes that are also a vanggewas
@@ -338,6 +339,8 @@ export function calculateVanggewasWinterteeltKorting(
       // year N, so it falls back to being a catch crop and the scale applies.
       const notDestroyedBeforeMay16 =
         !end || end.getTime() >= new Date(currentYear, 4, 16).getTime()
+      winterteeltDestroyedBeforeMay16 =
+        !!end && end.getTime() < new Date(currentYear, 4, 16).getTime()
       if (notDestroyedBeforeMay16) {
         catchCropExempt = true
         descriptions.push("Geen korting: winterteelt aanwezig")
@@ -419,7 +422,11 @@ export function calculateVanggewasWinterteeltKorting(
             const november1 = new Date(previousYear, 10, 1)
 
             if (sowDate <= october1) {
-              descriptions.push("Geen korting: vanggewas gezaaid uiterlijk 1 oktober")
+              descriptions.push(
+                winterteeltDestroyedBeforeMay16
+                  ? "Geen korting: winterteelt beëindigd vóór 16 mei"
+                  : "Geen korting: vanggewas gezaaid uiterlijk 1 oktober",
+              )
               return new Decimal(0)
             } else if (sowDate > october1 && sowDate < october15) {
               descriptions.push("Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober")

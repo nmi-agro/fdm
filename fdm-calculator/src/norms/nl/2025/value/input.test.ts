@@ -84,6 +84,25 @@ describe("collectNL2025InputForNorms", () => {
       timeframe,
     )
   })
+
+  it("should map missing soil parameters to null", async () => {
+    const mockFdm = {} as FdmType
+    const mockPrincipalId = "principal-1"
+    const mockFieldId = "field-1"
+
+    vi.mocked(fdmCore.getField).mockResolvedValue({
+      b_id: mockFieldId,
+      b_id_farm: "farm-1",
+      b_centroid: [5.0, 52.0],
+    } as Field)
+    vi.mocked(fdmCore.getCultivations).mockResolvedValue([])
+    vi.mocked(fdmCore.getCurrentSoilData).mockResolvedValue([] as CurrentSoilData)
+    vi.mocked(fdmCore.isDerogationGrantedForYear).mockResolvedValue(false)
+    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
+
+    const result = await collectNL2025InputForNorms(mockFdm, mockPrincipalId, mockFieldId)
+    expect(result.soilAnalysis).toEqual({ a_p_cc: null, a_p_al: null })
+  })
 })
 
 describe("collectNL2025InputForNormsForFarm", () => {
@@ -157,5 +176,54 @@ describe("collectNL2025InputForNormsForFarm", () => {
     )
     expect(fdmCore.getCultivations).not.toHaveBeenCalled()
     expect(fdmCore.getCurrentSoilData).not.toHaveBeenCalled()
+  })
+
+  it("should default soil and cultivation values for non-array soil data and missing field maps", async () => {
+    const mockFdm = {} as FdmType
+    const mockPrincipalId = "principal-1"
+    const mockFarmId = "farm-1"
+    const mockFieldId = "field-1"
+
+    const mockField = {
+      b_id: mockFieldId,
+      b_id_farm: mockFarmId,
+      b_centroid: [5.0, 52.0],
+    } as Field
+
+    vi.mocked(fdmCore.getFields).mockResolvedValue([mockField])
+    vi.mocked(fdmCore.isDerogationGrantedForYear).mockResolvedValue(false)
+    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
+    vi.mocked(fdmCore.getCultivationsForFarm).mockResolvedValue(new Map())
+    vi.mocked(fdmCore.getCurrentSoilDataForFarm).mockResolvedValue(
+      new Map([[mockFieldId, { not: "an-array" } as unknown as CurrentSoilData]]),
+    )
+
+    const result = await collectNL2025InputForNormsForFarm(mockFdm, mockPrincipalId, mockFarmId)
+    const fieldInput = result.get(mockFieldId)!
+
+    expect(fieldInput.cultivations).toEqual([])
+    expect(fieldInput.soilAnalysis).toEqual({ a_p_cc: null, a_p_al: null })
+  })
+
+  it("should fallback to empty soil array when a field has no soil map entry", async () => {
+    const mockFdm = {} as FdmType
+    const mockPrincipalId = "principal-1"
+    const mockFarmId = "farm-1"
+    const mockFieldId = "field-1"
+
+    const mockField = {
+      b_id: mockFieldId,
+      b_id_farm: mockFarmId,
+      b_centroid: [5.0, 52.0],
+    } as Field
+
+    vi.mocked(fdmCore.getFields).mockResolvedValue([mockField])
+    vi.mocked(fdmCore.isDerogationGrantedForYear).mockResolvedValue(false)
+    vi.mocked(fdmCore.getGrazingIntention).mockResolvedValue(false)
+    vi.mocked(fdmCore.getCultivationsForFarm).mockResolvedValue(new Map())
+    vi.mocked(fdmCore.getCurrentSoilDataForFarm).mockResolvedValue(new Map())
+
+    const result = await collectNL2025InputForNormsForFarm(mockFdm, mockPrincipalId, mockFarmId)
+    expect(result.get(mockFieldId)?.soilAnalysis).toEqual({ a_p_cc: null, a_p_al: null })
   })
 })

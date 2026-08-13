@@ -185,6 +185,33 @@ describe("isBouwland", () => {
     const applicationDate = new Date("2026-07-01")
     expect(isBouwland(cultivations, applicationDate)).toBe(false)
   })
+
+  it("should return false when cultivation has no start date", () => {
+    const cultivations: Cultivation[] = [
+      {
+        b_lu: "cult1",
+        b_lu_start: null,
+        b_lu_end: null,
+        b_lu_catalogue: "nl_2014",
+        b_lu_source: "",
+        b_lu_name: "",
+        b_lu_name_en: null,
+        b_lu_hcat3: null,
+        b_lu_hcat3_name: null,
+        b_lu_croprotation: null,
+        b_lu_rest_oravib: null,
+        b_lu_eom: null,
+        b_lu_eom_residue: null,
+        b_lu_harvestcat: null,
+        b_lu_harvestable: "none",
+        b_lu_variety: null,
+        m_cropresidue: null,
+        b_id: "",
+      },
+    ]
+    const applicationDate = new Date("2026-07-01")
+    expect(isBouwland(cultivations, applicationDate)).toBe(false)
+  })
 })
 
 describe("getWorkingCoefficient", () => {
@@ -512,6 +539,25 @@ describe("getWorkingCoefficient", () => {
     expect(result.description).toBe("Mineralenconcentraat")
     expect(result.subTypeDescription).toBeUndefined()
   })
+
+  it("should match non-period subtype when date is outside Sep-Jan", () => {
+    const result = getWorkingCoefficient("10", "klei", true, true, new Date("2026-02-01"), true)
+    expect(result.p_n_wcl).toBe(0.45)
+    expect(result.description).toContain("Vaste mest van graasdieren")
+    expect(result.subTypeDescription).toContain("beweiding")
+  })
+
+  it("should return default details when no subtype matches an entry with subtypes", () => {
+    const result = getWorkingCoefficient("46", undefined, false, true, new Date("2026-06-15"), false)
+    expect(result.p_n_wcl).toBe(1)
+    expect(result.description).toBe("Kunstmest")
+  })
+
+  it("should evaluate bouwland mismatch in subtype checks", () => {
+    const result = getWorkingCoefficient("10", "klei", false, false, new Date("2026-10-15"), true)
+    expect(result.p_n_wcl).toBe(0.6)
+    expect(result.subTypeDescription).toContain("zonder beweiding")
+  })
 })
 
 describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", () => {
@@ -603,7 +649,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as NL2026NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // Expected: 1000 kg * 5 kg/ton * 1.0 (100%) / 1000 = 5
     expect(result.normFilling).toBeCloseTo(5)
@@ -764,7 +810,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as NL2026NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // App1: 1000 * 5 * 1.0 / 1000 = 5
     // App2: 500 * 10 * 0.1 / 1000 = 0.5
@@ -864,7 +910,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as NL2026NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // Expected: 1000 * 4.0 (from Table 11) * 0.45 (from Table 9) / 1000 = 1.8
     expect(result.normFilling).toBeCloseTo(1.8)
@@ -901,7 +947,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
         cultivations,
         has_organic_certification: false, // Default value for tests
         fosfaatgebruiksnorm: 0, // Default value for tests
-      } as NL2026NormsFillingInput),
+      } as unknown as NL2026NormsFillingInput),
     ).rejects.toThrow("Fertilizer nonExistentFert not found for application app1")
   })
 
@@ -990,7 +1036,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false,
       fosfaatgebruiksnorm: 0,
-    } as NL2026NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // For p_type_rvo "14" (Drijfmest rundvee), if onFarmProduced is false,
     // it falls into "Drijfmest van graasdieren aangevoerd" which has p_n_wcl of 0.60.
@@ -1108,7 +1154,7 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
       cultivations,
       has_organic_certification: false, // Default value for tests
       fosfaatgebruiksnorm: 0, // Default value for tests
-    } as NL2026NormsFillingInput)
+    } as unknown as NL2026NormsFillingInput)
 
     // For p_type_rvo "10" (Vaste mest rundvee), onFarmProduced: true in table9.
     // Since has_grazing_intention is false, onFarmProduced will be false in the main function.
@@ -1119,5 +1165,177 @@ describe("calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm", (
     expect(result.applicationFilling[0].normFillingDetails).toBe(
       "Werkingscoëfficiënt: 30% - Vaste mest van graasdieren aangevoerd - Op bouwland op klei en veen, van 1 september t/m 31 januari",
     )
+  })
+
+  it("should use table11 fallback nitrogen and default zero amount", async () => {
+    vi.mocked(getRegion).mockResolvedValue("klei")
+
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app-defaults",
+          p_app_date: new Date("2026-10-15"),
+          p_app_amount: undefined,
+          p_id_catalogue: "fert-defaults",
+          p_id: "",
+          p_name_nl: null,
+          p_app_method: null,
+        },
+      ],
+      fertilizers: [
+        {
+          p_id: "fert-defaults",
+          p_id_catalogue: "fert-defaults",
+          p_n_rt: null,
+          p_type_rvo: "14",
+          p_name_nl: null,
+          p_name_en: null,
+          p_description: null,
+          p_app_method_options: null,
+          p_app_amount: null,
+          p_app_amount_unit: "kg/ha",
+          p_date_acquiring: null,
+          p_picking_date: null,
+          p_n_if: null,
+          p_n_of: null,
+          p_n_wc: null,
+          p_no3_rt: null,
+          p_nh4_rt: null,
+          p_p_rt: null,
+          p_k_rt: null,
+          p_eom: null,
+          p_eoc: null,
+          p_mg_rt: null,
+          p_ca_rt: null,
+          p_ne: null,
+          p_s_rt: null,
+          p_s_wc: null,
+          p_cu_rt: null,
+          p_zn_rt: null,
+          p_na_rt: null,
+          p_si_rt: null,
+          p_b_rt: null,
+          p_mn_rt: null,
+          p_ni_rt: null,
+          p_fe_rt: null,
+          p_mo_rt: null,
+          p_co_rt: null,
+          p_as_rt: null,
+          p_cd_rt: null,
+          p_cr_rt: null,
+          p_cr_vi: null,
+          p_pb_rt: null,
+          p_hg_rt: null,
+          p_cl_rt: null,
+          p_ef_nh3: null,
+          p_type: null,
+          p_source: "",
+          p_dm: null,
+          p_density: null,
+          p_om: null,
+          p_a: null,
+          p_hc: null,
+          p_c_rt: null,
+          p_c_of: null,
+          p_c_if: null,
+          p_c_fr: null,
+          p_cn_of: null,
+        },
+      ],
+      b_centroid: [0, 0],
+      has_grazing_intention: false,
+      cultivations: [],
+      has_organic_certification: false,
+      fosfaatgebruiksnorm: 0,
+    } as unknown as NL2026NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling[0].normFilling).toBe(0)
+  })
+
+  it("should default nitrogen content to zero when table11 has no matching type", async () => {
+    vi.mocked(getRegion).mockResolvedValue("klei")
+
+    const result = await calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm({
+      applications: [
+        {
+          p_app_id: "app-no-table11",
+          p_app_date: new Date("2026-10-15"),
+          p_app_amount: 1000,
+          p_id_catalogue: "fert-no-table11",
+          p_id: "",
+          p_name_nl: null,
+          p_app_method: null,
+        },
+      ],
+      fertilizers: [
+        {
+          p_id: "fert-no-table11",
+          p_id_catalogue: "fert-no-table11",
+          p_n_rt: null,
+          p_type_rvo: "9999",
+          p_name_nl: null,
+          p_name_en: null,
+          p_description: null,
+          p_app_method_options: null,
+          p_app_amount: null,
+          p_app_amount_unit: "kg/ha",
+          p_date_acquiring: null,
+          p_picking_date: null,
+          p_n_if: null,
+          p_n_of: null,
+          p_n_wc: null,
+          p_no3_rt: null,
+          p_nh4_rt: null,
+          p_p_rt: null,
+          p_k_rt: null,
+          p_eom: null,
+          p_eoc: null,
+          p_mg_rt: null,
+          p_ca_rt: null,
+          p_ne: null,
+          p_s_rt: null,
+          p_s_wc: null,
+          p_cu_rt: null,
+          p_zn_rt: null,
+          p_na_rt: null,
+          p_si_rt: null,
+          p_b_rt: null,
+          p_mn_rt: null,
+          p_ni_rt: null,
+          p_fe_rt: null,
+          p_mo_rt: null,
+          p_co_rt: null,
+          p_as_rt: null,
+          p_cd_rt: null,
+          p_cr_rt: null,
+          p_cr_vi: null,
+          p_pb_rt: null,
+          p_hg_rt: null,
+          p_cl_rt: null,
+          p_ef_nh3: null,
+          p_type: null,
+          p_source: "",
+          p_dm: null,
+          p_density: null,
+          p_om: null,
+          p_a: null,
+          p_hc: null,
+          p_c_rt: null,
+          p_c_of: null,
+          p_c_if: null,
+          p_c_fr: null,
+          p_cn_of: null,
+        },
+      ],
+      b_centroid: [0, 0],
+      has_grazing_intention: false,
+      cultivations: [],
+      has_organic_certification: false,
+      fosfaatgebruiksnorm: 0,
+    } as unknown as NL2026NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling[0].normFilling).toBe(0)
   })
 })
