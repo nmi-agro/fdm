@@ -29,7 +29,7 @@ import { useCalendarStore } from "~/store/calendar"
 import { HarvestModeSwitchAlert } from "./mode-switch"
 import { getHarvestParameterLabel } from "./parameters"
 import { FormSchema } from "./schema"
-import { getHarvestCapitalizedTerm, getHarvestDateTerm, getHarvestTerm } from "./utils"
+import { getHarvestDateTerm, getHarvestTerm } from "./utils"
 
 function toDate(value: Date | string) {
   return value instanceof Date ? value : new Date(value)
@@ -204,6 +204,7 @@ function HarvestFields({
   form,
   className,
   b_lu_croprotation,
+  b_lu_harvestable,
   harvestParameters,
   exampleHarvestableAnalysis,
   example_b_lu_harvest_date,
@@ -223,7 +224,7 @@ function HarvestFields({
         control={form.control}
         render={({ field, fieldState }) => (
           <DatePicker
-            label={getHarvestDateTerm(b_lu_croprotation)}
+            label={getHarvestDateTerm(b_lu_croprotation, b_lu_harvestable)}
             placeholder={
               example_b_lu_harvest_date !== undefined && example_b_lu_harvest_date !== null
                 ? `Er zijn verschillende waarden ingevuld, bv: ${formatted_b_lu_harvest_date}`
@@ -524,19 +525,20 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
             <DialogHeader>
               <DialogTitle>
                 {isHarvestUpdate
-                  ? `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} bijwerken`
-                  : `${getHarvestCapitalizedTerm(props.b_lu_croprotation)} toevoegen`}
+                  ? `${getHarvestTerm(props.b_lu_croprotation, false, props.b_lu_harvestable, true)} bijwerken`
+                  : `${getHarvestTerm(props.b_lu_croprotation, false, props.b_lu_harvestable, true)} toevoegen`}
               </DialogTitle>
               <DialogDescription>
                 {isHarvestUpdate
-                  ? `Werk de ${getHarvestTerm(props.b_lu_croprotation)} bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`
-                  : `Voeg een ${getHarvestTerm(props.b_lu_croprotation)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
+                  ? `Werk de ${getHarvestTerm(props.b_lu_croprotation, false, props.b_lu_harvestable)} bij van dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`
+                  : `Voeg een ${getHarvestTerm(props.b_lu_croprotation, false, props.b_lu_harvestable)} toe aan dit gewas. Vul de gegevens in, zodat deze gebruikt kunnen worden in de berekeningen.`}
               </DialogDescription>
             </DialogHeader>
             {props.allowBatch && props.onBatchClick && (
               <HarvestModeSwitchAlert
                 isBatchMode={false}
                 b_lu_croprotation={props.b_lu_croprotation}
+                b_lu_harvestable={props.b_lu_harvestable}
                 onSwitch={props.onBatchClick}
               />
             )}
@@ -618,6 +620,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
         <HarvestModeSwitchAlert
           isBatchMode={false}
           b_lu_croprotation={props.b_lu_croprotation}
+          b_lu_harvestable={props.b_lu_harvestable}
           onSwitch={props.onBatchClick}
         />
       )}
