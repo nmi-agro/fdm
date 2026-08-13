@@ -232,3 +232,42 @@
   border-radius: 0.5rem;
   padding: 0;
 }
+
+/* atlas-popup: strip maplibre's chrome; the Card component provides all visual styling.
+   The built-in .maplibregl-popup-tip is coloured to match bg-background/95. */
+.atlas-popup .maplibregl-popup-content {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.atlas-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: hsl(var(--background) / 0.95);
+}
+.atlas-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: hsl(var(--background) / 0.95);
+}
+.atlas-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: hsl(var(--background) / 0.95);
+}
+.atlas-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: hsl(var(--background) / 0.95);
+}
+
+/** Corner radii when the popup is anchored at one of its corners. */
+.atlas-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-native-card {
+  border-bottom-left-radius: 0;
+}
+.atlas-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-native-card {
+  border-bottom-right-radius: 0;
+}
+.atlas-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-native-card {
+  border-top-left-radius: 0;
+}
+.atlas-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-native-card {
+  border-top-right-radius: 0;
+}

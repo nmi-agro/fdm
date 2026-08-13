@@ -1,4 +1,3 @@
-import { cva } from "class-variance-authority"
 import throttle from "lodash.throttle"
 import { X } from "lucide-react"
 import maplibregl from "maplibre-gl"
@@ -277,27 +276,8 @@ export function AtlasTooltip({
   }
 }
 
-const AnchorPositioning = cva("", {
-  variants: {
-    anchorX: {
-      left: "",
-      center: "-translate-x-1/2",
-      right: "-translate-x-full",
-    },
-    anchorY: {
-      top: "",
-      center: "-translate-y-1/2",
-      bottom: "-translate-y-full",
-    },
-  },
-  defaultVariants: {
-    anchorX: "center",
-    anchorY: "bottom",
-  },
-})
-
 /**
- * A component that places a `AtlasTooltipCard` at the given longitude and latitude.
+ * A popup that is displayed at the given latitude and longitude on the map.
  */
 export function AtlasPopup({
   longitude,
@@ -311,37 +291,88 @@ export function AtlasPopup({
   children: ReactNode
 }) {
   const { current: map } = useMap()
-  if (!map) return null
+  const popupRef = useRef<maplibregl.Popup | null>(null)
+  const [container, setContainer] = useState<HTMLDivElement | null>(null)
 
-  const [x, setX] = useState(0)
-  const [y, setY] = useState(0)
-
+  // Create the maplibre Popup once when the map is ready and tear it down on unmount.
   useEffect(() => {
-    const onViewportChange = () => {
-      const screenPoint = map.project([longitude, latitude])
-      setX(screenPoint.x)
-      setY(screenPoint.y)
-    }
+    if (!map) return
 
-    onViewportChange() // initial position
+    const el = document.createElement("div")
 
-    ;["move", "zoom", "rotate"].forEach((evt) => {
-      map.on(evt, onViewportChange)
+    const popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      maxWidth: "none",
+      className: "atlas-popup",
     })
-    return () => {
-      ;["move", "zoom", "rotate"].forEach((evt) => {
-        map.off(evt, onViewportChange)
-      })
-    }
-  }, [map, longitude, latitude])
+      .setLngLat([longitude, latitude])
+      .setDOMContent(el)
+      .addTo(map.getMap())
 
-  return (
-    <AtlasTooltipCard x={x} y={y} className={className}>
-      {children}
-    </AtlasTooltipCard>
+    popupRef.current = popup
+    setContainer(el)
+
+    return () => {
+      popup.remove()
+      popupRef.current = null
+      setContainer(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map])
+
+  // Keep the anchor coordinates in sync without recreating the popup.
+  useEffect(() => {
+    popupRef.current?.setLngLat([longitude, latitude])
+  }, [longitude, latitude])
+
+  if (!container) return null
+
+  return createPortal(
+    <AtlasNativePopupCard className={className}>{children}</AtlasNativePopupCard>,
+    container,
   )
 }
 
+/**
+ * Card content for use inside a maplibre-gl Popup.
+ */
+function AtlasNativePopupCard({
+  className,
+  children,
+}: {
+  className?: string
+  children: ReactNode
+}) {
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el) return
+    const stop = (e: PointerEvent) => e.stopPropagation()
+    el.addEventListener("pointerdown", stop)
+    el.addEventListener("pointermove", stop)
+    el.addEventListener("pointerup", stop)
+    return () => {
+      el.removeEventListener("pointerdown", stop)
+      el.removeEventListener("pointermove", stop)
+      el.removeEventListener("pointerup", stop)
+    }
+  }, [])
+
+  if (children === null || children === undefined) return null
+
+  return (
+    <div ref={cardRef} className={cn("cursor-default", className)}>
+      <Card className="bg-background/95 maplibregl-popup-native-card relative border-0 p-3 text-xs shadow-md backdrop-blur-sm">
+        {children}
+      </Card>
+    </div>
+  )
+}
+
+const TOOLTIP_ANCHOR_X_OFFSET = 12
+const TOOLTIP_ANCHOR_Y_OFFSET = 8
 /**
  * A `Card` wrapper that has a speech bubble tip. The tip is moved based on the distance to the edges of the
  * relative container.
@@ -361,25 +392,20 @@ function AtlasTooltipCard({
 }) {
   const { current: mapContainer } = useMapContainer()
   const tooltipContainerRef = useRef<HTMLDivElement>(null)
-  const [anchorX, setAnchorX] = useState<"left" | "center" | "right">("center")
-  const [anchorY, setAnchorY] = useState<"top" | "center" | "bottom">("bottom")
+  const [anchorX, setAnchorX] = useState<"left" | "right">("left")
+  const [anchorY, setAnchorY] = useState<"top" | "bottom">("top")
 
   useEffect(() => {
     if (!mapContainer) {
-      setAnchorX("center")
-      setAnchorY("bottom")
+      setAnchorX("left")
+      setAnchorY("top")
       return
     }
     const bcr = mapContainer.getBoundingClientRect()
-    const anchorX = x < bcr.width / 3 ? "left" : x > (bcr.width * 2) / 3 ? "right" : "center"
-    const anchorY = y < bcr.height / 3 ? "top" : y > (bcr.height * 2) / 3 ? "bottom" : "center"
-    if (anchorX === "center" && anchorY === "center") {
-      setAnchorX("center")
-      setAnchorY("bottom")
-    } else {
-      setAnchorX(anchorX)
-      setAnchorY(anchorY)
-    }
+    const anchorX = x < bcr.width * 0.67 ? "left" : "right"
+    const anchorY = y < bcr.height * 0.67 ? "top" : "bottom"
+    setAnchorX(anchorX)
+    setAnchorY(anchorY)
   }, [mapContainer, x, y])
 
   useEffect(() => {
@@ -406,52 +432,34 @@ function AtlasTooltipCard({
     <div
       ref={tooltipContainerRef}
       className={cn(
-        "absolute flex max-w-65 min-w-45 cursor-default",
+        "absolute max-w-65 min-w-45 cursor-default",
         !interactive && "pointer-events-none",
-        anchorY !== "center" && "flex-col",
-        AnchorPositioning({ anchorX, anchorY }),
         className,
       )}
       style={{
-        left: `${x}px`,
-        top: `${y}px`,
+        left:
+          anchorX === "left"
+            ? `${x + TOOLTIP_ANCHOR_X_OFFSET}px`
+            : `${x - TOOLTIP_ANCHOR_X_OFFSET}px`,
+        top:
+          anchorY === "top"
+            ? `${y + TOOLTIP_ANCHOR_Y_OFFSET}px`
+            : `${y - TOOLTIP_ANCHOR_Y_OFFSET}px`,
+        transform:
+          anchorX === "right" && anchorY === "bottom"
+            ? "translate(-100%,-100%)"
+            : anchorX === "right"
+              ? "translateX(-100%)"
+              : anchorY === "bottom"
+                ? "translateY(-100%)"
+                : "none",
       }}
     >
-      {anchorX === "left" && anchorY === "top" && (
-        <div className="border-l-background/95 z-10 size-0 self-start border-x-6 border-y-8 border-b-0 border-transparent" />
-      )}
-      {anchorX === "right" && anchorY === "top" && (
-        <div className="border-r-background/95 z-10 size-0 self-end border-x-6 border-y-8 border-b-0 border-transparent" />
-      )}
-      {anchorX === "center" && anchorY === "top" && (
-        <div className="border-b-background/95 z-10 size-0 self-center border-8 border-t-0 border-transparent" />
-      )}
-      {anchorX === "left" && anchorY === "center" && (
-        <div className="border-r-background/95 z-10 size-0 self-center border-8 border-l-0 border-transparent" />
-      )}
       <Card
-        className={cn(
-          "bg-background/95 relative border-0 p-3 text-xs shadow-md backdrop-blur-sm",
-          anchorX === "left" && anchorY === "top" && "rounded-tl-none",
-          anchorX === "right" && anchorY === "top" && "rounded-tr-none",
-          anchorX === "left" && anchorY === "bottom" && "rounded-bl-none",
-          anchorX === "right" && anchorY === "bottom" && "rounded-br-none",
-        )}
+        className={cn("bg-background/95 relative border-0 p-3 text-xs shadow-md backdrop-blur-sm")}
       >
         {children}
       </Card>
-      {anchorX === "right" && anchorY === "center" && (
-        <div className="border-l-background/95 z-10 size-0 self-center border-8 border-r-0 border-transparent" />
-      )}
-      {anchorX === "left" && anchorY === "bottom" && (
-        <div className="border-l-background/95 z-10 size-0 self-start border-x-6 border-y-8 border-t-0 border-transparent" />
-      )}
-      {anchorX === "right" && anchorY === "bottom" && (
-        <div className="border-r-background/95 z-10 size-0 self-end border-x-6 border-y-8 border-t-0 border-transparent" />
-      )}
-      {anchorX === "center" && anchorY === "bottom" && (
-        <div className="border-t-background/95 z-10 size-0 self-center border-8 border-b-0 border-transparent" />
-      )}
     </div>
   )
 }
