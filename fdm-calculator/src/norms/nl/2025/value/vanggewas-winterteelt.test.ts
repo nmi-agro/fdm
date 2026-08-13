@@ -241,29 +241,33 @@ describe("Vanggewas & Winterteelt crop-code classification", () => {
     expect(descriptions).toContain("Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober")
   })
 
-  it("ignores post-main-crop candidates without sowing dates", () => {
+  it("rejects candidate catch crops sown before hoofdteelt(N-1) start date but still applies reduction if valid catch crop follows", () => {
     const descriptions: string[] = []
     const korting = calculateVanggewasWinterteeltKorting(
       [
+        // A catch crop mistakenly recorded as sown BEFORE hoofdteelt(N-1) (e.g., March 2024)
+        {
+          b_lu_catalogue: "nl_428", // Gele mosterd
+          b_lu_start: new Date(2024, 2, 1),
+          b_lu_end: new Date(2024, 3, 1),
+        },
+        // Hoofdteelt (N-1) starting April 2024
+        {
+          b_lu_catalogue: "nl_2751", // Consumer potatoes
+          b_lu_start: new Date(2024, 3, 15),
+          b_lu_end: new Date(2024, 8, 15),
+        },
+        // Hoofdteelt (N) starting April 2025
         {
           b_lu_catalogue: "nl_2751",
-          b_lu_start: new Date(2024, 3, 1),
-          b_lu_end: new Date(2024, 8, 1),
+          b_lu_start: new Date(2025, 3, 15),
+          b_lu_end: new Date(2025, 8, 15),
         },
-        {
-          b_lu_catalogue: "nl_2751",
-          b_lu_start: new Date(2025, 3, 1),
-          b_lu_end: new Date(2025, 8, 1),
-        },
+        // Real catch crop sown after hoofdteelt(N-1) on Oct 10, 2024 -> 5 kg N/ha reduction
         {
           b_lu_catalogue: "nl_428",
-          b_lu_start: null,
-          b_lu_end: new Date(2025, 1, 10),
-        },
-        {
-          b_lu_catalogue: "nl_428",
-          b_lu_start: new Date(2024, 8, 20),
-          b_lu_end: new Date(2025, 1, 10),
+          b_lu_start: new Date(2024, 9, 10),
+          b_lu_end: new Date(2025, 1, 15),
         },
       ] as any,
       "zand_nwc",
@@ -271,7 +275,7 @@ describe("Vanggewas & Winterteelt crop-code classification", () => {
       descriptions,
     )
 
-    expect(korting.toNumber()).toBe(0)
-    expect(descriptions).toContain("Geen korting: vanggewas gezaaid uiterlijk 1 oktober")
+    expect(korting.toNumber()).toBe(5)
+    expect(descriptions).toContain("Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober")
   })
 })

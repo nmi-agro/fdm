@@ -359,6 +359,12 @@ export function calculateVanggewasWinterteeltKorting(
         (c.b_lu_start.getFullYear() === currentYear && c.b_lu_start.getMonth() === 0)
       if (!sownInWindow) return false
 
+      // Catch crops must be sown after or during (undersown) hoofdteelt(N-1)
+      const mainCropStart = hoofdteeltPrevCultivation?.b_lu_start
+      if (mainCropStart && c.b_lu_start < mainCropStart) {
+        return false
+      }
+
       const isCatchOrWinter =
         isVanggewas(c.b_lu_catalogue, previousYear) ||
         isWinterteelt(c.b_lu_catalogue, previousYear, c, cultivations)
