@@ -369,7 +369,6 @@ export function calculateVanggewasWinterteeltKorting(
         !isVanggewas(c.b_lu_catalogue, previousYear),
     )
     if (followingWinterCrop) {
-      catchCropExempt = true
       descriptions.push("Geen korting: winterteelt aanwezig")
     } else {
       // Filter to valid vanggewassen (catch crops)
