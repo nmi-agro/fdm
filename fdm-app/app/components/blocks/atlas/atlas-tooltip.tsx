@@ -25,9 +25,9 @@ const TOUCH_DRAG_TOLERANCE = 8
 
 /**
  * A tooltip that either follows the mouse pointer or appears as a popup at the touch position. When its
- * position changes it determines the rendered map feature under it, and the feature is passed to the `render`
- * function. If there is no feature null is passed instead. If the render function returns null or undefined,
- * nothing is rendered at all, including the tooltip speech bubble.
+ * position changes it determines the rendered map features under it, then passes the array of features to the
+ * render function. If the render function returns null or undefined, nothing is rendered at all, including
+ * the tooltip speech bubble.
  */
 export function AtlasTooltip({
   render,
