@@ -262,7 +262,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
               ?.b_lu_variety_options?.map((option: string) => ({
                 value: option,
                 label: option,
-              })) ?? null,
+              }))
+              .sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0)) ?? null,
           b_lu_croprotation: b_lu_croprotation,
           b_lu_eom_residue: b_lu_eom_residue,
           b_lu_harvestable: b_lu_harvestable,
