@@ -127,8 +127,8 @@ importers:
         specifier: ^2.1.0
         version: 2.1.0(hono@4.13.1)
       '@hono/zod-openapi':
-        specifier: ^1.5.2
-        version: 1.5.2(hono@4.13.1)(zod@4.4.3)
+        specifier: ^1.5.1
+        version: 1.5.1(hono@4.13.1)(zod@4.4.3)
       '@nmi-agro/fdm-calculator':
         specifier: workspace:*
         version: link:../fdm-calculator
@@ -136,7 +136,7 @@ importers:
         specifier: workspace:*
         version: link:../fdm-core
       '@scalar/hono-api-reference':
-        specifier: ^0.11.13
+        specifier: ^0.11.14
         version: 0.11.14(hono@4.13.1)
       '@sentry/node':
         specifier: ^10.70.0
@@ -161,7 +161,7 @@ importers:
         specifier: 'catalog:'
         version: 2.21.0
       '@scalar/openapi-parser':
-        specifier: ^0.28.12
+        specifier: ^0.28.13
         version: 0.28.13
       '@types/node':
         specifier: 'catalog:'
@@ -2807,8 +2807,8 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/zod-openapi@1.5.2':
-    resolution: {integrity: sha512-FPlspM6+qObGoMfux+0SSE0of0tGO+BVo3havhKzZMxRyz/ql89kuCd/7POd70aW3T4kz/aVL6gNZ6sVd0ItUQ==}
+  '@hono/zod-openapi@1.5.1':
+    resolution: {integrity: sha512-ZaDdEIkn6PEGjIYHXJeyByg6yhvLzI+UXn968pWtahpwcQ6HMjQYXI3zNffTl0Wl9QZ79nUnGqiN1erEIu23fA==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       hono: '>=4.10.0'
@@ -15473,7 +15473,7 @@ snapshots:
     dependencies:
       hono: 4.13.1
 
-  '@hono/zod-openapi@1.5.2(hono@4.13.1)(zod@4.4.3)':
+  '@hono/zod-openapi@1.5.1(hono@4.13.1)(zod@4.4.3)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.5.0(zod@4.4.3)
       '@hono/zod-validator': 0.9.0(hono@4.13.1)(zod@4.4.3)
