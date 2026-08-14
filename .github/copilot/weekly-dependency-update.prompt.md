@@ -33,7 +33,7 @@ Before finishing, for every package you touched:
 
 - Respect build order: `fdm-data` → `fdm-core` → downstream packages.
 - Run `pnpm build`, `pnpm check-types` (root and/or per-package, e.g. `fdm-app`'s `pnpm check-types` runs `react-router typegen && tsc`), and `pnpm lint`.
-- Run the targeted test suite for each touched package, e.g. `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`. A local PostgreSQL/PostGIS instance is available via the `copilot-setup-steps` service for packages that need it (`fdm-core`, `fdm-calculator`, `fdm-rvo`, `fdm-helpdesk`).
+- Run the targeted test suite for each touched package, e.g. `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`. A PostgreSQL/PostGIS instance is available (via the `copilot-setup-steps` service) for packages that need it (`fdm-core`, `fdm-calculator`, `fdm-rvo`, `fdm-helpdesk`); connection details are provided via `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` environment variables. If these are unset or the tests fail immediately with a missing-env-var error (see `fdm-core/src/global-setup.ts`), that's an environment configuration issue, not something caused by the dependency updates — state clearly in the PR's Validation section which suites you could not run and why (e.g. "fdm-core tests: skipped, POSTGRES_* environment variables not available in this session") rather than silently omitting them or reporting a vague "unable to test."
 - Fix any regression your changes caused. If a specific bump cannot be made to pass validation within reasonable effort, revert just that bump and move it to "Decisions Needed" instead of leaving a broken build.
 
 ## 5. Changesets
@@ -44,9 +44,11 @@ For a package that did get a major dependency bump, default to a **`patch`** cha
 - introduces new features that are now available to consumers of the `fdm` package — in that case use **`minor`**, or
 - introduces a breaking change in the `fdm` package's own public API/behavior as a result of the upgrade — in that case use **`major`**.
 
-## 6. Pull request description
+## 6. Pull request title and description
 
-Open the PR as a **draft**, targeting the `development` branch, and structure the description with exactly these sections (omit "Decisions Needed" entirely if there are none):
+Title the pull request exactly: `Weekly dependency update — Week {{WEEK_NUMBER}}, {{WEEK_YEAR}}` (ISO week number and year). Do not leave (or revert to) a generic auto-generated title, and do not leave a `[WIP]`-prefixed title once your work is complete — the final title must be exactly the string above.
+
+Open the PR as a **draft**, targeting the `development` branch. **As the very last action before finishing**, replace the entire PR description with the structure below — do not leave your own running session checklist/progress notes (e.g. a plain `- [x] did X` task list) as the final description; that's for your own tracking while working, not the deliverable. Summarize the checklist items into the sections below instead (omit "Decisions Needed" entirely if there are none):
 
 ```markdown
 ## Summary
@@ -80,4 +82,4 @@ Add the `dependencies` label to the PR if you have permission to do so.
 
 ## Branch name
 
-Create/use the branch `agent/dependencies/{{BRANCH_DATE}}` for this task's commits and pull request.
+You have been assigned to the pre-created branch `agent/dependencies/{{BRANCH_DATE}}`; commit your changes there and open the pull request from it (do not create a different branch).
