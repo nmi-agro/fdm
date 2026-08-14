@@ -11,7 +11,7 @@ import { useMapContainer } from "./atlas-shell"
 import { useStableSet } from "./atlas-util"
 
 type AtlasTooltipRenderProps = {
-  feature: maplibregl.MapGeoJSONFeature | null
+  features: maplibregl.MapGeoJSONFeature[]
   mode: "popup" | "tooltip"
   latitude: number
   longitude: number
@@ -24,10 +24,10 @@ type AtlasTooltipRenderProps = {
 const TOUCH_DRAG_TOLERANCE = 8
 
 /**
- * A `Card` wrapper that places itself onto the map. It follows the mouse or moves to where the user tapped
- * with their finger. When its position changes it determines the rendered map feature under it, and the
- * feature is passed to the `render` function. If there is no feature null is passed instead. If the render
- * function returns null or undefined, nothing is rendered at all, including the tooltip speech bubble.
+ * A tooltip that either follows the mouse pointer or appears as a popup at the touch position. When its
+ * position changes it determines the rendered map feature under it, and the feature is passed to the `render`
+ * function. If there is no feature null is passed instead. If the render function returns null or undefined,
+ * nothing is rendered at all, including the tooltip speech bubble.
  */
 export function AtlasTooltip({
   render,
@@ -56,9 +56,9 @@ export function AtlasTooltip({
   }
   const [hoverPosition, setHoverPosition] = useState<HoverPosition | null>(null)
   const hoverPositionRef = useRef<HoverPosition | null>(null)
-  const [hoveredFeature, setHoveredFeature] = useState<maplibregl.MapGeoJSONFeature | null>(null)
+  const [hoveredFeatures, setHoveredFeatures] = useState<maplibregl.MapGeoJSONFeature[]>([])
 
-  const getHoveredFeature = useCallback(
+  const getHoveredFeatures = useCallback(
     (map: MapRef, x: number, y: number) => {
       const coords = new maplibregl.Point(x, y)
 
@@ -68,7 +68,7 @@ export function AtlasTooltip({
         })
 
         if (excludedFeatures.length > 0) {
-          return null
+          return []
         }
       }
 
@@ -76,13 +76,13 @@ export function AtlasTooltip({
         layers: [...layersSet],
       })
 
-      return features.length > 0 ? features[0] : null
+      return features
     },
     [map, layersSet, layersExcludeSet],
   )
 
+  // Throttle tooltip updates to reduce flashing.
   const [updateHoveredFeatureThrottled, setUpdateHoveredFeatureThrottled] = useState(() => () => {})
-
   useEffect(() => {
     const fn = throttle(
       () => {
@@ -92,9 +92,9 @@ export function AtlasTooltip({
             currentHoverPosition.mode === "tooltip"
               ? currentHoverPosition
               : map.project(currentHoverPosition.lngLat)
-          setHoveredFeature(getHoveredFeature(map, position.x, position.y))
+          setHoveredFeatures(getHoveredFeatures(map, position.x, position.y))
         } else {
-          setHoveredFeature(null)
+          setHoveredFeatures([])
         }
       },
       200,
@@ -106,8 +106,21 @@ export function AtlasTooltip({
     return () => {
       fn.cancel()
     }
-  }, [map, getHoveredFeature])
+  }, [map, getHoveredFeatures])
 
+  // When the user clicks on the map or the popup, the feature under the hover position needs to be updated
+  // in case the map layers change.
+  const updateHoveredFeaturesOnceIdle = useCallback(() => {
+    if (!map) return
+    map.once("idle", () => {
+      const pos = hoverPositionRef.current
+      if (!pos) return
+      const position = pos.mode === "tooltip" ? pos : map.project(pos.lngLat)
+      setHoveredFeatures(getHoveredFeatures(map, position.x, position.y))
+    })
+  }, [map, getHoveredFeatures])
+
+  // Attach event listeners to the map that adjust the tooltip position and handle clicks.
   useEffect(() => {
     const currentMap = map
     const currentMapContainer = mapContainer
@@ -178,11 +191,15 @@ export function AtlasTooltip({
           hoverPositionRef.current = newHoverPosition
           setHoverPosition(newHoverPosition)
           updateHoveredFeatureThrottled()
-        } else if (onFeatureClicked) {
-          const clickedFeature = getHoveredFeature(currentMap, x, y)
-          if (clickedFeature) {
-            onFeatureClicked(clickedFeature)
+        } else {
+          if (onFeatureClicked) {
+            const clickedFeatures = getHoveredFeatures(currentMap, x, y)
+            if (clickedFeatures.length > 0) {
+              onFeatureClicked(clickedFeatures[0])
+            }
           }
+          // Always schedule a re-query after a click, feature state may change in response.
+          updateHoveredFeaturesOnceIdle()
         }
       }
 
@@ -193,7 +210,7 @@ export function AtlasTooltip({
       if (hoverPositionRef.current?.mode === "tooltip") {
         hoverPositionRef.current = null
         setHoverPosition(null)
-        setHoveredFeature(null)
+        setHoveredFeatures([])
       }
       pointers.delete(e.pointerId)
     }
@@ -203,7 +220,7 @@ export function AtlasTooltip({
       if (e.key === "Escape" && hoverPositionRef.current?.mode === "popup") {
         hoverPositionRef.current = null
         setHoverPosition(null)
-        setHoveredFeature(null)
+        setHoveredFeatures([])
       }
     }
 
@@ -223,10 +240,11 @@ export function AtlasTooltip({
       removeEventListener("keydown", onKeyDown)
     }
   }, [
-    getHoveredFeature,
+    getHoveredFeatures,
     map,
     mapContainer,
     updateHoveredFeatureThrottled,
+    updateHoveredFeaturesOnceIdle,
     touchDisplaysPopupInstead,
     onFeatureClicked,
   ])
@@ -235,7 +253,14 @@ export function AtlasTooltip({
 
   if (hoverPosition?.mode === "popup") {
     return createPortal(
-      <AtlasPopup longitude={hoverPosition.lngLat.lng} latitude={hoverPosition.lngLat.lat}>
+      <AtlasPopup
+        longitude={hoverPosition.lngLat.lng}
+        latitude={hoverPosition.lngLat.lat}
+        onPointerUp={() => {
+          // Layers might change after this happens.
+          updateHoveredFeaturesOnceIdle()
+        }}
+      >
         <Button
           type="button"
           variant="ghost"
@@ -244,14 +269,14 @@ export function AtlasTooltip({
           aria-label="Sluiten"
           onClick={() => {
             setHoverPosition(null)
-            setHoveredFeature(null)
+            setHoveredFeatures([])
             hoverPositionRef.current = null
           }}
         >
           <X />
         </Button>
         {render({
-          feature: hoveredFeature,
+          features: hoveredFeatures,
           mode: "popup",
           longitude: hoverPosition.lngLat.lng,
           latitude: hoverPosition.lngLat.lat,
@@ -265,7 +290,7 @@ export function AtlasTooltip({
     return createPortal(
       <AtlasTooltipCard x={hoverPosition.x} y={hoverPosition.y} interactive={false}>
         {render({
-          feature: hoveredFeature,
+          features: hoveredFeatures,
           mode: "tooltip",
           longitude: hoverPosition.lngLat.lng,
           latitude: hoverPosition.lngLat.lat,
@@ -283,11 +308,13 @@ export function AtlasPopup({
   longitude,
   latitude,
   className,
+  onPointerUp,
   children,
 }: {
   longitude: number
   latitude: number
   className?: string
+  onPointerUp?: () => void
   children: ReactNode
 }) {
   const { current: map } = useMap()
@@ -329,7 +356,9 @@ export function AtlasPopup({
   if (!container) return null
 
   return createPortal(
-    <AtlasNativePopupCard className={className}>{children}</AtlasNativePopupCard>,
+    <AtlasNativePopupCard className={className} onPointerUp={onPointerUp}>
+      {children}
+    </AtlasNativePopupCard>,
     container,
   )
 }
@@ -339,9 +368,11 @@ export function AtlasPopup({
  */
 function AtlasNativePopupCard({
   className,
+  onPointerUp,
   children,
 }: {
   className?: string
+  onPointerUp?: () => void
   children: ReactNode
 }) {
   const cardRef = useRef<HTMLDivElement>(null)
@@ -350,15 +381,19 @@ function AtlasNativePopupCard({
     const el = cardRef.current
     if (!el) return
     const stop = (e: PointerEvent) => e.stopPropagation()
+    const myOnPointerUp = (e: PointerEvent) => {
+      e.stopPropagation()
+      onPointerUp?.()
+    }
     el.addEventListener("pointerdown", stop)
     el.addEventListener("pointermove", stop)
-    el.addEventListener("pointerup", stop)
+    el.addEventListener("pointerup", myOnPointerUp)
     return () => {
       el.removeEventListener("pointerdown", stop)
       el.removeEventListener("pointermove", stop)
-      el.removeEventListener("pointerup", stop)
+      el.removeEventListener("pointerup", myOnPointerUp)
     }
-  }, [])
+  }, [onPointerUp])
 
   if (children === null || children === undefined) return null
 

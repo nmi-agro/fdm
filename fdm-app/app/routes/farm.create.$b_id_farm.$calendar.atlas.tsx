@@ -294,6 +294,7 @@ export default function Index() {
                   zoomLevelFields={ZOOM_LEVEL_FIELDS}
                   layer={[fieldsAvailableId, fieldsSelectedId]}
                   layerExclude={[fieldsSavedId]}
+                  touchDisplaysPopupInstead={false}
                 />
 
                 <div className="fields-panel">

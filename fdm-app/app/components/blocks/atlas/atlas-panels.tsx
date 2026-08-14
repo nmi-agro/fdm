@@ -19,7 +19,12 @@ import {
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { AtlasTooltip, AtlasTooltipFooter, AtlasTooltipHeader } from "./atlas-tooltip"
+import {
+  AtlasTooltip,
+  AtlasTooltipContent,
+  AtlasTooltipFooter,
+  AtlasTooltipHeader,
+} from "./atlas-tooltip"
 
 /**
  * Renders a tooltip or popup showing the field name or the cultivation name and the corresponding area,
@@ -29,6 +34,7 @@ import { AtlasTooltip, AtlasTooltipFooter, AtlasTooltipHeader } from "./atlas-to
  * - `zoomLevelFields` is the zoom threshold after which no panel is shown
  * - `layer` is a layer ID or an array of IDs for which the panel is shown
  * - `layerExclude` can be a layerId or an array of IDs which block the panel from being shown
+ * - `onFeatureClicked` is called when the feature under the tooltip is clicked or the More details button on the popup is clicked.
  * - `clickRedirectsToDetailsPage`, if set to true, causes the default panel to tell the user that clicking will navigate to a different page
  * - `touchDisplaysPopupInstead`, if set to true, causes touch taps not to call onFeatureClicked immediately, but to instead create an atlas popup
  * @returns the output of the render function, or a Card containing the information mentioned above.
@@ -78,41 +84,77 @@ export function FieldTooltip({
       onFeatureClicked={onFeatureClicked}
       touchDisplaysPopupInstead={touchDisplaysPopupInstead}
       render={(props) => {
-        const { feature, mode } = props
-        if (!feature) return null
+        const { features, mode } = props
 
-        const layer = feature.layer.id
-        const name =
-          layer === "fieldsSaved" ? feature.properties.b_name : feature.properties.b_lu_name
+        const savedField = features.find((feature) => feature.layer.id === "fieldsSaved")
+        const selectedField = features.find((feature) => feature.layer.id === "fieldsSelected")
+        const availableField = features.find((feature) => feature.layer.id === "fieldsAvailable")
+
+        const featureToClick = savedField ?? selectedField ?? availableField
+
+        if (!featureToClick) return null
+
+        const cardFooter =
+          mode === "popup" && clickRedirectsToDetailsPage ? (
+            <AtlasTooltipFooter>
+              <Button
+                type="button"
+                className="grow"
+                onClick={() => {
+                  if (onFeatureClicked && features.length > 0) {
+                    onFeatureClicked(selectedField ?? features[0])
+                  }
+                }}
+              >
+                Meer details
+              </Button>
+            </AtlasTooltipFooter>
+          ) : undefined
+
+        if (savedField && availableField) {
+          return (
+            <>
+              <AtlasTooltipHeader>
+                <CardTitle>{savedField.properties.b_name}</CardTitle>
+                <CardDescription className="text-xs">
+                  {savedField.properties.b_area}
+                  {" ha"}
+                </CardDescription>
+              </AtlasTooltipHeader>
+              <AtlasTooltipContent>{availableField.properties.b_lu_name}</AtlasTooltipContent>
+              {cardFooter}
+            </>
+          )
+        }
+
+        if (savedField) {
+          return (
+            <>
+              <AtlasTooltipHeader>
+                <CardTitle>{savedField.properties.b_name}</CardTitle>
+                <CardDescription className="text-xs">
+                  {savedField.properties.b_area}
+                  {" ha"}
+                </CardDescription>
+              </AtlasTooltipHeader>
+              {cardFooter}
+            </>
+          )
+        }
+
         return (
           <>
             <AtlasTooltipHeader>
-              <CardTitle>{name}</CardTitle>
+              <CardTitle>{featureToClick.properties.b_lu_name}</CardTitle>
               <CardDescription>
-                {layer === "fieldsSaved"
-                  ? `${feature.properties.b_area} ha`
-                  : clickRedirectsToDetailsPage
-                    ? "Klik voor meer details over dit perceel"
-                    : layer === "fieldsAvailable"
-                      ? "Klik om te selecteren"
-                      : "Klik om te verwijderen"}
+                {clickRedirectsToDetailsPage
+                  ? "Klik voor meer details over dit perceel"
+                  : featureToClick === availableField
+                    ? "Klik om te selecteren"
+                    : "Klik om te verwijderen"}
               </CardDescription>
             </AtlasTooltipHeader>
-            {mode === "popup" && clickRedirectsToDetailsPage && (
-              <AtlasTooltipFooter>
-                <Button
-                  type="button"
-                  className="grow"
-                  onClick={() => {
-                    if (onFeatureClicked && props.feature) {
-                      onFeatureClicked(props.feature)
-                    }
-                  }}
-                >
-                  Meer details
-                </Button>
-              </AtlasTooltipFooter>
-            )}
+            {cardFooter}
           </>
         )
       }}

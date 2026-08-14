@@ -154,8 +154,10 @@ export default function MeasuresMap({
       <AtlasTooltip
         layers={[FIELDS_LAYER]}
         onFeatureClicked={onFeatureClicked}
-        render={({ feature, mode }) => {
-          if (feature === null) return null
+        render={({ features, mode }) => {
+          if (features.length === 0) return null
+          const feature = features[0]
+
           return (
             <>
               <AtlasTooltipHeader>

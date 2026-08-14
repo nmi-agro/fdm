@@ -260,8 +260,10 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         <AtlasTooltip
           layers={[heatmapLayerId]}
           onFeatureClicked={onFieldClick}
-          render={({ feature, mode }) => {
-            if (!feature) return null
+          render={({ features, mode }) => {
+            if (features.length === 0) return null
+            const feature = features[0]
+
             return (
               <>
                 <AtlasTooltipHeader>
