@@ -83,18 +83,15 @@ export interface CalculationServices {
 // Shared schemas
 // ---------------------------------------------------------------------------
 
-const TimeframeQueryBaseSchema = z.object({
-  start: DateStringSchema.describe("Inclusive start date in YYYY-MM-DD format."),
-  end: DateStringSchema.describe("Inclusive end date in YYYY-MM-DD format."),
-})
-
-const TimeframeQuerySchema = TimeframeQueryBaseSchema.refine(
-  (d: z.infer<typeof TimeframeQueryBaseSchema>) => new Date(d.start) <= new Date(d.end),
-  {
+const TimeframeQuerySchema = z
+  .object({
+    start: DateStringSchema.describe("Inclusive start date in YYYY-MM-DD format."),
+    end: DateStringSchema.describe("Inclusive end date in YYYY-MM-DD format."),
+  })
+  .refine((d) => new Date(d.start) <= new Date(d.end), {
     message: "start must be before or equal to end",
     path: ["end"],
-  },
-)
+  })
 
 const ApplicationValueSchema = z.object({
   id: z.string(),
