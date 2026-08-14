@@ -12,6 +12,7 @@ import {
   fromKgPerHa,
   getCultivations,
   getCurrentSoilData,
+  getFarm,
   getFertilizerParametersDescription,
   getFertilizers,
   getFields,
@@ -164,7 +165,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
           end: new Date(`${calendar}-12-31`),
         }
 
-        const rawFields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+        const [farm, rawFields] = await Promise.all([
+          getFarm(fdm, session.principal_id, b_id_farm),
+          getFields(fdm, session.principal_id, b_id_farm, timeframe),
+        ])
         if (isClosed) return
 
         const fieldsData = await Promise.all(
@@ -237,7 +241,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
           modelName,
         )
         const prompt = buildFertilizerPlanPrompt(
-          { b_id_farm },
+          { b_id_farm, b_name_farm: farm.b_name_farm },
           strategies,
           calendar,
           additionalContext,
