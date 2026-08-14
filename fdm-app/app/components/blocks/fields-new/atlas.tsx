@@ -1,4 +1,4 @@
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useEffect, useRef, useState } from "react"
 import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
 import { Skeleton } from "../../ui/skeleton"

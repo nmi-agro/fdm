@@ -1,6 +1,6 @@
 /* eslint-disable typescript/restrict-template-expressions -- Mapbox viewstates, coordinates, and layer IDs are formatted inside template literals safely. */
 import type { FeatureCollection } from "geojson"
-import type { MapGeoJSONFeature, MapLibreZoomEvent } from "maplibre-gl"
+import type { MapGeoJSONFeature, MapLibreEvent } from "maplibre-gl"
 import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
@@ -58,7 +58,7 @@ export function FieldsPanelHover({
   const excludedLayerIdsKey = excludedLayerIds.join("|")
 
   useEffect(() => {
-    function updatePanel(evt: MapMouseEvent | MapLibreZoomEvent) {
+    function updatePanel(evt: MapMouseEvent | MapLibreEvent) {
       if (map) {
         // Set message about zoom level
         const zoom = map.getZoom()

@@ -1,5 +1,5 @@
 import type { CurrentSoilData, SoilParameterDescription } from "@nmi-agro/fdm-core"
-import type maplibregl from "maplibre-gl"
+import type * as maplibregl from "maplibre-gl"
 import { NewFieldsAtlas } from "./atlas"
 import { NewFieldsForm } from "./form"
 import { NewFieldSoilAnalysisBlock } from "./soil"

@@ -62,6 +62,7 @@ export default defineConfig((env) => {
         "posthog-js",
         "posthog-js/react",
         "@geomatico/maplibre-cog-protocol",
+        "maplibre-gl",
         "remix-hook-form",
       ],
     },
