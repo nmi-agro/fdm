@@ -45,8 +45,9 @@ export function computeAdviceProgress(current: number, target: number, excessExe
  * (trace elements) keep two decimals so they don't collapse to "0 kg".
  */
 export function formatSignedDifference(difference: number) {
-  const rounded =
+  const roundedValue =
     Math.abs(difference) >= 1 ? Math.round(difference) : Math.round(difference * 100) / 100
+  const rounded = Object.is(roundedValue, -0) ? 0 : roundedValue
   return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("nl-NL")} kg`
 }
 

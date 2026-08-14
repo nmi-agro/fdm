@@ -107,12 +107,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           await Promise.all([currentSoilData, fertilizerApplications, fertilizers])
 
         // Get harvests of the active cultivation, to relate per-cut advice to recorded cuts
-        const harvests = await getHarvests(
-          fdm,
-          session.principal_id,
-          activeCultivation.b_lu,
-          timeframe,
-        )
+        let harvests: Awaited<ReturnType<typeof getHarvests>> = []
+        try {
+          harvests = await getHarvests(
+            fdm,
+            session.principal_id,
+            activeCultivation.b_lu,
+            timeframe,
+          )
+        } catch (error) {
+          console.error("Failed to load harvests for nutrient advice:", error)
+        }
 
         const b_lu_catalogue = activeCultivation.b_lu_catalogue
 
@@ -271,6 +276,7 @@ function FieldNutrientAdvice({
           cutAdviceSection={
             showCutAdvice ? (
               <CutAdviceCard
+                key={asyncData.activeCultivation.b_lu}
                 cuts={cuts}
                 harvests={asyncData.harvests}
                 fertilizerApplications={asyncData.fertilizerApplications}

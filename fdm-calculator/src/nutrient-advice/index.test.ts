@@ -167,6 +167,63 @@ describe("requestNutrientAdvice", () => {
     expect(result.cuts).toEqual(mockGrasslandNutrientAdviceResponse.data.cut)
   })
 
+  it("should omit per-cut advice when the API returns a malformed cut payload", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () =>
+        ({
+          ...mockGrasslandNutrientAdviceResponse,
+          data: {
+            ...mockGrasslandNutrientAdviceResponse.data,
+            cut: { invalid: true },
+          },
+        }) as unknown as NutrientAdviceResponse,
+    } as Response)
+
+    const inputs: NutrientAdviceInputs = {
+      b_lu_catalogue: "nl_265",
+      b_centroid: [4.3, 52.4],
+      currentSoilData: mockCurrentSoilData,
+      nmiApiKey: "mock-api-key",
+    }
+
+    const result = await requestNutrientAdvice(inputs)
+
+    expect(result).toEqual(mockGrasslandNutrientAdviceResponse.data.year)
+    expect(result.cuts).toBeUndefined()
+  })
+
+  it("should omit per-cut advice when an entry does not satisfy the cut contract", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () =>
+        ({
+          ...mockGrasslandNutrientAdviceResponse,
+          data: {
+            ...mockGrasslandNutrientAdviceResponse.data,
+            cut: [
+              {
+                ...mockGrasslandNutrientAdviceResponse.data.cut?.[0],
+                cut: 7,
+              },
+            ],
+          },
+        }) as unknown as NutrientAdviceResponse,
+    } as Response)
+
+    const inputs: NutrientAdviceInputs = {
+      b_lu_catalogue: "nl_265",
+      b_centroid: [4.3, 52.4],
+      currentSoilData: mockCurrentSoilData,
+      nmiApiKey: "mock-api-key",
+    }
+
+    const result = await requestNutrientAdvice(inputs)
+
+    expect(result).toEqual(mockGrasslandNutrientAdviceResponse.data.year)
+    expect(result.cuts).toBeUndefined()
+  })
+
   it("should throw an error if NMI API request fails", async () => {
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: false,
