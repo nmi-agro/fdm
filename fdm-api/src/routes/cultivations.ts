@@ -65,53 +65,51 @@ const CultivationSchema = z
   })
   .openapi("Cultivation")
 
-const CreateCultivationBodySchema = z
-  .object({
-    b_lu_catalogue: z.string().describe("Cultivation catalogue identifier."),
-    b_lu_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    b_lu_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
-    m_cropresidue: z
-      .boolean()
-      .nullable()
-      .optional()
-      .describe("Whether crop residues remain in the field after harvest."),
-    b_lu_variety: z.string().nullable().optional().describe("Cultivation variety identifier."),
-  })
-  .refine(
-    (data) => {
-      if (data.b_lu_end == null) return true
-      return data.b_lu_end >= data.b_lu_start
-    },
-    {
-      message: "b_lu_end must not be before b_lu_start.",
-      path: ["b_lu_end"],
-    },
-  )
-  .openapi("CreateCultivation")
+const CreateCultivationBodyBaseSchema = z.object({
+  b_lu_catalogue: z.string().describe("Cultivation catalogue identifier."),
+  b_lu_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
+  b_lu_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
+  m_cropresidue: z
+    .boolean()
+    .nullable()
+    .optional()
+    .describe("Whether crop residues remain in the field after harvest."),
+  b_lu_variety: z.string().nullable().optional().describe("Cultivation variety identifier."),
+})
 
-const UpdateCultivationBodySchema = z
-  .object({
-    b_lu_catalogue: z.string().optional().describe("Cultivation catalogue identifier."),
-    b_lu_start: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
-    b_lu_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
-    m_cropresidue: z
-      .boolean()
-      .nullable()
-      .optional()
-      .describe("Whether crop residues remain in the field after harvest."),
-    b_lu_variety: z.string().nullable().optional().describe("Cultivation variety identifier."),
-  })
-  .refine(
-    (data) => {
-      if (data.b_lu_start === undefined || data.b_lu_end == null) return true
-      return data.b_lu_end >= data.b_lu_start
-    },
-    {
-      message: "b_lu_end must not be before b_lu_start.",
-      path: ["b_lu_end"],
-    },
-  )
-  .openapi("UpdateCultivation")
+const CreateCultivationBodySchema = CreateCultivationBodyBaseSchema.refine(
+  (data: z.infer<typeof CreateCultivationBodyBaseSchema>) => {
+    if (data.b_lu_end == null) return true
+    return data.b_lu_end >= data.b_lu_start
+  },
+  {
+    message: "b_lu_end must not be before b_lu_start.",
+    path: ["b_lu_end"],
+  },
+).openapi("CreateCultivation")
+
+const UpdateCultivationBodyBaseSchema = z.object({
+  b_lu_catalogue: z.string().optional().describe("Cultivation catalogue identifier."),
+  b_lu_start: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
+  b_lu_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
+  m_cropresidue: z
+    .boolean()
+    .nullable()
+    .optional()
+    .describe("Whether crop residues remain in the field after harvest."),
+  b_lu_variety: z.string().nullable().optional().describe("Cultivation variety identifier."),
+})
+
+const UpdateCultivationBodySchema = UpdateCultivationBodyBaseSchema.refine(
+  (data: z.infer<typeof UpdateCultivationBodyBaseSchema>) => {
+    if (data.b_lu_start === undefined || data.b_lu_end == null) return true
+    return data.b_lu_end >= data.b_lu_start
+  },
+  {
+    message: "b_lu_end must not be before b_lu_start.",
+    path: ["b_lu_end"],
+  },
+).openapi("UpdateCultivation")
 
 const listCultivationsRoute = createRoute({
   method: "get",
