@@ -35,6 +35,8 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { cn } from "~/lib/utils"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation"
 
+const dutchCollator = new Intl.Collator("nl-NL", { sensitivity: "base", usage: "sort" })
+
 export const meta: MetaFunction = () => {
   return [
     { title: `Perceel | ${clientConfig.name}` },
@@ -263,7 +265,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                 value: option,
                 label: option,
               }))
-              .sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0)) ?? null,
+              .sort((a, b) => dutchCollator.compare(a.label, b.label)) ?? null,
           b_lu_croprotation: b_lu_croprotation,
           b_lu_eom_residue: b_lu_eom_residue,
           b_lu_harvestable: b_lu_harvestable,
