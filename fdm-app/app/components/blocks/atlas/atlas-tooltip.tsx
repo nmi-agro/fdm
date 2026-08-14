@@ -399,7 +399,7 @@ function AtlasNativePopupCard({
 
   return (
     <div ref={cardRef} className={cn("cursor-default", className)}>
-      <Card className="bg-background/95 maplibregl-popup-native-card relative border-0 p-3 text-xs shadow-md backdrop-blur-sm">
+      <Card className="maplibregl-popup-native-card relative p-3 text-xs shadow-md">
         {children}
       </Card>
     </div>
@@ -490,11 +490,7 @@ function AtlasTooltipCard({
                 : "none",
       }}
     >
-      <Card
-        className={cn("bg-background/95 relative border-0 p-3 text-xs shadow-md backdrop-blur-sm")}
-      >
-        {children}
-      </Card>
+      <Card className="relative p-3 text-xs shadow-md">{children}</Card>
     </div>
   )
 }

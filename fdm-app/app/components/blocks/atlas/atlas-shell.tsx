@@ -115,7 +115,7 @@ export function Atlas(
     <div
       className="relative overflow-hidden"
       style={{
-        height: "calc(100vh - 64px)",
+        height: "calc(100vh - var(--app-header-height))",
         width: "100%",
         ...style,
       }}

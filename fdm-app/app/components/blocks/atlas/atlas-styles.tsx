@@ -93,6 +93,11 @@ function getFieldsStyleInner(layerId: string): LayerProps {
  * Store avgScore = -1 on features that have no data (renders grey).
  * Pass `property` to colour by a different GeoJSON feature property
  * (e.g. a per-category average or a single indicator score).
+ *
+ * Uses the same discrete red/yellow/green tier boundaries as `getScoreTier`
+ * (~/lib/indicators): <40 red, 40–69 yellow, 70+ green. A step expression
+ * (rather than a continuous interpolation) keeps the field colour and the
+ * score badge in the hover/click tooltip in exact agreement at every score.
  */
 export function getFieldsScoreStyle(layerId: string, property = "avgScore"): LayerProps {
   return {
@@ -100,15 +105,13 @@ export function getFieldsScoreStyle(layerId: string, property = "avgScore"): Lay
     type: "fill",
     paint: {
       "fill-color": [
-        "interpolate",
-        ["linear"],
+        "step",
         ["get", property],
-        -1,
-        "#9ca3af", // grey  — no data
-        0,
-        "#ef4444", // red   — score 0
+        "#9ca3af", // grey   — no data (property < -0.5, i.e. the -1 sentinel)
+        -0.5,
+        "#ef4444", // red    — score 0–39
         40,
-        "#eab308", // yellow — score 40
+        "#eab308", // yellow — score 40–69
         70,
         "#22c55e", // green  — score 70+
       ] as any,
@@ -124,12 +127,10 @@ export function getFieldsScoreOutlineStyle(layerId: string, property = "avgScore
     type: "line",
     paint: {
       "line-color": [
-        "interpolate",
-        ["linear"],
+        "step",
         ["get", property],
-        -1,
         "#6b7280",
-        0,
+        -0.5,
         "#dc2626",
         40,
         "#ca8a04",

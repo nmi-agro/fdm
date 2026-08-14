@@ -15,6 +15,8 @@ import { Layer } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
 import { MapStyleVariant } from "@/app/integrations/map"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { ScoreLegend } from "~/components/blocks/atlas/atlas-legend"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
@@ -79,66 +81,78 @@ export default function FieldMap({
   )
 
   return (
-    <Atlas
-      interactive={true}
-      interactiveLayerIds={[FIELDS_LAYER]}
-      initialViewState={initialViewState}
-      style={{ height }}
-      mapStyle={mapStyle}
-    >
-      <MapTilerAttribution />
+    <div className="relative" style={{ height }}>
+      <Atlas
+        interactive={true}
+        interactiveLayerIds={[FIELDS_LAYER]}
+        initialViewState={initialViewState}
+        style={{ height: "100%" }}
+        mapStyle={mapStyle}
+      >
+        <Controls
+          initialViewState={initialViewState}
+          showGeocoder={false}
+          showStyleSelect={false}
+        />
+        <MapTilerAttribution />
 
-      {/* All farm fields coloured by score */}
-      <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
-        <Layer {...(scoreStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
-        <Layer {...(scoreOutlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
-      </FieldsSourceNotClickable>
+        {/* All farm fields coloured by score */}
+        <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
+          <Layer {...(scoreStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
+          <Layer {...(scoreOutlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
+        </FieldsSourceNotClickable>
 
-      {/* Selected field: yellow outline highlight */}
-      <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
-        <Layer
-          id={SELECTED_LAYER}
-          source={SELECTED_SOURCE}
-          type="fill"
-          paint={{
-            "fill-color": "#ffcf0d",
-            "fill-opacity": 0.25,
+        {/* Selected field: yellow outline highlight */}
+        <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
+          <Layer
+            id={SELECTED_LAYER}
+            source={SELECTED_SOURCE}
+            type="fill"
+            paint={{
+              "fill-color": "#ffcf0d",
+              "fill-opacity": 0.25,
+            }}
+          />
+          <Layer
+            id={SELECTED_OUTLINE_LAYER}
+            source={SELECTED_SOURCE}
+            type="line"
+            paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
+          />
+        </FieldsSourceNotClickable>
+
+        {/* Hover tooltip */}
+        <AtlasTooltip
+          layers={[FIELDS_LAYER]}
+          onFeatureClicked={onFeatureClicked}
+          render={({ features, mode }) => {
+            if (features.length === 0) return null
+            const feature = features[0]
+
+            const hoveredScore =
+              typeof feature.properties?.[scoreKey] === "number" &&
+              feature.properties[scoreKey] >= 0
+                ? (feature.properties[scoreKey] as number)
+                : null
+
+            return (
+              <>
+                <p className="font-semibold">{feature.properties?.b_name ?? "Onbekend perceel"}</p>
+                <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="stack" />
+                {mode === "popup" && (
+                  <Button type="button" onClick={() => onFeatureClicked(feature)}>
+                    Meer details
+                  </Button>
+                )}
+              </>
+            )
           }}
         />
-        <Layer
-          id={SELECTED_OUTLINE_LAYER}
-          source={SELECTED_SOURCE}
-          type="line"
-          paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
-        />
-      </FieldsSourceNotClickable>
+      </Atlas>
 
-      {/* Hover tooltip */}
-      <AtlasTooltip
-        layers={[FIELDS_LAYER]}
-        onFeatureClicked={onFeatureClicked}
-        render={({ features, mode }) => {
-          if (features.length === 0) return null
-          const feature = features[0]
-
-          const hoveredScore =
-            typeof feature.properties?.[scoreKey] === "number" && feature.properties[scoreKey] >= 0
-              ? (feature.properties[scoreKey] as number)
-              : null
-
-          return (
-            <>
-              <p className="font-semibold">{feature.properties?.b_name ?? "Onbekend perceel"}</p>
-              <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="stack" />
-              {mode === "popup" && (
-                <Button type="button" onClick={() => onFeatureClicked(feature)}>
-                  Meer details
-                </Button>
-              )}
-            </>
-          )
-        }}
-      />
-    </Atlas>
+      <div className="absolute bottom-2 left-2 z-10">
+        <ScoreLegend label={scoreLabel} showSelectedFieldSwatch />
+      </div>
+    </div>
   )
 }

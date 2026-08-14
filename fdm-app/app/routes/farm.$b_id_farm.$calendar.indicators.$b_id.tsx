@@ -653,7 +653,7 @@ export default function IndicatorsFieldDetail() {
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
                 <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
-                  <SelectTrigger className="bg-background/90 h-7 w-48 text-xs shadow-sm backdrop-blur-sm">
+                  <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>
                   <SelectContent align="end">
@@ -682,8 +682,8 @@ export default function IndicatorsFieldDetail() {
                 />
               </Suspense>
             </div>
-            <p className="text-muted-foreground mt-2 px-1 text-[11px]">
-              Percelen gekleurd op gekozen score. Klik om te wisselen van perceel.
+            <p className="text-muted-foreground mt-2 px-1 text-xs">
+              Klik op een perceel om te wisselen.
             </p>
           </aside>
         </div>

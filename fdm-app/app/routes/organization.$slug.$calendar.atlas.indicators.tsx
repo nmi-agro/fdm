@@ -259,7 +259,7 @@ export default function OrgAtlasIndicatorsMap() {
   const numDone = completedFarmIds.length + numErrored
 
   return (
-    <div style={{ height: "calc(100vh - 64px)" }} className="relative">
+    <div style={{ height: "calc(100vh - var(--app-header-height))" }} className="relative">
       {/* Floating indicator selector + info banner */}
       <ScoreSelect
         selectedProperty={selectedProperty}

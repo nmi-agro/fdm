@@ -129,6 +129,8 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.5rem;
+    /** Height of the fixed app header — used to size full-height panes (e.g. atlas maps) below it. */
+    --app-header-height: 64px;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -234,7 +236,7 @@
 }
 
 /* atlas-popup: strip maplibre's chrome; the Card component provides all visual styling.
-   The built-in .maplibregl-popup-tip is coloured to match bg-background/95. */
+   The built-in .maplibregl-popup-tip is coloured to match the opaque bg-card surface. */
 .atlas-popup .maplibregl-popup-content {
   background: transparent;
   padding: 0;
@@ -244,18 +246,18 @@
 .atlas-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
 .atlas-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
 .atlas-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
-  border-top-color: hsl(var(--background) / 0.95);
+  border-top-color: var(--color-card);
 }
 .atlas-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
 .atlas-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
 .atlas-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
-  border-bottom-color: hsl(var(--background) / 0.95);
+  border-bottom-color: var(--color-card);
 }
 .atlas-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  border-right-color: hsl(var(--background) / 0.95);
+  border-right-color: var(--color-card);
 }
 .atlas-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  border-left-color: hsl(var(--background) / 0.95);
+  border-left-color: var(--color-card);
 }
 
 /** Corner radii when the popup is anchored at one of its corners. */

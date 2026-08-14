@@ -13,6 +13,8 @@ import maplibregl from "maplibre-gl"
 import { useCallback, useMemo } from "react"
 import { Layer } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { MeasureCountLegend } from "~/components/blocks/atlas/atlas-legend"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
@@ -118,71 +120,86 @@ export default function MeasuresMap({
   const outlineStyle = useMemo(() => getMeasureCountOutlineStyle(FIELDS_OUTLINE_LAYER), [])
 
   return (
-    <Atlas
-      initialViewState={initialViewState}
-      interactive={true}
-      interactiveLayerIds={[FIELDS_LAYER]}
-      style={{ height }}
-    >
-      <MapTilerAttribution />
+    <div className="relative" style={{ height }}>
+      <Atlas
+        initialViewState={initialViewState}
+        interactive={true}
+        interactiveLayerIds={[FIELDS_LAYER]}
+        style={{ height: "100%" }}
+      >
+        <Controls
+          initialViewState={initialViewState}
+          showGeocoder={false}
+          showStyleSelect={false}
+        />
+        <MapTilerAttribution />
 
-      {/* All farm fields coloured by measure count */}
-      <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
-        <Layer {...(fillStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
-        <Layer {...(outlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
-      </FieldsSourceNotClickable>
+        {/* All farm fields coloured by measure count */}
+        <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
+          <Layer {...(fillStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
+          <Layer {...(outlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
+        </FieldsSourceNotClickable>
 
-      {/* Selected field: yellow highlight */}
-      <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
-        <Layer
-          id={SELECTED_LAYER}
-          source={SELECTED_SOURCE}
-          type="fill"
-          paint={{
-            "fill-color": "#ffcf0d",
-            "fill-opacity": 0.25,
+        {/* Selected field: yellow highlight */}
+        <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
+          <Layer
+            id={SELECTED_LAYER}
+            source={SELECTED_SOURCE}
+            type="fill"
+            paint={{
+              "fill-color": "#ffcf0d",
+              "fill-opacity": 0.25,
+            }}
+          />
+          <Layer
+            id={SELECTED_OUTLINE_LAYER}
+            source={SELECTED_SOURCE}
+            type="line"
+            paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
+          />
+        </FieldsSourceNotClickable>
+
+        <AtlasTooltip
+          layers={[FIELDS_LAYER]}
+          onFeatureClicked={onFeatureClicked}
+          render={({ features, mode }) => {
+            if (features.length === 0) return null
+            const feature = features[0]
+
+            return (
+              <>
+                <AtlasTooltipHeader>
+                  <div>
+                    <p className="font-semibold">
+                      {feature.properties?.b_name ?? "Onbekend perceel"}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {(feature.properties?.measureCount as number) === 0
+                        ? "Geen maatregelen"
+                        : `${feature.properties?.measureCount as number} maatregel${(feature.properties?.measureCount as number) === 1 ? "" : "en"}`}
+                    </p>
+                  </div>
+                </AtlasTooltipHeader>
+                {mode === "popup" && (
+                  <AtlasTooltipFooter>
+                    <Button
+                      type="button"
+                      className="grow"
+                      onClick={() => onFeatureClicked(feature)}
+                    >
+                      Meer details
+                    </Button>
+                  </AtlasTooltipFooter>
+                )}
+              </>
+            )
           }}
         />
-        <Layer
-          id={SELECTED_OUTLINE_LAYER}
-          source={SELECTED_SOURCE}
-          type="line"
-          paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
-        />
-      </FieldsSourceNotClickable>
+      </Atlas>
 
-      <AtlasTooltip
-        layers={[FIELDS_LAYER]}
-        onFeatureClicked={onFeatureClicked}
-        render={({ features, mode }) => {
-          if (features.length === 0) return null
-          const feature = features[0]
-
-          return (
-            <>
-              <AtlasTooltipHeader>
-                <div>
-                  <p className="font-semibold">
-                    {feature.properties?.b_name ?? "Onbekend perceel"}
-                  </p>
-                  <p className="text-muted-foreground text-[10px]">
-                    {(feature.properties?.measureCount as number) === 0
-                      ? "Geen maatregelen"
-                      : `${feature.properties?.measureCount as number} maatregel${(feature.properties?.measureCount as number) === 1 ? "" : "en"}`}
-                  </p>
-                </div>
-              </AtlasTooltipHeader>
-              {mode === "popup" && (
-                <AtlasTooltipFooter>
-                  <Button type="button" className="grow" onClick={() => onFeatureClicked(feature)}>
-                    Bekijken
-                  </Button>
-                </AtlasTooltipFooter>
-              )}
-            </>
-          )
-        }}
-      />
-    </Atlas>
+      <div className="absolute bottom-2 left-2 z-10">
+        <MeasureCountLegend showSelectedFieldSwatch={selectedFieldGeoJSON.features.length > 0} />
+      </div>
+    </div>
   )
 }

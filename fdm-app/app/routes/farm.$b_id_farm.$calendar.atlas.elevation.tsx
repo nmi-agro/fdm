@@ -618,15 +618,20 @@ export default function FarmAtlasElevationBlock() {
         )}
 
         <div className="absolute top-4 left-4 z-10 flex flex-col gap-4">
-          <ElevationLegend
-            min={legendMin}
-            max={legendMax}
-            loading={isUpdating}
-            hoverValue={hoverElevation}
-            showScale={currentZoom >= 13 && showElevation}
-            networkStatus={networkStatus}
-            message={showElevation && currentZoom < 13 ? "Zoom in voor meer detail" : undefined}
-          />
+          <div className="flex flex-col gap-1">
+            <ElevationLegend
+              min={legendMin}
+              max={legendMax}
+              loading={isUpdating}
+              hoverValue={hoverElevation}
+              showScale={currentZoom >= 13 && showElevation}
+              networkStatus={networkStatus}
+              message={showElevation && currentZoom < 13 ? "Zoom in voor meer detail" : undefined}
+            />
+            <p className="text-muted-foreground bg-card w-40 rounded-md border px-2 py-1 text-xs">
+              Satellietondergrond vereist voor deze laag
+            </p>
+          </div>
           <FieldTooltip zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
         </div>
       </Atlas>
