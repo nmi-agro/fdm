@@ -77,7 +77,7 @@ jobs:
           pnpm changeset publish
 
           # Create git tags locally
-          pnpm changeset tag
+          pnpm changeset git-tag
 
           # Push ONLY the new tags to bypass 'main' branch protection rules
           # (git push --follow-tags can fail if it tries to push the branch ref)
