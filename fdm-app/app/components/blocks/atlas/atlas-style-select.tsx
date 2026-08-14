@@ -38,7 +38,7 @@ export function AtlasStyleSelect() {
           checked={style === "standard"}
           onClick={() => setStyle("standard")}
         >
-          Straten
+          Topo
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
