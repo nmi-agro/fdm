@@ -55,7 +55,9 @@ The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core 
 
 ## Releases / changesets
 
-Versioning is via Changesets on a `development` → `release/*` → `main` flow. Any PR that changes a package must include a changeset: run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. This applies to every package in the monorepo, including private, unpublished ones such as `fdm-app` and `fdm-docs` — they are versioned and get a `CHANGELOG.md` too. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
+Versioning is via Changesets on a `development` → `release/*` → `main` flow. A changeset describes what a package's consumers (for library packages) or users (for `fdm-app`) will experience once the PR is merged into `development` — it's also read by maintainers and other contributors, so keep it accurate, but write it from the perspective of the final, merged change, not as a running log of the PR's progress. A PR can include multiple changesets if it bundles multiple distinct changes (e.g. across different packages, or unrelated fixes); add one per distinct change, not one per commit. Run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. This applies to every package in the monorepo, including private, unpublished ones such as `fdm-app` and `fdm-docs` — they are versioned and get a `CHANGELOG.md` too.
+
+If you push more commits to a PR that change what a changeset already describes (e.g. you revise the implementation, or narrow/expand the change), update that existing changeset file in place so it still accurately describes the final merged result — don't leave it describing an intermediate state, and don't add a new changeset just to note what changed between two commits within the same PR. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
 
 ## Design context (fdm-app)
 

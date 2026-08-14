@@ -15,15 +15,16 @@ The core idea is to separate the development of features from the release of new
 
 ## For Developers: Making a Change
 
-When you contribute code that should result in a new version of one or more packages, you must include a "changeset".
+When you contribute code that changes what a package's consumers (for library packages) or users (for `fdm-app`) will experience once merged into `development`, you must include a "changeset". Maintainers and other contributors read changesets too, so keep them accurate — but write each one to describe the final, merged change your PR introduces, not a running log of what happened between commits while the PR was in progress.
 
 1. **Make your code changes** on a feature branch as usual.
 2. **Run `pnpm changeset`**. This will launch an interactive CLI.
 3. **Select the packages** you have changed using the arrow keys and spacebar.
 4. **Choose the version bump type** (Major, Minor, or Patch) for each selected package.
-5. **Write a clear summary** of the change. This summary will be used to generate the `CHANGELOG.md` for the packages.
-6. **Commit the new changeset file** (e.g., `.changeset/unique-name.md`) along with your code changes.
+5. **Write a clear summary** of the change, describing the overall effect your PR has on `development` once merged — not a log of intermediate commits or work-in-progress notes. This summary will be used to generate the `CHANGELOG.md` for the packages.
+6. **Commit the new changeset file** (e.g., `.changeset/unique-name.md`) along with your code changes. If your PR bundles multiple distinct changes (for example, changes to unrelated packages, or several unrelated fixes), add a separate changeset per distinct change rather than combining them into one.
 7. **Open a pull request** to the `development` branch.
+8. **If you push further commits to the same PR** that change what a changeset already describes (e.g. you revise the implementation, or narrow/expand the change), **update that existing changeset file in place** so it keeps describing the final, merged result — don't leave it describing an outdated intermediate state, and don't add a new changeset just to record what changed between two commits within the same PR.
 
 Once your PR is merged into `development`, the automation will take over and publish a snapshot release.
 
