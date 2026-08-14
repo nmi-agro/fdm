@@ -8,12 +8,14 @@ export function FieldNutrientAdviceLayout({
   secondaryNutrientsSection,
   traceNutrientsSection,
   headerAction,
+  cutAdviceSection,
 }: {
   primaryNutrientsSection: ReactNode
   kpiSection: ReactNode
   secondaryNutrientsSection: ReactNode
   traceNutrientsSection: ReactNode
   headerAction?: ReactNode
+  cutAdviceSection?: ReactNode
 }) {
   return (
     <div className="grid grid-cols-1 gap-y-6">
@@ -36,6 +38,8 @@ export function FieldNutrientAdviceLayout({
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">{primaryNutrientsSection}</div>
         </CardContent>
       </Card>
+
+      {cutAdviceSection}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">{kpiSection}</div>
       <Card>

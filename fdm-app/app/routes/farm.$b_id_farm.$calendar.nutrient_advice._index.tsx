@@ -202,7 +202,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                   filling:
                     (doses.dose[nutrient.doseParameter as keyof typeof doses.dose] as number) ?? 0,
                   advice:
-                    nutrientAdvice[nutrient.adviceParameter as keyof typeof nutrientAdvice] ?? 0,
+                    nutrientAdvice[
+                      nutrient.adviceParameter as Exclude<keyof typeof nutrientAdvice, "cuts">
+                    ] ?? 0,
                 }
               }
 

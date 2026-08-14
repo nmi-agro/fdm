@@ -1,6 +1,24 @@
 import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 
 /**
+ * Represents the nutrient advice for one grassland cut.
+ */
+export type NutrientAdviceCut = {
+  /** Yield class for the cut */
+  yieldclass: "G" | "HM" | "LG" | "LM" | "M" | "VLG"
+  /** Cut number within the year */
+  cut: 1 | 2 | 3 | 4 | 5 | 6
+  /** Nitrogen requirement (kg N/ha) */
+  d_n_req: number
+  /** Phosphate requirement (kg P2O5/ha) */
+  d_p_req: number
+  /** Potassium requirement (kg K2O/ha) */
+  d_k_req: number
+  /** Sulfur requirement (kg S/ha) */
+  d_s_req: number
+}
+
+/**
  * Represents the nutrient advice for a given year, as returned by the NMI API.
  * Each property corresponds to a specific nutrient requirement or norm.
  */
@@ -33,6 +51,8 @@ export type NutrientAdvice = {
   d_na_req: number
   /** Boron requirement (g B/ha) */
   d_b_req: number
+  /** Optional nutrient advice values per grassland cut */
+  cuts?: NutrientAdviceCut[]
 }
 
 /**
@@ -58,14 +78,7 @@ export type NutrientAdviceResponse = {
      * Optional: Nutrient advice values per cut for grassland.
      * Only available if the most recent `b_lu_brp` crop code is `265`.
      */
-    cut?: {
-      yieldclass: "G" | "HM" | "LG" | "LM" | "M" | "VLG"
-      cut: 1 | 2 | 3 | 4 | 5 | 6
-      d_n_req: number
-      d_p_req: number
-      d_k_req: number
-      d_s_req: number
-    }[]
+    cut?: NutrientAdviceCut[]
   }
 }
 
