@@ -11,30 +11,52 @@ This document provides a detailed explanation of the Dutch legal usage norm (`ge
 
 ### How the Norm Works
 
-The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) that can be applied to a field. The calculation follows a step-by-step process to find the most precise norm based on various factors.
+The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) that can be applied to a field in a calendar year. Per RVO Tabel 2, norms are determined **per hectare per teelt** and summed across all crops grown on a field in the calendar year.
 
 #### Calculation Steps
 
-1. **Identify Main Crop**: The main crop for 2025 is determined from your cultivation plan.
+1. **Identify Main Crop (`hoofdteelt`)**: The main crop for 2025 is determined using the Dutch regulatory reference window: the crop present for the longest duration between **15 May and 15 July**. If no crop covers that window, the field falls back to green fallow (`Groene braak, spontane opkomst`).
 2. **Determine Geographical Context**: The field's location is used to check:
-   - If it is in a **Nutrient-Polluted Area (`NV-gebied`)**, which results in a stricter (lower) norm.
+   - If it is in a **Nutrient-Polluted Area (`NV-gebied`)**, which results in a stricter (20% lower) norm.
    - The dominant **soil region** (`zand_nwc`, `zand_zuid`, `klei`, `veen`, or `loess`).
-3. **Find the Standard Norm**: The main crop is looked up in the official RVO Table 2 (or Tabel 2g for NV-gebieden).
+3. **Calculate Per-Crop Norms**: For each crop grown in the norm year:
+   - **First Crop (`1e teelt`)**: The hoofdteelt receives the primary standard norm from RVO Tabel 2.
+   - **Successive Crops (`Volgteelt`)**: Any crop following the main crop receives its volgteelt norm where defined in Tabel 2 (e.g. spinach, lettuce varieties, endive, meadow grass, red fescue, tall fescue).
+   - **Green Manures (`Groenbemesters`)**: Non-leguminous catch crops receive the groenbemester norm (60/50/50/50/60 kg N/ha) if statutory conditions of footnote 7a are met (sown before 1 September following cereals, rapeseed, or grass seed; not destroyed before 1 February of the next year; or 50% on sand/loess after temporary grassland).
+   - **Exclusion after Maize**: Per footnotes 2 and 6, no additional norm is granted for green manures, catch crops, or temporary grassland following maize.
 4. **Apply Specific Rules**: The standard norm is refined with additional rules for certain crops:
-   - **Temporary Grassland (`Tijdelijk grasland`)**: The norm is adjusted based on the cultivation end date.
+   - **Grassland (`Grasland`)**: The norm depends on whether the grassland is grazed (`beweiden`) or fully mown (`volledig maaien`).
+   - **Temporary Grassland (`Tijdelijk grasland`)**: The norm is adjusted based on the cultivation period.
    - **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety. See [RVO Tabel 2c](https://www.rvo.nl/sites/default/files/2024-12/Tabel-2c-Consumptieaardappelen%20hoge%20of%20lage%20norm-2025.pdf).
-   - **Maize (`Maïs`)**: The norm depends on the farm's derogation status.
+   - **Maize (`Maïs`)**: The norm depends on the farm's derogation status (160 kg N/ha derogation vs 185 kg N/ha no derogation on clay).
    - **Outdoor Flowers (`Buitenbloemen`)**: A higher norm is applied for specific varieties.
-5. **Select the Final Norm**: The final value is selected based on the field's soil region and `NV-gebied` status.
-6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: The norm is reduced if catch crop (`vanggewas`) or winter crop (`winterteelt`) requirements were not met in the **previous** year on sand and loess soils, and/or if grassland was renewed or destroyed. Reductions are **cumulative**: they are added together rather than applied as alternatives. If the result would be negative, it is set to 0.
+5. **Sum Cultivation Norms**: The total field nitrogen allowance is the sum of norms across all cultivations in the year.
+6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: Reductions are subtracted from the total:
+   - **Catch crop reduction (art. 28d Urm)**: Assessed on the previous calendar year (2024) on sand and loess.
+   - **Grassland renewal (gras-na-gras, footnote 14)**: 50 kg N/ha reduction when grassland is renewed between **1 June and 31 August** (on sand/loess for all farms; on clay/peat only for derogation farms).
+   - **Grassland destruction (gras-naar-bouwland, footnotes 15/16)**: 65 kg N/ha reduction when destroyed for maize or eligible consumption/factory potatoes within allowed spring windows (excluding previous catch-crop grass).
+   - Reductions are **cumulative**. If the total norm would become negative, it is floored at 0.
 
-### How the FDM Calculator Determines the Norm
+A field marked as a buffer strip (`b_bufferstrip`) receives a norm of 0.
 
-The `fdm-calculator` uses the `calculateNitrogenUsageNorm` function in `fdm-calculator/src/norms/nl/2025/value/stikstofgebruiksnorm.ts`, which relies on:
+### Intentional Crop Code Mappings
 
-- **`stikstofgebruiksnorm-data.ts`**: Contains the data from RVO Tabel 2 and Tabel 2g.
-- **`input.ts`**: Defines the required inputs, such as derogation status, location, and crop data. Note that cultivations are collected from **1 January of the previous year**, because the catch crop rules depend on what was grown then.
-- **`../../vanggewas-winterteelt.ts`**: Determines whether a crop is a catch crop and/or a winter crop, and evaluates the statutory conditions attached to specific crops.
+- **Quinoa (`nl_1022`)**: Mapped to `Bladgewassen, Spinazie volgteelt` per official RVO gewascodes guidelines.
+- **Grass-like Catch Crops (`nl_6751`, `nl_6789`, `nl_6753`)**: Mapped to their respective grass-seed norm rows (`Akkerbouwgewassen, Graszaad, ...`) per RVO classification.
+- **Nature, green fallow and non-agricultural areas (`nl_332`, `nl_335`, `nl_6794`)**: Mapped to `Geen plaatsingsruimte` (0 kg N/ha).
+
+---
+
+## Provisions Not (Yet) Implemented
+
+The following statutory options and specialized exceptions from the _Uitvoeringsregeling Meststoffenwet_ are currently out of scope:
+
+1. **Yield-based norm increases (`Opbrengstafhankelijke verhoging` / `Stikstofdifferentiatie`, art. 28c Urm / Bijlage A Tabel 1a)**: Higher norms for sugar beets, potatoes, cereals, and vegetables based on 3-year verified historical yield records.
+2. **French-fry potatoes on clay (`Fritesaardappelen op klei`, Tabel 2a)**: Differentiated nitrogen norms requiring specific registration.
+3. **Grass seed with fodder cut (`Graszaad met voedersnede`)**: Combining grass seed norm with temporary grassland norm when a fodder cut is taken in spring/autumn.
+4. **Mixed crops / Undersowing (`Mengteelt / Onderzaai`)**: Differentiated calculation for intercropped arable plants.
+5. **Fixed farm-level nitrogen norm (`Vaste norm op bedrijfsniveau`, footnote 9)**: The 110 kg N/ha fixed allowance when the farm's weighted average is between 100 and 110 kg N/ha.
+6. **Two-year winter crop budget split (`Winterteelt "waarvan ten hoogste na 31/12"`, footnote 5/18)**: Multi-year budget cap attribution between sowing year and harvest year.
 
 ---
 
@@ -54,11 +76,11 @@ The reduction applied to the 2025 norm is caused by what happened in autumn 2024
 
 No reduction applies if a designated **winter crop (`winterteelt`)** covered the ground instead of a catch crop. Winter crops fall into three groups, and the group determines which crop the calculator examines:
 
-| Group | Examples | Which crop is checked |
-| :---- | :------- | :-------------------- |
-| Listed as **both** a catch crop and a winter crop | winter wheat, winter barley, rye, grasses and grass-seed crops | The **main crop of the norm year** (sown in autumn of the previous year, harvested in the norm year) |
-| Winter crop only, late-harvested or perennial | sugar and fodder beet lifted on or after 1 November, Brussels sprouts, chicory, asparagus, top fruit, grassland | The **main crop of the previous year** |
-| Winter crop only, autumn-sown | spinach sown after 1 August, kohlrabi and pak choi planted after 1 August | The crop grown **after** the previous year's main crop |
+| Group                                             | Examples                                                                                                        | Which crop is checked                                                                                |
+| :------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- |
+| Listed as **both** a catch crop and a winter crop | winter wheat, winter barley, rye, grasses and grass-seed crops                                                  | The **main crop of the norm year** (sown in autumn of the previous year, harvested in the norm year) |
+| Winter crop only, late-harvested or perennial     | sugar and fodder beet lifted on or after 1 November, Brussels sprouts, chicory, asparagus, top fruit, grassland | The **main crop of the previous year**                                                               |
+| Winter crop only, autumn-sown                     | spinach sown after 1 August, kohlrabi and pak choi planted after 1 August                                       | The crop grown **after** the previous year's main crop                                               |
 
 For crops in the first group, the exception only applies if the crop is **not destroyed before 16 May** of the norm year — which is what makes it the main crop of that year rather than a catch crop.
 
