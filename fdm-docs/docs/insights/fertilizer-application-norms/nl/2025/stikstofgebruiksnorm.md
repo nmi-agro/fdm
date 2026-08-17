@@ -43,7 +43,7 @@ A field marked as a buffer strip (`b_bufferstrip`) receives a norm of 0.
 
 - **Quinoa (`nl_1022`)**: Mapped to `Bladgewassen, Spinazie volgteelt` per official RVO gewascodes guidelines.
 - **Grass-like Catch Crops (`nl_6751`, `nl_6789`, `nl_6753`)**: Mapped to their respective grass-seed norm rows (`Akkerbouwgewassen, Graszaad, ...`) per RVO classification.
-- **Nature, green fallow and non-agricultural areas (`nl_332`, `nl_335`, `nl_6794`)**: Mapped to `Geen plaatsingsruimte` (0 kg N/ha).
+- **Nature, green fallow and non-agricultural areas (`nl_332`, `nl_335`, `nl_6794`)**: Mapped to `Geen plaatsingsruimte` (0 kg N/ha). Green fallow (`nl_6794`, _groene braak, spontane opkomst_) is assigned 0 kg N/ha standard placement space by default in FDM to prevent unwarranted standard nitrogen allocation to untilled/fallow land unless actively managed as a groenbemester.
 
 ---
 
@@ -54,9 +54,10 @@ The following statutory options and specialized exceptions from the _Uitvoerings
 1. **Yield-based norm increases (`Opbrengstafhankelijke verhoging` / `Stikstofdifferentiatie`, art. 28c Urm / Bijlage A Tabel 1a)**: Higher norms for sugar beets, potatoes, cereals, and vegetables based on 3-year verified historical yield records.
 2. **French-fry potatoes on clay (`Fritesaardappelen op klei`, Tabel 2a)**: Differentiated nitrogen norms requiring specific registration.
 3. **Grass seed with fodder cut (`Graszaad met voedersnede`)**: Combining grass seed norm with temporary grassland norm when a fodder cut is taken in spring/autumn.
-4. **Mixed crops / Undersowing (`Mengteelt / Onderzaai`)**: Differentiated calculation for intercropped arable plants.
-5. **Fixed farm-level nitrogen norm (`Vaste norm op bedrijfsniveau`, footnote 9)**: The 110 kg N/ha fixed allowance when the farm's weighted average is between 100 and 110 kg N/ha.
-6. **Two-year winter crop budget split (`Winterteelt "waarvan ten hoogste na 31/12"`, footnote 5/18)**: Multi-year budget cap attribution between sowing year and harvest year.
+4. **Grass seed stubble destruction (`Graszaadstoppel ter vernietiging in najaar of vroege voorjaar`, footnote 7b)**: Requires specialized management verification (e.g. min 8-10 weeks standing duration, ploughing after 1 Dec) not modeled in standard crop plans.
+5. **Mixed crops / Undersowing (`Mengteelt / Onderzaai`)**: Differentiated calculation for intercropped arable plants.
+6. **Fixed farm-level nitrogen norm (`Vaste norm op bedrijfsniveau`, footnote 9)**: The 110 kg N/ha fixed allowance when the farm's weighted average is between 100 and 110 kg N/ha.
+7. **Two-year winter crop budget split (`Winterteelt "waarvan ten hoogste na 31/12"`, footnote 5/18)**: Multi-year budget cap attribution between sowing year and harvest year.
 
 ---
 

@@ -536,9 +536,9 @@ function calculateKorting(
         ) {
           isValidDestruction = true
         }
-      } else if (clayOrPeatRegions.includes(region)) {
+      } else if (clayOrPeatRegions.includes(region) && is_derogatie_bedrijf) {
         if (is_nv_area) {
-          // Clay/Peat NV: Feb 1 - Mar 15
+          // Clay/Peat NV (Derogation): Feb 1 - Mar 15
           if (
             destructionDate >= new Date(currentYear, 1, 1) &&
             destructionDate <= new Date(currentYear, 2, 15)
@@ -546,7 +546,7 @@ function calculateKorting(
             isValidDestruction = true
           }
         } else {
-          // Clay/Peat Non-NV: Feb 1 - May 31
+          // Clay/Peat Non-NV (Derogation): Feb 1 - May 31
           if (
             destructionDate >= new Date(currentYear, 1, 1) &&
             destructionDate <= new Date(currentYear, 4, 31)
@@ -706,15 +706,20 @@ function calculateSingleCultivationNorm(
   let noteText = ""
 
   // Footnote 2 & 6: Suppression of groenbemester, tijdelijk grasland and vanggewas norms after maize
+  const immediatePrecedingCrop =
+    prevCultivationsInYear.length > 0
+      ? prevCultivationsInYear[prevCultivationsInYear.length - 1]
+      : undefined
+
   const hasMaizeBefore =
     !isHoofdteelt &&
-    prevCultivationsInYear.some(
-      (c) =>
-        maisCodes.includes(c.b_lu_catalogue) ||
+    Boolean(
+      immediatePrecedingCrop &&
+      (maisCodes.includes(immediatePrecedingCrop.b_lu_catalogue) ||
         nitrogenStandardsData
-          .find((ns) => ns.b_lu_catalogue_match.includes(c.b_lu_catalogue))
+          .find((ns) => ns.b_lu_catalogue_match.includes(immediatePrecedingCrop.b_lu_catalogue))
           ?.cultivation_rvo_table2.toLowerCase()
-          .includes("mais"),
+          .includes("mais")),
     )
 
   const isGroenbemesterOrCatchOrTempGrass =
@@ -728,11 +733,6 @@ function calculateSingleCultivationNorm(
     noteText = " (geen extra ruimte na maïs, voetnoot 2/6)"
   } else if (selectedStandard.cultivation_rvo_table2 === "Groenbemesters, niet-vlinderbloemige") {
     // Footnote 7a: Groenbemester conditions
-    const immediatePrecedingCrop =
-      prevCultivationsInYear.length > 0
-        ? prevCultivationsInYear[prevCultivationsInYear.length - 1]
-        : undefined
-
     const isPrecedingCerealOrRapeseedOrGrassSeed =
       immediatePrecedingCrop &&
       (graanCodes.includes(immediatePrecedingCrop.b_lu_catalogue) ||
@@ -748,11 +748,7 @@ function calculateSingleCultivationNorm(
     const isSownBeforeSept1 =
       cultivation.b_lu_start &&
       (cultivation.b_lu_start.getFullYear() < 2025 ||
-        (cultivation.b_lu_start.getFullYear() === 2025 &&
-          (cultivation.b_lu_start.getMonth() < 8 ||
-            (cultivation.b_lu_start.getMonth() === 8 &&
-              cultivation.b_lu_start.getDate() === 1 &&
-              cultivation.b_lu_start.getHours() === 0))))
+        (cultivation.b_lu_start.getFullYear() === 2025 && cultivation.b_lu_start.getMonth() < 8))
 
     const isNotDestroyedBeforeFeb1 =
       !cultivation.b_lu_end || cultivation.b_lu_end >= new Date(2026, 1, 1)
@@ -790,7 +786,7 @@ function calculateSingleCultivationNorm(
     const isBeforeSept16 =
       !cultivation.b_lu_start ||
       cultivation.b_lu_start.getMonth() < 8 ||
-      (cultivation.b_lu_start.getMonth() === 8 && cultivation.b_lu_start.getDate() <= 16)
+      (cultivation.b_lu_start.getMonth() === 8 && cultivation.b_lu_start.getDate() < 16)
 
     if (isBeforeSept16) {
       noteText = " (graszaadstoppel, voetnoot 7b)"
@@ -805,7 +801,7 @@ function calculateSingleCultivationNorm(
   const hasGrassBeforeInYear = prevCultivationsInYear.some((c) =>
     nonBouwlandCodes.includes(c.b_lu_catalogue),
   )
-  if (!isHoofdteelt && isGrass && hasGrassBeforeInYear) {
+  if (isGrass && hasGrassBeforeInYear) {
     normValue = new Decimal(0)
     noteText = " (heringezaaid)"
   }
@@ -902,7 +898,7 @@ export async function calculateNL2025StikstofGebruiksNorm(
 
   // Determine which index in sortedCultivations is the hoofdteelt
   const hoofdteeltIndex = sortedCultivations.findIndex(
-    (c) => c.b_lu_catalogue === hoofdteelt.b_lu_catalogue,
+    (c) => (c.b_lu && hoofdteelt.b_lu ? c.b_lu === hoofdteelt.b_lu : c === hoofdteelt),
   )
 
   let totalNormValue = new Decimal(0)

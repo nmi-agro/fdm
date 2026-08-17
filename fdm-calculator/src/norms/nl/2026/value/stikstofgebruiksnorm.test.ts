@@ -777,7 +777,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
       expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
     })
 
-    it("should apply 50 discount on Clay (Feb 1 - Sep 15)", async () => {
+    it("should apply 50 discount on Clay (June 1 - Aug 31)", async () => {
       const mockInput: NL2026NormsInput = {
         farm: {
           has_grazing_intention: false,

@@ -1095,7 +1095,37 @@ describe("calculateNL2025StikstofGebruiksNorm - Korting Logic", () => {
       expect(result.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
     })
 
-    it("should apply 65 discount on Clay (Consumption Potato, Feb 1 - May 31)", async () => {
+    it("should apply 65 discount on Clay for derogation farm (Consumption Potato, Feb 1 - May 31)", async () => {
+      const mockInput: NL2025NormsInput = {
+        farm: {
+          is_derogatie_bedrijf: true,
+          has_grazing_intention: false,
+        },
+        field: {
+          b_id: "1",
+          b_centroid: clayCentroid,
+        } as Field,
+        cultivations: [
+          {
+            b_lu_catalogue: "nl_265", // Grass
+            b_lu_start: new Date(2025, 0, 1),
+            b_lu_end: new Date(2025, 3, 15), // April 15
+          },
+          {
+            b_lu_catalogue: "nl_2014", // Consumption Potato
+            b_lu_variety: "Agria", // Low norm
+            b_lu_start: new Date(2025, 3, 16),
+            b_lu_end: new Date(2025, 9, 1),
+          },
+        ] as NL2025NormsInputForCultivation[],
+        soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+      }
+
+      const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+      expect(result.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
+    })
+
+    it("should NOT apply 65 destruction discount on Clay without derogation permit", async () => {
       const mockInput: NL2025NormsInput = {
         farm: {
           is_derogatie_bedrijf: false,
@@ -1122,7 +1152,7 @@ describe("calculateNL2025StikstofGebruiksNorm - Korting Logic", () => {
       }
 
       const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
-      expect(result.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
+      expect(result.normSource).not.toContain("graslandvernietiging")
     })
 
     it("should NOT apply discount for Seed Potatoes", async () => {
@@ -1382,11 +1412,11 @@ describe("calculateNL2025StikstofGebruiksNorm - Additional Korting Edge Cases", 
     expect(result.normSource).not.toContain("graslandvernieuwing")
   })
 
-  it("should apply 65 discount for Graslandvernietiging on Clay (NV) - Valid Date (Mar 10)", async () => {
+  it("should apply 65 discount for Graslandvernietiging on Clay (NV) for derogation farm - Valid Date (Mar 10)", async () => {
     setupMock(1, 1) // Clay, NV
     const mockInput: NL2025NormsInput = {
       farm: {
-        is_derogatie_bedrijf: false,
+        is_derogatie_bedrijf: true,
         has_grazing_intention: false,
       },
       field: {
@@ -1921,7 +1951,7 @@ describe("NL2025 stikstof additional branch coverage", () => {
     dataSpy.mockRestore()
   })
 
-  it("applies clay destruction korting for maize in both NV and non-NV", async () => {
+  it("applies clay destruction korting for maize in both NV and non-NV for derogation farms", async () => {
     const dataSpy = spyNitrogenStandards([
       {
         b_lu_catalogue_match: ["nl_265"],
@@ -1943,35 +1973,41 @@ describe("NL2025 stikstof additional branch coverage", () => {
 
     setupGeoMock(1, 1)
     const nvResult = await calculateNL2025StikstofGebruiksNorm(
-      baseInput([
-        {
-          b_lu_catalogue: "nl_265",
-          b_lu_start: new Date(2024, 3, 1),
-          b_lu_end: new Date(2025, 1, 20),
-        } as NL2025NormsInputForCultivation,
-        {
-          b_lu_catalogue: "nl_maize_dest",
-          b_lu_start: new Date(2025, 2, 1),
-          b_lu_end: new Date(2025, 9, 1),
-        } as NL2025NormsInputForCultivation,
-      ]),
+      baseInput(
+        [
+          {
+            b_lu_catalogue: "nl_265",
+            b_lu_start: new Date(2024, 3, 1),
+            b_lu_end: new Date(2025, 1, 20),
+          } as NL2025NormsInputForCultivation,
+          {
+            b_lu_catalogue: "nl_maize_dest",
+            b_lu_start: new Date(2025, 2, 1),
+            b_lu_end: new Date(2025, 9, 1),
+          } as NL2025NormsInputForCultivation,
+        ],
+        { is_derogatie_bedrijf: true, has_grazing_intention: false },
+      ),
     )
     expect(nvResult.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
 
     setupGeoMock(1, 0)
     const nonNvResult = await calculateNL2025StikstofGebruiksNorm(
-      baseInput([
-        {
-          b_lu_catalogue: "nl_265",
-          b_lu_start: new Date(2024, 3, 1),
-          b_lu_end: new Date(2025, 3, 20),
-        } as NL2025NormsInputForCultivation,
-        {
-          b_lu_catalogue: "nl_maize_dest",
-          b_lu_start: new Date(2025, 4, 1),
-          b_lu_end: new Date(2025, 9, 1),
-        } as NL2025NormsInputForCultivation,
-      ]),
+      baseInput(
+        [
+          {
+            b_lu_catalogue: "nl_265",
+            b_lu_start: new Date(2024, 3, 1),
+            b_lu_end: new Date(2025, 3, 20),
+          } as NL2025NormsInputForCultivation,
+          {
+            b_lu_catalogue: "nl_maize_dest",
+            b_lu_start: new Date(2025, 4, 1),
+            b_lu_end: new Date(2025, 9, 1),
+          } as NL2025NormsInputForCultivation,
+        ],
+        { is_derogatie_bedrijf: true, has_grazing_intention: false },
+      ),
     )
     expect(nonNvResult.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
     dataSpy.mockRestore()
