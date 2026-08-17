@@ -27,7 +27,25 @@ import {
 import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 
 /**
- * Determines the specific sub-type 'omschrijving' for a cultivation that is part of a larger group.
+ * Determines the specific sub-type 'omschrijving' for a cultivation in 2026.
+ *
+ * Sub-types in RVO Tabel 2 differentiate nitrogen norms based on crop management, cultivation history,
+ * or botanical characteristics:
+ * - **Grasland**: Differentiates between grazing (`beweiden`) and pure mowing (`volledig maaien`).
+ * - **Aardappel**: Matches specific potato varieties to standard groupings (e.g. early, late, seed, starch).
+ * - **Mais**: No subtype applies in 2026 (derogation expired at the end of 2025).
+ * - **Luzerne**: Differentiates first-year (`eerste jaar`) from subsequent years (`volgende jaren`) based on prior-year presence.
+ * - **Koolzaad**: Differentiates winter (`winter`, `nl_1922`) from summer (`zomer`, `nl_1923`) varieties.
+ * - **Gras voor industriële verwerking / Graszaad / Roodzwenkgras**: Differentiates establishment / 1st year from multi-year / overjarig stands.
+ * - **Zaaiui / Winterui**: Differentiates 1st year (`nl_1932`) from 2nd year (`nl_1933`).
+ * - **Bladgewassen (Spinazie, Slasoorten, Andijvie)**: Differentiates 1st cultivation (`1e teelt`) for the main crop from subsequent cultivation (`volgteelt`).
+ *
+ * @param cultivation - The cultivation object being evaluated.
+ * @param standard - The matching `NitrogenStandard` definition from Tabel 2 (2026).
+ * @param cultivations - All cultivations on the field (used to inspect cultivation history across years).
+ * @param has_grazing_intention - Grazing intention for grassland parcels.
+ * @param isHoofdteelt - Whether this cultivation is the designated main crop (`hoofdteelt`) of the year.
+ * @returns The matching sub-type description key, or `undefined` if no specific sub-type applies.
  */
 function determineSubTypeOmschrijving(
   cultivation: NL2026NormsInputForCultivation,
@@ -140,8 +158,27 @@ function determineSubTypeOmschrijving(
 }
 
 /**
- * Calculates the "korting" (reduction) on the nitrogen usage norm based on the presence
- * of winter crops or catch crops in the previous year.
+ * Calculates statutory reductions ("kortingen") on the annual nitrogen usage norm for 2026.
+ *
+ * Implements three statutory reduction mechanisms:
+ * 1. **Grassland renewal (Graslandvernieuwing, Footnote 14)**:
+ *    - Applies a **50 kg N/ha** reduction when grassland is renewed (gras-na-gras transition) between 1 June and 31 August.
+ *    - In 2026: Applies on all soil types (sand, loess, clay, peat) for all farms (as derogation no longer exists in 2026).
+ * 2. **Grassland destruction (Graslandvernietiging / Scheuren)**:
+ *    - Applies a **65 kg N/ha** reduction when grassland is converted to arable land (gras-naar-bouwland transition)
+ *      for maize or eligible potato cultivations (excluding seed potatoes and early harvest varieties).
+ *    - Allowed destruction windows:
+ *      - Sand & Loess: 1 February – 10 May.
+ *      - Clay & Peat (NV-gebied): 1 February – 15 March.
+ *      - Clay & Peat (Non-NV): 1 February – 31 May.
+ *    - Catch crops (vanggewas) sown in autumn of the previous year are excluded from triggering grassland destruction korting.
+ * 3. **Article 28d Meststoffenwet (Catch crops and winter crops after sand/loess main crops)**:
+ *    - Evaluated by `calculateVanggewasWinterteeltKorting` anchored to the main crop of year N-1.
+ *
+ * @param cultivations - Array of cultivations across current and preceding years.
+ * @param region - Soil region (`zand_nwc`, `zand_zuid`, `loess`, `klei`, `veen`).
+ * @param is_nv_area - Flag indicating if the parcel is located in a nutrient-polluted zone (NV-gebied).
+ * @returns An object containing the total reduction amount (Decimal) and formatted descriptive text.
  */
 function calculateKorting(
   cultivations: NL2026NormsInputForCultivation[],
@@ -278,7 +315,38 @@ function calculateKorting(
 }
 
 /**
- * Calculates the nitrogen norm for a single cultivation in 2026.
+ * Calculates the nitrogen usage standard for an individual cultivation in 2026 according to RVO Tabel 2.
+ *
+ * This function performs multi-step agronomic compliance checks:
+ * 1. **Standard & Subtype Resolution**: Matches `b_lu_catalogue` to Tabel 2 (2026) records. For non-main crops (`!isHoofdteelt`),
+ *    it prioritizes explicit `volgteelt` entries where available.
+ * 2. **Regional & NV-area Norm Selection**: Fetches the applicable base norm in kg N/ha for the field's soil region
+ *    and NV-gebied designation.
+ * 3. **Footnote 2 & 6 Compliance (Maïs follow-up suppression)**:
+ *    - Suppresses norms (sets 0 kg N/ha) for green manures (`Groenbemesters`), catch crops (`is_vanggewas`),
+ *      and temporary grassland (`tijdelijkGraslandCodes`) following maize on the same field in the calendar year.
+ * 4. **Footnote 7a Compliance (Green manure conditions)**:
+ *    - Green manure norms (`Groenbemesters, niet-vlinderbloemige`) are conditional upon:
+ *      - Having an immediate preceding crop in the same calendar year.
+ *      - Preceding crop being a cereal (`graanCodes`), grass seed (`graszaadCodes`), or rapeseed (`koolzaadCodes`) for a full 100% norm.
+ *      - On sand/loess following temporary grassland (`tijdelijkGraslandCodes`), granting a 50% norm.
+ *      - Sowing date strictly before 1 September.
+ *      - Standing until at least 1 February of the following year.
+ *    - If conditions are unmet, grants 0 kg N/ha with an explanatory status note.
+ * 5. **Footnote 7b Compliance (Graszaadstoppel)**:
+ *    - Requires cultivation start on or before 16 September; otherwise grants 0 kg N/ha.
+ * 6. **Grassland Renewal Sod Continuation**:
+ *    - Resown grassland (`isGrass && hasGrassBeforeInYear`) shares the single annual grassland allowance (0 kg N/ha for 2nd sod).
+ *
+ * @param cultivation - The cultivation being calculated.
+ * @param isHoofdteelt - True if this cultivation is the designated main crop of the year.
+ * @param prevCultivationsInYear - Prior cultivations in the same calendar year on this parcel.
+ * @param cultivations - Complete array of cultivations on the field.
+ * @param has_grazing_intention - Grazing intention for grassland parcels.
+ * @param region - Soil region classification.
+ * @param is_nv_area - Nutrient-polluted area (NV-gebied) indicator.
+ * @returns Object containing the calculated norm value, standard name, subtype text, and explanatory footnote note.
+ * @throws {NormNotApplicableError} If no matching crop standard exists in Tabel 2.
  */
 function calculateSingleCultivationNorm(
   cultivation: NL2026NormsInputForCultivation,
@@ -487,13 +555,28 @@ function calculateSingleCultivationNorm(
 }
 
 /**
- * Determines the 'gebruiksnorm' (usage standard) for nitrogen for a given cultivation plan in 2026
- * by accumulating per-teelt norms across all crops in the calendar year according to
- * Dutch RVO's "Tabel 2 Stikstof landbouwgrond 2026".
+ * Determines the 'gebruiksnorm' (nitrogen application standard) for a given field and cultivation plan in 2026
+ * by accumulating per-teelt norms across all active crops in the calendar year according to
+ * Dutch RVO "Tabel 2 Stikstof landbouwgrond 2026".
  *
- * @remarks
- * See `fdm-docs/docs/insights/fertilizer-application-norms/nl/2026/stikstofgebruiksnorm.md` for full documentation
- * of implemented rules, footnotes (2, 6, 7a, 7b, 14, 15, 16), and out-of-scope provisions.
+ * ### Agronomic & Legal Workflow:
+ * 1. **Buffer Strip Check**: Parcels marked with `b_bufferstrip` receive 0 kg N/ha.
+ * 2. **Geographical Resolution**: Determines soil type (`getRegion`) and NV-gebied status (`isFieldInNVGebied`).
+ * 3. **Main Crop Identification**: Identifies the statutory `hoofdteelt` (present between 15 May and 15 July).
+ * 4. **Multi-Teelt Accumulation**:
+ *    - Iterates over all active cultivations in the calendar year (including overwintering main crops).
+ *    - The main crop receives its 1st cultivation standard (`1e teelt`).
+ *    - Successive crops receive volgteelt / subtype standards with applicable footnote checks (footnotes 2, 6, 7a, 7b).
+ * 5. **Statutory Reductions ("Kortingen")**:
+ *    - Grassland renewal reduction (50 kg N/ha on all soils, footnote 14).
+ *    - Grassland destruction reduction (65 kg N/ha).
+ *    - Article 28d catch-crop / winter-crop shortfall reductions.
+ * 6. **Floor & Formatting**: Enforces non-negative norm floor (min 0) and generates a detailed audit breakdown string.
+ *
+ * @param input - Input data containing farm settings, field centroid/bufferstrip, and cultivation schedule.
+ * @returns An object containing the aggregated `normValue` (in kg N/ha) and the descriptive `normSource`.
+ *
+ * @see `fdm-docs/docs/insights/fertilizer-application-norms/nl/2026/stikstofgebruiksnorm.md`
  */
 export async function calculateNL2026StikstofGebruiksNorm(
   input: NL2026NormsInput,
