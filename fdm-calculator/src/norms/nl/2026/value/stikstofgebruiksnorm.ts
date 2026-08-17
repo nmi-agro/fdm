@@ -5,13 +5,16 @@ import type {
   NitrogenStandard,
   NL2026NormsInput,
   NL2026NormsInputForCultivation,
-  NormsByRegion,
   RegionKey,
 } from "./types"
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
 import { findHoofdteelt } from "../../../../shared/hoofdteelt"
-import { getRegion, isFieldInNVGebied } from "../../2025/value/stikstofgebruiksnorm"
+import {
+  getNormsForCultivation,
+  getRegion,
+  isFieldInNVGebied,
+} from "../../2025/value/stikstofgebruiksnorm"
 import { calculateVanggewasWinterteeltKorting } from "../../2025/value/vanggewas-winterteelt"
 import {
   graanCodes,
@@ -22,156 +25,6 @@ import {
   tijdelijkGraslandCodes,
 } from "../../constant"
 import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
-
-/**
- * Retrieves the appropriate set of nitrogen norms (`NormsByRegion`) for a given cultivation.
- */
-function getNormsForCultivation(
-  selectedStandard: NitrogenStandard,
-  b_lu_end: Date,
-  b_lu_start: Date | null | undefined,
-  subTypeOmschrijving?: string,
-): NormsByRegion | undefined {
-  if (selectedStandard.sub_types) {
-    type SubType = NonNullable<NitrogenStandard["sub_types"]>[number]
-    let matchingSubType: SubType | undefined
-
-    // 1. Check for a direct match on omschrijving
-    if (subTypeOmschrijving) {
-      matchingSubType = selectedStandard.sub_types.find(
-        (sub) => sub.omschrijving === subTypeOmschrijving,
-      )
-      if (matchingSubType) {
-        return matchingSubType.norms
-      }
-    }
-
-    // 2. Fallback to time-based logic for temporary grasslands if no omschrijving match
-    const endDate = new Date(b_lu_end)
-    endDate.setHours(12, 0, 0, 0) // Avoid timezone issues at midnight
-    const startDate = b_lu_start ? new Date(b_lu_start) : new Date(endDate.getFullYear(), 0, 1)
-    startDate.setHours(12, 0, 0, 0)
-
-    // Find all matching sub-types
-    const potentialMatches = selectedStandard.sub_types.filter((sub) => {
-      if (
-        sub.period_start_month !== null &&
-        sub.period_start_month !== undefined &&
-        sub.period_end_month !== null &&
-        sub.period_end_month !== undefined
-      ) {
-        const startPeriod = new Date(
-          endDate.getFullYear(),
-          sub.period_start_month - 1,
-          sub.period_start_day ?? 1,
-          12,
-          0,
-          0,
-          0,
-        )
-        const endPeriod = new Date(
-          endDate.getFullYear(),
-          sub.period_end_month - 1,
-          sub.period_end_day ?? 1,
-          12,
-          0,
-          0,
-          0,
-        )
-
-        // Handle periods that might wrap (though none currently do in the data)
-        if (sub.period_start_month > sub.period_end_month) {
-          endPeriod.setFullYear(endDate.getFullYear() + 1)
-        }
-
-        // Special handling for "vanaf" (Late sowing or summer/autumn teelten)
-        // For "vanaf" periods, the crop must start on or after the startPeriod.
-        const isVanaf =
-          sub.period_start_month !== null &&
-          sub.period_start_month !== undefined &&
-          sub.period_start_month > 1
-
-        if (isVanaf) {
-          // If it's a "tot minstens" period (implied by end month < 12), it must also last until endPeriod,
-          // and the crop must have been sown on or before endPeriod (cannot start after the period has ended).
-          if (
-            sub.period_end_month !== null &&
-            sub.period_end_month !== undefined &&
-            sub.period_end_month < 12
-          ) {
-            return startDate >= startPeriod && startDate <= endPeriod && endDate >= endPeriod
-          }
-          // For "vanaf X" (without "tot minstens", e.g. "vanaf 15 oktober"), we only check if it starts on or after X.
-          return startDate >= startPeriod
-        }
-
-        // Standard "van 1 januari tot minstens X" logic:
-        // Crop must be present from startPeriod (or earlier) to at least endPeriod.
-        return startDate <= startPeriod && endDate >= endPeriod
-      }
-      return false
-    })
-
-    // Select the best match
-    // Prefer the one with the *earliest* period_start (most specific start requirement)
-    // If tied, prefer the one with the *latest* period_end (longest mandated duration = typically higher norm)
-    if (potentialMatches.length > 0) {
-      potentialMatches.sort((a, b) => {
-        const aStart = (a.period_start_month ?? -1) * 100 + (a.period_start_day ?? -1)
-        const bStart = (b.period_start_month ?? -1) * 100 + (b.period_start_day ?? -1)
-        if (aStart !== bStart) {
-          return aStart - bStart
-        }
-        const aEnd = (a.period_end_month ?? -1) * 100 + (a.period_end_day ?? -1)
-        const bEnd = (b.period_end_month ?? -1) * 100 + (b.period_end_day ?? -1)
-        return bEnd - aEnd
-      })
-      matchingSubType = potentialMatches[0]
-    }
-
-    // If no match found using the stricter "minstens" logic, fallback to the original bucket logic
-    // to prevent "undefined" regressions for edge cases, but with timezone fix.
-    if (!matchingSubType) {
-      matchingSubType = selectedStandard.sub_types.find((sub) => {
-        if (
-          sub.period_start_month !== null &&
-          sub.period_start_month !== undefined &&
-          sub.period_end_month !== null &&
-          sub.period_end_month !== undefined
-        ) {
-          const startPeriod = new Date(
-            endDate.getFullYear(),
-            sub.period_start_month - 1,
-            sub.period_start_day ?? 1,
-            12,
-            0,
-            0,
-            0,
-          )
-          const endPeriod = new Date(
-            endDate.getFullYear(),
-            sub.period_end_month - 1,
-            sub.period_end_day ?? 1,
-            12,
-            0,
-            0,
-            0,
-          )
-          if (sub.period_start_month > sub.period_end_month) {
-            endPeriod.setFullYear(endDate.getFullYear() + 1)
-          }
-          return endDate >= startPeriod && endDate <= endPeriod
-        }
-        return false
-      })
-    }
-
-    return matchingSubType?.norms
-  }
-
-  // Default case if no sub_types are defined
-  return selectedStandard.norms
-}
 
 /**
  * Determines the specific sub-type 'omschrijving' for a cultivation that is part of a larger group.

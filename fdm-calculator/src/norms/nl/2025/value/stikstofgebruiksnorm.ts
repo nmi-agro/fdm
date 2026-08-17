@@ -127,7 +127,7 @@ export async function getRegion(b_centroid: Field["b_centroid"]): Promise<Region
  *   (e.g., "zand_nwc", "zand_zuid", "klei", "veen", "loess") that apply to the specific cultivation and conditions.
  *   Returns `undefined` if no applicable norms can be found based on the provided criteria.
  */
-function getNormsForCultivation(
+export function getNormsForCultivation(
   selectedStandard: NitrogenStandard,
   b_lu_end: Date,
   b_lu_start: Date | null | undefined,
