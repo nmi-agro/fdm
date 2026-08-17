@@ -661,21 +661,9 @@ function calculateSingleCultivationNorm(
 
   if (hasMaizeBefore && isGroenbemesterOrCatchOrTempGrass) {
     normValue = new Decimal(0)
-    noteText = " (geen norm na maïs, voetnoot 2/6)"
+    noteText = " (geen extra ruimte na maïs, voetnoot 2/6)"
   } else if (selectedStandard.cultivation_rvo_table2 === "Groenbemesters, niet-vlinderbloemige") {
     // Footnote 7a: Groenbemester conditions
-    const isSownBeforeSept1 =
-      cultivation.b_lu_start &&
-      (cultivation.b_lu_start.getFullYear() < 2025 ||
-        (cultivation.b_lu_start.getFullYear() === 2025 &&
-          (cultivation.b_lu_start.getMonth() < 8 ||
-            (cultivation.b_lu_start.getMonth() === 8 &&
-              cultivation.b_lu_start.getDate() === 1 &&
-              cultivation.b_lu_start.getHours() === 0))))
-
-    const isNotDestroyedBeforeFeb1 =
-      !cultivation.b_lu_end || cultivation.b_lu_end >= new Date(2026, 1, 1)
-
     const immediatePrecedingCrop =
       prevCultivationsInYear.length > 0
         ? prevCultivationsInYear[prevCultivationsInYear.length - 1]
@@ -693,25 +681,40 @@ function calculateSingleCultivationNorm(
 
     const isSandyOrLoess = ["zand_nwc", "zand_zuid", "loess"].includes(region)
 
-    if (!isSownBeforeSept1) {
+    const isSownBeforeSept1 =
+      cultivation.b_lu_start &&
+      (cultivation.b_lu_start.getFullYear() < 2025 ||
+        (cultivation.b_lu_start.getFullYear() === 2025 &&
+          (cultivation.b_lu_start.getMonth() < 8 ||
+            (cultivation.b_lu_start.getMonth() === 8 &&
+              cultivation.b_lu_start.getDate() === 1 &&
+              cultivation.b_lu_start.getHours() === 0))))
+
+    const isNotDestroyedBeforeFeb1 =
+      !cultivation.b_lu_end || cultivation.b_lu_end >= new Date(2026, 1, 1)
+
+    if (!immediatePrecedingCrop) {
       normValue = new Decimal(0)
-      noteText = " (geen norm: gezaaid op of na 1 september, voetnoot 7a)"
+      noteText = " (geen extra ruimte: geen voorafgaande teelt, voetnoot 7a)"
+    } else if (
+      !isPrecedingCerealOrRapeseedOrGrassSeed &&
+      !(isSandyOrLoess && isPrecedingGrasOpBouwland)
+    ) {
+      normValue = new Decimal(0)
+      noteText = " (geen extra ruimte: niet geteeld na granen, graszaad of koolzaad, voetnoot 7a)"
+    } else if (!isSownBeforeSept1) {
+      normValue = new Decimal(0)
+      noteText = " (geen extra ruimte: gezaaid op of na 1 september, voetnoot 7a)"
     } else if (!isNotDestroyedBeforeFeb1) {
       normValue = new Decimal(0)
-      noteText = " (geen norm: vernietigd vóór 1 februari, voetnoot 7a)"
-    } else if (!immediatePrecedingCrop) {
-      normValue = new Decimal(0)
-      noteText = " (geen norm: geen voorafgaande teelt, voetnoot 7a)"
+      noteText = " (geen extra ruimte: vernietigd vóór 1 februari, voetnoot 7a)"
     } else if (isPrecedingCerealOrRapeseedOrGrassSeed) {
       // 100% of norm
       noteText = " (volgteelt na granen, graszaad of koolzaad, voetnoot 7a)"
     } else if (isSandyOrLoess && isPrecedingGrasOpBouwland) {
       // 50% of norm on sand or loess after grass on arable land
       normValue = normValue.dividedBy(2)
-      noteText = " (50% norm na gras op bouwland, voetnoot 7a)"
-    } else {
-      normValue = new Decimal(0)
-      noteText = " (geen norm: niet geteeld na granen, graszaad of koolzaad, voetnoot 7a)"
+      noteText = " (extra ruimte (50%) na gras op bouwland, voetnoot 7a)"
     }
   }
 
@@ -729,7 +732,7 @@ function calculateSingleCultivationNorm(
       noteText = " (graszaadstoppel, voetnoot 7b)"
     } else {
       normValue = new Decimal(0)
-      noteText = " (geen norm: niet voldaan aan voorwaarden graszaadstoppel, voetnoot 7b)"
+      noteText = " (geen extra ruimte: niet voldaan aan voorwaarden graszaadstoppel, voetnoot 7b)"
     }
   }
 

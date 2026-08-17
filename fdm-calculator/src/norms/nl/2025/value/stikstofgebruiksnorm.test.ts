@@ -2228,7 +2228,7 @@ describe("calculateNL2025StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
     const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
     expect(result.normValue).toBe(245)
     expect(result.normSource).toContain(
-      "Groenbemesters, niet-vlinderbloemige (geen norm: gezaaid op of na 1 september, voetnoot 7a) (0 kg N/ha)",
+      "Groenbemesters, niet-vlinderbloemige (geen extra ruimte: gezaaid op of na 1 september, voetnoot 7a) (0 kg N/ha)",
     )
   })
 
@@ -2255,7 +2255,7 @@ describe("calculateNL2025StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
     const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
     expect(result.normValue).toBe(245)
     expect(result.normSource).toContain(
-      "Groenbemesters, niet-vlinderbloemige (geen norm: vernietigd vóór 1 februari, voetnoot 7a) (0 kg N/ha)",
+      "Groenbemesters, niet-vlinderbloemige (geen extra ruimte: vernietigd vóór 1 februari, voetnoot 7a) (0 kg N/ha)",
     )
   })
 
@@ -2283,7 +2283,7 @@ describe("calculateNL2025StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
     // Tijdelijk grasland: 168 + Groenbemester 50% (40 * 0.5 = 20) = 188 kg N/ha
     expect(result.normValue).toBe(188)
     expect(result.normSource).toContain(
-      "Groenbemesters, niet-vlinderbloemige (50% norm na gras op bouwland, voetnoot 7a) (20 kg N/ha)",
+      "Groenbemesters, niet-vlinderbloemige (extra ruimte (50%) na gras op bouwland, voetnoot 7a) (20 kg N/ha)",
     )
   })
 
@@ -2366,7 +2366,34 @@ describe("calculateNL2025StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
     expect(result.normValue).toBe(185)
     expect(result.normSource).toContain("Akkerbouwgewassen, mais (geen derogatie) (185 kg N/ha)")
     expect(result.normSource).toContain(
-      "Groenbemesters, niet-vlinderbloemige (geen norm na maïs, voetnoot 2/6) (0 kg N/ha)",
+      "Groenbemesters, niet-vlinderbloemige (geen extra ruimte na maïs, voetnoot 2/6) (0 kg N/ha)",
+    )
+  })
+
+  it("should grant 0 norm with preceding crop explanation even if sown on or after 1 September", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
+    const mockInput: NL2025NormsInput = {
+      farm: { is_derogatie_bedrijf: false, has_grazing_intention: false },
+      field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_2014", // Consumptieaardappelen (not cereals/rapeseed/grass seed)
+          b_lu_start: new Date(2025, 3, 1),
+          b_lu_end: new Date(2025, 7, 30),
+        },
+        {
+          b_lu_catalogue: "nl_428", // Groenbemester sown after 1 Sep following potatoes
+          b_lu_start: new Date(2025, 8, 5), // Sep 5, 2025
+          b_lu_end: new Date(2026, 1, 15),
+        },
+      ] as NL2025NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
+    expect(result.normValue).toBe(250) // Potato norm only
+    expect(result.normSource).toContain(
+      "Groenbemesters, niet-vlinderbloemige (geen extra ruimte: niet geteeld na granen, graszaad of koolzaad, voetnoot 7a) (0 kg N/ha)",
     )
   })
 
