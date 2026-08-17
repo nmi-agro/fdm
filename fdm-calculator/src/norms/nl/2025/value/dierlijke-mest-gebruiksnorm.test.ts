@@ -205,8 +205,8 @@ describe("calculateNL2025DierlijkeMestGebruiksNorm", () => {
   it("should return false for unknown geotiff codes in GWBG and Natura helpers", async () => {
     const getUnknownGeoTiffValue = async () => 99
     await expect(isFieldInGWGBGebied([5.0, 52.0], getUnknownGeoTiffValue)).resolves.toBe(false)
-    await expect(
-      isFieldInNatura2000Gebied([5.0, 52.0], getUnknownGeoTiffValue),
-    ).resolves.toBe(false)
+    await expect(isFieldInNatura2000Gebied([5.0, 52.0], getUnknownGeoTiffValue)).resolves.toBe(
+      false,
+    )
   })
 })

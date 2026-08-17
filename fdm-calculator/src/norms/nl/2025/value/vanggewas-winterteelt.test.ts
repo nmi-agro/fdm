@@ -79,12 +79,17 @@ describe("Vanggewas & Winterteelt crop-code classification", () => {
       b_lu_start: new Date(2024, 5, 1), // Sown in June during maize
       b_lu_end: new Date(2025, 1, 1), // Stands until Feb 1
     }
-    expect(isWinterteelt("nl_316", 2025, maizeCultivation, [maizeCultivation, undersownCatchCrop])).toBe(true)
+    expect(
+      isWinterteelt("nl_316", 2025, maizeCultivation, [maizeCultivation, undersownCatchCrop]),
+    ).toBe(true)
 
     // With undersowing passed and missing b_lu_end on maize cultivation, returns true
     const maizeCultivationNoEnd = { b_lu_catalogue: "nl_316" }
     expect(
-      isWinterteelt("nl_316", 2025, maizeCultivationNoEnd, [maizeCultivationNoEnd, undersownCatchCrop]),
+      isWinterteelt("nl_316", 2025, maizeCultivationNoEnd, [
+        maizeCultivationNoEnd,
+        undersownCatchCrop,
+      ]),
     ).toBe(true)
   })
 

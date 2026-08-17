@@ -437,7 +437,14 @@ describe("getWorkingCoefficient", () => {
   })
 
   it("should return default details when no subtype matches an entry with subtypes", () => {
-    const result = getWorkingCoefficient("46", undefined, false, true, new Date("2025-06-15"), false)
+    const result = getWorkingCoefficient(
+      "46",
+      undefined,
+      false,
+      true,
+      new Date("2025-06-15"),
+      false,
+    )
     expect(result.p_n_wcl).toBe(1)
     expect(result.description).toBe("Kunstmest")
   })
