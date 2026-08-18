@@ -2,7 +2,7 @@ import type { FeatureCollection, Geometry } from "geojson"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import DOMPurify from "dompurify"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import proj4 from "proj4"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {

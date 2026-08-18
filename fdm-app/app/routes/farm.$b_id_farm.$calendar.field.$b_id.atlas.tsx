@@ -1,7 +1,7 @@
 import type { FeatureCollection } from "geojson"
 import type { MetaFunction } from "react-router"
 import { getField } from "@nmi-agro/fdm-core"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useEffect, useRef } from "react"
 import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
 import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
