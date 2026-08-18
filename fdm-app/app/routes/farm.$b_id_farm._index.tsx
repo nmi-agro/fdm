@@ -41,6 +41,7 @@ import {
   NavLink,
   useFetcher,
   useLoaderData,
+  useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import { toast } from "sonner"
@@ -119,7 +120,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} If the farm ID is not provided.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -147,7 +148,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // dashboard: an optional "calendar" search param (set when navigating here from a calendar-scoped page),
     // falling back to the current year. The resolved year is also returned so the NavLink target stays aligned
     // with the count.
-    const calendarParam = new URL(request.url).searchParams.get("calendar")
+    const calendarParam = url.searchParams.get("calendar")
     const activeYear =
       calendarParam && /^\d{4}$/.test(calendarParam)
         ? calendarParam
@@ -420,6 +421,7 @@ function ActionLink({
 export default function FarmDashboardIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const calendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
@@ -427,6 +429,19 @@ export default function FarmDashboardIndex() {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+
+  // Redirect with the current calendar passed as a search param if it wasn't passed
+  useEffect(() => {
+    const currentYearParam = searchParams.get("calendar")
+    const currentSelectedYear = calendar ?? new Date().getFullYear().toString()
+
+    if (currentYearParam !== currentSelectedYear) {
+      setSearchParams({
+        ...Object.fromEntries(searchParams.entries()),
+        calendar: currentSelectedYear,
+      })
+    }
+  }, [calendar, searchParams, setSearchParams])
 
   const isAcceptingAll = fetcher.state !== "idle"
   const suggestedFields = useMemo(
