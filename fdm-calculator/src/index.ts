@@ -158,3 +158,28 @@ export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
 export type { CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export { findHoofdteelt, GROENE_BRAAK } from "./shared/hoofdteelt"
+export {
+  GROWING_SEASON_START_DAY,
+  GROWING_SEASON_START_MONTH,
+  INSCHAREN_DRY_MATTER_TARGET_KG_HA,
+  REST_PERIOD_THRESHOLD_DAYS,
+  STOCKING_DENSITY_BENCHMARKS,
+  WEIDEMELK_CATEGORY_CODE,
+  WEIDEMELK_MIN_HOURS_PER_DAY,
+  WEIDEMELK_TARGET_DAYS,
+  GRAZING_SYSTEMS,
+  calculateGrazingMetrics,
+} from "./grazing/index"
+export type {
+  FieldInput as GrazingFieldInput,
+  GrazingInput as GrazingRecordInput,
+  GrazingMetricsInput,
+  GrazingMetricsResult,
+  GrazingSystemKey,
+  HarvestInput as GrazingHarvestInput,
+  HerdInput as GrazingHerdInput,
+  MonthlyDistributionEntry as GrazingMonthlyDistributionEntry,
+  OvergrazingAlert as GrazingOvergrazingAlert,
+  RestPeriodDetail as GrazingRestPeriodDetail,
+} from "./grazing/index"
+
