@@ -15,20 +15,24 @@ export function getEffectiveHarvestable(
   return "once"
 }
 
-export function getHarvestTerm(croprotation?: string | null, plural = false): string {
-  if (croprotation === "grass") {
-    return plural ? "sneden" : "snede"
+export function getHarvestTerm(
+  croprotation?: string | null,
+  plural = false,
+  harvestable?: HarvestableType | null,
+  capitalized = false,
+): string {
+  let term: string
+  if (croprotation === "grass" && harvestable === "multiple") {
+    term = plural ? "sneden" : "snede"
+  } else {
+    term = plural ? "oogsten" : "oogst"
   }
-  return plural ? "oogsten" : "oogst"
+  return capitalized ? `${term.charAt(0).toUpperCase()}${term.slice(1)}` : term
 }
 
-export function getHarvestCapitalizedTerm(croprotation?: string | null, plural = false): string {
-  if (croprotation === "grass") {
-    return plural ? "Sneden" : "Snede"
-  }
-  return plural ? "Oogsten" : "Oogst"
-}
-
-export function getHarvestDateTerm(croprotation?: string | null): string {
-  return croprotation === "grass" ? "Maaidatum" : "Oogstdatum"
+export function getHarvestDateTerm(
+  croprotation?: string | null,
+  harvestable?: HarvestableType | null,
+): string {
+  return croprotation === "grass" && harvestable === "multiple" ? "Maaidatum" : "Oogstdatum"
 }

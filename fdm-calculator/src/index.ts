@@ -145,6 +145,7 @@ export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export { getNutrientAdvice, requestNutrientAdvice } from "./nutrient-advice"
 export type {
   NutrientAdvice,
+  NutrientAdviceCut,
   NutrientAdviceInputs,
   NutrientAdviceResponse,
 } from "./nutrient-advice/types"

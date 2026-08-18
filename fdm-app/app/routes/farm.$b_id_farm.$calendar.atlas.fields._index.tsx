@@ -2,7 +2,7 @@ import type { FeatureCollection, Geometry } from "geojson"
 import type { MetaFunction } from "react-router"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   Layer,

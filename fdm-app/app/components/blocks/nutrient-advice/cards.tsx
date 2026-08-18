@@ -2,10 +2,13 @@ import type { Dose } from "@nmi-agro/fdm-calculator"
 import type { Fertilizer, FertilizerApplication } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { ChevronDown, ChevronUp, TriangleAlert } from "lucide-react"
+import { ChevronDown, ChevronUp, CirclePlus, TriangleAlert } from "lucide-react"
 import { useState } from "react"
 import { NavLink } from "react-router"
-import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
+import {
+  AdviceProgressBar,
+  formatSignedDifference,
+} from "~/components/blocks/nutrient-advice/progress-bar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
@@ -47,7 +50,7 @@ export function NutrientCard({
 }: NutrientCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const doseTotal = (doses.dose[description.doseParameter] as number | undefined) ?? 0
-  const percentage = advice > 0 ? (doseTotal / advice) * 100 : 100
+  const excessExempt = description.symbol === "EOC"
   const numberOfApplicationsForNutrient = doses.applications.filter(
     (x) => (x[description.doseParameter as keyof Dose] as number) > 0,
   ).length
@@ -75,14 +78,16 @@ export function NutrientCard({
         </div>
 
         <div className="w-full space-y-2">
-          <div className="flex justify-between text-sm">
+          <div className="flex items-center justify-between text-sm">
             <span>Bemestingsniveau</span>
-            <span>{advice > 0 ? `${Math.round(percentage)}%` : null}</span>
+            <span className="text-muted-foreground tabular-nums">
+              {formatSignedDifference(doseTotal - advice)}
+            </span>
           </div>
           <AdviceProgressBar
             current={doseTotal}
             target={advice}
-            excessExempt={description.symbol === "EOC"}
+            excessExempt={excessExempt}
             className="h-3"
           />
         </div>
@@ -154,7 +159,15 @@ export function NutrientCard({
             </CollapsibleContent>
           </Collapsible>
         ) : (
-          <p className="text-muted-foreground text-sm">{`Geen bemestingen met ${description.name.toLocaleLowerCase()}`}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-muted-foreground text-sm">{`Geen bemestingen met ${description.name.toLocaleLowerCase()}`}</p>
+            <Button variant="ghost" size="sm" className="h-auto shrink-0 p-0" asChild>
+              <NavLink to={to} className="flex items-center gap-1">
+                <CirclePlus className="h-3.5 w-3.5" />
+                Toevoegen
+              </NavLink>
+            </Button>
+          </div>
         )}
       </CardContent>
       {description.symbol === "N" || description.symbol === "P" ? (

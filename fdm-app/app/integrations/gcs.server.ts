@@ -1,4 +1,4 @@
-import type { Readable } from "node:stream"
+import type { Readable } from "stream"
 import { SaveData, Storage } from "@google-cloud/storage"
 
 let _storage: Storage | null = null

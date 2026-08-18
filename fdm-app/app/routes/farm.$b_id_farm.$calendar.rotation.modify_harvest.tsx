@@ -15,10 +15,7 @@ import { redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { FormSchema } from "~/components/blocks/harvest/schema"
-import {
-  getEffectiveHarvestable,
-  getHarvestCapitalizedTerm,
-} from "~/components/blocks/harvest/utils"
+import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -28,7 +25,12 @@ import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_h
 
 // Meta
 export const meta: Route.MetaFunction = ({ loaderData }) => {
-  const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+  const term = getHarvestTerm(
+    loaderData?.cultivation?.b_lu_croprotation,
+    false,
+    loaderData?.cultivation?.b_lu_harvestable,
+    true,
+  )
   return [
     { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
     {
@@ -195,6 +197,7 @@ export default function ModifyHarvestingDialog() {
   return (
     <HarvestFormDialog
       harvestParameters={loaderData.harvestParameters}
+      b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
       exampleHarvestableAnalysis={loaderData.exampleHarvestableAnalysis}
       example_b_lu_harvest_date={loaderData.example_b_lu_harvest_date}
       b_lu_harvest_date={loaderData.b_lu_harvest_date}
@@ -327,8 +330,18 @@ export async function action({ request, params }: Route.ActionArgs) {
         ),
       )
 
-      const termSingular = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
-      const termPlural = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation, true)
+      const termSingular = getHarvestTerm(
+        cultivation.b_lu_croprotation,
+        false,
+        cultivation.b_lu_harvestable,
+        true,
+      )
+      const termPlural = getHarvestTerm(
+        cultivation.b_lu_croprotation,
+        true,
+        cultivation.b_lu_harvestable,
+        true,
+      )
       return redirectWithSuccess("..", {
         message:
           harvestingIds.length > 1
@@ -339,8 +352,18 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (request.method === "DELETE") {
       const firstHarvest = await getHarvest(fdm, session.principal_id, harvestingIds[0])
       const cultivation = await getCultivation(fdm, session.principal_id, firstHarvest.b_lu)
-      const termSingular = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
-      const termPlural = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation, true)
+      const termSingular = getHarvestTerm(
+        cultivation?.b_lu_croprotation,
+        false,
+        cultivation?.b_lu_harvestable,
+        true,
+      )
+      const termPlural = getHarvestTerm(
+        cultivation?.b_lu_croprotation,
+        true,
+        cultivation?.b_lu_harvestable,
+        true,
+      )
 
       await fdm.transaction((tx) =>
         Promise.all(
