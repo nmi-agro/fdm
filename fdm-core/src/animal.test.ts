@@ -16,6 +16,7 @@ import {
   removeAnimal,
   removeAnimalAssigning,
   removeAnimals,
+  removeAnimalsFromHerd,
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
@@ -552,6 +553,48 @@ describe("Animal Domain", () => {
     await expect(
       assignAnimalToHerd(fdm, principal_id, l_id_animal, sheepHerd),
     ).rejects.toThrowError("Exception for assignAnimalToHerd")
+  })
+
+  it("should lower herd count preserving history via removeAnimalsFromHerd", async () => {
+    // Add 2 identified animals and 3 placeholder animals (5 total)
+    const identified1 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL-KEEP-1",
+      l_sex: "female",
+    })
+    const identified2 = await addAnimal(fdm, principal_id, b_id_farm, l_id_herd, {
+      l_id_eartag: "NL-KEEP-2",
+      l_sex: "female",
+    })
+    const placeholderIds = await addAnimalsToHerd(fdm, principal_id, l_id_herd, 3)
+
+    let census = await getCensusForFarm(fdm, principal_id, b_id_farm)
+    expect(census.find((c) => c.l_id_herd === l_id_herd)?.count).toBe(5)
+
+    // Remove 2 animals - should remove 2 placeholder animals first
+    const removedIds = await removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 2, {
+      l_leaving_method: "sold",
+    })
+    expect(removedIds.length).toBe(2)
+    // The removed animals should be placeholders
+    for (const id of removedIds) {
+      expect(placeholderIds).toContain(id)
+      const animal = await getAnimal(fdm, principal_id, id)
+      expect(animal.l_leaving_method).toBe("sold")
+      expect(animal.l_leaving_date).toBeDefined()
+    }
+
+    census = await getCensusForFarm(fdm, principal_id, b_id_farm)
+    expect(census.find((c) => c.l_id_herd === l_id_herd)?.count).toBe(3)
+
+    // Identified animals should still be present
+    const remainingAnimals = await getAnimalsForHerd(fdm, principal_id, l_id_herd)
+    expect(remainingAnimals.map((a) => a.l_id_animal)).toContain(identified1)
+    expect(remainingAnimals.map((a) => a.l_id_animal)).toContain(identified2)
+
+    // Should reject count exceeding remaining active census (3)
+    await expect(
+      removeAnimalsFromHerd(fdm, principal_id, l_id_herd, 5),
+    ).rejects.toThrowError("Exception for removeAnimalsFromHerd")
   })
 
 })

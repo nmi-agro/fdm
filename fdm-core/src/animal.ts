@@ -550,36 +550,33 @@ export async function updateAnimal(
 
     await fdm.transaction(async (tx) => {
       if (properties.l_specie !== undefined || properties.l_sex !== undefined) {
+        const assignments = await tx
+          .select({
+            l_id_herd: schema.animalAssigning.l_id_herd,
+          })
+          .from(schema.animalAssigning)
+          .where(eq(schema.animalAssigning.l_id_animal, l_id_animal))
+
         const current = await tx
           .select({
             l_specie: schema.animals.l_specie,
             l_sex: schema.animals.l_sex,
-            l_id_herd: schema.animalAssigning.l_id_herd,
           })
           .from(schema.animals)
-          .leftJoin(
-            schema.animalAssigning,
-            and(
-              eq(schema.animals.l_id_animal, schema.animalAssigning.l_id_animal),
-              isNull(schema.animalAssigning.l_assigning_end),
-            ),
-          )
           .where(eq(schema.animals.l_id_animal, l_id_animal))
           .limit(1)
 
         if (current.length === 0) {
           throw new Error("Animal does not exist")
         }
-        if (!current[0].l_id_herd) {
-          throw new Error("Animal is not assigned to a herd")
-        }
 
-        const category = await getHerdCategory(tx, current[0].l_id_herd)
-        assertAnimalMatchesCategory(
-          category,
-          properties.l_specie ?? current[0].l_specie,
-          properties.l_sex === undefined ? current[0].l_sex : properties.l_sex,
-        )
+        const targetSpecie = properties.l_specie ?? current[0].l_specie
+        const targetSex = properties.l_sex === undefined ? current[0].l_sex : properties.l_sex
+
+        for (const assign of assignments) {
+          const category = await getHerdCategory(tx, assign.l_id_herd)
+          assertAnimalMatchesCategory(category, targetSpecie, targetSex)
+        }
       }
 
       await tx
@@ -821,6 +818,130 @@ function buildAnimalRows(
   }
 
   return rows
+}
+
+/**
+ * Lowers the count of active animals assigned to a herd without emptying the
+ * entire herd or hard-deleting records. Closes the `count` most recently
+ * opened active assignments and writes `animal_leaving` rows. Prefers animals
+ * without an ear tag so placeholder animals leave before identified ones.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal performing the reduction.
+ * @param l_id_herd - Herd ID.
+ * @param count - Number of animals to remove from the herd.
+ * @param properties - Optional leaving date and leaving method.
+ * @returns IDs of the animals marked as leaving.
+ */
+export async function removeAnimalsFromHerd(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  l_id_herd: schema.herdsTypeSelect["l_id_herd"],
+  count: number,
+  properties?: {
+    l_leaving_date?: schema.animalLeavingTypeInsert["l_leaving_date"]
+    l_leaving_method?: schema.animalLeavingTypeInsert["l_leaving_method"]
+  },
+): Promise<string[]> {
+  try {
+    return await fdm.transaction(async (tx) => {
+      await checkPermission(tx, "herd", "write", l_id_herd, principal_id, "removeAnimalsFromHerd")
+
+      if (count <= 0) {
+        return []
+      }
+
+      const activeAssignments = await tx
+        .select({
+          l_id_animal: schema.animalAssigning.l_id_animal,
+          l_assigning_start: schema.animalAssigning.l_assigning_start,
+          l_id_eartag: schema.animals.l_id_eartag,
+          created: schema.animals.created,
+        })
+        .from(schema.animalAssigning)
+        .innerJoin(
+          schema.animals,
+          eq(schema.animalAssigning.l_id_animal, schema.animals.l_id_animal),
+        )
+        .leftJoin(
+          schema.animalLeaving,
+          eq(schema.animalAssigning.l_id_animal, schema.animalLeaving.l_id_animal),
+        )
+        .where(
+          and(
+            eq(schema.animalAssigning.l_id_herd, l_id_herd),
+            isNull(schema.animalAssigning.l_assigning_end),
+            isNull(schema.animalLeaving.l_leaving_date),
+          ),
+        )
+
+      if (count > activeAssignments.length) {
+        throw new Error(
+          `Count to remove (${count}) exceeds current active census (${activeAssignments.length})`,
+        )
+      }
+
+      // Sort: placeholder animals (no eartag) first, then by most recently opened assignment
+      const sorted = [...activeAssignments].sort((a, b) => {
+        const aHasNoEartag = a.l_id_eartag === null || a.l_id_eartag === undefined ? 1 : 0
+        const bHasNoEartag = b.l_id_eartag === null || b.l_id_eartag === undefined ? 1 : 0
+        if (aHasNoEartag !== bHasNoEartag) {
+          return bHasNoEartag - aHasNoEartag // 1 before 0
+        }
+        const aTime = a.l_assigning_start ? new Date(a.l_assigning_start).getTime() : 0
+        const bTime = b.l_assigning_start ? new Date(b.l_assigning_start).getTime() : 0
+        if (aTime !== bTime) {
+          return bTime - aTime // descending
+        }
+        const aCreated = a.created ? new Date(a.created).getTime() : 0
+        const bCreated = b.created ? new Date(b.created).getTime() : 0
+        return bCreated - aCreated
+      })
+
+      const toRemove = sorted.slice(0, count)
+      const leavingDate = properties?.l_leaving_date ?? new Date()
+
+      if (toRemove.some((row) => row.l_assigning_start && leavingDate < row.l_assigning_start)) {
+        throw new Error("Leaving date cannot be before an active animal assignment start date")
+      }
+
+      const animalIds = toRemove.map((row) => row.l_id_animal)
+      const now = new Date()
+
+      await tx
+        .insert(schema.animalLeaving)
+        .values(
+          animalIds.map((l_id_animal) => ({
+            l_id_animal,
+            l_leaving_date: leavingDate,
+            l_leaving_method: properties?.l_leaving_method ?? null,
+          })),
+        )
+        .onConflictDoUpdate({
+          target: schema.animalLeaving.l_id_animal,
+          set: {
+            l_leaving_date: leavingDate,
+            l_leaving_method: properties?.l_leaving_method ?? null,
+            updated: now,
+          },
+        })
+
+      await tx
+        .update(schema.animalAssigning)
+        .set({ l_assigning_end: leavingDate, updated: now })
+        .where(
+          and(
+            eq(schema.animalAssigning.l_id_herd, l_id_herd),
+            inArray(schema.animalAssigning.l_id_animal, animalIds),
+            isNull(schema.animalAssigning.l_assigning_end),
+          ),
+        )
+
+      return animalIds
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for removeAnimalsFromHerd", { l_id_herd, count })
+  }
 }
 
 /**

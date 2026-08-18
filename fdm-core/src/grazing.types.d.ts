@@ -12,3 +12,13 @@ export interface Grazing {
   created: schema.grazingTypeSelect["created"]
   updated?: schema.grazingTypeSelect["updated"]
 }
+
+export interface GrazingCalendarEntry extends Grazing {
+  l_herd_name?: schema.herdsTypeSelect["l_herd_name"]
+  l_id_category?: schema.herdsTypeSelect["l_id_category"]
+  l_category?: schema.animalCategoriesCatalogueTypeSelect["l_category"]
+  l_lsu?: schema.animalCategoriesCatalogueTypeSelect["l_lsu"]
+  b_name?: schema.fieldsTypeSelect["b_name"]
+  b_area?: number | null
+}
+

@@ -6,7 +6,9 @@ import { createFdmServer } from "./fdm-server"
 import { addField } from "./field"
 import {
   addGrazing,
+  addGrazings,
   getGrazing,
+  getGrazingCalendarForFarm,
   getGrazingForFarm,
   getGrazingForField,
   getGrazingForHerd,
@@ -165,6 +167,166 @@ describe("Grazing Domain", () => {
         l_grazing_start: new Date("2025-04-15T00:00:00.000Z"),
       }),
     ).rejects.toThrowError("Exception for updateGrazing")
+  })
+
+  it("should allow overlapping grazing intervals for the same herd on DIFFERENT fields, but reject on SAME field or herd-level", async () => {
+    const field1 = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Field 1",
+      "src_f1",
+      {
+        type: "Polygon" as const,
+        coordinates: [[[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]]],
+      },
+      new Date(),
+      "nl_01",
+    )
+    const field2 = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Field 2",
+      "src_f2",
+      {
+        type: "Polygon" as const,
+        coordinates: [[[2, 2], [2, 4], [4, 4], [4, 2], [2, 2]]],
+      },
+      new Date(),
+      "nl_01",
+    )
+
+    const start = new Date("2025-07-01T00:00:00.000Z")
+    const end = new Date("2025-07-10T00:00:00.000Z")
+
+    // Grazing on field 1
+    await addGrazing(fdm, principal_id, l_id_herd, start, {
+      b_id: field1,
+      l_grazing_end: end,
+    })
+
+    // Concurrent grazing on field 2 for same herd MUST be accepted
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, start, {
+        b_id: field2,
+        l_grazing_end: end,
+      }),
+    ).resolves.not.toThrow()
+
+    // Concurrent grazing on same field 1 MUST be rejected
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, new Date("2025-07-05T00:00:00.000Z"), {
+        b_id: field1,
+        l_grazing_end: new Date("2025-07-15T00:00:00.000Z"),
+      }),
+    ).rejects.toThrowError("Exception for addGrazing")
+
+    // Concurrent grazing with herd-level (b_id is null) MUST be rejected
+    await expect(
+      addGrazing(fdm, principal_id, l_id_herd, new Date("2025-07-05T00:00:00.000Z"), {
+        l_grazing_end: new Date("2025-07-15T00:00:00.000Z"),
+      }),
+    ).rejects.toThrowError("Exception for addGrazing")
+  })
+
+  it("should bulk insert grazing records via addGrazings atomically with intention side-effect", async () => {
+    const field1 = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Field Bulk 1",
+      "src_fb1",
+      {
+        type: "Polygon" as const,
+        coordinates: [[[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]]],
+      },
+      new Date(),
+      "nl_01",
+    )
+
+    await setGrazingIntention(fdm, principal_id, b_id_farm, 2027, false)
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2027)).toBe(false)
+
+    await addGrazings(fdm, principal_id, [
+      {
+        l_id_herd,
+        b_id: field1,
+        l_grazing_start: new Date("2027-05-01T00:00:00.000Z"),
+        l_grazing_end: new Date("2027-05-04T00:00:00.000Z"),
+        l_grazing_hours: 8,
+      },
+      {
+        l_id_herd,
+        b_id: field1,
+        l_grazing_start: new Date("2027-05-10T00:00:00.000Z"),
+        l_grazing_end: new Date("2027-05-14T00:00:00.000Z"),
+        l_grazing_hours: 8,
+      },
+    ])
+
+    const records = await getGrazingForHerd(fdm, principal_id, l_id_herd, {
+      start: new Date("2027-01-01T00:00:00.000Z"),
+      end: new Date("2027-12-31T23:59:59.999Z"),
+    })
+    expect(records.length).toBe(2)
+    expect(await getGrazingIntention(fdm, principal_id, b_id_farm, 2027)).toBe(true)
+
+    // Rollback test: if one row in batch is invalid, none are inserted
+    const countBefore = (await getGrazingForFarm(fdm, principal_id, b_id_farm)).length
+    await expect(
+      addGrazings(fdm, principal_id, [
+        {
+          l_id_herd,
+          b_id: field1,
+          l_grazing_start: new Date("2027-06-01T00:00:00.000Z"),
+          l_grazing_end: new Date("2027-06-05T00:00:00.000Z"),
+        },
+        {
+          l_id_herd,
+          b_id: "non-existent-field",
+          l_grazing_start: new Date("2027-06-10T00:00:00.000Z"),
+        },
+      ]),
+    ).rejects.toThrowError("Exception for addGrazings")
+
+    const countAfter = (await getGrazingForFarm(fdm, principal_id, b_id_farm)).length
+    expect(countAfter).toBe(countBefore)
+  })
+
+  it("should retrieve grazing calendar entries joined with herd and field details", async () => {
+    const field = await addField(
+      fdm,
+      principal_id,
+      b_id_farm,
+      "Perceel De Hoek",
+      "src_hoek",
+      {
+        type: "Polygon" as const,
+        coordinates: [[[-1, -1], [-1, 1], [1, 1], [1, -1], [-1, -1]]],
+      },
+      new Date(),
+      "nl_01",
+    )
+
+    await addGrazing(fdm, principal_id, l_id_herd, new Date("2025-08-01T00:00:00.000Z"), {
+      b_id: field,
+      l_grazing_end: new Date("2025-08-04T00:00:00.000Z"),
+      l_grazing_hours: 8,
+      l_grazing_type: "full",
+    })
+
+    const calendar = await getGrazingCalendarForFarm(fdm, principal_id, b_id_farm, {
+      start: new Date("2025-08-01T00:00:00.000Z"),
+      end: new Date("2025-08-31T23:59:59.999Z"),
+    })
+
+    expect(calendar.length).toBe(1)
+    expect(calendar[0].l_herd_name).toBe("Melkkoeien")
+    expect(calendar[0].l_id_category).toBe("rvo_100")
+    expect(calendar[0].l_category).toBe("100 - Melk- en kalfkoeien")
+    expect(calendar[0].l_lsu).toBe(1)
+    expect(calendar[0].b_name).toBe("Perceel De Hoek")
   })
 
   it("should reject grazing for a field belonging to a different farm", async () => {

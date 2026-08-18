@@ -262,6 +262,7 @@ export {
   removeAnimal,
   removeAnimalAssigning,
   removeAnimals,
+  removeAnimalsFromHerd,
   updateAnimal,
   updateAnimalAssigning,
 } from "./animal"
@@ -369,12 +370,14 @@ export {
 export type { Excreting, ManureDelivery, ManurePit } from "./manure.types"
 export {
   addGrazing,
+  addGrazings,
   getGrazing,
+  getGrazingCalendarForFarm,
   getGrazingForFarm,
   getGrazingForField,
   getGrazingForHerd,
   removeGrazing,
   updateGrazing,
 } from "./grazing"
-export type { Grazing } from "./grazing.types"
+export type { Grazing, GrazingCalendarEntry } from "./grazing.types"
 export { fdmSchema }
