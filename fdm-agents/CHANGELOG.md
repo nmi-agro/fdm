@@ -1,5 +1,11 @@
 # @nmi-agro/fdm-agents
 
+## 0.5.1
+
+### Patch Changes
+
+- [#742](https://github.com/nmi-agro/fdm/pull/742) [`b6d44e2`](https://github.com/nmi-agro/fdm/commit/b6d44e247b0e5badfc10d5c27f16ef838be9a061) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix missing AI observability events for Gerrit in PostHog in production
+
 ## 0.5.0
 
 ### Minor Changes

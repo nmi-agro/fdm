@@ -4,7 +4,7 @@ import MaplibreGeocoder, {
   type CarmenGeojsonFeature,
   type MaplibreGeocoderApiConfig,
 } from "@maplibre/maplibre-gl-geocoder"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { type IControl, useControl } from "react-map-gl/maplibre"
 import { clientConfig } from "~/lib/config"
 

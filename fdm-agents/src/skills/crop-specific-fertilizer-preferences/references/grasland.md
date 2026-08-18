@@ -14,6 +14,23 @@
   bij lage pH). Behandel een lage pH-KCl als risicosignaal en raadpleeg `advice.d_ca_req` en bodem-
   pH-gegevens voordat bekalking wordt geadviseerd.
 
+**Snedezwaarte (`yieldclass`)**
+
+Wanneer per-snede advies (`advice.cuts`) beschikbaar is, betekent de `yieldclass`:
+
+| Code | Betekenis | Droge-stofopbrengst |
+| --- | --- | --- |
+| `VLG` | Zeer lichte beweiding | `<= 1.000 kg DS/ha` |
+| `LG` | Lichte beweiding | `> 1.000` en `< 1.500 kg DS/ha` |
+| `G` | Normale beweiding | `>= 1.500` en `< 2.000 kg DS/ha` |
+| `LM` | Licht maaien | `>= 2.000` en `< 2.500 kg DS/ha` |
+| `M` | Normaal maaien | `>= 2.500` en `<= 3.000 kg DS/ha` |
+| `HM` | Zwaar maaien | `> 3.000 kg DS/ha` |
+
+Gebruik deze indeling alleen om een geregistreerde droge-stofopbrengst te duiden wanneer die
+informatie beschikbaar is. Het per-snede advies uit `fdm-calculator` blijft leidend; leid geen
+droge-stofopbrengst af uit de code alleen en verzin geen ontbrekende sneden.
+
 **Vermijden:**
 
 - Varkensdrijfmest in hoge eenmalige giften op grasland — het hoge P-gehalte geeft risico op P-afspoeling op

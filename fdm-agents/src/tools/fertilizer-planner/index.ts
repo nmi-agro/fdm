@@ -919,6 +919,54 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         }
       }
 
+      // NPK advice-compliance check: independent of any strategy flag, flag fields where the
+      // proposed dose falls meaningfully short (>5%) of the agronomic advice (advice.d_*_req),
+      // so the agent doesn't stop iterating just because the legal norms are satisfied while the
+      // cultivation is still underfed. p_dose_nw (workable N) is compared against d_n_req, not
+      // p_dose_n (total N, reference only). Skipped when no advice is available for a field.
+      for (const r of validFieldResults) {
+        const advice = r.fieldMetrics?.advice
+        const dose = r.fieldMetrics?.proposedDose
+        if (!advice || !dose) continue
+
+        const nutrientChecks: Array<{
+          label: string
+          unit: string
+          doseValue: number | null | undefined
+          adviceValue: number | null | undefined
+        }> = [
+          {
+            label: "Stikstof",
+            unit: "kg N/ha",
+            doseValue: dose.p_dose_nw,
+            adviceValue: advice.d_n_req,
+          },
+          {
+            label: "Fosfaat",
+            unit: "kg P2O5/ha",
+            doseValue: dose.p_dose_p,
+            adviceValue: advice.d_p_req,
+          },
+          {
+            label: "Kalium",
+            unit: "kg K2O/ha",
+            doseValue: dose.p_dose_k,
+            adviceValue: advice.d_k_req,
+          },
+        ]
+
+        for (const check of nutrientChecks) {
+          if (check.adviceValue == null || check.adviceValue <= 0 || check.doseValue == null)
+            continue
+          const shortfall = check.adviceValue - check.doseValue
+          if (shortfall > check.adviceValue * 0.05) {
+            agronomicWarnings.push(
+              `Agronomisch tekort (${check.label}): Perceel ${r.b_id} krijgt ${Math.round(check.doseValue)} ${check.unit}, terwijl het advies ${Math.round(check.adviceValue)} ${check.unit} is (tekort: ${Math.round(shortfall)} ${check.unit}). Vul aan indien er nog ruimte is binnen de wettelijke normen op bedrijfsniveau.`,
+            )
+          }
+        }
+      }
+
       return {
         fieldResults,
         // Farm-level totals in kg — legal compliance is verified here, NOT per field

@@ -6,6 +6,7 @@ import { useFetcher } from "react-router"
 import { toast } from "sonner"
 import {
   BCS_SELECTED_CLASSES,
+  formatIndicatorScore,
   indicatorScoreColor,
 } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
@@ -481,7 +482,7 @@ export function BcsWizard({
                               : "bg-muted text-muted-foreground",
                           )}
                         >
-                          Score {criterion.score}
+                          Score {formatIndicatorScore(criterion.score, currentIndicator.direction)}
                         </span>
                       </div>
                       <p className="text-muted-foreground mt-1 text-sm">{criterion.description}</p>

@@ -17,10 +17,7 @@ import {
 import { dataWithWarning, redirectWithSuccess } from "remix-toast"
 import { HarvestFormDialog } from "~/components/blocks/harvest/form"
 import { FormSchema } from "~/components/blocks/harvest/schema"
-import {
-  getEffectiveHarvestable,
-  getHarvestCapitalizedTerm,
-} from "~/components/blocks/harvest/utils"
+import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -33,7 +30,12 @@ type HarvestParameter = HarvestParameters[number]
 
 // Meta
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
-  const term = getHarvestCapitalizedTerm(loaderData?.cultivation?.b_lu_croprotation)
+  const term = getHarvestTerm(
+    loaderData?.cultivation?.b_lu_croprotation,
+    false,
+    loaderData?.cultivation?.b_lu_harvestable,
+    true,
+  )
   return [
     { title: `${term} - Gewas - Perceel | ${clientConfig.name}` },
     {
@@ -157,6 +159,7 @@ export default function FarmFieldsOverviewBlock() {
   return (
     <HarvestFormDialog
       harvestParameters={loaderData.harvestParameters}
+      b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
       b_lu_harvest_date={loaderData.harvest.b_lu_harvest_date}
       b_lu_yield={loaderData.harvestableAnalysis.b_lu_yield ?? undefined}
       b_lu_yield_fresh={loaderData.harvestableAnalysis.b_lu_yield_fresh ?? undefined}
@@ -274,7 +277,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
         harvestProperties,
       )
 
-      const term = getHarvestCapitalizedTerm(cultivation.b_lu_croprotation)
+      const term = getHarvestTerm(
+        cultivation.b_lu_croprotation,
+        false,
+        cultivation.b_lu_harvestable,
+        true,
+      )
       return redirectWithSuccess(
         `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation/${b_lu}`,
         {
@@ -292,7 +300,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       // Just use a generic or fetch cultivation if we want the exact term.
       // Let's just fetch it quickly since it's a small read:
       const cultivation = await getCultivation(fdm, session.principal_id, b_lu)
-      const term = getHarvestCapitalizedTerm(cultivation?.b_lu_croprotation)
+      const term = getHarvestTerm(
+        cultivation?.b_lu_croprotation,
+        false,
+        cultivation?.b_lu_harvestable,
+        true,
+      )
 
       await removeHarvest(fdm, session.principal_id, b_id_harvesting)
       return redirectWithSuccess(
