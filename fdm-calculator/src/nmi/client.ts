@@ -85,8 +85,8 @@ export class NmiApiClient {
       if (inputSignal) abortController.abort(inputSignal.reason)
     }
 
-    if (options?.signal) {
-      inputSignal?.addEventListener("abort", onInputSignalAbort)
+    if (inputSignal) {
+      inputSignal.addEventListener("abort", onInputSignalAbort)
     }
 
     // Wait for pending requests in queue to complete if there are too many.

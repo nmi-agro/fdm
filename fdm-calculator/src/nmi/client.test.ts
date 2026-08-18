@@ -159,11 +159,36 @@ describe("NmiApiClient.request", () => {
     expect(value).toBe("response 2")
   })
 
-  it("should respect the passed AbortSignal", async () => {
+  it("should throw immediately with an already aborted AbortSignal", async () => {
     const abortController = new AbortController()
     const client = new NmiApiClient({ maxRetries: 2 })
     abortController.abort(new Error("reason"))
     await expect(client.request("", { signal: abortController.signal })).rejects.toThrow("reason")
+  })
+
+  it("should throw when the passed AbortSignal is aborted during a request", async () => {
+    const abortController = new AbortController()
+    const client = new NmiApiClient({ maxRetries: 2 })
+    vi.mocked(fetch).mockImplementationOnce(
+      (_, options) =>
+        new Promise((_, reject) => {
+          const signal = options?.signal
+          if (signal) {
+            signal.onabort = () => {
+              reject(signal.reason)
+            }
+          }
+        }),
+    )
+    const promise = client.request("", { signal: abortController.signal })
+    const timeout = setTimeout(() => {
+      abortController.abort(new Error("reason"))
+    }, 100)
+    try {
+      await expect(promise).rejects.toThrow("reason")
+    } finally {
+      clearTimeout(timeout)
+    }
   })
 
   it("should call onRejection properly before resolving", async () => {
