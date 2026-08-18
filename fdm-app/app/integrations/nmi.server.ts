@@ -2,7 +2,7 @@ import type { SoilParameterEstimatesResponse } from "@nmi-agro/fdm-calculator"
 /* eslint-disable typescript/no-redundant-type-constituents -- 'any' is used intentionally inside custom return types to represent raw third-party JSON properties that cannot be typed ahead of time. */
 import type { FdmType, FieldGeometry } from "@nmi-agro/fdm-core"
 import type { Feature, Geometry } from "geojson"
-import { getSoilParameterEstimates } from "@nmi-agro/fdm-calculator"
+import { getSoilParameterEstimates, soilReaderClient } from "@nmi-agro/fdm-calculator"
 import centroid from "@turf/centroid"
 import proj4 from "proj4"
 import { serverConfig } from "~/lib/config.server"
@@ -72,7 +72,7 @@ export async function extractSoilAnalysisAndBuffer(formData: FormData) {
 
   const { buffer } = await readAndValidatePdfUpload(file)
 
-  const responseApi = await fetch("https://api.nmi-agro.nl/soilreader", {
+  const responseApi = await soilReaderClient.request("https://api.nmi-agro.nl/soilreader", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${nmiApiKey}`,
@@ -215,7 +215,7 @@ export async function extractBulkSoilAnalyses(formData: FormData) {
       batchFormData.append("soilAnalysisFile", file)
     }
 
-    const responseApi = await fetch("https://api.nmi-agro.nl/soilreader", {
+    const responseApi = await soilReaderClient.request("https://api.nmi-agro.nl/soilreader", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${nmiApiKey}`,
