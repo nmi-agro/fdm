@@ -6,6 +6,7 @@ import {
   getFarm,
   getFarms,
   getFields,
+  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import {
@@ -201,15 +202,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Find unique roles
     const roles = [...new Set(farm.roles.map((role) => role.role))]
 
-    const farmWritePermission = await checkPermission(
-      fdm,
-      "farm",
-      "write",
-      b_id_farm,
-      session.principal_id,
-      new URL(request.url).pathname,
-      false,
-    )
+    const [herds, farmWritePermission] = await Promise.all([
+      getHerdsForFarm(fdm, session.principal_id, b_id_farm),
+      checkPermission(
+        fdm,
+        "farm",
+        "write",
+        b_id_farm,
+        session.principal_id,
+        new URL(request.url).pathname,
+        false,
+      ),
+    ])
+
+    const hasHerds = herds.length > 0
 
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
@@ -227,6 +233,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       roles: roles,
       farmWritePermission,
       isRvoConfigured,
+      hasHerds,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -653,6 +660,25 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
+                  {loaderData.hasHerds && (
+                    <NavLink to={`${calendar}/grazing/insights`}>
+                      <Card className="h-full transition-all hover:shadow-md">
+                        <CardHeader>
+                          <div className="flex items-center gap-4">
+                            <div className="bg-muted rounded-lg p-3">
+                              <Icon iconNode={cowHead} className="text-primary h-6 w-6" />
+                            </div>
+                            <div>
+                              <CardTitle>Weidegang</CardTitle>
+                              <CardDescription>
+                                Weidedagen, uren en veebezetting.
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </NavLink>
+                  )}
                   <Card
                     className={cn(
                       "h-full transition-all",

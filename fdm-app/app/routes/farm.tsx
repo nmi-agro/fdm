@@ -5,6 +5,7 @@ import {
   getFarm,
   getFarms,
   getFields,
+  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import {
   checkHelpdeskPermission,
@@ -118,13 +119,16 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
     const shouldFetchFarmData = Boolean(hasFarmParam && !farmAccessDenied && params.b_id_farm)
 
-    const [fields, cultivationsByField] =
+    const [fields, cultivationsByField, herds] =
       shouldFetchFarmData && params.b_id_farm
         ? await Promise.all([
             getFields(fdm, session.principal_id, params.b_id_farm, timeframe),
             getCultivationsForFarm(fdm, session.principal_id, params.b_id_farm, timeframe),
+            getHerdsForFarm(fdm, session.principal_id, params.b_id_farm),
           ])
-        : [[], new Map()]
+        : [[], new Map(), []]
+
+    const hasHerds = herds.length > 0
 
     const fieldOptions = buildFieldOptions(
       fields,
@@ -161,6 +165,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       hasNotification: hasNotification,
       farmWritePermission: farmWritePermission,
       fieldOptions: fieldOptions,
+      hasHerds: hasHerds,
     }
   } catch (error) {
     // If getSession throws (e.g., invalid token), it might result in a 401
@@ -205,6 +210,7 @@ function FarmShell({
             fields={loaderData.fieldOptions}
             activeFieldId={activeFieldId}
             fieldWritePermission={fieldWritePermission}
+            hasHerds={loaderData.hasHerds}
           />
           <SidebarApps farms={loaderData.farmOptions} />
           <SidebarLabs />

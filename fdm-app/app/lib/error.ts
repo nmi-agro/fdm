@@ -281,6 +281,23 @@ export async function handleActionError(error: unknown) {
     )
   }
 
+  // Validation: animal sex or species incompatible with category
+  if (containsErrorMessage(error, "is not allowed for category")) {
+    console.warn("Animal sex incompatible with category:", error)
+    return dataWithWarning(
+      null,
+      "Het geslacht kan niet worden gewijzigd omdat dit dier is ingedeeld (of ingedeeld is geweest) in een koppel/categorie die dit geslacht niet toestaat.",
+    )
+  }
+
+  if (containsErrorMessage(error, "does not match category")) {
+    console.warn("Animal species incompatible with category:", error)
+    return dataWithWarning(
+      null,
+      "De diersoort komt niet overeen met de categorie van de koppel.",
+    )
+  }
+
   // Handle 'data' thrown errors (and real thrown `Response` objects)
   const thrownStatus = getThrownStatus(error)
   if (thrownStatus) {
