@@ -75,7 +75,7 @@ import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
-import { getCalendarSelection } from "~/lib/calendar"
+import { getCalendarSelection, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -134,15 +134,6 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
-    // Get the farm details
-    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
-
-    // Get the list of fields
-    const fields = await getFields(fdm, session.principal_id, b_id_farm)
-
-    // Calculate total area for this farm
-    const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
-
     // Fields without a registered main cultivation ("hoofdteelt") for the active year are a data-completeness
     // signal worth surfacing. The active year follows the same calendar selection driving the rest of the
     // dashboard: an optional "calendar" search param (set when navigating here from a calendar-scoped page),
@@ -153,10 +144,25 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       calendarParam && /^\d{4}$/.test(calendarParam)
         ? calendarParam
         : new Date().getFullYear().toString()
-    const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm, {
-      start: new Date(`${activeYear}-01-01T00:00:00.000Z`),
-      end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
-    })
+
+    const timeframe = getTimeframe({ calendar: activeYear })
+
+    // Get the farm details
+    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
+
+    // Get the list of fields
+    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+
+    // Calculate total area for this farm
+    const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
+
+    const cultivationsByField = await getCultivationsForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
+
     const fieldsMissingCultivation = fields.filter(
       (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
     )
