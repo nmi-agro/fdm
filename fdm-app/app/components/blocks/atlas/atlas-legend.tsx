@@ -3,6 +3,7 @@ import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
 import { TriangleAlert } from "lucide-react"
 import { useId, useMemo } from "react"
 import { Bar, BarChart, type BarShapeProps, Rectangle, XAxis, YAxis } from "recharts"
+import { cn } from "@/app/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
 import { Spinner } from "~/components/ui/spinner"
@@ -36,6 +37,35 @@ interface ScoreLegendProps {
   showSelectedFieldSwatch?: boolean
 }
 
+function ScoreLegendBar({
+  size,
+  marker,
+  color,
+  roundStart,
+  roundEnd,
+}: {
+  size: number
+  marker: number
+  color: string
+  roundStart?: boolean
+  roundEnd?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        "relative h-2.5 overflow-visible",
+        roundStart && "rounded-l-sm",
+        roundEnd && "rounded-r-sm",
+      )}
+      style={{ flex: size, backgroundColor: color }}
+    >
+      <div className="text-muted-foreground absolute top-full right-0 z-20 translate-x-1/2 translate-y-0.5 text-xs tabular-nums">
+        {marker}
+      </div>
+    </div>
+  )
+}
+
 /**
  * Legend for maps that colour fields on the shared 0–100 red→yellow→green score scale
  * (`getScoreColor`/`getScoreTier` in `~/lib/indicators`, and the matching `step` expression
@@ -46,16 +76,11 @@ export function ScoreLegend({ label, showSelectedFieldSwatch }: ScoreLegendProps
   return (
     <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
       {label && <p className="text-foreground mb-1.5 truncate font-medium">{label}</p>}
-      <div className="flex h-2.5 w-full gap-px overflow-hidden rounded-sm">
-        <div className="h-full flex-[40] bg-[#ef4444]" />
-        <div className="h-full flex-[30] bg-[#eab308]" />
-        <div className="h-full flex-[30] bg-[#22c55e]" />
-      </div>
-      <div className="text-muted-foreground mt-0.5 flex justify-between tabular-nums">
-        <span>0</span>
-        <span>40</span>
-        <span>70</span>
-        <span>100</span>
+      <div className="mb-5 flex h-2.5 w-full gap-px px-1.5">
+        <ScoreLegendBar size={0} marker={0} color="#ef4444" />
+        <ScoreLegendBar size={40} marker={40} color="#ef4444" roundStart />
+        <ScoreLegendBar size={30} marker={70} color="#eab308" />
+        <ScoreLegendBar size={30} marker={100} color="#22c55e" roundEnd />
       </div>
       <div className="text-muted-foreground mt-1.5 flex items-center gap-1">
         <div className="bg-muted-foreground/40 h-2.5 w-2.5 shrink-0 rounded-full" />
