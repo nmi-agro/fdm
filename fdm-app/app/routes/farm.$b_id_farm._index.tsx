@@ -39,6 +39,7 @@ import {
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
+  redirect,
   useFetcher,
   useLoaderData,
   useSearchParams,
@@ -142,9 +143,13 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     let activeYear = new Date().getFullYear().toString()
     const calendarParam = url.searchParams.get("calendar")
     if (calendarParam) {
-      const year = Number.parseInt(calendarParam, 10)
+      const year = Number.parseFloat(calendarParam)
       if (isSupportedYear(year)) {
         activeYear = calendarParam
+      } else {
+        const searchParams = new URLSearchParams(url.searchParams)
+        searchParams.set("calendar", activeYear)
+        return redirect(`/farm/${b_id_farm}?${searchParams.toString()}`)
       }
     }
 
