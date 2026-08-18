@@ -32,7 +32,7 @@ import {
   Trash2,
   UserRoundCheck,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -75,7 +75,7 @@ import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
-import { getCalendarSelection, getTimeframe } from "~/lib/calendar"
+import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -139,11 +139,14 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     // dashboard: an optional "calendar" search param (set when navigating here from a calendar-scoped page),
     // falling back to the current year. The resolved year is also returned so the NavLink target stays aligned
     // with the count.
+    let activeYear = new Date().getFullYear().toString()
     const calendarParam = url.searchParams.get("calendar")
-    const activeYear =
-      calendarParam && /^\d{4}$/.test(calendarParam)
-        ? calendarParam
-        : new Date().getFullYear().toString()
+    if (calendarParam) {
+      const year = Number.parseInt(calendarParam, 10)
+      if (isSupportedYear(year)) {
+        activeYear = calendarParam
+      }
+    }
 
     const timeframe = getTimeframe({ calendar: activeYear })
 
@@ -225,6 +228,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     return {
       b_id_farm: b_id_farm,
       b_name_farm: farm.b_name_farm,
+      activeYear: activeYear,
       fieldsNumber: fields.length,
       farmArea: Math.round(farmArea),
       fieldsMissingCultivation: fieldsMissingCultivation.length,
@@ -427,27 +431,31 @@ function ActionLink({
 export default function FarmDashboardIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const fetcher = useFetcher()
-  const [searchParams, setSearchParams] = useSearchParams()
 
   const calendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
+  const [searchParams, setSearchParams] = useSearchParams()
   const years = getCalendarSelection()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
-  // Redirect with the current calendar passed as a search param if it wasn't passed
+  const lastRedirectedCalendarVal = useRef(calendar)
+  // Set the selected calendar year to what is sent from the server
   useEffect(() => {
-    const currentYearParam = searchParams.get("calendar")
-    const currentSelectedYear = calendar ?? new Date().getFullYear().toString()
+    setCalendar(loaderData.activeYear)
+  }, [loaderData.activeYear, setCalendar])
 
-    if (currentYearParam !== currentSelectedYear) {
-      setSearchParams({
-        ...Object.fromEntries(searchParams.entries()),
-        calendar: currentSelectedYear,
-      })
+  useEffect(() => {
+    if (
+      calendar &&
+      calendar !== lastRedirectedCalendarVal.current &&
+      loaderData.activeYear !== calendar
+    ) {
+      setSearchParams({ ...Object.fromEntries(searchParams.entries()), calendar: calendar })
+      lastRedirectedCalendarVal.current = calendar
     }
-  }, [calendar, searchParams, setSearchParams])
+  }, [loaderData.activeYear, searchParams, setSearchParams, calendar, setCalendar])
 
   const isAcceptingAll = fetcher.state !== "idle"
   const suggestedFields = useMemo(
