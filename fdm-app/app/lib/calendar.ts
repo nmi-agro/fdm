@@ -14,7 +14,7 @@ export function getCalendar(params: Params): string {
 }
 
 export function isSupportedYear(year: number) {
-  return Number.isFinite(year) && year >= yearStart && year <= yearEnd
+  return Number.isInteger(year) && year >= yearStart && year <= yearEnd
 }
 
 export function getTimeframe(params: Params): Timeframe {
