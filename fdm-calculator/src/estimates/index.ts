@@ -24,6 +24,7 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import { z } from "zod"
 import type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from "./types"
+import { soilEstimatesClient } from "../nmi/client"
 import pkg from "../package"
 import { soilParameterEstimatesSchema } from "./schemas"
 
@@ -46,12 +47,9 @@ export async function requestSoilParameterEstimates({
     throw new Error("Please provide a NMI API key")
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
-
   let result: { data?: unknown }
   try {
-    const responseApi = await fetch(
+    const responseApi = await soilEstimatesClient.request(
       `https://api.nmi-agro.nl/estimates?${new URLSearchParams({
         a_lat: a_lat.toString(),
         a_lon: a_lon.toString(),
@@ -61,7 +59,6 @@ export async function requestSoilParameterEstimates({
         headers: {
           Authorization: `Bearer ${nmiApiKey}`,
         },
-        signal: controller.signal,
       },
     )
 
@@ -71,12 +68,10 @@ export async function requestSoilParameterEstimates({
 
     result = await responseApi.json()
   } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
+    if (err instanceof Error && err.name === "TimeoutError") {
       throw new Error("De aanvraag naar de NMI Estimates API is verlopen (timeout).")
     }
     throw err
-  } finally {
-    clearTimeout(timeout)
   }
 
   if (!result.data || typeof result.data !== "object") {
