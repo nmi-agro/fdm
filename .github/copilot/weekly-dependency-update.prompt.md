@@ -18,7 +18,7 @@ Before making changes, read `.github/copilot-instructions.md` and the relevant s
 
 Note on internet access: your environment's firewall only allows GitHub itself (so you can read a dependency's `CHANGELOG.md`, GitHub Releases, and tags on `github.com`/`raw.githubusercontent.com`) and package registries (e.g. `registry.npmjs.org`, for package metadata/README). Third-party blog or docs sites hosted on their own domain (not on `github.com`/`githubusercontent.com`) are **not** reachable by default and requests to them will be blocked.
 
-Before assuming a migration guide is unreachable, look for it **inside the dependency's own GitHub repository** — many projects publish their release notes, blog posts, and migration guides as files committed to the repo itself (not just as an external site), for example: `CHANGELOG.md` at the repo root or in a specific package's folder in a monorepo, a `docs/` or `website/`/`website/blog/` directory (common for docs sites built from in-repo Markdown/MDX, e.g. Docusaurus-based sites like this one), `.changeset/` release summaries, or a `MIGRATION.md`/`UPGRADING.md` file. All of these are reachable via `raw.githubusercontent.com` and GitHub's code search/browsing even though the *rendered* docs/blog site itself may not be. Only fall back to an external docs/blog URL once you've checked the repo doesn't contain the guide, and if that external URL is also blocked, note that in "Decisions Needed" rather than guessing at the breaking changes.
+Before assuming a migration guide is unreachable, look for it **inside the dependency's own GitHub repository** — many projects publish their release notes, blog posts, and migration guides as files committed to the repo itself (not just as an external site), for example: `CHANGELOG.md` at the repo root or in a specific package's folder in a monorepo, a `docs/` or `website/`/`website/blog/` directory (common for docs sites built from in-repo Markdown/MDX, e.g. Docusaurus-based sites like this one), `.changeset/` release summaries, or a `MIGRATION.md`/`UPGRADING.md` file. All of these are reachable via `raw.githubusercontent.com` and GitHub's code search/browsing even though the _rendered_ docs/blog site itself may not be. Only fall back to an external docs/blog URL once you've checked the repo doesn't contain the guide, and if that external URL is also blocked, note that in "Decisions Needed" rather than guessing at the breaking changes.
 
 For each **major** version bump:
 
@@ -33,7 +33,7 @@ Before finishing, for every package you touched:
 
 - Respect build order: `fdm-data` → `fdm-core` → downstream packages.
 - Run `pnpm build`, `pnpm check-types` (root and/or per-package, e.g. `fdm-app`'s `pnpm check-types` runs `react-router typegen && tsc`), and `pnpm lint`.
-- Run the targeted test suite for each touched package, e.g. `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`. A local PostgreSQL/PostGIS instance is available via the `copilot-setup-steps` service for packages that need it (`fdm-core`, `fdm-calculator`, `fdm-rvo`, `fdm-helpdesk`).
+- Run the targeted test suite for each touched package, e.g. `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`. A PostgreSQL/PostGIS instance is available (via the `copilot-setup-steps` service) for packages that need it (`fdm-core`, `fdm-calculator`, `fdm-rvo`, `fdm-helpdesk`); connection details are provided via `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` environment variables. If these are unset or the tests fail immediately with a missing-env-var error (see `fdm-core/src/global-setup.ts`), that's an environment configuration issue, not something caused by the dependency updates — state clearly in the PR's Validation section which suites you could not run and why (e.g. "fdm-core tests: skipped, POSTGRES_* environment variables not available in this session") rather than silently omitting them or reporting a vague "unable to test."
 - Fix any regression your changes caused. If a specific bump cannot be made to pass validation within reasonable effort, revert just that bump and move it to "Decisions Needed" instead of leaving a broken build.
 
 ## 5. Changesets
@@ -41,12 +41,15 @@ Before finishing, for every package you touched:
 Only add a changeset (`.changeset/*.md`, matching the existing format — see `.changeset/README.md` and existing files for style) for a package when you actually **applied a major version bump** to one of its dependencies. Do **not** add a changeset for packages that only received patch/minor dependency bumps — those are not user-facing changes worth a changelog entry.
 
 For a package that did get a major dependency bump, default to a **`patch`** changeset for it, unless the dependency upgrade itself:
+
 - introduces new features that are now available to consumers of the `fdm` package — in that case use **`minor`**, or
 - introduces a breaking change in the `fdm` package's own public API/behavior as a result of the upgrade — in that case use **`major`**.
 
-## 6. Pull request description
+## 6. Pull request title and description
 
-Open the PR as a **draft**, targeting the `development` branch, and structure the description with exactly these sections (omit "Decisions Needed" entirely if there are none):
+Title the pull request exactly: `Weekly dependency update — Week {{WEEK_NUMBER}}, {{WEEK_YEAR}}` (ISO week number and year). Do not leave (or revert to) a generic auto-generated title, and do not leave a `[WIP]`-prefixed title once your work is complete — the final title must be exactly the string above.
+
+Open the PR as a **draft**, targeting the `development` branch. **As the very last action before finishing**, replace the entire PR description with the structure below — do not leave your own running session checklist/progress notes (e.g. a plain `- [x] did X` task list) as the final description; that's for your own tracking while working, not the deliverable. Summarize the checklist items into the sections below instead (omit "Decisions Needed" entirely if there are none):
 
 ```markdown
 ## Summary
@@ -56,9 +59,10 @@ Open the PR as a **draft**, targeting the `development` branch, and structure th
 
 ## Decisions Needed
 
-For each major upgrade that was intentionally *not* applied:
+For each major upgrade that was intentionally _not_ applied:
 
 ### `<dependency>` `<current>` → `<latest>`
+
 - **What's blocking**: short explanation of the breaking change and why it needs a maintainer decision.
 - **Options considered**: 1-3 concrete options (e.g. "adopt new config format now", "stay pinned until X is addressed", "adopt with a follow-up migration PR").
 - **Recommendation**: your suggested path forward.
@@ -80,4 +84,4 @@ Add the `dependencies` label to the PR if you have permission to do so.
 
 ## Branch name
 
-Create/use the branch `agent/dependencies/{{BRANCH_DATE}}` for this task's commits and pull request.
+You have been assigned to the pre-created branch `agent/dependencies/{{BRANCH_DATE}}`; commit your changes there and open the pull request from it (do not create a different branch).

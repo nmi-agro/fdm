@@ -12,6 +12,19 @@ name: "Copilot Setup Steps"
 # health-check options are otherwise copied verbatim from tests.yml, and the final
 # step actually runs the fdm-core test suite against it, to prove end-to-end that
 # Copilot's environment can build and test against Postgres/PostGIS just like CI does.
+#
+# IMPORTANT: the `POSTGRES_*` values below are only scoped to this job's own
+# verification step — they do NOT carry over into Copilot's actual live coding-agent
+# session, which is a separate ephemeral environment. The `services` entry (the
+# Postgres/PostGIS container itself) does persist into that session, but per GitHub's
+# docs (see "Configure secrets and variables for Copilot cloud agent"), env vars are
+# only exposed to that live session via repository/organization "Agents" secrets and
+# variables (Settings → Secrets and variables → Agents) — not via `env:` set here.
+# Without POSTGRES_HOST/PORT/USER/PASSWORD/DB configured as Agents variables (matching
+# the values below), fdm-core/fdm-calculator/fdm-rvo/fdm-helpdesk tests will fail fast
+# in the agent's real session (see fdm-core/src/global-setup.ts), even though this
+# workflow itself passes. See fdm-docs/docs/contributing/05-weekly-dependency-updates.md
+# for the exact values to configure.
 on:
   workflow_dispatch:
   push:
@@ -88,4 +101,3 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
-

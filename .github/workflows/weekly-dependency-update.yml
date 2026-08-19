@@ -16,7 +16,7 @@ on:
   workflow_dispatch: # Allows manual runs for testing
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: read
   issues: read
 
@@ -93,23 +93,62 @@ jobs:
             exit 1
           fi
 
+      - name: Prepare a dated branch for the agent to commit to
+        id: prepare_branch
+        if: steps.schedule_check.outputs.proceed == 'true' && steps.existing_pr_check.outputs.proceed == 'true' && steps.copilot_check.outputs.proceed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The Agent Tasks API only lets us pick the branch name via `head_ref`,
+          # and `head_ref` must already exist (it looks up an existing branch/PR
+          # rather than naming a new one) — see
+          # https://docs.github.com/en/rest/agent-tasks/agent-tasks. Without a
+          # pre-created branch, GitHub auto-names the branch itself (e.g.
+          # "copilot/weekly-dependency-update"), ignoring any naming instructions in
+          # the prompt text. So we create the dated branch ourselves, from the
+          # `development` tip already checked out above, and push it before starting
+          # the task.
+          branch_date="$(TZ=Europe/Amsterdam date +'%Y%m%d')"
+          head_ref="agent/dependencies/${branch_date}"
+          git checkout -B "$head_ref"
+          git push --force origin "$head_ref"
+          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
+          echo "branch_date=$branch_date" >> "$GITHUB_OUTPUT"
+          # ISO week number/year (%V/%G), not the plain calendar year (%Y), so the
+          # week and year stay consistent for the rare ISO week that spans a
+          # year boundary.
+          echo "week_number=$(TZ=Europe/Amsterdam date +'%V')" >> "$GITHUB_OUTPUT"
+          echo "week_year=$(TZ=Europe/Amsterdam date +'%G')" >> "$GITHUB_OUTPUT"
+
       - name: Start Copilot coding agent task
         if: steps.schedule_check.outputs.proceed == 'true' && steps.existing_pr_check.outputs.proceed == 'true' && steps.copilot_check.outputs.proceed == 'true'
         env:
           GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
         run: |
-          branch_date="$(TZ=Europe/Amsterdam date +'%Y%m%d')"
-          prompt_body="$(sed "s/{{BRANCH_DATE}}/${branch_date}/g" .github/copilot/weekly-dependency-update.prompt.md)"
+          branch_date="${{ steps.prepare_branch.outputs.branch_date }}"
+          head_ref="${{ steps.prepare_branch.outputs.head_ref }}"
+          week_number="${{ steps.prepare_branch.outputs.week_number }}"
+          week_year="${{ steps.prepare_branch.outputs.week_year }}"
+          prompt_body="$(sed \
+            -e "s/{{BRANCH_DATE}}/${branch_date}/g" \
+            -e "s/{{WEEK_NUMBER}}/${week_number}/g" \
+            -e "s/{{WEEK_YEAR}}/${week_year}/g" \
+            .github/copilot/weekly-dependency-update.prompt.md)"
           prompt_json=$(jq -n \
             --arg prompt "$prompt_body" \
             --arg base_ref "development" \
-            '{prompt: $prompt, base_ref: $base_ref, create_pull_request: true}')
+            --arg head_ref "$head_ref" \
+            '{prompt: $prompt, base_ref: $base_ref, head_ref: $head_ref, create_pull_request: true}')
 
-          response=$(gh api \
+          if ! response=$(gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "agents/repos/${{ github.repository }}/tasks" \
-            --input - <<< "$prompt_json")
+            --input - <<< "$prompt_json" 2>&1); then
+            echo "::error::Failed to start the Copilot coding agent task. Response: $response"
+            echo "::error::A 403/Forbidden here usually means COPILOT_AGENT_PAT is missing the 'Agent tasks: Read and write' fine-grained permission, the token's account lacks a Copilot Business/Enterprise subscription, or (for SAML-enforced orgs) the token isn't authorized for SSO. See fdm-docs contributing guide for setup instructions."
+            exit 1
+          fi
 
           echo "$response"

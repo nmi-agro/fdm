@@ -59,10 +59,7 @@ export async function fetchBcsRawInputs(
   return { a_ph_cc, a_som_loi, b_soiltype_agr, a_clay_mi, labAnalysisDate, cultivations }
 }
 
-export function deriveBcsContextFromRawInputs(
-  raw: BcsRawInputs,
-  bcsDate: Date,
-): DerivedBcsContext {
+export function deriveBcsContextFromRawInputs(raw: BcsRawInputs, bcsDate: Date): DerivedBcsContext {
   if (raw.a_ph_cc == null && raw.a_som_loi == null) {
     return { labContext: null, labAnalysisDate: null }
   }
@@ -90,4 +87,3 @@ export async function deriveBcsScores(
   const raw = await fetchBcsRawInputs(fdm, principal_id, b_id)
   return deriveBcsContextFromRawInputs(raw, bcsDate)
 }
-

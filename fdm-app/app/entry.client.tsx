@@ -5,12 +5,16 @@
  */
 
 import * as Sentry from "@sentry/react-router"
+import { setWorkerUrl } from "maplibre-gl"
+import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url"
 import posthog from "posthog-js"
 import { PostHogProvider } from "posthog-js/react"
 import { StrictMode, startTransition } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { HydratedRouter } from "react-router/dom"
 import { clientConfig } from "~/lib/config"
+
+setWorkerUrl(workerUrl)
 
 if (clientConfig.analytics.sentry) {
   const sentryConfig = clientConfig.analytics.sentry

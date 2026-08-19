@@ -9,7 +9,7 @@
 import type { FeatureCollection } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
 import type { LayerProps } from "react-map-gl/maplibre"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useCallback, useMemo, useState } from "react"
 import {
   Layer,

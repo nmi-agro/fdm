@@ -239,9 +239,7 @@ describe("runStreamAgent", () => {
         return gen()
       },
     }
-    const events = await collect(
-      runStreamAgent(agent as any, "test", { b_id_farm: "f1" }, posthog),
-    )
+    const events = await collect(runStreamAgent(agent as any, "test", { b_id_farm: "f1" }, posthog))
     expect(events[0].event).toBe("on_chain_end")
     expect(capturedOpts.callbacks).toHaveLength(1)
     expect(capturedOpts.callbacks[0]).toBeInstanceOf(LangChainCallbackHandler)
