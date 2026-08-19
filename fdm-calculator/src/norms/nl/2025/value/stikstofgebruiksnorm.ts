@@ -897,8 +897,8 @@ export async function calculateNL2025StikstofGebruiksNorm(
   })
 
   // Determine which index in sortedCultivations is the hoofdteelt
-  const hoofdteeltIndex = sortedCultivations.findIndex(
-    (c) => (c.b_lu && hoofdteelt.b_lu ? c.b_lu === hoofdteelt.b_lu : c === hoofdteelt),
+  const hoofdteeltIndex = sortedCultivations.findIndex((c) =>
+    c.b_lu && hoofdteelt.b_lu ? c.b_lu === hoofdteelt.b_lu : c === hoofdteelt,
   )
 
   let totalNormValue = new Decimal(0)
