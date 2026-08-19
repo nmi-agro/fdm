@@ -759,7 +759,7 @@ export function AddMeasureDialog({
                                 variant="outline"
                                 className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                               >
-                                Niet geschikt
+                                Niet toepasbaar
                               </Badge>
                             )}
                             {appInfo?.applicability === "inapplicable" && (
@@ -767,7 +767,7 @@ export function AddMeasureDialog({
                                 variant="outline"
                                 className="border-destructive/50 bg-destructive/10 text-destructive text-xs"
                               >
-                                {fields ? "Geen toepasbare percelen" : "Niet mogelijk"}
+                                {fields ? "Niet toepasbaar voor uw percelen" : "Niet mogelijk"}
                               </Badge>
                             )}
                             {hasPartialApplicability && (
@@ -775,7 +775,7 @@ export function AddMeasureDialog({
                                 variant="outline"
                                 className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                               >
-                                Deels toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
+                                Toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
                                 {appInfo.applicableFieldNames!.length === 1
                                   ? "perceel"
                                   : "percelen"}
@@ -1048,7 +1048,7 @@ export function AddMeasureDialog({
                                     variant="outline"
                                     className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                                   >
-                                    Niet geschikt
+                                    Niet toepasbaar
                                   </Badge>
                                 )}
                                 {fieldAppInfo?.applicability === "inapplicable" && (
