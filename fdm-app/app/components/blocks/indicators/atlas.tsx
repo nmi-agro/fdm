@@ -7,9 +7,9 @@
  */
 
 import type { FeatureCollection, GeoJsonProperties } from "geojson"
+import type { StyleSpecification } from "maplibre-gl"
 import { LayoutList } from "lucide-react"
 import * as maplibregl from "maplibre-gl"
-import type { StyleSpecification } from "maplibre-gl"
 import { type Dispatch, type SetStateAction, useCallback, useMemo, useRef, useState } from "react"
 import {
   Layer,

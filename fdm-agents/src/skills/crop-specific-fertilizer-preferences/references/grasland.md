@@ -18,14 +18,14 @@
 
 Wanneer per-snede advies (`advice.cuts`) beschikbaar is, betekent de `yieldclass`:
 
-| Code | Betekenis | Droge-stofopbrengst |
-| --- | --- | --- |
-| `VLG` | Zeer lichte beweiding | `<= 1.000 kg DS/ha` |
-| `LG` | Lichte beweiding | `> 1.000` en `< 1.500 kg DS/ha` |
-| `G` | Normale beweiding | `>= 1.500` en `< 2.000 kg DS/ha` |
-| `LM` | Licht maaien | `>= 2.000` en `< 2.500 kg DS/ha` |
-| `M` | Normaal maaien | `>= 2.500` en `<= 3.000 kg DS/ha` |
-| `HM` | Zwaar maaien | `> 3.000 kg DS/ha` |
+| Code  | Betekenis             | Droge-stofopbrengst               |
+| ----- | --------------------- | --------------------------------- |
+| `VLG` | Zeer lichte beweiding | `<= 1.000 kg DS/ha`               |
+| `LG`  | Lichte beweiding      | `> 1.000` en `< 1.500 kg DS/ha`   |
+| `G`   | Normale beweiding     | `>= 1.500` en `< 2.000 kg DS/ha`  |
+| `LM`  | Licht maaien          | `>= 2.000` en `< 2.500 kg DS/ha`  |
+| `M`   | Normaal maaien        | `>= 2.500` en `<= 3.000 kg DS/ha` |
+| `HM`  | Zwaar maaien          | `> 3.000 kg DS/ha`                |
 
 Gebruik deze indeling alleen om een geregistreerde droge-stofopbrengst te duiden wanneer die
 informatie beschikbaar is. Het per-snede advies uit `fdm-calculator` blijft leidend; leid geen

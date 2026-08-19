@@ -11,6 +11,8 @@ import { format } from "date-fns"
 import {
   AlertTriangle,
   ArrowRightLeft,
+  BadgeAlert,
+  BadgeCheck,
   BookOpenText,
   ChevronDown,
   ChevronUp,
@@ -32,21 +34,24 @@ import {
   Trash2,
   UserRoundCheck,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   NavLink,
+  redirect,
   useFetcher,
   useLoaderData,
+  useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
 import { toast } from "sonner"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -74,10 +79,11 @@ import { getNmiApiKey } from "~/integrations/nmi.server"
 import { getRvoCredentials } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
-import { getCalendarSelection } from "~/lib/calendar"
+import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { cn } from "~/lib/utils"
@@ -119,7 +125,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} If the farm ID is not provided.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -133,29 +139,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
-    // Get the farm details
-    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
-
-    // Get the list of fields
-    const fields = await getFields(fdm, session.principal_id, b_id_farm)
-
-    // Calculate total area for this farm
-    const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
-
     // Fields without a registered main cultivation ("hoofdteelt") for the active year are a data-completeness
     // signal worth surfacing. The active year follows the same calendar selection driving the rest of the
     // dashboard: an optional "calendar" search param (set when navigating here from a calendar-scoped page),
     // falling back to the current year. The resolved year is also returned so the NavLink target stays aligned
     // with the count.
-    const calendarParam = new URL(request.url).searchParams.get("calendar")
-    const activeYear =
-      calendarParam && /^\d{4}$/.test(calendarParam)
-        ? calendarParam
-        : new Date().getFullYear().toString()
-    const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm, {
-      start: new Date(`${activeYear}-01-01T00:00:00.000Z`),
-      end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
-    })
+    let activeYear = new Date().getFullYear().toString()
+    const calendarParam = url.searchParams.get("calendar")
+    if (calendarParam) {
+      const year = Number(calendarParam)
+      if (isSupportedYear(year)) {
+        activeYear = calendarParam
+      } else {
+        const searchParams = new URLSearchParams(url.searchParams)
+        searchParams.set("calendar", activeYear)
+        return redirect(`/farm/${b_id_farm}?${searchParams.toString()}`)
+      }
+    }
+
+    const timeframe = getTimeframe({ calendar: activeYear })
+
+    // Get the farm details
+    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
+
+    // Get the list of fields
+    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+
+    // Calculate total area for this farm
+    const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
+
+    const cultivationsByField = await getCultivationsForFarm(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      timeframe,
+    )
+
     const fieldsMissingCultivation = fields.filter(
       (field) => !getMainCultivation(cultivationsByField.get(field.b_id) ?? [], activeYear),
     )
@@ -210,6 +229,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       new URL(request.url).pathname,
       false,
     )
+    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
@@ -218,6 +238,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       b_id_farm: b_id_farm,
       b_name_farm: farm.b_name_farm,
+      activeYear: activeYear,
       fieldsNumber: fields.length,
       farmArea: Math.round(farmArea),
       fieldsMissingCultivation: fieldsMissingCultivation.length,
@@ -226,6 +247,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmOptions: farmOptions,
       roles: roles,
       farmWritePermission,
+      farmVerification,
       isRvoConfigured,
     }
   } catch (error) {
@@ -262,11 +284,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const intent = formData.get("intent")
 
     if (intent === "accept_all_suggestions") {
+      let activeYear = new Date().getFullYear().toString()
       const calendarValue = formData.get("calendar")
-      const activeYear =
-        typeof calendarValue === "string" && /^\d{4}$/.test(calendarValue)
-          ? calendarValue
-          : new Date().getFullYear().toString()
+      if (typeof calendarValue === "string") {
+        const year = Number(calendarValue)
+        if (isSupportedYear(year)) {
+          activeYear = calendarValue
+        }
+      }
+      const timeframe = getTimeframe({ calendar: activeYear })
 
       const selectedBIds = formData.getAll("selected_b_id").map(String)
       if (selectedBIds.length === 0) {
@@ -274,15 +300,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       }
 
       // Fetch fields and cultivations for the farm
-      const fields = await getFields(fdm, session.principal_id, b_id_farm)
+      const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
       const cultivationsByField = await getCultivationsForFarm(
         fdm,
         session.principal_id,
         b_id_farm,
-        {
-          start: new Date(`${activeYear}-01-01T00:00:00.000Z`),
-          end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
-        },
+        timeframe,
       )
 
       const fieldsMissingCultivation = fields
@@ -423,10 +446,30 @@ export default function FarmDashboardIndex() {
 
   const calendar = useCalendarStore((state) => state.calendar)
   const setCalendar = useCalendarStore((state) => state.setCalendar)
+  const [searchParams, setSearchParams] = useSearchParams()
   const years = getCalendarSelection()
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
+
+  const lastRedirectedCalendarVal = useRef(loaderData.activeYear)
+  // Set the selected calendar year to what is sent from the server
+  useEffect(() => {
+    if (searchParams.get("calendar") === loaderData.activeYear) {
+      setCalendar(loaderData.activeYear)
+    }
+  }, [loaderData.activeYear, searchParams, setCalendar])
+
+  useEffect(() => {
+    if (
+      calendar &&
+      calendar !== lastRedirectedCalendarVal.current &&
+      loaderData.activeYear !== calendar
+    ) {
+      setSearchParams({ ...Object.fromEntries(searchParams.entries()), calendar: calendar })
+      lastRedirectedCalendarVal.current = calendar
+    }
+  }, [loaderData.activeYear, searchParams, setSearchParams, calendar, setCalendar])
 
   const isAcceptingAll = fetcher.state !== "idle"
   const suggestedFields = useMemo(
@@ -713,7 +756,7 @@ export default function FarmDashboardIndex() {
                         to={`${calendar}/rvo`}
                         icon={<CloudDownload className="text-primary h-5 w-5" />}
                         title="Ophalen bij RVO"
-                        description="Importeer percelen vanuit RVO."
+                        description="Importeer percelen vanuit RVO. Dit verifieert het bedrijf als het KvK-nummer overeenkomt."
                         disabledDescription="U heeft geen schrijfrechten om percelen te importeren."
                         disabled={!loaderData.farmWritePermission}
                       />
@@ -764,6 +807,35 @@ export default function FarmDashboardIndex() {
                           {loaderData.farmArea}
                           <span className="text-muted-foreground ml-1 text-sm font-normal">ha</span>
                         </p>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "rounded-xl border p-3.5",
+                        loaderData.farmVerification.isVerified
+                          ? "border-green-600/30 bg-green-50/60 dark:bg-green-950/20"
+                          : "border-border bg-muted/30",
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {loaderData.farmVerification.isVerified ? (
+                          <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" />
+                        ) : (
+                          <BadgeAlert className="text-muted-foreground mt-0.5 h-5 w-5 shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 text-sm font-semibold">
+                            {loaderData.farmVerification.isVerified
+                              ? "Geverifieerd"
+                              : "Dit bedrijf is nog niet geverifieerd"}
+                            <FarmVerificationInfo />
+                          </p>
+                          <p className="text-muted-foreground mt-0.5 text-xs">
+                            {loaderData.farmVerification.latest
+                              ? `Laatst geverifieerd door ${loaderData.farmVerification.latest.display_name}.`
+                              : "Haal percelen op bij RVO met eHerkenning. Als het KvK-nummer overeenkomt, wordt dit bedrijf geverifieerd."}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (

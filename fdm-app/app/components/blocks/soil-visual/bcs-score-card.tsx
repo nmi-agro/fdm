@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronUp } from "lucide-react"
 import type { ReactNode } from "react"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import {
   BCS_COLOR_CLASSES,
@@ -70,7 +70,9 @@ export function BcsScoreCard({
               <div className="text-muted-foreground text-sm">Weging x{indicator.weight}</div>
             </div>
             <div className="text-muted-foreground text-sm font-medium">
-              {score == null ? "Onbekend" : `Score ${formatIndicatorScore(score, indicator.direction)}`}
+              {score == null
+                ? "Onbekend"
+                : `Score ${formatIndicatorScore(score, indicator.direction)}`}
             </div>
             <div className="flex items-center justify-end gap-2">
               <span
@@ -122,14 +124,8 @@ export function BcsScoreCard({
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="h-auto w-full justify-between p-0">
-                <span className="text-sm font-medium">
-                  Deelscores ({BCS_INDICATORS.length})
-                </span>
-                {isExpanded ? (
-                  <ChevronUp className="size-4" />
-                ) : (
-                  <ChevronDown className="size-4" />
-                )}
+                <span className="text-sm font-medium">Deelscores ({BCS_INDICATORS.length})</span>
+                {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-3">{indicatorList}</CollapsibleContent>
@@ -141,4 +137,3 @@ export function BcsScoreCard({
     </Card>
   )
 }
-

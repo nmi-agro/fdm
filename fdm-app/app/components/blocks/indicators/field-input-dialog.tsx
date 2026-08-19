@@ -1,7 +1,7 @@
 import { Database } from "lucide-react"
 import type { FieldMeasure } from "~/lib/indicators"
-import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { formatIndicatorScore } from "~/components/blocks/soil-visual/bcs-color-utils"
+import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import {
