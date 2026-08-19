@@ -115,13 +115,15 @@ export function FieldTooltip({
           return (
             <>
               <AtlasTooltipHeader>
-                <CardTitle>{savedField.properties.b_name}</CardTitle>
+                <CardTitle>{availableField.properties.b_lu_name}</CardTitle>
+              </AtlasTooltipHeader>
+              <AtlasTooltipContent>
+                <CardDescription>{savedField.properties.b_name}</CardDescription>
                 <CardDescription className="text-xs">
                   {savedField.properties.b_area}
                   {" ha"}
                 </CardDescription>
-              </AtlasTooltipHeader>
-              <AtlasTooltipContent>{availableField.properties.b_lu_name}</AtlasTooltipContent>
+              </AtlasTooltipContent>
               {cardFooter}
             </>
           )
