@@ -1,4 +1,4 @@
-import { Layers } from "lucide-react"
+import { Earth } from "lucide-react"
 import { DropdownMenuCheckedRadioItem } from "~/components/custom/dropdown-menu"
 import {
   DropdownMenu,
@@ -25,7 +25,7 @@ export function AtlasStyleSelect() {
             e.stopPropagation()
           }}
         >
-          <Layers className="h-5 w-full" />
+          <Earth className="h-5 w-full" />
         </DropdownMenuTrigger>
       </AtlasControlGroup>
       <DropdownMenuContent>
