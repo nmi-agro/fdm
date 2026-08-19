@@ -455,7 +455,6 @@ export default function FarmDashboardIndex() {
   }, [loaderData.activeYear, searchParams, setCalendar])
 
   useEffect(() => {
-    console.log(calendar, lastRedirectedCalendarVal.current, loaderData.activeYear)
     if (
       calendar &&
       calendar !== lastRedirectedCalendarVal.current &&
