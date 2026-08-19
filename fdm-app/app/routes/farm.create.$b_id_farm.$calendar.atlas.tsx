@@ -10,7 +10,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { featureCollection } from "@turf/helpers"
 import { simplify } from "@turf/simplify"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useCallback, useRef, useState } from "react"
 import { Layer, Map as MapGL, type MapRef, type ViewStateChangeEvent } from "react-map-gl/maplibre"
 import {

@@ -1,5 +1,6 @@
 import { Database } from "lucide-react"
 import type { FieldMeasure } from "~/lib/indicators"
+import { formatIndicatorScore } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -106,7 +107,7 @@ export function FieldInputDialog({ cultivations, fieldMeasures, soilData }: Fiel
                   <div key={key} className="flex items-baseline justify-between gap-2">
                     <span className="text-muted-foreground shrink-0 text-xs">{name}</span>
                     <span className="text-foreground text-right font-mono text-xs tabular-nums">
-                      {value}
+                      {formatIndicatorScore(value, direction)}
                       <span className="text-muted-foreground ml-1 font-sans">
                         {direction === "negative"
                           ? (BCS_SCORE_LABELS_NEGATIVE[value] ?? "")

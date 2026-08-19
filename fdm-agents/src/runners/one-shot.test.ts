@@ -125,6 +125,29 @@ describe("runOneShotAgent", () => {
     )
   })
 
+  it("should attach a PostHog LangChain callback handler when posthog is provided", async () => {
+    const agent = createMockAgent([
+      ["updates", { model_request: { messages: [makeAIMessage("Done.")] } }],
+    ])
+    const context = { principalId: "p-1", b_id_farm: "f-1" }
+    await runOneShotAgent(agent, "Generate plan", context, mockPosthog)
+    expect(agent.stream).toHaveBeenCalledWith(
+      expect.objectContaining({ messages: expect.any(Array) }),
+      expect.objectContaining({
+        callbacks: expect.arrayContaining([expect.any(Object)]),
+      }),
+    )
+  })
+
+  it("should not pass callbacks when posthog is not provided", async () => {
+    const agent = createMockAgent([
+      ["updates", { model_request: { messages: [makeAIMessage("Done.")] } }],
+    ])
+    await runOneShotAgent(agent, "Generate plan")
+    const callOptions = agent.stream.mock.calls[0][1]
+    expect(callOptions.callbacks).toBeUndefined()
+  })
+
   it("should accumulate usage metadata across multiple LLM calls", async () => {
     const agent = createMockAgent([
       [

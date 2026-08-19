@@ -1,62 +1,50 @@
 # Copilot instructions for `nmi-agro/fdm`
 
-FDM (Farm Data Model) is a pnpm + Turborepo monorepo of TypeScript packages for standardizing, storing, and analyzing farm data. Node `>=24`, `pnpm@11.17.0` (enforced via `only-allow pnpm`), ESM-only (`"type": "module"`).
+Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=24`, `pnpm@11.17.0` enforced via `only-allow pnpm`).
 
-## This is a public, open-source repository
+## 1. Landmines (confidently wrong assumptions)
 
-The repository is MIT-licensed and public, and `fdm-docs` is published as a public site. Everything committed — code, comments, documentation, changesets, commit messages and PR descriptions — is world-readable and permanent. Write accordingly:
+- **Cross-package imports use built `dist`**: Editing a library package `src` requires running `pnpm build` (or `pnpm turbo build`) before downstream packages (like `fdm-app`) or typechecks reflect the changes.
+- **PostgreSQL / PostGIS environment**: Tests require a local running PostgreSQL with PostGIS (`POSTGRES_HOST/PORT/DB/USER/PASSWORD`). Do NOT assume Docker. Schemas used: `fdm`, `fdm-authn`, `fdm-authz`, `fdm-calculator`.
+- **Public open-source repository**: Never commit real farm/field coordinates, identifiers, personal data, or internal error/log payloads. Use synthetic fixtures only.
+- **React Router v8 framework mode in `fdm-app`**: Do not use `react-router-dom`. Use `loaderData` in `useMatches`/`MetaArgs`. Respect `.server.ts` vs `.client.ts` module boundaries.
+- **Changesets**: Monorepo uses Changesets targeting the `development` branch. When revising a PR, update the existing `.changeset/*.md` in place rather than creating duplicate changelog entries.
 
-- **Write for an outside reader.** Documentation and comments should make sense to a contributor with no access to internal systems. Avoid references to internal tooling, dashboards, meetings or ticket numbers that a reader cannot follow.
-- **Documentation must be accurate.** Verify claims against the code before writing them down; a confidently wrong statement in a public repository is worse than no statement. Update the docs in the same PR as the behaviour they describe.
-- Secrets belong in `.env` files, which are git-ignored. If a secret is ever committed, treat it as compromised and rotate it — removing it in a later commit does not remove it from history.
-- **Never commit personal or sensitive data.** No real farm or field data, business identifiers, customer or colleague names, email addresses, coordinates of real fields, credentials, API keys, tokens, connection strings, or internal URLs. Use clearly synthetic values in examples, fixtures and tests.
-- **Do not paste internal material into the repository.** Application logs, stack traces, database dumps, support tickets, Sentry payloads and error reports routinely contain user data. If an error is worth documenting, describe the failure and the fix in your own words rather than pasting the raw output.
+## 2. Undiscoverable Intent & Policy
 
-## Packages and how they depend on each other
+- **Asset–Action Model**: Record entities (assets: farms, fields, cultivations, soil samples) and events (actions: sowing, fertilizing, sampling) discretely rather than storing pre-aggregated metrics.
+- **Domain column prefixes**: Database column naming uses domain prefixes, NOT camelCase: `b_` (farms, fields, cultivations), `p_` (fertilizer products), `a_` (soil analyses), `m_` (measures). Enforced by `pnpm check-schema`.
+- **`fdm-core` function conventions**:
+  - Signature: `fn(fdm: FdmType, principal_id: string, ...)`
+  - Mutations must run inside `fdm.transaction(...)`, generate IDs via `createId()`, and enforce access via `src/authorization.ts` (`checkPermission`, `grantRole`).
+  - Errors: Wrap exceptions with `handleError(err, message, context)` returning `BaseError`.
+- **`fdm-app` UI**: Dutch-only user interface (keep copy i18n-ready).
+- **Documentation, TypeDoc & Comments**: TypeDoc generates the public API reference in `fdm-docs` from TSDoc/JSDoc in library packages. Write comments and docstrings for external readers (no internal ticket numbers, internal URLs, or meetings). Update docs and docstrings in the same PR as code changes. Excluded from `pnpm lint`; verify with `pnpm build-docs`.
 
-- **`fdm-core`** – The foundation: Drizzle ORM schema + all CRUD functions against a PostgreSQL (PostGIS) database. Everything else builds on it.
-- **`fdm-data`** – Standardized catalogues (fertilizers, cultivations) consumed by `fdm-core`.
-- **`fdm-calculator`** – Agronomic engine (nutrient doses, nitrogen/organic matter balance). Some advices require the external `nmi-api` (NMI API key).
-- **`fdm-agents`** – Agentic-AI decision support (LLM + calculator), e.g. "Gerrit" the fertilizer planner.
-- **`fdm-rvo`** – Dutch RVO integration.
-- **`fdm-helpdesk`** – Standalone helpdesk back-end with its own schema; can share a database with `fdm-core` but does not depend on it.
-- **`fdm-api`** – REST API layer.
-- **`fdm-app`** – React Router v8 (framework mode) reference app; the only end-user UI. Consumes the other packages.
-- **`fdm-docs`** – Docusaurus documentation site (excluded from lint).
+## 3. Discovery Shortcuts (bespoke commands)
 
-Cross-package imports use the built `dist` of each package (e.g. `fdm-app` imports `@nmi-agro/fdm-agents`). After editing a library's `src`, rebuild it (`pnpm build` in that package, or `pnpm turbo build`) or downstream packages won't see the change. Workspace deps use `workspace:*`/`workspace:^`.
+```bash
+# Build & Lint
+pnpm build                                     # Turbo build in topological order
+pnpm build-docs                                # Build public Docusaurus docs site
+pnpm check-types                               # Typecheck packages (in fdm-app: typegen + tsc)
+pnpm lint && pnpm format                       # Oxlint + oxfmt
+pnpm check-schema                              # Check schema naming conventions
 
-## Architecture: the Asset–Action model
+# Testing
+pnpm test                                      # All tests with coverage (turbo)
+pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core  # Single package tests
+cd fdm-core && pnpm exec dotenvx run -- vitest run src/farm.test.ts -t "test name"  # Single test case
 
-The schema separates **Assets** (entities: farms, fields, cultivations, fertilizers, soil samples) from **Actions** (events on them: sowing, fertilizing, harvesting, sampling). Rather than storing pre-aggregated metrics, record the asset + the discrete action (type, amount, date) and aggregate later. Read `fdm-docs/docs/getting-started/02-the-asset-action-model.md` and `fdm-docs/docs/core-concepts/` before changing schema or core logic.
+# Releases
+pnpm changeset                                 # Generate changeset for PR (target: development)
+```
 
-The database uses four PostgreSQL schemas (see `fdm-core/src/db/`): `fdm` (core data), `fdm-authn` (better-auth), `fdm-authz` (roles/permissions + audit), and `fdm-calculator` (cached results). `fdm-app` runs migrations on startup via `app/lib/fdm-migrate.server.js`.
+## 4. Deep Domain Skills (`.github/skills/`)
 
-## Key conventions
+For in-depth domain rules, load the dedicated skill:
 
-- **Column naming uses domain prefixes, not camelCase**: `b_` for farm/field assets (`b_id_farm`, `b_id`, `b_lu` cultivation, `b_lu_catalogue`), `p_` for fertilizer products (`p_id`, `p_id_catalogue`, `p_app_id`), `a_` for soil analysis parameters, and `m_` for measures. Preserve these prefixes; they map directly to the documented schema. **Before changing the schema or the data model, load the `fdm-schema` skill (`.github/skills/fdm-schema/SKILL.md`)** — it holds the full Asset–Action rules, the prefix glossary, the migration workflow and the anti-pattern list, and `pnpm check-schema` enforces them in CI. See `.github/skills/README.md` for the wider `fdm-*` skill family.
-- **`fdm-core` function signature pattern**: public functions take the FDM instance and the acting principal first: `fn(fdm: FdmType, principal_id: string, ...)`. Mutations run inside `fdm.transaction(...)`, generate IDs with `createId()` (`src/id.ts`), and enforce access via the authorization helpers (`grantRole`, `checkPermission`, …) in `src/authorization.ts`.
-- **Authentication & authorization live in `fdm-core`**. Authentication uses **better-auth** (`src/authentication.ts`, `createFdmAuth`) with the drizzle adapter and plugins for organizations, username, magic link, generic OAuth, and API keys; tables live in the `fdm-authn` schema. Authorization is a custom role/permission system in `src/authorization.ts` (`fdm-authz` schema): resources (`farm`, `field`, `cultivation`, `soil_analysis`, …), roles (`owner`, `advisor`, `researcher`), and actions (`read`, `write`, `list`, `share`). Core mutations enforce access via its helpers (`grantRole`, `checkPermission`, `getRolesOfPrincipalForResource`, …) and write audit entries; pass and check the acting `principal_id` rather than rolling your own checks.
-- **Error handling**: wrap thrown errors with `handleError(err, message, context)` which returns a `BaseError` (`fdm-core/src/error.ts`). Do not throw raw values.
-- **File layout in `fdm-core/src`**: each domain has `<name>.ts`, `<name>.test.ts`, and `<name>.types.d.ts` colocated.
-- **`fdm-app` routing**: flat file-based routes via `@react-router/fs-routes` (`app/routes.ts` → `app/routes/`). Server-only code lives in `*.server.ts`, client-only in `*.client.ts`. State uses Zustand stores in `app/store/`. **Before non-trivial work in `fdm-app`, load the `fdm-app-conventions` skill**; for REST endpoint work in `fdm-api`, load the `fdm-api` skill.
-- This repo is on **React Router v8** (`react-router`, no `react-router-dom`); use `loaderData` in `useMatches`/`MetaArgs`.
-
-## Commands (run from repo root unless noted)
-
-- Install: `pnpm install`
-- Build everything: `pnpm build` (turbo) — respects build order.
-- Lint / format (oxlint + oxfmt, configured at root): `pnpm lint`, `pnpm lint:fix`, `pnpm format`.
-- Type-check: `pnpm check-types` in `fdm-core`, `fdm-rvo`, etc.; in `fdm-app` use `pnpm check-types` (runs `react-router typegen && tsc`).
-- Test (all): `pnpm test` (turbo `test-coverage`). Tests use Vitest and require a running PostgreSQL (PostGIS) — set `POSTGRES_HOST/PORT/DB/USER/PASSWORD`. Developers normally run PostgreSQL locally on their machine; do not assume Docker.
-- Test one package: `pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core`.
-- Test one file/case in a package: `cd fdm-core` then `pnpm exec dotenvx run -- vitest run src/farm.test.ts` (add `-t "name"` for a single case). Tests load env via `dotenvx`.
-- Run the app: `pnpm --filter fdm-app dev` (http://localhost:5173), with a local PostgreSQL/PostGIS running. Copy `fdm-app/.env.example` to `fdm-app/.env` first.
-
-## Releases / changesets
-
-Versioning is via Changesets on a `development` → `release/*` → `main` flow. Any PR that changes a package must include a changeset: run `pnpm changeset`, pick packages + bump type, and commit the generated `.changeset/*.md`. This applies to every package in the monorepo, including private, unpublished ones such as `fdm-app` and `fdm-docs` — they are versioned and get a `CHANGELOG.md` too. PRs target the `development` branch. Full process: `fdm-docs/docs/contributing/03-releasing-fdm.md`.
-
-## Design context (fdm-app)
-
-`fdm-app` is a **product**-register surface (design serves the task); its public sign-in/privacy/about pages double as marketing. Strategic context lives in `fdm-app/PRODUCT.md` and the visual system in `fdm-app/DESIGN.md` (when present) — read them before non-trivial UI work. Core design principles: raw data in / connected insight out (never ask users for derived values); lower the data-entry barrier relentlessly; make insight discoverable; earn trust through substance (transparent, auditable numbers); work on laptops/desktops while never breaking on 14-inch laptops, with graceful mobile degradation. Target WCAG AA; UI is Dutch-only today (keep copy i18n-ready). UI stack: React Router v8, Tailwind v4, shadcn/ui (new-york, slate base, CSS variables), radix-ui, next-themes (light/dark), Inter, lucide-react, recharts, maplibre-gl.
+- **`fdm-schema`**: Asset–Action rules, table/column naming, migration workflow, anti-patterns.
+- **`fdm-app-conventions`**: UI loaders/actions, server/client boundaries, Zustand stores, error boundaries.
+- **`fdm-api`**: Hono + `@hono/zod-openapi` endpoints, injectable services, RFC 9457 errors.
+- **`impeccable`**: Frontend UX, design tokens, responsive layouts, accessibility.

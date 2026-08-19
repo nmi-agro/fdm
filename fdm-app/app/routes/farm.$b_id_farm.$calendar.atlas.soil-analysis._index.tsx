@@ -1,4 +1,5 @@
 import type { FeatureCollection, Geometry } from "geojson"
+import type { GeoJSONFeature } from "maplibre-gl"
 import type { MetaFunction } from "react-router"
 import {
   getCurrentSoilDataForFarm,
@@ -8,7 +9,7 @@ import {
 import { simplify } from "@turf/simplify"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
-import maplibregl, { type GeoJSONFeature } from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Layer,

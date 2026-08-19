@@ -1,3 +1,4 @@
+import { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import { describe, expect, it } from "vitest"
 import { runStreamAgent } from "./stream"
 
@@ -227,14 +228,20 @@ describe("runStreamAgent", () => {
     expect(chainEnd.data.result).toBe("")
   })
 
-  it("should use posthog callbacks when provided and require succeeds", async () => {
-    // posthog.client is present but require('@posthog/ai/langchain') will throw
-    // in the test environment — the catch branch returns undefined, which is still
-    // the defined behaviour when the optional dep is absent.
+  it("should use posthog callbacks when provided", async () => {
+    let capturedOpts: any
     const posthog = { client: { capture: () => {} }, distinctId: "user-1" }
-    const agent = makeAgent([])
-    // Should not throw — buildCallbacks degrades gracefully
-    const events = await collect(runStreamAgent(agent, "test", { b_id_farm: "f1" }, posthog))
+    const agent = {
+      stream: () => {},
+      streamEvents: (_input: unknown, opts: unknown) => {
+        capturedOpts = opts
+        async function* gen() {}
+        return gen()
+      },
+    }
+    const events = await collect(runStreamAgent(agent as any, "test", { b_id_farm: "f1" }, posthog))
     expect(events[0].event).toBe("on_chain_end")
+    expect(capturedOpts.callbacks).toHaveLength(1)
+    expect(capturedOpts.callbacks[0]).toBeInstanceOf(LangChainCallbackHandler)
   })
 })

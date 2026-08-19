@@ -1,0 +1,103 @@
+name: "Copilot Setup Steps"
+
+# Automatically run the setup steps when they are changed to allow for easy
+# validation, and allow manual testing through the repository's "Actions" tab.
+#
+# Note: the `copilot-setup-steps` job only honors `steps`, `permissions`, `runs-on`,
+# `services`, `snapshot` and `timeout-minutes` — a job-level `container:` (as used in
+# .github/workflows/tests.yml) is not one of the customizable settings and would be
+# silently ignored here. So, unlike tests.yml, this job runs directly on the runner
+# (not inside a container), which is why the Postgres service below is reached via
+# `localhost` with a mapped port rather than the service name. The Postgres image and
+# health-check options are otherwise copied verbatim from tests.yml, and the final
+# step actually runs the fdm-core test suite against it, to prove end-to-end that
+# Copilot's environment can build and test against Postgres/PostGIS just like CI does.
+#
+# IMPORTANT: the `POSTGRES_*` values below are only scoped to this job's own
+# verification step — they do NOT carry over into Copilot's actual live coding-agent
+# session, which is a separate ephemeral environment. The `services` entry (the
+# Postgres/PostGIS container itself) does persist into that session, but per GitHub's
+# docs (see "Configure secrets and variables for Copilot cloud agent"), env vars are
+# only exposed to that live session via repository/organization "Agents" secrets and
+# variables (Settings → Secrets and variables → Agents) — not via `env:` set here.
+# Without POSTGRES_HOST/PORT/USER/PASSWORD/DB configured as Agents variables (matching
+# the values below), fdm-core/fdm-calculator/fdm-rvo/fdm-helpdesk tests will fail fast
+# in the agent's real session (see fdm-core/src/global-setup.ts), even though this
+# workflow itself passes. See fdm-docs/docs/contributing/05-weekly-dependency-updates.md
+# for the exact values to configure.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    # Lowest permissions needed: we only clone the repo to install dependencies.
+    permissions:
+      contents: read
+
+    # Postgres/PostGIS is required to run the test suites for fdm-core, fdm-calculator,
+    # fdm-rvo and fdm-helpdesk (see .github/workflows/tests.yml for the same setup).
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/setup@v2
+        with:
+          version: 11.17.0
+          install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Build order matters: fdm-data and fdm-core must be built before downstream
+      # packages that import them (e.g. fdm-helpdesk) can build or run tests.
+      - name: Build fdm-data
+        run: pnpm build
+        working-directory: ./fdm-data
+
+      - name: Build fdm-core
+        run: pnpm build
+        working-directory: ./fdm-core
+
+      # Same command as the "core" job in tests.yml: proves the Postgres/PostGIS
+      # service above is actually reachable and usable before Copilot ever relies on
+      # this environment for real dependency-migration work.
+      - name: Verify Postgres connectivity by running fdm-core tests
+        run: pnpm turbo run test-coverage --filter=@nmi-agro/fdm-core
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres

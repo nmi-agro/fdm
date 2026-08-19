@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-agents",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": false,
   "description": "AI Agent for Fertilizer Planning",
   "license": "MIT",
@@ -26,15 +26,15 @@
     "watch": "vitest"
   },
   "dependencies": {
-    "@langchain/core": "^1.2.3",
+    "@langchain/core": "^1.2.6",
     "@langchain/google-genai": "^2.2.0",
-    "@langchain/langgraph": "^1.4.8",
+    "@langchain/langgraph": "^1.4.9",
     "@nmi-agro/fdm-calculator": "workspace:^",
     "@nmi-agro/fdm-core": "workspace:^",
     "@nmi-agro/fdm-data": "workspace:^",
-    "@posthog/ai": "^8.4.1",
-    "langchain": "^1.5.4",
-    "posthog-node": "^5.46.1",
+    "@posthog/ai": "^8.7.1",
+    "langchain": "^1.5.6",
+    "posthog-node": "^5.48.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {

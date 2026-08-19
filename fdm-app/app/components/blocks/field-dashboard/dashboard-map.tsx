@@ -6,7 +6,7 @@
  * dashboard tile — it's only fetched once this tile actually renders.
  */
 
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useEffect, useMemo, useRef } from "react"
 import { Layer, Map as MapGL, type MapRef } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"

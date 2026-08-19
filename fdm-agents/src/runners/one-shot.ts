@@ -1,5 +1,5 @@
-import type { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import { isAIMessage } from "@langchain/core/messages"
+import { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import { randomUUID } from "node:crypto"
 import type { AgentGraph } from "../agents/gerrit/agent"
 
@@ -54,12 +54,6 @@ function buildCallbacks(
 ): LangChainCallbackHandler[] | undefined {
   if (!posthog?.client) return undefined
   try {
-    // Dynamic import to avoid hard dep when posthog not configured
-    const { LangChainCallbackHandler } =
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require("@posthog/ai/langchain") as {
-        LangChainCallbackHandler: new (opts: any) => LangChainCallbackHandler
-      }
     return [
       new LangChainCallbackHandler({
         client: posthog.client,
@@ -69,7 +63,8 @@ function buildCallbacks(
         },
       }),
     ]
-  } catch {
+  } catch (err) {
+    console.warn("Failed to build PostHog LangChain callback handler:", err)
     return undefined
   }
 }
