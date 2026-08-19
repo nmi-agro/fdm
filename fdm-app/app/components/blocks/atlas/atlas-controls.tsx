@@ -13,6 +13,7 @@ type ControlsProps = {
   initialViewState?: AtlasViewState
   showGeocoder?: boolean
   showStyleSelect?: boolean
+  styleSelectWarning?: string
   showFlyToFields?: boolean
   showFields?: boolean
   onToggleFields?: () => void
@@ -26,6 +27,8 @@ type ControlsProps = {
  * Show different atlas buttons and toggles as required according to the props
  *
  * To hide a button you can pass undefined to the corresponding `show...` or just not provide the corresponding `on...` callback.
+ *
+ * styleSelectWarning can be used to disable the style select button and show a tooltip explaining why.
  */
 export function Controls(props: ControlsProps) {
   const { setViewState } = useAtlasViewState()
@@ -39,7 +42,12 @@ export function Controls(props: ControlsProps) {
       {showGeocoder && <GeocoderControl position="top-right" />}
       <AtlasLayerSwitch position="top-right" />
       <AtlasControls position="top-right">
-        {showStyleSelect && <AtlasStyleSelect />}
+        {showStyleSelect && (
+          <AtlasStyleSelect
+            disabled={!!props.styleSelectWarning}
+            title={props.styleSelectWarning}
+          />
+        )}
         {props.showFields !== undefined && props.onToggleFields && (
           <FieldsControl showFields={props.showFields} onToggle={props.onToggleFields} />
         )}

@@ -12,6 +12,7 @@ import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
+import { SATELLITE_BACKGROUND_REQUIRED_MESSAGE } from "~/components/blocks/atlas/atlas-style-select"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
 import { AtlasPopup } from "~/components/blocks/atlas/atlas-tooltip"
 import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
@@ -376,7 +377,8 @@ export default function FarmAtlasSoilBlock() {
           onToggleSoil={onToggleSoil}
           initialViewState={initialViewState}
           showFlyToFields={fields && fields.features.length > 0 ? true : undefined}
-          showStyleSelect={false}
+          showStyleSelect={true}
+          styleSelectWarning={SATELLITE_BACKGROUND_REQUIRED_MESSAGE}
         />
 
         <MapTilerAttribution />
@@ -472,12 +474,6 @@ export default function FarmAtlasSoilBlock() {
           layer={fieldsSavedId}
           touchDisplaysPopupInstead={false}
         />
-
-        {showSoil && (
-          <p className="text-muted-foreground bg-card absolute top-4 left-4 z-10 w-40 rounded-md border px-2 py-1 text-xs">
-            Satellietondergrond vereist voor deze laag
-          </p>
-        )}
       </Atlas>
     </div>
   )
