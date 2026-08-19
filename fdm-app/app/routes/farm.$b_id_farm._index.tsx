@@ -143,7 +143,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     let activeYear = new Date().getFullYear().toString()
     const calendarParam = url.searchParams.get("calendar")
     if (calendarParam) {
-      const year = Number.parseFloat(calendarParam)
+      const year = Number(calendarParam)
       if (isSupportedYear(year)) {
         activeYear = calendarParam
       } else {
@@ -281,7 +281,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       let activeYear = new Date().getFullYear().toString()
       const calendarValue = formData.get("calendar")
       if (typeof calendarValue === "string") {
-        const year = Number.parseFloat(calendarValue)
+        const year = Number(calendarValue)
         if (isSupportedYear(year)) {
           activeYear = calendarValue
         }
