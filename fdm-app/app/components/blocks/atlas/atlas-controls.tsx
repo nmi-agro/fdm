@@ -148,6 +148,8 @@ interface CommonButtonProps {
 
 interface ButtonProps extends CommonButtonProps {
   onClick?: () => void
+  /** Set when this button represents a toggleable state, for `aria-pressed`. Omit for plain actions. */
+  pressed?: boolean
 }
 
 interface ToggleProps extends CommonButtonProps {
@@ -169,6 +171,7 @@ function AtlasButton({ active = true, ...props }: ButtonProps) {
       type="button"
       title={props.label}
       aria-label={props.label}
+      aria-pressed={props.pressed}
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -201,6 +204,7 @@ function AtlasToggle(props: ToggleProps) {
     <AtlasButton
       {...props}
       active={active}
+      pressed={active}
       onClick={onToggleFn}
       label={specificLabel ?? props.label}
     />
@@ -259,7 +263,7 @@ function FieldsControl({ showFields, onToggle }: { showFields: boolean; onToggle
  * Specialized button to have the map focus on the selected and/or saved fields.
  */
 function FlyToFieldsControl({ onClick }: { onClick: () => void }) {
-  return <SingleAtlasButton onClick={onClick} label="Vliegen naar percelen" Icon={Scan} />
+  return <SingleAtlasButton onClick={onClick} label="Terug naar percelen" Icon={Scan} />
 }
 
 /**

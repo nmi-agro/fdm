@@ -2,9 +2,10 @@
 
 import throttle from "lodash.throttle"
 import { Loader, MapPin, X } from "lucide-react"
-import { useState, useEffect, useRef, useCallback, useMemo, ReactNode } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { ControlPosition, useMap } from "react-map-gl/maplibre"
 import { clientConfig } from "@/app/lib/config"
+import { Button } from "~/components/ui/button"
 import {
   Command,
   CommandInput,
@@ -37,8 +38,6 @@ type MaptilerResult = {
   center: [number, number]
   bbox?: [number, number, number, number]
 }
-
-const iconMap: Record<string, ReactNode> = {}
 
 const DEBOUNCE_MS = 300
 /**
@@ -232,8 +231,9 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
   }, [displayValue, isMobile, collapsed])
 
   const hasResults = results.length > 0
-  const isOpen = hasResults || error != null
-  const showEmptyState = isOpen && !isSearching && displayValue.trim() && !hasResults && !error
+  const isOpen = hasResults || error != null || (!isSearching && displayValue.trim().length > 0)
+  const showEmptyState =
+    isOpen && !isSearching && displayValue.trim() !== "" && !hasResults && !error
 
   return (
     <AtlasControls position={position}>
@@ -276,17 +276,21 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
               }}
             />
             {displayValue && !isSearching && (
-              <X
-                className="text-muted-foreground hover:text-foreground size-4 shrink-0 cursor-pointer transition-colors"
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground size-6 shrink-0"
                 onClick={clearSearch}
-                aria-label="Clear search"
-              />
+                aria-label="Zoekopdracht wissen"
+              >
+                <X className="size-4" />
+              </Button>
             )}
             {isSearching && (
-              <Loader
-                className="text-primary size-4 shrink-0 animate-spin"
-                aria-label="Searching"
-              />
+              <span role="status" aria-label="Zoeken..." className="shrink-0">
+                <Loader className="text-primary size-4 animate-spin" aria-hidden="true" />
+              </span>
             )}
           </PopoverAnchor>
 
@@ -321,11 +325,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
                     >
                       <div className="flex items-center space-x-1">
                         <div className="bg-primary/10 shrink-0 rounded-full p-1">
-                          {location.place_type && iconMap[location.place_type[0]] ? (
-                            iconMap[location.place_type[0]]
-                          ) : (
-                            <MapPin className="text-primary h-3 w-3" />
-                          )}
+                          <MapPin className="text-primary h-3 w-3" />
                         </div>
                         <div className="flex min-w-0 flex-col">
                           <span className="truncate text-sm font-medium">

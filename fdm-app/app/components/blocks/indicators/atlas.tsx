@@ -14,6 +14,7 @@ import { Layer, type MapRef } from "react-map-gl/maplibre"
 import { Link, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { ScoreLegend } from "~/components/blocks/atlas/atlas-legend"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
@@ -182,24 +183,8 @@ export default function IndicatorsMap({
       </Atlas>
 
       {/* Legend overlay — pointer-events-none so it doesn't block field clicks */}
-      <div className="bg-background/90 pointer-events-none absolute bottom-6 left-2 z-10 max-w-[200px] rounded-md p-2 text-xs shadow-sm backdrop-blur-sm">
-        {label && <p className="text-foreground mb-1.5 truncate font-medium">{label}</p>}
-        <div
-          className="h-2.5 w-full rounded-sm"
-          style={{
-            background: "linear-gradient(to right, #ef4444, #eab308, #22c55e)",
-          }}
-        />
-        <div className="text-muted-foreground mt-0.5 flex justify-between">
-          <span>0</span>
-          <span>40</span>
-          <span>70</span>
-          <span>100</span>
-        </div>
-        <div className="text-muted-foreground mt-1.5 flex items-center gap-1">
-          <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9ca3af]" />
-          <span>Geen data</span>
-        </div>
+      <div className="absolute bottom-6 left-2 z-10">
+        <ScoreLegend label={label} />
       </div>
     </div>
   )
@@ -218,7 +203,7 @@ export function ScoreSelect({
     /* Floating indicator selector + info banner */
   }
   return (
-    <Card className="bg-background/90 absolute top-3 left-3 z-10 w-64 shadow-md backdrop-blur-sm">
+    <Card className="absolute top-3 left-3 z-10 w-64 shadow-md">
       <CardContent className="space-y-2 p-2">
         <div className="flex items-center gap-2">
           <Select value={selectedProperty} onValueChange={setSelectedProperty}>

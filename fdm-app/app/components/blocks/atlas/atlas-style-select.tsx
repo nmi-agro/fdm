@@ -24,7 +24,7 @@ export function AtlasStyleSelect() {
             e.stopPropagation()
           }}
         >
-          <LucideMap className="h-5 w-full opacity-100" />
+          <LucideMap className="h-5 w-full" />
         </DropdownMenuTrigger>
       </AtlasControlGroup>
       <DropdownMenuContent>
@@ -38,7 +38,7 @@ export function AtlasStyleSelect() {
           checked={style === "standard"}
           onClick={() => setStyle("standard")}
         >
-          Topo
+          Topografisch
         </DropdownMenuCheckboxItem>
       </DropdownMenuContent>
     </DropdownMenu>
