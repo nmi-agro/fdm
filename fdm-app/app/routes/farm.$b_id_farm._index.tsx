@@ -278,11 +278,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const intent = formData.get("intent")
 
     if (intent === "accept_all_suggestions") {
+      let activeYear = new Date().getFullYear().toString()
       const calendarValue = formData.get("calendar")
-      const activeYear =
-        typeof calendarValue === "string" && /^\d{4}$/.test(calendarValue)
-          ? calendarValue
-          : new Date().getFullYear().toString()
+      if (typeof calendarValue === "string") {
+        const year = Number.parseFloat(calendarValue)
+        if (isSupportedYear(year)) {
+          activeYear = calendarValue
+        }
+      }
+      const timeframe = getTimeframe({ calendar: activeYear })
 
       const selectedBIds = formData.getAll("selected_b_id").map(String)
       if (selectedBIds.length === 0) {
@@ -290,15 +294,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       }
 
       // Fetch fields and cultivations for the farm
-      const fields = await getFields(fdm, session.principal_id, b_id_farm)
+      const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
       const cultivationsByField = await getCultivationsForFarm(
         fdm,
         session.principal_id,
         b_id_farm,
-        {
-          start: new Date(`${activeYear}-01-01T00:00:00.000Z`),
-          end: new Date(`${activeYear}-12-31T23:59:59.999Z`),
-        },
+        timeframe,
       )
 
       const fieldsMissingCultivation = fields
