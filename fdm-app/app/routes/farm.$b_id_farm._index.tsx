@@ -11,6 +11,8 @@ import { format } from "date-fns"
 import {
   AlertTriangle,
   ArrowRightLeft,
+  BadgeAlert,
+  BadgeCheck,
   BookOpenText,
   ChevronDown,
   ChevronUp,
@@ -49,6 +51,7 @@ import { toast } from "sonner"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -80,6 +83,7 @@ import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calen
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { cn } from "~/lib/utils"
@@ -225,6 +229,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       new URL(request.url).pathname,
       false,
     )
+    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
@@ -242,6 +247,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       farmOptions: farmOptions,
       roles: roles,
       farmWritePermission,
+      farmVerification,
       isRvoConfigured,
     }
   } catch (error) {
@@ -750,7 +756,7 @@ export default function FarmDashboardIndex() {
                         to={`${calendar}/rvo`}
                         icon={<CloudDownload className="text-primary h-5 w-5" />}
                         title="Ophalen bij RVO"
-                        description="Importeer percelen vanuit RVO."
+                        description="Importeer percelen vanuit RVO. Dit verifieert het bedrijf als het KvK-nummer overeenkomt."
                         disabledDescription="U heeft geen schrijfrechten om percelen te importeren."
                         disabled={!loaderData.farmWritePermission}
                       />
@@ -801,6 +807,35 @@ export default function FarmDashboardIndex() {
                           {loaderData.farmArea}
                           <span className="text-muted-foreground ml-1 text-sm font-normal">ha</span>
                         </p>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "rounded-xl border p-3.5",
+                        loaderData.farmVerification.isVerified
+                          ? "border-green-600/30 bg-green-50/60 dark:bg-green-950/20"
+                          : "border-border bg-muted/30",
+                      )}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {loaderData.farmVerification.isVerified ? (
+                          <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" />
+                        ) : (
+                          <BadgeAlert className="text-muted-foreground mt-0.5 h-5 w-5 shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 text-sm font-semibold">
+                            {loaderData.farmVerification.isVerified
+                              ? "Geverifieerd"
+                              : "Dit bedrijf is nog niet geverifieerd"}
+                            <FarmVerificationInfo />
+                          </p>
+                          <p className="text-muted-foreground mt-0.5 text-xs">
+                            {loaderData.farmVerification.latest
+                              ? `Laatst geverifieerd door ${loaderData.farmVerification.latest.display_name}.`
+                              : "Haal percelen op bij RVO met eHerkenning. Als het KvK-nummer overeenkomt, wordt dit bedrijf geverifieerd."}
+                          </p>
+                        </div>
                       </div>
                     </div>
                     {loaderData.fieldsMissingCultivation > 0 && (

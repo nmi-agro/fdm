@@ -85,6 +85,7 @@ export async function teardown() {
       await fdm.delete(authNSchema.user).execute()
 
       await fdm.delete(authZSchema.role).execute()
+      await fdm.delete(authZSchema.farmVerification).execute()
       await fdm.delete(authZSchema.audit).execute()
       await fdm.delete(authZSchema.invitation).execute()
     })
