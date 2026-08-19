@@ -148,7 +148,7 @@ export function FieldTooltip({
           <>
             <AtlasTooltipHeader>
               <CardTitle>{featureToClick.properties.b_lu_name}</CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 {clickRedirectsToDetailsPage
                   ? "Klik voor meer details over dit perceel"
                   : featureToClick === availableField
