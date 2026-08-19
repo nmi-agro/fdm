@@ -1,5 +1,5 @@
-import { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import { isAIMessage } from "@langchain/core/messages"
+import { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import { randomUUID } from "node:crypto"
 import type { AgentGraph } from "../agents/gerrit/agent"
 

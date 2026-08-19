@@ -18,7 +18,7 @@ Before making changes, read `.github/copilot-instructions.md` and the relevant s
 
 Note on internet access: your environment's firewall only allows GitHub itself (so you can read a dependency's `CHANGELOG.md`, GitHub Releases, and tags on `github.com`/`raw.githubusercontent.com`) and package registries (e.g. `registry.npmjs.org`, for package metadata/README). Third-party blog or docs sites hosted on their own domain (not on `github.com`/`githubusercontent.com`) are **not** reachable by default and requests to them will be blocked.
 
-Before assuming a migration guide is unreachable, look for it **inside the dependency's own GitHub repository** — many projects publish their release notes, blog posts, and migration guides as files committed to the repo itself (not just as an external site), for example: `CHANGELOG.md` at the repo root or in a specific package's folder in a monorepo, a `docs/` or `website/`/`website/blog/` directory (common for docs sites built from in-repo Markdown/MDX, e.g. Docusaurus-based sites like this one), `.changeset/` release summaries, or a `MIGRATION.md`/`UPGRADING.md` file. All of these are reachable via `raw.githubusercontent.com` and GitHub's code search/browsing even though the *rendered* docs/blog site itself may not be. Only fall back to an external docs/blog URL once you've checked the repo doesn't contain the guide, and if that external URL is also blocked, note that in "Decisions Needed" rather than guessing at the breaking changes.
+Before assuming a migration guide is unreachable, look for it **inside the dependency's own GitHub repository** — many projects publish their release notes, blog posts, and migration guides as files committed to the repo itself (not just as an external site), for example: `CHANGELOG.md` at the repo root or in a specific package's folder in a monorepo, a `docs/` or `website/`/`website/blog/` directory (common for docs sites built from in-repo Markdown/MDX, e.g. Docusaurus-based sites like this one), `.changeset/` release summaries, or a `MIGRATION.md`/`UPGRADING.md` file. All of these are reachable via `raw.githubusercontent.com` and GitHub's code search/browsing even though the _rendered_ docs/blog site itself may not be. Only fall back to an external docs/blog URL once you've checked the repo doesn't contain the guide, and if that external URL is also blocked, note that in "Decisions Needed" rather than guessing at the breaking changes.
 
 For each **major** version bump:
 
@@ -41,6 +41,7 @@ Before finishing, for every package you touched:
 Only add a changeset (`.changeset/*.md`, matching the existing format — see `.changeset/README.md` and existing files for style) for a package when you actually **applied a major version bump** to one of its dependencies. Do **not** add a changeset for packages that only received patch/minor dependency bumps — those are not user-facing changes worth a changelog entry.
 
 For a package that did get a major dependency bump, default to a **`patch`** changeset for it, unless the dependency upgrade itself:
+
 - introduces new features that are now available to consumers of the `fdm` package — in that case use **`minor`**, or
 - introduces a breaking change in the `fdm` package's own public API/behavior as a result of the upgrade — in that case use **`major`**.
 
@@ -58,9 +59,10 @@ Open the PR as a **draft**, targeting the `development` branch. **As the very la
 
 ## Decisions Needed
 
-For each major upgrade that was intentionally *not* applied:
+For each major upgrade that was intentionally _not_ applied:
 
 ### `<dependency>` `<current>` → `<latest>`
+
 - **What's blocking**: short explanation of the breaking change and why it needs a maintainer decision.
 - **Options considered**: 1-3 concrete options (e.g. "adopt new config format now", "stay pinned until X is addressed", "adopt with a follow-up migration PR").
 - **Recommendation**: your suggested path forward.
