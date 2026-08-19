@@ -249,7 +249,7 @@ describe("Vanggewas & Winterteelt crop-code classification", () => {
         {
           b_lu_catalogue: "nl_428", // Gele mosterd
           b_lu_start: new Date(2024, 2, 1),
-          b_lu_end: new Date(2024, 3, 1),
+          b_lu_end: new Date(2025, 1, 1),
         },
         // Hoofdteelt (N-1) starting April 2024
         {
