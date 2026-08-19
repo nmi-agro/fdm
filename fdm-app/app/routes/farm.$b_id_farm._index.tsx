@@ -446,13 +446,16 @@ export default function FarmDashboardIndex() {
   const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
-  const lastRedirectedCalendarVal = useRef(calendar)
+  const lastRedirectedCalendarVal = useRef(loaderData.activeYear)
   // Set the selected calendar year to what is sent from the server
   useEffect(() => {
-    setCalendar(loaderData.activeYear)
-  }, [loaderData.activeYear, setCalendar])
+    if (searchParams.get("calendar") === loaderData.activeYear) {
+      setCalendar(loaderData.activeYear)
+    }
+  }, [loaderData.activeYear, searchParams, setCalendar])
 
   useEffect(() => {
+    console.log(calendar, lastRedirectedCalendarVal.current, loaderData.activeYear)
     if (
       calendar &&
       calendar !== lastRedirectedCalendarVal.current &&
