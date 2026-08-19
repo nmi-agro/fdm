@@ -27,6 +27,7 @@ import {
   useFetcher,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -61,6 +62,7 @@ import {
   getMeasureApplicabilityForFields,
   getIndicatorsForFarm,
   getFarmMeasureOpportunities,
+  type FieldTopOpportunity,
 } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
@@ -86,6 +88,13 @@ type FarmNextStep = {
   aggregateImpact: number
 }
 
+export type FarmRecommendationsData = {
+  steps: FarmNextStep[]
+  opportunitiesByField: Record<string, FieldTopOpportunity[]>
+  topOpportunities: FieldTopOpportunity[]
+  measureImpacts: Record<string, { indicator_id: string; measure_impact: number }[]>
+}
+
 async function getFarmNextSteps({
   principal_id,
   b_id_farm,
@@ -102,7 +111,7 @@ async function getFarmNextSteps({
   timeframe?: Timeframe
   measuresMap: Map<string, { m_id: string }[]>
   catalogue: { m_id: string; m_name: string }[]
-}): Promise<FarmNextStep[]> {
+}): Promise<FarmRecommendationsData> {
   const b_ids = fields.map((f) => f.b_id)
   const scores = await getIndicatorsForFarm({ principal_id, b_id_farm, timeframe })
   const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
@@ -121,7 +130,59 @@ async function getFarmNextSteps({
     measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
   })
 
-  return opportunities
+  const opportunitiesByField: Record<string, FieldTopOpportunity[]> = {}
+  const farmOpportunitiesByMId = new Map<string, FieldTopOpportunity>()
+  const measureImpacts: Record<string, { indicator_id: string; measure_impact: number }[]> = {}
+
+  for (const opp of opportunities) {
+    if (!opportunitiesByField[opp.b_id]) {
+      opportunitiesByField[opp.b_id] = []
+    }
+    opportunitiesByField[opp.b_id].push({
+      m_id: opp.m_id,
+      aggregateImpact: opp.aggregateImpact,
+      indicatorImpacts: opp.indicatorImpacts,
+    })
+
+    const existing = farmOpportunitiesByMId.get(opp.m_id)
+    if (existing) {
+      existing.aggregateImpact += opp.aggregateImpact
+      for (const indImpact of opp.indicatorImpacts) {
+        const existingInd = existing.indicatorImpacts.find(
+          (i) => i.indicator_id === indImpact.indicator_id,
+        )
+        if (existingInd) {
+          existingInd.measure_impact += indImpact.measure_impact
+        } else {
+          existing.indicatorImpacts.push({ ...indImpact })
+        }
+      }
+    } else {
+      farmOpportunitiesByMId.set(opp.m_id, {
+        m_id: opp.m_id,
+        aggregateImpact: opp.aggregateImpact,
+        indicatorImpacts: opp.indicatorImpacts.map((i) => ({ ...i })),
+      })
+    }
+
+    for (const indImpact of opp.indicatorImpacts) {
+      if (!measureImpacts[opp.m_id]) {
+        measureImpacts[opp.m_id] = []
+      }
+      if (!measureImpacts[opp.m_id].some((i) => i.indicator_id === indImpact.indicator_id)) {
+        measureImpacts[opp.m_id].push({
+          indicator_id: indImpact.indicator_id,
+          measure_impact: indImpact.measure_impact,
+        })
+      }
+    }
+  }
+
+  const topOpportunities = [...farmOpportunitiesByMId.values()].sort(
+    (a, b) => b.aggregateImpact - a.aggregateImpact,
+  )
+
+  const steps = opportunities
     .map((opportunity) => {
       const topIndicatorId = [...opportunity.indicatorImpacts].sort(
         (a, b) => b.measure_impact - a.measure_impact,
@@ -138,13 +199,24 @@ async function getFarmNextSteps({
       }
     })
     .sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+
+  return { steps, opportunitiesByField, topOpportunities, measureImpacts }
 }
 
 /** Groups farm-wide measure × field recommendations by measure — one row per
  * measure with its fields as compact links, ranked by summed impact — instead
  * of one long row per field repeating the same measure name. */
-function GroupedRecommendations({ steps, basePath }: { steps: FarmNextStep[]; basePath: string }) {
+function GroupedRecommendations({
+  data,
+  basePath,
+  onOpenMeasure,
+}: {
+  data: FarmRecommendationsData
+  basePath: string
+  onOpenMeasure?: (m_id: string, fieldIds?: string[]) => void
+}) {
   const [expanded, setExpanded] = useState(false)
+  const steps = data.steps
 
   const groups = useMemo(() => {
     const byMeasure = new Map<
@@ -194,15 +266,31 @@ function GroupedRecommendations({ steps, basePath }: { steps: FarmNextStep[]; ba
       <ul className="space-y-3">
         {visible.map((group, index) => (
           <li key={group.m_id} className="text-sm">
-            <div className="flex flex-wrap items-baseline gap-x-2">
-              <span className="text-muted-foreground font-mono text-xs">
-                {group.m_id.replace("bln_", "")}
-              </span>
-              <span className="font-medium">{group.m_name}</span>
-              {index === 0 && (
-                <span className="text-muted-foreground text-xs">
-                  — grootste verwachte verbetering
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <span className="text-muted-foreground font-mono text-xs">
+                  {group.m_id.replace("bln_", "")}
                 </span>
+                <span className="font-medium">{group.m_name}</span>
+                {index === 0 && (
+                  <span className="text-muted-foreground text-xs">
+                    (grootste verwachte verbetering)
+                  </span>
+                )}
+              </div>
+              {onOpenMeasure && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenMeasure(
+                      group.m_id,
+                      group.fields.map((f) => f.b_id),
+                    )
+                  }
+                  className="shrink-0 text-xs font-semibold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-200"
+                >
+                  + Toevoegen
+                </button>
               )}
             </div>
             {group.indicatorNames.length > 0 && (
@@ -313,7 +401,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       catalogue,
     }).catch((error) => {
       reportError(error, { page: "farm measures recommendations" })
-      return []
+      return {
+        steps: [],
+        opportunitiesByField: {},
+        topOpportunities: [],
+        measureImpacts: {},
+      }
     })
     const fieldList = fields.map((f, i) => {
       const cultivations = fieldCultivations[i]
@@ -714,10 +807,15 @@ export default function MeasuresFarmIndex() {
     asyncInsights,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/measures`
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [initialFieldIds, setInitialFieldIds] = useState<string[]>([])
+  const [initialMeasureId, setInitialMeasureId] = useState<string | undefined>(undefined)
+  const [recommendationsData, setRecommendationsData] = useState<FarmRecommendationsData | null>(
+    null,
+  )
   const [editingRow, setEditingRow] = useState<MeasureTableRow | null>(null)
   const [closingRow, setClosingRow] = useState<MeasureTableRow | null>(null)
 
@@ -727,6 +825,7 @@ export default function MeasuresFarmIndex() {
     (b_id: string) => {
       if (!farmWritePermission) return
       setInitialFieldIds([b_id])
+      setInitialMeasureId(undefined)
       setAddDialogOpen(true)
     },
     [farmWritePermission],
@@ -734,8 +833,30 @@ export default function MeasuresFarmIndex() {
 
   const handleAddClick = useCallback(() => {
     setInitialFieldIds([])
+    setInitialMeasureId(undefined)
     setAddDialogOpen(true)
   }, [])
+
+  const handleOpenMeasure = useCallback(
+    (m_id: string, fieldIds?: string[]) => {
+      if (!farmWritePermission) return
+      setInitialMeasureId(m_id)
+      if (fieldIds && fieldIds.length > 0) {
+        setInitialFieldIds(fieldIds)
+      } else {
+        setInitialFieldIds([])
+      }
+      setAddDialogOpen(true)
+    },
+    [farmWritePermission],
+  )
+
+  const openMeasure = searchParams.get("openMeasure")
+  useEffect(() => {
+    if (!openMeasure) return
+    setInitialMeasureId(openMeasure)
+    setAddDialogOpen(true)
+  }, [openMeasure])
 
   const columns = getColumns(
     (b_id) => `${basePath}/${b_id}`,
@@ -841,9 +962,21 @@ export default function MeasuresFarmIndex() {
               }
             >
               <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
-                {(steps: FarmNextStep[]) =>
-                  steps.length > 0 && <GroupedRecommendations steps={steps} basePath={basePath} />
-                }
+                {(recData: FarmRecommendationsData) => {
+                  if (recData && recData !== recommendationsData && !recommendationsData) {
+                    setTimeout(() => setRecommendationsData(recData), 0)
+                  }
+                  return (
+                    recData?.steps &&
+                    recData.steps.length > 0 && (
+                      <GroupedRecommendations
+                        data={recData}
+                        basePath={basePath}
+                        onOpenMeasure={farmWritePermission ? handleOpenMeasure : undefined}
+                      />
+                    )
+                  )
+                }}
               </Await>
             </Suspense>
           </div>
@@ -860,6 +993,7 @@ export default function MeasuresFarmIndex() {
                 data={fieldSummaryRows}
                 onAddMeasure={(selectedIds) => {
                   setInitialFieldIds(selectedIds)
+                  setInitialMeasureId(undefined)
                   setAddDialogOpen(true)
                 }}
                 canModify={farmWritePermission}
@@ -885,12 +1019,31 @@ export default function MeasuresFarmIndex() {
 
       <AddMeasureDialog
         open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
+        onOpenChange={(next) => {
+          setAddDialogOpen(next)
+          if (!next) {
+            setInitialMeasureId(undefined)
+            if (searchParams.has("openMeasure")) {
+              setSearchParams(
+                (prev) => {
+                  const nextParams = new URLSearchParams(prev)
+                  nextParams.delete("openMeasure")
+                  return nextParams
+                },
+                { replace: true },
+              )
+            }
+          }
+        }}
         catalogue={catalogue}
         activeMeasures={[]}
         applicabilityByField={applicabilityByField ?? undefined}
         fields={fieldList}
         initialFieldIds={initialFieldIds}
+        topOpportunities={recommendationsData?.topOpportunities}
+        opportunitiesByField={recommendationsData?.opportunitiesByField}
+        measureImpacts={recommendationsData?.measureImpacts}
+        initialMeasureId={initialMeasureId}
         calendarYearStart={calendarYearStart}
         harvestDate={null}
         action={`${basePath}?index`}
