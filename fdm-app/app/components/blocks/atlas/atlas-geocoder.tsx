@@ -25,6 +25,7 @@ type NominatimResult = {
   lat: string
   lon: string
   name: string
+  display_name?: string
   type: string
   importance: number
 }
@@ -99,7 +100,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
         if (provider === "osm") {
           const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
             query,
-          )}&format=json&addressdetails=1&limit=${config.limit || 5}&accept-language=nl${config.country ? `&country=${config.country}` : ""}`
+          )}&format=json&addressdetails=1&limit=${config.limit || 5}&accept-language=nl${config.country ? `&countrycodes=${config.country}` : ""}`
           const res = await fetch(url, { signal: config.signal })
           const data = await res.json()
 
@@ -116,7 +117,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
 
               return {
                 id: item.place_id.toString(),
-                text: item.name,
+                text: item.display_name ?? item.name,
                 place_type: [item.type],
                 relevance: item.importance,
                 center: [Number.parseFloat(item.lon), Number.parseFloat(item.lat)] as [

@@ -473,9 +473,11 @@ export default function FarmAtlasSoilBlock() {
           touchDisplaysPopupInstead={false}
         />
 
-        <p className="text-muted-foreground bg-card absolute top-4 left-4 z-10 w-40 rounded-md border px-2 py-1 text-xs">
-          Satellietondergrond vereist voor deze laag
-        </p>
+        {showSoil && (
+          <p className="text-muted-foreground bg-card absolute top-4 left-4 z-10 w-40 rounded-md border px-2 py-1 text-xs">
+            Satellietondergrond vereist voor deze laag
+          </p>
+        )}
       </Atlas>
     </div>
   )

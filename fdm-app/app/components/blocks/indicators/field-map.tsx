@@ -138,7 +138,7 @@ export default function FieldMap({
             return (
               <>
                 <p className="font-semibold">{feature.properties?.b_name ?? "Onbekend perceel"}</p>
-                <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="stack" />
+                <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="row" />
                 {mode === "popup" && (
                   <Button type="button" onClick={() => onFeatureClicked(feature)}>
                     Meer details

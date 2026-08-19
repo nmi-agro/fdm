@@ -628,9 +628,11 @@ export default function FarmAtlasElevationBlock() {
               networkStatus={networkStatus}
               message={showElevation && currentZoom < 13 ? "Zoom in voor meer detail" : undefined}
             />
-            <p className="text-muted-foreground bg-card w-40 rounded-md border px-2 py-1 text-xs">
-              Satellietondergrond vereist voor deze laag
-            </p>
+            {showElevation && (
+              <p className="text-muted-foreground bg-card w-40 rounded-md border px-2 py-1 text-xs">
+                Satellietondergrond vereist voor deze laag
+              </p>
+            )}
           </div>
           <FieldTooltip zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
         </div>
