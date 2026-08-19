@@ -73,6 +73,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
     abortControllerRef.current = abortController
     async function forwardGeocode(config: {
       query: string | string[]
+      country?: string
       limit?: number
       signal: AbortController["signal"]
     }): Promise<MaptilerResult[]> {
@@ -86,7 +87,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
         if (provider === "maptiler" && maptilerKey) {
           const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(
             query,
-          )}.json?key=${maptilerKey}&limit=${config.limit || 5}`
+          )}.json?key=${maptilerKey}&limit=${config.limit || 5}${config.country ? `&country=${config.country}` : ""}`
           const res = await fetch(url, { signal: config.signal })
           const data = await res.json()
           if (Array.isArray(data.features)) {
@@ -98,7 +99,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
         if (provider === "osm") {
           const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
             query,
-          )}&format=json&addressdetails=1&limit=${config.limit || 5}&accept-language=nl`
+          )}&format=json&addressdetails=1&limit=${config.limit || 5}&accept-language=nl${config.country ? `&country=${config.country}` : ""}`
           const res = await fetch(url, { signal: config.signal })
           const data = await res.json()
 
@@ -149,6 +150,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
       try {
         const suggestions = await forwardGeocode({
           query: debouncedQuery,
+          country: "nl",
           limit: 5,
           signal: abortController.signal,
         })
