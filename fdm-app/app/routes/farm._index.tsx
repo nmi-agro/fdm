@@ -40,7 +40,7 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
-import { useCalendarStore } from "../store/calendar"
+import { useCalendarStore } from "~/store/calendar"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -548,7 +548,7 @@ export default function AppIndex() {
                   />
                 </NavLink>
                 <NavLink
-                                    to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/soil`}
+                  to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/soil`}
                   className="group hover:bg-muted/50 flex items-center gap-3 p-4 transition-colors"
                 >
                   <div
