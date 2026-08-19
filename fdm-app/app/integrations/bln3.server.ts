@@ -223,7 +223,7 @@ export async function getMeasureApplicabilityForFields({
   b_ids: string[]
   b_year: number
   timeframe?: Timeframe
-}): Promise<Record<string, Record<string, MeasureApplicabilityInfo>>> {
+}): Promise<Record<string, Record<string, MeasureApplicabilityInfo> | null>> {
   const BATCH_SIZE = 5
   const results = await mapInBatches(b_ids, BATCH_SIZE, (b_id) =>
     getMeasureApplicabilityForField({
@@ -234,7 +234,7 @@ export async function getMeasureApplicabilityForFields({
     }),
   )
 
-  const fieldApplicabilityMap: Record<string, Record<string, MeasureApplicabilityInfo>> = {}
+  const fieldApplicabilityMap: Record<string, Record<string, MeasureApplicabilityInfo> | null> = {}
 
   results.forEach((result, index) => {
     const b_id = b_ids[index]
@@ -245,7 +245,7 @@ export async function getMeasureApplicabilityForFields({
         `BLN3 applicability check failed for field ${b_id}:`,
         result.reason instanceof Error ? result.reason.message : String(result.reason),
       )
-      fieldApplicabilityMap[b_id] = {}
+      fieldApplicabilityMap[b_id] = null
     }
   })
 
@@ -500,11 +500,14 @@ export async function getFarmMeasureOpportunities({
     const advice = adviceByField[b_id]
     if (!advice) continue
 
+    const applicability = applicabilityByField[b_id]
+    if (applicability === null || applicability === undefined) continue
+
     adviceAvailable = true
     for (const opportunity of getTopOpportunitiesForField({
       advice,
       score: scoreByBid.get(b_id) ?? null,
-      applicability: applicabilityByField[b_id] ?? {},
+      applicability,
       activeMeasureIds: activeMeasureIdsByField.get(b_id) ?? new Set(),
     })) {
       opportunities.push({

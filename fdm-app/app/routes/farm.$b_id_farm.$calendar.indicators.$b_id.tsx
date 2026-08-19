@@ -536,14 +536,28 @@ export default function IndicatorsFieldDetail() {
   // included — and scrolls it into view.
   const [searchParams] = useSearchParams()
   const indicatorParam = searchParams.get("indicator")
-  const indicatorId = INDICATORS.find((info) => info.id === indicatorParam)?.id
+  const deepLinkIndicator = INDICATORS.find((info) => info.id === indicatorParam)
+  const indicatorId = deepLinkIndicator?.id
+
+  // If a deep-linked indicator is specified and the current category filter
+  // excludes its category, select/retain that category so it remains visible
+  useEffect(() => {
+    if (!deepLinkIndicator) return
+    setActiveCategories((prev) => {
+      if (prev.length > 0 && !prev.includes(deepLinkIndicator.ecosysteemdienst)) {
+        return [...prev, deepLinkIndicator.ecosysteemdienst]
+      }
+      return prev
+    })
+  }, [deepLinkIndicator])
 
   useEffect(() => {
     if (!indicatorId) return
-    document
-      .getElementById(`indicator-${indicatorId}`)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }, [indicatorId])
+    const el = document.getElementById(`indicator-${indicatorId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [indicatorId, activeCategories])
 
   const handleCategoryToggle = (dienst: Ecosysteemdienst) => {
     setActiveCategories((prev) =>
@@ -554,13 +568,17 @@ export default function IndicatorsFieldDetail() {
   const handleCategoryAll = () => setActiveCategories([])
   const handleMeasuresToggle = (value: boolean) => setWithMeasures(value)
 
-  // Filter indicators by active ecosystem service
+  // Filter indicators by active ecosystem service, while ensuring a deep-linked indicator remains visible
   const visibleIndicatorInfos = useMemo(
     () =>
       activeCategories.length === 0
         ? INDICATORS
-        : INDICATORS.filter((i) => activeCategories.includes(i.ecosysteemdienst)),
-    [activeCategories],
+        : INDICATORS.filter(
+            (i) =>
+              activeCategories.includes(i.ecosysteemdienst) ||
+              (indicatorId && i.id === indicatorId),
+          ),
+    [activeCategories, indicatorId],
   )
 
   // Sort indicator results: red (< 40) → yellow (40–69) → green (≥ 70), then alphabetical

@@ -169,13 +169,22 @@ async function getFarmNextSteps({
       if (!measureImpacts[opp.m_id]) {
         measureImpacts[opp.m_id] = []
       }
-      if (!measureImpacts[opp.m_id].some((i) => i.indicator_id === indImpact.indicator_id)) {
+      const existing = measureImpacts[opp.m_id].find(
+        (i) => i.indicator_id === indImpact.indicator_id,
+      )
+      if (existing) {
+        existing.measure_impact += indImpact.measure_impact
+      } else {
         measureImpacts[opp.m_id].push({
           indicator_id: indImpact.indicator_id,
           measure_impact: indImpact.measure_impact,
         })
       }
     }
+  }
+
+  for (const impacts of Object.values(measureImpacts)) {
+    impacts.sort((a, b) => b.measure_impact - a.measure_impact)
   }
 
   const topOpportunities = [...farmOpportunitiesByMId.values()].sort(

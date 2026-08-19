@@ -77,7 +77,7 @@ type AddMeasureDialogProps = {
   /**
    * Multi-field applicability map (b_id -> m_id -> applicability info).
    */
-  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo>>
+  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo> | null | undefined>
   /**
    * When provided, renders a field selector (checkboxes) so the user can
    * apply the measure to multiple fields at once. Posts multiple hidden
@@ -288,7 +288,7 @@ export function AddMeasureDialog({
       const messages: string[] = []
 
       for (const f of targetFields) {
-        const info = applicabilityByField[f.b_id]?.[item.m_id]
+        const info = applicabilityByField?.[f.b_id]?.[item.m_id]
         const fieldName = f.b_name ?? f.b_id
 
         if (!info || info.applicability === "applicable") {
@@ -316,15 +316,49 @@ export function AddMeasureDialog({
     return map
   }, [applicabilityMap, applicabilityByField, selectedFieldIds, fields, catalogue])
 
-  // Derive effective opportunities: topOpportunities if given, else computed from opportunitiesByField
+  // Derive effective opportunities:
+  // - If multiple fields are selected and opportunitiesByField exists: aggregate across those selected fields.
+  // - In single-field mode (or when 1 field is selected with topOpportunities): use topOpportunities.
+  // - Otherwise fallback to opportunitiesByField aggregated across available fields.
   const effectiveTopOpportunities = useMemo(() => {
+    if (opportunitiesByField && selectedFieldIds.size > 1) {
+      const activeFieldIds = [...selectedFieldIds]
+      const byMeasure = new Map<string, FieldTopOpportunity>()
+      for (const b_id of activeFieldIds) {
+        const fieldOpps = opportunitiesByField[b_id] ?? []
+        for (const opp of fieldOpps) {
+          const existing = byMeasure.get(opp.m_id)
+          if (existing) {
+            existing.aggregateImpact += opp.aggregateImpact
+            for (const indImpact of opp.indicatorImpacts) {
+              const existingInd = existing.indicatorImpacts.find(
+                (i) => i.indicator_id === indImpact.indicator_id,
+              )
+              if (existingInd) {
+                existingInd.measure_impact += indImpact.measure_impact
+              } else {
+                existing.indicatorImpacts.push({ ...indImpact })
+              }
+            }
+          } else {
+            byMeasure.set(opp.m_id, {
+              m_id: opp.m_id,
+              aggregateImpact: opp.aggregateImpact,
+              indicatorImpacts: opp.indicatorImpacts.map((i) => ({ ...i })),
+            })
+          }
+        }
+      }
+      return [...byMeasure.values()].sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+    }
+
     if (topOpportunities && topOpportunities.length > 0) {
       return topOpportunities
     }
     if (!opportunitiesByField) return undefined
 
     const activeFieldIds =
-      selectedFieldIds.size > 0 ? [...selectedFieldIds] : Object.keys(opportunitiesByField)
+      selectedFieldIds.size === 1 ? [...selectedFieldIds] : Object.keys(opportunitiesByField)
 
     if (activeFieldIds.length === 0) return undefined
 
@@ -480,14 +514,10 @@ export function AddMeasureDialog({
   const sortedFields = useMemo(() => {
     if (!fields) return []
     return [...fields].sort((a, b) => {
-      const aNonApplicable =
-        selected &&
-        applicabilityByField?.[a.b_id]?.[selected.m_id] &&
-        applicabilityByField[a.b_id][selected.m_id].applicability !== "applicable"
-      const bNonApplicable =
-        selected &&
-        applicabilityByField?.[b.b_id]?.[selected.m_id] &&
-        applicabilityByField[b.b_id][selected.m_id].applicability !== "applicable"
+      const aInfo = selected ? applicabilityByField?.[a.b_id]?.[selected.m_id] : undefined
+      const bInfo = selected ? applicabilityByField?.[b.b_id]?.[selected.m_id] : undefined
+      const aNonApplicable = aInfo !== undefined && aInfo.applicability !== "applicable"
+      const bNonApplicable = bInfo !== undefined && bInfo.applicability !== "applicable"
 
       if (aNonApplicable !== bNonApplicable) return aNonApplicable ? 1 : -1
 
@@ -516,12 +546,11 @@ export function AddMeasureDialog({
   // Derive selectable (applicable) fields for the currently selected measure in Step 2
   const selectableFields = useMemo(() => {
     if (!visibleFields) return []
-    return visibleFields.filter(
-      (f) =>
-        !selected ||
-        !applicabilityByField?.[f.b_id]?.[selected.m_id] ||
-        applicabilityByField[f.b_id][selected.m_id].applicability === "applicable",
-    )
+    return visibleFields.filter((f) => {
+      if (!selected) return true
+      const info = applicabilityByField?.[f.b_id]?.[selected.m_id]
+      return !info || info.applicability === "applicable"
+    })
   }, [visibleFields, selected, applicabilityByField])
 
   const allSelectableChecked = useMemo(() => {
