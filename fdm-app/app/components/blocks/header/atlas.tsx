@@ -6,13 +6,14 @@ import {
   useAvailableAtlasLayers,
   useCurrentAtlasLayer,
 } from "~/components/blocks/atlas/atlas-layer"
+import { DropdownMenuCheckedRadioItem } from "~/components/custom/dropdown-menu"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
@@ -28,10 +29,11 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
 
   function makeOption(info: AvailableAtlasLayerInfo) {
     return (
-      <NavLink key={info.value} to={info.url}>
-        <DropdownMenuCheckboxItem checked={currentLayer === info.value}>
+      <NavLink key={info.value} to={info.url} className="w-full">
+        {/* The component natively manages the icon and aria state now */}
+        <DropdownMenuCheckedRadioItem value={info.value} className="cursor-pointer">
           {info.label}
-        </DropdownMenuCheckboxItem>
+        </DropdownMenuCheckedRadioItem>
       </NavLink>
     )
   }
@@ -52,25 +54,29 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
             <ChevronDown className="h-4 w-4 shrink-0" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            {farmLayers.length > 0 && (
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-muted-foreground text-xs">
-                  Bedrijf
-                </DropdownMenuLabel>
-                {farmLayers.map((info) => makeOption(info))}
-              </DropdownMenuGroup>
-            )}
-            {farmLayers.length > 0 && availableLayers.length > 0 && <DropdownMenuSeparator />}
-            {otherLayers.length > 0 && (
-              <DropdownMenuGroup>
-                {farmLayers.length > 0 && (
+            <DropdownMenuRadioGroup value={currentLayer ?? "unknown"}>
+              {farmLayers.length > 0 && (
+                <DropdownMenuGroup>
                   <DropdownMenuLabel className="text-muted-foreground text-xs">
-                    Overig
+                    Bedrijf
                   </DropdownMenuLabel>
-                )}
-                {otherLayers.map((info) => makeOption(info))}
-              </DropdownMenuGroup>
-            )}
+                  {farmLayers.map((info) => makeOption(info))}
+                </DropdownMenuGroup>
+              )}
+
+              {farmLayers.length > 0 && otherLayers.length > 0 && <DropdownMenuSeparator />}
+
+              {otherLayers.length > 0 && (
+                <DropdownMenuGroup>
+                  {farmLayers.length > 0 && (
+                    <DropdownMenuLabel className="text-muted-foreground text-xs">
+                      Overig
+                    </DropdownMenuLabel>
+                  )}
+                  {otherLayers.map((info) => makeOption(info))}
+                </DropdownMenuGroup>
+              )}
+            </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </BreadcrumbItem>

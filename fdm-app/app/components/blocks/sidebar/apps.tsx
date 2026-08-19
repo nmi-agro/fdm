@@ -163,7 +163,7 @@ export function SidebarApps({
                                     openFarmPicker(
                                       info.value === "indicators"
                                         ? "de indicatoren"
-                                        : info.value === "soil-analyses"
+                                        : info.value === "soil-analysis"
                                           ? "de bodemanalyses"
                                           : info.label.toLowerCase(),
                                       (b_id_farm) =>

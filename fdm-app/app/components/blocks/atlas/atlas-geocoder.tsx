@@ -89,7 +89,11 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
           )}.json?key=${maptilerKey}&limit=${config.limit || 5}`
           const res = await fetch(url, { signal: config.signal })
           const data = await res.json()
-          return data.features
+          if (Array.isArray(data.features)) {
+            return data.features
+          }
+          console.warn("Maptiler response does not contain features array:", data)
+          return []
         }
         if (provider === "osm") {
           const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(

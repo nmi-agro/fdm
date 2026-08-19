@@ -109,7 +109,7 @@ export default function FieldDashboardMap({
           <Layer {...selectedOutline} />
         </FieldsSourceNotClickable>
       )}
-      <FieldTooltip zoomLevelFields={-1} layer="fieldsSaved" />
+      <FieldTooltip zoomLevelFields={-1} layer="fieldsSaved" touchDisplaysPopupInstead={false} />
     </Atlas>
   )
 }

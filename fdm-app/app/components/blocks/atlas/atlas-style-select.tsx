@@ -1,8 +1,9 @@
-import { LucideMap } from "lucide-react"
+import { Layers } from "lucide-react"
+import { DropdownMenuCheckedRadioItem } from "~/components/custom/dropdown-menu"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuRadioGroup,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import { useAtlasStyle } from "~/store/atlas-style"
@@ -24,22 +25,18 @@ export function AtlasStyleSelect() {
             e.stopPropagation()
           }}
         >
-          <LucideMap className="h-5 w-full" />
+          <Layers className="h-5 w-full" />
         </DropdownMenuTrigger>
       </AtlasControlGroup>
       <DropdownMenuContent>
-        <DropdownMenuCheckboxItem
-          checked={style === "satellite"}
-          onClick={() => setStyle("satellite")}
-        >
-          Satelliet
-        </DropdownMenuCheckboxItem>
-        <DropdownMenuCheckboxItem
-          checked={style === "standard"}
-          onClick={() => setStyle("standard")}
-        >
-          Topografisch
-        </DropdownMenuCheckboxItem>
+        <DropdownMenuRadioGroup value={style}>
+          <DropdownMenuCheckedRadioItem value="satellite" onClick={() => setStyle("satellite")}>
+            Satelliet
+          </DropdownMenuCheckedRadioItem>
+          <DropdownMenuCheckedRadioItem value="standard" onClick={() => setStyle("standard")}>
+            Topografisch
+          </DropdownMenuCheckedRadioItem>
+        </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   )

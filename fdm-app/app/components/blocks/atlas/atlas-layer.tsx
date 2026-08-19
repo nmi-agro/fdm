@@ -1,15 +1,16 @@
+import { LucideMap } from "lucide-react"
 import { ControlPosition } from "maplibre-gl"
 import { useMemo } from "react"
 import { useMatches, useNavigate, useParams } from "react-router"
 import { getCalendarSelection } from "@/app/lib/calendar"
+import { DropdownMenuCheckedRadioItem } from "~/components/custom/dropdown-menu"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select"
-import { AtlasControls } from "./atlas-controls"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
+import { AtlasControlGroup, AtlasControls } from "./atlas-controls"
 
 const mapLayers = [
   "fields",
@@ -187,37 +188,39 @@ function AtlasLayerSwitchInner({ currentLayer }: { currentLayer: MapLayer }) {
   if (layerOptions.length < 2) return null
 
   return (
-    <div
-      ref={(element) => {
-        if (element) {
-          element.onpointerup = (e) => {
+    <DropdownMenu>
+      <AtlasControlGroup>
+        <DropdownMenuTrigger
+          className="maplibregl-ctrl-icon flex items-center justify-center p-0!"
+          type="button"
+          title="Kies een andere kaart"
+          aria-label="Kies een andere kaart"
+          onClick={(e) => {
+            e.preventDefault()
             e.stopPropagation()
-          }
-        }
-      }}
-      className="maplibregl-ctrl"
-      style={{ width: "auto", minWidth: "0px", maxWidth: "200px" }}
-    >
-      <Select
-        value={currentLayer}
-        onValueChange={(value) => {
-          const selectedOpt = layerOptions.find((opt) => opt.value === value)
-          if (selectedOpt) {
-            navigate(selectedOpt.url)
-          }
-        }}
-      >
-        <SelectTrigger className="bg-background hover:bg-accent!">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {layerOptions.map((x) => (
-            <SelectItem key={x.value} value={x.value}>
-              {x.label}
-            </SelectItem>
+          }}
+        >
+          <LucideMap className="h-5 w-full" />
+        </DropdownMenuTrigger>
+      </AtlasControlGroup>
+      <DropdownMenuContent>
+        <DropdownMenuRadioGroup value={currentLayer}>
+          {layerOptions.map((item) => (
+            <DropdownMenuCheckedRadioItem
+              key={item.value}
+              value={item.value}
+              onClick={() => {
+                const selectedOpt = layerOptions.find((opt) => opt.value === item.value)
+                if (selectedOpt) {
+                  navigate(selectedOpt.url)
+                }
+              }}
+            >
+              {item.label}
+            </DropdownMenuCheckedRadioItem>
           ))}
-        </SelectContent>
-      </Select>
-    </div>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
