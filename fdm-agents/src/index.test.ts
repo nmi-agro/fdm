@@ -107,6 +107,24 @@ describe("fdm-agents index", () => {
       expect(prompt).toContain("--- END ADDITIONAL USER CONTEXT ---")
     })
 
+    it("should use the farm name instead of the farm id when available", () => {
+      const farmData = { b_id_farm: "farm-123", b_name_farm: "De Groene Weide" }
+      const strategies = {
+        isOrganic: false,
+        fillManureSpace: false,
+        reduceAmmoniaEmissions: false,
+        keepNitrogenBalanceBelowTarget: false,
+        workOnRotationLevel: false,
+        isDerogation: false,
+        includeRenure: false,
+      }
+
+      const prompt = buildFertilizerPlanPrompt(farmData, strategies, "2025")
+
+      expect(prompt).toContain('bedrijf "De Groene Weide"')
+      expect(prompt).not.toContain("farm-123")
+    })
+
     it("should omit the Renure strategy line entirely for years before 2026", () => {
       const farmData = { b_id_farm: "farm-123" }
       const strategies = {

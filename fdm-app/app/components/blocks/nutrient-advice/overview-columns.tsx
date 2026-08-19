@@ -107,7 +107,7 @@ function NutrientColumnHeader({
               <ArrowDown className="h-3 w-3" />
             ) : null}
           </span>
-          <span className="text-[10px] leading-none font-normal">
+          <span className="text-xs leading-none font-normal">
             {formatUnit(nutrient.unit, unitMode)}
           </span>
         </button>

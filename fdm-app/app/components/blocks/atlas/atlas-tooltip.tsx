@@ -1,6 +1,6 @@
 import throttle from "lodash.throttle"
 import { X } from "lucide-react"
-import maplibregl from "maplibre-gl"
+import { Point, MapGeoJSONFeature, LngLat, Popup as MapPopup } from "maplibre-gl"
 import { ComponentProps, ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useMap, MapRef } from "react-map-gl/maplibre"
@@ -11,7 +11,7 @@ import { useMapContainer } from "./atlas-shell"
 import { useStableSet } from "./atlas-util"
 
 type AtlasTooltipRenderProps = {
-  features: maplibregl.MapGeoJSONFeature[]
+  features: MapGeoJSONFeature[]
   mode: "popup" | "tooltip"
   latitude: number
   longitude: number
@@ -39,7 +39,7 @@ export function AtlasTooltip({
   render: (props: AtlasTooltipRenderProps) => ReactNode
   layers: string[]
   layersExclude?: string[]
-  onFeatureClicked?: (feature: maplibregl.MapGeoJSONFeature) => void
+  onFeatureClicked?: (feature: MapGeoJSONFeature) => void
   touchDisplaysPopupInstead?: boolean
 }) {
   const { current: map } = useMap()
@@ -52,15 +52,15 @@ export function AtlasTooltip({
     mode: "tooltip" | "popup"
     x: number
     y: number
-    lngLat: maplibregl.LngLat
+    lngLat: LngLat
   }
   const [hoverPosition, setHoverPosition] = useState<HoverPosition | null>(null)
   const hoverPositionRef = useRef<HoverPosition | null>(null)
-  const [hoveredFeatures, setHoveredFeatures] = useState<maplibregl.MapGeoJSONFeature[]>([])
+  const [hoveredFeatures, setHoveredFeatures] = useState<MapGeoJSONFeature[]>([])
 
   const getHoveredFeatures = useCallback(
     (map: MapRef, x: number, y: number) => {
-      const coords = new maplibregl.Point(x, y)
+      const coords = new Point(x, y)
 
       if (layersExcludeSet.size > 0) {
         const excludedFeatures = map.queryRenderedFeatures(coords, {
@@ -166,7 +166,7 @@ export function AtlasTooltip({
           mode: "tooltip" as const,
           x: x,
           y: y,
-          lngLat: currentMap.unproject(new maplibregl.Point(x, y)),
+          lngLat: currentMap.unproject(new Point(x, y)),
         }
         hoverPositionRef.current = newHoverPosition
         setHoverPosition(newHoverPosition)
@@ -186,7 +186,7 @@ export function AtlasTooltip({
             mode: "popup" as const,
             x: x,
             y: y,
-            lngLat: currentMap.unproject(new maplibregl.Point(x, y)),
+            lngLat: currentMap.unproject(new Point(x, y)),
           }
           hoverPositionRef.current = newHoverPosition
           setHoverPosition(newHoverPosition)
@@ -318,7 +318,7 @@ export function AtlasPopup({
   children: ReactNode
 }) {
   const { current: map } = useMap()
-  const popupRef = useRef<maplibregl.Popup | null>(null)
+  const popupRef = useRef<MapPopup | null>(null)
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
 
   // Create the maplibre Popup once when the map is ready and tear it down on unmount.
@@ -327,7 +327,7 @@ export function AtlasPopup({
 
     const el = document.createElement("div")
 
-    const popup = new maplibregl.Popup({
+    const popup = new MapPopup({
       closeButton: false,
       closeOnClick: false,
       maxWidth: "none",

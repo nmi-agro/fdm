@@ -251,9 +251,9 @@ export function FieldsPanelSelection({
           // console.log(fields.features)
 
           const fieldCount = features.length
-          let fieldCountText = `U heeft ${fieldCount} percelen geselecteerd`
+          let fieldCountText = `Je hebt ${fieldCount} percelen geselecteerd`
           if (fieldCount === 1) {
-            fieldCountText = "U heeft 1 perceel geselecteerd"
+            fieldCountText = "Je hebt 1 perceel geselecteerd"
           }
 
           const cultivations = features.reduce(
@@ -358,8 +358,8 @@ export function FieldsPanelSelection({
                 <CardTitle>Percelen</CardTitle>
                 <CardDescription>
                   {numFieldsSaved > 0
-                    ? "U heeft geen nieuwe percelen geselecteerd"
-                    : "U heeft geen percelen geselecteerd"}
+                    ? "Je hebt geen nieuwe percelen geselecteerd"
+                    : "Je hebt geen percelen geselecteerd"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4" />

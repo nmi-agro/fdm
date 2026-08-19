@@ -1,4 +1,4 @@
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { createContext, Ref, RefObject, useCallback, useContext, useEffect, useRef } from "react"
 import { Map as MapGL, ViewStateChangeEvent, MapRef, MapProps } from "react-map-gl/maplibre"
 import { getMapStyle, MapStyleVariant } from "@/app/integrations/map"

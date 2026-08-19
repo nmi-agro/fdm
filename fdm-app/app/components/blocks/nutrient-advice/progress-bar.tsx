@@ -40,6 +40,18 @@ export function computeAdviceProgress(current: number, target: number, excessExe
 }
 
 /**
+ * Formats applied minus advised as a signed kg value: "-25 kg" is room left to apply,
+ * "+35 kg" is over-applied. More readable for farmers than a percentage. Sub-kg values
+ * (trace elements) keep two decimals so they don't collapse to "0 kg".
+ */
+export function formatSignedDifference(difference: number) {
+  const roundedValue =
+    Math.abs(difference) >= 1 ? Math.round(difference) : Math.round(difference * 100) / 100
+  const rounded = Object.is(roundedValue, -0) ? 0 : roundedValue
+  return `${rounded > 0 ? "+" : ""}${rounded.toLocaleString("nl-NL")} kg`
+}
+
+/**
  * Shared applied-vs-advice progress bar for bemestingsadvies/nutrient advice, used across the
  * fertilizer applications dashboard and field dashboard so the under/on-target/over color logic
  * stays consistent everywhere.

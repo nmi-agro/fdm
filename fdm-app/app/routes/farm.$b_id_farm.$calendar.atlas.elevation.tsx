@@ -3,7 +3,7 @@ import { cogProtocol, locationValues, proj4 } from "@geomatico/maplibre-cog-prot
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import throttle from "lodash.throttle"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Layer, type MapLayerMouseEvent, type MapRef, Source } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"

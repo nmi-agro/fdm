@@ -1,4 +1,5 @@
 import type { FeatureCollection, Geometry } from "geojson"
+import type { MapGeoJSONFeature } from "maplibre-gl"
 import type { MetaFunction } from "react-router"
 import {
   getCurrentSoilDataForFarm,
@@ -227,7 +228,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
     layout: layerLayout,
   } as LayerProps
 
-  function onFieldClick(feature: maplibregl.MapGeoJSONFeature) {
+  function onFieldClick(feature: MapGeoJSONFeature) {
     if (feature.properties.b_id) {
       void navigate(
         `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,

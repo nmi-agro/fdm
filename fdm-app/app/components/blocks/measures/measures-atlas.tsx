@@ -7,9 +7,8 @@
  */
 
 import type { FeatureCollection } from "geojson"
-import type { StyleSpecification } from "maplibre-gl"
+import type { MapGeoJSONFeature, StyleSpecification } from "maplibre-gl"
 import type { LayerProps } from "react-map-gl/maplibre"
-import maplibregl from "maplibre-gl"
 import { useCallback, useMemo } from "react"
 import { Layer } from "react-map-gl/maplibre"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
@@ -106,7 +105,7 @@ export default function MeasuresMap({
   const initialViewState = getViewState(fitTarget)
 
   const onFeatureClicked = useCallback(
-    (feature: maplibregl.MapGeoJSONFeature) => {
+    (feature: MapGeoJSONFeature) => {
       const b_id = feature.properties?.b_id as string | undefined
       if (!b_id) return
       if (onFieldClick) {

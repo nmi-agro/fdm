@@ -76,7 +76,7 @@ function isAgentGraph(obj: unknown): obj is ReactAgent {
  * @throws {Error} When no API key is available.
  * @throws {Error} When `createAgent` does not return a valid agent graph.
  */
-export function createTicketTriageAgent(apiKey?: string, modelName?: string) {
+export function createTicketTriageAgent(apiKey?: string, modelName?: string): ReactAgent {
   const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
   if (!resolvedKey) {
     throw new Error(

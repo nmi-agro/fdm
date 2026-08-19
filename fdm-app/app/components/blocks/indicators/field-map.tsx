@@ -9,7 +9,7 @@
  */
 
 import type { FeatureCollection } from "geojson"
-import maplibregl from "maplibre-gl"
+import * as maplibregl from "maplibre-gl"
 import { useCallback, useMemo } from "react"
 import { Layer } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"

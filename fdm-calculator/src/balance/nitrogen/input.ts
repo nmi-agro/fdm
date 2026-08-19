@@ -140,14 +140,12 @@ async function collectInputForNitrogenBalanceForFarm(
     )
 
     // Step 3: Merge deposition into field data (pure in-memory)
-    return dbResult.fieldData.map(
-      (entry): FieldInput => ({
-        ...entry,
-        depositionSupply: depositionByField.get(entry.field.b_id) ?? {
-          total: new Decimal(0),
-        },
-      }),
-    )
+    return dbResult.fieldData.map((entry): FieldInput => ({
+      ...entry,
+      depositionSupply: depositionByField.get(entry.field.b_id) ?? {
+        total: new Decimal(0),
+      },
+    }))
   } catch (error) {
     throw handleNitrogenBalanceInputCollectionError(error, b_id_farm)
   }

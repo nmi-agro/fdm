@@ -7,8 +7,8 @@
  */
 
 import type { FeatureCollection, GeoJsonProperties } from "geojson"
+import type { MapGeoJSONFeature, StyleSpecification } from "maplibre-gl"
 import { LayoutList } from "lucide-react"
-import maplibregl, { type StyleSpecification } from "maplibre-gl"
 import { type Dispatch, type SetStateAction, useMemo, useRef } from "react"
 import { Layer, type MapRef } from "react-map-gl/maplibre"
 import { Link, useNavigate } from "react-router"
@@ -90,7 +90,7 @@ export default function IndicatorsMap({
     [selectedProperty],
   )
 
-  const onFeatureClicked = (feature: maplibregl.MapGeoJSONFeature) => {
+  const onFeatureClicked = (feature: MapGeoJSONFeature) => {
     if (basePathFormatter) {
       const formatted = basePathFormatter(feature.properties)
       if (typeof formatted === "string") {

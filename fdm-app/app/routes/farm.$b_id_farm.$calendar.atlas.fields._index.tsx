@@ -122,7 +122,7 @@ export default function FarmAtlasFieldsBlock() {
       calendar: loaderData.calendar,
       layer: "fields",
     })
-  }, [])
+  }, [capture, params.b_id_farm, loaderData.calendar])
 
   const id = "fieldsSaved"
   const fields = loaderData.savedFields
