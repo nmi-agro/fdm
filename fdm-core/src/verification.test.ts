@@ -252,6 +252,73 @@ describe("Farm Verification Functions", () => {
     await expect(isFarmVerifiedForPrincipal(fdm, principal_id, bulkFarmId)).resolves.toBe(false)
   })
 
+  it("serializes concurrent verification additions and revocations across two connections", async () => {
+    const fdm2 = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+
+    const concurrentFarmId = await addFarm(
+      fdm,
+      principal_id,
+      "Concurrent Farm",
+      "555557",
+      "Address",
+      "1111AC",
+    )
+
+    let addTxStartedResolve: () => void
+    const addTxStarted = new Promise<void>((resolve) => {
+      addTxStartedResolve = resolve
+    })
+
+    let letAddTxCommitResolve: () => void
+    const letAddTxCommit = new Promise<void>((resolve) => {
+      letAddTxCommitResolve = resolve
+    })
+
+    // Connection 1: Interleaved addFarmVerification holding the farm lock
+    const addPromise = fdm.transaction(async (tx) => {
+      const verification_id = await addFarmVerification(
+        tx as unknown as FdmType,
+        principal_id,
+        concurrentFarmId,
+        {
+          verification_method: "rvo_eherkenning",
+          verification_result: "verified",
+          b_businessid_farm: "555557",
+        },
+      )
+      addTxStartedResolve()
+      await letAddTxCommit
+      return verification_id
+    })
+
+    // Wait until Connection 1 has locked the farm and inserted the verification
+    await addTxStarted
+
+    // Connection 2: Revocation should wait for Connection 1's lock release and then revoke all active verifications
+    const revokePromise = revokeFarmVerificationStatus(fdm2, principal_id, concurrentFarmId)
+
+    // Give Connection 2 a moment to block on the row lock, then allow Connection 1 to commit
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    letAddTxCommitResolve!()
+
+    await Promise.all([addPromise, revokePromise])
+
+    const active = await getActiveFarmVerifications(fdm, principal_id, concurrentFarmId)
+    expect(active).toEqual([])
+    await expect(isFarmVerifiedForPrincipal(fdm, principal_id, concurrentFarmId)).resolves.toBe(
+      false,
+    )
+    const history = await getFarmVerifications(fdm, principal_id, concurrentFarmId)
+    expect(history).toHaveLength(1)
+    expect(history[0].revoked_at).toBeInstanceOf(Date)
+  })
+
   it("does not expose verification status without farm access", async () => {
     await expect(isFarmVerifiedForPrincipal(fdm, createId(), b_id_farm)).rejects.toThrowError(
       "Principal does not have permission to perform this action",

@@ -403,7 +403,6 @@ export async function revokeFarmVerification(
         throw new Error("Active farm verification not found")
       }
 
-
       const updated = await tx
         .update(authZSchema.farmVerification)
         .set({ revoked_at: new Date() })
@@ -459,6 +458,17 @@ export async function revokeFarmVerificationStatus(
         principal_id,
         "revokeFarmVerificationStatus",
       )
+
+      const farm = await tx
+        .select({ b_id_farm: schema.farms.b_id_farm })
+        .from(schema.farms)
+        .where(eq(schema.farms.b_id_farm, b_id_farm))
+        .limit(1)
+        .for("update")
+
+      if (farm.length === 0) {
+        throw new Error("Farm not found")
+      }
 
       const verifications = await tx
         .select({ verification_id: authZSchema.farmVerification.verification_id })

@@ -214,10 +214,10 @@ export default function FarmSettingsPropertiesBlock() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>KvK-nummer wijzigen?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Dit bedrijf is geverifieerd op basis van het huidige
-                                    KvK-nummer. Als u het nummer wijzigt, vervalt de geverifieerde
-                                    status en moet dit bedrijf opnieuw geverifieerd worden via RVO
-                                    met eHerkenning.
+                                    Dit bedrijf is geverifieerd op basis van het huidige KvK-nummer.
+                                    Als u het nummer wijzigt, vervalt de geverifieerde status en
+                                    moet dit bedrijf opnieuw geverifieerd worden via RVO met
+                                    eHerkenning.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
