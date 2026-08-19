@@ -119,16 +119,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       } catch (error) {
         const errorMessage = toFriendlyAdviceError(error)
         return {
-          rows: fields.map(
-            (field): FieldNutrientRow => ({
-              b_id: field.b_id,
-              b_name: field.b_name,
-              b_area: field.b_area ?? 0,
-              mainCultivation: null,
-              errorMessage,
-              values: {},
-            }),
-          ),
+          rows: fields.map((field): FieldNutrientRow => ({
+            b_id: field.b_id,
+            b_name: field.b_name,
+            b_area: field.b_area ?? 0,
+            mainCultivation: null,
+            errorMessage,
+            values: {},
+          })),
         }
       }
 
