@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.35.3
+
+### Patch Changes
+
+- [#770](https://github.com/nmi-agro/fdm/pull/770) [`288e0b1`](https://github.com/nmi-agro/fdm/commit/288e0b1c1ad9144f7aa5bf2a0ba54f2bad1bfa92) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix the farm overview linking to the latest available calendar year (which can be in the future) instead of the current year when opening Atlas, elevation or soil map, which could show new users an empty year with no fields yet.
+
 ## 0.35.2
 
 ### Patch Changes
