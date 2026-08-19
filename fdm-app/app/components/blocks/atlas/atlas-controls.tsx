@@ -104,6 +104,12 @@ class CustomControl implements IControl {
     this._container.onpointerdown = (e) => {
       e.stopPropagation()
     }
+    this._container.onpointerenter = (e) => {
+      e.stopPropagation()
+    }
+    this._container.onpointerleave = (e) => {
+      e.stopPropagation()
+    }
     this._onContainerReady(this._container)
     return this._container
   }

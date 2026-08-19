@@ -132,11 +132,14 @@ export function AtlasTooltip({
       updateHoveredFeatureThrottled()
     }
 
-    const pointers = new Map<number, { startX: number; startY: number; moved: boolean }>()
+    const pointers = new Map<
+      number,
+      { startX: number; startY: number; moved: boolean; out: boolean }
+    >()
 
     // Reset a pointer's start position when it is put down (important for the mouse)
     const onPointerDown = (e: PointerEvent) => {
-      const info = { startX: e.clientX, startY: e.clientY, moved: false }
+      const info = { startX: e.clientX, startY: e.clientY, moved: false, out: false }
       pointers.set(e.pointerId, info)
     }
 
@@ -145,7 +148,7 @@ export function AtlasTooltip({
       let info = pointers.get(e.pointerId)
 
       if (!info) {
-        info = { startX: e.clientX, startY: e.clientY, moved: false }
+        info = { startX: e.clientX, startY: e.clientY, moved: false, out: false }
         pointers.set(e.pointerId, info)
       }
 
@@ -159,18 +162,24 @@ export function AtlasTooltip({
 
       // Show hover tooltip for mouse and pen
       if (e.pointerType !== "touch") {
-        const bcr = currentMapContainer.getBoundingClientRect()
-        const x = e.clientX - bcr.left
-        const y = e.clientY - bcr.top
-        const newHoverPosition = {
-          mode: "tooltip" as const,
-          x: x,
-          y: y,
-          lngLat: currentMap.unproject(new Point(x, y)),
+        if (info.out) {
+          hoverPositionRef.current = null
+          setHoverPosition(null)
+          setHoveredFeatures([])
+        } else {
+          const bcr = currentMapContainer.getBoundingClientRect()
+          const x = e.clientX - bcr.left
+          const y = e.clientY - bcr.top
+          const newHoverPosition = {
+            mode: "tooltip" as const,
+            x: x,
+            y: y,
+            lngLat: currentMap.unproject(new Point(x, y)),
+          }
+          hoverPositionRef.current = newHoverPosition
+          setHoverPosition(newHoverPosition)
+          updateHoveredFeatureThrottled()
         }
-        hoverPositionRef.current = newHoverPosition
-        setHoverPosition(newHoverPosition)
-        updateHoveredFeatureThrottled()
       }
     }
 
@@ -215,6 +224,15 @@ export function AtlasTooltip({
       pointers.delete(e.pointerId)
     }
 
+    const onPointerOver = (e: PointerEvent) => {
+      if (e.pointerType === "touch") return
+      const info = pointers.get(e.pointerId)
+      if (info) {
+        info.out = e.target !== map.getCanvas()
+      }
+      onPointerMove(e)
+    }
+
     // ESC key to dismiss the popup
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && hoverPositionRef.current?.mode === "popup") {
@@ -229,6 +247,7 @@ export function AtlasTooltip({
     currentMapContainer.addEventListener("pointermove", onPointerMove)
     currentMapContainer.addEventListener("pointerup", onPointerUp)
     currentMapContainer.addEventListener("pointerleave", onPointerLeave)
+    currentMapContainer.addEventListener("pointerover", onPointerOver)
     addEventListener("keydown", onKeyDown)
 
     return () => {
@@ -237,6 +256,7 @@ export function AtlasTooltip({
       currentMapContainer.removeEventListener("pointermove", onPointerMove)
       currentMapContainer.removeEventListener("pointerup", onPointerUp)
       currentMapContainer.removeEventListener("pointerleave", onPointerLeave)
+      currentMapContainer.removeEventListener("pointerover", onPointerOver)
       removeEventListener("keydown", onKeyDown)
     }
   }, [
