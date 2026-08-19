@@ -59,7 +59,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
         >
           {row.original.b_name ?? row.original.b_id}
           {row.original.b_bufferstrip && (
-            <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 dark:bg-teal-950/30 dark:text-teal-400">
+            <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-950/30 dark:text-teal-400">
               Bufferstrook
             </span>
           )}

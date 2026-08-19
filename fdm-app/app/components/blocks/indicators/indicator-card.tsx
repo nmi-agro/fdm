@@ -73,11 +73,13 @@ function StackedScoreBar({
   return (
     <div className="bg-muted relative h-2 w-full overflow-hidden rounded-full">
       <div
-        className="absolute top-0 left-0 h-full transition-all duration-500"
+        className={cn(
+          "absolute top-0 left-0 h-full transition-all duration-500",
+          hasImpact ? "rounded-l-full" : "rounded-full",
+        )}
         style={{
           width: `${indexWidth}%`,
           backgroundColor: indexColor,
-          borderRadius: hasImpact ? "9999px 0 0 9999px" : "9999px",
         }}
       />
       {hasImpact && (
@@ -88,12 +90,10 @@ function StackedScoreBar({
             style={{ left: `${indexWidth}%`, width: "2px" }}
           />
           <div
-            className="absolute top-0 h-full transition-all duration-500"
+            className="absolute top-0 h-full rounded-r-full bg-teal-400 transition-all duration-500 dark:bg-teal-400"
             style={{
               left: `calc(${indexWidth}% + 2px)`,
               width: `${impactWidth}%`,
-              backgroundColor: "#2dd4bf",
-              borderRadius: "0 9999px 9999px 0",
             }}
           />
         </>
@@ -164,7 +164,7 @@ export function IndicatorCard({
               <span>{activeDisplay}</span>
             </div>
             {!showIndex && hasImpact && (
-              <span className="inline-flex items-center rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+              <span className="inline-flex items-center rounded-full bg-teal-100 px-1.5 py-0.5 text-xs leading-none font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
                 +{impactDisplay}
               </span>
             )}
@@ -177,7 +177,7 @@ export function IndicatorCard({
               <span className="text-muted-foreground font-mono text-xs">{info.id}</span>
               <span
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  "rounded-full px-2 py-0.5 text-xs font-medium",
                   CATEGORY_COLORS[info.ecosysteemdienst],
                 )}
               >
@@ -205,13 +205,13 @@ export function IndicatorCard({
                     indexColor={indexColor}
                   />
                 </div>
-                <span className="w-6 text-right text-[10px] font-medium tabular-nums">
+                <span className="w-6 text-right text-xs font-medium tabular-nums">
                   {activeDisplay}
                 </span>
               </div>
               {/* Legend: only shown when measures are visible and there is impact */}
               {!showIndex && hasImpact && (
-                <div className="text-muted-foreground flex gap-3 text-[9px]">
+                <div className="text-muted-foreground flex gap-3 text-xs">
                   <span className="flex items-center gap-1">
                     <span
                       className="inline-block h-1.5 w-2 rounded-sm"
@@ -222,12 +222,7 @@ export function IndicatorCard({
                     Perceel: {indexDisplay}
                   </span>
                   <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400">
-                    <span
-                      className="inline-block h-1.5 w-2 rounded-sm"
-                      style={{
-                        backgroundColor: "#2dd4bf",
-                      }}
-                    />
+                    <span className="inline-block h-1.5 w-2 rounded-sm bg-teal-400 dark:bg-teal-400" />
                     Maatregelen: +{impactDisplay}
                   </span>
                 </div>
@@ -274,7 +269,7 @@ export function IndicatorCard({
                     </span>
                     <span className="text-foreground">{measure.m_name}</span>
                     {measure.m_end === null && (
-                      <span className="text-muted-foreground ml-auto shrink-0 text-[10px]">
+                      <span className="text-muted-foreground ml-auto shrink-0 text-xs">
                         doorlopend
                       </span>
                     )}

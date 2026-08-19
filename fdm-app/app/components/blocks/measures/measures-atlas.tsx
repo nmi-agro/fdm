@@ -199,7 +199,7 @@ export default function MeasuresMap({
             <p className="font-semibold">
               {hoveredFeature.properties?.b_name ?? "Onbekend perceel"}
             </p>
-            <p className="text-muted-foreground text-[10px]">
+            <p className="text-muted-foreground text-xs">
               {(hoveredFeature.properties?.measureCount as number) === 0
                 ? "Geen maatregelen"
                 : `${hoveredFeature.properties?.measureCount as number} maatregel${(hoveredFeature.properties?.measureCount as number) === 1 ? "" : "en"}`}

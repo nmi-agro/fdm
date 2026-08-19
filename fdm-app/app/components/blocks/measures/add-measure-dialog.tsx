@@ -221,7 +221,9 @@ export function AddMeasureDialog({
       resetForm({ m_start: calendarYearStart, m_end: null })
       setSelectedFieldIds(new Set(initialFieldIdsRef.current ?? []))
       setFieldSearch("")
-      setTimeout(() => searchRef.current?.focus(), 50)
+      requestAnimationFrame(() => {
+        searchRef.current?.focus()
+      })
     }
   }, [open, calendarYearStart, resetForm, focusIndicatorId])
 
@@ -404,9 +406,14 @@ export function AddMeasureDialog({
 
   // Determine end date to submit based on preset — sync to form state
   const handleDatePresetChange = (preset: DatePreset) => {
+    if (preset === "einde_teeltseizoen" && !harvestDate) {
+      setDatePreset("doorlopend")
+      form.setValue("m_end", null)
+      return
+    }
     setDatePreset(preset)
     if (preset === "doorlopend") form.setValue("m_end", null)
-    else if (preset === "einde_teeltseizoen") form.setValue("m_end", harvestDate ?? null)
+    else if (preset === "einde_teeltseizoen") form.setValue("m_end", harvestDate)
     else form.setValue("m_end", null)
   }
 
@@ -673,16 +680,16 @@ export function AddMeasureDialog({
                             {isRecommended && (
                               <Badge
                                 variant="outline"
-                                className="border-emerald-500/50 bg-emerald-50 text-[10px] text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                className="border-emerald-500/50 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
                               >
-                                <Sparkles className="mr-1 h-2.5 w-2.5" />
+                                <Sparkles className="mr-1 h-3 w-3" aria-hidden="true" />
                                 Aanbevolen
                               </Badge>
                             )}
                             {appInfo?.applicability === "not yet applicable" && (
                               <Badge
                                 variant="outline"
-                                className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                               >
                                 Niet geschikt
                               </Badge>
@@ -690,7 +697,7 @@ export function AddMeasureDialog({
                             {appInfo?.applicability === "inapplicable" && (
                               <Badge
                                 variant="outline"
-                                className="border-destructive/50 bg-destructive/10 text-destructive text-[10px]"
+                                className="border-destructive/50 bg-destructive/10 text-destructive text-xs"
                               >
                                 {fields ? "Geen toepasbare percelen" : "Niet mogelijk"}
                               </Badge>
@@ -698,7 +705,7 @@ export function AddMeasureDialog({
                             {hasPartialApplicability && (
                               <Badge
                                 variant="outline"
-                                className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                               >
                                 Deels toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
                                 {appInfo.applicableFieldNames!.length === 1
@@ -729,10 +736,13 @@ export function AddMeasureDialog({
                             </p>
                           )}
                           {conflicts && (
-                            <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-600">
-                              <AlertTriangle className="h-3 w-3 shrink-0" />
-                              Conflicteert met: {conflicts.join(", ")}
-                            </p>
+                            <div className="mt-1 flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400">
+                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                Conflicteert met actieve maatregel:{" "}
+                                <strong>{conflicts.join(", ")}</strong>
+                              </span>
+                            </div>
                           )}
                           {!fields &&
                             appInfo?.applicability === "not yet applicable" &&
@@ -840,14 +850,14 @@ export function AddMeasureDialog({
                       <FieldLabel>
                         Percelen
                         {selectedFieldIds.size > 0 && (
-                          <span className="text-muted-foreground ml-2 font-normal">
+                          <span className="text-muted-foreground ml-2 text-xs font-normal">
                             {selectedFieldIds.size} van {fields.length} geselecteerd
                           </span>
                         )}
                       </FieldLabel>
                       <button
                         type="button"
-                        className="text-muted-foreground hover:text-foreground text-xs"
+                        className="text-primary cursor-pointer text-xs font-medium hover:underline"
                         onClick={() => {
                           const next = new Set(selectedFieldIds)
                           if (allSelectableChecked) {
@@ -858,7 +868,7 @@ export function AddMeasureDialog({
                           setSelectedFieldIds(next)
                         }}
                       >
-                        {allSelectableChecked ? "Geen" : "Alle"}
+                        {allSelectableChecked ? "Deselecteer alles" : "Selecteer alle geschikte"}
                       </button>
                     </div>
                     <div className="relative">
@@ -935,7 +945,7 @@ export function AddMeasureDialog({
                                 {fieldAppInfo?.applicability === "not yet applicable" && (
                                   <Badge
                                     variant="outline"
-                                    className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                    className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                                   >
                                     Niet geschikt
                                   </Badge>
@@ -943,7 +953,7 @@ export function AddMeasureDialog({
                                 {fieldAppInfo?.applicability === "inapplicable" && (
                                   <Badge
                                     variant="outline"
-                                    className="border-destructive/50 bg-destructive/10 text-destructive text-[10px]"
+                                    className="border-destructive/50 bg-destructive/10 text-destructive text-xs"
                                   >
                                     Niet mogelijk
                                   </Badge>

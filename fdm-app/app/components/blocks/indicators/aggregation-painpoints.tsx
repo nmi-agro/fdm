@@ -237,7 +237,7 @@ export function AggregationPainpoints({
                   setSelectedIndId(null)
                 }}
                 className={cn(
-                  "rounded px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
                   leftMode === "themes"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -252,7 +252,7 @@ export function AggregationPainpoints({
                   setSelectedAggId(null)
                 }}
                 className={cn(
-                  "rounded px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
                   leftMode === "indicators"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -411,7 +411,7 @@ export function AggregationPainpoints({
                             {field.b_name}
                           </Link>
                           {field.b_area !== null && (
-                            <span className="text-muted-foreground shrink-0 text-[10px]">
+                            <span className="text-muted-foreground shrink-0 text-xs">
                               ({field.b_area.toFixed(1)} ha)
                             </span>
                           )}
@@ -424,7 +424,7 @@ export function AggregationPainpoints({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "h-5 shrink-0 px-1.5 py-0 text-[9px] tracking-wider whitespace-nowrap uppercase",
+                              "h-5 shrink-0 px-1.5 py-0 text-xs tracking-wider whitespace-nowrap uppercase",
                               getScoreBadgeClass(score),
                             )}
                           >
