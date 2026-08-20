@@ -137,6 +137,19 @@ describe("NmiApiClient.request", () => {
     }
   })
 
+  it("should throw if the request was aborted while waiting on semaphore", async () => {
+    const abortController = new AbortController()
+    const client = new NmiApiClient({ maxConcurrency: 1 })
+    const originalAcquire = client.semaphore.acquire
+    await originalAcquire.call(client.semaphore, abortController.signal)
+    client.semaphore.acquire = () => {
+      const promise = originalAcquire.call(client.semaphore, abortController.signal)
+      abortController.abort()
+      return promise
+    }
+    await expect(client.request("", { signal: abortController.signal })).rejects.toThrow("aborted")
+  })
+
   it("should time out", async () => {
     const client = new NmiApiClient({ maxRetries: 1, timeout: 1000 })
     vi.mocked(fetch).mockImplementationOnce((_, init) => rejectOnAbort(init?.signal))
@@ -205,6 +218,52 @@ describe("NmiApiClient.request", () => {
     expect(value).toBe("response 2")
   })
 
+  it("should retry normally for a negative Retry-After header", async () => {
+    const client = new NmiApiClient({ maxRetries: 2 })
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response("Too Many Requests", { status: 429, headers: { "Retry-After": "-1" } }),
+    )
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json("response 2"))
+
+    let value = ""
+    const promise = client
+      .request("", undefined)
+      .then((r) => r.json())
+      .then((v) => {
+        value = v
+        return v
+      })
+
+    setTimeout(() => {
+      expect(value).toBe("")
+    }, 100)
+
+    await expect(promise).resolves.toBe("response 2")
+  })
+
+  it("should retry normally for a invalid Retry-After header", async () => {
+    const client = new NmiApiClient({ maxRetries: 2 })
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response("Too Many Requests", { status: 429, headers: { "Retry-After": "bla" } }),
+    )
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json("response 2"))
+
+    let value = ""
+    const promise = client
+      .request("", undefined)
+      .then((r) => r.json())
+      .then((v) => {
+        value = v
+        return v
+      })
+
+    setTimeout(() => {
+      expect(value).toBe("")
+    }, 100)
+
+    await expect(promise).resolves.toBe("response 2")
+  })
+
   it("should throw immediately with an already aborted AbortSignal", async () => {
     const abortController = new AbortController()
     const client = new NmiApiClient({ maxRetries: 2 })
@@ -235,6 +294,14 @@ describe("NmiApiClient.request", () => {
     } finally {
       clearTimeout(timeout)
     }
+  })
+
+  it("should clear the timeout before throwing a final fetch error", async () => {
+    const client = new NmiApiClient({ maxRetries: 1 })
+    const error = new Error("fetch failed")
+    vi.mocked(fetch).mockRejectedValueOnce(error)
+
+    await expect(client.request("")).rejects.toBe(error)
   })
 
   it("should call onRejection properly before resolving", async () => {

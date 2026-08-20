@@ -211,12 +211,10 @@ describe("requestBln3MeasureApplicability", () => {
     vi.useFakeTimers()
 
     try {
-      const abortError = new DOMException("The operation was aborted", "AbortError")
-
       vi.mocked(fetch).mockImplementation((_url, options) => {
         return new Promise((_resolve, reject) => {
           options?.signal?.addEventListener("abort", () => {
-            reject(abortError)
+            reject(options?.signal?.reason)
           })
         })
       })
@@ -225,11 +223,13 @@ describe("requestBln3MeasureApplicability", () => {
         "BLN3 measure applicability request timed out. The NMI API did not respond in time.",
       )
 
-      await vi.advanceTimersByTimeAsync(32_000)
-      await vi.advanceTimersByTimeAsync(32_000)
-      await vi.advanceTimersByTimeAsync(32_000)
-
-      await assertion
+      try {
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+      } finally {
+        await assertion
+      }
     } finally {
       vi.useRealTimers()
     }

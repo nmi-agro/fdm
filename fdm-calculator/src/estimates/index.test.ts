@@ -145,12 +145,10 @@ describe("requestSoilParameterEstimates", () => {
   })
 
   it("should throw a timeout error if the request is aborted", async () => {
-    const abortError = new DOMException("The operation was aborted", "AbortError")
-
     vi.mocked(fetch).mockImplementation((_url, options) => {
       return new Promise((_resolve, reject) => {
         options?.signal?.addEventListener("abort", () => {
-          reject(abortError)
+          reject(options?.signal?.reason)
         })
       })
     })
@@ -168,9 +166,13 @@ describe("requestSoilParameterEstimates", () => {
         "De aanvraag naar de NMI Estimates API is verlopen (timeout).",
       )
 
-      await vi.advanceTimersByTimeAsync(32_000)
-      await vi.advanceTimersByTimeAsync(32_000)
-      await vi.advanceTimersByTimeAsync(32_000)
+      try {
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+      } finally {
+        await assertion
+      }
 
       await assertion
     } finally {

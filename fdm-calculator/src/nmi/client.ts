@@ -96,7 +96,7 @@ export class NmiApiClient {
     }
 
     const onInputSignalAbort = () => {
-      if (inputSignal) abortController.abort(inputSignal.reason)
+      abortController.abort(inputSignal!.reason)
     }
 
     if (inputSignal) {
@@ -104,12 +104,20 @@ export class NmiApiClient {
     }
 
     // Wait for pending requests in queue to complete if there are too many.
-    await this.semaphore.acquire(abortController.signal)
+    try {
+      await this.semaphore.acquire(abortController.signal)
+    } catch (e) {
+      inputSignal?.removeEventListener("abort", onInputSignalAbort)
+      throw e
+    }
+
     let released = false
+
+    let timeoutRef: ReturnType<typeof setTimeout> | undefined
 
     try {
       // Time out
-      const timeoutRef = setTimeout(() => {
+      timeoutRef = setTimeout(() => {
         const err = new Error(`Timed out after ${timeout}ms`)
         err.name = "TimeoutError"
         abortController.abort(err)
@@ -121,7 +129,6 @@ export class NmiApiClient {
         signal: abortController.signal,
       })
 
-      // No need to time out any more
       clearTimeout(timeoutRef)
 
       // Immediately release the semaphore because we are done with the NMI API connection
@@ -138,15 +145,20 @@ export class NmiApiClient {
           let decidedRetryAfter = retryAfter
           const retryAfterHeader = response.headers?.get("retry-after")
           if (retryAfterHeader) {
-            const retryAfterHeaderVal = Number.parseInt(retryAfterHeader, 10)
-            if (Number.isFinite(retryAfterHeaderVal)) {
-              decidedRetryAfter = retryAfterHeaderVal * 1000
+            const retryAfterHeaderVal = Number(retryAfterHeader)
+            if (Number.isFinite(retryAfterHeaderVal) && retryAfterHeaderVal >= 0) {
+              decidedRetryAfter = Math.min(retryAfterHeaderVal * 1000, timeout)
             }
           }
+
+          // Add some jitter
+          decidedRetryAfter = Math.round(decidedRetryAfter + retryAfter * Math.random() * 0.3)
 
           try {
             await options?.onRejection?.(response)
           } catch {}
+
+          response.body?.cancel().catch(() => {})
 
           // With exponential backoff
           return promiseDelayed(
@@ -164,19 +176,15 @@ export class NmiApiClient {
         this.semaphore.release()
       }
 
-      let returnedError = e
+      clearTimeout(timeoutRef)
 
-      if (
-        e instanceof Error &&
-        e.name === "AbortError" &&
-        abortController.signal.reason?.name === "TimeoutError"
-      ) {
-        returnedError = abortController.signal.reason
+      if (inputSignal?.aborted) {
+        throw e
       }
 
       if (maxRetries > 1) {
         try {
-          await options?.onRejection?.(returnedError)
+          await options?.onRejection?.(e)
         } catch {}
 
         // No exponential backoff
@@ -185,7 +193,7 @@ export class NmiApiClient {
           retryAfter,
         )
       } else {
-        throw returnedError
+        throw e
       }
     } finally {
       inputSignal?.removeEventListener("abort", onInputSignalAbort)
