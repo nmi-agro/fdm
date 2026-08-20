@@ -17,7 +17,7 @@ function promiseDelayed<T>(cb: () => Promise<T>, after: number) {
  * positive number.
  * @returns The parsed positive number, or defaultValue if parsing fails or the number is not positive.
  */
-function tryAsPositive(value: string | undefined, defaultValue: number) {
+function tryAsPositive(value: string | number | undefined, defaultValue: number) {
   if (!value) return defaultValue
   const parsed = Number(value)
   if (Number.isFinite(parsed) && parsed > 0) {
@@ -47,14 +47,21 @@ export class NmiApiClient {
     /** Timeout for each trial for a request in ms. Default: 30000ms */
     timeout?: number
   }) {
-    const {
-      maxConcurrency = tryAsPositive(process.env.NMI_MAX_CONCURRENCY, 10),
-      maxRetries = tryAsPositive(process.env.NMI_MAX_RETRIES, 3),
-      timeout = tryAsPositive(process.env.NMI_REQUEST_TIMEOUT, 30000),
-    } = options ?? {}
+    const maxConcurrency = tryAsPositive(
+      options?.maxConcurrency,
+      tryAsPositive(process.env.NMI_MAX_CONCURRENCY, 10),
+    )
+    const maxRetries = tryAsPositive(
+      options?.maxRetries,
+      tryAsPositive(process.env.NMI_MAX_RETRIES, 3),
+    )
+    const timeout = tryAsPositive(
+      options?.timeout,
+      tryAsPositive(process.env.NMI_REQUEST_TIMEOUT, 30000),
+    )
 
-    this.semaphore = new Semaphore(maxConcurrency)
-    this.maxRetries = maxRetries
+    this.semaphore = new Semaphore(Math.max(1, Math.round(maxConcurrency)))
+    this.maxRetries = Math.max(1, Math.round(maxRetries))
     this.timeout = timeout
   }
 
@@ -187,9 +194,10 @@ export class NmiApiClient {
           await options?.onRejection?.(e)
         } catch {}
 
-        // No exponential backoff
+        // No exponential backoff but some jitter
+        const jitter = 1 + 0.4 * (Math.random() - 0.5)
         return promiseDelayed(
-          () => this.request(url, options, timeout, maxRetries - 1, retryAfter),
+          () => this.request(url, options, timeout, maxRetries - 1, retryAfter * jitter),
           retryAfter,
         )
       } else {

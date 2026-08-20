@@ -17,6 +17,20 @@ describe("NmiApiClient.constructor", () => {
     expect(client.maxRetries).toBe(10)
   })
 
+  it("should set maxConcurrency and maxRetries to at least 1", async () => {
+    const client = new NmiApiClient({ maxConcurrency: 0.1, maxRetries: 0.1 })
+    expect(client.maxRetries).toBe(1)
+
+    await Promise.race([
+      client.semaphore.acquire(),
+      new Promise((_, reject) =>
+        setTimeout(() => {
+          reject(new Error("Should have resolved already."))
+        }, 100),
+      ),
+    ])
+  })
+
   describe("environment variables", () => {
     const originalEnv = { ...process.env }
 
@@ -51,6 +65,30 @@ describe("NmiApiClient.constructor", () => {
       const client = new NmiApiClient({ maxRetries: 2 })
 
       expect(client.maxRetries).toBe(2)
+    })
+
+    it("should fall back to env var values when overridden values are invalid", async () => {
+      process.env.NMI_MAX_CONCURRENCY = "2"
+      process.env.NMI_MAX_RETRIES = "7"
+      process.env.NMI_REQUEST_TIMEOUT = "12345"
+
+      const client = new NmiApiClient({
+        maxConcurrency: -1,
+        maxRetries: -1,
+        timeout: -1,
+      })
+
+      expect(client.maxRetries).toBe(7)
+      expect(client.timeout).toBe(12345)
+
+      await client.semaphore.acquire()
+      await client.semaphore.acquire()
+      let thirdAcquired = false
+      client.semaphore.acquire().then(() => {
+        thirdAcquired = true
+      })
+      await Promise.resolve()
+      expect(thirdAcquired).toBe(false)
     })
 
     it("should fall back to defaults when env vars are invalid or missing", () => {
