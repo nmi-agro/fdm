@@ -9,6 +9,24 @@ function promiseDelayed<T>(cb: () => Promise<T>, after: number) {
 }
 
 /**
+ * Tries to parse the given string value as a positive number. If the value was undefined or
+ * doesn't parse into a valid positive number, defaultValue is returned instead.
+ *
+ * @param value Value to parse.
+ * @param defaultValue Value to return if the parsing fails or the parsed value is not a
+ * positive number.
+ * @returns The parsed positive number, or defaultValue if parsing fails or the number is not positive.
+ */
+function tryAsPositive(value: string | undefined, defaultValue: number) {
+  if (!value) return defaultValue
+  const parsed = Number(value)
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed
+  }
+  return defaultValue
+}
+
+/**
  * API client with timeout, automatic retries, and exponential back-off.
  */
 export class NmiApiClient {
@@ -23,23 +41,19 @@ export class NmiApiClient {
    */
   constructor(options?: {
     /** Maximum number of concurrent requests to initialize the internal semaphore for. Default: 10 */
-    maxConcurrent?: number
+    maxConcurrency?: number
     /** Maximum number of retries per request. Default: 3 */
     maxRetries?: number
     /** Timeout for each trial for a request in ms. Default: 30000ms */
     timeout?: number
   }) {
     const {
-      maxConcurrent = process.env.NMI_MAX_CONCURRENCY
-        ? Number.parseInt(process.env.NMI_MAX_CONCURRENCY, 10)
-        : 10,
-      maxRetries = process.env.NMI_MAX_RETRIES
-        ? Number.parseInt(process.env.NMI_MAX_RETRIES, 10)
-        : 3,
-      timeout = 30000,
+      maxConcurrency = tryAsPositive(process.env.NMI_MAX_CONCURRENCY, 10),
+      maxRetries = tryAsPositive(process.env.NMI_MAX_RETRIES, 3),
+      timeout = tryAsPositive(process.env.NMI_REQUEST_TIMEOUT, 30000),
     } = options ?? {}
 
-    this.semaphore = new Semaphore(maxConcurrent)
+    this.semaphore = new Semaphore(maxConcurrency)
     this.maxRetries = maxRetries
     this.timeout = timeout
   }
@@ -69,8 +83,8 @@ export class NmiApiClient {
   async request(
     url: string,
     options?: RequestInit & { onRejection?: (e: any) => void | Promise<void> },
-    timeout: number = this.timeout,
-    maxRetries: number = this.maxRetries,
+    timeout: number = this.timeout ?? 30000,
+    maxRetries: number = this.maxRetries ?? 3,
     retryAfter: number = 500,
   ): Promise<Response> {
     const abortController = new AbortController()
@@ -78,7 +92,7 @@ export class NmiApiClient {
     const inputSignal = options?.signal
 
     if (inputSignal?.aborted) {
-      throw new Error(inputSignal.reason)
+      throw inputSignal.reason
     }
 
     const onInputSignalAbort = () => {

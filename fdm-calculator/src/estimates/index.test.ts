@@ -164,16 +164,15 @@ describe("requestSoilParameterEstimates", () => {
     vi.useFakeTimers()
 
     try {
-      const promise = requestSoilParameterEstimates(input)
-
-      await vi.advanceTimersByTimeAsync(32_000)
-      await vi.advanceTimersByTimeAsync(32_000)
-      // The error gets lost if we don't do the last timer advance in sync
-      vi.advanceTimersByTime(32_000)
-
-      await expect(promise).rejects.toThrow(
+      const assertion = expect(requestSoilParameterEstimates(input)).rejects.toThrow(
         "De aanvraag naar de NMI Estimates API is verlopen (timeout).",
       )
+
+      await vi.advanceTimersByTimeAsync(32_000)
+      await vi.advanceTimersByTimeAsync(32_000)
+      await vi.advanceTimersByTimeAsync(32_000)
+
+      await assertion
     } finally {
       vi.useRealTimers()
     }

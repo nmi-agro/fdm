@@ -221,16 +221,15 @@ describe("requestBln3MeasureApplicability", () => {
         })
       })
 
-      const promise = requestBln3MeasureApplicability(baseInputs)
-
-      await vi.advanceTimersByTimeAsync(32_000)
-      await vi.advanceTimersByTimeAsync(32_000)
-      // The error gets lost if we don't do the last timer advance in sync
-      vi.advanceTimersByTimeAsync(32_000)
-
-      await expect(promise).rejects.toThrow(
-        "BLN3 measure applicability request timed out (30s). The NMI API did not respond in time.",
+      const assertion = expect(requestBln3MeasureApplicability(baseInputs)).rejects.toThrow(
+        "BLN3 measure applicability request timed out. The NMI API did not respond in time.",
       )
+
+      await vi.advanceTimersByTimeAsync(32_000)
+      await vi.advanceTimersByTimeAsync(32_000)
+      await vi.advanceTimersByTimeAsync(32_000)
+
+      await assertion
     } finally {
       vi.useRealTimers()
     }

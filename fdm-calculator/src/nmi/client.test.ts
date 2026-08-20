@@ -1,8 +1,7 @@
-import { afterEach } from "node:test"
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { NmiApiClient, bln3Client, soilEstimatesClient, soilReaderClient } from "./client"
 
-describe("SemaphoreApiClient.constructor", () => {
+describe("NmiApiClient.constructor", () => {
   it("should construct with no arguments", () => {
     const client = new NmiApiClient()
     expect(client.maxRetries).toBe(3)
@@ -46,7 +45,7 @@ describe("NmiApiClient.request", () => {
     const abortController = new AbortController()
     let firstPromise: Promise<any> | null = null
     try {
-      const client = new NmiApiClient({ maxConcurrent: 2 })
+      const client = new NmiApiClient({ maxConcurrency: 2 })
       vi.mocked(fetch).mockImplementationOnce(() => rejectOnAbort(abortController.signal))
       firstPromise = client.request("")
       vi.mocked(fetch).mockResolvedValueOnce(Response.json("response"))
@@ -61,7 +60,7 @@ describe("NmiApiClient.request", () => {
     const abortController = new AbortController()
     let firstPromise: Promise<any> | null = null
     try {
-      const client = new NmiApiClient({ maxConcurrent: 1 })
+      const client = new NmiApiClient({ maxConcurrency: 1 })
       vi.mocked(fetch).mockImplementationOnce(() => rejectOnAbort(abortController.signal))
       firstPromise = client.request("")
       // This fetch should never happen because the previous fetch never returns.

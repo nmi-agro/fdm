@@ -86,7 +86,7 @@ export async function requestBln3MeasureApplicability(
   } catch (err) {
     if (err instanceof Error && err.name === "TimeoutError") {
       throw new Error(
-        "BLN3 measure applicability request timed out (30s). The NMI API did not respond in time.",
+        "BLN3 measure applicability request timed out. The NMI API did not respond in time.",
       )
     }
     throw err

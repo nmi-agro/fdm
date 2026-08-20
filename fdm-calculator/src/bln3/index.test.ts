@@ -166,16 +166,15 @@ describe("requestBln3Score", () => {
         })
       })
 
-      const promise = requestBln3Score(baseInputs)
-
-      await vi.advanceTimersByTimeAsync(32_000)
-      await vi.advanceTimersByTimeAsync(32_000)
-      // The error gets lost if we don't do the last timer advance in sync
-      vi.advanceTimersByTime(32_000)
-
-      await expect(promise).rejects.toThrow(
-        "BLN3 score request timed out (30s). The NMI API did not respond in time.",
+      const assertion = expect(requestBln3Score(baseInputs)).rejects.toThrow(
+        "BLN3 score request timed out. The NMI API did not respond in time.",
       )
+
+      await vi.advanceTimersByTimeAsync(32_000)
+      await vi.advanceTimersByTimeAsync(32_000)
+      await vi.advanceTimersByTimeAsync(32_000)
+
+      await assertion
     } finally {
       vi.useRealTimers()
     }

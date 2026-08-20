@@ -62,7 +62,7 @@ export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Sco
     }
   } catch (err) {
     if (err instanceof Error && err.name === "TimeoutError") {
-      throw new Error("BLN3 score request timed out (30s). The NMI API did not respond in time.")
+      throw new Error("BLN3 score request timed out. The NMI API did not respond in time.")
     }
     throw err
   }
