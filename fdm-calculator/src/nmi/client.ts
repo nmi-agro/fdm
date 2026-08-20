@@ -83,8 +83,8 @@ export class NmiApiClient {
   async request(
     url: string,
     options?: RequestInit & { onRejection?: (e: any) => void | Promise<void> },
-    timeout: number = this.timeout ?? 30000,
-    maxRetries: number = this.maxRetries ?? 3,
+    timeout: number = this.timeout,
+    maxRetries: number = this.maxRetries,
     retryAfter: number = 500,
   ): Promise<Response> {
     const abortController = new AbortController()
