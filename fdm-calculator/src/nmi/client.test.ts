@@ -16,6 +16,53 @@ describe("NmiApiClient.constructor", () => {
     const client = new NmiApiClient({ maxRetries: 10 })
     expect(client.maxRetries).toBe(10)
   })
+
+  describe("environment variables", () => {
+    const originalEnv = { ...process.env }
+
+    afterEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    it("should read maxConcurrency, maxRetries and timeout from env vars", async () => {
+      process.env.NMI_MAX_CONCURRENCY = "2"
+      process.env.NMI_MAX_RETRIES = "7"
+      process.env.NMI_REQUEST_TIMEOUT = "12345"
+
+      const client = new NmiApiClient()
+
+      expect(client.maxRetries).toBe(7)
+      expect(client.timeout).toBe(12345)
+
+      // Verify NMI_MAX_CONCURRENCY was applied by exhausting the semaphore's slots.
+      await client.semaphore.acquire()
+      await client.semaphore.acquire()
+      let thirdAcquired = false
+      client.semaphore.acquire().then(() => {
+        thirdAcquired = true
+      })
+      await Promise.resolve()
+      expect(thirdAcquired).toBe(false)
+    })
+
+    it("should let explicit options override env vars", () => {
+      process.env.NMI_MAX_RETRIES = "7"
+
+      const client = new NmiApiClient({ maxRetries: 2 })
+
+      expect(client.maxRetries).toBe(2)
+    })
+
+    it("should fall back to defaults when env vars are invalid or missing", () => {
+      process.env.NMI_MAX_RETRIES = "-1"
+      delete process.env.NMI_REQUEST_TIMEOUT
+
+      const client = new NmiApiClient()
+
+      expect(client.maxRetries).toBe(3)
+      expect(client.timeout).toBe(30000)
+    })
+  })
 })
 
 function rejectOnAbort(signal?: AbortSignal | null | undefined) {
