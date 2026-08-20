@@ -25,6 +25,8 @@ export type FieldNutrientRow = {
   cultivationSuggestion?: CultivationSuggestion
   /** Set when the advice could not be calculated for this field (e.g. missing cultivation or soil data). */
   errorMessage?: string
+  /** Whether this field's nutrient advice is being recomputed in the background. */
+  isRecomputing?: boolean
   /** Nutrient values keyed by nutrient symbol (e.g. "N", "P", "EOC"). */
   values: Record<string, FieldNutrientValue>
 }

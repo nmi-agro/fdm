@@ -301,6 +301,11 @@ export const getNitrogenBalanceField = withCalculationCache(
   calculateNitrogenBalanceField,
   "calculateNitrogenBalanceField",
   pkg.calculatorVersion,
+  [],
+  {
+    entityType: "field",
+    getEntityId: (input) => input.fieldInput.field.b_id,
+  },
 )
 
 /**

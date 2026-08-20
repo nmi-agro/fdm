@@ -1,15 +1,21 @@
-import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
+import { calculateDose } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivationsForFarm,
-  getCurrentSoilDataForFarm,
   getFertilizerApplicationsForFarm,
   getFertilizers,
   getFields,
 } from "@nmi-agro/fdm-core"
 import { BookOpenText } from "lucide-react"
 import { Suspense, use, useEffect } from "react"
-import { type LoaderFunctionArgs, type MetaFunction, NavLink, useLoaderData } from "react-router"
+import {
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  NavLink,
+  useLoaderData,
+  useRevalidator,
+} from "react-router"
+import { CalculationRefreshBanner } from "~/components/blocks/calculation-refresh-banner"
 import type { FieldNutrientRow } from "~/components/blocks/nutrient-advice/overview-types"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
 import { toFriendlyAdviceError } from "~/components/blocks/nutrient-advice/overview-errors"
@@ -25,7 +31,10 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useCalculationRefresh } from "~/hooks/use-calculation-refresh"
 import { getSession } from "~/lib/auth.server"
+import type { CalculationJobRequest } from "~/lib/calculation-jobs"
+import { getNutrientAdviceCached } from "~/lib/calculation-jobs.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
@@ -95,9 +104,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const nutrientsDescription = getNutrientsDescription()
 
-    const asyncData = (async (): Promise<{ rows: FieldNutrientRow[] }> => {
+    const asyncData = (async (): Promise<{
+      rows: FieldNutrientRow[]
+      staleJobs: CalculationJobRequest[]
+    }> => {
       if (fields.length === 0) {
-        return { rows: [] }
+        return { rows: [], staleJobs: [] }
       }
 
       // Fetch farm-wide data in a handful of batched queries instead of N queries per field. If this
@@ -106,16 +118,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       let fertilizerApplicationsByField: Awaited<
         ReturnType<typeof getFertilizerApplicationsForFarm>
       >
-      let soilDataByField: Awaited<ReturnType<typeof getCurrentSoilDataForFarm>>
       let fertilizers: Awaited<ReturnType<typeof getFertilizers>>
       try {
-        ;[cultivationsByField, fertilizerApplicationsByField, soilDataByField, fertilizers] =
-          await Promise.all([
-            getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-            getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-            getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-            getFertilizers(fdm, session.principal_id, b_id_farm),
-          ])
+        ;[cultivationsByField, fertilizerApplicationsByField, fertilizers] = await Promise.all([
+          getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+          getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+          getFertilizers(fdm, session.principal_id, b_id_farm),
+        ])
       } catch (error) {
         const errorMessage = toFriendlyAdviceError(error)
         return {
@@ -127,10 +136,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             errorMessage,
             values: {},
           })),
+          staleJobs: [],
         }
       }
 
       const nmiApiKey = getNmiApiKey()
+      const staleJobs: CalculationJobRequest[] = []
 
       const results: PromiseSettledResult<FieldNutrientRow>[] = []
       for (const fieldsChunk of chunk(fields, NUTRIENT_ADVICE_CONCURRENCY)) {
@@ -153,7 +164,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             const activeCultivation = getMainCultivation(cultivations, calendar)
             const hasDefaultCultivation = !!activeCultivation
             const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
-            const currentSoilData = soilDataByField.get(field.b_id) ?? []
 
             const cultivationSuggestion = hasDefaultCultivation
               ? undefined
@@ -186,13 +196,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
             try {
               const doses = calculateDose({ applications: fertilizerApplications, fertilizers })
-              const nutrientAdvice = await getNutrientAdvice(fdm, {
-                b_lu_catalogue: activeCultivation.b_lu_catalogue,
-                b_centroid: field.b_centroid,
-                currentSoilData,
-                nmiApiKey,
-                b_bufferstrip: field.b_bufferstrip,
+              const cached = await getNutrientAdviceCached({
+                fdm,
+                principal_id: session.principal_id,
+                b_id: field.b_id,
+                b_id_farm,
+                calendar,
+                timeframe,
               })
+              staleJobs.push(...cached.staleJobs)
+              const nutrientAdvice = cached.result
+
+              if (!nutrientAdvice) {
+                // Never computed before (no fresh or stale fallback yet): render the field as
+                // recomputing instead of blocking the page on the (potentially slow) external
+                // NMI advice call.
+                return {
+                  b_id: field.b_id,
+                  b_name: field.b_name,
+                  b_area,
+                  mainCultivation,
+                  cultivationSuggestion,
+                  isRecomputing: true,
+                  values: {},
+                }
+              }
 
               const values: FieldNutrientRow["values"] = {}
               for (const nutrient of nutrientsDescription) {
@@ -212,6 +240,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 b_area,
                 mainCultivation,
                 cultivationSuggestion,
+                isRecomputing: cached.staleJobs.length > 0,
                 values,
               }
             } catch (error) {
@@ -245,7 +274,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         } satisfies FieldNutrientRow
       })
 
-      return { rows }
+      return { rows, staleJobs }
     })()
 
     return {
@@ -324,13 +353,18 @@ function NutrientAdviceOverview({
 }: {
   loaderData: Awaited<ReturnType<typeof loader>>
 }) {
-  const { rows } = use(loaderData.asyncData)
+  const { rows, staleJobs } = use(loaderData.asyncData)
+  const { refreshReady } = useCalculationRefresh(staleJobs)
+  const revalidator = useRevalidator()
   return (
-    <NutrientAdviceOverviewTable
-      data={rows}
-      nutrients={loaderData.nutrientsDescription}
-      b_id_farm={loaderData.b_id_farm}
-      calendar={loaderData.calendar}
-    />
+    <>
+      {refreshReady && <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />}
+      <NutrientAdviceOverviewTable
+        data={rows}
+        nutrients={loaderData.nutrientsDescription}
+        b_id_farm={loaderData.b_id_farm}
+        calendar={loaderData.calendar}
+      />
+    </>
   )
 }

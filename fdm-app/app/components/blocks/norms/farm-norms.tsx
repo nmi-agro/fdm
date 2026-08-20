@@ -9,9 +9,9 @@ import { NormCard } from "./norm-card"
 interface FarmNormsProps {
   farmNorms: AggregatedNormsToFarmLevel
   farmFillings: AggregatedNormFillingsToFarmLevel | undefined
-  hasFieldNormErrors: boolean
-  fieldErrorMessages: string[]
-  fieldWarningMessages: string[]
+  hasFieldNormErrors?: boolean
+  fieldErrorMessages?: string[]
+  fieldWarningMessages?: string[]
   /** Whether to render the Renure norm card. Only true for calendar year 2026 and later. */
   showRenure: boolean
 }
@@ -19,9 +19,9 @@ interface FarmNormsProps {
 export function FarmNorms({
   farmNorms,
   farmFillings,
-  hasFieldNormErrors,
-  fieldErrorMessages,
-  fieldWarningMessages,
+  hasFieldNormErrors = false,
+  fieldErrorMessages = [],
+  fieldWarningMessages = [],
   showRenure,
 }: FarmNormsProps) {
   return (

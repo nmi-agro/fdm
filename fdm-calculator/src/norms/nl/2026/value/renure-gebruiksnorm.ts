@@ -53,4 +53,9 @@ export const getNL2026RenureGebruiksNorm = withCalculationCache(
   calculateNL2026RenureGebruiksNorm,
   "calculateNL2026RenureGebruiksNorm",
   pkg.calculatorVersion,
+  [],
+  {
+    entityType: "field",
+    getEntityId: (input) => input.field.b_id,
+  },
 )

@@ -1,7 +1,16 @@
 import { and, eq } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
 import type { FdmType } from "./fdm.types"
-import { generateCalculationHash, setCachedCalculation, withCalculationCache } from "./calculator"
+import {
+  generateCalculationHash,
+  getCachedCalculationEntry,
+  getCalculationCacheStatus,
+  getLatestCachedResultForEntity,
+  releaseCalculationLock,
+  setCachedCalculation,
+  tryAcquireCalculationLock,
+  withCalculationCache,
+} from "./calculator"
 import { calculationCache, calculationErrors } from "./db/schema-calculator"
 import { createFdmServer } from "./fdm-server"
 
@@ -276,5 +285,319 @@ describe("withCalculationCache", () => {
 
     const storedInput = cached[0].input as any
     expect(storedInput.data.apiKey).toBe("REDACTED")
+  })
+
+  it("should tag the cache row with entity type/id when getEntityId is provided", async () => {
+    const calculate = vi.fn(async (inputs: { b_id: string }) => `result for ${inputs.b_id}`)
+    const calculatorVersion = "1.0.0"
+    const input = { b_id: "field-1" }
+    const getCalculation = withCalculationCache(calculate, "calculateForField", calculatorVersion, [], {
+      entityType: "field",
+      getEntityId: (i) => i.b_id,
+    })
+
+    await expect(getCalculation(fdm, input)).resolves.toBe("result for field-1")
+
+    const expectedHash = generateCalculationHash("calculateForField", calculatorVersion, input)
+    const cached = await fdm
+      .select()
+      .from(calculationCache)
+      .where(eq(calculationCache.calculation_hash, expectedHash))
+    expect(cached).toHaveLength(1)
+    expect(cached[0].entity_type).toBe("field")
+    expect(cached[0].entity_id).toBe("field-1")
+  })
+})
+
+describe("calculation cache locking", () => {
+  let fdm: FdmType
+
+  beforeEach(async () => {
+    const host = inject("host")
+    const port = inject("port")
+    const user = inject("user")
+    const password = inject("password")
+    const database = inject("database")
+    fdm = createFdmServer(host, port, user, password, database)
+
+    await fdm.delete(calculationCache)
+    await fdm.delete(calculationErrors)
+  })
+
+  it("acquires the lock for a genuinely missing hash", async () => {
+    const hash = "hash-missing"
+    const acquired = await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: { a: 1 },
+      entityType: "field",
+      entityId: "field-1",
+    })
+
+    expect(acquired).toBe(true)
+    const entry = await getCachedCalculationEntry(fdm, hash)
+    expect(entry?.is_processing).toBe(true)
+    expect(entry?.result).toBeNull()
+    expect(entry?.entity_type).toBe("field")
+    expect(entry?.entity_id).toBe("field-1")
+  })
+
+  it("does not let a second caller acquire an already-held, non-expired lock", async () => {
+    const hash = "hash-contended"
+    const lockArgs = {
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: { a: 1 },
+    }
+
+    const first = await tryAcquireCalculationLock(lockArgs)
+    const second = await tryAcquireCalculationLock(lockArgs)
+
+    expect(first).toBe(true)
+    expect(second).toBe(false)
+  })
+
+  it("allows reclaiming a lock that has been held longer than the timeout", async () => {
+    const hash = "hash-stuck"
+    await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: { a: 1 },
+    })
+
+    // Simulate a stuck lock by backdating is_processing_since.
+    await fdm
+      .update(calculationCache)
+      .set({ is_processing_since: new Date(Date.now() - 20 * 60 * 1000) })
+      .where(eq(calculationCache.calculation_hash, hash))
+
+    const reclaimed = await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: { a: 1 },
+      lockTimeoutMs: 15 * 60 * 1000,
+    })
+
+    expect(reclaimed).toBe(true)
+  })
+
+  it("releases the lock and stores the result on success", async () => {
+    const hash = "hash-release-success"
+    await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: { a: 1 },
+    })
+
+    await releaseCalculationLock(fdm, hash, { success: true, result: "final result" })
+
+    const entry = await getCachedCalculationEntry(fdm, hash)
+    expect(entry?.is_processing).toBe(false)
+    expect(entry?.is_processing_since).toBeNull()
+    expect(entry?.result).toBe("final result")
+  })
+
+  it("releases the lock without a result on failure, allowing a future retry", async () => {
+    const hash = "hash-release-failure"
+    await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: { a: 1 },
+    })
+
+    await releaseCalculationLock(fdm, hash, { success: false })
+
+    const entry = await getCachedCalculationEntry(fdm, hash)
+    expect(entry?.is_processing).toBe(false)
+    expect(entry?.result).toBeNull()
+
+    const reacquired = await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: { a: 1 },
+    })
+    expect(reacquired).toBe(true)
+  })
+
+  it("returns the latest cached result for an entity across different hashes", async () => {
+    await setCachedCalculation(
+      fdm,
+      "hash-old",
+      "calculateForField",
+      "1.0.0",
+      { b_id: "field-1", version: "old" },
+      "old result",
+      "field",
+      "field-1",
+    )
+    // Ensure a distinct created_at ordering.
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    await setCachedCalculation(
+      fdm,
+      "hash-new",
+      "calculateForField",
+      "1.0.0",
+      { b_id: "field-1", version: "new" },
+      "new result",
+      "field",
+      "field-1",
+    )
+
+    const latest = await getLatestCachedResultForEntity(fdm, "calculateForField", "field", "field-1")
+    expect(latest).toBe("new result")
+  })
+})
+
+describe("getCalculationCacheStatus", () => {
+  let fdm: FdmType
+
+  beforeEach(async () => {
+    const host = inject("host")
+    const port = inject("port")
+    const user = inject("user")
+    const password = inject("password")
+    const database = inject("database")
+    fdm = createFdmServer(host, port, user, password, database)
+
+    await fdm.delete(calculationCache)
+    await fdm.delete(calculationErrors)
+  })
+
+  it("reports 'missing' when there is no row for this hash or entity", async () => {
+    const status = await getCalculationCacheStatus({
+      fdm,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input: { b_id: "field-1" },
+      entityType: "field",
+      entityId: "field-1",
+    })
+
+    expect(status.state).toBe("missing")
+    if (status.state === "missing" || status.state === "stale") {
+      expect(status.staleResult).toBeNull()
+    }
+  })
+
+  it("reports 'fresh' when a completed, non-processing row matches the current hash", async () => {
+    const input = { b_id: "field-1" }
+    const hash = generateCalculationHash("calculateForField", "1.0.0", input)
+    await setCachedCalculation(
+      fdm,
+      hash,
+      "calculateForField",
+      "1.0.0",
+      input,
+      "fresh result",
+      "field",
+      "field-1",
+    )
+
+    const status = await getCalculationCacheStatus({
+      fdm,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input,
+      entityType: "field",
+      entityId: "field-1",
+    })
+
+    expect(status).toEqual(
+      expect.objectContaining({ state: "fresh", result: "fresh result" }),
+    )
+  })
+
+  it("falls back to the entity's last known result when the input changed since the last computation", async () => {
+    await setCachedCalculation(
+      fdm,
+      "old-hash",
+      "calculateForField",
+      "1.0.0",
+      { b_id: "field-1", version: "old" },
+      "old result",
+      "field",
+      "field-1",
+    )
+
+    // The current input hashes to a row that doesn't exist yet ("missing"), but the entity's
+    // last known (now-stale) result should still be surfaced so the page can render it immediately.
+    const status = await getCalculationCacheStatus({
+      fdm,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input: { b_id: "field-1", version: "new" },
+      entityType: "field",
+      entityId: "field-1",
+    })
+
+    expect(status.state).toBe("missing")
+    if (status.state === "stale" || status.state === "missing") {
+      expect(status.staleResult).toBe("old result")
+    }
+  })
+
+  it("reports 'processing' when another worker holds a non-expired lock for this hash", async () => {
+    const input = { b_id: "field-1" }
+    const hash = generateCalculationHash("calculateForField", "1.0.0", input)
+    await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input,
+      entityType: "field",
+      entityId: "field-1",
+    })
+
+    const status = await getCalculationCacheStatus({
+      fdm,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input,
+      entityType: "field",
+      entityId: "field-1",
+    })
+
+    expect(status.state).toBe("processing")
+  })
+
+  it("treats an expired lock as stale/missing again, not processing", async () => {
+    const input = { b_id: "field-1" }
+    const hash = generateCalculationHash("calculateForField", "1.0.0", input)
+    await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input,
+    })
+    await fdm
+      .update(calculationCache)
+      .set({ is_processing_since: new Date(Date.now() - 20 * 60 * 1000) })
+      .where(eq(calculationCache.calculation_hash, hash))
+
+    const status = await getCalculationCacheStatus({
+      fdm,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input,
+      lockTimeoutMs: 15 * 60 * 1000,
+    })
+
+    expect(status.state).toBe("stale")
   })
 })

@@ -173,4 +173,9 @@ export const getNL2026FosfaatGebruiksNorm = withCalculationCache(
   calculateNL2026FosfaatGebruiksNorm,
   "calculateNL2026FosfaatGebruiksNorm",
   pkg.calculatorVersion,
+  [],
+  {
+    entityType: "field",
+    getEntityId: (input) => input.field.b_id,
+  },
 )

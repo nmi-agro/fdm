@@ -96,4 +96,10 @@ export type NutrientAdviceInputs = {
   nmiApiKey: string | undefined
   /** Indicates if the field is a buffer strip */
   b_bufferstrip?: boolean
+  /**
+   * Optional field id, used only to tag the cache entry with `entity_type: "field"` for
+   * entity-scoped cache lookups. Redacted before hashing/storage, so it does not affect the
+   * cache key or change caching behavior for otherwise-identical inputs.
+   */
+  b_id?: string
 }

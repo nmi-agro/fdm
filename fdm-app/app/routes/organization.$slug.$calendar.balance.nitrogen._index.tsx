@@ -1,10 +1,4 @@
-import {
-  calculateNitrogenBalanceForFarms,
-  calculateNitrogenBalancesFieldToFarm,
-  collectInputForNitrogenBalanceForFarms,
-  type NitrogenBalanceFieldResultNumeric,
-  type NitrogenBalanceNumeric,
-} from "@nmi-agro/fdm-calculator"
+import type { NitrogenBalanceNumeric } from "@nmi-agro/fdm-calculator"
 import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import {
   ArrowDown,
@@ -25,17 +19,23 @@ import {
   useLoaderData,
   useLocation,
   useParams,
+  useRevalidator,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
+import { CalculationRefreshBanner } from "~/components/blocks/calculation-refresh-banner"
+import { CalculationRefreshSpinner } from "~/components/blocks/calculation-refresh-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useCalculationRefresh } from "~/hooks/use-calculation-refresh"
 import { auth, getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalculationJobKey } from "~/lib/calculation-jobs"
+import { getNitrogenBalanceForFarmsCached } from "~/lib/calculation-jobs.server"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError, reportError } from "~/lib/error"
+import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { FarmSelectDialog } from "../components/blocks/balance/farm-select-dialog"
 
@@ -54,6 +54,8 @@ type AsyncData = {
   farmResults: FarmResult[]
   combinedResult: NitrogenBalanceNumeric
   farms: FarmExtended[]
+  calendar: string
+  staleJobs: import("~/lib/calculation-jobs").CalculationJobRequest[]
 }
 type LoaderData =
   | {
@@ -105,8 +107,8 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
     // Get timeframe from calendar store
     const timeframe = getTimeframe(params)
 
-    // Get the user's session too (for error reporting)
-    const session = await getSession(request)
+    // Ensure the caller is authenticated
+    await getSession(request)
 
     const allOrganizations = await auth.api.listOrganizations({
       headers: request.headers,
@@ -142,8 +144,8 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
     async function getAsyncData(principal_id: string) {
       const farmIdsSet = new Set(searchParamFarmIds ?? [])
 
-      // Compute farms
-      const farmsExtended = await Promise.all(
+      // Compute farms, keeping each farm's fields around for the cached per-field pass below.
+      const farmsWithFields = await Promise.all(
         farms.map(async (farm) => {
           const fields = await getFields(fdm, principal_id, farm.b_id_farm)
 
@@ -154,6 +156,7 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
 
           return {
             ...farm,
+            fields,
             hasFields: fields.length > 0,
             b_area_farm: b_area_farm,
           }
@@ -161,11 +164,11 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
       )
 
       // Sort farms by descending area, which will in turn also cause the results to be sorted
-      farmsExtended.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
+      farmsWithFields.sort((f1, f2) => f2.b_area_farm - f1.b_area_farm)
 
       // Update farmIds selection if it was missing
       if (farmIdsSet.size === 0) {
-        for (const farm of farmsExtended) {
+        for (const farm of farmsWithFields) {
           if (farm.hasFields) {
             farmIdsSet.add(farm.b_id_farm)
           }
@@ -173,112 +176,58 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
 
         // If farmIds is still empty (none of the farms have fields) add all farm IDs
         if (farmIdsSet.size === 0) {
-          for (const farm of farmsExtended) {
+          for (const farm of farmsWithFields) {
             farmIdsSet.add(farm.b_id_farm)
           }
         }
       }
 
-      const farmIds = farmsExtended
+      const farmIds = farmsWithFields
         .filter((farm) => farmIdsSet.has(farm.b_id_farm))
         .map((farm) => farm.b_id_farm)
-
-      const inputs = await collectInputForNitrogenBalanceForFarms(
-        fdm,
-        principal_id,
-        farmIds,
-        timeframe,
-      )
-      const fieldToFarmMap: Record<string, string> = {}
-      for (const farmInput of inputs) {
-        for (const fieldInput of farmInput.fields) {
-          fieldToFarmMap[fieldInput.field.b_id] = farmInput.b_id_farm
-        }
-      }
-
-      const combinedResult = await calculateNitrogenBalanceForFarms(fdm, inputs)
-      const rawFarmResultsMap: Record<string, NitrogenBalanceFieldResultNumeric[]> = {}
-      for (const result of combinedResult.fields) {
-        const b_id_farm = fieldToFarmMap[result.b_id]
-        if (!b_id_farm) {
-          console.warn(`Field ${result.b_id} not found in fieldToFarmMap, skipping`)
-          continue
-        }
-        rawFarmResultsMap[b_id_farm] ??= []
-        rawFarmResultsMap[b_id_farm].push(result)
-      }
-
       const selectedFarmIds = new Set(farmIds)
-      const farmResults = await Promise.all(
-        farmsExtended
-          .filter((farm) => selectedFarmIds.has(farm.b_id_farm))
-          .map(async (farm) => {
-            const fieldResults = rawFarmResultsMap[farm.b_id_farm]
-            if (!fieldResults || fieldResults.length === 0) {
-              return {
-                farm: farm,
-                totalArea: farm.b_area_farm,
-                nitrogenBalanceResult: {
-                  hasErrors: true,
-                  errorMessage: "No fields in input",
-                } as NitrogenBalanceNumeric & {
-                  errorMessage?: string
-                },
-              }
-            }
-            try {
-              const nitrogenBalanceResult = calculateNitrogenBalancesFieldToFarm(
-                fieldResults,
-                fieldResults.some((result) => result.errorMessage),
-                fieldResults
-                  .filter((result) => result.errorMessage)
-                  .map((result) => result.errorMessage) as string[],
-              )
-              if (nitrogenBalanceResult.hasErrors) {
-                reportError(
-                  nitrogenBalanceResult.fieldErrorMessages.join(",\n"),
-                  {
-                    page: "organization/{slug}/{calendar}/balance/nitrogen/_index",
-                    scope: "loader",
-                  },
-                  {
-                    b_id_farm: farm.b_id_farm,
-                    timeframe,
-                    userId: session.principal_id,
-                  },
-                )
-              }
+      const selectedFarms = farmsWithFields.filter((farm) => selectedFarmIds.has(farm.b_id_farm))
 
-              return {
-                farm: farm,
-                totalArea: farm.b_area_farm,
-                nitrogenBalanceResult: nitrogenBalanceResult as NitrogenBalanceNumeric & {
-                  errorMessage?: string
-                },
-              }
-            } catch (error) {
-              return {
-                farm: farm,
-                totalArea: farm.b_area_farm,
-                nitrogenBalanceResult: {
-                  hasErrors: true,
-                  errorMessage: error instanceof Error ? error.message : String(error),
-                } as NitrogenBalanceNumeric & {
-                  errorMessage?: string
-                },
-              }
-            }
-          }),
+      // Build the organization-level (and per-farm) nitrogen balance from each field's cached
+      // result instead of blocking on a full recompute. Stale/missing fields are returned in
+      // `staleJobs` for the client to hand off to the background `/api/calculation-refresh` route.
+      const { combinedResult, farmResultsMap, staleJobs } = await getNitrogenBalanceForFarmsCached(
+        {
+          fdm,
+          principal_id,
+          farms: selectedFarms,
+          calendar,
+          timeframe,
+        },
       )
+
+      const farmsExtended: FarmExtended[] = farmsWithFields.map(
+        ({ fields: _fields, hasFields: _hasFields, ...farm }) => farm,
+      )
+
+      const farmResults: FarmResult[] = selectedFarms.map((farm) => {
+        const nitrogenBalanceResult = farmResultsMap.get(farm.b_id_farm)
+        if (!nitrogenBalanceResult) {
+          throw new Error(`Missing nitrogen balance result for farm ${farm.b_id_farm}`)
+        }
+        return {
+          farm,
+          totalArea: farm.b_area_farm,
+          nitrogenBalanceResult,
+        }
+      })
 
       return {
         farmIds: farmIds,
         farms: farmsExtended,
         farmResults: farmResults,
         combinedResult: combinedResult,
+        calendar,
+        staleJobs,
       }
     }
 
+    const calendar = getCalendar(params)
     const asyncData = getAsyncData(organization.id)
 
     return {
@@ -337,7 +286,22 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
   // Unlike most React hooks `use` may be called conditionally
   const asyncData = use(asyncDataPromise)
 
-  const { combinedResult: resolvedNitrogenBalanceResult, farmResults } = asyncData
+  const {
+    combinedResult: resolvedNitrogenBalanceResult,
+    farmResults,
+    staleJobs,
+  } = asyncData
+  const { jobStates, refreshReady } = useCalculationRefresh(staleJobs)
+  const revalidator = useRevalidator()
+
+  const pendingKeys = new Set(
+    [...jobStates.entries()].filter(([, state]) => state === "pending").map(([key]) => key),
+  )
+  const isFarmRecomputing = (b_id_farm: string) =>
+    staleJobs.some(
+      (job) => job.b_id_farm === b_id_farm && pendingKeys.has(getCalculationJobKey(job)),
+    )
+
   const farmChartBalanceData = resolvedNitrogenBalanceResult
   const hasErrors = farmResults.some(({ nitrogenBalanceResult }) => nitrogenBalanceResult.hasErrors)
 
@@ -347,6 +311,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
 
   const createFarmRow = (farmResult: (typeof farmResults)[number]) => {
     const balanceResult = farmResult.nitrogenBalanceResult
+    const recomputing = isFarmRecomputing(farmResult.farm.b_id_farm)
     const farmBalance = Number.isFinite(balanceResult.balance)
       ? (balanceResult.balance as number)
       : undefined
@@ -360,7 +325,9 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
       delta === undefined ? "text-orange-500" : delta < 0 ? "text-green-600" : "text-red-600"
     return (
       <div className="flex grow items-center" key={farmResult.farm.b_id_farm}>
-        {balanceResult.hasErrors ? (
+        {recomputing ? (
+          <CalculationRefreshSpinner label="Stikstofbalans wordt opnieuw berekend..." />
+        ) : balanceResult.hasErrors ? (
           <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
         ) : Number.isFinite(balanceResult.balance) ? (
           balanceResult.balance <= balanceResult.target ? (
@@ -414,6 +381,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
   }
   return (
     <>
+      {refreshReady && <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

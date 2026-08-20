@@ -1,16 +1,10 @@
 import type {
   AggregatedNormFillingsToFarmLevel,
   AggregatedNormsToFarmLevel,
-  GebruiksnormResult,
   InputAggregateNormFillingsToFarmLevel,
   InputAggregateNormsToFarmLevel,
-  NormFilling,
 } from "@nmi-agro/fdm-calculator"
-import {
-  aggregateNormFillingsToFarmLevel,
-  aggregateNormsToFarmLevel,
-  NormNotApplicableError,
-} from "@nmi-agro/fdm-calculator"
+import { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "@nmi-agro/fdm-calculator"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { AlertTriangle } from "lucide-react"
 import { Suspense, use, useEffect } from "react"
@@ -21,14 +15,16 @@ import {
   NavLink,
   useLoaderData,
   useLocation,
+  useRevalidator,
 } from "react-router"
+import { CalculationRefreshBanner } from "~/components/blocks/calculation-refresh-banner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNorms } from "~/components/blocks/header/norms"
 import { FarmNorms } from "~/components/blocks/norms/farm-norms"
-import { FieldNorms } from "~/components/blocks/norms/field-norms"
+import { FieldNorms, type FieldNorm } from "~/components/blocks/norms/field-norms"
 import { NormsFallback } from "~/components/blocks/norms/skeletons"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
@@ -36,32 +32,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getNorms } from "~/integrations/calculator"
+import { useCalculationRefresh } from "~/hooks/use-calculation-refresh"
 import { getSession } from "~/lib/auth.server"
+import { getFieldNormValuesCached } from "~/lib/calculation-jobs.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldNormFillings } from "~/integrations/calculator"
 import { useFieldFilterStore } from "~/store/field-filter"
-
-interface FieldNorm {
-  b_id: string
-  b_area: number
-  norms?: {
-    manure: GebruiksnormResult
-    phosphate: GebruiksnormResult
-    nitrogen: GebruiksnormResult
-    renure?: GebruiksnormResult
-  }
-  normsFilling?: {
-    manure: NormFilling
-    phosphate: NormFilling
-    nitrogen: NormFilling
-    renure?: NormFilling
-  }
-  errorMessage?: string
-  isWarning?: boolean
-}
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -126,106 +105,84 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const asyncData = (async () => {
       // Currently only 2025 and 2026 are supported
       if (calendar !== "2025" && calendar !== "2026") {
-        return {}
+        return { staleJobs: [] }
       }
 
       let fieldNorms = undefined as FieldNorm[] | undefined
       let farmNorms = undefined as AggregatedNormsToFarmLevel | undefined
       let farmFillings = undefined as AggregatedNormFillingsToFarmLevel | undefined
       let errorMessage = null as string | null
-      let hasFieldNormErrors = false
-      const fieldErrorMessages: string[] = []
-      const fieldWarningMessages: string[] = []
+      const staleJobs: import("~/lib/calculation-jobs").CalculationJobRequest[] = []
       try {
         const fieldNormPromises = fields.map(async (field) => {
-          try {
-            const normsResult = await getNorms({
-              fdm,
-              principal_id: session.principal_id,
-              b_id: field.b_id,
-              calendar,
-            })
+          const cached = await getFieldNormValuesCached({
+            fdm,
+            principal_id: session.principal_id,
+            b_id: field.b_id,
+            b_id_farm,
+            calendar,
+            timeframe,
+          })
+          staleJobs.push(...cached.staleJobs)
 
-            return {
-              b_id: field.b_id,
-              b_area: field.b_area ?? 0,
-              norms: normsResult.value,
-              normsFilling: normsResult.filling,
-            }
-          } catch (error) {
-            const fieldName =
-              fields.find((f) => f.b_id === field.b_id)?.b_name || `Perceel ${field.b_id}`
-            const msg = String(error).replace("NormNotApplicableError: ", "").replace("Error: ", "")
-            if (error instanceof NormNotApplicableError) {
-              fieldWarningMessages.push(`${fieldName}: ${msg}`)
-              return {
+          const { value } = cached
+          const hasAllValues =
+            value.nitrogen !== undefined &&
+            value.phosphate !== undefined &&
+            value.manure !== undefined &&
+            (calendar !== "2026" || value.renure !== undefined)
+
+          let normsFilling: FieldNorm["normsFilling"]
+          if (value.phosphate !== undefined) {
+            try {
+              normsFilling = await getFieldNormFillings({
+                fdm,
+                principal_id: session.principal_id,
                 b_id: field.b_id,
-                b_area: field.b_area ?? 0,
-                errorMessage: msg,
-                isWarning: true,
-              }
-            }
-            hasFieldNormErrors = true
-            fieldErrorMessages.push(`${fieldName}: ${msg}`)
-            return {
-              b_id: field.b_id,
-              b_area: field.b_area ?? 0,
-              errorMessage: msg,
+                calendar,
+                phosphateNorm: value.phosphate.normValue,
+              })
+            } catch {
+              // Fillings are computed fresh (not cached); if this fails, just omit them —
+              // the norm values themselves are still shown.
+              normsFilling = undefined
             }
           }
-        })
 
-        const results = await Promise.allSettled(fieldNormPromises)
-
-        fieldNorms = results.map((result) => {
-          if (result.status === "fulfilled") {
-            return result.value
-          }
-          // This case should ideally not be hit if individual promises catch their errors,
-          // but it's a safeguard for unexpected rejections.
-          hasFieldNormErrors = true
-          const fallbackFieldId = "unknown"
-          const fallbackFieldName =
-            fields.find((f) => f.b_id === fallbackFieldId)?.b_name || `Perceel ${fallbackFieldId}`
-          fieldErrorMessages.push(
-            `${fallbackFieldName}: ${String(result.reason).replace("Error: ", "")}`,
-          )
           return {
-            b_id: fallbackFieldId, // Fallback ID
-            b_area: 0, // Fallback area
-            errorMessage: String(result.reason).replace("Error: ", ""),
+            b_id: field.b_id,
+            b_area: field.b_area ?? 0,
+            norms: value,
+            normsFilling,
+            isRecomputing: cached.staleJobs.length > 0,
+            hasAllValues,
           }
         })
 
-        // Aggregate the norms to farm level
-        const validFieldNorms: InputAggregateNormsToFarmLevel = (fieldNorms || [])
-          .filter(
-            (
-              field,
-            ): field is FieldNorm & {
-              norms: NonNullable<FieldNorm["norms"]>
-            } => field.norms !== undefined,
-          )
+        const results = await Promise.all(fieldNormPromises)
+        fieldNorms = results.map(({ hasAllValues: _hasAllValues, ...field }) => field)
+
+        // Aggregate the norms to farm level, only for fields where every required norm value is
+        // currently available (fresh or last-known-stale) — partial results aren't summable.
+        const validFieldNorms: InputAggregateNormsToFarmLevel = results
+          .filter((field) => field.hasAllValues)
           .map((field) => ({
             b_id: field.b_id,
             b_area: field.b_area ?? 0,
-            norms: field.norms,
+            norms: field.norms as InputAggregateNormsToFarmLevel[number]["norms"],
           }))
         farmNorms = aggregateNormsToFarmLevel(validFieldNorms)
 
         // Aggregate the fillings to farm level
-        const validFieldFillings: InputAggregateNormFillingsToFarmLevel = (fieldNorms || [])
+        const validFieldFillings: InputAggregateNormFillingsToFarmLevel = results
           .filter(
-            (
-              field,
-            ): field is FieldNorm & {
-              normsFilling: NonNullable<FieldNorm["normsFilling"]>
-            } => field.normsFilling !== undefined,
+            (field): field is typeof field & { normsFilling: NonNullable<typeof field.normsFilling> } =>
+              field.hasAllValues && field.normsFilling !== undefined,
           )
           .map((field) => ({
             b_id: field.b_id,
             b_area: field.b_area ?? 0,
-            normsFilling: field.normsFilling,
+            normsFilling: field.normsFilling as InputAggregateNormFillingsToFarmLevel[number]["normsFilling"],
           }))
         farmFillings = aggregateNormFillingsToFarmLevel(validFieldFillings)
       } catch (error) {
@@ -238,9 +195,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         fieldNorms: fieldNorms,
         farmNorms: farmNorms,
         farmFillings: farmFillings,
-        hasFieldNormErrors: hasFieldNormErrors,
-        fieldErrorMessages: fieldErrorMessages,
-        fieldWarningMessages: fieldWarningMessages,
+        staleJobs,
       }
     })()
 
@@ -304,15 +259,11 @@ export default function FarmNormsBlock() {
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
 function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
-  const {
-    farmNorms,
-    farmFillings,
-    fieldNorms,
-    errorMessage,
-    hasFieldNormErrors,
-    fieldErrorMessages,
-    fieldWarningMessages,
-  } = use(loaderData.asyncData)
+  const { farmNorms, farmFillings, fieldNorms, errorMessage, staleJobs } = use(
+    loaderData.asyncData,
+  )
+  const { refreshReady } = useCalculationRefresh(staleJobs ?? [])
+  const revalidator = useRevalidator()
   const { showProductiveOnly } = useFieldFilterStore()
 
   const location = useLocation()
@@ -368,6 +319,9 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
     return (
       <FarmContent>
         <div className="space-y-6 pb-10">
+          {refreshReady && (
+            <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />
+          )}
           <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
             <AlertTriangle className="h-4 w-4 !text-amber-800" />
             <AlertTitle>Disclaimer</AlertTitle>
@@ -382,9 +336,6 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
           <FarmNorms
             farmNorms={farmNorms}
             farmFillings={farmFillings}
-            hasFieldNormErrors={hasFieldNormErrors}
-            fieldErrorMessages={fieldErrorMessages}
-            fieldWarningMessages={fieldWarningMessages ?? []}
             showRenure={Number.parseInt(loaderData.calendar, 10) >= 2026}
           />
           <Separator className="my-8" />

@@ -1,12 +1,20 @@
-import { eq } from "drizzle-orm"
+import { and, desc, eq, isNotNull, isNull, lt, or } from "drizzle-orm"
 import { createHash } from "node:crypto"
 import stableStringify from "safe-stable-stringify"
 import type { FdmType } from "./fdm.types"
 import {
   calculationCache as calculationCacheTable,
+  type CalculationCacheTypeSelect,
   calculationErrors as calculationErrorsTable,
 } from "./db/schema-calculator"
 import { createId } from "./id"
+
+/**
+ * Default duration (in milliseconds) after which an `is_processing` lock is considered stuck
+ * and can be reclaimed by another caller, even if the original worker never released it
+ * (e.g. because the process crashed or the request was aborted).
+ */
+export const DEFAULT_CALCULATION_LOCK_TIMEOUT_MS = 15 * 60 * 1000 // 15 minutes
 
 /**
  * Generates a reliable and quick hash for caching calculation results.
@@ -74,6 +82,8 @@ export function getCachedCalculation<T_Output>(
  * @param {string} calculatorVersion - The version of the calculator.
  * @param {T_Input} input - The input object used for the calculation.
  * @param {T_Output} result - The computed result of the calculation.
+ * @param {string} [entityType] - The type of entity this calculation belongs to (e.g. 'field', 'farm').
+ * @param {string} [entityId] - The id of the entity this calculation belongs to.
  * @returns {Promise<void>} A promise that resolves when the cache operation is complete.
  */
 export async function setCachedCalculation<T_Input extends object, T_Output>(
@@ -83,6 +93,8 @@ export async function setCachedCalculation<T_Input extends object, T_Output>(
   calculatorVersion: string,
   input: T_Input,
   result: T_Output,
+  entityType?: string,
+  entityId?: string,
 ) {
   // Inserts a new cache record. If a record with the same calculation_hash already exists,
   // skip the insert — the stored result is identical since the hash is deterministic.
@@ -94,6 +106,10 @@ export async function setCachedCalculation<T_Input extends object, T_Output>(
       calculator_version: calculatorVersion,
       input: input,
       result: result,
+      entity_type: entityType ?? null,
+      entity_id: entityId ?? null,
+      is_processing: false,
+      is_processing_since: null,
     })
     .onConflictDoNothing()
 }
@@ -126,6 +142,72 @@ export async function setCalculationError<T_Input extends object>(
     error_message: error_message,
     stack_trace: stack_trace ?? null, // Store stack trace, or null if not provided
   })
+}
+
+/**
+ * Redacts sensitive keys from an object (recursively), so they never end up in the cache key or
+ * in the stored `input` payload. Shared by `withCalculationCache` and `getCalculationCacheStatus`
+ * so the two always compute the exact same cache key for the same logical input.
+ */
+function redactSensitiveKeys(obj: unknown, sensitiveKeys: string[]): unknown {
+  if (typeof obj !== "object" || obj === null) {
+    return obj
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => redactSensitiveKeys(item, sensitiveKeys))
+  }
+  // Check if it's a plain object or similar to avoid breaking classes/Dates if they shouldn't be touched
+  // Ideally input is a plain object for hashing/json.
+  if (obj instanceof Date) {
+    return obj
+  }
+
+  const newObj = { ...(obj as object) } as Record<string, unknown>
+  for (const key of Object.keys(newObj)) {
+    if (sensitiveKeys.includes(key)) {
+      newObj[key] = "REDACTED"
+    } else {
+      newObj[key] = redactSensitiveKeys(newObj[key], sensitiveKeys)
+    }
+  }
+  return newObj
+}
+
+/**
+ * Computes the deterministic cache key (hash + sanitized input) for a calculation, exactly as
+ * `withCalculationCache` would. Used so a caller can check the current cache state of a
+ * calculation, or acquire/release its lock, without invoking the (potentially expensive)
+ * calculation function itself.
+ */
+export function computeCacheKey<T_Input extends object>(
+  calculationFunctionName: string,
+  calculatorVersion: string,
+  input: T_Input,
+  sensitiveKeys: string[] = [],
+): { calculationHash: string; inputForCache: T_Input } {
+  const inputForCache =
+    sensitiveKeys.length > 0 ? (redactSensitiveKeys(input, sensitiveKeys) as T_Input) : input
+
+  const calculationHash = generateCalculationHash(
+    calculationFunctionName,
+    calculatorVersion,
+    inputForCache,
+  )
+
+  return { calculationHash, inputForCache }
+}
+
+/**
+ * Options controlling how `withCalculationCache` tags cache rows with the entity (e.g. field or
+ * farm) the calculation belongs to. This powers entity-scoped lookups such as
+ * `getLatestCachedResultForEntity`, used by farm/organization-level pages to show a stale-but-fast
+ * cached result for a field while its up-to-date value is recomputed in the background.
+ */
+export interface WithCalculationCacheOptions<T_Input> {
+  /** The kind of entity this calculation is scoped to, e.g. `"field"`. */
+  entityType?: string
+  /** Derives the entity id (e.g. `b_id`) from the (non-redacted) function input. */
+  getEntityId?: (input: T_Input) => string | undefined
 }
 
 /**
@@ -166,6 +248,7 @@ export function withCalculationCache<T_Input extends object, T_Output>(
   calculationFunctionName: string,
   calculatorVersion: string,
   sensitiveKeys: string[] = [],
+  options: WithCalculationCacheOptions<T_Input> = {},
 ) {
   return async (fdm: FdmType, input: T_Input) => {
     if (!calculationFunctionName) {
@@ -180,41 +263,14 @@ export function withCalculationCache<T_Input extends object, T_Output>(
       )
     }
 
-    // Sanitize input if sensitive keys are provided
-    let inputForCache = input
-    if (sensitiveKeys.length > 0) {
-      const redact = (obj: unknown): unknown => {
-        if (typeof obj !== "object" || obj === null) {
-          return obj
-        }
-        if (Array.isArray(obj)) {
-          return obj.map(redact)
-        }
-        // Check if it's a plain object or similar to avoid breaking classes/Dates if they shouldn't be touched
-        // Ideally input is a plain object for hashing/json.
-        if (obj instanceof Date) {
-          return obj
-        }
-
-        const newObj = { ...(obj as object) } as Record<string, unknown>
-        for (const key of Object.keys(newObj)) {
-          if (sensitiveKeys.includes(key)) {
-            newObj[key] = "REDACTED"
-          } else {
-            newObj[key] = redact(newObj[key])
-          }
-        }
-        return newObj
-      }
-      inputForCache = redact(input) as T_Input
-    }
-
     // Generate a unique hash for the current calculation based on function name, version, and input.
-    const calculationHash = generateCalculationHash(
+    const { calculationHash, inputForCache } = computeCacheKey(
       calculationFunctionName,
       calculatorVersion,
-      inputForCache,
+      input,
+      sensitiveKeys,
     )
+    const entityId = options.getEntityId?.(input)
 
     let cachedResult: T_Output | null = null
     // Flag to determine if the result of the current calculation should be cached.
@@ -264,6 +320,8 @@ export function withCalculationCache<T_Input extends object, T_Output>(
           calculatorVersion,
           inputForCache,
           result,
+          options.entityType,
+          entityId,
         ).catch((e: unknown) => {
           const errorMessage = e instanceof Error ? e.message : String(e)
           console.error(
@@ -297,3 +355,279 @@ export function withCalculationCache<T_Input extends object, T_Output>(
     }
   }
 }
+
+/**
+ * Retrieves the full cache row for a given calculation hash, including its processing/lock state.
+ * Unlike {@link getCachedCalculation}, this returns the full row (including a `null` `result` for
+ * an in-progress placeholder) rather than only a resolved result.
+ *
+ * @param {FdmType} fdm - The FDM instance, providing database access.
+ * @param {string} calculation_hash - The unique hash identifying the cached calculation.
+ * @returns {Promise<CalculationCacheTypeSelect | null>} The cache row, or `null` if none exists.
+ */
+export async function getCachedCalculationEntry(
+  fdm: FdmType,
+  calculation_hash: string,
+): Promise<CalculationCacheTypeSelect | null> {
+  const rows = await fdm
+    .select()
+    .from(calculationCacheTable)
+    .where(eq(calculationCacheTable.calculation_hash, calculation_hash))
+    .limit(1)
+
+  return rows.length ? rows[0] : null
+}
+
+/**
+ * Retrieves the most recently produced result for a given entity and calculation function,
+ * regardless of whether it matches the current input hash. This is what farm/organization-level
+ * pages use to render a (possibly stale) result immediately, while a fresh value for the current
+ * input is recomputed in the background.
+ *
+ * @template T_Output - The expected type of the calculation result.
+ * @param {FdmType} fdm - The FDM instance, providing database access.
+ * @param {string} calculationFunctionName - The name of the calculation function.
+ * @param {string} entityType - The type of entity, e.g. `"field"`.
+ * @param {string} entityId - The id of the entity, e.g. a `b_id`.
+ * @returns {Promise<T_Output | null>} The latest available result, or `null` if none exists yet.
+ */
+export async function getLatestCachedResultForEntity<T_Output>(
+  fdm: FdmType,
+  calculationFunctionName: string,
+  entityType: string,
+  entityId: string,
+): Promise<T_Output | null> {
+  const rows = await fdm
+    .select({ result: calculationCacheTable.result })
+    .from(calculationCacheTable)
+    .where(
+      and(
+        eq(calculationCacheTable.calculation_function, calculationFunctionName),
+        eq(calculationCacheTable.entity_type, entityType),
+        eq(calculationCacheTable.entity_id, entityId),
+        isNotNull(calculationCacheTable.result),
+      ),
+    )
+    .orderBy(desc(calculationCacheTable.created_at))
+    .limit(1)
+
+  return rows.length ? (rows[0].result as T_Output) : null
+}
+
+/**
+ * Attempts to acquire the `is_processing` lock for a calculation hash, so at most one background
+ * worker recomputes a given (function, version, input) at a time. Other callers attempting the
+ * same calculation should attach to the in-flight computation instead of duplicating it (e.g. by
+ * polling {@link getCachedCalculationEntry} until it clears).
+ *
+ * The lock is acquired by either:
+ * 1. Inserting a new placeholder row (`result: null`, `is_processing: true`) when the hash is not
+ *    yet known at all, or
+ * 2. Reclaiming an existing row whose lock is not currently held (`is_processing: false`) or whose
+ *    lock has been held for longer than `lockTimeoutMs` (a stuck lock, e.g. from a crashed worker).
+ *
+ * @template T_Input - The type of the input object for the calculation function.
+ * @param {object} args
+ * @param {FdmType} args.fdm - The FDM instance, providing database access.
+ * @param {string} args.calculationHash - The unique hash of the calculation to lock.
+ * @param {string} args.calculationFunctionName - The name of the calculation function.
+ * @param {string} args.calculatorVersion - The version of the calculator.
+ * @param {T_Input} args.input - The (already sanitized) input to store alongside a new placeholder row.
+ * @param {string} [args.entityType] - The type of entity this calculation belongs to.
+ * @param {string} [args.entityId] - The id of the entity this calculation belongs to.
+ * @param {number} [args.lockTimeoutMs] - How long a lock may be held before it's considered stuck. Defaults to 15 minutes.
+ * @returns {Promise<boolean>} `true` if the lock was acquired by this call, `false` if another worker already holds it.
+ */
+export async function tryAcquireCalculationLock<T_Input extends object>({
+  fdm,
+  calculationHash,
+  calculationFunctionName,
+  calculatorVersion,
+  input,
+  entityType,
+  entityId,
+  lockTimeoutMs = DEFAULT_CALCULATION_LOCK_TIMEOUT_MS,
+}: {
+  fdm: FdmType
+  calculationHash: string
+  calculationFunctionName: string
+  calculatorVersion: string
+  input: T_Input
+  entityType?: string
+  entityId?: string
+  lockTimeoutMs?: number
+}): Promise<boolean> {
+  const now = new Date()
+
+  // 1. The hash is genuinely missing: try to insert a fresh placeholder row that claims the lock.
+  const inserted = await fdm
+    .insert(calculationCacheTable)
+    .values({
+      calculation_hash: calculationHash,
+      calculation_function: calculationFunctionName,
+      calculator_version: calculatorVersion,
+      input: input,
+      result: null,
+      entity_type: entityType ?? null,
+      entity_id: entityId ?? null,
+      is_processing: true,
+      is_processing_since: now,
+    })
+    .onConflictDoNothing()
+    .returning({ calculation_hash: calculationCacheTable.calculation_hash })
+
+  if (inserted.length > 0) {
+    return true
+  }
+
+  // 2. A row already exists for this hash: reclaim the lock only if it's not currently held, or if
+  // it's been held for longer than the timeout (a stuck lock).
+  const cutoff = new Date(now.getTime() - lockTimeoutMs)
+  const updated = await fdm
+    .update(calculationCacheTable)
+    .set({
+      is_processing: true,
+      is_processing_since: now,
+    })
+    .where(
+      and(
+        eq(calculationCacheTable.calculation_hash, calculationHash),
+        or(
+          eq(calculationCacheTable.is_processing, false),
+          isNull(calculationCacheTable.is_processing_since),
+          lt(calculationCacheTable.is_processing_since, cutoff),
+        ),
+      ),
+    )
+    .returning({ calculation_hash: calculationCacheTable.calculation_hash })
+
+  return updated.length > 0
+}
+
+/**
+ * Releases the `is_processing` lock previously acquired via {@link tryAcquireCalculationLock},
+ * either storing the freshly computed result (on success) or simply clearing the lock so a future
+ * attempt can retry (on failure).
+ *
+ * @template T_Output - The type of the calculation result.
+ * @param {FdmType} fdm - The FDM instance, providing database access.
+ * @param {string} calculationHash - The unique hash of the calculation whose lock should be released.
+ * @param {{ success: true; result: T_Output } | { success: false }} outcome - The outcome of the calculation.
+ * @returns {Promise<void>} A promise that resolves when the lock has been released.
+ */
+export async function releaseCalculationLock<T_Output>(
+  fdm: FdmType,
+  calculationHash: string,
+  outcome: { success: true; result: T_Output } | { success: false },
+): Promise<void> {
+  await fdm
+    .update(calculationCacheTable)
+    .set(
+      outcome.success
+        ? {
+            result: outcome.result,
+            is_processing: false,
+            is_processing_since: null,
+            created_at: new Date(),
+          }
+        : {
+            is_processing: false,
+            is_processing_since: null,
+          },
+    )
+    .where(eq(calculationCacheTable.calculation_hash, calculationHash))
+}
+
+/** The current state of a calculation's cache entry, as returned by {@link getCalculationCacheStatus}. */
+export type CalculationCacheStatus<T_Output> =
+  | { state: "fresh"; calculationHash: string; result: T_Output }
+  | { state: "processing"; calculationHash: string; staleResult: T_Output | null }
+  | { state: "stale" | "missing"; calculationHash: string; staleResult: T_Output | null }
+
+/**
+ * Cheaply determines whether a calculation's result is fresh, stale, missing, or already being
+ * (re)computed by another worker — without invoking the (potentially expensive) calculation
+ * function itself. This is the building block farm/organization-level loaders use to decide, per
+ * field, whether to render the cached result immediately or queue a background recompute.
+ *
+ * @template T_Input - The type of the input object for the calculation function.
+ * @template T_Output - The expected type of the calculation result.
+ * @param {object} args
+ * @param {FdmType} args.fdm - The FDM instance, providing database access.
+ * @param {string} args.calculationFunctionName - The name of the calculation function, as used by `withCalculationCache`.
+ * @param {string} args.calculatorVersion - The version of the calculator, as used by `withCalculationCache`.
+ * @param {T_Input} args.input - The (non-redacted) input for the calculation.
+ * @param {string} [args.entityType] - The type of entity this calculation belongs to, used to look up a stale fallback result.
+ * @param {string} [args.entityId] - The id of the entity this calculation belongs to.
+ * @param {string[]} [args.sensitiveKeys] - Keys to redact before hashing/storing, as used by `withCalculationCache`.
+ * @param {number} [args.lockTimeoutMs] - How long a lock may be held before it's considered stuck. Defaults to 15 minutes.
+ * @returns {Promise<CalculationCacheStatus<T_Output>>} The current cache status for this calculation.
+ */
+export async function getCalculationCacheStatus<T_Input extends object, T_Output>({
+  fdm,
+  calculationFunctionName,
+  calculatorVersion,
+  input,
+  entityType,
+  entityId,
+  sensitiveKeys = [],
+  lockTimeoutMs = DEFAULT_CALCULATION_LOCK_TIMEOUT_MS,
+}: {
+  fdm: FdmType
+  calculationFunctionName: string
+  calculatorVersion: string
+  input: T_Input
+  entityType?: string
+  entityId?: string
+  sensitiveKeys?: string[]
+  lockTimeoutMs?: number
+}): Promise<CalculationCacheStatus<T_Output>> {
+  const { calculationHash } = computeCacheKey(
+    calculationFunctionName,
+    calculatorVersion,
+    input,
+    sensitiveKeys,
+  )
+
+  const entry = await getCachedCalculationEntry(fdm, calculationHash)
+
+  if (entry && entry.result != null && !entry.is_processing) {
+    return { state: "fresh", calculationHash, result: entry.result as T_Output }
+  }
+
+  if (entry?.is_processing) {
+    const since = entry.is_processing_since
+    const lockExpired = !since || Date.now() - since.getTime() > lockTimeoutMs
+    if (!lockExpired) {
+      // Someone else is already (re)computing this exact hash; attach rather than duplicate.
+      const staleResult =
+        (entry.result as T_Output | null) ??
+        (entityType && entityId
+          ? await getLatestCachedResultForEntity<T_Output>(
+              fdm,
+              calculationFunctionName,
+              entityType,
+              entityId,
+            )
+          : null)
+      return { state: "processing", calculationHash, staleResult }
+    }
+  }
+
+  // Either no row exists yet for this hash, or its lock has expired: fall back to whatever
+  // result (for this exact hash, or the entity's last known result) is available to render
+  // immediately while a recompute is triggered.
+  const staleResult =
+    (entry?.result as T_Output | null) ??
+    (entityType && entityId
+      ? await getLatestCachedResultForEntity<T_Output>(
+          fdm,
+          calculationFunctionName,
+          entityType,
+          entityId,
+        )
+      : null)
+
+  return { state: entry ? "stale" : "missing", calculationHash, staleResult }
+}
+

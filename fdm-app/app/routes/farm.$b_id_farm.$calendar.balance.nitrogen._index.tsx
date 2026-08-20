@@ -19,16 +19,21 @@ import {
   NavLink,
   useLoaderData,
   useParams,
+  useRevalidator,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { CalculationRefreshBanner } from "~/components/blocks/calculation-refresh-banner"
+import { CalculationRefreshSpinner } from "~/components/blocks/calculation-refresh-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getNitrogenBalanceForFarm } from "~/integrations/calculator"
+import { useCalculationRefresh } from "~/hooks/use-calculation-refresh"
 import { getSession } from "~/lib/auth.server"
+import { getCalculationJobKey } from "~/lib/calculation-jobs"
+import { getNitrogenBalanceForFarmCached } from "~/lib/calculation-jobs.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
@@ -83,11 +88,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
     ])
 
+    const calendar = getCalendar(params)
+
+    // Build the farm-level balance from each field's cached result (falling back to its last
+    // known result if the current input hash isn't cached yet) instead of blocking on a full
+    // recompute. Stale/missing fields are returned in `staleJobs` for the client to hand off to
+    // the background `/api/calculation-refresh` route.
     const asyncData = (async () => {
-      const nitrogenBalanceResult = await getNitrogenBalanceForFarm({
+      const { nitrogenBalanceResult, staleJobs } = await getNitrogenBalanceForFarmCached({
         fdm,
         principal_id: session.principal_id,
         b_id_farm,
+        fields,
+        calendar,
         timeframe,
       })
 
@@ -108,10 +121,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       return {
         nitrogenBalanceResult: nitrogenBalanceResult,
+        staleJobs,
       }
     })()
 
-    const calendar = getCalendar(params)
     const mainCultivationEntries = fields.map(
       (field) =>
         [field.b_id, getMainCultivation(cultivationsMap.get(field.b_id) ?? [], calendar)] as const,
@@ -165,12 +178,23 @@ export default function FarmBalanceNitrogenOverviewBlock() {
 function FarmBalanceNitrogenOverview({
   farm,
   fields,
+  calendar,
   cultivationsEntries,
   harvestsEntries,
   mainCultivationEntries,
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
-  const { nitrogenBalanceResult } = use(asyncData)
+  const { nitrogenBalanceResult, staleJobs } = use(asyncData)
+  const { jobStates, refreshReady } = useCalculationRefresh(staleJobs)
+  const revalidator = useRevalidator()
+
+  const stalePendingKeys = new Set(
+    [...jobStates.entries()].filter(([, state]) => state === "pending").map(([key]) => key),
+  )
+  const isFieldRecomputing = (b_id: string) =>
+    stalePendingKeys.has(
+      getCalculationJobKey({ type: "nitrogenBalance", b_id, b_id_farm: farm.b_id_farm, calendar }),
+    )
 
   const cultivationsMap = new Map(cultivationsEntries)
   const harvestsMap = new Map(harvestsEntries)
@@ -225,6 +249,7 @@ function FarmBalanceNitrogenOverview({
 
   return (
     <>
+      {refreshReady && <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -330,6 +355,7 @@ function FarmBalanceNitrogenOverview({
             <div className="space-y-8">
               {filteredFields.map((fieldResult: NitrogenBalanceFieldResultNumeric) => {
                 const fieldData = fieldsMap.get(fieldResult.b_id)
+                const isRecomputing = isFieldRecomputing(fieldResult.b_id)
                 return (
                   <div className="flex items-center" key={fieldResult.b_id}>
                     {fieldResult.balance ? (
@@ -338,6 +364,8 @@ function FarmBalanceNitrogenOverview({
                       ) : (
                         <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
                       )
+                    ) : isRecomputing ? (
+                      <CalculationRefreshSpinner label="Stikstofbalans wordt opnieuw berekend..." />
                     ) : (
                       <CircleAlert className="h-6 w-6 rounded-full bg-orange-100 p-0 text-orange-500" />
                     )}
@@ -361,6 +389,8 @@ function FarmBalanceNitrogenOverview({
                     <div className="ml-auto font-medium">
                       {fieldResult.balance ? (
                         `${fieldResult.balance.balance} / ${fieldResult.balance.target}`
+                      ) : isRecomputing ? (
+                        <p className="text-end text-sm text-muted-foreground">Berekenen...</p>
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}`}>
                           <p className="text-end text-sm text-orange-500 hover:underline">

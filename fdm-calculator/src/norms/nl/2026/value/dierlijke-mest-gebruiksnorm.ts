@@ -50,4 +50,9 @@ export const getNL2026DierlijkeMestGebruiksNorm = withCalculationCache(
   calculateNL2026DierlijkeMestGebruiksNorm,
   "calculateNL2026DierlijkeMestGebruiksNorm",
   pkg.calculatorVersion,
+  [],
+  {
+    entityType: "field",
+    getEntityId: (input) => input.field.b_id,
+  },
 )

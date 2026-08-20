@@ -22,11 +22,20 @@ export { createDisplayUsername, createFdmAuth, updateUserProfile } from "./authe
 export { checkPermission, withAuditContext, writeAuditEntry } from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
+  computeCacheKey,
+  DEFAULT_CALCULATION_LOCK_TIMEOUT_MS,
+  generateCalculationHash,
   getCachedCalculation,
+  getCachedCalculationEntry,
+  getCalculationCacheStatus,
+  getLatestCachedResultForEntity,
+  releaseCalculationLock,
   setCachedCalculation,
   setCalculationError,
+  tryAcquireCalculationLock,
   withCalculationCache,
 } from "./calculator"
+export type { CalculationCacheStatus, WithCalculationCacheOptions } from "./calculator"
 export {
   disableCultivationCatalogue,
   disableFertilizerCatalogue,

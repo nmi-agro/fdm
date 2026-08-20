@@ -2,6 +2,7 @@ import type { Column, ColumnDef, RowData } from "@tanstack/react-table"
 import { ArrowDown, ArrowUp } from "lucide-react"
 import { NavLink } from "react-router"
 import { CultivationSuggestionBadge } from "~/components/blocks/cultivation/suggestion"
+import { CalculationRefreshSpinner } from "~/components/blocks/calculation-refresh-spinner"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
@@ -271,6 +272,9 @@ export function buildFieldColumn(b_id_farm: string, calendar: string): ColumnDef
               <span className="text-muted-foreground shrink-0 text-xs">
                 {field.b_area < 0.1 ? "< 0.1 ha" : `${field.b_area.toFixed(1)} ha`}
               </span>
+              {field.isRecomputing && (
+                <CalculationRefreshSpinner label="Bemestingsadvies wordt opnieuw berekend..." />
+              )}
               {cultivation ? (
                 <Badge
                   title={cultivation.b_lu_name}

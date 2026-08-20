@@ -4,26 +4,31 @@ import type {
 } from "@nmi-agro/fdm-calculator"
 import { NavLink } from "react-router"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
+import { CalculationRefreshSpinner } from "~/components/blocks/calculation-refresh-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { NormProgressBar } from "./progress-bar"
 
 export interface FieldNorm {
   b_id: string
   b_area: number
+  // Each norm is optional individually: while a field's norms are recomputing in the
+  // background, some may already be fresh in cache while others are still stale/missing.
   norms?: {
-    manure: GebruiksnormResult
-    phosphate: GebruiksnormResult
-    nitrogen: GebruiksnormResult
+    manure?: GebruiksnormResult
+    phosphate?: GebruiksnormResult
+    nitrogen?: GebruiksnormResult
     renure?: GebruiksnormResult
   }
   normsFilling?: {
-    manure: GebruiksnormFillingResult
-    phosphate: GebruiksnormFillingResult
-    nitrogen: GebruiksnormFillingResult
+    manure?: GebruiksnormFillingResult
+    phosphate?: GebruiksnormFillingResult
+    nitrogen?: GebruiksnormFillingResult
     renure?: GebruiksnormFillingResult
   }
   errorMessage?: string
   isWarning?: boolean
+  /** Whether this field has one or more norm values being recomputed in the background. */
+  isRecomputing?: boolean
 }
 
 interface FieldNormsProps {
@@ -95,7 +100,12 @@ export function FieldNorms({ fieldNorms, fieldOptions, showRenure }: FieldNormsP
           <NavLink key={field.b_id} to={`./${field.b_id}`}>
             <Card className="flex flex-col transition-shadow hover:shadow-lg">
               <CardHeader>
-                <CardTitle className="text-lg">{getFieldName(field.b_id)}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg">{getFieldName(field.b_id)}</CardTitle>
+                  {field.isRecomputing && (
+                    <CalculationRefreshSpinner label="Gebruiksnormen worden opnieuw berekend..." />
+                  )}
+                </div>
                 <CardDescription>{`${field.b_area.toFixed(2)} ha`}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow space-y-4">

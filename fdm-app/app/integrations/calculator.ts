@@ -135,7 +135,7 @@ export async function getFieldNormValues({
   return { manure, phosphate, nitrogen }
 }
 
-async function getFieldNormFillings({
+export async function getFieldNormFillings({
   fdm,
   principal_id,
   b_id,
@@ -338,6 +338,7 @@ export async function getNutrientAdviceForField({
     currentSoilData: currentSoilData,
     nmiApiKey: nmiApiKey,
     b_bufferstrip: field.b_bufferstrip,
+    b_id: b_id,
   })
 
   return nutrientAdvice

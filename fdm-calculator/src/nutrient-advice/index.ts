@@ -168,5 +168,9 @@ export const getNutrientAdvice = withCalculationCache(
   requestNutrientAdvice,
   "requestNutrientAdvice",
   pkg.calculatorVersion,
-  ["nmiApiKey"],
+  ["nmiApiKey", "b_id"],
+  {
+    entityType: "field",
+    getEntityId: (input) => input.b_id,
+  },
 )

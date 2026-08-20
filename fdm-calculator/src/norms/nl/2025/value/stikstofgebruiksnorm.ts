@@ -922,4 +922,9 @@ export const getNL2025StikstofGebruiksNorm = withCalculationCache(
   calculateNL2025StikstofGebruiksNorm,
   "calculateNL2025StikstofGebruiksNorm",
   pkg.calculatorVersion,
+  [],
+  {
+    entityType: "field",
+    getEntityId: (input) => input.field.b_id,
+  },
 )
