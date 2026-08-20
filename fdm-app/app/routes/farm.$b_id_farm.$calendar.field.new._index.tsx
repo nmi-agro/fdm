@@ -448,14 +448,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
       chunkedFeatures.push(selectedFields.features.slice(i, i + chunkSize))
     }
     const fieldIds: string[] = []
-    for (const chunk of chunkedFeatures) {
+    for (let chunkIndex = 0; chunkIndex < chunkedFeatures.length; chunkIndex++) {
+      const chunk = chunkedFeatures[chunkIndex]
       fieldIds.push(
         ...(await Promise.all(
           chunk.map(async (field: Feature<Polygon, GeoJsonProperties>, index: number) => {
             if (!field.properties) {
               throw new Error("missing: field.properties")
             }
-            const b_name = `Perceel ${firstFieldIndex + index}`
+            const b_name = `Perceel ${firstFieldIndex + chunkIndex * chunkSize + index}`
             const b_id_source = field.properties.b_id_source
             if (!b_id_source) throw new Error("missing: field.properties.b_id_source")
             const b_lu_catalogue = field.properties.b_lu_catalogue

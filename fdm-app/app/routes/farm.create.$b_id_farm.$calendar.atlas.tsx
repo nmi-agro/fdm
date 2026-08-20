@@ -409,13 +409,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
     for (let i = 0; i < selectedFields.features.length; i += chunkSize) {
       chunkedFeatures.push(selectedFields.features.slice(i, i + chunkSize))
     }
-    for (const chunk of chunkedFeatures) {
+    for (let chunkIndex = 0; chunkIndex < chunkedFeatures.length; chunkIndex++) {
+      const chunk = chunkedFeatures[chunkIndex]
       await Promise.all(
         chunk.map(async (field: Feature<Polygon>, index: number) => {
           if (!field.properties) {
             throw new Error("missing: field.properties")
           }
-          const b_name = `Perceel ${firstFieldIndex + index}`
+          const b_name = `Perceel ${firstFieldIndex + chunkIndex * chunkSize + index}`
           const b_id_source = field.properties.b_id_source
           const b_lu_catalogue = field.properties.b_lu_catalogue
           const b_geometry = field.geometry
