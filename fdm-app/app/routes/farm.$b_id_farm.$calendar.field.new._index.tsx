@@ -441,81 +441,89 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
     const selectedFields = JSON.parse(selectedFieldsRaw)
 
-    // Add fields to farm
-    const fieldIds: string[] = await Promise.all(
-      selectedFields.features.map(
-        async (field: Feature<Polygon, GeoJsonProperties>, index: number) => {
-          if (!field.properties) {
-            throw new Error("missing: field.properties")
-          }
-          const b_name = `Perceel ${firstFieldIndex + index}`
-          const b_id_source = field.properties.b_id_source
-          if (!b_id_source) throw new Error("missing: field.properties.b_id_source")
-          const b_lu_catalogue = field.properties.b_lu_catalogue
-          if (!b_lu_catalogue) throw new Error("missing: field.properties.b_lu_catalogue")
-          const b_geometry = field.geometry
-          if (!b_geometry) throw new Error("missing: b_geometry")
+    // Add fields to farm in chunks
+    const chunkSize = 10
+    const chunkedFeatures: Feature<Polygon>[][] = []
+    for (let i = 0; i < selectedFields.features.length; i += chunkSize) {
+      chunkedFeatures.push(selectedFields.features.slice(i, i + chunkSize))
+    }
+    const fieldIds: string[] = []
+    for (const chunk of chunkedFeatures) {
+      fieldIds.push(
+        ...(await Promise.all(
+          chunk.map(async (field: Feature<Polygon, GeoJsonProperties>, index: number) => {
+            if (!field.properties) {
+              throw new Error("missing: field.properties")
+            }
+            const b_name = `Perceel ${firstFieldIndex + index}`
+            const b_id_source = field.properties.b_id_source
+            if (!b_id_source) throw new Error("missing: field.properties.b_id_source")
+            const b_lu_catalogue = field.properties.b_lu_catalogue
+            if (!b_lu_catalogue) throw new Error("missing: field.properties.b_lu_catalogue")
+            const b_geometry = field.geometry
+            if (!b_geometry) throw new Error("missing: b_geometry")
 
-          const parsedYear = Number.parseInt(String(calendar ?? ""), 10)
-          const currentYear =
-            Number.isInteger(parsedYear) && parsedYear >= 1970 && parsedYear < 2100
-              ? parsedYear
-              : timeframe.start?.getFullYear()
-          if (!currentYear && currentYear !== 0) {
-            throw new Error("missing: year")
-          }
-          const cultivationDefaultDates = await getDefaultDatesOfCultivation(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            b_lu_catalogue,
-            currentYear,
-          )
-          const b_start = new Date(`${currentYear}-01-01`)
-          const b_lu_start = cultivationDefaultDates.b_lu_start
-          const b_lu_end = cultivationDefaultDates.b_lu_end
-          const b_end = undefined
-          const b_acquiring_method = "unknown"
-
-          const b_id = await addField(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            b_name,
-            b_id_source,
-            b_geometry,
-            b_start,
-            b_acquiring_method,
-            b_end,
-          )
-          await addCultivation(
-            fdm,
-            session.principal_id,
-            b_lu_catalogue,
-            b_id,
-            b_lu_start,
-            b_lu_end,
-          )
-
-          if (nmiApiKey) {
-            const estimates = await getSoilParameterEstimatesForGeometry(fdm, field, nmiApiKey)
-
-            await addSoilAnalysis(
+            const parsedYear = Number.parseInt(String(calendar ?? ""), 10)
+            const currentYear =
+              Number.isInteger(parsedYear) && parsedYear >= 1970 && parsedYear < 2100
+                ? parsedYear
+                : timeframe.start?.getFullYear()
+            if (!currentYear && currentYear !== 0) {
+              throw new Error("missing: year")
+            }
+            const cultivationDefaultDates = await getDefaultDatesOfCultivation(
               fdm,
               session.principal_id,
-              undefined,
-              estimates.a_source,
-              b_id,
-              estimates.a_depth_lower,
-              undefined,
-              estimates,
+              b_id_farm,
+              b_lu_catalogue,
+              currentYear,
             )
-          }
+            const b_start = new Date(`${currentYear}-01-01`)
+            const b_lu_start = cultivationDefaultDates.b_lu_start
+            const b_lu_end = cultivationDefaultDates.b_lu_end
+            const b_end = undefined
+            const b_acquiring_method = "unknown"
 
-          return b_id
-        },
-      ),
-    )
+            const b_id = await addField(
+              fdm,
+              session.principal_id,
+              b_id_farm,
+              b_name,
+              b_id_source,
+              b_geometry,
+              b_start,
+              b_acquiring_method,
+              b_end,
+            )
+            await addCultivation(
+              fdm,
+              session.principal_id,
+              b_lu_catalogue,
+              b_id,
+              b_lu_start,
+              b_lu_end,
+            )
+
+            if (nmiApiKey) {
+              const estimates = await getSoilParameterEstimatesForGeometry(fdm, field, nmiApiKey)
+
+              await addSoilAnalysis(
+                fdm,
+                session.principal_id,
+                undefined,
+                estimates.a_source,
+                b_id,
+                estimates.a_depth_lower,
+                undefined,
+                estimates,
+              )
+            }
+
+            return b_id
+          }),
+        )),
+      )
+    }
 
     for (const b_id of fieldIds) {
       captureEvent(session.principal_id, "field_created", {

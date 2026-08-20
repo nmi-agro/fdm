@@ -1,4 +1,4 @@
-import type { Feature, FeatureCollection, GeoJsonProperties, Geometry, Polygon } from "geojson"
+import type { Feature, FeatureCollection, Geometry, Polygon } from "geojson"
 import {
   addCultivation,
   addField,
@@ -401,12 +401,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
     if (typeof selectedFieldsRaw !== "string") {
       throw new Error("Missing selected_fields")
     }
-    const selectedFields = JSON.parse(selectedFieldsRaw)
+    const selectedFields: FeatureCollection<Polygon> = JSON.parse(selectedFieldsRaw)
 
-    // Add fields to farm
-    await Promise.all(
-      selectedFields.features.map(
-        async (field: Feature<Polygon, GeoJsonProperties>, index: number) => {
+    // Add fields to farm in chunks
+    const chunkSize = 10
+    const chunkedFeatures: Feature<Polygon>[][] = []
+    for (let i = 0; i < selectedFields.features.length; i += chunkSize) {
+      chunkedFeatures.push(selectedFields.features.slice(i, i + chunkSize))
+    }
+    for (const chunk of chunkedFeatures) {
+      await Promise.all(
+        chunk.map(async (field: Feature<Polygon>, index: number) => {
           if (!field.properties) {
             throw new Error("missing: field.properties")
           }
@@ -469,9 +474,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
           }
 
           return b_id
-        },
-      ),
-    )
+        }),
+      )
+    }
 
     return redirectWithSuccess(`/farm/create/${b_id_farm}/${calendar}/fields`, {
       message: "Percelen zijn toegevoegd! 🎉",
