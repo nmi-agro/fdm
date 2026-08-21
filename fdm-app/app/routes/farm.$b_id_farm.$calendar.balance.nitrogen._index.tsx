@@ -390,7 +390,7 @@ function FarmBalanceNitrogenOverview({
                       {fieldResult.balance ? (
                         `${fieldResult.balance.balance} / ${fieldResult.balance.target}`
                       ) : isRecomputing ? (
-                        <p className="text-end text-sm text-muted-foreground">Berekenen...</p>
+                        <p className="text-muted-foreground text-end text-sm">Berekenen...</p>
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}`}>
                           <p className="text-end text-sm text-orange-500 hover:underline">

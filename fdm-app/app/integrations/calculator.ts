@@ -212,6 +212,7 @@ export async function getNitrogenBalanceForField({
     fieldInput: fields[0],
     ...rest,
   })
+
   return {
     b_id: b_id,
     b_area: fields[0].field.b_area ?? 0,

@@ -1,3 +1,16 @@
+import {
+  calculateNitrogenBalancesFieldToFarm,
+  collectInputForNitrogenBalance,
+  createFunctionsForNorms,
+  fdmCalculator,
+  type GebruiksnormResult,
+  getNitrogenBalanceField,
+  getNutrientAdvice,
+  GROENE_BRAAK,
+  type NitrogenBalanceFieldNumeric,
+  type NitrogenBalanceFieldResultNumeric,
+  type NitrogenBalanceNumeric,
+} from "@nmi-agro/fdm-calculator"
 /**
  * Generic registry for the per-field calculations that farm/organization-level pages want to show
  * from cache immediately while stale/missing entries are recomputed in the background.
@@ -25,22 +38,9 @@ import {
   type Timeframe,
   tryAcquireCalculationLock,
 } from "@nmi-agro/fdm-core"
-import {
-  calculateNitrogenBalancesFieldToFarm,
-  collectInputForNitrogenBalance,
-  createFunctionsForNorms,
-  fdmCalculator,
-  type GebruiksnormResult,
-  getNitrogenBalanceField,
-  getNutrientAdvice,
-  GROENE_BRAAK,
-  type NitrogenBalanceFieldNumeric,
-  type NitrogenBalanceFieldResultNumeric,
-  type NitrogenBalanceNumeric,
-} from "@nmi-agro/fdm-calculator"
 import type { CalculationJobRequest } from "~/lib/calculation-jobs"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getNmiApiKey } from "~/integrations/nmi.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 export type { CalculationJobRequest, CalculationJobType } from "~/lib/calculation-jobs"
 export { getCalculationJobKey } from "~/lib/calculation-jobs"
@@ -75,11 +75,7 @@ async function collectNormJobMeta(
 ): Promise<CalculationJobMeta> {
   if (job.calendar === "2026") {
     const functionsForNorms = createFunctionsForNorms("NL", "2026")
-    const input = await functionsForNorms.collectInputForNorms(
-      ctx.fdm,
-      ctx.principal_id,
-      job.b_id,
-    )
+    const input = await functionsForNorms.collectInputForNorms(ctx.fdm, ctx.principal_id, job.b_id)
     const byType = {
       normNitrogen: { fn: functionsForNorms.calculateNormForNitrogen, name: NORM_NITROGEN_2026 },
       normPhosphate: {
@@ -89,7 +85,12 @@ async function collectNormJobMeta(
       normManure: { fn: functionsForNorms.calculateNormForManure, name: NORM_MANURE_2026 },
       normRenure: { fn: functionsForNorms.calculateNormForRenure, name: NORM_RENURE_2026 },
     } as const
-    if (job.type !== "normNitrogen" && job.type !== "normPhosphate" && job.type !== "normManure" && job.type !== "normRenure") {
+    if (
+      job.type !== "normNitrogen" &&
+      job.type !== "normPhosphate" &&
+      job.type !== "normManure" &&
+      job.type !== "normRenure"
+    ) {
       throw new Error(`Unsupported norm job type: ${job.type}`)
     }
     const entry = byType[job.type]
@@ -338,21 +339,20 @@ export async function getNitrogenBalanceForFarmCached({
 
   const statuses = await Promise.all(jobs.map((job) => getCalculationJobStatus(ctx, job)))
 
-  const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = fields.map(
-    (field, index) => {
+  const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = fields
+    .map((field, index) => {
       const status = statuses[index]
+      if (status.state !== "fresh") return null
       return {
         b_id: field.b_id,
         b_area: field.b_area ?? 0,
         b_bufferstrip: field.b_bufferstrip ?? false,
         balance: status.result as NitrogenBalanceFieldNumeric | undefined,
       }
-    },
-  )
+    })
+    .filter((x) => x !== null)
 
-  const hasErrors = fieldsWithBalanceResults.some(
-    (result) => result.errorMessage !== undefined,
-  )
+  const hasErrors = fieldsWithBalanceResults.some((result) => result.errorMessage !== undefined)
   const fieldErrorMessages = fieldsWithBalanceResults
     .filter((result) => result.errorMessage !== undefined)
     .map((result) => result.errorMessage as string)

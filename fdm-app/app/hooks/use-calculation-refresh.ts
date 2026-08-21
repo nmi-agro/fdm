@@ -34,23 +34,33 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
   // Track the set of job keys we've already started a request for, so effect re-runs (e.g. from
   // unrelated re-renders) don't re-trigger the same batch.
   const startedKeyRef = useRef<string>("")
+  const abortControllerRef = useRef<AbortController | null>(null)
+
+  const batchKey = jobs.map(getCalculationJobKey).sort().join(",")
 
   useEffect(() => {
+    // Check if the set of jobs is actually the same
+    const keys = jobs.map(getCalculationJobKey)
+    if (startedKeyRef.current === batchKey) {
+      return
+    }
+
+    // Start a new set of jobs
+    startedKeyRef.current = batchKey
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
     if (jobs.length === 0) {
       setJobStates(new Map())
       return
     }
 
-    const keys = jobs.map(getCalculationJobKey)
-    const batchKey = keys.slice().sort().join(",")
-    if (startedKeyRef.current === batchKey) {
-      return
-    }
-    startedKeyRef.current = batchKey
-
     setJobStates(new Map(keys.map((key) => [key, "pending"])))
 
     const controller = new AbortController()
+    abortControllerRef.current = controller
 
     async function run() {
       try {
@@ -114,12 +124,8 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
 
     void run()
 
-    return () => {
-      controller.abort()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- jobs is recreated every render; we
-    // dedupe on batchKey (derived from job keys) instead of the array identity.
-  }, [jobs.map(getCalculationJobKey).sort().join(",")])
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- jobs is recreated every render; we dedupe on batchKey (derived from job keys) instead of the array identity.
+  }, [batchKey])
 
   const refreshReady =
     jobStates.size > 0 && [...jobStates.values()].every((state) => state !== "pending")
