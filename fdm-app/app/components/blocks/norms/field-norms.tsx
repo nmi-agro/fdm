@@ -3,8 +3,8 @@ import type {
   GebruiksnormResult,
 } from "@nmi-agro/fdm-calculator"
 import { NavLink } from "react-router"
+import { CalculationRefreshSpinner } from "~/components/blocks/calculation/calculation-refresh-spinner"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
-import { CalculationRefreshSpinner } from "~/components/blocks/calculation-refresh-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { NormProgressBar } from "./progress-bar"
 

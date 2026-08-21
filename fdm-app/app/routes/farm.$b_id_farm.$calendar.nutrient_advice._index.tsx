@@ -15,8 +15,9 @@ import {
   useLoaderData,
   useRevalidator,
 } from "react-router"
-import { CalculationRefreshBanner } from "~/components/blocks/calculation-refresh-banner"
 import type { FieldNutrientRow } from "~/components/blocks/nutrient-advice/overview-types"
+import type { CalculationJobRequest } from "~/lib/calculation-jobs"
+import { CalculationRefreshBanner } from "~/components/blocks/calculation/calculation-refresh-banner"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
 import { toFriendlyAdviceError } from "~/components/blocks/nutrient-advice/overview-errors"
 import { NutrientAdviceOverviewSkeleton } from "~/components/blocks/nutrient-advice/overview-skeleton"
@@ -33,7 +34,6 @@ import {
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useCalculationRefresh } from "~/hooks/use-calculation-refresh"
 import { getSession } from "~/lib/auth.server"
-import type { CalculationJobRequest } from "~/lib/calculation-jobs"
 import { getNutrientAdviceCached } from "~/lib/calculation-jobs.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"

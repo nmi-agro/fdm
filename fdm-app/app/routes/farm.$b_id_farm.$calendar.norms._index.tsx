@@ -20,7 +20,7 @@ import {
   useLocation,
   useRevalidator,
 } from "react-router"
-import { CalculationRefreshBanner } from "~/components/blocks/calculation-refresh-banner"
+import { CalculationRefreshBanner } from "~/components/blocks/calculation/calculation-refresh-banner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"

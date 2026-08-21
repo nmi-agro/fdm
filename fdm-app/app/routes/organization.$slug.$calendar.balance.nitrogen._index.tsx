@@ -24,9 +24,9 @@ import {
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { CalculationRefreshBanner } from "~/components/blocks/calculation/calculation-refresh-banner"
+import { CalculationRefreshSpinner } from "~/components/blocks/calculation/calculation-refresh-spinner"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
-import { CalculationRefreshBanner } from "~/components/blocks/calculation-refresh-banner"
-import { CalculationRefreshSpinner } from "~/components/blocks/calculation-refresh-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { useCalculationRefresh } from "~/hooks/use-calculation-refresh"
@@ -191,15 +191,13 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
       // Build the organization-level (and per-farm) nitrogen balance from each field's cached
       // result instead of blocking on a full recompute. Stale/missing fields are returned in
       // `staleJobs` for the client to hand off to the background `/api/calculation-refresh` route.
-      const { combinedResult, farmResultsMap, staleJobs } = await getNitrogenBalanceForFarmsCached(
-        {
-          fdm,
-          principal_id,
-          farms: selectedFarms,
-          calendar,
-          timeframe,
-        },
-      )
+      const { combinedResult, farmResultsMap, staleJobs } = await getNitrogenBalanceForFarmsCached({
+        fdm,
+        principal_id,
+        farms: selectedFarms,
+        calendar,
+        timeframe,
+      })
 
       const farmsExtended: FarmExtended[] = farmsWithFields.map(
         ({ fields: _fields, hasFields: _hasFields, ...farm }) => farm,
@@ -286,11 +284,7 @@ function OrganizationFarmBalanceNitrogenOverview(loaderData: LoaderData) {
   // Unlike most React hooks `use` may be called conditionally
   const asyncData = use(asyncDataPromise)
 
-  const {
-    combinedResult: resolvedNitrogenBalanceResult,
-    farmResults,
-    staleJobs,
-  } = asyncData
+  const { combinedResult: resolvedNitrogenBalanceResult, farmResults, staleJobs } = asyncData
   const { jobStates, refreshReady } = useCalculationRefresh(staleJobs)
   const revalidator = useRevalidator()
 

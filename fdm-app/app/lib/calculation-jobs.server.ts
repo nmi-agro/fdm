@@ -418,15 +418,17 @@ export async function getNitrogenBalanceForFarmsCached({
       const job = jobs[index]
       index++
 
-      const fieldResult: NitrogenBalanceFieldResultNumeric = {
-        b_id: field.b_id,
-        b_area: field.b_area ?? 0,
-        b_bufferstrip: field.b_bufferstrip ?? false,
-        balance: status.result as NitrogenBalanceFieldNumeric | undefined,
-      }
-      farmFieldResults.push(fieldResult)
-      allFieldResults.push(fieldResult)
-      if (status.state !== "fresh") {
+      if (status.state === "fresh") {
+        const fieldResult: NitrogenBalanceFieldResultNumeric = {
+          b_id: field.b_id,
+          b_area: field.b_area ?? 0,
+          b_bufferstrip: field.b_bufferstrip ?? false,
+          balance: status.result as NitrogenBalanceFieldNumeric | undefined,
+        }
+
+        farmFieldResults.push(fieldResult)
+        allFieldResults.push(fieldResult)
+      } else {
         staleJobs.push(job)
       }
     }
