@@ -4,7 +4,10 @@ import type {
   InputAggregateNormFillingsToFarmLevel,
   InputAggregateNormsToFarmLevel,
 } from "@nmi-agro/fdm-calculator"
-import { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "@nmi-agro/fdm-calculator"
+import {
+  aggregateNormFillingsToFarmLevel,
+  aggregateNormsToFarmLevel,
+} from "@nmi-agro/fdm-calculator"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
 import { AlertTriangle } from "lucide-react"
 import { Suspense, use, useEffect } from "react"
@@ -33,13 +36,13 @@ import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useCalculationRefresh } from "~/hooks/use-calculation-refresh"
+import { getFieldNormFillings } from "~/integrations/calculator"
 import { getSession } from "~/lib/auth.server"
 import { getFieldNormValuesCached } from "~/lib/calculation-jobs.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getFieldNormFillings } from "~/integrations/calculator"
 import { useFieldFilterStore } from "~/store/field-filter"
 
 // Meta
@@ -176,13 +179,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Aggregate the fillings to farm level
         const validFieldFillings: InputAggregateNormFillingsToFarmLevel = results
           .filter(
-            (field): field is typeof field & { normsFilling: NonNullable<typeof field.normsFilling> } =>
+            (
+              field,
+            ): field is typeof field & { normsFilling: NonNullable<typeof field.normsFilling> } =>
               field.hasAllValues && field.normsFilling !== undefined,
           )
           .map((field) => ({
             b_id: field.b_id,
             b_area: field.b_area ?? 0,
-            normsFilling: field.normsFilling as InputAggregateNormFillingsToFarmLevel[number]["normsFilling"],
+            normsFilling:
+              field.normsFilling as InputAggregateNormFillingsToFarmLevel[number]["normsFilling"],
           }))
         farmFillings = aggregateNormFillingsToFarmLevel(validFieldFillings)
       } catch (error) {
@@ -259,9 +265,7 @@ export default function FarmNormsBlock() {
  * would not render until `asyncData` resolves and the fallback would never be shown.
  */
 function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
-  const { farmNorms, farmFillings, fieldNorms, errorMessage, staleJobs } = use(
-    loaderData.asyncData,
-  )
+  const { farmNorms, farmFillings, fieldNorms, errorMessage, staleJobs } = use(loaderData.asyncData)
   const { refreshReady } = useCalculationRefresh(staleJobs ?? [])
   const revalidator = useRevalidator()
   const { showProductiveOnly } = useFieldFilterStore()
@@ -319,9 +323,7 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
     return (
       <FarmContent>
         <div className="space-y-6 pb-10">
-          {refreshReady && (
-            <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />
-          )}
+          {refreshReady && <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />}
           <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
             <AlertTriangle className="h-4 w-4 !text-amber-800" />
             <AlertTitle>Disclaimer</AlertTitle>

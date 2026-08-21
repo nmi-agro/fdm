@@ -507,7 +507,9 @@ export async function getFieldNormValuesCached({
 
   const value: FieldNormValuesCached["value"] = {}
   jobs.forEach((job, index) => {
-    const result = statuses[index].result as GebruiksnormResult | undefined
+    // `result` can be `null` (no fresh or stale result exists yet) as well as `undefined`;
+    // normalize to `undefined` so downstream `!== undefined` checks treat both as "missing".
+    const result = (statuses[index].result ?? undefined) as GebruiksnormResult | undefined
     if (job.type === "normNitrogen") value.nitrogen = result
     else if (job.type === "normPhosphate") value.phosphate = result
     else if (job.type === "normManure") value.manure = result
@@ -549,7 +551,7 @@ export async function getNutrientAdviceCached({
   const status = await getCalculationJobStatus(ctx, job)
 
   return {
-    result: status.result as NutrientAdviceCached["result"],
+    result: (status.result ?? undefined) as NutrientAdviceCached["result"],
     staleJobs: status.state === "fresh" ? [] : [job],
   }
 }
