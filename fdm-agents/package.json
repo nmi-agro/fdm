@@ -26,15 +26,15 @@
     "watch": "vitest"
   },
   "dependencies": {
-    "@langchain/core": "^1.2.6",
-    "@langchain/google-genai": "^2.2.0",
-    "@langchain/langgraph": "^1.4.9",
+    "@langchain/core": "^1.2.9",
+    "@langchain/google-genai": "^2.3.0",
+    "@langchain/langgraph": "^1.4.12",
     "@nmi-agro/fdm-calculator": "workspace:^",
     "@nmi-agro/fdm-core": "workspace:^",
     "@nmi-agro/fdm-data": "workspace:^",
-    "@posthog/ai": "^8.7.1",
-    "langchain": "^1.5.6",
-    "posthog-node": "^5.48.2",
+    "@posthog/ai": "^8.8.0",
+    "langchain": "^1.5.10",
+    "posthog-node": "^5.49.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
