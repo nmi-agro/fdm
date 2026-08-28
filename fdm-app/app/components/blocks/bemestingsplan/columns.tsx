@@ -134,7 +134,7 @@ function StatusDisplay({
   }
 
   return (
-    <div className="text-muted-foreground flex items-center">
+    <div className="text-muted-foreground flex items-center gap-2">
       {statusCode === "expired" ? "Verlopen" : "Onbekend"}
       {canModify && (
         <Button
@@ -154,7 +154,7 @@ function StatusDisplay({
           }}
         >
           Herstellen
-          {<Spinner />}
+          {isSubmitting && <Spinner />}
         </Button>
       )}
     </div>

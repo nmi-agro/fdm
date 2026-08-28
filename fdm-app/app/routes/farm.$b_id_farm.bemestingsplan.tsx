@@ -7,6 +7,7 @@ import {
   removeFertilizerPlan,
   checkPermission,
   getFarm,
+  getFarms,
 } from "@nmi-agro/fdm-core"
 import { renderToStream } from "@react-pdf/renderer"
 import { Outlet, useLoaderData } from "react-router"
@@ -16,7 +17,10 @@ import { columns } from "@/app/components/blocks/bemestingsplan/columns"
 import { NewBemestingsplanForm } from "@/app/components/blocks/bemestingsplan/new-form"
 import { DataTable } from "@/app/components/blocks/bemestingsplan/table"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { Header } from "~/components/blocks/header/base"
+import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BemestingsplanPDF } from "~/components/blocks/pdf/bemestingsplan/BemestingsplanPDF"
+import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import {
   collectBemestingsplanInputFromDatabase,
@@ -35,8 +39,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const b_id_farm = params.b_id_farm
     const session = await getSession(request)
 
-    const [farm, fertilizerPlans] = await Promise.all([
+    const [farm, farms, fertilizerPlans] = await Promise.all([
       getFarm(fdm, session.principal_id, b_id_farm),
+      getFarms(fdm, session.principal_id),
       getFertilizerPlans(fdm, session.principal_id, b_id_farm),
     ])
 
@@ -83,11 +88,19 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       false,
     )
 
+    const farmOptions = farms.map((farm) => {
+      return {
+        b_id_farm: farm.b_id_farm,
+        b_name_farm: farm.b_name_farm,
+      }
+    })
+
     return {
       fertilizerPlans: fertilizerPlansExtended,
       farmWritePermission: farmWritePermission,
       b_name_farm: farm.b_name_farm,
       b_id_farm: farm.b_id_farm,
+      farmOptions: farmOptions,
     }
   } catch (err) {
     throw handleLoaderError(err)
@@ -169,40 +182,53 @@ export async function action({ params, request }: Route.ActionArgs) {
 }
 
 export default function FertilizerPlanTable() {
-  const { fertilizerPlans, b_name_farm, b_id_farm, farmWritePermission } =
+  const { fertilizerPlans, b_name_farm, b_id_farm, farmWritePermission, farmOptions } =
     useLoaderData<typeof loader>()
 
-  if (fertilizerPlans.length === 0) {
-    return (
-      <Empty>
-        <EmptyHeader>
-          <EmptyTitle>Er zijn nog geen bemestingsplannen voor dit bedrijf opgesteld.</EmptyTitle>
-          <EmptyContent>U kunt hieronder een nieuw bemestingsplan opstellen.</EmptyContent>
-        </EmptyHeader>
-        <EmptyContent>
-          <NewBemestingsplanForm />
-        </EmptyContent>
-      </Empty>
-    )
-  }
-
   return (
-    <main>
-      <FarmTitle
-        title="Bemestingsplannen voor dit bedrijf"
-        description="Hier kunt u de eerder ingestelde bemestingsplannen beheren."
-      />
-      <div className="p-6">
-        <DataTable
-          data={fertilizerPlans}
-          columns={columns}
-          b_name_farm={b_name_farm}
-          b_id_farm={b_id_farm}
-          canModify={farmWritePermission}
+    <>
+      <Header
+        action={{
+          to: `/farm/${b_id_farm}`,
+          label: "Terug",
+          disabled: false,
+        }}
+      >
+        <HeaderFarm b_id_farm={b_id_farm} farmOptions={farmOptions} />
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>Bemestingsplannen</BreadcrumbItem>
+      </Header>
+      <main>
+        <FarmTitle
+          title="Bemestingsplannen voor dit bedrijf"
+          description="Hier kunt u de eerder ingestelde bemestingsplannen beheren."
         />
-      </div>
-      {/* for the PDF viewer dialog */}
-      <Outlet />
-    </main>
+        <div className="p-6">
+          {fertilizerPlans.length === 0 ? (
+            <Empty>
+              <EmptyHeader>
+                <EmptyTitle>
+                  Er zijn nog geen bemestingsplannen opgesteld voor dit bedrijf.
+                </EmptyTitle>
+                <EmptyContent>Hieronder kunt u een nieuw bemestingsplan opstellen.</EmptyContent>
+              </EmptyHeader>
+              <EmptyContent>
+                <NewBemestingsplanForm />
+              </EmptyContent>
+            </Empty>
+          ) : (
+            <DataTable
+              data={fertilizerPlans}
+              columns={columns}
+              b_name_farm={b_name_farm}
+              b_id_farm={b_id_farm}
+              canModify={farmWritePermission}
+            />
+          )}
+        </div>
+        {/* for the PDF viewer dialog */}
+        <Outlet />
+      </main>
+    </>
   )
 }
