@@ -19,14 +19,15 @@ import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
 import { AdviceProgressBar } from "~/components/blocks/nutrient-advice/progress-bar"
 import { BCS_COLOR_CLASSES, BCS_SCORE_DOT } from "~/components/blocks/soil-visual/bcs-color-utils"
 import { BcsScoreCard } from "~/components/blocks/soil-visual/bcs-score-card"
-import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { getScoreDotClass, getScoreTextClass } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
+import { Dialog, DialogTrigger } from "../../ui/dialog"
 import {
   FieldDashboardTile,
   FieldDashboardTileEmpty,
@@ -789,15 +790,16 @@ export function FieldDashboardSoilAnalysesTile({ dashboard, tile }: FieldDashboa
             </p>
           </div>
           {latestAnalysisPdf && (
-            <PdfViewerDialog
-              a_id={latestAnalysisPdf.a_id}
-              filename={latestAnalysisPdf.filename}
-              title={latestAnalysisPdf.title}
-              triggerLabel="Bekijk PDF"
-              triggerVariant="outline"
-              triggerSize="sm"
-              triggerClassName="shrink-0"
-            />
+            <Dialog>
+              <DialogTrigger asChild>
+                <ViewPdfButton variant="outline" size="sm" className="shrink-0" />
+              </DialogTrigger>
+              <PdfViewerDialogContent
+                downloadUrl={`/api/soil-analysis/download/${latestAnalysisPdf.a_id}.pdf`}
+                filename={latestAnalysisPdf.filename}
+                title={latestAnalysisPdf.title}
+              />
+            </Dialog>
           )}
         </div>
         <Separator />

@@ -5,7 +5,8 @@ import {
   getSoilAnalysisTitle,
 } from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
-import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
+import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
+import { Dialog, DialogTrigger } from "~/components/ui/dialog"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar } from "~/lib/calendar"
@@ -119,18 +120,23 @@ export default function FarmFieldSoilOverviewBlock() {
           <p className="text-muted-foreground text-sm">Bekijk de gegevens van deze bodemanalyse</p>
         </div>
         {loaderData.soilAnalysis.a_file_path && (
-          <PdfViewerDialog
-            a_id={loaderData.soilAnalysis.a_id}
-            filename={getSoilAnalysisDownloadName(
-              loaderData.soilAnalysis,
-              loaderData.field.b_name,
-              loaderData.soilParameterDescription,
-            )}
-            title={getSoilAnalysisTitle(
-              loaderData.soilAnalysis,
-              loaderData.soilParameterDescription,
-            )}
-          />
+          <Dialog>
+            <DialogTrigger asChild>
+              <ViewPdfButton />
+            </DialogTrigger>
+            <PdfViewerDialogContent
+              downloadUrl={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
+              filename={getSoilAnalysisDownloadName(
+                loaderData.soilAnalysis,
+                loaderData.field.b_name,
+                loaderData.soilParameterDescription,
+              )}
+              title={getSoilAnalysisTitle(
+                loaderData.soilAnalysis,
+                loaderData.soilParameterDescription,
+              )}
+            />
+          </Dialog>
         )}
       </div>
       <Separator />

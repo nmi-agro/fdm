@@ -22,6 +22,7 @@ export { createDisplayUsername, createFdmAuth, updateUserProfile } from "./authe
 export { checkPermission, withAuditContext, writeAuditEntry } from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
+  generateCalculationHash,
   getCachedCalculation,
   setCachedCalculation,
   setCalculationError,
@@ -117,6 +118,15 @@ export {
   updateFertilizerApplication,
   updateFertilizerFromCatalogue,
 } from "./fertilizer"
+export {
+  type FertilizerPlan,
+  type FoundFertilizerPlan,
+  addFertilizerPlan,
+  getFertilizerPlan,
+  getFertilizerPlans,
+  removeFertilizerPlan,
+  updateFertilizerPlanFilePath,
+} from "./fertilizer-plan"
 export type {
   BaseFertilizerApplication,
   Fertilizer,
