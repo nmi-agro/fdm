@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmType } from "./fdm.types"
+import { grantRole } from "./authorization"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
 import {
@@ -7,6 +8,7 @@ import {
   getFertilizerPlan,
   getFertilizerPlans,
   removeFertilizerPlan,
+  updateFertilizerPlanFilePath,
 } from "./fertilizer-plan"
 import { createId } from "./id"
 
@@ -127,6 +129,14 @@ describe("getFertilizerPlans", () => {
     await expect(getFertilizerPlans(fdm, "missing-principal", b_id_farm)).rejects.toThrow(
       "Principal does not have permission to perform this action",
     )
+  })
+
+  it("should return an empty array when no plan matches the requested year", async () => {
+    const year = 2033 + Math.floor(Math.random() * 1000)
+    await addFertilizerPlan(fdm, principal_id, b_id_farm, year, `plans/${year}.pdf`, `hash-${year}`)
+
+    const plans = await getFertilizerPlans(fdm, principal_id, b_id_farm, year - 1)
+    expect(plans).toEqual([])
   })
 })
 
@@ -260,6 +270,74 @@ describe("addFertilizerPlan", () => {
   })
 })
 
+describe("updateFertilizerPlanFilePath", () => {
+  let fdm: FdmType
+  let principal_id: string
+  let b_id_farm: string
+
+  beforeEach(async () => {
+    const host = inject("host")
+    const port = inject("port")
+    const user = inject("user")
+    const password = inject("password")
+    const database = inject("database")
+
+    fdm = createFdmServer(host, port, user, password, database)
+    principal_id = createId()
+    b_id_farm = await addFarm(
+      fdm,
+      principal_id,
+      "Test Farm for Updating Fertilizer Plan",
+      "222222",
+      "Test Street 5",
+      "5000",
+    )
+  })
+
+  it("should update the file path of an existing fertilizer plan", async () => {
+    const p_id_plan = await addFertilizerPlan(
+      fdm,
+      principal_id,
+      b_id_farm,
+      2035,
+      "plans/original.pdf",
+      "original-hash",
+    )
+
+    await updateFertilizerPlanFilePath(fdm, principal_id, p_id_plan, "plans/updated.pdf")
+
+    const plan = await getFertilizerPlan(fdm, principal_id, p_id_plan)
+    expect(plan).toEqual(
+      expect.objectContaining({
+        p_id_plan,
+        p_plan_file_path: "plans/updated.pdf",
+        p_plan_hash: "original-hash",
+      }),
+    )
+  })
+
+  it("should reject access if the fertilizer plan is not found", async () => {
+    await expect(
+      updateFertilizerPlanFilePath(fdm, principal_id, "unknown-plan", "plans/updated.pdf"),
+    ).rejects.toThrow("Principal does not have permission to perform this action")
+  })
+
+  it("should reject access for an unauthorized principal", async () => {
+    const p_id_plan = await addFertilizerPlan(
+      fdm,
+      principal_id,
+      b_id_farm,
+      2036,
+      "plans/forbidden.pdf",
+      "forbidden-hash",
+    )
+
+    await expect(
+      updateFertilizerPlanFilePath(fdm, "missing-principal", p_id_plan, "plans/updated.pdf"),
+    ).rejects.toThrow("Principal does not have permission to perform this action")
+  })
+})
+
 describe("removeFertilizerPlan", () => {
   let fdm: FdmType
   let principal_id: string
@@ -321,6 +399,163 @@ describe("removeFertilizerPlan", () => {
       "forbidden-hash",
     )
 
+    await expect(removeFertilizerPlan(fdm, "missing-principal", p_id_plan)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+  })
+})
+
+describe("fertilizer_plan authorization roles", () => {
+  let fdm: FdmType
+  let ownerId: string
+  let b_id_farm: string
+  let p_id_plan: string
+
+  beforeEach(async () => {
+    const host = inject("host")
+    const port = inject("port")
+    const user = inject("user")
+    const password = inject("password")
+    const database = inject("database")
+
+    fdm = createFdmServer(host, port, user, password, database)
+    ownerId = createId()
+    b_id_farm = await addFarm(
+      fdm,
+      ownerId,
+      "Test Farm for Fertilizer Plan Roles",
+      "333333",
+      "Test Street 6",
+      "6000",
+    )
+    p_id_plan = await addFertilizerPlan(
+      fdm,
+      ownerId,
+      b_id_farm,
+      2040,
+      "plans/roles.pdf",
+      "roles-hash",
+    )
+  })
+
+  it("should allow a farm owner to read, write, remove, and share the fertilizer plans", async () => {
+    const advisorId = createId()
+    await grantRole(fdm, "farm", "owner", b_id_farm, advisorId)
+
+    await expect(getFertilizerPlans(fdm, advisorId, b_id_farm)).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ p_id_plan })]),
+    )
+    await expect(getFertilizerPlan(fdm, advisorId, p_id_plan)).resolves.toEqual(
+      expect.objectContaining({ p_id_plan }),
+    )
+
+    const newPlanId = await addFertilizerPlan(
+      fdm,
+      advisorId,
+      b_id_farm,
+      2041,
+      "plans/owner-added.pdf",
+      "owner-added-hash",
+    )
+    expect(newPlanId).toBeTruthy()
+
+    await updateFertilizerPlanFilePath(fdm, advisorId, p_id_plan, "plans/owner-updated.pdf")
+    const updatedPlan = await getFertilizerPlan(fdm, advisorId, p_id_plan)
+    expect(updatedPlan.p_plan_file_path).toBe("plans/owner-updated.pdf")
+
+    await removeFertilizerPlan(fdm, advisorId, p_id_plan)
+    await expect(getFertilizerPlan(fdm, advisorId, p_id_plan)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+  })
+
+  it("should allow a farm advisor to read, write, and remove fertilizer plans", async () => {
+    const advisorId = createId()
+    await grantRole(fdm, "farm", "advisor", b_id_farm, advisorId)
+
+    await expect(getFertilizerPlans(fdm, advisorId, b_id_farm)).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ p_id_plan })]),
+    )
+    await expect(getFertilizerPlan(fdm, advisorId, p_id_plan)).resolves.toEqual(
+      expect.objectContaining({ p_id_plan }),
+    )
+
+    const newPlanId = await addFertilizerPlan(
+      fdm,
+      advisorId,
+      b_id_farm,
+      2041,
+      "plans/advisor-added.pdf",
+      "advisor-added-hash",
+    )
+    expect(newPlanId).toBeTruthy()
+
+    await updateFertilizerPlanFilePath(fdm, advisorId, p_id_plan, "plans/advisor-updated.pdf")
+    const updatedPlan = await getFertilizerPlan(fdm, advisorId, p_id_plan)
+    expect(updatedPlan.p_plan_file_path).toBe("plans/advisor-updated.pdf")
+
+    await removeFertilizerPlan(fdm, advisorId, p_id_plan)
+    await expect(getFertilizerPlan(fdm, advisorId, p_id_plan)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+  })
+
+  it("should allow a farm researcher to only read fertilizer plans", async () => {
+    const researcherId = createId()
+    await grantRole(fdm, "farm", "researcher", b_id_farm, researcherId)
+
+    await expect(getFertilizerPlans(fdm, researcherId, b_id_farm)).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ p_id_plan })]),
+    )
+    await expect(getFertilizerPlan(fdm, researcherId, p_id_plan)).resolves.toEqual(
+      expect.objectContaining({ p_id_plan }),
+    )
+
+    await expect(
+      addFertilizerPlan(
+        fdm,
+        researcherId,
+        b_id_farm,
+        2042,
+        "plans/researcher-added.pdf",
+        "researcher-added-hash",
+      ),
+    ).rejects.toThrow("Principal does not have permission to perform this action")
+
+    await expect(
+      updateFertilizerPlanFilePath(fdm, researcherId, p_id_plan, "plans/researcher-updated.pdf"),
+    ).rejects.toThrow("Principal does not have permission to perform this action")
+
+    await expect(removeFertilizerPlan(fdm, researcherId, p_id_plan)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+  })
+
+  it("should reject a principal with no role at all on every operation", async () => {
+    await expect(getFertilizerPlans(fdm, "missing-principal", b_id_farm)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+    await expect(getFertilizerPlan(fdm, "missing-principal", p_id_plan)).rejects.toThrow(
+      "Principal does not have permission to perform this action",
+    )
+    await expect(
+      addFertilizerPlan(
+        fdm,
+        "missing-principal",
+        b_id_farm,
+        2043,
+        "plans/stranger.pdf",
+        "stranger-hash",
+      ),
+    ).rejects.toThrow("Principal does not have permission to perform this action")
+    await expect(
+      updateFertilizerPlanFilePath(
+        fdm,
+        "missing-principal",
+        p_id_plan,
+        "plans/stranger-updated.pdf",
+      ),
+    ).rejects.toThrow("Principal does not have permission to perform this action")
     await expect(removeFertilizerPlan(fdm, "missing-principal", p_id_plan)).rejects.toThrow(
       "Principal does not have permission to perform this action",
     )
