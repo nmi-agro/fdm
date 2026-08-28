@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm"
+import { and, asc, eq } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
@@ -66,7 +66,12 @@ export async function getFertilizerPlans(
         schema.fertilizerPlans,
         eq(schema.fertilizerPlanEstablishing.p_id_plan, schema.fertilizerPlans.p_id_plan),
       )
-      .where(typeof year === "number" ? eq(schema.fertilizerPlans.p_plan_year, year) : sql`TRUE`)
+      .where(
+        and(
+          eq(schema.fertilizerPlanEstablishing.b_id_farm, b_id_farm),
+          typeof year === "number" ? eq(schema.fertilizerPlans.p_plan_year, year) : undefined,
+        ),
+      )
       .orderBy(
         asc(schema.fertilizerPlans.p_plan_year),
         asc(schema.fertilizerPlanEstablishing.p_plan_date),
