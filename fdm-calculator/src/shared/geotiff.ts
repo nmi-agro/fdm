@@ -5,7 +5,7 @@ import { fromArrayBuffer, fromUrl, type GeoTIFF } from "geotiff"
  * This prevents overwhelming the Node.js socket pool with too many concurrent
  * HTTP Range requests when Promise.all is used across many fields.
  */
-class Semaphore {
+export class Semaphore {
   private queue: (() => void)[] = []
   private active = 0
   constructor(private maxConcurrent: number) {}

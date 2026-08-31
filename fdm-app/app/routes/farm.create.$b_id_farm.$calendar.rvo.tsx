@@ -459,30 +459,9 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
         throw new Error("Invalid review data format")
       }
 
-      const onFieldAdded = async (tx: FdmType, b_id: string, geometry: FieldGeometry) => {
-        const nmiApiKey = getNmiApiKey()
-        if (nmiApiKey) {
-          try {
-            const soilEstimates = await getSoilParameterEstimatesForGeometry(
-              fdm,
-              geometry,
-              nmiApiKey,
-            )
-            await addSoilAnalysis(
-              tx,
-              session.principal_id,
-              undefined,
-              "nl-other-nmi",
-              b_id,
-              soilEstimates.a_depth_lower ?? 30,
-              undefined,
-              soilEstimates,
-              soilEstimates.a_depth_upper,
-            )
-          } catch (e) {
-            console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
-          }
-        }
+      const addedFields: { b_id: string; geometry: FieldGeometry }[] = []
+      const onFieldAdded = async (_: FdmType, b_id: string, geometry: FieldGeometry) => {
+        addedFields.push({ b_id, geometry })
       }
 
       await processRvoImport(
@@ -494,6 +473,42 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
         year,
         onFieldAdded,
       )
+
+      const nmiApiKey = getNmiApiKey()
+      if (nmiApiKey) {
+        const chunkSize = 10
+        const chunkedFeatures: { b_id: string; geometry: FieldGeometry }[][] = []
+        for (let i = 0; i < addedFields.length; i += chunkSize) {
+          chunkedFeatures.push(addedFields.slice(i, i + chunkSize))
+        }
+        for (const chunk of chunkedFeatures) {
+          await Promise.all(
+            chunk.map(async ({ b_id, geometry }) => {
+              try {
+                const soilEstimates = await getSoilParameterEstimatesForGeometry(
+                  fdm,
+                  geometry,
+                  nmiApiKey,
+                )
+                await addSoilAnalysis(
+                  fdm,
+                  session.principal_id,
+                  undefined,
+                  "nl-other-nmi",
+                  b_id,
+                  soilEstimates.a_depth_lower ?? 30,
+                  undefined,
+                  soilEstimates,
+                  soilEstimates.a_depth_upper,
+                )
+              } catch (e) {
+                console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
+              }
+            }),
+          )
+        }
+      }
+
       return redirect(`/farm/create/${b_id_farm}/${yearString}/fields`)
     } catch (e: any) {
       console.error("Error at saving RVO fields: ", e)
@@ -503,6 +518,4 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
       }
     }
   }
-
-  return {}
 }

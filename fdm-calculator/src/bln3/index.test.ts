@@ -102,7 +102,7 @@ describe("requestBln3Score", () => {
   })
 
   it("should throw if the NMI API returns a non-ok response", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
+    vi.mocked(fetch).mockResolvedValue({
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
@@ -112,7 +112,7 @@ describe("requestBln3Score", () => {
     await expect(requestBln3Score(baseInputs)).rejects.toThrow(
       "BLN3 score request failed with status 500",
     )
-    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledTimes(3)
   })
 
   it("should throw if the NMI API returns success: false", async () => {
@@ -147,19 +147,37 @@ describe("requestBln3Score", () => {
   })
 
   it("should rethrow network errors from fetch", async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error("Network connection lost"))
+    vi.mocked(fetch).mockRejectedValue(new Error("Network connection lost"))
 
     await expect(requestBln3Score(baseInputs)).rejects.toThrow("Network connection lost")
   })
 
   it("should map AbortError to a specific timeout message", async () => {
-    const abortError = new Error("The operation was aborted")
-    abortError.name = "AbortError"
-    vi.mocked(fetch).mockRejectedValueOnce(abortError)
+    vi.useFakeTimers()
 
-    await expect(requestBln3Score(baseInputs)).rejects.toThrow(
-      "BLN3 score request timed out (30s). The NMI API did not respond in time.",
-    )
+    try {
+      vi.mocked(fetch).mockImplementation((_url, options) => {
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            reject(options?.signal?.reason)
+          })
+        })
+      })
+
+      const assertion = expect(requestBln3Score(baseInputs)).rejects.toThrow(
+        "BLN3 score request timed out. The NMI API did not respond in time.",
+      )
+
+      try {
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+      } finally {
+        await assertion
+      }
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
