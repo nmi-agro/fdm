@@ -25,7 +25,7 @@ export function Bln3HelpDialog() {
           Wat is BLN3?
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Wat is BLN3?</DialogTitle>
         </DialogHeader>
@@ -77,6 +77,17 @@ export function Bln3HelpDialog() {
               <strong>oppervlaktegewogen gemiddelde</strong> van de individuele percelen. Percelen
               zonder geregistreerde oppervlakte of geldige bodemanalyse worden hierbij automatisch
               uitgesloten om vertekening te voorkomen.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <p className="text-foreground font-medium">Uitgesloten percelen</p>
+            <p className="text-xs">
+              Bufferstroken en percelen met een natuur- of niet-landbouwkundig hoofdgewas (zoals
+              sloten, schouwpaden en natuurterreinen) worden uitgesloten van de BLN3-berekeningen en
+              het maatregelenadvies. Omdat BLN3 en de bodemmaatregelen specifiek zijn ontworpen voor
+              productieve landbouwgronden, zijn deze voor dit type percelen (in het betreffende
+              teeltjaar) niet beschikbaar.
             </p>
           </div>
 

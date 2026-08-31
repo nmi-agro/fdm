@@ -33,6 +33,7 @@ import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { Bln3HelpDialog } from "~/components/blocks/indicators/bln3-help-dialog"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
 import { getColumns, type MeasureTableRow } from "~/components/blocks/measures/columns"
 import { getFieldSummaryColumns } from "~/components/blocks/measures/field-summary-columns"
@@ -71,6 +72,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { isExcludedFromBln3 } from "~/lib/indicators"
 import { INDICATORS } from "~/lib/indicators"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
@@ -398,12 +400,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
     ])
 
+    // Exclude buffer strips, nature plots, and non-agricultural fields from measures calculations and UI
+    const eligibleFieldsWithCultivations = fields
+      .map((f, i) => ({
+        field: f,
+        cultivations: fieldCultivations[i],
+        mainCultivation: getMainCultivation(fieldCultivations[i], calendar) ?? null,
+      }))
+      .filter(
+        ({ field, mainCultivation }) =>
+          !isExcludedFromBln3({
+            b_bufferstrip: field.b_bufferstrip,
+            b_lu_croprotation: mainCultivation?.b_lu_croprotation,
+            b_lu_catalogue: mainCultivation?.b_lu_catalogue,
+          }),
+      )
+
     // Lazy, batched farm-wide advice fetch for the "Aanbevolen
     // maatregelen" card — not awaited so it never blocks the rest of the page.
     const farmNextStepsPromise = getFarmNextSteps({
       principal_id: session.principal_id,
       b_id_farm,
-      fields: fields.map((f) => ({ b_id: f.b_id, b_name: f.b_name ?? null })),
+      fields: eligibleFieldsWithCultivations.map(({ field }) => ({
+        b_id: field.b_id,
+        b_name: field.b_name ?? null,
+      })),
       b_year,
       timeframe,
       measuresMap,
@@ -417,37 +438,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         measureImpacts: {},
       }
     })
-    const fieldList = fields.map((f, i) => {
-      const cultivations = fieldCultivations[i]
-      const main = getMainCultivation(cultivations, calendar) ?? null
-      return {
-        b_id: f.b_id,
-        b_name: f.b_name ?? null,
-        b_area: f.b_area ?? null,
-        mainCultivation: main
-          ? {
-              b_lu_name: main.b_lu_name ?? null,
-              b_lu_croprotation: main.b_lu_croprotation ?? null,
-            }
-          : null,
-      }
-    })
+    const fieldList = eligibleFieldsWithCultivations.map(({ field, mainCultivation }) => ({
+      b_id: field.b_id,
+      b_name: field.b_name ?? null,
+      b_area: field.b_area ?? null,
+      mainCultivation: mainCultivation
+        ? {
+            b_lu_name: mainCultivation.b_lu_name ?? null,
+            b_lu_croprotation: mainCultivation.b_lu_croprotation ?? null,
+          }
+        : null,
+    }))
 
-    // Build GeoJSON with measureCount per field
+    // Build GeoJSON with measureCount per field for eligible fields
     const fieldsGeoJSON: FeatureCollection = {
       type: "FeatureCollection",
-      features: fields.map((f) => ({
+      features: eligibleFieldsWithCultivations.map(({ field }) => ({
         type: "Feature" as const,
         properties: {
-          b_id: f.b_id,
-          b_name: f.b_name ?? null,
-          b_area: f.b_area ?? null,
-          measureCount: measuresMap.get(f.b_id)?.length ?? 0,
+          b_id: field.b_id,
+          b_name: field.b_name ?? null,
+          b_area: field.b_area ?? null,
+          measureCount: measuresMap.get(field.b_id)?.length ?? 0,
         },
-        geometry: (f.b_geometry
+        geometry: (field.b_geometry
           ? (() => {
               try {
-                return simplify(f.b_geometry as Geometry, {
+                return simplify(field.b_geometry as Geometry, {
                   tolerance: 0.00001,
                   highQuality: true,
                 })
@@ -460,13 +477,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     // Build unique-measure rows grouped by m_id, including b_id_measure/dates
+    const eligibleFieldIds = new Set(eligibleFieldsWithCultivations.map(({ field }) => field.b_id))
     const measuresByMId = new Map<string, MeasureTableRow>()
     for (const [b_id, measures] of measuresMap.entries()) {
-      const field = fields.find((f) => f.b_id === b_id)
+      if (!eligibleFieldIds.has(b_id)) continue
+      const fieldEntry_item = eligibleFieldsWithCultivations.find(
+        ({ field }) => field.b_id === b_id,
+      )
       for (const m of measures) {
         const fieldEntry = {
           b_id,
-          b_name: field?.b_name ?? null,
+          b_name: fieldEntry_item?.field.b_name ?? null,
           b_id_measure: m.b_id_measure,
           m_start: m.m_start,
           m_end: m.m_end,
@@ -487,30 +508,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       a.m_name.localeCompare(b.m_name, "nl"),
     )
 
-    // Compute summary stats from measuresMap (no extra API calls needed)
-    const totalMeasures = [...measuresMap.values()].reduce(
-      (sum, measures) => sum + measures.length,
-      0,
-    )
-    const fieldsWithMeasures = [...measuresMap.values()].filter((m) => m.length > 0).length
-    const fieldsWithoutMeasures = fields.length - fieldsWithMeasures
+    // Compute summary stats from measuresMap for eligible fields
+    const totalMeasures = [...measuresMap.entries()]
+      .filter(([b_id]) => eligibleFieldIds.has(b_id))
+      .reduce((sum, [, measures]) => sum + measures.length, 0)
+    const fieldsWithMeasures = eligibleFieldsWithCultivations.filter(
+      ({ field }) => (measuresMap.get(field.b_id)?.length ?? 0) > 0,
+    ).length
+    const fieldsWithoutMeasures = eligibleFieldsWithCultivations.length - fieldsWithMeasures
 
-    // Per-field summary for the table — derived from existing data
-    const fieldSummaries = fields.map((f, i) => {
-      const fieldMeasures = measuresMap.get(f.b_id) ?? []
-      const cultivation = fieldCultivations[i]
-      const main = getMainCultivation(cultivation, calendar) ?? null
+    // Per-field summary for the table — derived from existing data for eligible fields
+    const fieldSummaries = eligibleFieldsWithCultivations.map(({ field, mainCultivation }) => {
+      const fieldMeasures = measuresMap.get(field.b_id) ?? []
       return {
-        b_id: f.b_id,
-        b_name: f.b_name ?? null,
-        b_area: f.b_area ?? null,
-        b_bufferstrip: f.b_bufferstrip ?? false,
-        mainCultivations: main
+        b_id: field.b_id,
+        b_name: field.b_name ?? null,
+        b_area: field.b_area ?? null,
+        b_bufferstrip: field.b_bufferstrip ?? false,
+        mainCultivations: mainCultivation
           ? [
               {
-                b_lu_catalogue: main.b_lu_catalogue,
-                b_lu_name: main.b_lu_name ?? null,
-                b_lu_croprotation: main.b_lu_croprotation ?? null,
+                b_lu_catalogue: mainCultivation.b_lu_catalogue,
+                b_lu_name: mainCultivation.b_lu_name ?? null,
+                b_lu_croprotation: mainCultivation.b_lu_croprotation ?? null,
               },
             ]
           : [],
@@ -531,7 +551,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldSummaries,
       applicabilityByField,
       stats: {
-        totalFields: fields.length,
+        totalFields: eligibleFieldsWithCultivations.length,
         totalMeasures,
         fieldsWithMeasures,
         fieldsWithoutMeasures,
@@ -925,6 +945,11 @@ export default function MeasuresFarmIndex() {
       <FarmTitle
         title="Maatregelen"
         description="Overzicht van bodembeheersmaatregelen per perceel op dit bedrijf."
+        rightNode={
+          <div className="flex items-center gap-2">
+            <Bln3HelpDialog />
+          </div>
+        }
       />
 
       <FarmContent>
@@ -940,12 +965,12 @@ export default function MeasuresFarmIndex() {
                 <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.totalMeasures}</p>
               </div>
               <div className="bg-card rounded-lg border px-4 py-3">
-                <p className="text-muted-foreground text-xs">Percelen met maatregel</p>
+                <p className="text-muted-foreground text-xs">Gewaspercelen met maatregel</p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.fieldsWithMeasures}</p>
               </div>
 
               <div className="rounded-lg border px-4 py-3">
-                <p className="text-muted-foreground text-xs">Percelen zonder maatregel</p>
+                <p className="text-muted-foreground text-xs">Gewaspercelen zonder maatregel</p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums">
                   {stats.fieldsWithoutMeasures}
                 </p>

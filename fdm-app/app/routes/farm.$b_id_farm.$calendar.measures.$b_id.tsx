@@ -70,6 +70,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
@@ -112,63 +113,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
 
-    const [
-      field,
-      fields,
-      measures,
-      catalogue,
-      farmMeasures,
-      cultivations,
-      bln3Result,
-      applicabilityMap,
-      advice,
-      fieldWritePermission,
-    ] = await Promise.all([
-      getField(fdm, session.principal_id, b_id),
-      getFields(fdm, session.principal_id, b_id_farm, timeframe),
-      getMeasures(fdm, session.principal_id, b_id, timeframe),
-      getMeasuresFromCatalogue(fdm),
-      getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-      getCultivations(fdm, session.principal_id, b_id),
-      getIndicatorsForField({
-        principal_id: session.principal_id,
-        b_id,
-        timeframe,
-      }).catch(() => null),
-      getMeasureApplicabilityForField({
-        principal_id: session.principal_id,
-        b_id,
-        b_year,
-        timeframe,
-      }).catch((err) => {
-        console.error(
-          `BLN3 applicability check failed for field ${b_id}:`,
-          err instanceof Error ? err.message : String(err),
-        )
-        return null
-      }),
-      getMeasureAdviceForField({
-        principal_id: session.principal_id,
-        b_id,
-        b_year,
-        timeframe,
-      }).catch((err) => {
-        console.error(
-          `BLN3 measure advice failed for field ${b_id}:`,
-          err instanceof Error ? err.message : String(err),
-        )
-        return null
-      }),
-      checkPermission(
-        fdm,
-        "field",
-        "write",
-        b_id,
-        session.principal_id,
-        "routes/farm.$b_id_farm.$calendar.measures.$b_id",
-        false,
-      ),
-    ])
+    const [field, fields, measures, catalogue, farmMeasures, cultivations, fieldWritePermission] =
+      await Promise.all([
+        getField(fdm, session.principal_id, b_id),
+        getFields(fdm, session.principal_id, b_id_farm, timeframe),
+        getMeasures(fdm, session.principal_id, b_id, timeframe),
+        getMeasuresFromCatalogue(fdm),
+        getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        getCultivations(fdm, session.principal_id, b_id),
+        checkPermission(
+          fdm,
+          "field",
+          "write",
+          b_id,
+          session.principal_id,
+          "routes/farm.$b_id_farm.$calendar.measures.$b_id",
+          false,
+        ),
+      ])
 
     if (!field) {
       throw data("not found: b_id", {
@@ -183,6 +145,46 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const harvestDate = activeCultivation?.b_lu_end
       ? activeCultivation.b_lu_end.toISOString().split("T")[0]
       : null
+
+    const isExcluded = isExcludedFromBln3({
+      b_bufferstrip: field.b_bufferstrip,
+      b_lu_croprotation: activeCultivation?.b_lu_croprotation,
+      b_lu_catalogue: activeCultivation?.b_lu_catalogue,
+    })
+
+    const [bln3Result, applicabilityMap, advice] = isExcluded
+      ? [null, null, null]
+      : await Promise.all([
+          getIndicatorsForField({
+            principal_id: session.principal_id,
+            b_id,
+            timeframe,
+          }).catch(() => null),
+          getMeasureApplicabilityForField({
+            principal_id: session.principal_id,
+            b_id,
+            b_year,
+            timeframe,
+          }).catch((err) => {
+            console.error(
+              `BLN3 applicability check failed for field ${b_id}:`,
+              err instanceof Error ? err.message : String(err),
+            )
+            return null
+          }),
+          getMeasureAdviceForField({
+            principal_id: session.principal_id,
+            b_id,
+            b_year,
+            timeframe,
+          }).catch((err) => {
+            console.error(
+              `BLN3 measure advice failed for field ${b_id}:`,
+              err instanceof Error ? err.message : String(err),
+            )
+            return null
+          }),
+        ])
 
     // Calendar year start as default measure start date
     const calendarYearStart = Number.isFinite(calendarYear)
@@ -256,6 +258,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     return {
       field,
+      isExcluded,
+      activeCultivationName: activeCultivation?.b_lu_name ?? null,
       fieldWritePermission,
       measures,
       catalogue,
@@ -556,6 +560,8 @@ function MeasureEditDialog({
 export default function MeasuresFieldDetail() {
   const {
     field,
+    isExcluded,
+    activeCultivationName,
     measures,
     catalogue,
     fieldsGeoJSON,
@@ -619,7 +625,7 @@ export default function MeasuresFieldDetail() {
               : `${measures.length} actieve maatregel${measures.length === 1 ? "" : "en"}`}
           </p>
         </div>
-        {fieldWritePermission && (
+        {fieldWritePermission && !isExcluded && (
           <div className="flex shrink-0 items-center gap-2">
             <Button onClick={() => handleOpenAddMeasure()} size="sm">
               <Plus className="mr-1 h-4 w-4" />
@@ -629,11 +635,24 @@ export default function MeasuresFieldDetail() {
         )}
       </div>
 
+      {isExcluded && (
+        <div className="bg-muted/30 text-muted-foreground rounded-lg border p-8 text-center text-sm">
+          <p className="text-foreground font-medium">Bodemmaatregelen niet beschikbaar</p>
+          <p className="mt-1">
+            {getBln3ExclusionMessage({
+              b_bufferstrip: field.b_bufferstrip,
+              cultivationName: activeCultivationName,
+              calendarYear: calendar,
+            })}
+          </p>
+        </div>
+      )}
+
       {/* Indicator status cluster — the two blocks are peers ("what needs
           attention" vs. "what measures already achieve"): side by side on xl,
           stacked attention-first below. With no active measures the impact
           block is meaningless and hidden, and the cluster stays single-column. */}
-      {fieldScore && fieldScore.indicators.length > 0 && (
+      {!isExcluded && fieldScore && fieldScore.indicators.length > 0 && (
         <div
           className={cn(
             "flex flex-col gap-3",
@@ -666,12 +685,16 @@ export default function MeasuresFieldDetail() {
           {measures.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border py-12 text-center">
               <p className="text-sm font-medium">Geen maatregelen actief</p>
-              <p className="mt-1 text-xs">Voeg de eerste maatregel toe om te beginnen.</p>
-              {fieldWritePermission && (
-                <Button onClick={() => handleOpenAddMeasure()} size="sm" className="mt-4">
-                  <Plus className="mr-1 h-4 w-4" />
-                  Toevoegen
-                </Button>
+              {!isExcluded && (
+                <>
+                  <p className="mt-1 text-xs">Voeg de eerste maatregel toe om te beginnen.</p>
+                  {fieldWritePermission && (
+                    <Button onClick={() => handleOpenAddMeasure()} size="sm" className="mt-4">
+                      <Plus className="mr-1 h-4 w-4" />
+                      Toevoegen
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           ) : (

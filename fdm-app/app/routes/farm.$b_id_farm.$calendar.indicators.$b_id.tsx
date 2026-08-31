@@ -59,7 +59,12 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { type Ecosysteemdienst, INDICATORS, scoreToDisplay } from "~/lib/indicators"
+import {
+  type Ecosysteemdienst,
+  getBln3ExclusionMessage,
+  INDICATORS,
+  scoreToDisplay,
+} from "~/lib/indicators"
 
 const FieldMap = lazy(() => import("~/components/blocks/indicators/field-map"))
 
@@ -437,6 +442,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       cultivationSummaries,
       indicatorAdvice,
       adviceUnavailable,
+      isExcluded: bln3Result.inputs.isExcluded ?? false,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
@@ -501,6 +507,7 @@ export default function IndicatorsFieldDetail() {
     cultivationSummaries,
     indicatorAdvice,
     adviceUnavailable,
+    isExcluded,
     soilData,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
@@ -644,75 +651,91 @@ export default function IndicatorsFieldDetail() {
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* ── Main content column ──────────────────────────── */}
           <div className="min-w-0 flex-1 space-y-4">
-            {/* Aggregations tree + input dialog */}
-            <div className="flex flex-col gap-4">
-              {fieldScore && (
-                <Card className="border-border shadow-sm">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
-                        <CardDescription className="mt-1.5 text-xs">
-                          Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie voor dit
-                          perceel. Klik op de knoppen om in te zoomen.
-                        </CardDescription>
-                      </div>
-                      <div className="shrink-0">
-                        <FieldInputDialog
-                          cultivations={cultivationSummaries}
-                          fieldMeasures={fieldMeasures}
-                          soilData={soilData}
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CategoryFilter
-                activeCategories={activeCategories}
-                onToggle={handleCategoryToggle}
-                onClearAll={handleCategoryAll}
-              />
-              <MeasuresToggle withMeasures={withMeasures} onToggle={handleMeasuresToggle} />
-            </div>
-
-            {/* No score state */}
-            {!fieldScore && (
+            {isExcluded ? (
               <div className="bg-muted/30 text-muted-foreground rounded-lg border p-8 text-center text-sm">
-                <p className="font-medium">Geen indicatoren beschikbaar</p>
+                <p className="text-foreground font-medium">Bodemkwaliteit (BLN) niet beschikbaar</p>
                 <p className="mt-1">
-                  Er is geen bodemanalyse beschikbaar voor dit perceel, of de berekening is mislukt.
+                  {getBln3ExclusionMessage({
+                    b_bufferstrip: field.b_bufferstrip,
+                    cultivationName: currentCultivationName,
+                    calendarYear: calendar,
+                  })}
                 </p>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Aggregations tree + input dialog */}
+                <div className="flex flex-col gap-4">
+                  {fieldScore && (
+                    <Card className="border-border shadow-sm">
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
+                            <CardDescription className="mt-1.5 text-xs">
+                              Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie voor dit
+                              perceel. Klik op de knoppen om in te zoomen.
+                            </CardDescription>
+                          </div>
+                          <div className="shrink-0">
+                            <FieldInputDialog
+                              cultivations={cultivationSummaries}
+                              fieldMeasures={fieldMeasures}
+                              soilData={soilData}
+                            />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
 
-            {/* Indicator cards */}
-            {sortedIndicatorResults.length > 0 && (
-              <div className="space-y-2">
-                {sortedIndicatorResults.map(({ info, result }) => (
-                  <IndicatorCard
-                    key={info.id}
-                    info={info}
-                    result={result}
-                    fieldMeasures={fieldMeasures}
-                    measuresHref={measuresHref}
-                    showIndex={!withMeasures}
-                    defaultExpanded={info.id === indicatorId}
-                    recommendedMeasures={
-                      adviceUnavailable ? null : (indicatorAdvice?.[info.id] ?? [])
-                    }
+                <Separator />
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CategoryFilter
+                    activeCategories={activeCategories}
+                    onToggle={handleCategoryToggle}
+                    onClearAll={handleCategoryAll}
                   />
-                ))}
-              </div>
+                  <MeasuresToggle withMeasures={withMeasures} onToggle={handleMeasuresToggle} />
+                </div>
+
+                {/* No score state */}
+                {!fieldScore && (
+                  <div className="bg-muted/30 text-muted-foreground rounded-lg border p-8 text-center text-sm">
+                    <p className="font-medium">Geen indicatoren beschikbaar</p>
+                    <p className="mt-1">
+                      Er is geen bodemanalyse beschikbaar voor dit perceel, of de berekening is
+                      mislukt.
+                    </p>
+                  </div>
+                )}
+
+                {/* Indicator cards */}
+                {sortedIndicatorResults.length > 0 && (
+                  <div className="space-y-2">
+                    {sortedIndicatorResults.map(({ info, result }) => (
+                      <IndicatorCard
+                        key={info.id}
+                        info={info}
+                        result={result}
+                        fieldMeasures={fieldMeasures}
+                        measuresHref={measuresHref}
+                        showIndex={!withMeasures}
+                        defaultExpanded={info.id === indicatorId}
+                        recommendedMeasures={
+                          adviceUnavailable ? null : (indicatorAdvice?.[info.id] ?? [])
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Adopted measures for this field */}
