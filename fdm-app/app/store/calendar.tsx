@@ -1,4 +1,6 @@
 import { create } from "zustand"
+import { persist, createJSONStorage } from "zustand/middleware"
+import { ssrSafeSessionJSONStorage } from "./storage"
 
 interface CalendarState {
   calendar: string | undefined
@@ -8,10 +10,15 @@ interface CalendarState {
 // Get current year
 const currentYear = new Date().getFullYear().toString()
 
-export const useCalendarStore = create<CalendarState>((set) => ({
-  calendar: currentYear, // Initial calendar is current year
-  setCalendar: (calendar) => set({ calendar: calendar ? calendar : currentYear }),
-}))
+export const useCalendarStore = create<CalendarState>()(
+  persist(
+    (set) => ({
+      calendar: currentYear, // Initial calendar is current year
+      setCalendar: (calendar) => set({ calendar: calendar ? calendar : currentYear }),
+    }),
+    { name: "selectedCalendar", storage: createJSONStorage(() => ssrSafeSessionJSONStorage) },
+  ),
+)
 
 /**
  * Returns `true` if it fully handled the jump (the caller should skip its normal navigation);
