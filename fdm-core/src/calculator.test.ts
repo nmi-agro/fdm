@@ -253,8 +253,16 @@ describe("withCalculationCache", () => {
     const calculate = vi.fn(async (inputs: { data: { apiKey: string; value: string } }) => {
       return `result for ${inputs.data.value}`
     })
+    const date = new Date()
     const calculatorVersion = "1.0.0"
-    const input = { data: { apiKey: "nested-secret", value: "public" } }
+    const input = {
+      data: {
+        apiKey: "nested-secret",
+        value: "public",
+        date: date,
+        items: [{ apiKey: "nested-secret" }],
+      },
+    }
     const getCalculation = withCalculationCache(
       calculate,
       "calculateWithNestedSecrets",
@@ -269,7 +277,7 @@ describe("withCalculationCache", () => {
 
     // Expected input for cache (with nested REDACTED secret)
     const expectedCacheInput = {
-      data: { apiKey: "REDACTED", value: "public" },
+      data: { apiKey: "REDACTED", value: "public", date: date, items: [{ apiKey: "REDACTED" }] },
     }
     const expectedHash = generateCalculationHash(
       "calculateWithNestedSecrets",
