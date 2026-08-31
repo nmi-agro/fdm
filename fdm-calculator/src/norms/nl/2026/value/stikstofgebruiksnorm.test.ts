@@ -2073,4 +2073,190 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
     expect(result335.normValue).toBe(0)
     expect(result335.normSource).toContain("Geen plaatsingsruimte")
   })
+
+  it("resolves koolzaad subtype 'zomer' for nl_1923", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
+    const mockInput: NL2026NormsInput = {
+      farm: { has_grazing_intention: false },
+      field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_1923", // Zomerkoolzaad
+          b_lu_start: new Date(2026, 2, 1),
+          b_lu_end: new Date(2026, 7, 1),
+        },
+      ] as NL2026NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+    expect(result.normSource).toContain("Akkerbouwgewassen, koolzaad (zomer)")
+  })
+
+  it("should grant 0 norm for groenbemester with footnote 7a when there is no preceding crop", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
+    const mockInput: NL2026NormsInput = {
+      farm: { has_grazing_intention: false },
+      field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_428", // Groenbemester gele mosterd
+          b_lu_start: new Date(2026, 7, 15), // Aug 15, 2026 (< Sep 1)
+          b_lu_end: new Date(2027, 1, 15), // Feb 15, 2027 (>= Feb 1)
+        },
+      ] as NL2026NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+    expect(result.normValue).toBe(0)
+    expect(result.normSource).toContain(
+      "Groenbemesters, niet-vlinderbloemige (geen extra ruimte: geen voorafgaande teelt, voetnoot 7a)",
+    )
+  })
+
+  it("should evaluate Footnote 7b (Graszaadstoppel) before Sep 16 and on/after Sep 16", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
+    const dataSpy = spyNitrogenStandards([
+      {
+        b_lu_catalogue_match: ["nl_graszaad_stoppel"],
+        cultivation_rvo_table2: "Graszaadstoppel ter vernietiging in najaar of vroege voorjaar",
+        type: "groenbemester",
+        norms: regionNorms(60),
+      } as unknown as NitrogenStandard,
+    ])
+
+    // Sown before Sep 16 (Sep 10) -> qualifies for norm
+    const inputBefore = baseInput([
+      {
+        b_lu_catalogue: "nl_graszaad_stoppel",
+        b_lu_start: new Date(2026, 8, 10),
+        b_lu_end: new Date(2027, 1, 1),
+      } as NL2026NormsInputForCultivation,
+    ])
+    const resultBefore = await calculateNL2026StikstofGebruiksNorm(inputBefore)
+    expect(resultBefore.normValue).toBe(60)
+    expect(resultBefore.normSource).toContain("(graszaadstoppel, voetnoot 7b)")
+
+    // Sown on or after Sep 16 (Sep 20) -> 0 norm
+    const inputAfter = baseInput([
+      {
+        b_lu_catalogue: "nl_graszaad_stoppel",
+        b_lu_start: new Date(2026, 8, 20),
+        b_lu_end: new Date(2027, 1, 1),
+      } as NL2026NormsInputForCultivation,
+    ])
+    const resultAfter = await calculateNL2026StikstofGebruiksNorm(inputAfter)
+    expect(resultAfter.normValue).toBe(0)
+    expect(resultAfter.normSource).toContain(
+      "(geen extra ruimte: niet voldaan aan voorwaarden graszaadstoppel, voetnoot 7b)",
+    )
+
+    dataSpy.mockRestore()
+  })
+
+  it("should filter out cultivations starting after the norm year", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
+    const mockInput: NL2026NormsInput = {
+      farm: { has_grazing_intention: false },
+      field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_233", // Wintertarwe
+          b_lu_start: new Date(2026, 2, 1),
+          b_lu_end: new Date(2026, 7, 1),
+        },
+        {
+          b_lu_catalogue: "nl_233",
+          b_lu_start: new Date(2027, 2, 1), // Started after 2026
+          b_lu_end: new Date(2027, 7, 1),
+        },
+      ] as NL2026NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+    expect(result.normValue).toBe(245)
+    expect(result.normSource).toBe("Akkerbouwgewassen, wintertarwe.")
+  })
+
+  it("should fallback to groene braak when cultivations array is empty", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
+    const mockInput: NL2026NormsInput = {
+      farm: { has_grazing_intention: false },
+      field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+      cultivations: [],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+    expect(result.normValue).toBe(0)
+    expect(result.normSource).toContain("Geen plaatsingsruimte")
+  })
+
+  it("should set norm 0 with (heringezaaid) for multiple grass crops in the same year", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
+    const mockInput: NL2026NormsInput = {
+      farm: { has_grazing_intention: false },
+      field: { b_id: "1", b_centroid: kleiCentroid } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_265", // Grasland
+          b_lu_start: new Date(2026, 2, 1),
+          b_lu_end: new Date(2026, 5, 1),
+        },
+        {
+          b_lu_catalogue: "nl_265", // Grasland herinzaai
+          b_lu_start: new Date(2026, 5, 2),
+          b_lu_end: new Date(2026, 9, 1),
+        },
+      ] as NL2026NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
+    expect(result.normSource).toContain("(heringezaaid)")
+  })
+
+  it("should fallback to standard with subtypes when isVolgteelt is true but no volgteelt standard exists", async () => {
+    setupGeoMock(1, 0)
+    const dataSpy = spyNitrogenStandards([
+      {
+        b_lu_catalogue_match: ["nl_hoofd_only_2026"],
+        cultivation_rvo_table2: "Hoofdteelt gewas",
+        norms: regionNorms(95),
+        sub_types: [
+          {
+            omschrijving: "specifiek",
+            period_start_month: 1,
+            period_end_month: 12,
+            norms: regionNorms(95),
+          },
+        ],
+      } as unknown as NitrogenStandard,
+      {
+        b_lu_catalogue_match: ["nl_preceding_2026"],
+        cultivation_rvo_table2: "Preceding gewas",
+        norms: regionNorms(100),
+      } as unknown as NitrogenStandard,
+    ])
+
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu_catalogue: "nl_preceding_2026",
+          b_lu_start: new Date(2026, 2, 1),
+          b_lu_end: new Date(2026, 5, 1),
+        } as NL2026NormsInputForCultivation,
+        {
+          b_lu_catalogue: "nl_hoofd_only_2026",
+          b_lu_start: new Date(2026, 5, 2),
+          b_lu_end: new Date(2026, 9, 1),
+        } as NL2026NormsInputForCultivation,
+      ]),
+    )
+
+    expect(result.normValue).toBe(195)
+    dataSpy.mockRestore()
+  })
 })
