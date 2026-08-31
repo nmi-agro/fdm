@@ -5,6 +5,16 @@ import { nl } from "date-fns/locale"
 import { File, Trash2 } from "lucide-react"
 import { use } from "react"
 import { NavLink, useFetcher } from "react-router"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { DataTableColumnHeader } from "./column-header"
@@ -96,17 +106,48 @@ export const columns = [
       return (
         <div className="flex items-center justify-end gap-2">
           {isDeleting && <Spinner />}
-          <Button
-            disabled={disabled}
-            variant="ghost"
-            title="Verwijderen"
-            className="hover:text-destructive"
-            onClick={() => {
-              ;(table.options.meta as TableMeta)?.onDelete(row.original.p_id_plan)
-            }}
-          >
-            <Trash2 aria-label="Verwijderen" />
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                type="button"
+                disabled={disabled}
+                variant="ghost"
+                title="Verwijderen"
+                className="hover:text-destructive"
+              >
+                <Trash2 aria-label="Verwijderen" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Weet u het zeker?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  U kunt later een bemestingsplan opstellen voor {row.original.p_plan_year}, maar
+                  mogelijk met andere gegevens.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isDeleting}>Annuleren</AlertDialogCancel>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={isDeleting}
+                  onClick={() => {
+                    ;(table.options.meta as TableMeta)?.onDelete(row.original.p_id_plan)
+                  }}
+                >
+                  {isDeleting ? (
+                    <div className="flex items-center space-x-2">
+                      <Spinner />
+                      <span>Verwijderen</span>
+                    </div>
+                  ) : (
+                    "Verwijderen"
+                  )}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )
     },
