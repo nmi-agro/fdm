@@ -1,6 +1,6 @@
 import { Semaphore } from "../shared/geotiff"
 
-function promiseDelayed<T>(cb: () => Promise<T>, after: number, signal?: AbortSignal) {
+function promiseDelayed<T>(cb: () => Promise<T>, after: number, signal?: AbortSignal | null) {
   if (signal?.aborted) {
     return Promise.reject(signal.reason)
   }
