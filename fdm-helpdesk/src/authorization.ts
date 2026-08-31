@@ -178,7 +178,9 @@ export async function getHelpdeskPermission(
               eq(schema.savedReplies.reply_id, resource_id),
               or(
                 action === "read" ? schema.savedReplies.is_shared : sql`false`,
-                inArray(schema.savedReplies.created_by, principal_ids),
+                role === "admin"
+                  ? sql`true`
+                  : inArray(schema.savedReplies.created_by, principal_ids),
               ),
             ),
           )
