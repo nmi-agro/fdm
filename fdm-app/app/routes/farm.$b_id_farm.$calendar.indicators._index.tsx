@@ -1,5 +1,11 @@
-import { getFields } from "@nmi-agro/fdm-core"
-import { Map } from "lucide-react"
+import {
+  getFields,
+  getMeasuresForFarm,
+  getMeasuresFromCatalogue,
+  type PrincipalId,
+  type Timeframe,
+} from "@nmi-agro/fdm-core"
+import { Map as MapIcon } from "lucide-react"
 import { useEffect, useMemo, useState, useTransition } from "react"
 import {
   data,
@@ -25,7 +31,12 @@ import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
 import { Switch } from "~/components/ui/switch"
 import { useAnalytics } from "~/hooks/use-analytics"
-import { getIndicatorsForFarm } from "~/integrations/bln3.server"
+import {
+  type FarmMeasureRecommendationsResult,
+  type FieldBln3Score,
+  getIndicatorsForFarm,
+  getFarmMeasureOpportunities,
+} from "~/integrations/bln3.server"
 import { type AggregationId, computeAreaWeightedAggregation } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -47,6 +58,54 @@ export const meta: MetaFunction = () => {
   ]
 }
 
+async function getFarmMeasureRecommendations({
+  principal_id,
+  b_id_farm,
+  b_ids,
+  b_year,
+  timeframe,
+  fieldScores,
+}: {
+  principal_id: PrincipalId
+  b_id_farm: string
+  b_ids: string[]
+  b_year: number
+  timeframe?: Timeframe
+  fieldScores: FieldBln3Score[]
+}): Promise<FarmMeasureRecommendationsResult> {
+  const [measuresByField, catalogue] = await Promise.all([
+    getMeasuresForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getMeasuresFromCatalogue(fdm),
+  ])
+  const scoreByBid = new Map(fieldScores.map((s) => [s.b_id, s.score]))
+  const activeMeasureIdsByField = new Map(
+    b_ids.map((b_id) => [b_id, new Set((measuresByField.get(b_id) ?? []).map((m) => m.m_id))]),
+  )
+
+  const { opportunities, adviceAvailable } = await getFarmMeasureOpportunities({
+    principal_id,
+    b_ids,
+    b_year,
+    timeframe,
+    scoreByBid,
+    activeMeasureIdsByField,
+    measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+  })
+
+  return {
+    adviceAvailable,
+    recommendations: opportunities.flatMap((opportunity) =>
+      opportunity.indicatorImpacts.map((impact) => ({
+        b_id: opportunity.b_id,
+        indicator_id: impact.indicator_id,
+        m_id: opportunity.m_id,
+        m_name: opportunity.m_name,
+        measure_impact: impact.measure_impact,
+      })),
+    ),
+  }
+}
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
@@ -59,6 +118,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
+    const calendarYear = Number(params.calendar)
+    const b_year =
+      params.calendar === "all"
+        ? new Date().getFullYear()
+        : Number.isFinite(calendarYear)
+          ? calendarYear
+          : new Date().getFullYear()
 
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
 
@@ -75,6 +141,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     }
 
+    // Lazy, batched farm-wide advice fetch — not awaited so it never blocks
+    // the rest of the page; resolved client-side via <Await>/<Suspense>.
+    // Note: the fetch starts in the loader even when the user never opens the
+    // "Indicatoren" pivot that displays it. Accepted trade-off: gating it
+    // behind the pivot would require a client-driven resource route; the
+    // results are cached by withCalculationCache, so repeat visits are cheap.
+    const farmMeasureRecommendationsPromise = getFarmMeasureRecommendations({
+      principal_id: session.principal_id,
+      b_id_farm,
+      b_ids: fields.map((f) => f.b_id),
+      b_year,
+      timeframe,
+      fieldScores,
+    }).catch((error) => {
+      reportError(error, { page: "farm indicators recommendations" })
+      return { recommendations: [], adviceAvailable: false }
+    })
+
     return {
       fields: fields.map((f) => ({
         b_id: f.b_id,
@@ -83,6 +167,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_area: f.b_area ?? null,
       })),
       fieldScores,
+      asyncInsights: {
+        farmMeasureRecommendations: farmMeasureRecommendationsPromise,
+      },
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -91,7 +178,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function IndicatorsFarmIndex() {
-  const { fields, fieldScores } = useLoaderData<typeof loader>()
+  const { fields, fieldScores, asyncInsights } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/indicators`
   const { capture } = useAnalytics()
@@ -202,7 +289,7 @@ export default function IndicatorsFarmIndex() {
                     <CardTitle className="text-base font-bold">Bedrijfsgemiddelde score</CardTitle>
                     <Button asChild variant="outline" size="sm" className="h-7 gap-1.5 text-xs">
                       <NavLink to={`/farm/${b_id_farm}/${calendar}/atlas/indicators`}>
-                        <Map className="h-3.5 w-3.5" />
+                        <MapIcon className="h-3.5 w-3.5" />
                         Kaartweergave
                       </NavLink>
                     </Button>
@@ -227,6 +314,7 @@ export default function IndicatorsFarmIndex() {
                   fields={filteredFields}
                   fieldScores={filteredScores}
                   basePath={basePath}
+                  farmMeasureRecommendationsPromise={asyncInsights.farmMeasureRecommendations}
                 />
               </div>
             </div>

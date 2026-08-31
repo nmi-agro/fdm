@@ -131,7 +131,7 @@ export function HeatmapTable({
       header: () => (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="vertical-header cursor-default self-stretch text-[11px] font-medium text-red-700 dark:text-red-400">
+            <span className="vertical-header cursor-default self-stretch text-xs font-medium text-red-700 dark:text-red-400">
               Knelpunten
             </span>
           </TooltipTrigger>
@@ -163,7 +163,7 @@ export function HeatmapTable({
         header: () => (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="vertical-header text-foreground cursor-default self-stretch text-[11px] font-medium">
+              <span className="vertical-header text-foreground cursor-default self-stretch text-xs font-medium">
                 {ind.name}
               </span>
             </TooltipTrigger>
