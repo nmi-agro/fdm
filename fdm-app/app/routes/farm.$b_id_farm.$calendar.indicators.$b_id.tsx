@@ -11,6 +11,7 @@ import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
+import { Info } from "lucide-react"
 import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import {
   data,
@@ -28,6 +29,7 @@ import { FieldInputDialog } from "~/components/blocks/indicators/field-input-dia
 import { IndicatorCard } from "~/components/blocks/indicators/indicator-card"
 import { MeasuresToggle } from "~/components/blocks/indicators/measures-toggle"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import {
@@ -364,6 +366,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return {
       field,
       fieldScore,
+      isExcluded: bln3Inputs.excluded === true,
       fieldMeasures,
       fieldsGeoJSON,
       selectedFieldGeoJSON,
@@ -426,6 +429,7 @@ export default function IndicatorsFieldDetail() {
   const {
     field,
     fieldScore,
+    isExcluded,
     fieldMeasures,
     fieldsGeoJSON,
     selectedFieldGeoJSON,
@@ -539,6 +543,19 @@ export default function IndicatorsFieldDetail() {
         }
         rightNode={<Bln3BetaBanner />}
       />
+
+      <div className="px-4 pt-4 sm:px-6 lg:px-8">
+        {isExcluded && (
+          <Alert className="mb-4">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Bufferstrook of natuurperceel</AlertTitle>
+            <AlertDescription>
+              Dit perceel is een bufferstrook of natuurperceel en is uitgesloten van de BLN3
+              bodemkwaliteitsindicatoren.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
 
       <div className="px-4 pb-16 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-6 lg:flex-row">

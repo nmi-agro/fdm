@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
   addMeasure,
   checkPermission,
-  getCultivations,
+  getCultivationsForFarm,
   getFarm,
   getFields,
   getMeasuresForFarm,
@@ -52,7 +52,10 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
-import { getMeasureApplicabilityForFields } from "~/integrations/bln3.server"
+import {
+  getFieldsExcludedFromBln3ForFarm,
+  getMeasureApplicabilityForFields,
+} from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -105,19 +108,34 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ])
 
     const calendarYear = Number(calendar)
-    const fieldIds = fields.map((f) => f.b_id)
+    const resolvedCalendarYear = Number.isFinite(calendarYear)
+      ? calendarYear
+      : new Date().getFullYear()
 
-    const [applicabilityByField, fieldCultivations] = await Promise.all([
+    // Single farm-wide cultivations query, reused for main-cultivation lookups,
+    // BLN3 measure applicability, and BLN3 exclusion checks below (avoids N+1
+    // `getCultivations` calls per field).
+    const cultivationsByField = await getCultivationsForFarm(fdm, session.principal_id, b_id_farm)
+
+    const [applicabilityByField, excludedFieldIds] = await Promise.all([
       getMeasureApplicabilityForFields({
         principal_id: session.principal_id,
-        b_ids: fieldIds,
-        b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+        b_id_farm,
+        fields,
+        b_year: resolvedCalendarYear,
         timeframe,
+        cultivationsByField,
       }).catch(() => ({})),
-      Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
+      getFieldsExcludedFromBln3ForFarm({
+        principal_id: session.principal_id,
+        b_id_farm,
+        fields,
+        calendarYear: String(resolvedCalendarYear),
+        cultivationsByField,
+      }),
     ])
-    const fieldList = fields.map((f, i) => {
-      const cultivations = fieldCultivations[i]
+    const fieldList = fields.map((f) => {
+      const cultivations = cultivationsByField.get(f.b_id) ?? []
       const main = getMainCultivation(cultivations, calendar) ?? null
       return {
         b_id: f.b_id,
@@ -186,18 +204,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       a.m_name.localeCompare(b.m_name, "nl"),
     )
 
-    // Compute summary stats from measuresMap (no extra API calls needed)
-    const totalMeasures = [...measuresMap.values()].reduce(
-      (sum, measures) => sum + measures.length,
+    // Compute summary stats over applicable (non-excluded) fields only — buffer
+    // strips and nature fields never get soil management measures.
+    const applicableFields = fields.filter((f) => !excludedFieldIds.has(f.b_id))
+    const totalMeasures = applicableFields.reduce(
+      (sum, f) => sum + (measuresMap.get(f.b_id)?.length ?? 0),
       0,
     )
-    const fieldsWithMeasures = [...measuresMap.values()].filter((m) => m.length > 0).length
-    const fieldsWithoutMeasures = fields.length - fieldsWithMeasures
+    const fieldsWithMeasures = applicableFields.filter(
+      (f) => (measuresMap.get(f.b_id)?.length ?? 0) > 0,
+    ).length
+    const fieldsWithoutMeasures = applicableFields.length - fieldsWithMeasures
 
     // Per-field summary for the table — derived from existing data
-    const fieldSummaries = fields.map((f, i) => {
+    const fieldSummaries = fields.map((f) => {
       const fieldMeasures = measuresMap.get(f.b_id) ?? []
-      const cultivation = fieldCultivations[i]
+      const cultivation = cultivationsByField.get(f.b_id) ?? []
       const main = getMainCultivation(cultivation, calendar) ?? null
       return {
         b_id: f.b_id,
@@ -230,7 +252,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldSummaries,
       applicabilityByField,
       stats: {
-        totalFields: fields.length,
+        totalFields: applicableFields.length,
         totalMeasures,
         fieldsWithMeasures,
         fieldsWithoutMeasures,

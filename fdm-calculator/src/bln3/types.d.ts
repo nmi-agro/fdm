@@ -28,6 +28,14 @@ export type Bln3Measure = {
  * fields are optional and improve calculation quality when provided.
  */
 export type Bln3ScoreCollectedInputs = {
+  /**
+   * When `true`, the field is a buffer strip (`b_bufferstrip`) or a "nature" plot
+   * (hoofdteelt `b_lu_croprotation === "nature"`) and is excluded from BLN3
+   * calculations. All other fields are omitted/irrelevant in that case, and
+   * `getBln3Score` must short-circuit to `null` without calling the NMI API.
+   */
+  excluded?: boolean
+
   // ── Location (required) ──────────────────────────────────────────────────
   /** Latitude of the field centroid (WGS84; EPSG:4326) */
   a_lat: number
@@ -195,6 +203,14 @@ export type Bln3MeasureApplicabilityItem = {
  * Note: `measures` is intentionally NOT sent.
  */
 export type Bln3MeasureApplicabilityCollectedInputs = {
+  /**
+   * When `true`, the field is a buffer strip (`b_bufferstrip`) or a "nature" plot
+   * (hoofdteelt `b_lu_croprotation === "nature"`) and is excluded from BLN3
+   * calculations. `getBln3MeasureApplicability` must short-circuit to
+   * `{ applicability: [] }` without calling the NMI API.
+   */
+  excluded?: boolean
+
   // ── Required ─────────────────────────────────────────────────────────────
   /** Latitude of the field centroid (WGS84; EPSG:4326) */
   a_lat: number

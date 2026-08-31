@@ -98,6 +98,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             b_name: field.b_name ?? null,
             b_area: field.b_area ?? null,
             avgScore: computeFieldAvgScore(fs),
+            isExcluded: fs?.isExcluded ?? false,
             ...aggProps,
             ...indicatorProps,
           },

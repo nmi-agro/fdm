@@ -1,3 +1,4 @@
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
 import pkg from "../package"
@@ -82,9 +83,27 @@ export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Sco
  * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
  * existing cache entries.
  */
-export const getBln3Score = withCalculationCache(
+const cachedRequestBln3Score = withCalculationCache(
   requestBln3Score,
   "requestBln3Score",
   pkg.calculatorVersion,
   ["nmiApiKey"],
 )
+
+/**
+ * Calculates (or retrieves the cached) BLN3 score for a field.
+ *
+ * Buffer strips and "nature" plots (`inputs.excluded === true`, as flagged by
+ * `collectInputForBln3Score`) are not relevant for BLN3 soil quality scoring:
+ * this short-circuits to `null` without calling the NMI API or the
+ * calculation cache.
+ */
+export async function getBln3Score(
+  fdm: FdmType,
+  inputs: Bln3ScoreInputs,
+): Promise<Bln3Score | null> {
+  if (inputs.excluded) {
+    return null
+  }
+  return cachedRequestBln3Score(fdm, inputs)
+}

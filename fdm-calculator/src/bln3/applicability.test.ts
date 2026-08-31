@@ -235,3 +235,26 @@ describe("getBln3MeasureApplicability function export", () => {
     expect(typeof getBln3MeasureApplicability).toBe("function")
   })
 })
+
+describe("getBln3MeasureApplicability exclusion short-circuit", () => {
+  const mockFdm = {} as any
+
+  beforeAll(() => {
+    vi.stubGlobal("fetch", vi.fn())
+  })
+
+  afterEach(() => {
+    vi.mocked(fetch).mockClear()
+  })
+
+  afterAll(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("should return { applicability: [] } without calling fetch when inputs are excluded (buffer strip / nature field)", async () => {
+    const result = await getBln3MeasureApplicability(mockFdm, { ...baseInputs, excluded: true })
+
+    expect(result).toEqual<Bln3MeasureApplicabilityResult>({ applicability: [] })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+})

@@ -16,6 +16,7 @@ import { HeatmapCell } from "./table-cell"
 type FieldRow = {
   b_id: string
   b_name: string | null | undefined
+  isNature: boolean
   scores: Record<string, { score01: number; index01: number } | undefined>
   /** Number of indicators with display score <40 for this field */
   knelpuntCount: number
@@ -36,7 +37,7 @@ const CATEGORY_BORDER: Record<Ecosysteemdienst, string> = {
 }
 
 type HeatmapTableProps = {
-  fields: { b_id: string; b_name: string | null | undefined }[]
+  fields: { b_id: string; b_name: string | null | undefined; isNature?: boolean }[]
   fieldScores: FieldBln3Score[]
   activeCategories: Ecosysteemdienst[]
   showIndex: boolean
@@ -100,6 +101,7 @@ export function HeatmapTable({
       return {
         b_id: field.b_id,
         b_name: field.b_name,
+        isNature: field.isNature ?? false,
         scores,
         knelpuntCount,
       }
@@ -113,16 +115,34 @@ export function HeatmapTable({
       accessorKey: "b_name",
       header: "Perceel",
       cell: ({ row }) => (
-        <NavLink
-          to={
-            basePathFormatter
-              ? basePathFormatter(row.original.b_id)
-              : `${basePath}/${row.original.b_id}`
-          }
-          className="font-medium hover:underline"
-        >
-          {row.original.b_name ?? row.original.b_id}
-        </NavLink>
+        <div className="flex items-center gap-1.5">
+          <NavLink
+            to={
+              basePathFormatter
+                ? basePathFormatter(row.original.b_id)
+                : `${basePath}/${row.original.b_id}`
+            }
+            className="truncate font-medium hover:underline"
+          >
+            {row.original.b_name ?? row.original.b_id}
+          </NavLink>
+          {row.original.isNature ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="bg-muted text-muted-foreground inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium">
+                  Natuur
+                </span>
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                className="bg-popover text-popover-foreground max-w-[220px] border text-xs shadow-md"
+              >
+                Natuurperceel — BLN3 berekent geen bodemkwaliteitsindicatoren voor dit
+                perceel.
+              </TooltipContent>
+            </Tooltip>
+          ) : null}
+        </div>
       ),
     }
 

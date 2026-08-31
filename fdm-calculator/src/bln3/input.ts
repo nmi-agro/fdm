@@ -15,6 +15,41 @@ import type {
 import { findHoofdteelt } from "../shared/hoofdteelt"
 
 /**
+ * Minimal field shape required to check BLN3 exclusion.
+ */
+type FieldForBln3Exclusion = Pick<fdmSchema.fieldsTypeSelect, "b_bufferstrip">
+
+/**
+ * Determines whether a field should be excluded from BLN3 score / measure
+ * applicability calculations: buffer strips (`b_bufferstrip === true`) and
+ * "nature" plots (hoofdteelt `b_lu_croprotation === "nature"` for the given
+ * year) are not relevant for soil quality measures/indicators.
+ *
+ * @param field - The field to check (only `b_bufferstrip` is used).
+ * @param cultivations - The field's cultivation history, used to resolve the
+ *   hoofdteelt (main cultivation) for `year`.
+ * @param year - The calendar year to resolve the hoofdteelt for.
+ * @returns `true` if the field is a buffer strip or a nature plot.
+ */
+function isFieldExcludedFromBln3(
+  field: FieldForBln3Exclusion,
+  cultivations: Awaited<ReturnType<typeof getCultivations>>,
+  year: number,
+): boolean {
+  if (field.b_bufferstrip) {
+    return true
+  }
+
+  const hoofdteeltCatalogue = findHoofdteelt(cultivations, year, true)
+  if (hoofdteeltCatalogue === null) {
+    return false
+  }
+
+  const hoofdteelt = cultivations.find((c) => c.b_lu_catalogue === hoofdteeltCatalogue)
+  return hoofdteelt?.b_lu_croprotation === "nature"
+}
+
+/**
  * Collects all field data needed for a BLN3 score calculation from the FDM database.
  *
  * Fetches field geometry (lat/lon), the most recent soil analysis, cultivations, and
@@ -48,6 +83,14 @@ export async function collectInputForBln3Score(
 
     // b_centroid = [lon, lat] (ST_X = longitude, ST_Y = latitude)
     const [a_lon, a_lat] = field.b_centroid
+
+    // Buffer strips and "nature" plots (hoofdteelt b_lu_croprotation === "nature")
+    // are excluded from BLN3 calculations. Short-circuit before doing the more
+    // expensive soil analysis / measure mapping work.
+    const exclusionYear = timeframe?.end?.getFullYear() ?? new Date().getFullYear()
+    if (isFieldExcludedFromBln3(field, cultivations, exclusionYear)) {
+      return { excluded: true, a_lat, a_lon }
+    }
 
     // For each numeric field, pick the most recent soil analysis record that has
     // a non-null value for that field. Lab and BCS analyses are stored as separate
@@ -194,6 +237,11 @@ export async function collectInputForBln3MeasureApplicability(
     ])
 
     const [a_lon, a_lat] = field.b_centroid
+
+    // Buffer strips and "nature" plots are excluded from BLN3 calculations.
+    if (isFieldExcludedFromBln3(field, cultivations, b_year)) {
+      return { excluded: true, a_lat, a_lon, b_year }
+    }
 
     const labNumericFields = [
       "a_ca_co_po",

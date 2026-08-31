@@ -1,3 +1,4 @@
+import type { FdmType } from "@nmi-agro/fdm-core"
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import type {
   Bln3MeasureApplicabilityInputs,
@@ -104,9 +105,27 @@ export async function requestBln3MeasureApplicability(
  * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
  * existing cache entries.
  */
-export const getBln3MeasureApplicability = withCalculationCache(
+const cachedRequestBln3MeasureApplicability = withCalculationCache(
   requestBln3MeasureApplicability,
   "requestBln3MeasureApplicability",
   pkg.calculatorVersion,
   ["nmiApiKey"],
 )
+
+/**
+ * Calculates (or retrieves the cached) BLN3 measure applicability for a field.
+ *
+ * Buffer strips and "nature" plots (`inputs.excluded === true`, as flagged by
+ * `collectInputForBln3MeasureApplicability`) are not relevant for BLN3 soil
+ * management measures: this short-circuits to `{ applicability: [] }`
+ * without calling the NMI API or the calculation cache.
+ */
+export async function getBln3MeasureApplicability(
+  fdm: FdmType,
+  inputs: Bln3MeasureApplicabilityInputs,
+): Promise<Bln3MeasureApplicabilityResult> {
+  if (inputs.excluded) {
+    return { applicability: [] }
+  }
+  return cachedRequestBln3MeasureApplicability(fdm, inputs)
+}

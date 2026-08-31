@@ -247,6 +247,29 @@ describe("getBln3Score cache semantics", () => {
   })
 })
 
+describe("getBln3Score exclusion short-circuit", () => {
+  const mockFdm = {} as any
+
+  beforeAll(() => {
+    vi.stubGlobal("fetch", vi.fn())
+  })
+
+  afterEach(() => {
+    vi.mocked(fetch).mockClear()
+  })
+
+  afterAll(() => {
+    vi.restoreAllMocks()
+  })
+
+  it("should return null without calling fetch when inputs are excluded (buffer strip / nature field)", async () => {
+    const result = await getBln3Score(mockFdm, { ...baseInputs, excluded: true })
+
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+})
+
 // getBln3Score is the cached wrapper around requestBln3Score via withCalculationCache.
 // Cache behaviour is tested thoroughly in fdm-core/src/calculator.test.ts.
 // We just verify the export exists and has the correct shape.

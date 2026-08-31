@@ -214,7 +214,9 @@ export default function IndicatorsMap({
           {label && (
             <div className="mt-1.5 flex items-center justify-between gap-3 border-t pt-1.5">
               <span className="text-muted-foreground truncate">{label}</span>
-              {hoverScore != null ? (
+              {hoverInfo.properties.isExcluded ? (
+                <span className="text-muted-foreground italic">Bufferstrook/natuur</span>
+              ) : hoverScore != null ? (
                 <span
                   className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
                   style={{
@@ -230,7 +232,9 @@ export default function IndicatorsMap({
           )}
           {!label && (
             <p className="text-muted-foreground mt-0.5">
-              {hoverScore != null ? (
+              {hoverInfo.properties.isExcluded ? (
+                "Bufferstrook/natuurperceel (uitgesloten)"
+              ) : hoverScore != null ? (
                 <>
                   Score:{" "}
                   <span

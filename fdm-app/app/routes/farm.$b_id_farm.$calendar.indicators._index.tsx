@@ -1,4 +1,4 @@
-import { getFields } from "@nmi-agro/fdm-core"
+import { getFields, getCultivations } from "@nmi-agro/fdm-core"
 import { Map } from "lucide-react"
 import { useEffect, useMemo, useState, useTransition } from "react"
 import {
@@ -28,10 +28,11 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { type AggregationId, computeAreaWeightedAggregation } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 
@@ -59,6 +60,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
+    const calendar = getCalendar(params)
 
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
 
@@ -75,13 +77,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     }
 
+    const cultivationsByField = await Promise.all(
+      fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id)),
+    )
+
     return {
-      fields: fields.map((f) => ({
-        b_id: f.b_id,
-        b_name: f.b_name,
-        b_bufferstrip: f.b_bufferstrip ?? false,
-        b_area: f.b_area ?? null,
-      })),
+      fields: fields.map((f, index) => {
+        const mainCultivation = getMainCultivation(cultivationsByField[index], calendar)
+        return {
+          b_id: f.b_id,
+          b_name: f.b_name,
+          b_bufferstrip: f.b_bufferstrip ?? false,
+          b_lu_croprotation: mainCultivation?.b_lu_croprotation ?? null,
+          b_area: f.b_area ?? null,
+        }
+      }),
       fieldScores,
     }
   } catch (error) {
@@ -139,7 +149,9 @@ export default function IndicatorsFarmIndex() {
     startTransition(() => setHideBufferstrips(!checked))
   }
 
-  // Filter fields based on bufferstrip toggle and search text
+  // Filter fields based on the bufferstrip toggle and search text.
+  // Nature fields are always shown here (BLN3 doesn't calculate scores for them,
+  // but they aren't hidden by this toggle — only buffer strips are).
   const filteredFields = useMemo(() => {
     let result = hideBufferstrips ? fields.filter((f) => !f.b_bufferstrip) : fields
     if (fieldSearch) {
@@ -282,6 +294,7 @@ export default function IndicatorsFarmIndex() {
                 fields={filteredFields.map((field) => ({
                   b_id: field.b_id,
                   b_name: field.b_name,
+                  isNature: field.b_lu_croprotation === "nature",
                 }))}
                 fieldScores={filteredScores}
                 activeCategories={activeCategories}

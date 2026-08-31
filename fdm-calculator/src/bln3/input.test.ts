@@ -526,6 +526,53 @@ describe("collectInputForBln3Score", () => {
     expect(result).not.toHaveProperty("a_sc_bcs")
     expect(result).not.toHaveProperty("a_ew_bcs")
   })
+
+  it("should exclude buffer strip fields without mapping soil/cultivation/measure data", async () => {
+    const bufferstripField: Field = { ...mockField, b_bufferstrip: true }
+    mockedGetField.mockResolvedValue(bufferstripField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetMeasures.mockResolvedValue([mockMeasure])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result).toEqual({ excluded: true, a_lat: 51.6, a_lon: 5.2 })
+    expect(result).not.toHaveProperty("cultivations")
+    expect(result).not.toHaveProperty("measures")
+    expect(result).not.toHaveProperty("b_soiltype_agr")
+  })
+
+  it("should exclude 'nature' fields (hoofdteelt b_lu_croprotation === 'nature')", async () => {
+    const natureCultivation: Cultivation = {
+      ...mockCultivation,
+      b_lu_catalogue: "nl_999",
+      b_lu_croprotation: "nature",
+      b_lu_start: new Date("2024-05-01"),
+      b_lu_end: new Date("2024-08-01"),
+    }
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([natureCultivation])
+    mockedGetMeasures.mockResolvedValue([mockMeasure])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result).toEqual({ excluded: true, a_lat: 51.6, a_lon: 5.2 })
+    expect(result).not.toHaveProperty("cultivations")
+    expect(result).not.toHaveProperty("measures")
+  })
+
+  it("should NOT exclude a regular agricultural field", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetMeasures.mockResolvedValue([mockMeasure])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result.excluded).toBeUndefined()
+    expect(result).toHaveProperty("cultivations")
+  })
 })
 
 import { findHoofdteelt } from "../shared/hoofdteelt"
@@ -598,6 +645,69 @@ describe("collectInputForBln3MeasureApplicability", () => {
     await expect(
       collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026),
     ).rejects.toThrow(`Failed to collect BLN3 measure applicability inputs for field ${b_id}`)
+  })
+
+  it("should exclude buffer strip fields without mapping soil/cultivation data", async () => {
+    const bufferstripField: Field = { ...mockField, b_bufferstrip: true }
+    mockedGetField.mockResolvedValue(bufferstripField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2024,
+      timeframe,
+    )
+
+    expect(result).toEqual({ excluded: true, a_lat: 51.6, a_lon: 5.2, b_year: 2024 })
+    expect(result).not.toHaveProperty("cultivations")
+    expect(result).not.toHaveProperty("b_soiltype_agr")
+  })
+
+  it("should exclude 'nature' fields (hoofdteelt b_lu_croprotation === 'nature') for the given b_year", async () => {
+    const natureCultivation: Cultivation = {
+      ...mockCultivation,
+      b_lu_catalogue: "nl_999",
+      b_lu_croprotation: "nature",
+      b_lu_start: new Date("2024-05-01"),
+      b_lu_end: new Date("2024-08-01"),
+    }
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([natureCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2024,
+      timeframe,
+    )
+
+    expect(result).toEqual({ excluded: true, a_lat: 51.6, a_lon: 5.2, b_year: 2024 })
+    expect(result).not.toHaveProperty("cultivations")
+  })
+
+  it("should NOT exclude a regular agricultural field", async () => {
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([mockSoilAnalysis])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(
+      mockFdm,
+      principal_id,
+      b_id,
+      2024,
+      timeframe,
+    )
+
+    expect(result.excluded).toBeUndefined()
+    expect(result).toHaveProperty("cultivations")
   })
 })
 
