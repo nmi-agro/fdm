@@ -86,6 +86,7 @@ export default function FieldMap({
         interactive={true}
         interactiveLayerIds={[FIELDS_LAYER]}
         initialViewState={initialViewState}
+        useStoredViewState={false}
         style={{ height: "100%" }}
         mapStyle={mapStyle}
       >

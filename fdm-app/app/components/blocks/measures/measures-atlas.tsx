@@ -124,6 +124,7 @@ export default function MeasuresMap({
         initialViewState={initialViewState}
         interactive={true}
         interactiveLayerIds={[FIELDS_LAYER]}
+        useStoredViewState={false}
         style={{ height: "100%" }}
       >
         <Controls

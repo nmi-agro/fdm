@@ -1,5 +1,5 @@
 import { Check } from "lucide-react"
-import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
+import { DropdownMenu as DropdownMenuPrimitive, Slot } from "radix-ui"
 import { ComponentProps } from "react"
 import { cn } from "@/app/lib/utils"
 
@@ -24,7 +24,7 @@ export function DropdownMenuCheckedRadioItem({
           <Check className="h-4 w-4" />
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
-      {children}
+      <Slot.Slottable>{children}</Slot.Slottable>
     </DropdownMenuPrimitive.RadioItem>
   )
 }

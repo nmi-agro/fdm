@@ -29,12 +29,11 @@ export function HeaderAtlas({ b_id_farm }: { b_id_farm: string | undefined }) {
 
   function makeOption(info: AvailableAtlasLayerInfo) {
     return (
-      <NavLink key={info.value} to={info.url} className="w-full">
-        {/* The component natively manages the icon and aria state now */}
-        <DropdownMenuCheckedRadioItem value={info.value} className="cursor-pointer">
+      <DropdownMenuCheckedRadioItem value={info.value} className="cursor-pointer" asChild>
+        <NavLink key={info.value} to={info.url} className="w-full">
           {info.label}
-        </DropdownMenuCheckedRadioItem>
-      </NavLink>
+        </NavLink>
+      </DropdownMenuCheckedRadioItem>
     )
   }
 

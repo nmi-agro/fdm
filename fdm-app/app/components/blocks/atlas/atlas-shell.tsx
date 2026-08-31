@@ -30,10 +30,17 @@ export function useMapContainer() {
 export function Atlas(
   props: Omit<MapProps, "mapStyle"> & {
     ref?: Ref<MapRef>
+    /** Default initial viewState for the map. May be overridden if useStoredViewState is true. */
     initialViewState?: AtlasViewState
+    /** Whether to load and store the viewState from the session storage. If updateFromInitialViewState is true, the initial value of the stored view state won't be used. */
     useStoredViewState?: boolean
+    /** Whether to move the map to the new state when the initialViewState changes, including on first load. Only once the user moves the map, if useStoredViewState is true, the stored view state will be updated. */
     updateFromInitialViewState?: boolean
+    /** Whether the user can drag and rotate the map. */
     interactive?: boolean
+    /** List of layer ids which should display a pointer cursor when hovered. In the Atlas- components the queried layer IDs are always specified, so this value has no functional meaning if you only use those components. */
+    interactiveLayerIds?: string[]
+    /** Which set of map images to show in the background. */
     mapStyle?: MapStyleVariant
     children?: any
   },
@@ -87,8 +94,7 @@ export function Atlas(
     (e: maplibregl.MapLayerMouseEvent) => {
       if (mapRef.current) {
         mapRef.current.getCanvas().style.cursor =
-          interactiveLayerIdsSet.size > 0 &&
-          e.features?.some((x) => interactiveLayerIdsSet.has(x.layer.id))
+          interactiveLayerIdsSet.size > 0 && e.features && e.features.length > 0
             ? "pointer"
             : interactive
               ? "grab"
