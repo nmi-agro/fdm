@@ -4,6 +4,7 @@ import {
   addMeasure,
   checkPermission,
   getCultivations,
+  getCultivationsForFarm,
   getFarm,
   getFields,
   getMeasuresForFarm,
@@ -570,6 +571,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) throw new Error("missing: b_id_farm")
+    const calendar = getCalendar(params)
+    const timeframe = getTimeframe(params)
 
     const session = await getSession(request)
     const formData = await request.formData()
@@ -594,6 +597,34 @@ export async function action({ request, params }: ActionFunctionArgs) {
         return dataWithError("missing: b_ids", "Selecteer minimaal één perceel.")
       }
 
+      const farmFields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
+      const fieldMap = new Map(farmFields.map((f) => [f.b_id, f]))
+      const cultivations = await getCultivationsForFarm(
+        fdm,
+        session.principal_id,
+        b_id_farm,
+        timeframe,
+      )
+
+      const eligibleBIds = b_ids.filter((b_id) => {
+        const field = fieldMap.get(b_id)
+        if (!field) return false
+        const fieldCultivations = cultivations.get(b_id) ?? []
+        const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
+        return !isExcludedFromBln3({
+          b_bufferstrip: field.b_bufferstrip,
+          b_lu_croprotation: defaultCultivation?.b_lu_croprotation,
+          b_lu_catalogue: defaultCultivation?.b_lu_catalogue,
+        })
+      })
+
+      if (eligibleBIds.length === 0) {
+        return dataWithError(
+          "forbidden: excluded fields",
+          "Maatregelen kunnen niet worden toegevoegd aan bufferstroken of natuurpercelen.",
+        )
+      }
+
       const m_start = new Date(m_start_str)
       const m_end =
         m_end_str && typeof m_end_str === "string" && m_end_str !== ""
@@ -601,10 +632,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
           : undefined
 
       await Promise.all(
-        b_ids.map((b_id) => addMeasure(fdm, session.principal_id, b_id, m_id, m_start, m_end)),
+        eligibleBIds.map((b_id) =>
+          addMeasure(fdm, session.principal_id, b_id, m_id, m_start, m_end),
+        ),
       )
 
-      const count = b_ids.length
+      const count = eligibleBIds.length
       return dataWithSuccess(
         { result: "Maatregelen toegevoegd" },
         {

@@ -287,12 +287,30 @@ export async function action({ request, params }: ActionFunctionArgs) {
   try {
     const b_id = params.b_id
     if (!b_id) throw new Error("missing: b_id")
+    const calendar = getCalendar(params)
+    const timeframe = getTimeframe(params)
 
     const session = await getSession(request)
     const formData = await request.formData()
     const intent = formData.get("intent")
 
     if (intent === "add") {
+      const field = await getField(fdm, session.principal_id, b_id)
+      const fieldCultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
+      const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
+      if (
+        isExcludedFromBln3({
+          b_bufferstrip: field.b_bufferstrip,
+          b_lu_croprotation: defaultCultivation?.b_lu_croprotation,
+          b_lu_catalogue: defaultCultivation?.b_lu_catalogue,
+        })
+      ) {
+        return dataWithError(
+          "forbidden: excluded field",
+          "Maatregelen kunnen niet worden toegevoegd aan bufferstroken of natuurpercelen.",
+        )
+      }
+
       const m_id = formData.get("m_id")
       const m_start_str = formData.get("m_start")
       const m_end_str = formData.get("m_end")

@@ -728,7 +728,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         })
 
         if (!result.score) {
-          if (result.isExcluded) {
+          if (result.inputs.isExcluded) {
             return buildEmptyResult(
               "Dit perceel is een bufferstrook of natuurperceel en is uitgesloten van BLN3.",
             )

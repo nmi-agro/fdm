@@ -217,10 +217,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }),
     )
 
+    const eligibleFarms = farms.filter(
+      (farm) => (farmEligibleFields.get(farm.b_id_farm) ?? []).length > 0,
+    )
+
     // Build GeoJSON with measureCount per field
     const fieldsGeoJSON: FeatureCollection = {
       type: "FeatureCollection",
-      features: farms.map((farm) => ({
+      features: eligibleFarms.map((farm) => ({
         type: "Feature" as const,
         properties: {
           b_id: farm.b_id_farm,
@@ -236,7 +240,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     // Build unique-measure rows grouped by m_id, including dates
     const measuresByMId = new Map<string, MeasureTableRow>()
-    for (const farm of farms) {
+    for (const farm of eligibleFarms) {
       const measures = farmMeasures.get(farm.b_id_farm)?.measures
       if (!measures) continue
       for (const m of measures) {
@@ -267,17 +271,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     )
 
     // Compute summary stats from measuresMap (no extra API calls needed)
-    const totalMeasures = [...farmMeasures.values()].reduce(
+    const eligibleFarmMeasures = eligibleFarms.map(
+      (farm) => farmMeasures.get(farm.b_id_farm) ?? { measures: [], mainCultivations: [] },
+    )
+    const totalMeasures = eligibleFarmMeasures.reduce(
       (sum, entry) => sum + entry.measures.length,
       0,
     )
-    const fieldsWithMeasures = [...farmMeasures.values()].filter(
-      (x) => x.measures.length > 0,
-    ).length
-    const fieldsWithoutMeasures = farms.length - fieldsWithMeasures
+    const fieldsWithMeasures = eligibleFarmMeasures.filter((x) => x.measures.length > 0).length
+    const fieldsWithoutMeasures = eligibleFarms.length - fieldsWithMeasures
 
     // Per-field summary for the table — derived from existing data
-    const fieldSummaries = farms.map((farm) => {
+    const fieldSummaries = eligibleFarms.map((farm) => {
       const { measures, mainCultivations } = farmMeasures.get(farm.b_id_farm) ?? {
         measures: [],
         mainCultivations: [],
@@ -306,7 +311,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       mapStyle: getMapStyle("satellite"),
       fieldSummaries,
       stats: {
-        totalFields: farms.length,
+        totalFields: eligibleFarms.length,
         totalMeasures,
         fieldsWithMeasures,
         fieldsWithoutMeasures,
