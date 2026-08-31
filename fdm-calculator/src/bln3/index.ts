@@ -12,14 +12,26 @@ export { getBln3MeasureAdvice, requestBln3MeasureAdvice } from "./advice"
  *
  * Calls `POST /maatwerk/bln3/score/field` with the provided field data and
  * returns per-indicator status, target, index, impact, and score values.
+ * If the field is excluded (buffer strip or nature crop rotation), returns
+ * `null` immediately without calling the API.
  *
  * @param inputs - Field data and NMI API key. Only `a_lat`, `a_lon`, and
  *   `nmiApiKey` are required; all other fields improve calculation quality.
  * @returns A promise resolving to a `Bln3Score` with `indicators` and
- *   optional `aggregations`.
+ *   optional `aggregations`, or `null` if excluded.
  * @throws If the NMI API key is not provided or the API request fails.
  */
-export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Score> {
+export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Score | null> {
+  if (
+    inputs.isExcluded ||
+    inputs.b_bufferstrip === true ||
+    inputs.b_lu_croprotation === "nature" ||
+    inputs.b_lu_catalogue === "nl_343" ||
+    inputs.b_lu_catalogue === "nl_6801"
+  ) {
+    return null
+  }
+
   const { nmiApiKey, ...fieldData } = inputs
 
   if (!nmiApiKey) {

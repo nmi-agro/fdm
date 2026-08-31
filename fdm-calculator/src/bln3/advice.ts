@@ -13,6 +13,8 @@ import pkg from "../package"
  * returns, per indicator, a list of candidate measures ranked by their
  * predicted impact on that indicator. Each measure ID is prefixed with
  * "bln_" (e.g. "bln_BM226") to match FDM catalogue conventions.
+ * If the field is excluded (buffer strip or nature crop rotation), returns
+ * `null` immediately without calling the API.
  *
  * This endpoint is marked experimental by NMI: the interface may change
  * without the usual advance notice given for stable endpoints.
@@ -23,12 +25,22 @@ import pkg from "../package"
  * definitive source of truth for applicability) before displaying advice.
  *
  * @param inputs - Field data and NMI API key. `a_lat`, `a_lon`, `b_year`, and `nmiApiKey` are required.
- * @returns A promise resolving to a `Bln3MeasureAdviceResult` containing `indicator_advice`.
+ * @returns A promise resolving to a `Bln3MeasureAdviceResult` containing `indicator_advice`, or `null` if excluded.
  * @throws If the NMI API key is not provided or the API request fails.
  */
 export async function requestBln3MeasureAdvice(
   inputs: Bln3MeasureAdviceInputs,
-): Promise<Bln3MeasureAdviceResult> {
+): Promise<Bln3MeasureAdviceResult | null> {
+  if (
+    inputs.isExcluded ||
+    inputs.b_bufferstrip === true ||
+    inputs.b_lu_croprotation === "nature" ||
+    inputs.b_lu_catalogue === "nl_343" ||
+    inputs.b_lu_catalogue === "nl_6801"
+  ) {
+    return null
+  }
+
   const { nmiApiKey, ...fieldData } = inputs
 
   if (!nmiApiKey) {

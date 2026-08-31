@@ -52,6 +52,50 @@ describe("requestBln3MeasureApplicability", () => {
     vi.restoreAllMocks()
   })
 
+  it("should return empty applicability immediately without calling fetch if isExcluded is true", async () => {
+    const inputs: Bln3MeasureApplicabilityInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      isExcluded: true,
+    }
+    const result = await requestBln3MeasureApplicability(inputs)
+    expect(result).toEqual({ applicability: [] })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return empty applicability immediately without calling fetch if b_bufferstrip is true", async () => {
+    const inputs: Bln3MeasureApplicabilityInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_bufferstrip: true,
+    }
+    const result = await requestBln3MeasureApplicability(inputs)
+    expect(result).toEqual({ applicability: [] })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return empty applicability immediately without calling fetch if b_lu_croprotation is nature", async () => {
+    const inputs: Bln3MeasureApplicabilityInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_croprotation: "nature",
+    }
+    const result = await requestBln3MeasureApplicability(inputs)
+    expect(result).toEqual({ applicability: [] })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return empty applicability immediately without calling fetch if b_lu_catalogue is nl_6801", async () => {
+    const inputs: Bln3MeasureApplicabilityInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_catalogue: "nl_6801",
+    }
+    const result = await requestBln3MeasureApplicability(inputs)
+    expect(result).toEqual({ applicability: [] })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it("should throw if nmiApiKey is not provided", async () => {
     const inputs: Bln3MeasureApplicabilityInputs = {
       ...baseInputs,
