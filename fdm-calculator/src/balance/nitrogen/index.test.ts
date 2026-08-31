@@ -1,8 +1,17 @@
-import type { FdmType } from "@nmi-agro/fdm-core"
+import { createFdmServer, type FdmType, getLatestCachedResultForEntity } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
-import { describe, expect, it } from "vitest"
-import type { NitrogenBalanceFieldResultNumeric, NitrogenBalanceInput } from "./types"
-import { calculateNitrogenBalance, calculateNitrogenBalancesFieldToFarm } from "."
+import { describe, expect, inject, it } from "vitest"
+import type {
+  NitrogenBalanceFieldInput,
+  NitrogenBalanceFieldResultNumeric,
+  NitrogenBalanceInput,
+} from "./types"
+import {
+  calculateNitrogenBalance,
+  calculateNitrogenBalancesFieldToFarm,
+  getNitrogenBalanceField,
+} from "."
+import { createId } from "../../shared/test-util"
 
 // Mock FdmType
 const mockFdm = {
@@ -321,5 +330,55 @@ describe("calculateNitrogenBalance", () => {
     // Should match field1 values exactly
     expect(farmBalance.balance).toBe(100)
     expect(farmBalance.supply.total).toBe(100)
+  })
+
+  it("should set the correct cache entity id", async () => {
+    const b_id = `field_${createId()}`
+
+    const fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+
+    const input: NitrogenBalanceFieldInput = {
+      fieldInput: {
+        field: {
+          b_id: b_id,
+          b_centroid: [Math.random(), 52.0],
+          b_area: 10,
+          b_start: new Date("2023-01-01"),
+          b_end: new Date("2023-12-31"),
+          b_bufferstrip: true,
+        },
+        cultivations: [],
+        harvests: [],
+        soilAnalyses: [],
+        fertilizerApplications: [],
+      },
+      fertilizerDetails: [],
+      cultivationDetails: [],
+      timeFrame: {
+        start: new Date("2023-01-01"),
+        end: new Date("2023-12-31"),
+      },
+    }
+
+    await getNitrogenBalanceField(fdm, input)
+
+    // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100)
+    })
+
+    const cached = await getLatestCachedResultForEntity(
+      fdm,
+      "calculateNitrogenBalanceField",
+      "field",
+      b_id,
+    )
+    expect(cached).not.toBeNull()
   })
 })

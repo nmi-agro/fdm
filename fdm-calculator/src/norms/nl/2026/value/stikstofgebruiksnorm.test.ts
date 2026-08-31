@@ -1,7 +1,12 @@
 import type { Field } from "@nmi-agro/fdm-core"
-import { describe, expect, it, vi } from "vitest"
+import { createFdmServer, getLatestCachedResultForEntity } from "@nmi-agro/fdm-core"
+import { describe, expect, inject, it, vi } from "vitest"
 import type { NitrogenStandard, NL2026NormsInput, NL2026NormsInputForCultivation } from "./types"
-import { calculateNL2026StikstofGebruiksNorm } from "./stikstofgebruiksnorm"
+import { createId } from "../../../../shared/test-util"
+import {
+  calculateNL2026StikstofGebruiksNorm,
+  getNL2026StikstofGebruiksNorm,
+} from "./stikstofgebruiksnorm"
 import * as StikstofData from "./stikstofgebruiksnorm-data"
 
 describe("calculateNL2026StikstofGebruiksNorm", () => {
@@ -740,6 +745,50 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
       spy.mockRestore()
     })
+  })
+
+  it("should set the correct cache entity id", async () => {
+    const b_id = `field_${createId()}`
+
+    const fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+
+    const mockInput: NL2026NormsInput = {
+      farm: { has_grazing_intention: false },
+      field: {
+        b_id: b_id,
+        b_centroid: [Math.random(), 51.975571],
+        b_bufferstrip: true,
+      } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_265",
+          b_lu_start: new Date(2026, 0, 1),
+          b_lu_end: new Date(2026, 5, 1),
+        } as Partial<NL2026NormsInputForCultivation>,
+      ] as NL2026NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    await getNL2026StikstofGebruiksNorm(fdm, mockInput)
+
+    // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100)
+    })
+
+    const cached = await getLatestCachedResultForEntity(
+      fdm,
+      "calculateNL2026StikstofGebruiksNorm",
+      "field",
+      b_id,
+    )
+    expect(cached).not.toBeNull()
   })
 })
 

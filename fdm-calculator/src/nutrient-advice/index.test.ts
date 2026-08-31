@@ -1,7 +1,12 @@
-import type { CurrentSoilData } from "@nmi-agro/fdm-core"
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import {
+  createFdmServer,
+  getLatestCachedResultForEntity,
+  type CurrentSoilData,
+} from "@nmi-agro/fdm-core"
+import { inject, afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import type { NutrientAdviceInputs, NutrientAdviceResponse } from "./types"
-import { requestNutrientAdvice } from "./index"
+import { createId } from "../shared/test-util"
+import { getNutrientAdvice, requestNutrientAdvice } from "./index"
 
 // Mock data for CurrentSoilData
 const mockCurrentSoilData: CurrentSoilData = [
@@ -259,5 +264,36 @@ describe("requestNutrientAdvice", () => {
     expect(result.d_p_req).toBe(0)
     expect(result.d_k_req).toBe(0)
     expect(result.cuts).toBeUndefined()
+  })
+
+  it("should set the correct cache entity id", async () => {
+    const b_id = `field_${createId()}`
+
+    const fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+
+    const inputs: NutrientAdviceInputs = {
+      b_id: b_id,
+      b_lu_catalogue: "nl_2014",
+      b_centroid: [Math.random(), 52.4],
+      currentSoilData: mockCurrentSoilData,
+      nmiApiKey: "mock-api-key",
+      b_bufferstrip: true,
+    }
+
+    await getNutrientAdvice(fdm, inputs)
+
+    // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100)
+    })
+
+    const cached = await getLatestCachedResultForEntity(fdm, "requestNutrientAdvice", "field", b_id)
+    expect(cached).not.toBeNull()
   })
 })

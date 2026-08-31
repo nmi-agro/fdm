@@ -1,9 +1,10 @@
-import type { Field } from "@nmi-agro/fdm-core"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { createFdmServer, getLatestCachedResultForEntity, type Field } from "@nmi-agro/fdm-core"
+import { afterEach, describe, expect, it, vi, inject } from "vitest"
 import type { NitrogenStandard, NL2025NormsInput, NL2025NormsInputForCultivation } from "./types"
 import * as GeoTiff from "../../../../shared/geotiff"
 import {
   calculateNL2025StikstofGebruiksNorm,
+  getNL2025StikstofGebruiksNorm,
   getRegion,
   isFieldInNVGebied,
 } from "./stikstofgebruiksnorm"
@@ -43,6 +44,7 @@ describe("stikstofgebruiksnorm helpers", () => {
   })
 })
 
+import { createId } from "../../../../shared/test-util"
 import * as StikstofData from "./stikstofgebruiksnorm-data"
 
 describe("calculateNL2025StikstofGebruiksNorm", () => {
@@ -1277,5 +1279,57 @@ describe("calculateNL2025StikstofGebruiksNorm - Additional Korting Edge Cases", 
     await expect(calculateNL2025StikstofGebruiksNorm(mockInput)).rejects.toThrow(
       "Graslandvernietiging op klei- en veengrond (NV-gebied) is alleen toegestaan tussen 1 februari en 15 maart.",
     )
+  })
+
+  it("should set the correct cache entity id", async () => {
+    const b_id = `field_${createId()}`
+
+    const fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+
+    const inputs: NL2025NormsInput = {
+      farm: {
+        is_derogatie_bedrijf: false,
+        has_grazing_intention: false,
+      },
+      field: {
+        b_id: b_id,
+        b_centroid: sandCentroid,
+      } as Field,
+      cultivations: [
+        {
+          b_lu_catalogue: "nl_265", // Grass
+          b_lu_start: new Date(2025, 0, 1),
+          b_lu_end: new Date(2025, 2, 10), // Mar 10
+        },
+        {
+          b_lu_catalogue: "nl_259", // Maize (as example of relevant crop)
+          b_lu_start: new Date(2025, 2, 11),
+          b_lu_end: new Date(2025, 9, 1),
+        },
+      ] as NL2025NormsInputForCultivation[],
+      soilAnalysis: { a_p_al: 20, a_p_cc: 0.9 },
+    }
+
+    await getNL2025StikstofGebruiksNorm(fdm, inputs)
+
+    // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 100)
+    })
+
+    const cached = await getLatestCachedResultForEntity(
+      fdm,
+      "calculateNL2025StikstofGebruiksNorm",
+      "field",
+      b_id,
+    )
+    console.log(cached)
+    expect(cached).not.toBeNull()
   })
 })
