@@ -23,6 +23,7 @@ import {
 } from "~/components/blocks/atlas/atlas-tooltip"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Button } from "~/components/ui/button"
+import { cn } from "~/lib/utils"
 
 const FIELDS_LAYER = "measuresMapFields"
 const FIELDS_OUTLINE_LAYER = "measuresMapFieldsOutline"
@@ -80,7 +81,6 @@ type MeasuresMapProps = {
   /** GeoJSON with the currently-selected field (for yellow highlight). Empty for farm overview. */
   selectedFieldGeoJSON: FeatureCollection
   mapStyle: string | StyleSpecification
-  height?: string
   /**
    * When provided, the initial view is fitted to this GeoJSON instead of `fieldsGeoJSON`.
    * Use this on field detail pages to zoom to the selected field rather than the whole farm.
@@ -91,13 +91,14 @@ type MeasuresMapProps = {
    * to the field detail page. Used on the farm overview to open the add-dialog.
    */
   onFieldClick?: (b_id: string) => void
+  className?: string
 }
 
 export default function MeasuresMap({
   fieldsGeoJSON,
   selectedFieldGeoJSON,
   initialFitGeoJSON,
-  height,
+  className,
   onFieldClick,
 }: MeasuresMapProps) {
   const fitTarget =
@@ -119,7 +120,7 @@ export default function MeasuresMap({
   const outlineStyle = useMemo(() => getMeasureCountOutlineStyle(FIELDS_OUTLINE_LAYER), [])
 
   return (
-    <div className="relative" style={{ height }}>
+    <div className={cn("relative", className)}>
       <Atlas
         initialViewState={initialViewState}
         interactive={true}
