@@ -4,6 +4,7 @@ import type {
   Bln3MeasureApplicabilityResponse,
   Bln3MeasureApplicabilityResult,
 } from "./types"
+import { bln3Client } from "../nmi/client"
 import pkg from "../package"
 
 /**
@@ -27,19 +28,18 @@ export async function requestBln3MeasureApplicability(
     throw new Error("NMI API key not provided")
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
-
   try {
-    const response = await fetch("https://api.nmi-agro.nl/maatwerk/bln3/measure/applicability", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${nmiApiKey}`,
-        "Content-Type": "application/json",
+    const response = await bln3Client.request(
+      "https://api.nmi-agro.nl/maatwerk/bln3/measure/applicability",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${nmiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(fieldData),
       },
-      body: JSON.stringify(fieldData),
-      signal: controller.signal,
-    })
+    )
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "")
@@ -84,14 +84,12 @@ export async function requestBln3MeasureApplicability(
       })),
     }
   } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
+    if (err instanceof Error && err.name === "TimeoutError") {
       throw new Error(
-        "BLN3 measure applicability request timed out (30s). The NMI API did not respond in time.",
+        "BLN3 measure applicability request timed out. The NMI API did not respond in time.",
       )
     }
     throw err
-  } finally {
-    clearTimeout(timeout)
   }
 }
 

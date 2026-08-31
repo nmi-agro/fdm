@@ -1,5 +1,6 @@
 import { withCalculationCache } from "@nmi-agro/fdm-core"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
+import { bln3Client } from "../nmi/client"
 import pkg from "../package"
 
 export { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
@@ -25,18 +26,14 @@ export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Sco
     throw new Error("NMI API key not provided")
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
-
   try {
-    const response = await fetch("https://api.nmi-agro.nl/maatwerk/bln3/score/field", {
+    const response = await bln3Client.request("https://api.nmi-agro.nl/maatwerk/bln3/score/field", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${nmiApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(fieldData),
-      signal: controller.signal,
     })
 
     if (!response.ok) {
@@ -65,12 +62,10 @@ export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Sco
       aggregations: result.data.aggregations,
     }
   } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw new Error("BLN3 score request timed out (30s). The NMI API did not respond in time.")
+    if (err instanceof Error && err.name === "TimeoutError") {
+      throw new Error("BLN3 score request timed out. The NMI API did not respond in time.")
     }
     throw err
-  } finally {
-    clearTimeout(timeout)
   }
 }
 

@@ -148,7 +148,7 @@ describe("requestBln3MeasureApplicability", () => {
   })
 
   it("should throw if the NMI API returns a non-ok response", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
+    vi.mocked(fetch).mockResolvedValue({
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
@@ -209,24 +209,30 @@ describe("requestBln3MeasureApplicability", () => {
 
   it("should handle request timeout via AbortError", async () => {
     vi.useFakeTimers()
-    const abortError = new DOMException("The operation was aborted", "AbortError")
 
-    vi.mocked(fetch).mockImplementationOnce((_url, options) => {
-      const signal = options?.signal
-      return new Promise((_resolve, reject) => {
-        if (signal) {
-          signal.addEventListener("abort", () => reject(abortError))
-        }
+    try {
+      vi.mocked(fetch).mockImplementation((_url, options) => {
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            reject(options?.signal?.reason)
+          })
+        })
       })
-    })
 
-    const promise = requestBln3MeasureApplicability(baseInputs)
-    vi.advanceTimersByTime(30000)
+      const assertion = expect(requestBln3MeasureApplicability(baseInputs)).rejects.toThrow(
+        "BLN3 measure applicability request timed out. The NMI API did not respond in time.",
+      )
 
-    await expect(promise).rejects.toThrow(
-      "BLN3 measure applicability request timed out (30s). The NMI API did not respond in time.",
-    )
-    vi.useRealTimers()
+      try {
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+      } finally {
+        await assertion
+      }
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
