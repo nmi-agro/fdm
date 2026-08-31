@@ -185,7 +185,7 @@ describe("requestBln3MeasureAdvice", () => {
 
     const result = await requestBln3MeasureAdvice(baseInputs)
 
-    expect(result.indicator_advice[0].measures[0].m_id).toBe("bln_BM226")
+    expect(result?.indicator_advice[0].measures[0].m_id).toBe("bln_BM226")
   })
 
   it("should throw if the NMI API returns a non-ok response", async () => {

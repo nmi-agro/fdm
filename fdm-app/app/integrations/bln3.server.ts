@@ -63,6 +63,7 @@ export type FieldBln3Score = {
 export type FieldBln3Result = {
   score: Bln3Score | null
   inputs: Bln3ScoreCollectedInputs
+  isExcluded?: boolean
 }
 
 export type MeasureApplicabilityInfo = {
@@ -86,7 +87,7 @@ export async function getIndicatorsForField({
 }): Promise<FieldBln3Result> {
   const inputs = await collectInputForBln3Score(fdm, principal_id, b_id, timeframe)
   if (inputs.isExcluded) {
-    return { score: null, inputs }
+    return { score: null, inputs, isExcluded: true }
   }
 
   const nmiApiKey = getNmiApiKey()
@@ -94,7 +95,7 @@ export async function getIndicatorsForField({
     ...inputs,
     nmiApiKey,
   })
-  return { score, inputs }
+  return { score, inputs, isExcluded: false }
 }
 
 /**

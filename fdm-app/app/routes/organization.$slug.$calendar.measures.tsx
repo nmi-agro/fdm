@@ -157,7 +157,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
         const rawFields = farmFields.get(farm.b_id_farm) ?? []
         const eligibleFields = rawFields.filter((field) => {
-          const fieldCultivations = farmCultivations.get(field.b_id)
+          const fieldCultivations = farmCultivations.get(field.b_id) ?? []
           const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
           return !isExcludedFromBln3({
             b_bufferstrip: field.b_bufferstrip,
