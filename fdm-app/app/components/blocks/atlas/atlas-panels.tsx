@@ -115,10 +115,12 @@ export function FieldTooltip({
           return (
             <>
               <AtlasTooltipHeader>
-                <CardTitle>{availableField.properties.b_lu_name}</CardTitle>
+                <CardTitle className="text-xs">{availableField.properties.b_lu_name}</CardTitle>
               </AtlasTooltipHeader>
               <AtlasTooltipContent>
-                <CardDescription>{savedField.properties.b_name}</CardDescription>
+                <CardDescription className="text-xs">
+                  {savedField.properties.b_name}
+                </CardDescription>
                 <CardDescription className="text-xs">
                   {savedField.properties.b_area}
                   {" ha"}
@@ -133,7 +135,7 @@ export function FieldTooltip({
           return (
             <>
               <AtlasTooltipHeader>
-                <CardTitle>{savedField.properties.b_name}</CardTitle>
+                <CardTitle className="text-xs">{savedField.properties.b_name}</CardTitle>
                 <CardDescription className="text-xs">
                   {savedField.properties.b_area}
                   {" ha"}
@@ -147,7 +149,7 @@ export function FieldTooltip({
         return (
           <>
             <AtlasTooltipHeader>
-              <CardTitle>{featureToClick.properties.b_lu_name}</CardTitle>
+              <CardTitle className="text-xs">{featureToClick.properties.b_lu_name}</CardTitle>
               <CardDescription className="text-xs">
                 {clickRedirectsToDetailsPage
                   ? "Klik voor meer details over dit perceel"

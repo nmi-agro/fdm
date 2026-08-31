@@ -107,6 +107,23 @@ export function Bln3HelpDialog() {
               situatie op basis van uw bodemanalyses.
             </p>
           </div>
+
+          <div className="space-y-1.5">
+            <p className="text-foreground font-medium">Aanbevolen maatregelen</p>
+            <p className="text-xs">
+              Bij indicatoren die aandacht vragen en op de maatregelenpagina&apos;s ziet u{" "}
+              <strong className="text-foreground">aanbevolen maatregelen</strong>: de maatregelen
+              die volgens het BLN3-model van NMI de grootste verbetering geven voor dit perceel.
+              Alleen maatregelen die op dit perceel toepasbaar zijn en nog niet lopen worden
+              aanbevolen.
+            </p>
+            <p className="text-xs">
+              De <strong className="text-foreground">impact</strong> (groene balk) is een relatieve
+              schaal van 0 tot 1: hoe voller de balk, hoe groter de verwachte verbetering ten
+              opzichte van andere maatregelen. Het is geen score zoals de 0–100 indicatorenscore.
+              Deze berekening is experimenteel en wordt door NMI verder ontwikkeld.
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

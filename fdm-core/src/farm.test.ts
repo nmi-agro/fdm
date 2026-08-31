@@ -4,7 +4,7 @@ import type { FdmAuth } from "./authentication"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
 import { createFdmAuth } from "./authentication"
-import { listPrincipalsForResource } from "./authorization"
+import { grantRole, listPrincipalsForResource } from "./authorization"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -31,6 +31,7 @@ import { addField, getFields } from "./field"
 import { createId } from "./id"
 import { acceptInvitation, declineInvitation } from "./invitation"
 import { getPrincipal } from "./principal"
+import { addFarmVerification, revokeFarmVerification } from "./verification"
 
 describe("Farm Functions", () => {
   const asFdm = (t: unknown) => t as FdmType
@@ -256,6 +257,69 @@ describe("Farm Functions", () => {
         ),
       ).rejects.toThrowError("Exception for updateFarm")
     })
+
+    it("should handle an update for a farm row that does not exist", async () => {
+      const missingFarmId = createId()
+      await grantRole(fdm, "farm", "owner", missingFarmId, principal_id)
+
+      await expect(
+        updateFarm(
+          fdm,
+          principal_id,
+          missingFarmId,
+          "Missing Farm",
+          "123456",
+          "Unknown Lane",
+          "00000",
+        ),
+      ).rejects.toThrowError("Exception for updateFarm")
+    })
+
+    it("should prevent changing KvK while a verification is active", async () => {
+      const currentFarm = await getFarm(fdm, principal_id, b_id_farm)
+      const currentBusinessId = currentFarm.b_businessid_farm ?? "987654"
+      const changedBusinessId = `${currentBusinessId}-changed`
+      const verification_id = await addFarmVerification(fdm, principal_id, b_id_farm, {
+        verification_method: "rvo_eherkenning",
+        verification_result: "verified",
+        b_businessid_farm: currentBusinessId,
+      })
+
+      await expect(
+        updateFarm(
+          fdm,
+          principal_id,
+          b_id_farm,
+          "Still Updated",
+          changedBusinessId,
+          "789 Updated Lane",
+          "98765",
+        ),
+      ).rejects.toThrowError("Exception for updateFarm")
+
+      await updateFarm(
+        fdm,
+        principal_id,
+        b_id_farm,
+        "Non-KvK Edit",
+        currentBusinessId,
+        "New Address",
+        "98765",
+      )
+
+      await revokeFarmVerification(fdm, principal_id, b_id_farm, verification_id)
+
+      const updatedFarm = await updateFarm(
+        fdm,
+        principal_id,
+        b_id_farm,
+        "Changed After Revoke",
+        changedBusinessId,
+        "New Address",
+        "98765",
+      )
+      expect(updatedFarm.b_businessid_farm).toBe(changedBusinessId)
+    })
   })
 
   describe("grantRoleToFarm", () => {
@@ -406,6 +470,36 @@ describe("Farm Functions", () => {
       const revokee = principals.find((p) => p.principal_id === targetPrincipal?.id)
 
       expect(revokee).toBeUndefined()
+    })
+
+    it("should retain point-in-time farm verifications after access is revoked", async () => {
+      await grantRoleToFarm(fdm, principal_id, target_username, b_id_farm, "advisor")
+      const invitation = (
+        await fdm
+          .select()
+          .from(authZSchema.invitation)
+          .where(eq(authZSchema.invitation.target_principal_id, target_id))
+      ).find((entry) => entry.status === "pending")
+      if (!invitation) {
+        throw new Error("Expected a pending invitation for the verification test")
+      }
+      await acceptInvitation(fdm, invitation.invitation_id, target_id)
+
+      const farm = await getFarm(fdm, principal_id, b_id_farm)
+      const verification_id = await addFarmVerification(fdm, target_id, b_id_farm, {
+        verification_method: "rvo_eherkenning",
+        verification_result: "verified",
+        b_businessid_farm: farm.b_businessid_farm ?? "",
+      })
+
+      await revokePrincipalFromFarm(fdm, principal_id, target_username, b_id_farm)
+
+      const verification = await fdm
+        .select()
+        .from(authZSchema.farmVerification)
+        .where(eq(authZSchema.farmVerification.verification_id, verification_id))
+      expect(verification).toHaveLength(1)
+      expect(verification[0].revoked_at).toBeNull()
     })
 
     it("should throw an error if the principal does not have share permission", async () => {

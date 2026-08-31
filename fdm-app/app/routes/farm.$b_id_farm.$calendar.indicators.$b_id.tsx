@@ -5,6 +5,7 @@ import {
   getCultivations,
   getField,
   getFields,
+  getMeasuresFromCatalogue,
   getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
@@ -19,6 +20,7 @@ import {
   type MetaFunction,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
@@ -45,6 +47,8 @@ import {
   getFieldMeasuresForIndicators,
   getIndicatorsForFarm,
   getIndicatorsForField,
+  getMeasureAdviceForField,
+  getMeasureApplicabilityForField,
 } from "~/integrations/bln3.server"
 import { AGG_IDS, type AggregationId, getFieldAggregationScore } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
@@ -202,6 +206,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldMeasures,
       cultivations,
       brpCatalogue,
+      measureCatalogue,
+      applicabilityMap,
+      advice,
       fieldWritePermission,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
@@ -218,6 +225,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }),
       getCultivations(fdm, session.principal_id, b_id),
       getCultivationCatalogue("brp"),
+      getMeasuresFromCatalogue(fdm),
+      getMeasureApplicabilityForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year: calendarYear,
+        timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 applicability check failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
+      getMeasureAdviceForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year: calendarYear,
+        timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 measure advice failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
       checkPermission(
         fdm,
         "field",
@@ -360,6 +392,38 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
+    // Build per-indicator recommended measures: raw advice, cross-referenced
+    // against a fresh applicability check and already-active measures (the
+    // advice endpoint's own list is never trusted to be pre-filtered), keyed
+    // by indicator ID, top 3 per indicator, with catalogue names resolved.
+    // `advice` is null when the NMI fetch failed — signal unavailability with
+    // null so cards hide the section instead of showing a false empty state.
+    const measureNameById = new Map(measureCatalogue.map((m) => [m.m_id, m.m_name]))
+    const activeMeasureIds = new Set(fieldMeasures.map((m) => m.m_id))
+    const adviceUnavailable = applicabilityMap === null || advice === null
+    const indicatorAdvice: Record<
+      string,
+      { m_id: string; m_name: string; measure_impact: number }[]
+    > | null = adviceUnavailable ? null : {}
+    if (applicabilityMap !== null && advice !== null && indicatorAdvice !== null) {
+      for (const entry of advice?.indicator_advice ?? []) {
+        const recommendations = entry.measures
+          .filter(
+            (measure) =>
+              applicabilityMap[measure.m_id]?.applicability === "applicable" &&
+              !activeMeasureIds.has(measure.m_id),
+          )
+          .sort((a, b) => b.measure_impact - a.measure_impact)
+          .slice(0, 3)
+          .map((measure) => ({
+            m_id: measure.m_id,
+            m_name: measureNameById.get(measure.m_id) ?? measure.m_id.replace("bln_", ""),
+            measure_impact: measure.measure_impact,
+          }))
+        indicatorAdvice[entry.indicator] = recommendations
+      }
+    }
+
     return {
       field,
       fieldScore,
@@ -369,6 +433,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       currentCultivationName: currentCultivation?.b_lu_name ?? null,
       currentCultivationCropRotation: currentCultivation?.b_lu_croprotation ?? null,
       cultivationSummaries,
+      indicatorAdvice,
+      adviceUnavailable,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
@@ -430,6 +496,8 @@ export default function IndicatorsFieldDetail() {
     currentCultivationName,
     currentCultivationCropRotation,
     cultivationSummaries,
+    indicatorAdvice,
+    adviceUnavailable,
     soilData,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
@@ -460,6 +528,34 @@ export default function IndicatorsFieldDetail() {
     } catch {}
   }, [mapScoreKey])
 
+  // Deep-link: ?indicator=<id> (e.g. from the farm overview's "Waar te
+  // beginnen" panel) expands that indicator's card — recommended measures
+  // included — and scrolls it into view.
+  const [searchParams] = useSearchParams()
+  const indicatorParam = searchParams.get("indicator")
+  const deepLinkIndicator = INDICATORS.find((info) => info.id === indicatorParam)
+  const indicatorId = deepLinkIndicator?.id
+
+  // If a deep-linked indicator is specified and the current category filter
+  // excludes its category, select/retain that category so it remains visible
+  useEffect(() => {
+    if (!deepLinkIndicator) return
+    setActiveCategories((prev) => {
+      if (prev.length > 0 && !prev.includes(deepLinkIndicator.ecosysteemdienst)) {
+        return [...prev, deepLinkIndicator.ecosysteemdienst]
+      }
+      return prev
+    })
+  }, [deepLinkIndicator])
+
+  useEffect(() => {
+    if (!indicatorId) return
+    const el = document.getElementById(`indicator-${indicatorId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [indicatorId, activeCategories])
+
   const handleCategoryToggle = (dienst: Ecosysteemdienst) => {
     setActiveCategories((prev) =>
       prev.includes(dienst) ? prev.filter((c) => c !== dienst) : [...prev, dienst],
@@ -469,13 +565,17 @@ export default function IndicatorsFieldDetail() {
   const handleCategoryAll = () => setActiveCategories([])
   const handleMeasuresToggle = (value: boolean) => setWithMeasures(value)
 
-  // Filter indicators by active ecosystem service
+  // Filter indicators by active ecosystem service, while ensuring a deep-linked indicator remains visible
   const visibleIndicatorInfos = useMemo(
     () =>
       activeCategories.length === 0
         ? INDICATORS
-        : INDICATORS.filter((i) => activeCategories.includes(i.ecosysteemdienst)),
-    [activeCategories],
+        : INDICATORS.filter(
+            (i) =>
+              activeCategories.includes(i.ecosysteemdienst) ||
+              (indicatorId && i.id === indicatorId),
+          ),
+    [activeCategories, indicatorId],
   )
 
   // Sort indicator results: red (< 40) → yellow (40–69) → green (≥ 70), then alphabetical
@@ -603,6 +703,10 @@ export default function IndicatorsFieldDetail() {
                     fieldMeasures={fieldMeasures}
                     measuresHref={measuresHref}
                     showIndex={!withMeasures}
+                    defaultExpanded={info.id === indicatorId}
+                    recommendedMeasures={
+                      adviceUnavailable ? null : (indicatorAdvice?.[info.id] ?? [])
+                    }
                   />
                 ))}
               </div>

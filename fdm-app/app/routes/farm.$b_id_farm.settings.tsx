@@ -1,4 +1,5 @@
 import { getFarm, getFarms } from "@nmi-agro/fdm-core"
+import { BadgeCheck } from "lucide-react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -8,13 +9,16 @@ import {
 } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { Badge } from "~/components/ui/badge"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Toaster } from "~/components/ui/sonner"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { useCalendarStore } from "~/store/calendar"
 
@@ -81,6 +85,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_name_farm: farm.b_name_farm,
       }
     })
+    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     // Create the items for sidebar page
     const sidebarPageItems = [
@@ -115,6 +120,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farm: farm,
       b_id_farm: b_id_farm,
       farmOptions: farmOptions,
+      farmVerification,
       sidebarPageItems: sidebarPageItems,
     }
   } catch (error) {
@@ -145,7 +151,26 @@ export default function FarmContentBlock() {
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
       </Header>
       <main>
-        <FarmTitle title={"Instellingen"} description={"Beheer de instellingen van je bedrijf"} />
+        <FarmTitle
+          title={"Instellingen"}
+          description={
+            "Beheer de instellingen van je bedrijf. Dit bedrijf raakt geverifieerd zodra je met eHerkenning minimaal één perceel ophaalt bij RVO en het KvK-nummer overeenkomt."
+          }
+          rightNode={
+            loaderData.farmVerification.isVerified ? (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 border-green-600 text-green-700"
+              >
+                <BadgeCheck className="h-4 w-4" />
+                {loaderData.farmVerification.latest
+                  ? `Laatst geverifieerd door ${loaderData.farmVerification.latest.display_name}`
+                  : "Geverifieerd"}
+                <FarmVerificationInfo className="ml-0.5" />
+              </Badge>
+            ) : undefined
+          }
+        />
         <FarmContent sidebarItems={loaderData.sidebarPageItems}>
           <Outlet />
         </FarmContent>

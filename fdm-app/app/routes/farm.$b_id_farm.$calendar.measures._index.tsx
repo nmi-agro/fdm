@@ -8,21 +8,26 @@ import {
   getFields,
   getMeasuresForFarm,
   getMeasuresFromCatalogue,
+  type PrincipalId,
   removeMeasure,
+  type Timeframe,
   updateMeasure,
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
-import { ClipboardList } from "lucide-react"
+import { ClipboardList, Sparkles } from "lucide-react"
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
+  Await,
   data,
+  Link,
   type LoaderFunctionArgs,
   type MetaFunction,
   useFetcher,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -52,16 +57,288 @@ import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Separator } from "~/components/ui/separator"
-import { getMeasureApplicabilityForFields } from "~/integrations/bln3.server"
+import { Spinner } from "~/components/ui/spinner"
+import {
+  getMeasureApplicabilityForFields,
+  getIndicatorsForFarm,
+  getFarmMeasureOpportunities,
+  type FieldTopOpportunity,
+} from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleActionError, handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { INDICATORS } from "~/lib/indicators"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
+
+/** A ranked measure × field recommendation for the farm-wide "Aanbevolen
+ * maatregelen" card, derived from `getTopOpportunitiesForField` run per
+ * field then flattened across the farm — deliberately cross-field and
+ * cross-indicator, matching this route's "whole farm" framing. */
+type FarmNextStep = {
+  b_id: string
+  b_name: string | null
+  m_id: string
+  m_name: string
+  indicatorName: string
+  aggregateImpact: number
+}
+
+export type FarmRecommendationsData = {
+  steps: FarmNextStep[]
+  opportunitiesByField: Record<string, FieldTopOpportunity[]>
+  topOpportunities: FieldTopOpportunity[]
+  measureImpacts: Record<string, { indicator_id: string; measure_impact: number }[]>
+}
+
+async function getFarmNextSteps({
+  principal_id,
+  b_id_farm,
+  fields,
+  b_year,
+  timeframe,
+  measuresMap,
+  catalogue,
+}: {
+  principal_id: PrincipalId
+  b_id_farm: string
+  fields: { b_id: string; b_name: string | null }[]
+  b_year: number
+  timeframe?: Timeframe
+  measuresMap: Map<string, { m_id: string }[]>
+  catalogue: { m_id: string; m_name: string }[]
+}): Promise<FarmRecommendationsData> {
+  const b_ids = fields.map((f) => f.b_id)
+  const scores = await getIndicatorsForFarm({ principal_id, b_id_farm, timeframe })
+  const indicatorNameById = new Map(INDICATORS.map((i) => [i.id, i.name]))
+  const scoreByBid = new Map(scores.map((s) => [s.b_id, s.score]))
+  const fieldNameByBid = new Map(fields.map((f) => [f.b_id, f.b_name]))
+  const activeMeasureIdsByField = new Map(
+    b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
+  )
+  const { opportunities } = await getFarmMeasureOpportunities({
+    principal_id,
+    b_ids,
+    b_year,
+    timeframe,
+    scoreByBid,
+    activeMeasureIdsByField,
+    measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
+  })
+
+  const opportunitiesByField: Record<string, FieldTopOpportunity[]> = {}
+  const farmOpportunitiesByMId = new Map<string, FieldTopOpportunity>()
+  const measureImpacts: Record<string, { indicator_id: string; measure_impact: number }[]> = {}
+
+  for (const opp of opportunities) {
+    if (!opportunitiesByField[opp.b_id]) {
+      opportunitiesByField[opp.b_id] = []
+    }
+    opportunitiesByField[opp.b_id].push({
+      m_id: opp.m_id,
+      aggregateImpact: opp.aggregateImpact,
+      indicatorImpacts: opp.indicatorImpacts,
+    })
+
+    const existing = farmOpportunitiesByMId.get(opp.m_id)
+    if (existing) {
+      existing.aggregateImpact += opp.aggregateImpact
+      for (const indImpact of opp.indicatorImpacts) {
+        const existingInd = existing.indicatorImpacts.find(
+          (i) => i.indicator_id === indImpact.indicator_id,
+        )
+        if (existingInd) {
+          existingInd.measure_impact += indImpact.measure_impact
+        } else {
+          existing.indicatorImpacts.push({ ...indImpact })
+        }
+      }
+    } else {
+      farmOpportunitiesByMId.set(opp.m_id, {
+        m_id: opp.m_id,
+        aggregateImpact: opp.aggregateImpact,
+        indicatorImpacts: opp.indicatorImpacts.map((i) => ({ ...i })),
+      })
+    }
+
+    for (const indImpact of opp.indicatorImpacts) {
+      if (!measureImpacts[opp.m_id]) {
+        measureImpacts[opp.m_id] = []
+      }
+      const existing = measureImpacts[opp.m_id].find(
+        (i) => i.indicator_id === indImpact.indicator_id,
+      )
+      if (existing) {
+        existing.measure_impact += indImpact.measure_impact
+      } else {
+        measureImpacts[opp.m_id].push({
+          indicator_id: indImpact.indicator_id,
+          measure_impact: indImpact.measure_impact,
+        })
+      }
+    }
+  }
+
+  for (const impacts of Object.values(measureImpacts)) {
+    impacts.sort((a, b) => b.measure_impact - a.measure_impact)
+  }
+
+  const topOpportunities = [...farmOpportunitiesByMId.values()].sort(
+    (a, b) => b.aggregateImpact - a.aggregateImpact,
+  )
+
+  const steps = opportunities
+    .map((opportunity) => {
+      const topIndicatorId = [...opportunity.indicatorImpacts].sort(
+        (a, b) => b.measure_impact - a.measure_impact,
+      )[0]?.indicator_id
+      return {
+        b_id: opportunity.b_id,
+        b_name: fieldNameByBid.get(opportunity.b_id) ?? null,
+        m_id: opportunity.m_id,
+        m_name: opportunity.m_name,
+        indicatorName: topIndicatorId
+          ? (indicatorNameById.get(topIndicatorId) ?? topIndicatorId)
+          : "",
+        aggregateImpact: opportunity.aggregateImpact,
+      }
+    })
+    .sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+
+  return { steps, opportunitiesByField, topOpportunities, measureImpacts }
+}
+
+/** Groups farm-wide measure × field recommendations by measure — one row per
+ * measure with its fields as compact links, ranked by summed impact — instead
+ * of one long row per field repeating the same measure name. */
+function GroupedRecommendations({
+  data,
+  basePath,
+  onOpenMeasure,
+}: {
+  data: FarmRecommendationsData
+  basePath: string
+  onOpenMeasure?: (m_id: string, fieldIds?: string[]) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const steps = data.steps
+
+  const groups = useMemo(() => {
+    const byMeasure = new Map<
+      string,
+      {
+        m_name: string
+        indicatorNames: string[]
+        fields: { b_id: string; b_name: string | null; aggregateImpact: number }[]
+        totalImpact: number
+      }
+    >()
+    for (const step of steps) {
+      const existing = byMeasure.get(step.m_id) ?? {
+        m_name: step.m_name,
+        indicatorNames: [],
+        fields: [],
+        totalImpact: 0,
+      }
+      if (step.indicatorName && !existing.indicatorNames.includes(step.indicatorName)) {
+        existing.indicatorNames.push(step.indicatorName)
+      }
+      existing.fields.push({
+        b_id: step.b_id,
+        b_name: step.b_name,
+        aggregateImpact: step.aggregateImpact,
+      })
+      existing.totalImpact += step.aggregateImpact
+      byMeasure.set(step.m_id, existing)
+    }
+    return [...byMeasure.entries()]
+      .map(([m_id, g]) => ({
+        m_id,
+        ...g,
+        fields: g.fields.sort((a, b) => b.aggregateImpact - a.aggregateImpact),
+      }))
+      .sort((a, b) => b.totalImpact - a.totalImpact)
+  }, [steps])
+
+  const visible = expanded ? groups : groups.slice(0, 3)
+
+  return (
+    <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/10">
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+        <Sparkles className="h-4 w-4" />
+        Aanbevolen maatregelen
+      </p>
+      <ul className="space-y-3">
+        {visible.map((group, index) => (
+          <li key={group.m_id} className="text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <span className="text-muted-foreground font-mono text-xs">
+                  {group.m_id.replace("bln_", "")}
+                </span>
+                <span className="font-medium">{group.m_name}</span>
+                {index === 0 && (
+                  <span className="text-muted-foreground text-xs">
+                    (grootste verwachte verbetering)
+                  </span>
+                )}
+              </div>
+              {onOpenMeasure && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenMeasure(
+                      group.m_id,
+                      group.fields.map((f) => f.b_id),
+                    )
+                  }
+                  className="shrink-0 text-xs font-semibold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-200"
+                >
+                  + Toevoegen
+                </button>
+              )}
+            </div>
+            {group.indicatorNames.length > 0 && (
+              <p className="text-muted-foreground text-xs">
+                Verbetert vooral: {group.indicatorNames.slice(0, 2).join(", ")}
+              </p>
+            )}
+            <p className="mt-0.5 text-xs">
+              {group.fields.slice(0, 4).map((field, i) => (
+                <span key={field.b_id}>
+                  {i > 0 && <span className="text-muted-foreground"> · </span>}
+                  <Link
+                    to={`${basePath}/${field.b_id}`}
+                    className="text-foreground hover:text-primary transition-colors hover:underline"
+                  >
+                    {field.b_name ?? "Perceel"}
+                  </Link>
+                </span>
+              ))}
+              {group.fields.length > 4 && (
+                <span className="text-muted-foreground"> +{group.fields.length - 4}</span>
+              )}
+            </p>
+          </li>
+        ))}
+      </ul>
+      {groups.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="text-muted-foreground hover:text-foreground mt-2 text-xs transition-colors"
+        >
+          {expanded ? "Toon minder" : `Toon alle ${groups.length} maatregelen`}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export const meta: MetaFunction = () => {
   return [
     {
@@ -105,17 +382,41 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ])
 
     const calendarYear = Number(calendar)
+    const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
     const fieldIds = fields.map((f) => f.b_id)
 
     const [applicabilityByField, fieldCultivations] = await Promise.all([
       getMeasureApplicabilityForFields({
         principal_id: session.principal_id,
         b_ids: fieldIds,
-        b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+        b_year,
         timeframe,
-      }).catch(() => ({})),
+      }).catch((error) => {
+        reportError(error, { page: "farm measures applicability" })
+        return {}
+      }),
       Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
     ])
+
+    // Lazy, batched farm-wide advice fetch for the "Aanbevolen
+    // maatregelen" card — not awaited so it never blocks the rest of the page.
+    const farmNextStepsPromise = getFarmNextSteps({
+      principal_id: session.principal_id,
+      b_id_farm,
+      fields: fields.map((f) => ({ b_id: f.b_id, b_name: f.b_name ?? null })),
+      b_year,
+      timeframe,
+      measuresMap,
+      catalogue,
+    }).catch((error) => {
+      reportError(error, { page: "farm measures recommendations" })
+      return {
+        steps: [],
+        opportunitiesByField: {},
+        topOpportunities: [],
+        measureImpacts: {},
+      }
+    })
     const fieldList = fields.map((f, i) => {
       const cultivations = fieldCultivations[i]
       const main = getMainCultivation(cultivations, calendar) ?? null
@@ -234,6 +535,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         totalMeasures,
         fieldsWithMeasures,
         fieldsWithoutMeasures,
+      },
+      asyncInsights: {
+        farmNextSteps: farmNextStepsPromise,
       },
     }
   } catch (error) {
@@ -509,12 +813,18 @@ export default function MeasuresFarmIndex() {
     fieldSummaries,
     applicabilityByField,
     farmWritePermission,
+    asyncInsights,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const basePath = `/farm/${b_id_farm}/${calendar}/measures`
 
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [initialFieldIds, setInitialFieldIds] = useState<string[]>([])
+  const [initialMeasureId, setInitialMeasureId] = useState<string | undefined>(undefined)
+  const [recommendationsData, setRecommendationsData] = useState<FarmRecommendationsData | null>(
+    null,
+  )
   const [editingRow, setEditingRow] = useState<MeasureTableRow | null>(null)
   const [closingRow, setClosingRow] = useState<MeasureTableRow | null>(null)
 
@@ -524,6 +834,7 @@ export default function MeasuresFarmIndex() {
     (b_id: string) => {
       if (!farmWritePermission) return
       setInitialFieldIds([b_id])
+      setInitialMeasureId(undefined)
       setAddDialogOpen(true)
     },
     [farmWritePermission],
@@ -531,8 +842,30 @@ export default function MeasuresFarmIndex() {
 
   const handleAddClick = useCallback(() => {
     setInitialFieldIds([])
+    setInitialMeasureId(undefined)
     setAddDialogOpen(true)
   }, [])
+
+  const handleOpenMeasure = useCallback(
+    (m_id: string, fieldIds?: string[]) => {
+      if (!farmWritePermission) return
+      setInitialMeasureId(m_id)
+      if (fieldIds && fieldIds.length > 0) {
+        setInitialFieldIds(fieldIds)
+      } else {
+        setInitialFieldIds([])
+      }
+      setAddDialogOpen(true)
+    },
+    [farmWritePermission],
+  )
+
+  const openMeasure = searchParams.get("openMeasure")
+  useEffect(() => {
+    if (!openMeasure) return
+    setInitialMeasureId(openMeasure)
+    setAddDialogOpen(true)
+  }, [openMeasure])
 
   const columns = getColumns(
     (b_id) => `${basePath}/${b_id}`,
@@ -595,10 +928,13 @@ export default function MeasuresFarmIndex() {
       />
 
       <FarmContent>
-        <div className="space-y-6 pb-10">
+        {/* One flex context with order utilities: on mobile the map moves to
+            the end of the page (after the Percelen summary) as graceful
+            degradation; on xl it sits beside the measures table again. */}
+        <div className="flex flex-col gap-6 pb-10 xl:flex-row xl:flex-wrap xl:items-start">
           {/* Summary stats banner */}
           {stats.totalFields > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="order-1 grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="bg-card rounded-lg border px-4 py-3">
                 <p className="text-muted-foreground text-xs">Actieve maatregelen</p>
                 <p className="mt-0.5 text-2xl font-bold tabular-nums">{stats.totalMeasures}</p>
@@ -617,53 +953,106 @@ export default function MeasuresFarmIndex() {
             </div>
           )}
 
-          <div className="flex flex-col items-start gap-6 xl:flex-row">
-            <div className="min-w-0 flex-1">{tableOrEmpty}</div>
+          <div className="order-2 min-w-0 flex-1 space-y-6">
+            {tableOrEmpty}
 
-            <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
-              <Suspense fallback={<div className="bg-muted h-80 animate-pulse rounded-lg" />}>
-                <MeasuresMap
-                  fieldsGeoJSON={fieldsGeoJSON}
-                  selectedFieldGeoJSON={emptyGeoJSON}
-                  mapStyle={mapStyle}
-                  height="480px"
-                  onFieldClick={handleFieldClick}
-                />
-              </Suspense>
-            </div>
+            {/* Recommended measures, grouped by measure across the farm and
+                lazily loaded so this potentially-slow batched NMI fetch never
+                blocks the page. Placed below the table to use the empty space
+                left of the (taller) map instead of a full-width banner. */}
+            <Suspense
+              fallback={
+                <div className="bg-muted/20 flex items-center gap-2 rounded-lg border p-4 text-sm">
+                  <Spinner className="text-muted-foreground h-4 w-4" />
+                  <span className="text-muted-foreground">
+                    Aanbevolen maatregelen worden berekend…
+                  </span>
+                </div>
+              }
+            >
+              <Await resolve={asyncInsights.farmNextSteps} errorElement={null}>
+                {(recData: FarmRecommendationsData) => {
+                  if (recData && recData !== recommendationsData && !recommendationsData) {
+                    setTimeout(() => setRecommendationsData(recData), 0)
+                  }
+                  return (
+                    recData?.steps &&
+                    recData.steps.length > 0 && (
+                      <GroupedRecommendations
+                        data={recData}
+                        basePath={basePath}
+                        onOpenMeasure={farmWritePermission ? handleOpenMeasure : undefined}
+                      />
+                    )
+                  )
+                }}
+              </Await>
+            </Suspense>
           </div>
 
           {/* Per-field summary table */}
           {fieldSummaryRows.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
-                  Percelen
-                </h3>
-                <FieldSummaryTable
-                  columns={fieldSummaryColumns}
-                  data={fieldSummaryRows}
-                  onAddMeasure={(selectedIds) => {
-                    setInitialFieldIds(selectedIds)
-                    setAddDialogOpen(true)
-                  }}
-                  canModify={farmWritePermission}
-                />
-              </div>
-            </>
+            <div className="order-3 w-full xl:order-4">
+              <Separator className="mb-6" />
+              <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wide uppercase">
+                Percelen
+              </h3>
+              <FieldSummaryTable
+                columns={fieldSummaryColumns}
+                data={fieldSummaryRows}
+                onAddMeasure={(selectedIds) => {
+                  setInitialFieldIds(selectedIds)
+                  setInitialMeasureId(undefined)
+                  setAddDialogOpen(true)
+                }}
+                canModify={farmWritePermission}
+              />
+            </div>
           )}
+
+          {/* Map — beside the table on xl, last on mobile (still available,
+              just deprioritized), shorter on small screens. */}
+          <div className="order-4 w-full overflow-hidden rounded-lg border xl:order-3 xl:w-96 xl:shrink-0">
+            <Suspense fallback={<div className="bg-muted h-64 animate-pulse rounded-lg" />}>
+              <MeasuresMap
+                fieldsGeoJSON={fieldsGeoJSON}
+                selectedFieldGeoJSON={emptyGeoJSON}
+                mapStyle={mapStyle}
+                className="h-64 md:h-[480px]"
+                onFieldClick={handleFieldClick}
+              />
+            </Suspense>
+          </div>
         </div>
       </FarmContent>
 
       <AddMeasureDialog
         open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
+        onOpenChange={(next) => {
+          setAddDialogOpen(next)
+          if (!next) {
+            setInitialMeasureId(undefined)
+            if (searchParams.has("openMeasure")) {
+              setSearchParams(
+                (prev) => {
+                  const nextParams = new URLSearchParams(prev)
+                  nextParams.delete("openMeasure")
+                  return nextParams
+                },
+                { replace: true },
+              )
+            }
+          }
+        }}
         catalogue={catalogue}
         activeMeasures={[]}
         applicabilityByField={applicabilityByField ?? undefined}
         fields={fieldList}
         initialFieldIds={initialFieldIds}
+        topOpportunities={recommendationsData?.topOpportunities}
+        opportunitiesByField={recommendationsData?.opportunitiesByField}
+        measureImpacts={recommendationsData?.measureImpacts}
+        initialMeasureId={initialMeasureId}
         calendarYearStart={calendarYearStart}
         harvestDate={null}
         action={`${basePath}?index`}

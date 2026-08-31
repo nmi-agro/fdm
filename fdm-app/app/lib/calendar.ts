@@ -13,6 +13,10 @@ export function getCalendar(params: Params): string {
   return calendar
 }
 
+export function isSupportedYear(year: number) {
+  return Number.isInteger(year) && year >= yearStart && year <= yearEnd
+}
+
 export function getTimeframe(params: Params): Timeframe {
   const calendar = getCalendar(params)
 
@@ -27,7 +31,7 @@ export function getTimeframe(params: Params): Timeframe {
     const year = Number(calendar)
     if (!Number.isNaN(year)) {
       // Check if year is supported
-      if (year < yearStart || year > yearEnd) {
+      if (!isSupportedYear(year)) {
         throw new Error(`Unsupported year: ${calendar}`)
       }
       // Set start and end date

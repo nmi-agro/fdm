@@ -33,7 +33,6 @@ import {
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
-import { getCalendarSelection } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -41,6 +40,7 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
+import { useCalendarStore } from "~/store/calendar"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -69,9 +69,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   try {
     // Get the session
     const session = await getSession(request)
-
-    // Get latest available year
-    const calendar = getCalendarSelection()[0] ?? "all"
 
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, session.principal_id)
@@ -168,7 +165,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }),
       farmOptions: farmOptions,
       organizations: organizations,
-      calendar: calendar,
       username: session.userName,
       pendingInvitations: pendingInvitations,
       pendingOrganizationInvitations: pendingOrganizationInvitations,
@@ -260,6 +256,7 @@ function SupportNote() {
 export default function AppIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const greeting = getTimeBasedGreeting()
+  const calendar = useCalendarStore((state) => state.calendar)
 
   const [userFarms, organizationFarms] = useMemo(() => {
     const userFarms = loaderData.farms
@@ -382,7 +379,7 @@ export default function AppIndex() {
 
                 <Card className="group hover:border-primary/50 relative flex flex-col overflow-hidden border transition-all hover:shadow-md">
                   <NavLink
-                    to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/fields`}
+                    to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/fields`}
                     className="flex h-full flex-col"
                   >
                     <CardHeader className="pb-4">
@@ -509,7 +506,7 @@ export default function AppIndex() {
             <div className="px-4 pb-6 md:px-8 md:pb-8">
               <div className="divide-y overflow-hidden rounded-lg border">
                 <NavLink
-                  to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/fields`}
+                  to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/fields`}
                   className="group hover:bg-muted/50 flex items-center gap-3 p-4 transition-colors"
                 >
                   <div
@@ -530,7 +527,7 @@ export default function AppIndex() {
                   />
                 </NavLink>
                 <NavLink
-                  to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/elevation`}
+                  to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/elevation`}
                   className="group hover:bg-muted/50 flex items-center gap-3 p-4 transition-colors"
                 >
                   <div
@@ -551,7 +548,7 @@ export default function AppIndex() {
                   />
                 </NavLink>
                 <NavLink
-                  to={`/farm/${atlasBaseFarmId}/${loaderData.calendar}/atlas/soil`}
+                  to={`/farm/${atlasBaseFarmId}/${calendar}/atlas/soil`}
                   className="group hover:bg-muted/50 flex items-center gap-3 p-4 transition-colors"
                 >
                   <div
