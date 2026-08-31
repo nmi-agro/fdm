@@ -1,10 +1,15 @@
-import { AlertCircle, ArrowRight, CheckCircle2, CornerDownRight } from "lucide-react"
-import { useMemo, useState } from "react"
-import { Link } from "react-router"
+import { AlertCircle, ArrowRight, CheckCircle2, CornerDownRight, Sparkles } from "lucide-react"
+import { Suspense, useMemo, useState } from "react"
+import { Await, Link } from "react-router"
+import type {
+  FarmMeasureRecommendation,
+  FarmMeasureRecommendationsResult,
+} from "~/integrations/bln3.server"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { ScrollArea } from "~/components/ui/scroll-area"
+import { Spinner } from "~/components/ui/spinner"
 import {
   type AggregationId,
   computeAreaWeightedAggregation,
@@ -30,6 +35,14 @@ type AggregationPainpointsProps = {
   domain?: "organization" | "farm"
   fields: (FieldAreaInput & { b_name: string | null | undefined })[]
   fieldScores: FieldScoreInput[]
+  /**
+   * Lazily-resolved, farm-wide BLN3 measure recommendations (per field ×
+   * indicator), used to power the "Waar te beginnen" panel when an indicator
+   * is selected. Omitted on the organization overview (out of scope).
+   * When `adviceAvailable` is false (all advice fetches failed), the panel
+   * is hidden entirely rather than showing a false empty state.
+   */
+  farmMeasureRecommendationsPromise?: Promise<FarmMeasureRecommendationsResult>
 } & (
   | {
       basePath: string // e.g. /farm/123/2026/indicators
@@ -47,6 +60,7 @@ export function AggregationPainpoints({
   fieldScores,
   basePath,
   basePathFormatter,
+  farmMeasureRecommendationsPromise,
 }: AggregationPainpointsProps) {
   const [selectedAggId, setSelectedAggId] = useState<AggregationId | null>(null)
   const [selectedIndId, setSelectedIndId] = useState<string | null>(null)
@@ -223,7 +237,7 @@ export function AggregationPainpoints({
                   setSelectedIndId(null)
                 }}
                 className={cn(
-                  "rounded px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
                   leftMode === "themes"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -238,7 +252,7 @@ export function AggregationPainpoints({
                   setSelectedAggId(null)
                 }}
                 className={cn(
-                  "rounded px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
                   leftMode === "indicators"
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground",
@@ -397,7 +411,7 @@ export function AggregationPainpoints({
                             {field.b_name}
                           </Link>
                           {field.b_area !== null && (
-                            <span className="text-muted-foreground shrink-0 text-[10px]">
+                            <span className="text-muted-foreground shrink-0 text-xs">
                               ({field.b_area.toFixed(1)} ha)
                             </span>
                           )}
@@ -410,7 +424,7 @@ export function AggregationPainpoints({
                           <Badge
                             variant="outline"
                             className={cn(
-                              "h-5 shrink-0 px-1.5 py-0 text-[9px] tracking-wider whitespace-nowrap uppercase",
+                              "h-5 shrink-0 px-1.5 py-0 text-xs tracking-wider whitespace-nowrap uppercase",
                               getScoreBadgeClass(score),
                             )}
                           >
@@ -425,7 +439,176 @@ export function AggregationPainpoints({
             </ScrollArea>
           </div>
         </div>
+
+        {/* "Waar te beginnen" — farm-wide measure recommendations for the
+            selected indicator, lazily loaded so this potentially-slow batched
+            NMI fetch never blocks the rest of the page. */}
+        {leftMode === "indicators" && activeIndId && farmMeasureRecommendationsPromise && (
+          <Suspense fallback={<RecommendationsLoadingPanel />}>
+            <Await resolve={farmMeasureRecommendationsPromise} errorElement={null}>
+              {(result) =>
+                // Hide the panel entirely when every advice fetch failed —
+                // an unavailable recommendation must never look like "no
+                // recommendations exist for this indicator".
+                result.adviceAvailable ? (
+                  <WhereToStartPanel
+                    recommendations={result.recommendations}
+                    activeIndId={activeIndId}
+                    activeIndName={activeIndName ?? activeIndId}
+                    fields={fields}
+                    basePath={basePath}
+                    basePathFormatter={basePathFormatter}
+                  />
+                ) : null
+              }
+            </Await>
+          </Suspense>
+        )}
       </CardContent>
     </Card>
+  )
+}
+
+/** Fallback shown while the batched, per-field NMI advice fetch for the
+ * "Waar te beginnen" panel is in flight — makes clear this is a calculation
+ * in progress rather than empty/broken content. */
+function RecommendationsLoadingPanel() {
+  return (
+    <div className="bg-muted/20 flex items-center gap-2 rounded-md border p-3 text-xs">
+      <Spinner className="text-muted-foreground h-3.5 w-3.5" />
+      <span className="text-muted-foreground">Aanbevolen maatregelen worden berekend…</span>
+    </div>
+  )
+}
+
+type WhereToStartPanelProps = {
+  recommendations: FarmMeasureRecommendation[]
+  activeIndId: string
+  activeIndName: string
+  fields: (FieldAreaInput & { b_name: string | null | undefined })[]
+  basePath?: string
+  basePathFormatter?: (b_id: string) => string
+}
+
+function WhereToStartPanel({
+  recommendations,
+  activeIndId,
+  activeIndName,
+  fields,
+  basePath,
+  basePathFormatter,
+}: WhereToStartPanelProps) {
+  const ranked = useMemo(() => {
+    const areaByBid = new Map(fields.map((f) => [f.b_id, f.b_area ?? 0]))
+    const grouped = new Map<
+      string,
+      {
+        m_name: string
+        fieldImpacts: Map<string, number>
+        areaSum: number
+        weightedImpact: number
+      }
+    >()
+
+    for (const rec of recommendations) {
+      if (rec.indicator_id !== activeIndId) continue
+      const area = areaByBid.get(rec.b_id) ?? 0
+      if (area <= 0) continue
+      const existing = grouped.get(rec.m_id) ?? {
+        m_name: rec.m_name,
+        fieldImpacts: new Map<string, number>(),
+        areaSum: 0,
+        weightedImpact: 0,
+      }
+      if (!existing.fieldImpacts.has(rec.b_id)) {
+        existing.areaSum += area
+      }
+      existing.fieldImpacts.set(
+        rec.b_id,
+        (existing.fieldImpacts.get(rec.b_id) ?? 0) + rec.measure_impact,
+      )
+      existing.weightedImpact += rec.measure_impact * area
+      grouped.set(rec.m_id, existing)
+    }
+
+    return [...grouped.entries()]
+      .map(([m_id, g]) => {
+        const fieldIds = [...g.fieldImpacts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([b_id]) => b_id)
+        return {
+          m_id,
+          m_name: g.m_name,
+          fieldIds,
+          fieldCount: fieldIds.length,
+          area: g.areaSum,
+          topFieldId: fieldIds[0],
+          weightedImpact: g.weightedImpact,
+        }
+      })
+      .sort((a, b) => b.weightedImpact - a.weightedImpact)
+      .slice(0, 3)
+  }, [recommendations, activeIndId, fields])
+
+  if (ranked.length === 0) {
+    return (
+      <div className="bg-muted/20 rounded-md border p-3 text-xs">
+        <p className="flex items-center gap-1.5 font-semibold">
+          <Sparkles className="h-3.5 w-3.5" />
+          Waar te beginnen
+        </p>
+        <p className="text-muted-foreground mt-1">
+          Geen aanbevolen maatregelen gevonden voor {activeIndName}.
+        </p>
+      </div>
+    )
+  }
+
+  // Links land on the field's indicators page with ?indicator=<id> so the
+  // selected indicator's card — including its recommended measures — is
+  // expanded and scrolled into view on arrival.
+  const fieldHref = (b_id: string) =>
+    `${basePathFormatter ? basePathFormatter(b_id) : `${basePath}/${b_id}`}?indicator=${encodeURIComponent(activeIndId)}`
+
+  const nameByBid = new Map(fields.map((f) => [f.b_id, f.b_name ?? "Perceel"]))
+
+  return (
+    <div className="rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/10">
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+        <Sparkles className="h-3.5 w-3.5" />
+        Waar te beginnen — {activeIndName}
+      </p>
+      <ul className="mt-1.5 space-y-1.5">
+        {ranked.map((item, index) => (
+          <li key={item.m_id} className="text-xs">
+            <Link
+              to={fieldHref(item.topFieldId)}
+              className="text-foreground hover:text-primary transition-colors hover:underline"
+            >
+              <span className="text-muted-foreground mr-1 font-mono">
+                {item.m_id.replace("bln_", "")}
+              </span>
+              <span className="font-medium">{item.m_name}</span>
+            </Link>
+            <span className="text-muted-foreground">
+              {" "}
+              — {index === 0 ? "grootste" : "grote"} verwachte verbetering op{" "}
+            </span>
+            {item.fieldIds.slice(0, 3).map((b_id, i) => (
+              <span key={b_id}>
+                {i > 0 && <span className="text-muted-foreground"> · </span>}
+                <Link to={fieldHref(b_id)} className="hover:text-foreground hover:underline">
+                  {nameByBid.get(b_id)}
+                </Link>
+              </span>
+            ))}
+            {item.fieldCount > 3 && (
+              <span className="text-muted-foreground"> +{item.fieldCount - 3}</span>
+            )}
+            <span className="text-muted-foreground"> ({item.area.toFixed(1)} ha)</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }

@@ -16,12 +16,12 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import fuzzysort from "fuzzysort"
-import { AlertTriangle, ChevronLeft, Search, X } from "lucide-react"
+import { AlertTriangle, ChevronLeft, Search, Sparkles, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Controller } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import type { MeasureApplicabilityInfo } from "~/integrations/bln3.server"
+import type { FieldTopOpportunity, MeasureApplicabilityInfo } from "~/integrations/bln3.server"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Badge } from "~/components/ui/badge"
@@ -32,11 +32,13 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { getIndicatorInfo } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
 import { type MeasureDateFormValues, MeasureDateSchema } from "./formschema"
 
 type DatePreset = "doorlopend" | "einde_teeltseizoen" | "vaste_einddatum"
 type DialogStep = "select" | "configure"
+type SortMode = "default" | "impact"
 
 type FieldItem = {
   b_id: string
@@ -75,7 +77,7 @@ type AddMeasureDialogProps = {
   /**
    * Multi-field applicability map (b_id -> m_id -> applicability info).
    */
-  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo>>
+  applicabilityByField?: Record<string, Record<string, MeasureApplicabilityInfo> | null | undefined>
   /**
    * When provided, renders a field selector (checkboxes) so the user can
    * apply the measure to multiple fields at once. Posts multiple hidden
@@ -94,6 +96,37 @@ type AddMeasureDialogProps = {
    * parent layout instead of the index action.
    */
   action?: string
+  /**
+   * Ranked measure recommendations for this field (single-field mode only),
+   * from `getTopOpportunitiesForField`. Enables the "Aanbevolen" badge,
+   * relative-impact bars, and the "Sorteer op impact" option.
+   */
+  topOpportunities?: FieldTopOpportunity[]
+  /**
+   * Recommendations per field (b_id -> FieldTopOpportunity[]) for farm-wide
+   * multi-field context and field-specific recommendation badges.
+   */
+  opportunitiesByField?: Record<string, FieldTopOpportunity[]>
+  /**
+   * When set, biases impact sorting/display towards this indicator's
+   * `measure_impact` instead of the field's aggregate impact, and defaults
+   * the sort mode to "impact". Used when the dialog is opened from a
+   * specific indicator's "Maatregel toevoegen" action.
+   */
+  focusIndicatorId?: string
+  /**
+   * When set on open, immediately jumps to the configure step with this
+   * measure pre-selected (skipping the search step), provided it isn't
+   * blocked. Used for quick-add actions from recommendation cards.
+   */
+  initialMeasureId?: string
+  /**
+   * Raw per-indicator impact per measure (all indicators, not only weak
+   * ones), shown on the configure step so any selected measure — not just
+   * recommended ones — can answer "what will this measure do?". `undefined`
+   * means advice was unavailable: the section is then hidden entirely.
+   */
+  measureImpacts?: Record<string, { indicator_id: string; measure_impact: number }[]>
 }
 
 export function AddMeasureDialog({
@@ -108,13 +141,20 @@ export function AddMeasureDialog({
   fields,
   initialFieldIds,
   action,
+  topOpportunities,
+  opportunitiesByField,
+  focusIndicatorId,
+  initialMeasureId,
+  measureImpacts,
 }: AddMeasureDialogProps) {
   const fetcher = useFetcher()
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<MeasureCatalogue | null>(null)
   const [step, setStep] = useState<DialogStep>("select")
   const [datePreset, setDatePreset] = useState<DatePreset>("doorlopend")
+  const [sortMode, setSortMode] = useState<SortMode>(focusIndicatorId ? "impact" : "default")
   const searchRef = useRef<HTMLInputElement>(null)
+  const appliedInitialMeasureIdRef = useRef<string | undefined>(undefined)
   // Multi-field selection: default to initialFieldIds or empty
   const [selectedFieldIds, setSelectedFieldIds] = useState<Set<string>>(
     () => new Set(initialFieldIds ?? []),
@@ -183,12 +223,15 @@ export function AddMeasureDialog({
       setSelected(null)
       setStep("select")
       setDatePreset("doorlopend")
+      setSortMode(focusIndicatorId ? "impact" : "default")
       resetForm({ m_start: calendarYearStart, m_end: null })
       setSelectedFieldIds(new Set(initialFieldIdsRef.current ?? []))
       setFieldSearch("")
-      setTimeout(() => searchRef.current?.focus(), 50)
+      requestAnimationFrame(() => {
+        searchRef.current?.focus()
+      })
     }
-  }, [open, calendarYearStart, resetForm])
+  }, [open, calendarYearStart, resetForm, focusIndicatorId])
 
   // Derive the set of m_ids already active on the field
   const activeMeasureIds = useMemo(
@@ -245,7 +288,7 @@ export function AddMeasureDialog({
       const messages: string[] = []
 
       for (const f of targetFields) {
-        const info = applicabilityByField[f.b_id]?.[item.m_id]
+        const info = applicabilityByField?.[f.b_id]?.[item.m_id]
         const fieldName = f.b_name ?? f.b_id
 
         if (!info || info.applicability === "applicable") {
@@ -272,6 +315,120 @@ export function AddMeasureDialog({
 
     return map
   }, [applicabilityMap, applicabilityByField, selectedFieldIds, fields, catalogue])
+
+  // Derive effective opportunities:
+  // - If multiple fields are selected and opportunitiesByField exists: aggregate across those selected fields.
+  // - In single-field mode (or when 1 field is selected with topOpportunities): use topOpportunities.
+  // - Otherwise fallback to opportunitiesByField aggregated across available fields.
+  const effectiveTopOpportunities = useMemo(() => {
+    if (opportunitiesByField && selectedFieldIds.size > 1) {
+      const activeFieldIds = [...selectedFieldIds]
+      const byMeasure = new Map<string, FieldTopOpportunity>()
+      for (const b_id of activeFieldIds) {
+        const fieldOpps = opportunitiesByField[b_id] ?? []
+        for (const opp of fieldOpps) {
+          const existing = byMeasure.get(opp.m_id)
+          if (existing) {
+            existing.aggregateImpact += opp.aggregateImpact
+            for (const indImpact of opp.indicatorImpacts) {
+              const existingInd = existing.indicatorImpacts.find(
+                (i) => i.indicator_id === indImpact.indicator_id,
+              )
+              if (existingInd) {
+                existingInd.measure_impact += indImpact.measure_impact
+              } else {
+                existing.indicatorImpacts.push({ ...indImpact })
+              }
+            }
+          } else {
+            byMeasure.set(opp.m_id, {
+              m_id: opp.m_id,
+              aggregateImpact: opp.aggregateImpact,
+              indicatorImpacts: opp.indicatorImpacts.map((i) => ({ ...i })),
+            })
+          }
+        }
+      }
+      return [...byMeasure.values()].sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+    }
+
+    if (topOpportunities && topOpportunities.length > 0) {
+      return topOpportunities
+    }
+    if (!opportunitiesByField) return undefined
+
+    const activeFieldIds =
+      selectedFieldIds.size === 1 ? [...selectedFieldIds] : Object.keys(opportunitiesByField)
+
+    if (activeFieldIds.length === 0) return undefined
+
+    const byMeasure = new Map<string, FieldTopOpportunity>()
+    for (const b_id of activeFieldIds) {
+      const fieldOpps = opportunitiesByField[b_id] ?? []
+      for (const opp of fieldOpps) {
+        const existing = byMeasure.get(opp.m_id)
+        if (existing) {
+          existing.aggregateImpact += opp.aggregateImpact
+          for (const indImpact of opp.indicatorImpacts) {
+            const existingInd = existing.indicatorImpacts.find(
+              (i) => i.indicator_id === indImpact.indicator_id,
+            )
+            if (existingInd) {
+              existingInd.measure_impact += indImpact.measure_impact
+            } else {
+              existing.indicatorImpacts.push({ ...indImpact })
+            }
+          }
+        } else {
+          byMeasure.set(opp.m_id, {
+            m_id: opp.m_id,
+            aggregateImpact: opp.aggregateImpact,
+            indicatorImpacts: opp.indicatorImpacts.map((i) => ({ ...i })),
+          })
+        }
+      }
+    }
+
+    return [...byMeasure.values()].sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+  }, [topOpportunities, opportunitiesByField, selectedFieldIds])
+
+  // Map of m_id -> recommendation, and a helper to read the impact value
+  // relevant for the current context (focused indicator, or aggregate).
+  const opportunityMap = useMemo(() => {
+    const map = new Map<string, FieldTopOpportunity>()
+    for (const opp of effectiveTopOpportunities ?? []) {
+      map.set(opp.m_id, opp)
+    }
+    return map
+  }, [effectiveTopOpportunities])
+
+  const impactFor = (m_id: string): number => {
+    const opp = opportunityMap.get(m_id)
+    if (!opp) return 0
+    if (focusIndicatorId) {
+      return (
+        opp.indicatorImpacts.find((i) => i.indicator_id === focusIndicatorId)?.measure_impact ?? 0
+      )
+    }
+    return opp.aggregateImpact
+  }
+
+  // Cap the "Aanbevolen" badge to a small top-N (independent of sortMode) so
+  // it stays a genuine highlight instead of tagging most of the catalogue —
+  // a field is often weak on several indicators, so nearly every measure
+  // would otherwise show *some* impact.
+  const TOP_RECOMMENDED_COUNT = 5
+  const topRecommendedIds = useMemo(() => {
+    if (!effectiveTopOpportunities || effectiveTopOpportunities.length === 0)
+      return new Set<string>()
+    return new Set(
+      [...opportunityMap.keys()]
+        .filter((m_id) => impactFor(m_id) > 0)
+        .sort((a, b) => impactFor(b) - impactFor(a))
+        .slice(0, TOP_RECOMMENDED_COUNT),
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opportunityMap, focusIndicatorId, effectiveTopOpportunities])
 
   // Hide farm-level measures (via catalogue field or fallback message check)
   const fieldLevelCatalogue = useMemo(() => {
@@ -301,25 +458,45 @@ export function AddMeasureDialog({
       .filter((item): item is (typeof fieldLevelCatalogue)[number] => item !== null)
   }, [query, fieldLevelCatalogue])
 
-  // Sort catalogue: applicable & not yet applicable (0) -> inapplicable (1) -> unknown (2)
+  // Sort catalogue: applicable & not yet applicable (0) -> inapplicable (1) -> unknown (2).
+  // When sortMode is "impact", within the applicable group, rank by descending
+  // impact (aggregate, or focused-indicator impact when focusIndicatorId is set).
   const sortedCatalogue = useMemo(() => {
-    if (!computedApplicabilityMap) return filteredCatalogue
-
     const getRank = (item: (typeof filteredCatalogue)[number]) => {
-      const info = computedApplicabilityMap[item.m_id]
-      if (!info) return 2
+      const info = computedApplicabilityMap?.[item.m_id]
+      if (!info) return computedApplicabilityMap ? 2 : 0
       if (info.isInapplicable) return 1
       return 0
     }
 
-    return [...filteredCatalogue].sort((a, b) => getRank(a) - getRank(b))
-  }, [filteredCatalogue, computedApplicabilityMap])
+    if (!computedApplicabilityMap && sortMode !== "impact") return filteredCatalogue
+
+    return [...filteredCatalogue].sort((a, b) => {
+      const rankDiff = getRank(a) - getRank(b)
+      if (rankDiff !== 0) return rankDiff
+      if (sortMode === "impact") {
+        return impactFor(b.m_id) - impactFor(a.m_id)
+      }
+      return 0
+    })
+  }, [filteredCatalogue, computedApplicabilityMap, sortMode, opportunityMap, focusIndicatorId])
+
+  // Impact bars use the true scale: NMI confirms measure_impact is always
+  // between 0 and 1, so a bar is simply impact × 100% — comparable across
+  // lists and surfaces, no per-list normalization needed.
+  const impactBarWidth = (impact: number) =>
+    impact > 0 ? Math.max(4, Math.min(100, impact * 100)) : 0
 
   // Determine end date to submit based on preset — sync to form state
   const handleDatePresetChange = (preset: DatePreset) => {
+    if (preset === "einde_teeltseizoen" && !harvestDate) {
+      setDatePreset("doorlopend")
+      form.setValue("m_end", null)
+      return
+    }
     setDatePreset(preset)
     if (preset === "doorlopend") form.setValue("m_end", null)
-    else if (preset === "einde_teeltseizoen") form.setValue("m_end", harvestDate ?? null)
+    else if (preset === "einde_teeltseizoen") form.setValue("m_end", harvestDate)
     else form.setValue("m_end", null)
   }
 
@@ -333,24 +510,24 @@ export function AddMeasureDialog({
     (datePreset !== "vaste_einddatum" || !!mEnd) &&
     (fields === undefined || selectedFieldIds.size > 0)
 
-  // Sort fields: applicable+selected -> applicable+unselected -> non-applicable (at bottom)
+  // Sort fields: applicable first, selected on top, then area descending, then name
   const sortedFields = useMemo(() => {
     if (!fields) return []
     return [...fields].sort((a, b) => {
-      const aNonApplicable =
-        selected &&
-        applicabilityByField?.[a.b_id]?.[selected.m_id] &&
-        applicabilityByField[a.b_id][selected.m_id].applicability !== "applicable"
-      const bNonApplicable =
-        selected &&
-        applicabilityByField?.[b.b_id]?.[selected.m_id] &&
-        applicabilityByField[b.b_id][selected.m_id].applicability !== "applicable"
+      const aInfo = selected ? applicabilityByField?.[a.b_id]?.[selected.m_id] : undefined
+      const bInfo = selected ? applicabilityByField?.[b.b_id]?.[selected.m_id] : undefined
+      const aNonApplicable = aInfo !== undefined && aInfo.applicability !== "applicable"
+      const bNonApplicable = bInfo !== undefined && bInfo.applicability !== "applicable"
 
       if (aNonApplicable !== bNonApplicable) return aNonApplicable ? 1 : -1
 
       const aSelected = selectedFieldIds.has(a.b_id)
       const bSelected = selectedFieldIds.has(b.b_id)
       if (aSelected !== bSelected) return aSelected ? -1 : 1
+
+      const areaA = typeof a.b_area === "number" ? a.b_area : -1
+      const areaB = typeof b.b_area === "number" ? b.b_area : -1
+      if (areaA !== areaB) return areaB - areaA
 
       return (a.b_name ?? "").localeCompare(b.b_name ?? "", "nl")
     })
@@ -369,18 +546,25 @@ export function AddMeasureDialog({
   // Derive selectable (applicable) fields for the currently selected measure in Step 2
   const selectableFields = useMemo(() => {
     if (!visibleFields) return []
-    return visibleFields.filter(
-      (f) =>
-        !selected ||
-        !applicabilityByField?.[f.b_id]?.[selected.m_id] ||
-        applicabilityByField[f.b_id][selected.m_id].applicability === "applicable",
-    )
+    return visibleFields.filter((f) => {
+      if (!selected) return true
+      const info = applicabilityByField?.[f.b_id]?.[selected.m_id]
+      return !info || info.applicability === "applicable"
+    })
   }, [visibleFields, selected, applicabilityByField])
 
   const allSelectableChecked = useMemo(() => {
     if (selectableFields.length === 0) return false
     return selectableFields.every((f) => selectedFieldIds.has(f.b_id))
   }, [selectableFields, selectedFieldIds])
+
+  const recommendedSelectableFields = useMemo(() => {
+    if (!selectableFields || !selected || !opportunitiesByField) return []
+    return selectableFields.filter((f) => {
+      const opp = opportunitiesByField[f.b_id]?.find((o) => o.m_id === selected.m_id)
+      return !!opp && opp.aggregateImpact > 0
+    })
+  }, [selectableFields, selected, opportunitiesByField])
 
   const handleSelectMeasure = (item: MeasureCatalogue) => {
     setSelected(item)
@@ -404,9 +588,38 @@ export function AddMeasureDialog({
     setStep("select")
   }
 
+  const selectedPositiveImpacts = useMemo(
+    () =>
+      selected && measureImpacts
+        ? (measureImpacts[selected.m_id] ?? []).filter((impact) => impact.measure_impact > 0)
+        : [],
+    [measureImpacts, selected],
+  )
+
+  // Quick-add: when opened with `initialMeasureId`, jump straight to the
+  // configure step with that measure pre-selected, skipping search — unless
+  // the measure is blocked (already active, conflicting, or inapplicable).
+  useEffect(() => {
+    if (!open) {
+      appliedInitialMeasureIdRef.current = undefined
+      return
+    }
+    if (!initialMeasureId || appliedInitialMeasureIdRef.current === initialMeasureId) return
+    const item = catalogue.find((c) => c.m_id === initialMeasureId)
+    if (!item) return
+    const isAlreadyActive = activeMeasureIds.has(item.m_id)
+    const hasConflict = conflictMap.has(item.m_id)
+    const appInfo = computedApplicabilityMap?.[item.m_id]
+    const isNotApplicable = appInfo?.isBlocked
+    if (isAlreadyActive || hasConflict || isNotApplicable) return
+    handleSelectMeasure(item)
+    appliedInitialMeasureIdRef.current = initialMeasureId
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialMeasureId, catalogue, activeMeasureIds, conflictMap, computedApplicabilityMap])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-x-hidden overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Maatregel toevoegen</DialogTitle>
         </DialogHeader>
@@ -414,29 +627,99 @@ export function AddMeasureDialog({
         {/* ── Step 1: Select a measure ── */}
         {step === "select" && (
           <>
-            {/* Search bar */}
-            <div className="relative">
-              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-              <Input
-                ref={searchRef}
-                placeholder="Zoek op naam of code…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-9"
-              />
-              {query && (
-                <button
+            {/* Search bar + impact sort toggle */}
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  ref={searchRef}
+                  placeholder="Zoek op naam of code…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="pl-9"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {effectiveTopOpportunities && effectiveTopOpportunities.length > 0 && (
+                <Button
                   type="button"
-                  onClick={() => setQuery("")}
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
+                  size="sm"
+                  variant={sortMode === "impact" ? "secondary" : "outline"}
+                  aria-pressed={sortMode === "impact"}
+                  onClick={() => setSortMode(sortMode === "impact" ? "default" : "impact")}
+                  className="shrink-0 gap-1.5"
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Sorteer op impact
+                </Button>
               )}
             </div>
 
-            {/* Catalogue list */}
-            <div className="max-h-[55vh] overflow-y-auto rounded-md border">
+            {/* Top-3 recommended measures */}
+            {sortMode !== "impact" &&
+              effectiveTopOpportunities &&
+              effectiveTopOpportunities.length > 0 &&
+              !query && (
+                <div className="space-y-1.5 rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-950/10">
+                  <p className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {selectedFieldIds.size === 1
+                      ? "Aanbevolen voor dit perceel"
+                      : fields
+                        ? "Aanbevolen voor dit bedrijf"
+                        : "Aanbevolen voor dit perceel"}
+                  </p>
+                  <div className="space-y-1">
+                    {effectiveTopOpportunities.slice(0, 3).map((opp) => {
+                      const item = catalogue.find((c) => c.m_id === opp.m_id)
+                      if (!item) return null
+                      const topIndicator = [...opp.indicatorImpacts].sort(
+                        (a, b) => b.measure_impact - a.measure_impact,
+                      )[0]
+                      const indicatorName = topIndicator
+                        ? (getIndicatorInfo(topIndicator.indicator_id)?.name ??
+                          topIndicator.indicator_id)
+                        : null
+                      return (
+                        <button
+                          key={opp.m_id}
+                          type="button"
+                          onClick={() => handleSelectMeasure(item)}
+                          className="bg-background flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition-colors hover:border-emerald-400"
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            <span className="text-muted-foreground mr-1.5 font-mono">
+                              {item.m_id.replace("bln_", "")}
+                            </span>
+                            <span className="font-medium">{item.m_name}</span>
+                            {indicatorName && (
+                              <span className="text-muted-foreground ml-1.5">
+                                — verbetert vooral {indicatorName}
+                              </span>
+                            )}
+                          </span>
+                          <span className="shrink-0 font-semibold text-emerald-700 dark:text-emerald-400">
+                            + Toevoegen
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+            {/* Catalogue list — capped lower than the dialog so the
+                recommendations block above keeps room on short viewports;
+                the dialog itself already scrolls. */}
+            <div className="max-h-[45vh] overflow-y-auto rounded-md border">
               {sortedCatalogue.length === 0 ? (
                 <p className="text-muted-foreground py-8 text-center text-sm">
                   Geen maatregelen gevonden voor &ldquo;
@@ -457,6 +740,17 @@ export function AddMeasureDialog({
                       appInfo.applicableFieldNames &&
                       appInfo.totalFieldsCount &&
                       appInfo.applicableFieldNames.length < appInfo.totalFieldsCount
+
+                    const opportunity = opportunityMap.get(item.m_id)
+                    const isRecommended = topRecommendedIds.has(item.m_id)
+                    const impact = impactFor(item.m_id)
+                    const barWidth = impactBarWidth(impact)
+                    const topIndicators = opportunity
+                      ? [...opportunity.indicatorImpacts]
+                          .sort((a, b) => b.measure_impact - a.measure_impact)
+                          .slice(0, 2)
+                          .map((i) => getIndicatorInfo(i.indicator_id)?.name ?? i.indicator_id)
+                      : []
 
                     return (
                       <button
@@ -480,44 +774,72 @@ export function AddMeasureDialog({
                               {item.m_id.replace("bln_", "")}
                             </span>
                             <span className="truncate text-sm font-medium">{item.m_name}</span>
+                            {isRecommended && (
+                              <Badge
+                                variant="outline"
+                                className="border-emerald-500/50 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                              >
+                                <Sparkles className="mr-1 h-3 w-3" aria-hidden="true" />
+                                Aanbevolen
+                              </Badge>
+                            )}
                             {appInfo?.applicability === "not yet applicable" && (
                               <Badge
                                 variant="outline"
-                                className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                               >
-                                Niet geschikt
+                                Niet toepasbaar
                               </Badge>
                             )}
                             {appInfo?.applicability === "inapplicable" && (
                               <Badge
                                 variant="outline"
-                                className="border-destructive/50 bg-destructive/10 text-destructive text-[10px]"
+                                className="border-destructive/50 bg-destructive/10 text-destructive text-xs"
                               >
-                                {fields ? "Geen toepasbare percelen" : "Niet mogelijk"}
+                                {fields ? "Niet toepasbaar voor uw percelen" : "Niet mogelijk"}
                               </Badge>
                             )}
                             {hasPartialApplicability && (
                               <Badge
                                 variant="outline"
-                                className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                               >
-                                Deels toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
+                                Toepasbaar op {appInfo.applicableFieldNames!.length}{" "}
                                 {appInfo.applicableFieldNames!.length === 1
                                   ? "perceel"
                                   : "percelen"}
                               </Badge>
                             )}
                           </div>
+                          {isRecommended && topIndicators.length > 0 && (
+                            <p className="mt-0.5 text-xs text-emerald-700 dark:text-emerald-400">
+                              Verbetert vooral: {topIndicators.join(", ")}
+                            </p>
+                          )}
+                          {/* Impact bar (true 0-1 scale) only together with the
+                              "Aanbevolen" badge and its "Verbetert vooral"
+                              explanation — a bar alone is meaningless chrome. */}
+                          {isRecommended && impact > 0 && (
+                            <div className="bg-muted mt-1.5 h-1 w-24 overflow-hidden rounded-full">
+                              <div
+                                className="h-full rounded-full bg-emerald-500"
+                                style={{ width: `${barWidth}%` }}
+                              />
+                            </div>
+                          )}
                           {isAlreadyActive && (
                             <p className="text-muted-foreground mt-0.5 text-xs">
                               Al actief op dit perceel
                             </p>
                           )}
                           {conflicts && (
-                            <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-600">
-                              <AlertTriangle className="h-3 w-3 shrink-0" />
-                              Conflicteert met: {conflicts.join(", ")}
-                            </p>
+                            <div className="mt-1 flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400">
+                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                Conflicteert met actieve maatregel:{" "}
+                                <strong>{conflicts.join(", ")}</strong>
+                              </span>
+                            </div>
                           )}
                           {!fields &&
                             appInfo?.applicability === "not yet applicable" &&
@@ -569,6 +891,50 @@ export function AddMeasureDialog({
                   Andere maatregel
                 </Button>
               </div>
+
+              {/* Expected impact per indicator for the selected measure —
+                  shown for any measure with known impact, not only
+                  recommended ones. Hidden entirely when advice was
+                  unavailable (measureImpacts undefined). */}
+              {measureImpacts !== undefined && (
+                <div className="pt-1">
+                  {selectedPositiveImpacts.length === 0 ? (
+                    <p className="text-muted-foreground text-xs italic">
+                      Geen noemenswaardige impact op bodemindicatoren gevonden voor deze maatregel.
+                    </p>
+                  ) : (
+                    <div>
+                      <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+                        Verwachte impact op indicatoren
+                      </p>
+                      <ul className="space-y-1.5">
+                        {selectedPositiveImpacts.map((impact) => {
+                          const indicatorName =
+                            getIndicatorInfo(impact.indicator_id)?.name ?? impact.indicator_id
+                          // True scale: measure_impact is always 0-1.
+                          const barWidth = Math.max(4, Math.min(100, impact.measure_impact * 100))
+                          return (
+                            <li key={impact.indicator_id} className="text-xs">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-foreground">{indicatorName}</span>
+                                <span className="text-muted-foreground font-mono">
+                                  {impact.indicator_id}
+                                </span>
+                              </div>
+                              <div className="bg-muted mt-0.5 h-1 w-full max-w-32 overflow-hidden rounded-full">
+                                <div
+                                  className="h-full rounded-full bg-emerald-500"
+                                  style={{ width: `${barWidth}%` }}
+                                />
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Form */}
@@ -581,26 +947,42 @@ export function AddMeasureDialog({
                       <FieldLabel>
                         Percelen
                         {selectedFieldIds.size > 0 && (
-                          <span className="text-muted-foreground ml-2 font-normal">
+                          <span className="text-muted-foreground ml-2 text-xs font-normal">
                             {selectedFieldIds.size} van {fields.length} geselecteerd
                           </span>
                         )}
                       </FieldLabel>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground text-xs"
-                        onClick={() => {
-                          const next = new Set(selectedFieldIds)
-                          if (allSelectableChecked) {
-                            for (const f of selectableFields) next.delete(f.b_id)
-                          } else {
-                            for (const f of selectableFields) next.add(f.b_id)
-                          }
-                          setSelectedFieldIds(next)
-                        }}
-                      >
-                        {allSelectableChecked ? "Geen" : "Alle"}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        {recommendedSelectableFields.length > 0 && (
+                          <button
+                            type="button"
+                            className="flex cursor-pointer items-center gap-1 text-xs font-medium text-emerald-700 hover:underline dark:text-emerald-400"
+                            onClick={() => {
+                              const next = new Set(selectedFieldIds)
+                              for (const f of recommendedSelectableFields) next.add(f.b_id)
+                              setSelectedFieldIds(next)
+                            }}
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Aanbevolen ({recommendedSelectableFields.length})
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="text-primary cursor-pointer text-xs font-medium hover:underline"
+                          onClick={() => {
+                            const next = new Set(selectedFieldIds)
+                            if (allSelectableChecked) {
+                              for (const f of selectableFields) next.delete(f.b_id)
+                            } else {
+                              for (const f of selectableFields) next.add(f.b_id)
+                            }
+                            setSelectedFieldIds(next)
+                          }}
+                        >
+                          {allSelectableChecked ? "Deselecteer alles" : "Selecteer alle geschikte"}
+                        </button>
+                      </div>
                     </div>
                     <div className="relative">
                       <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-3.5 w-3.5 -translate-y-1/2" />
@@ -635,6 +1017,14 @@ export function AddMeasureDialog({
                           const cultColor = getCultivationColor(
                             f.mainCultivation?.b_lu_croprotation ?? undefined,
                           )
+
+                          const isFieldRecommended =
+                            selected &&
+                            !isFieldNonApplicable &&
+                            (opportunitiesByField?.[f.b_id]?.some(
+                              (opp) => opp.m_id === selected.m_id && opp.aggregateImpact > 0,
+                            ) ??
+                              false)
 
                           const rowContent = (
                             <label
@@ -673,18 +1063,27 @@ export function AddMeasureDialog({
                                 {f.b_name ?? f.b_id}
                               </span>
                               <div className="flex shrink-0 items-center gap-2">
+                                {isFieldRecommended && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-emerald-500/50 bg-emerald-50 text-xs text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                  >
+                                    <Sparkles className="mr-1 h-3 w-3" aria-hidden="true" />
+                                    Aanbevolen
+                                  </Badge>
+                                )}
                                 {fieldAppInfo?.applicability === "not yet applicable" && (
                                   <Badge
                                     variant="outline"
-                                    className="border-amber-500/50 bg-amber-50 text-[10px] text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                                    className="border-amber-500/50 bg-amber-50 text-xs text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
                                   >
-                                    Niet geschikt
+                                    Niet toepasbaar
                                   </Badge>
                                 )}
                                 {fieldAppInfo?.applicability === "inapplicable" && (
                                   <Badge
                                     variant="outline"
-                                    className="border-destructive/50 bg-destructive/10 text-destructive text-[10px]"
+                                    className="border-destructive/50 bg-destructive/10 text-destructive text-xs"
                                   >
                                     Niet mogelijk
                                   </Badge>

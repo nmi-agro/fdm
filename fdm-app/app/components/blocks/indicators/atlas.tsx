@@ -216,7 +216,7 @@ export default function IndicatorsMap({
               <span className="text-muted-foreground truncate">{label}</span>
               {hoverScore != null ? (
                 <span
-                  className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                  className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-semibold text-white"
                   style={{
                     backgroundColor: getScoreColor(hoverScore),
                   }}
@@ -260,12 +260,10 @@ export default function IndicatorsMap({
                     : null
                 return (
                   <div key={child.id} className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground truncate text-[10px]">
-                      {child.label}
-                    </span>
+                    <span className="text-muted-foreground truncate text-xs">{child.label}</span>
                     {childScore != null ? (
                       <span
-                        className="shrink-0 text-[10px] font-semibold tabular-nums"
+                        className="shrink-0 text-xs font-semibold tabular-nums"
                         style={{
                           color: getScoreColor(childScore),
                         }}
@@ -273,7 +271,7 @@ export default function IndicatorsMap({
                         {childScore}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground shrink-0 text-[10px] italic">–</span>
+                      <span className="text-muted-foreground shrink-0 text-xs italic">–</span>
                     )}
                   </div>
                 )
@@ -289,7 +287,7 @@ export default function IndicatorsMap({
         <div
           className="h-2.5 w-full rounded-sm"
           style={{
-            background: "linear-gradient(to right, #ef4444, #eab308, #22c55e)",
+            background: `linear-gradient(to right, ${getScoreColor(0)}, ${getScoreColor(50)}, ${getScoreColor(85)})`,
           }}
         />
         <div className="text-muted-foreground mt-0.5 flex justify-between">

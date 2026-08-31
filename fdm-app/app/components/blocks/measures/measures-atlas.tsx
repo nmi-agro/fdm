@@ -21,6 +21,7 @@ import {
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { cn } from "~/lib/utils"
 
 const FIELDS_LAYER = "measuresMapFields"
 const FIELDS_OUTLINE_LAYER = "measuresMapFieldsOutline"
@@ -80,6 +81,11 @@ type MeasuresMapProps = {
   mapStyle: string | StyleSpecification
   height?: string
   /**
+   * Optional classes for the outer container. The default 320px height remains
+   * unless callers provide their own responsive height classes.
+   */
+  className?: string
+  /**
    * When provided, the initial view is fitted to this GeoJSON instead of `fieldsGeoJSON`.
    * Use this on field detail pages to zoom to the selected field rather than the whole farm.
    */
@@ -96,6 +102,7 @@ export default function MeasuresMap({
   selectedFieldGeoJSON,
   mapStyle,
   height = "320px",
+  className,
   initialFitGeoJSON,
   onFieldClick,
 }: MeasuresMapProps) {
@@ -137,62 +144,69 @@ export default function MeasuresMap({
   }, [fieldsGeoJSON, hoveredFieldId])
 
   return (
-    <div className="relative" style={{ height, isolation: "isolate" }}>
-      <MapGL
-        {...viewState}
-        style={{
-          height: "100%",
-          width: "100%",
-          borderRadius: "0.5rem",
-        }}
-        mapStyle={mapStyle as any}
-        mapLib={maplibregl}
-        interactiveLayerIds={[FIELDS_LAYER]}
-        onMove={onViewportChange}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-        onClick={onClick}
-        cursor={hoveredFieldId ? "pointer" : "default"}
-      >
-        <MapTilerAttribution />
+    <div
+      className={cn("relative h-[320px]", className)}
+      style={className ? { isolation: "isolate" } : { height, isolation: "isolate" }}
+    >
+      <div className="relative h-full w-full">
+        <MapGL
+          {...viewState}
+          style={{
+            height: "100%",
+            width: "100%",
+            borderRadius: "0.5rem",
+          }}
+          mapStyle={mapStyle as any}
+          mapLib={maplibregl}
+          interactiveLayerIds={[FIELDS_LAYER]}
+          onMove={onViewportChange}
+          onMouseMove={onMouseMove}
+          onMouseLeave={onMouseLeave}
+          onClick={onClick}
+          cursor={hoveredFieldId ? "pointer" : "default"}
+        >
+          <MapTilerAttribution />
 
-        {/* All farm fields coloured by measure count */}
-        <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
-          <Layer {...(fillStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
-          <Layer {...(outlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
-        </FieldsSourceNotClickable>
+          {/* All farm fields coloured by measure count */}
+          <FieldsSourceNotClickable id={FIELDS_SOURCE} fieldsData={fieldsGeoJSON}>
+            <Layer {...(fillStyle as any)} id={FIELDS_LAYER} source={FIELDS_SOURCE} />
+            <Layer {...(outlineStyle as any)} id={FIELDS_OUTLINE_LAYER} source={FIELDS_SOURCE} />
+          </FieldsSourceNotClickable>
 
-        {/* Selected field: yellow highlight */}
-        <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
-          <Layer
-            id={SELECTED_LAYER}
-            source={SELECTED_SOURCE}
-            type="fill"
-            paint={{
-              "fill-color": "#ffcf0d",
-              "fill-opacity": 0.25,
-            }}
-          />
-          <Layer
-            id={SELECTED_OUTLINE_LAYER}
-            source={SELECTED_SOURCE}
-            type="line"
-            paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
-          />
-        </FieldsSourceNotClickable>
-      </MapGL>
+          {/* Selected field: yellow highlight */}
+          <FieldsSourceNotClickable id={SELECTED_SOURCE} fieldsData={selectedFieldGeoJSON}>
+            <Layer
+              id={SELECTED_LAYER}
+              source={SELECTED_SOURCE}
+              type="fill"
+              paint={{
+                "fill-color": "#ffcf0d",
+                "fill-opacity": 0.25,
+              }}
+            />
+            <Layer
+              id={SELECTED_OUTLINE_LAYER}
+              source={SELECTED_SOURCE}
+              type="line"
+              paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
+            />
+          </FieldsSourceNotClickable>
+        </MapGL>
 
-      {/* Hover tooltip */}
-      {hoveredFeature && (
-        <div className="bg-background/95 pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-md backdrop-blur-sm">
-          <p className="font-semibold">{hoveredFeature.properties?.b_name ?? "Onbekend perceel"}</p>
-          <p className="text-muted-foreground text-[10px]">
-            {(hoveredFeature.properties?.measureCount as number) === 0
-              ? "Geen maatregelen"
-              : `${hoveredFeature.properties?.measureCount as number} maatregel${(hoveredFeature.properties?.measureCount as number) === 1 ? "" : "en"}`}
-          </p>
-        </div>
-      )}
+        {/* Hover tooltip */}
+        {hoveredFeature && (
+          <div className="bg-background/95 pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-md backdrop-blur-sm">
+            <p className="font-semibold">
+              {hoveredFeature.properties?.b_name ?? "Onbekend perceel"}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {(hoveredFeature.properties?.measureCount as number) === 0
+                ? "Geen maatregelen"
+                : `${hoveredFeature.properties?.measureCount as number} maatregel${(hoveredFeature.properties?.measureCount as number) === 1 ? "" : "en"}`}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

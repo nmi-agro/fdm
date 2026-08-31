@@ -63,7 +63,7 @@
   },
   "dependencies": {
     "@nmi-agro/fdm-core": "workspace:^",
-    "@nmi-agro/rvo-connector": "^2.2.3",
+    "@nmi-agro/rvo-connector": "^2.2.5",
     "@turf/area": "^7.4.0",
     "@turf/bbox": "^7.4.0",
     "@turf/helpers": "^7.4.0",

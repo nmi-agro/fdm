@@ -10,7 +10,7 @@
  */
 
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
-import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react"
+import { ChevronDown, ChevronUp, ExternalLink, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { Link } from "react-router"
 import {
@@ -24,6 +24,13 @@ import {
 import { cn } from "~/lib/utils"
 import { ScoreBadge } from "./score-badge"
 
+/** A measure recommended to improve a specific indicator on this field. */
+export type RecommendedMeasure = {
+  m_id: string
+  m_name: string
+  measure_impact: number
+}
+
 type IndicatorCardProps = {
   info: IndicatorInfo
   result: Bln3IndicatorResult
@@ -33,6 +40,15 @@ type IndicatorCardProps = {
   measuresHref: string
   /** When true, display index instead of score */
   showIndex: boolean
+  /** Start expanded — used when deep-linked via ?indicator=<id> */
+  defaultExpanded?: boolean
+  /**
+   * Top recommended measures for this indicator (already filtered by
+   * applicability and active-measure exclusion). `null` means the advice
+   * fetch failed — the section is then hidden entirely rather than showing
+   * a false "no measures found" empty state.
+   */
+  recommendedMeasures?: RecommendedMeasure[] | null
 }
 
 const CATEGORY_COLORS: Record<Ecosysteemdienst, string> = {
@@ -57,11 +73,13 @@ function StackedScoreBar({
   return (
     <div className="bg-muted relative h-2 w-full overflow-hidden rounded-full">
       <div
-        className="absolute top-0 left-0 h-full transition-all duration-500"
+        className={cn(
+          "absolute top-0 left-0 h-full transition-all duration-500",
+          hasImpact ? "rounded-l-full" : "rounded-full",
+        )}
         style={{
           width: `${indexWidth}%`,
           backgroundColor: indexColor,
-          borderRadius: hasImpact ? "9999px 0 0 9999px" : "9999px",
         }}
       />
       {hasImpact && (
@@ -72,12 +90,10 @@ function StackedScoreBar({
             style={{ left: `${indexWidth}%`, width: "2px" }}
           />
           <div
-            className="absolute top-0 h-full transition-all duration-500"
+            className="absolute top-0 h-full rounded-r-full bg-teal-400 transition-all duration-500 dark:bg-teal-400"
             style={{
               left: `calc(${indexWidth}% + 2px)`,
               width: `${impactWidth}%`,
-              backgroundColor: "#2dd4bf",
-              borderRadius: "0 9999px 9999px 0",
             }}
           />
         </>
@@ -106,8 +122,10 @@ export function IndicatorCard({
   fieldMeasures,
   measuresHref,
   showIndex,
+  defaultExpanded = false,
+  recommendedMeasures = [],
 }: IndicatorCardProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded)
 
   const indexDisplay = scoreToDisplay(result.index)
   const scoreDisplay = scoreToDisplay(result.score)
@@ -121,6 +139,7 @@ export function IndicatorCard({
 
   return (
     <div
+      id={`indicator-${info.id}`}
       className={cn(
         "overflow-hidden rounded-lg border transition-shadow",
         tier === "red" && "border-red-200 dark:border-red-900/40",
@@ -145,7 +164,7 @@ export function IndicatorCard({
               <span>{activeDisplay}</span>
             </div>
             {!showIndex && hasImpact && (
-              <span className="inline-flex items-center rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] leading-none font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
+              <span className="inline-flex items-center rounded-full bg-teal-100 px-1.5 py-0.5 text-xs leading-none font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-400">
                 +{impactDisplay}
               </span>
             )}
@@ -158,7 +177,7 @@ export function IndicatorCard({
               <span className="text-muted-foreground font-mono text-xs">{info.id}</span>
               <span
                 className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  "rounded-full px-2 py-0.5 text-xs font-medium",
                   CATEGORY_COLORS[info.ecosysteemdienst],
                 )}
               >
@@ -186,13 +205,13 @@ export function IndicatorCard({
                     indexColor={indexColor}
                   />
                 </div>
-                <span className="w-6 text-right text-[10px] font-medium tabular-nums">
+                <span className="w-6 text-right text-xs font-medium tabular-nums">
                   {activeDisplay}
                 </span>
               </div>
               {/* Legend: only shown when measures are visible and there is impact */}
               {!showIndex && hasImpact && (
-                <div className="text-muted-foreground flex gap-3 text-[9px]">
+                <div className="text-muted-foreground flex gap-3 text-xs">
                   <span className="flex items-center gap-1">
                     <span
                       className="inline-block h-1.5 w-2 rounded-sm"
@@ -203,12 +222,7 @@ export function IndicatorCard({
                     Perceel: {indexDisplay}
                   </span>
                   <span className="flex items-center gap-1 text-teal-600 dark:text-teal-400">
-                    <span
-                      className="inline-block h-1.5 w-2 rounded-sm"
-                      style={{
-                        backgroundColor: "#2dd4bf",
-                      }}
-                    />
+                    <span className="inline-block h-1.5 w-2 rounded-sm bg-teal-400 dark:bg-teal-400" />
                     Maatregelen: +{impactDisplay}
                   </span>
                 </div>
@@ -255,13 +269,64 @@ export function IndicatorCard({
                     </span>
                     <span className="text-foreground">{measure.m_name}</span>
                     {measure.m_end === null && (
-                      <span className="text-muted-foreground ml-auto shrink-0 text-[10px]">
+                      <span className="text-muted-foreground ml-auto shrink-0 text-xs">
                         doorlopend
                       </span>
                     )}
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {/* Recommended measures for this indicator (non-green only).
+              Hidden entirely when advice is unavailable (null) — a failed
+              fetch must never render as a false "no measures found" state. */}
+          {tier !== "green" && recommendedMeasures !== null && (
+            <div>
+              <p className="text-muted-foreground mb-1.5 text-xs font-medium tracking-wide uppercase">
+                Aanbevolen maatregelen
+              </p>
+              {recommendedMeasures.length === 0 ? (
+                <p className="text-muted-foreground text-xs italic">
+                  Geen maatregelen met noemenswaardig effect gevonden voor deze indicator.
+                </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {recommendedMeasures.map((measure) => {
+                    // True scale: NMI confirms measure_impact is always 0-1,
+                    // so the bar is impact × 100% — comparable across cards.
+                    const barWidth = Math.max(4, Math.min(100, measure.measure_impact * 100))
+                    return (
+                      <li
+                        key={measure.m_id}
+                        className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50/50 px-2 py-1.5 text-xs dark:border-emerald-900/40 dark:bg-emerald-950/10"
+                      >
+                        <Sparkles className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-muted-foreground mr-1.5 font-mono">
+                            {measure.m_id.replace("bln_", "")}
+                          </span>
+                          <span className="text-foreground font-medium">{measure.m_name}</span>
+                          <div className="bg-muted mt-1 h-1 w-full max-w-24 overflow-hidden rounded-full">
+                            <div
+                              className="h-full rounded-full bg-emerald-500"
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+                        </div>
+                        <Link
+                          to={`${measuresHref}?openMeasure=${encodeURIComponent(measure.m_id)}&indicator=${encodeURIComponent(info.id)}`}
+                          aria-label={`${measure.m_name} toevoegen`}
+                          className="shrink-0 font-semibold text-emerald-700 transition-colors hover:text-emerald-900 dark:text-emerald-400 dark:hover:text-emerald-200"
+                        >
+                          + Toevoegen
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </div>
           )}
 

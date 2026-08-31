@@ -5,6 +5,7 @@ import pkg from "../package"
 
 export { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
 export { getBln3MeasureApplicability, requestBln3MeasureApplicability } from "./applicability"
+export { getBln3MeasureAdvice, requestBln3MeasureAdvice } from "./advice"
 
 /**
  * Requests a BLN3 score from the NMI API for a single field.
