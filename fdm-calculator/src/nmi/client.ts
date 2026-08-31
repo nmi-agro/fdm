@@ -1,8 +1,28 @@
 import { Semaphore } from "../shared/geotiff"
 
-function promiseDelayed<T>(cb: () => Promise<T>, after: number) {
+function promiseDelayed<T>(cb: () => Promise<T>, after: number, signal?: AbortSignal) {
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason)
+  }
+
   return new Promise<T>((resolve, reject) => {
-    setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const onAbort = () => {
+      if (timer !== undefined) {
+        clearTimeout(timer)
+      }
+      reject(signal!.reason)
+    }
+
+    if (signal) {
+      signal.addEventListener("abort", onAbort, { once: true })
+    }
+
+    timer = setTimeout(() => {
+      if (signal) {
+        signal.removeEventListener("abort", onAbort)
+      }
       cb().then(resolve, reject)
     }, after)
   })
@@ -171,6 +191,7 @@ export class NmiApiClient {
           return promiseDelayed(
             () => this.request(url, options, timeout, maxRetries - 1, retryAfter * 2),
             decidedRetryAfter,
+            inputSignal,
           )
         }
 
@@ -194,11 +215,13 @@ export class NmiApiClient {
           await options?.onRejection?.(e)
         } catch {}
 
-        // No exponential backoff but some jitter
+        // Exponential backoff with jitter
         const jitter = 1 + 0.4 * (Math.random() - 0.5)
+        const decidedRetryAfter = Math.round(retryAfter * jitter)
         return promiseDelayed(
-          () => this.request(url, options, timeout, maxRetries - 1, retryAfter * jitter),
-          retryAfter,
+          () => this.request(url, options, timeout, maxRetries - 1, retryAfter * 2),
+          decidedRetryAfter,
+          inputSignal,
         )
       } else {
         throw e

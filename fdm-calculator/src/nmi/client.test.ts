@@ -355,6 +355,42 @@ describe("NmiApiClient.request", () => {
     expect(onRejection).toHaveBeenCalledWith(errorResponse)
   })
 
+  it("should abort promptly while waiting during delayed retry", async () => {
+    const abortController = new AbortController()
+    const client = new NmiApiClient({ maxRetries: 3 })
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("Service Unavailable", { status: 503 }))
+
+    const startTime = Date.now()
+    const promise = client.request("", { signal: abortController.signal }, 30000, 3, 5000)
+
+    setTimeout(() => {
+      abortController.abort(new Error("aborted during retry wait"))
+    }, 50)
+
+    await expect(promise).rejects.toThrow("aborted during retry wait")
+    const elapsed = Date.now() - startTime
+    expect(elapsed).toBeLessThan(1000)
+  })
+
+  it("should use exponential backoff when retrying network errors in catch block", async () => {
+    const client = new NmiApiClient({ maxRetries: 3 })
+    const requestSpy = vi.spyOn(client, "request")
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("network error 1"))
+    vi.mocked(fetch).mockRejectedValueOnce(new Error("network error 2"))
+    vi.mocked(fetch).mockResolvedValueOnce(Response.json("success"))
+
+    const result = await client.request("", undefined, 30000, 3, 10)
+    await expect(result.json()).resolves.toBe("success")
+
+    expect(requestSpy).toHaveBeenCalledTimes(3)
+    // Initial call: retryAfter = 10
+    expect(requestSpy.mock.calls[0][4]).toBe(10)
+    // First retry call: retryAfter doubled to 20
+    expect(requestSpy.mock.calls[1][4]).toBe(20)
+    // Second retry call: retryAfter doubled to 40
+    expect(requestSpy.mock.calls[2][4]).toBe(40)
+  })
+
   it("should call onRejection properly before rejecting", async () => {
     const client = new NmiApiClient({ maxRetries: 2 })
     const errorResponse = new Response("Internal Server Error", { status: 500 })
