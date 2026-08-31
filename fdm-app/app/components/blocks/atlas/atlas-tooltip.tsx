@@ -281,20 +281,22 @@ export function AtlasTooltip({
           updateHoveredFeaturesOnceIdle()
         }}
       >
-        <Button
-          type="button"
-          variant="ghost"
-          className="absolute top-0.5 right-0.5 has-[>svg]:p-1"
-          title="Sluiten"
-          aria-label="Sluiten"
-          onClick={() => {
-            setHoverPosition(null)
-            setHoveredFeatures([])
-            hoverPositionRef.current = null
-          }}
-        >
-          <X />
-        </Button>
+        <div className="-mt-1 text-end">
+          <Button
+            type="button"
+            variant="ghost"
+            className="size-auto has-[>svg]:p-0"
+            title="Sluiten"
+            aria-label="Sluiten"
+            onClick={() => {
+              setHoverPosition(null)
+              setHoveredFeatures([])
+              hoverPositionRef.current = null
+            }}
+          >
+            <X />
+          </Button>
+        </div>
         {render({
           features: hoveredFeatures,
           mode: "popup",
@@ -429,8 +431,8 @@ function AtlasNativePopupCard({
 const TOOLTIP_ANCHOR_X_OFFSET = 12
 const TOOLTIP_ANCHOR_Y_OFFSET = 8
 /**
- * A `Card` wrapper that has a speech bubble tip. The tip is moved based on the distance to the edges of the
- * relative container.
+ * A `Card` wrapper that is positioned relatively to its container.
+ * The anchor point relative to the card is adjusted based on the position relative to the container.
  */
 function AtlasTooltipCard({
   x,
@@ -447,21 +449,14 @@ function AtlasTooltipCard({
 }) {
   const { current: mapContainer } = useMapContainer()
   const tooltipContainerRef = useRef<HTMLDivElement>(null)
-  const [anchorX, setAnchorX] = useState<"left" | "right">("left")
-  const [anchorY, setAnchorY] = useState<"top" | "bottom">("top")
 
-  useEffect(() => {
-    if (!mapContainer) {
-      setAnchorX("left")
-      setAnchorY("top")
-      return
-    }
+  let anchorX: "left" | "right" = "left"
+  let anchorY: "top" | "bottom" = "top"
+  if (mapContainer) {
     const bcr = mapContainer.getBoundingClientRect()
-    const anchorX = x < bcr.width * 0.67 ? "left" : "right"
-    const anchorY = y < bcr.height * 0.67 ? "top" : "bottom"
-    setAnchorX(anchorX)
-    setAnchorY(anchorY)
-  }, [mapContainer, x, y])
+    anchorX = x < bcr.width * 0.67 ? "left" : "right"
+    anchorY = y < bcr.height * 0.67 ? "top" : "bottom"
+  }
 
   useEffect(() => {
     const el = tooltipContainerRef.current

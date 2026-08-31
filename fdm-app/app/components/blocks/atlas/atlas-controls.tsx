@@ -141,7 +141,6 @@ class CustomControl implements IControl {
 export function AtlasControls(props: AtlasControlsProps) {
   const [container, setContainer] = useState<HTMLDivElement | undefined>(undefined)
   const setContainerRef = useRef(setContainer)
-  setContainerRef.current = setContainer
 
   useControl(() => new CustomControl(props, (c) => setContainerRef.current(c)), {
     position: props.position,
