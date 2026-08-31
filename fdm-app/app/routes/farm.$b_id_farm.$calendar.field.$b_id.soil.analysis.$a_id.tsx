@@ -136,7 +136,7 @@ export default function FarmFieldSoilOverviewBlock() {
         </div>
         {loaderData.soilAnalysis.a_file_path && (
           <Dialog>
-            <DialogTrigger>
+            <DialogTrigger asChild>
               <ViewPdfButton />
             </DialogTrigger>
             <PdfViewerDialogContent

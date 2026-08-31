@@ -156,6 +156,11 @@ export async function action({ params, request }: Route.ActionArgs) {
           } catch (deleteError) {
             handleActionError(deleteError)
           }
+          try {
+            await removeFertilizerPlan(fdm, session.principal_id, p_id_plan)
+          } catch (removeError) {
+            handleActionError(removeError)
+          }
         }
         throw uploadObjectError
       }
@@ -212,9 +217,11 @@ export default function FertilizerPlanTable() {
                 </EmptyTitle>
                 <EmptyContent>Hieronder kunt u een nieuw bemestingsplan opstellen.</EmptyContent>
               </EmptyHeader>
-              <EmptyContent>
-                <NewBemestingsplanForm />
-              </EmptyContent>
+              {farmWritePermission && (
+                <EmptyContent>
+                  <NewBemestingsplanForm />
+                </EmptyContent>
+              )}
             </Empty>
           ) : (
             <DataTable

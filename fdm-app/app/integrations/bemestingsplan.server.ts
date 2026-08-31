@@ -9,6 +9,7 @@ import {
   getMainCultivation,
   getNutrientAdvice,
   getOrganicMatterBalanceField,
+  NormFilling,
 } from "@nmi-agro/fdm-calculator"
 import {
   type FdmType,
@@ -95,7 +96,7 @@ export async function collectBemestingsplanInputFromDatabase(
     getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe),
     getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe),
     DEROGATION_GRANTED_NEEDED_FOR_YEARS.includes(year)
-      ? await isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year)
+      ? isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year)
       : null,
     isOrganicCertificationValid(
       fdm,
@@ -249,7 +250,7 @@ export async function computeBemestingsplanData({
                 | undefined,
             ])
 
-            const [nitrogenFilling, phosphateFilling, manureFilling] =
+            const [nitrogenFilling, phosphateFilling, manureFilling, renureFilling] =
               await normForPhosphatePromise.then((fosfaatgebruiksnorm) => {
                 const fillingInput = {
                   cultivations: cultivations,
@@ -273,6 +274,10 @@ export async function computeBemestingsplanData({
                     fdm,
                     fillingInput,
                   ),
+                  (normFillingFunctions as any).calculateFertilizerApplicationFillingForRenure?.(
+                    fdm,
+                    normInput,
+                  ) as NormFilling | undefined,
                 ])
               })
 
@@ -287,6 +292,7 @@ export async function computeBemestingsplanData({
                 nitrogen: nitrogenFilling,
                 phosphate: phosphateFilling,
                 manure: manureFilling,
+                renure: renureFilling,
               },
             }
           }
@@ -622,18 +628,6 @@ export async function computeBemestingsplanData({
     omBalance: farmOmBalance,
     fields: pdfFieldsData,
   }
-
-  fs.writeFile(
-    "computedDataNew.json",
-    JSON.stringify(
-      {
-        ...data,
-        fields: [...data.fields].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0)),
-      },
-      undefined,
-      2,
-    ),
-  )
 
   return data
 }

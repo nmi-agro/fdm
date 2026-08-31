@@ -26,6 +26,7 @@ export const resources: Resource[] = [
   "field",
   "cultivation",
   "fertilizer_application",
+  "fertilizer_plan",
   "soil_analysis",
   "soil_image",
   "harvesting",
@@ -920,6 +921,7 @@ async function getResourceChain(
       "cultivation",
       "harvesting",
       "fertilizer_application",
+      "fertilizer_plan",
       "soil_analysis",
       "soil_image",
     ]

@@ -61,24 +61,22 @@ describe("getFertilizerPlans", () => {
     )
 
     const allPlans = await getFertilizerPlans(fdm, principal_id, b_id_farm)
-    expect(allPlans).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          p_id_plan: firstPlanId,
-          p_plan_year: firstYear,
-          p_plan_file_path: `plans/${firstYear}.pdf`,
-          p_plan_hash: `hash-${firstYear}`,
-          b_id_farm,
-        }),
-        expect.objectContaining({
-          p_id_plan: secondPlanId,
-          p_plan_year: secondYear,
-          p_plan_file_path: `plans/${secondYear}.pdf`,
-          p_plan_hash: `hash-${secondYear}`,
-          b_id_farm,
-        }),
-      ]),
-    )
+    expect(allPlans).toEqual([
+      expect.objectContaining({
+        p_id_plan: firstPlanId,
+        p_plan_year: firstYear,
+        p_plan_file_path: `plans/${firstYear}.pdf`,
+        p_plan_hash: `hash-${firstYear}`,
+        b_id_farm,
+      }),
+      expect.objectContaining({
+        p_id_plan: secondPlanId,
+        p_plan_year: secondYear,
+        p_plan_file_path: `plans/${secondYear}.pdf`,
+        p_plan_hash: `hash-${secondYear}`,
+        b_id_farm,
+      }),
+    ])
   })
 
   it("should return the fertilizer plans for a farm when the year is specified", async () => {
@@ -106,17 +104,15 @@ describe("getFertilizerPlans", () => {
     )
 
     const yearPlans = await getFertilizerPlans(fdm, principal_id, b_id_farm, firstYear)
-    expect(yearPlans).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          p_id_plan: firstPlanId,
-          p_plan_year: firstYear,
-          p_plan_file_path: `plans/${firstYear}.pdf`,
-          p_plan_hash: `hash-${firstYear}`,
-          b_id_farm,
-        }),
-      ]),
-    )
+    expect(yearPlans).toEqual([
+      expect.objectContaining({
+        p_id_plan: firstPlanId,
+        p_plan_year: firstYear,
+        p_plan_file_path: `plans/${firstYear}.pdf`,
+        p_plan_hash: `hash-${firstYear}`,
+        b_id_farm,
+      }),
+    ])
   })
 
   it("should reject if the year is not an integer", async () => {
