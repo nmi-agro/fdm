@@ -399,7 +399,9 @@ function FarmBalanceNitrogenOverview({
                       ) : (
                         <NavLink to={`./${fieldResult.b_id}`}>
                           <p className="text-end text-sm text-orange-500 hover:underline">
-                            {"Bekijk foutmelding"}
+                            {staleJobs.some((job) => job.b_id === fieldResult.b_id)
+                              ? "Resultaat is beschikbaar"
+                              : "Bekijk foutmelding"}
                           </p>
                         </NavLink>
                       )}

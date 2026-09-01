@@ -353,20 +353,20 @@ export async function getNitrogenBalanceForFarmCached({
 
   const statuses = await Promise.all(jobs.map((job) => getCalculationJobStatus(ctx, job)))
 
-  const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = fields
-    .map((field, index) => {
+  const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = fields.map(
+    (field, index) => {
       const status = statuses[index]
       // `result` can be `null` (no fresh or stale result exists yet) as well as `undefined`.
       const result = (status.result ?? undefined) as NitrogenBalanceFieldNumeric | undefined
-      if (result === undefined) return null
+
       return {
         b_id: field.b_id,
         b_area: field.b_area ?? 0,
         b_bufferstrip: field.b_bufferstrip ?? false,
         balance: result,
       }
-    })
-    .filter((x) => x !== null)
+    },
+  )
 
   const hasErrors = fieldsWithBalanceResults.some((result) => result.errorMessage !== undefined)
   const fieldErrorMessages = fieldsWithBalanceResults
@@ -436,23 +436,22 @@ export async function getNitrogenBalanceForFarmsCached({
 
       // `result` can be `null` (no fresh or stale result exists yet) as well as `undefined`.
       const result = (status.result ?? undefined) as NitrogenBalanceFieldNumeric | undefined
-      if (result !== undefined) {
-        const fieldResult: NitrogenBalanceFieldResultNumeric = {
-          b_id: field.b_id,
-          b_area: field.b_area ?? 0,
-          b_bufferstrip: field.b_bufferstrip ?? false,
-          balance: result,
-        }
 
-        farmFieldResults.push(fieldResult)
-        allFieldResults.push(fieldResult)
+      const fieldResult: NitrogenBalanceFieldResultNumeric = {
+        b_id: field.b_id,
+        b_area: field.b_area ?? 0,
+        b_bufferstrip: field.b_bufferstrip ?? false,
+        balance: result,
       }
+
+      farmFieldResults.push(fieldResult)
+      allFieldResults.push(fieldResult)
       if (status.state !== "fresh") {
         staleJobs.push(job)
       }
     }
 
-    if (farmFieldResults.length === 0) {
+    if (farm.fields.length === 0) {
       farmResultsMap.set(farm.b_id_farm, {
         hasErrors: true,
         errorMessage: "No fields in input",
