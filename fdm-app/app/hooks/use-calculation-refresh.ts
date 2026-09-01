@@ -42,26 +42,23 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
   const [jobStates, setJobStates] = useState<Map<string, CalculationRefreshJobState>>(() => {
     return new Map(jobs.map((job) => [getCalculationJobKey(job), "pending"]))
   })
-  // Track the set of job keys we've already started a request for, so effect re-runs (e.g. from
-  // unrelated re-renders) don't re-trigger the same batch.
   const startedKeyRef = useRef<string>("")
   const abortControllerRef = useRef<AbortController | null>(null)
+  const unmountAbortRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const batchKey = jobs.map(getCalculationJobKey).sort().join(",")
 
   useEffect(() => {
-    // Check if the set of jobs is actually the same
     const keys = jobs.map(getCalculationJobKey)
     if (startedKeyRef.current === batchKey) {
       return
     }
 
-    // Start a new set of jobs
     startedKeyRef.current = batchKey
-
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
+    abortControllerRef.current = null
 
     if (jobs.length === 0) {
       setJobStates(new Map())
@@ -154,6 +151,26 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
 
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- jobs is recreated every render; we dedupe on batchKey (derived from job keys) instead of the array identity.
   }, [batchKey])
+
+  useEffect(() => {
+    if (unmountAbortRef.current !== null) {
+      clearTimeout(unmountAbortRef.current)
+      unmountAbortRef.current = null
+    }
+
+    return () => {
+      const controller = abortControllerRef.current
+      // Strict Mode immediately replays effects after this synthetic cleanup. Deferring the abort
+      // lets the replay cancel it while a genuine unmount still cancels the active request.
+      unmountAbortRef.current = setTimeout(() => {
+        controller?.abort()
+        if (abortControllerRef.current === controller) {
+          abortControllerRef.current = null
+        }
+        unmountAbortRef.current = null
+      }, 0)
+    }
+  }, [])
 
   const wantedDone = Math.min(SHOW_REFRESH_BANNER_AFTER_N_DONE, jobStates.size)
   const refreshReady =
