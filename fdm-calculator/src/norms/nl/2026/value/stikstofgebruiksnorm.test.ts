@@ -1,9 +1,9 @@
 import type { Field } from "@nmi-agro/fdm-core"
-import { createFdmServer, getLatestCachedResultForEntity } from "@nmi-agro/fdm-core"
+import { createFdmServer } from "@nmi-agro/fdm-core"
 import { afterEach, describe, expect, inject, it, vi } from "vitest"
 import type { NitrogenStandard, NL2026NormsInput, NL2026NormsInputForCultivation } from "./types"
 import * as GeoTiff from "../../../../shared/geotiff"
-import { createId } from "../../../../shared/test-util"
+import { createId, pollLatestCachedResultForEntity } from "../../../../shared/test-util"
 import {
   calculateNL2026StikstofGebruiksNorm,
   getNL2026StikstofGebruiksNorm,
@@ -778,12 +778,7 @@ describe("calculateNL2026StikstofGebruiksNorm", () => {
 
     await getNL2026StikstofGebruiksNorm(fdm, mockInput)
 
-    // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
-    await new Promise((resolve) => {
-      setTimeout(resolve, 200)
-    })
-
-    const cached = await getLatestCachedResultForEntity(
+    const cached = await pollLatestCachedResultForEntity(
       fdm,
       "calculateNL2026StikstofGebruiksNorm",
       "field",

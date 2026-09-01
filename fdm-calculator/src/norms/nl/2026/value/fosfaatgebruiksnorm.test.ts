@@ -1,7 +1,7 @@
-import { createFdmServer, getLatestCachedResultForEntity } from "@nmi-agro/fdm-core"
+import { createFdmServer } from "@nmi-agro/fdm-core"
 import { describe, expect, inject, it } from "vitest"
 import type { NL2026NormsInput, NL2026NormsInputForCultivation } from "./types"
-import { createId } from "../../../../shared/test-util"
+import { createId, pollLatestCachedResultForEntity } from "../../../../shared/test-util"
 import {
   calculateNL2026FosfaatGebruiksNorm,
   getNL2026FosfaatGebruiksNorm,
@@ -96,12 +96,7 @@ describe("calculateNL2026FosfaatGebruiksNorm", () => {
 
     await getNL2026FosfaatGebruiksNorm(fdm, mockInput)
 
-    // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
-    await new Promise((resolve) => {
-      setTimeout(resolve, 200)
-    })
-
-    const cached = await getLatestCachedResultForEntity(
+    const cached = await pollLatestCachedResultForEntity(
       fdm,
       "calculateNL2026FosfaatGebruiksNorm",
       "field",

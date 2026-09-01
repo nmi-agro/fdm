@@ -1,4 +1,4 @@
-import { createFdmServer, type FdmType, getLatestCachedResultForEntity } from "@nmi-agro/fdm-core"
+import { createFdmServer, type FdmType } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import { describe, expect, inject, it } from "vitest"
 import type {
@@ -11,7 +11,7 @@ import {
   calculateNitrogenBalancesFieldToFarm,
   getNitrogenBalanceField,
 } from "."
-import { createId } from "../../shared/test-util"
+import { createId, pollLatestCachedResultForEntity } from "../../shared/test-util"
 
 // Mock FdmType
 const mockFdm = {
@@ -368,12 +368,7 @@ describe("calculateNitrogenBalance", () => {
 
     await getNitrogenBalanceField(fdm, input)
 
-    // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
-    await new Promise((resolve) => {
-      setTimeout(resolve, 200)
-    })
-
-    const cached = await getLatestCachedResultForEntity(
+    const cached = await pollLatestCachedResultForEntity(
       fdm,
       "calculateNitrogenBalanceField",
       "field",
