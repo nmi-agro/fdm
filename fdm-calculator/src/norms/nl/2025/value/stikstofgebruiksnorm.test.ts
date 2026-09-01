@@ -1320,7 +1320,7 @@ describe("calculateNL2025StikstofGebruiksNorm - Additional Korting Edge Cases", 
 
     // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
     await new Promise((resolve) => {
-      setTimeout(resolve, 100)
+      setTimeout(resolve, 200)
     })
 
     const cached = await getLatestCachedResultForEntity(
@@ -1329,7 +1329,6 @@ describe("calculateNL2025StikstofGebruiksNorm - Additional Korting Edge Cases", 
       "field",
       b_id,
     )
-    console.log(cached)
     expect(cached).not.toBeNull()
   })
 })

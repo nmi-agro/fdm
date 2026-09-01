@@ -127,7 +127,7 @@ describe("calculateNL2025FosfaatGebruiksNorm", () => {
 
     // setCachedCalculation is fire-and-forget so we need to wait a bit to make sure it is called.
     await new Promise((resolve) => {
-      setTimeout(resolve, 100)
+      setTimeout(resolve, 200)
     })
 
     const cached = await getLatestCachedResultForEntity(
