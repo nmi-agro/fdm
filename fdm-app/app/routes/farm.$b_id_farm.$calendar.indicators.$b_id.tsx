@@ -1,5 +1,5 @@
 import type { FeatureCollection, Geometry } from "geojson"
-import { type CultivationForHoofdteelt, findHoofdteelt } from "@nmi-agro/fdm-calculator"
+import { GROENE_BRAAK, findHoofdteelt } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivations,
@@ -50,7 +50,6 @@ import {
   getMeasureAdviceForField,
   getMeasureApplicabilityForField,
 } from "~/integrations/bln3.server"
-import { getMapStyle } from "~/integrations/map"
 import { AGG_IDS, type AggregationId, getFieldAggregationScore } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
@@ -369,11 +368,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // window) — exactly consistent with what is submitted to the BLN3 API.
     // Only show years within the range of known cultivation data; gaps get groene braak.
     const maxCalendarYear = calendarYear
-    const cultivationsForHoofdteelt: CultivationForHoofdteelt[] = cultivations.map((c) => ({
-      b_lu_catalogue: c.b_lu_catalogue,
-      b_lu_start: c.b_lu_start ?? null,
-      b_lu_end: c.b_lu_end ?? null,
-    }))
     const minCalendarYear = cultivations.reduce((min, c) => {
       const y = c.b_lu_start?.getFullYear()
       return y !== undefined && y < min ? y : min
@@ -389,12 +383,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       croprotation: string | null
     }> = []
     for (let year = maxCalendarYear; year >= minCalendarYear; year--) {
-      const catalogue = findHoofdteelt(cultivationsForHoofdteelt, year)
-      const match = cultivations.find((c) => c.b_lu_catalogue === catalogue)
+      const hoofdteelt = findHoofdteelt(cultivations, year, true)
+      const catalogue = hoofdteelt?.b_lu_catalogue ?? GROENE_BRAAK
       cultivationSummaries.push({
-        name: match?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
+        name: hoofdteelt?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
         year,
-        croprotation: match?.b_lu_croprotation ?? null,
+        croprotation: hoofdteelt?.b_lu_croprotation ?? null,
       })
     }
 
@@ -436,7 +430,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldMeasures,
       fieldsGeoJSON,
       selectedFieldGeoJSON,
-      mapStyle: getMapStyle("satellite"),
       currentCultivationName: currentCultivation?.b_lu_name ?? null,
       currentCultivationCropRotation: currentCultivation?.b_lu_croprotation ?? null,
       cultivationSummaries,
@@ -501,7 +494,6 @@ export default function IndicatorsFieldDetail() {
     fieldMeasures,
     fieldsGeoJSON,
     selectedFieldGeoJSON,
-    mapStyle,
     currentCultivationName,
     currentCultivationCropRotation,
     cultivationSummaries,
@@ -783,7 +775,7 @@ export default function IndicatorsFieldDetail() {
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
                 <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
-                  <SelectTrigger className="bg-background/90 h-7 w-48 text-xs shadow-sm backdrop-blur-sm">
+                  <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>
                   <SelectContent align="end">
@@ -805,7 +797,6 @@ export default function IndicatorsFieldDetail() {
                 <FieldMap
                   fieldsGeoJSON={fieldsGeoJSON as FeatureCollection}
                   selectedFieldGeoJSON={selectedFieldGeoJSON as FeatureCollection}
-                  mapStyle={mapStyle}
                   basePath={basePath}
                   scoreKey={mapScoreKey}
                   scoreLabel={findScoreLabel(mapScoreKey)}
@@ -813,8 +804,8 @@ export default function IndicatorsFieldDetail() {
                 />
               </Suspense>
             </div>
-            <p className="text-muted-foreground mt-2 px-1 text-[11px]">
-              Percelen gekleurd op gekozen score. Klik om te wisselen van perceel.
+            <p className="text-muted-foreground mt-2 px-1 text-xs">
+              Klik op een perceel om te wisselen.
             </p>
           </aside>
         </div>

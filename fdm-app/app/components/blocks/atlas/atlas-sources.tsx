@@ -98,11 +98,15 @@ function handleFieldClick(
   feature: GeoJSON.Feature<Geometry, GeoJsonProperties>,
   setSelectedFieldsData: Dispatch<SetStateAction<FeatureCollection<Geometry, GeoJsonProperties>>>,
 ) {
-  const fieldData = {
-    type: feature.type,
-    geometry: feature.geometry,
-    properties: feature.properties,
-  }
+  // queryRenderedFeatures returns class instances whose properties can have a null prototype;
+  // maplibre cannot serialize those to the worker, so store a plain JSON clone instead.
+  const fieldData: Feature<Geometry, GeoJsonProperties> = JSON.parse(
+    JSON.stringify({
+      type: "Feature",
+      geometry: feature.geometry,
+      properties: feature.properties ?? {},
+    }),
+  )
 
   setSelectedFieldsData((prevFieldsData) => {
     const isAlreadySelected = prevFieldsData.features.some(

@@ -422,7 +422,7 @@ export default function MeasuresOrganizationIndex() {
                 fieldsGeoJSON={fieldsGeoJSON}
                 selectedFieldGeoJSON={emptyGeoJSON}
                 mapStyle={mapStyle}
-                height="480px"
+                className="h-64 xl:h-120"
                 onFieldClick={handleFieldClick}
               />
             </Suspense>

@@ -692,21 +692,21 @@ export const nitrogenStandardsData = [
     },
   },
   {
-    cultivation_rvo_table2: "Akkerbouwgewassen,Veldbeemdgras",
+    cultivation_rvo_table2: "Akkerbouwgewassen, Veldbeemdgras",
     b_lu_catalogue_match: ["nl_1916", "nl_3523", "nl_6746", "nl_6788", "nl_6789"],
     type: "graszaad",
     is_winterteelt: true,
     is_vanggewas: true,
     norms: {
       klei: { standard: 130, nv_area: 104 },
-      zand_nwc: { standard: 110, nv_area: 80 },
-      zand_zuid: { standard: 100, nv_area: 64 },
+      zand_nwc: { standard: 100, nv_area: 80 },
+      zand_zuid: { standard: 80, nv_area: 64 },
       loess: { standard: 80, nv_area: 64 },
       veen: { standard: 105, nv_area: 84 },
     },
   },
   {
-    cultivation_rvo_table2: "Akkerbouwgewassen,Veldbeemdgras, volgteelt",
+    cultivation_rvo_table2: "Akkerbouwgewassen, Veldbeemdgras, volgteelt",
     b_lu_catalogue_match: ["nl_1916", "nl_3523", "nl_6746", "nl_6788", "nl_6789"],
     type: "graszaad",
     is_winterteelt: true,
@@ -778,7 +778,7 @@ export const nitrogenStandardsData = [
     ],
   },
   {
-    cultivation_rvo_table2: "Akkerbouwgewassen, Graszaad,Westerwolds",
+    cultivation_rvo_table2: "Akkerbouwgewassen, Graszaad, Westerwolds",
     b_lu_catalogue_match: ["nl_1919", "nl_3513", "nl_6790", "nl_6791"],
     type: "graszaad",
     is_winterteelt: true,
@@ -998,7 +998,7 @@ export const nitrogenStandardsData = [
     ],
   },
   {
-    cultivation_rvo_table2: "Baldgewassen, Spinazie volgteelt",
+    cultivation_rvo_table2: "Bladgewassen, Spinazie volgteelt",
     b_lu_catalogue_match: ["nl_1022"],
     type: "bladgewas",
     is_winterteelt: true,
@@ -1352,7 +1352,7 @@ export const nitrogenStandardsData = [
     ],
   },
   {
-    cultivation_rvo_table2: "Kruiden, bladgewas, eemalige oogst",
+    cultivation_rvo_table2: "Kruiden, bladgewas, eenmalige oogst",
     b_lu_catalogue_match: [
       "nl_1019",
       "nl_1020",
@@ -2020,7 +2020,7 @@ export const nitrogenStandardsData = [
     },
   },
   {
-    cultivation_rvo_table2: "Bloembollengewassen,Lelie",
+    cultivation_rvo_table2: "Bloembollengewassen, Lelie",
     b_lu_catalogue_match: ["nl_979", "nl_980", "nl_1002"],
     type: "bloembol",
     is_winterteelt: true,
@@ -2333,7 +2333,7 @@ export const nitrogenStandardsData = [
     },
   },
   {
-    cultivation_rvo_table2: "Boomkwekerijgewassen,Sierheesters",
+    cultivation_rvo_table2: "Boomkwekerijgewassen, Sierheesters",
     b_lu_catalogue_match: ["nl_1075"],
     type: "boomkwekerij",
     is_winterteelt: true,
@@ -2431,7 +2431,7 @@ export const nitrogenStandardsData = [
     },
   },
   {
-    cultivation_rvo_table2: "Boomkwekerijgewassen, Vruchtbomen, overig,",
+    cultivation_rvo_table2: "Boomkwekerijgewassen, Vruchtbomen, overig",
     b_lu_catalogue_match: ["nl_1079"],
     type: "boomkwekerij",
     is_winterteelt: true,
@@ -2532,6 +2532,8 @@ export const nitrogenStandardsData = [
   {
     cultivation_rvo_table2: "Geen plaatsingsruimte",
     b_lu_catalogue_match: [
+      "nl_332",
+      "nl_335",
       "nl_338",
       "nl_1940",
       "nl_2300",

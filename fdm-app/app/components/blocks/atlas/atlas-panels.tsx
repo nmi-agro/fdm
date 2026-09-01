@@ -1,10 +1,9 @@
 /* eslint-disable typescript/restrict-template-expressions -- Mapbox viewstates, coordinates, and layer IDs are formatted inside template literals safely. */
 import type { FeatureCollection } from "geojson"
-import type { MapGeoJSONFeature, MapLibreEvent } from "maplibre-gl"
-import type { MapLayerMouseEvent as MapMouseEvent } from "react-map-gl/maplibre"
+import type { MapGeoJSONFeature } from "maplibre-gl"
 import throttle from "lodash.throttle"
 import { Check, ChevronDown, ChevronUp, Info } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useMap } from "react-map-gl/maplibre"
 import { data, NavLink, useFetcher } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -20,152 +19,151 @@ import {
 } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
-import { cn } from "~/lib/utils"
+import {
+  AtlasTooltip,
+  AtlasTooltipContent,
+  AtlasTooltipFooter,
+  AtlasTooltipHeader,
+} from "./atlas-tooltip"
 
 /**
- * Renders a panel showing the field name or the cultivation name and the corresponding area,
+ * Renders a tooltip or popup showing the field name or the cultivation name and the corresponding area,
  * for the farm or cultivation field that is currently hovered on with the mouse pointer.
  * It can also include contextual information if the field IDs "fieldsSaved", "fieldsAvailable" etc. are used.
- *
- * This component will always contain some HTML, but it will have hidden visibility if there is no intersected feature
  *
  * - `zoomLevelFields` is the zoom threshold after which no panel is shown
  * - `layer` is a layer ID or an array of IDs for which the panel is shown
  * - `layerExclude` can be a layerId or an array of IDs which block the panel from being shown
+ * - `onFeatureClicked` is called when the feature under the tooltip is clicked or the More details button on the popup is clicked.
  * - `clickRedirectsToDetailsPage`, if set to true, causes the default panel to tell the user that clicking will navigate to a different page
+ * - `touchDisplaysPopupInstead`, if set to true, causes touch taps not to call onFeatureClicked immediately, but to instead create an atlas popup
  * @returns the output of the render function, or a Card containing the information mentioned above.
  */
-export function FieldsPanelHover({
+export function FieldTooltip({
   zoomLevelFields,
   layer,
   layerExclude,
+  onFeatureClicked,
   clickRedirectsToDetailsPage = false,
+  touchDisplaysPopupInstead = true,
 }: {
   zoomLevelFields: number
   layer: string[] | string
   layerExclude?: string[] | string
+  onFeatureClicked?: (feature: MapGeoJSONFeature) => void
   clickRedirectsToDetailsPage?: boolean
+  touchDisplaysPopupInstead?: boolean
 }) {
   const { current: map } = useMap()
-  const [panel, setPanel] = useState<React.ReactNode | null>(null)
-  const layerIds = Array.isArray(layer) ? layer : [layer]
-  const excludedLayerIds = layerExclude
-    ? Array.isArray(layerExclude)
-      ? layerExclude
-      : [layerExclude]
-    : []
-  const layerIdsKey = layerIds.join("|")
-  const excludedLayerIdsKey = excludedLayerIds.join("|")
+  const [zoom, setZoom] = useState<number | null>(map ? map.getZoom() : null)
 
   useEffect(() => {
-    function updatePanel(evt: MapMouseEvent | MapLibreEvent) {
-      if (map) {
-        // Set message about zoom level
-        const zoom = map.getZoom()
-        if (zoom && zoom > zoomLevelFields) {
-          if (!map.getStyle()) return
-          if (!("point" in evt)) {
-            setPanel(makePanel({}))
-            return
-          }
-          const validLayers = layerIds.filter((l) => map.getLayer(l))
-          if (validLayers.length === 0) return
-          const features = map.queryRenderedFeatures(evt.point, {
-            layers: validLayers,
-          })
-          // Layer, whose id is specified last in the layer prop, has the highest priority
-          features.sort(
-            (f1, f2) => validLayers.indexOf(f2.layer.id) - validLayers.indexOf(f1.layer.id),
+    if (!map) return
+    const onZoom = () => setZoom(map.getZoom())
+    onZoom()
+    map.on("zoom", onZoom)
+    return () => {
+      map.off("zoom", onZoom)
+    }
+  }, [map])
+
+  const layers = useMemo(() => (Array.isArray(layer) ? layer : [layer]), [layer])
+  const layersExclude = useMemo(
+    () => (!layerExclude ? [] : Array.isArray(layerExclude) ? layerExclude : [layerExclude]),
+    [layerExclude],
+  )
+
+  if (!map || zoom === null || zoom < zoomLevelFields) {
+    return null
+  }
+
+  return (
+    <AtlasTooltip
+      layers={layers}
+      layersExclude={layersExclude}
+      onFeatureClicked={onFeatureClicked}
+      touchDisplaysPopupInstead={touchDisplaysPopupInstead}
+      render={(props) => {
+        const { features, mode } = props
+
+        const savedField = features.find((feature) => feature.layer.id === "fieldsSaved")
+        const selectedField = features.find((feature) => feature.layer.id === "fieldsSelected")
+        const availableField = features.find((feature) => feature.layer.id === "fieldsAvailable")
+
+        const featureToClick = savedField ?? selectedField ?? availableField
+
+        if (!featureToClick) return null
+
+        const cardFooter =
+          mode === "popup" && clickRedirectsToDetailsPage ? (
+            <AtlasTooltipFooter>
+              <Button
+                type="button"
+                className="grow"
+                onClick={() => {
+                  if (onFeatureClicked && features.length > 0) {
+                    onFeatureClicked(selectedField ?? features[0])
+                  }
+                }}
+              >
+                Meer details
+              </Button>
+            </AtlasTooltipFooter>
+          ) : undefined
+
+        if (savedField && availableField) {
+          return (
+            <>
+              <AtlasTooltipHeader>
+                <CardTitle className="text-xs">{availableField.properties.b_lu_name}</CardTitle>
+              </AtlasTooltipHeader>
+              <AtlasTooltipContent>
+                <CardDescription className="text-xs">
+                  {savedField.properties.b_name}
+                </CardDescription>
+                <CardDescription className="text-xs">
+                  {savedField.properties.b_area}
+                  {" ha"}
+                </CardDescription>
+              </AtlasTooltipContent>
+              {cardFooter}
+            </>
           )
-
-          if (layerExclude) {
-            const validLayers = excludedLayerIds.filter((l) => map.getLayer(l))
-
-            if (validLayers.length > 0) {
-              const featuresExclude = map.queryRenderedFeatures(evt.point, {
-                layers: validLayers,
-              })
-              if (featuresExclude && featuresExclude.length > 0) {
-                setPanel(makePanel({}))
-                return
-              }
-            }
-          }
-
-          const top = features[0]
-          if (top?.properties) {
-            setPanel(makePanel({ layer: top.layer.id, feature: top }))
-          } else {
-            setPanel(makePanel({}))
-          }
-
-          function makePanel({ layer, feature }: { layer?: string; feature?: MapGeoJSONFeature }) {
-            const active = layer && feature
-            const name = feature
-              ? layer === "fieldsSaved"
-                ? feature.properties.b_name
-                : feature.properties.b_lu_name
-              : "Naam"
-            return (
-              <Card className={cn("w-full", !active && "invisible")}>
-                <CardHeader>
-                  <CardTitle>{name}</CardTitle>
-                  <CardDescription>
-                    {layer === "fieldsSaved"
-                      ? `${features[0].properties.b_area} ha`
-                      : clickRedirectsToDetailsPage
-                        ? "Klik voor meer details over dit perceel"
-                        : layer === "fieldsAvailable"
-                          ? "Klik om te selecteren"
-                          : "Klik om te verwijderen"}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            )
-          }
-        } else {
-          setPanel(null)
         }
-      }
-    }
 
-    // Throttle panel updates to not overwhelm React, the rendering thread etc.
-    const throttleInterval = 200
-    const throttledUpdatePanelInner = throttle(updatePanel, throttleInterval, {
-      trailing: true,
-    })
+        if (savedField) {
+          return (
+            <>
+              <AtlasTooltipHeader>
+                <CardTitle className="text-xs">{savedField.properties.b_name}</CardTitle>
+                <CardDescription className="text-xs">
+                  {savedField.properties.b_area}
+                  {" ha"}
+                </CardDescription>
+              </AtlasTooltipHeader>
+              {cardFooter}
+            </>
+          )
+        }
 
-    // Delay handling of clicks so that if the field selection under the mouse changes we catch it
-    let delayedUpdateTimeout: ReturnType<typeof setTimeout>
-    const delayedUpdatePanel: typeof updatePanel = (e) => {
-      delayedUpdateTimeout = setTimeout(() => throttledUpdatePanelInner(e), throttleInterval)
-    }
-
-    // Cancels any timed out invocations and tries to invoke again
-    const throttledUpdatePanel: typeof updatePanel = (e) => {
-      clearTimeout(delayedUpdateTimeout)
-      throttledUpdatePanelInner(e)
-    }
-
-    if (map) {
-      map.on("mousemove", throttledUpdatePanel)
-      map.on("mousedown", delayedUpdatePanel)
-      map.on("zoom", throttledUpdatePanel)
-      void map.once("load", updatePanel)
-      return () => {
-        map.off("mousemove", throttledUpdatePanel)
-        map.off("mousedown", delayedUpdatePanel)
-        map.off("zoom", throttledUpdatePanel)
-        map.off("load", updatePanel)
-
-        // Cancel pending updates
-        clearTimeout(delayedUpdateTimeout)
-        throttledUpdatePanelInner.cancel()
-      }
-    }
-  }, [map, zoomLevelFields, layerIdsKey, excludedLayerIdsKey, clickRedirectsToDetailsPage])
-
-  return panel
+        return (
+          <>
+            <AtlasTooltipHeader>
+              <CardTitle className="text-xs">{featureToClick.properties.b_lu_name}</CardTitle>
+              <CardDescription className="text-xs">
+                {clickRedirectsToDetailsPage
+                  ? "Klik voor meer details over dit perceel"
+                  : featureToClick === availableField
+                    ? "Klik om te selecteren"
+                    : "Klik om te verwijderen"}
+              </CardDescription>
+            </AtlasTooltipHeader>
+            {cardFooter}
+          </>
+        )
+      }}
+    />
+  )
 }
 
 export function FieldsPanelZoom({ zoomLevelFields }: { zoomLevelFields: number }) {

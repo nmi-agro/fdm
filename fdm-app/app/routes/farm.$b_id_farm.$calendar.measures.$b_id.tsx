@@ -833,14 +833,14 @@ export default function MeasuresFieldDetail() {
         </div>
 
         {/* Mini map — a field-switcher, subordinate to the list */}
-        <div className="w-full overflow-hidden rounded-lg border xl:w-80 xl:shrink-0">
+        <div className="w-full overflow-hidden rounded-lg border xl:w-80 xl:shrink-0 ">
           <Suspense fallback={<div className="bg-muted h-64 animate-pulse rounded-lg" />}>
             <MeasuresMap
               fieldsGeoJSON={fieldsGeoJSON}
               selectedFieldGeoJSON={selectedFieldGeoJSON}
               initialFitGeoJSON={selectedFieldGeoJSON}
               mapStyle={mapStyle}
-              className="h-64 md:h-[400px]"
+              className="h-64 md:h-100"
               onFieldClick={(b_id) => navigate(`/farm/${b_id_farm}/${calendar}/measures/${b_id}`)}
             />
           </Suspense>

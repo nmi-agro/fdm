@@ -162,7 +162,7 @@ export default function AtlasIndicatorsMap() {
   }, [selectedProperty])
 
   return (
-    <div style={{ height: "calc(100vh - 64px)" }} className="relative">
+    <div style={{ height: "calc(100vh - var(--app-header-height))" }} className="relative">
       <ScoreSelect
         selectedProperty={selectedProperty}
         setSelectedProperty={setSelectedProperty}

@@ -126,8 +126,8 @@ export async function collectInputForBln3Score(
       }, maxYear)
 
       for (let year = maxYear; year >= minYear; year--) {
-        const catalogue = findHoofdteelt(cultivations, year)
-        const match = /^nl_(\d+)$/.exec(catalogue)
+        const hoofdteelt = findHoofdteelt(cultivations, year)
+        const match = /^nl_(\d+)$/.exec(hoofdteelt.b_lu_catalogue)
         if (!match) continue
         bln3Cultivations.push({
           b_lu_brp: Number(match[1]),
@@ -148,11 +148,8 @@ export async function collectInputForBln3Score(
           }, 0)
         : new Date().getFullYear())
 
-    const targetHoofdteeltCatalogue = findHoofdteelt(cultivations, evaluationYear, true)
-    const targetMainCultivation = targetHoofdteeltCatalogue
-      ? cultivations.find((c) => c.b_lu_catalogue === targetHoofdteeltCatalogue)
-      : undefined
-    const catalogueCode = targetMainCultivation?.b_lu_catalogue ?? targetHoofdteeltCatalogue
+    const targetMainCultivation = findHoofdteelt(cultivations, evaluationYear, true)
+    const catalogueCode = targetMainCultivation?.b_lu_catalogue
     const isExcluded =
       isBufferstrip ||
       isExcludedCultivation(targetMainCultivation?.b_lu_croprotation, catalogueCode)
@@ -277,8 +274,8 @@ export async function collectInputForBln3MeasureApplicability(
       }, maxYear)
 
       for (let year = maxYear; year >= minYear; year--) {
-        const catalogue = findHoofdteelt(cultivations, year)
-        const match = /^nl_(\d+)$/.exec(catalogue)
+        const hoofdteelt = findHoofdteelt(cultivations, year)
+        const match = /^nl_(\d+)$/.exec(hoofdteelt.b_lu_catalogue)
         if (!match) continue
         bln3Cultivations.push({
           b_lu_brp: Number(match[1]),
@@ -297,11 +294,8 @@ export async function collectInputForBln3MeasureApplicability(
 
     // Determine if the field is excluded (buffer strip, nature crop rotation, or excluded BRP codes)
     const isBufferstrip = field.b_bufferstrip === true
-    const targetHoofdteeltCatalogue = findHoofdteelt(cultivations, b_year, true)
-    const targetMainCultivation = targetHoofdteeltCatalogue
-      ? cultivations.find((c) => c.b_lu_catalogue === targetHoofdteeltCatalogue)
-      : undefined
-    const catalogueCode = targetMainCultivation?.b_lu_catalogue ?? targetHoofdteeltCatalogue
+    const targetMainCultivation = findHoofdteelt(cultivations, b_year, true)
+    const catalogueCode = targetMainCultivation?.b_lu_catalogue
     const isExcluded =
       isBufferstrip ||
       isExcludedCultivation(targetMainCultivation?.b_lu_croprotation, catalogueCode)
