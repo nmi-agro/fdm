@@ -11,9 +11,9 @@ packages:
 
 catalog:
   "@better-auth/api-key": 1.6.27
-  jose: ^6.2.8
-  "@dotenvx/dotenvx": ^2.21.0
-  "@types/node": ^26.2.0
+  jose: ^6.2.10
+  "@dotenvx/dotenvx": ^2.22.0
+  "@types/node": ^26.4.0
   "@vitest/coverage-v8": 4.1.11
   better-auth: 1.6.27
   drizzle-kit: ^0.31.10
