@@ -45,7 +45,7 @@
     "drizzle-orm": "catalog:",
     "nanoid": "catalog:",
     "postgres": "^3.4.9",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",

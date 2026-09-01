@@ -28,14 +28,14 @@
   "dependencies": {
     "@langchain/core": "^1.2.9",
     "@langchain/google-genai": "^2.3.0",
-    "@langchain/langgraph": "^1.4.12",
+    "@langchain/langgraph": "^1.4.13",
     "@nmi-agro/fdm-calculator": "workspace:^",
     "@nmi-agro/fdm-core": "workspace:^",
     "@nmi-agro/fdm-data": "workspace:^",
-    "@posthog/ai": "^8.8.0",
+    "@posthog/ai": "^8.9.0",
     "langchain": "^1.5.10",
-    "posthog-node": "^5.49.1",
-    "zod": "^4.4.3"
+    "posthog-node": "^5.51.4",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@nmi-agro/fdm-calculator": "workspace:*",

@@ -25,7 +25,7 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.33.0",
+    "lucide-react": "^1.38.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
@@ -35,7 +35,7 @@
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
     "typedoc": "catalog:",
-    "typedoc-plugin-markdown": "^4.12.0",
+    "typedoc-plugin-markdown": "^4.13.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-7": "npm:typescript@^7.0.2"
   },
@@ -54,5 +54,5 @@
   "engines": {
     "node": ">=24.0.0"
   },
-  "packageManager": "pnpm@11.17.0"
+  "packageManager": "pnpm@11.25.0"
 }
