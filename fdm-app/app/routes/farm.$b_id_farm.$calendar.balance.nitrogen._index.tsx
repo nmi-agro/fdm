@@ -359,11 +359,16 @@ function FarmBalanceNitrogenOverview({
                 return (
                   <div className="flex items-center" key={fieldResult.b_id}>
                     {fieldResult.balance ? (
-                      fieldResult.balance.balance <= fieldResult.balance.target ? (
-                        <CircleCheck className="h-6 w-6 rounded-full bg-green-100 p-0 text-green-500" />
-                      ) : (
-                        <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
-                      )
+                      <div className="flex items-center gap-2">
+                        {fieldResult.balance.balance <= fieldResult.balance.target ? (
+                          <CircleCheck className="h-6 w-6 rounded-full bg-green-100 p-0 text-green-500" />
+                        ) : (
+                          <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
+                        )}
+                        {isRecomputing ? (
+                          <CalculationRefreshSpinner label="Stikstofbalans wordt opnieuw berekend..." />
+                        ) : null}
+                      </div>
                     ) : isRecomputing ? (
                       <CalculationRefreshSpinner label="Stikstofbalans wordt opnieuw berekend..." />
                     ) : (

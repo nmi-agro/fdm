@@ -5,6 +5,14 @@ import { getCalculationJobKey } from "~/lib/calculation-jobs"
 /** Per-job outcome as reported by the `/api/calculation-refresh` NDJSON stream. */
 export type CalculationRefreshJobState = "pending" | "computed" | "attached" | "error"
 
+/**
+ * Wire outcome from the NDJSON stream, which also includes `"timeout"`: the attach-wait loop gave
+ * up without observing a terminal result. This is not a completed state — the job's cache entry
+ * may still be processing — so it is never stored in `jobStates` directly; the corresponding job
+ * is instead resubmitted until it resolves to a genuinely terminal outcome.
+ */
+type CalculationRefreshOutcome = CalculationRefreshJobState | "timeout"
+
 export interface CalculationRefreshState {
   /** Per-job state, keyed by `getCalculationJobKey(job)`. Only contains jobs sent to the API. */
   jobStates: Map<string, CalculationRefreshJobState>
@@ -62,19 +70,23 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
     const controller = new AbortController()
     abortControllerRef.current = controller
 
-    async function run() {
+    // Posts a (sub)batch of jobs and applies their outcomes. Jobs that come back as "timeout" are
+    // not terminal — the underlying calculation may still be running elsewhere — so they are
+    // resubmitted here instead of being reflected as done, until a real outcome arrives.
+    async function postBatch(batchJobs: CalculationJobRequest[]) {
+      const batchKeys = batchJobs.map(getCalculationJobKey)
       try {
         const response = await fetch("/api/calculation-refresh", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jobs }),
+          body: JSON.stringify({ jobs: batchJobs }),
           signal: controller.signal,
         })
 
         if (!response.ok || !response.body) {
           setJobStates((prev) => {
             const next = new Map(prev)
-            for (const key of keys) next.set(key, "error")
+            for (const key of batchKeys) next.set(key, "error")
             return next
           })
           return
@@ -97,11 +109,17 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
             try {
               const parsed = JSON.parse(line) as {
                 key: string
-                outcome: CalculationRefreshJobState
+                outcome: CalculationRefreshOutcome
               }
+              if (parsed.outcome === "timeout") {
+                const retryJob = batchJobs.find((j) => getCalculationJobKey(j) === parsed.key)
+                if (retryJob && !controller.signal.aborted) void postBatch([retryJob])
+                continue
+              }
+              const outcome = parsed.outcome
               setJobStates((prev) => {
                 const next = new Map(prev)
-                next.set(parsed.key, parsed.outcome)
+                next.set(parsed.key, outcome)
                 return next
               })
             } catch {
@@ -114,7 +132,7 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
         if (controller.signal.aborted) return
         setJobStates((prev) => {
           const next = new Map(prev)
-          for (const key of keys) {
+          for (const key of batchKeys) {
             if (next.get(key) === "pending") next.set(key, "error")
           }
           return next
@@ -122,7 +140,7 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
       }
     }
 
-    void run()
+    void postBatch(jobs)
 
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- jobs is recreated every render; we dedupe on batchKey (derived from job keys) instead of the array identity.
   }, [batchKey])

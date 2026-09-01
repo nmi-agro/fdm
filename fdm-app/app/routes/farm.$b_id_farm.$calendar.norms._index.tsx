@@ -20,6 +20,7 @@ import {
   useRevalidator,
 } from "react-router"
 import { CalculationRefreshBanner } from "~/components/blocks/calculation/calculation-refresh-banner"
+import { CalculationRefreshSpinner } from "~/components/blocks/calculation/calculation-refresh-spinner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -164,32 +165,35 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const results = await Promise.all(fieldNormPromises)
         fieldNorms = results.map(({ hasAllValues: _hasAllValues, ...field }) => field)
 
-        // Aggregate the norms to farm level, only for fields where every required norm value is
-        // currently available (fresh or last-known-stale) — partial results aren't summable.
-        const validFieldNorms: InputAggregateNormsToFarmLevel = results
-          .filter((field) => field.hasAllValues)
-          .map((field) => ({
+        // Aggregate the norms to farm level, only once every field has a complete set of norm
+        // values (fresh or last-known-stale) — a farm total built from a subset of fields would
+        // silently understate the real total, so withhold it until all fields are available.
+        const hasIncompleteFieldNorms = results.some((field) => !field.hasAllValues)
+        if (!hasIncompleteFieldNorms) {
+          const validFieldNorms: InputAggregateNormsToFarmLevel = results.map((field) => ({
             b_id: field.b_id,
             b_area: field.b_area ?? 0,
             norms: field.norms as InputAggregateNormsToFarmLevel[number]["norms"],
           }))
-        farmNorms = aggregateNormsToFarmLevel(validFieldNorms)
+          farmNorms = aggregateNormsToFarmLevel(validFieldNorms)
 
-        // Aggregate the fillings to farm level
-        const validFieldFillings: InputAggregateNormFillingsToFarmLevel = results
-          .filter(
-            (
-              field,
-            ): field is typeof field & { normsFilling: NonNullable<typeof field.normsFilling> } =>
-              field.hasAllValues && field.normsFilling !== undefined,
-          )
-          .map((field) => ({
-            b_id: field.b_id,
-            b_area: field.b_area ?? 0,
-            normsFilling:
-              field.normsFilling as InputAggregateNormFillingsToFarmLevel[number]["normsFilling"],
-          }))
-        farmFillings = aggregateNormFillingsToFarmLevel(validFieldFillings)
+          // Aggregate the fillings to farm level
+          const validFieldFillings: InputAggregateNormFillingsToFarmLevel = results
+            .filter(
+              (
+                field,
+              ): field is typeof field & {
+                normsFilling: NonNullable<typeof field.normsFilling>
+              } => field.normsFilling !== undefined,
+            )
+            .map((field) => ({
+              b_id: field.b_id,
+              b_area: field.b_area ?? 0,
+              normsFilling:
+                field.normsFilling as InputAggregateNormFillingsToFarmLevel[number]["normsFilling"],
+            }))
+          farmFillings = aggregateNormFillingsToFarmLevel(validFieldFillings)
+        }
       } catch (error) {
         errorMessage = String(error).replace("Error: ", "")
       }
@@ -309,7 +313,7 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
     )
   }
 
-  if (farmNorms && fieldNorms) {
+  if (fieldNorms) {
     const fieldOptions = loaderData.fields
       .filter((f) => f?.b_id && f?.b_name)
       .map((f) => ({ b_id: f.b_id, b_name: f.b_name }))
@@ -325,11 +329,18 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
       <FarmContent>
         <div className="space-y-6 pb-10">
           {refreshReady && <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />}
-          <FarmNorms
-            farmNorms={farmNorms}
-            farmFillings={farmFillings}
-            showRenure={Number.parseInt(loaderData.calendar, 10) >= 2026}
-          />
+          {farmNorms ? (
+            <FarmNorms
+              farmNorms={farmNorms}
+              farmFillings={farmFillings}
+              showRenure={Number.parseInt(loaderData.calendar, 10) >= 2026}
+            />
+          ) : (
+            <div className="text-muted-foreground flex items-center gap-2 text-sm">
+              <CalculationRefreshSpinner label="Bedrijfstotalen worden berekend..." />
+              Bedrijfstotalen worden berekend zodra de gebruiksnormen van alle percelen bekend zijn.
+            </div>
+          )}
           <Separator className="my-8" />
           <FieldNorms
             fieldNorms={filteredFieldNorms}

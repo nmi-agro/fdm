@@ -238,10 +238,14 @@ export async function getCalculationJobStatus(
   }
 }
 
-/** How a job's recompute attempt was resolved. */
+/**
+ * How a job's recompute attempt was resolved. `"timeout"` is not terminal: the attach-wait loop
+ * gave up without observing the other request's result, so the cache entry may still be
+ * processing. Callers must keep retrying/polling a `"timeout"` job rather than treating it as done.
+ */
 export interface CalculationJobRunResult {
   job: CalculationJobRequest
-  outcome: "computed" | "attached" | "error"
+  outcome: "computed" | "attached" | "timeout" | "error"
   error?: string
 }
 
@@ -286,9 +290,9 @@ export async function runCalculationJob(
       }
       await new Promise((resolve) => setTimeout(resolve, ATTACH_POLL_INTERVAL_MS))
     }
-    // Timed out waiting: report as attached anyway, the loader's own cache-status check will
-    // simply see it as still stale/processing on the next revalidation.
-    return { job, outcome: "attached" }
+    // Timed out waiting: the other request's result still isn't known, so this is not a
+    // terminal outcome. The caller is expected to retry rather than treat the job as done.
+    return { job, outcome: "timeout" }
   }
 
   try {
@@ -352,12 +356,14 @@ export async function getNitrogenBalanceForFarmCached({
   const fieldsWithBalanceResults: NitrogenBalanceFieldResultNumeric[] = fields
     .map((field, index) => {
       const status = statuses[index]
-      if (status.state !== "fresh") return null
+      // `result` can be `null` (no fresh or stale result exists yet) as well as `undefined`.
+      const result = (status.result ?? undefined) as NitrogenBalanceFieldNumeric | undefined
+      if (result === undefined) return null
       return {
         b_id: field.b_id,
         b_area: field.b_area ?? 0,
         b_bufferstrip: field.b_bufferstrip ?? false,
-        balance: status.result as NitrogenBalanceFieldNumeric | undefined,
+        balance: result,
       }
     })
     .filter((x) => x !== null)
@@ -428,17 +434,20 @@ export async function getNitrogenBalanceForFarmsCached({
       const job = jobs[index]
       index++
 
-      if (status.state === "fresh") {
+      // `result` can be `null` (no fresh or stale result exists yet) as well as `undefined`.
+      const result = (status.result ?? undefined) as NitrogenBalanceFieldNumeric | undefined
+      if (result !== undefined) {
         const fieldResult: NitrogenBalanceFieldResultNumeric = {
           b_id: field.b_id,
           b_area: field.b_area ?? 0,
           b_bufferstrip: field.b_bufferstrip ?? false,
-          balance: status.result as NitrogenBalanceFieldNumeric | undefined,
+          balance: result,
         }
 
         farmFieldResults.push(fieldResult)
         allFieldResults.push(fieldResult)
-      } else {
+      }
+      if (status.state !== "fresh") {
         staleJobs.push(job)
       }
     }

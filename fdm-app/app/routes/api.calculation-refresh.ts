@@ -40,6 +40,9 @@ const JOB_TYPES: CalculationJobType[] = [
   "normRenure",
 ]
 
+/** Bounds how much recompute work a single request can trigger; excess jobs are dropped. */
+const MAX_JOBS_PER_BATCH = 100
+
 function parseJob(value: unknown): CalculationJobRequest | null {
   if (!value || typeof value !== "object") return null
   const job = value as Record<string, unknown>
@@ -77,7 +80,21 @@ export async function action({ request }: ActionFunctionArgs) {
   const rawJobs = Array.isArray((body as { jobs?: unknown[] })?.jobs)
     ? (body as { jobs: unknown[] }).jobs
     : []
-  const jobs = rawJobs.map(parseJob).filter((job): job is CalculationJobRequest => job !== null)
+  const parsedJobs = rawJobs
+    .map(parseJob)
+    .filter((job): job is CalculationJobRequest => job !== null)
+
+  // Deduplicate by job key so a client retry/re-render can't cause the same job to be processed
+  // (and reported) more than once in a batch, then cap the batch size to bound server work.
+  const seenKeys = new Set<string>()
+  const jobs: CalculationJobRequest[] = []
+  for (const job of parsedJobs) {
+    const key = getCalculationJobKey(job)
+    if (seenKeys.has(key)) continue
+    seenKeys.add(key)
+    jobs.push(job)
+    if (jobs.length >= MAX_JOBS_PER_BATCH) break
+  }
 
   if (jobs.length === 0) {
     return new Response(JSON.stringify({ error: "No valid jobs provided" }), {
