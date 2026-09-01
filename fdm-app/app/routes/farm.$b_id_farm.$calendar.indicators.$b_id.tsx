@@ -295,12 +295,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       features: fields.map((f) => {
         const fs = farmScores.find((s) => s.b_id === f.b_id)
         const scores = computeFieldScores(fs)
+        const isBufferstrip = f.b_bufferstrip === true || fs?.isBufferstrip === true
+        const isNature = fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true)
         return {
           type: "Feature" as const,
           properties: {
             b_id: f.b_id,
             b_name: f.b_name ?? null,
             b_area: f.b_area ?? null,
+            b_bufferstrip: isBufferstrip,
+            isBufferstrip,
+            isNature,
+            isExcluded: isBufferstrip || isNature,
             avgScore: scores.avg, // kept for backward compat
             ...scores,
           },
