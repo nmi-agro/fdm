@@ -94,13 +94,13 @@ export default function IndicatorsMap({
     if (basePathFormatter) {
       const formatted = basePathFormatter(feature.properties)
       if (typeof formatted === "string") {
-        navigate(formatted)
+        void navigate(formatted)
       }
       return
     }
     const b_id = feature.properties.b_id
     if (!b_id) return
-    navigate(`${basePath}/${b_id}`)
+    void navigate(`${basePath}/${b_id}`)
   }
 
   return (
@@ -138,11 +138,27 @@ export default function IndicatorsMap({
             return (
               <div className="space-y-1.5">
                 <AtlasTooltipHeader>
-                  <p className="text-foreground font-semibold">
-                    {(feature.properties?.b_name as string) ??
-                      (feature.properties?.b_id as string) ??
-                      "Onbekend perceel"}
-                  </p>
+                  <div className="flex items-start justify-between gap-1.5">
+                    <p className="text-foreground font-semibold">
+                      {(feature.properties?.b_name as string) ??
+                        (feature.properties?.b_id as string) ??
+                        "Onbekend perceel"}
+                    </p>
+                    {Boolean(
+                      feature.properties?.b_bufferstrip || feature.properties?.isBufferstrip,
+                    ) && (
+                      <span className="shrink-0 rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+                        Bufferstrook
+                      </span>
+                    )}
+                    {!feature.properties?.b_bufferstrip &&
+                      !feature.properties?.isBufferstrip &&
+                      Boolean(feature.properties?.isNature) && (
+                        <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          Natuurperceel
+                        </span>
+                      )}
+                  </div>
                   {feature.properties.b_area != null && (
                     <p className="text-muted-foreground mt-0.5">
                       {Number(feature.properties.b_area).toFixed(2)} ha
@@ -152,19 +168,31 @@ export default function IndicatorsMap({
                     <p className="text-muted-foreground mt-0.5">{feature.properties.b_name_farm}</p>
                   )}
                 </AtlasTooltipHeader>
-                <ScoreTooltipBody
-                  score={hoverScore}
-                  label={label}
-                  childScores={childEntries?.map((child) => ({
-                    id: child.id,
-                    label: child.label,
-                    score:
-                      typeof feature.properties[child.id] === "number" &&
-                      (feature.properties[child.id] as number) >= 0
-                        ? (feature.properties[child.id] as number)
-                        : null,
-                  }))}
-                />
+                {feature.properties?.b_bufferstrip ||
+                feature.properties?.isBufferstrip ||
+                feature.properties?.isNature ? (
+                  <div className="mt-1.5 border-t pt-1.5">
+                    <p className="text-muted-foreground italic">
+                      {feature.properties.b_bufferstrip || feature.properties.isBufferstrip
+                        ? "Geen indicatoren beschikbaar (bufferstrook)"
+                        : "Geen indicatoren beschikbaar (natuurperceel)"}
+                    </p>
+                  </div>
+                ) : (
+                  <ScoreTooltipBody
+                    score={hoverScore}
+                    label={label}
+                    childScores={childEntries?.map((child) => ({
+                      id: child.id,
+                      label: child.label,
+                      score:
+                        typeof feature.properties[child.id] === "number" &&
+                        (feature.properties[child.id] as number) >= 0
+                          ? (feature.properties[child.id] as number)
+                          : null,
+                    }))}
+                  />
+                )}
                 {mode === "popup" && (
                   <AtlasTooltipFooter>
                     <Button

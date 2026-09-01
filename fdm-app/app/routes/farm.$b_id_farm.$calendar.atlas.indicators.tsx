@@ -91,12 +91,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             rawScore != null && !Number.isNaN(rawScore) ? Math.round(rawScore * 100) : -1
         }
 
+        const isBufferstrip = field.b_bufferstrip === true || fs?.isBufferstrip === true
+        const isNature = fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true)
+
         return {
           type: "Feature" as const,
           properties: {
             b_id: field.b_id,
             b_name: field.b_name ?? null,
             b_area: field.b_area ?? null,
+            b_bufferstrip: isBufferstrip,
+            isBufferstrip,
+            isNature,
+            isExcluded: isBufferstrip || isNature,
             avgScore: computeFieldAvgScore(fs),
             ...aggProps,
             ...indicatorProps,

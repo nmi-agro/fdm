@@ -43,6 +43,14 @@ export type Bln3ScoreCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
+  /** Buffer strip flag */
+  b_bufferstrip?: boolean
+  /** Crop rotation category of the target year's main cultivation */
+  b_lu_croprotation?: string
+  /** Catalogue code of the target year's main cultivation */
+  b_lu_catalogue?: string
+  /** Flag indicating field is excluded from BLN3 calculations */
+  isExcluded?: boolean
 
   // ── Soil analysis ────────────────────────────────────────────────────────
   /** Calcium occupation of the CEC (%) */
@@ -212,6 +220,14 @@ export type Bln3MeasureApplicabilityCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
+  /** Buffer strip flag */
+  b_bufferstrip?: boolean
+  /** Crop rotation category of the target year's main cultivation */
+  b_lu_croprotation?: string
+  /** Catalogue code of the target year's main cultivation */
+  b_lu_catalogue?: string
+  /** Flag indicating field is excluded from BLN3 calculations */
+  isExcluded?: boolean
 
   // Groundwater / soil potential estimates (optional)
   b_gwl_glg?: number

@@ -29,10 +29,18 @@ import {
   type PrincipalId,
   type Timeframe,
 } from "@nmi-agro/fdm-core"
-import type { FieldMeasure } from "~/lib/indicators"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
-import { getScoreTier, scoreToDisplay } from "~/lib/indicators"
+import {
+  EXCLUDED_BLN3_BRP_CODES,
+  type FieldMeasure,
+  getBln3ExclusionMessage,
+  getScoreTier,
+  isExcludedFromBln3,
+  scoreToDisplay,
+} from "~/lib/indicators"
+
+export { EXCLUDED_BLN3_BRP_CODES, isExcludedFromBln3, getBln3ExclusionMessage }
 
 export type {
   Bln3IndicatorAdvice,
@@ -49,11 +57,15 @@ export type FieldBln3Score = {
   b_id: string
   score: Bln3Score | null
   error: string | null
+  isExcluded?: boolean
+  isBufferstrip?: boolean
+  isNature?: boolean
 }
 
 export type FieldBln3Result = {
   score: Bln3Score | null
   inputs: Bln3ScoreCollectedInputs
+  isExcluded?: boolean
 }
 
 export type MeasureApplicabilityInfo = {
@@ -75,14 +87,17 @@ export async function getIndicatorsForField({
   b_id: string
   timeframe?: Timeframe
 }): Promise<FieldBln3Result> {
-  const nmiApiKey = getNmiApiKey()
-
   const inputs = await collectInputForBln3Score(fdm, principal_id, b_id, timeframe)
+  if (inputs.isExcluded) {
+    return { score: null, inputs, isExcluded: true }
+  }
+
+  const nmiApiKey = getNmiApiKey()
   const score = await getBln3Score(fdm, {
     ...inputs,
     nmiApiKey,
   })
-  return { score, inputs }
+  return { score, inputs, isExcluded: false }
 }
 
 /**
@@ -115,14 +130,37 @@ export async function getIndicatorsForFarm({
   )
 
   return results.map((result, index) => {
-    const b_id = fields[index].b_id
+    const field = fields[index]
+    const b_id = field.b_id
     if (result.status === "fulfilled") {
-      return { b_id, score: result.value.score, error: null }
+      const inputs = result.value.inputs
+      const isBufferstrip = field.b_bufferstrip === true || inputs.b_bufferstrip === true
+      const isNature =
+        !isBufferstrip &&
+        (inputs.b_lu_croprotation === "nature" ||
+          (inputs.b_lu_catalogue != null &&
+            EXCLUDED_BLN3_BRP_CODES.includes(inputs.b_lu_catalogue)) ||
+          inputs.isExcluded === true)
+      return {
+        b_id,
+        score: result.value.score,
+        error: null,
+        isExcluded: result.value.inputs.isExcluded ?? false,
+        isBufferstrip,
+        isNature,
+      }
     }
     const errorMessage =
       result.reason instanceof Error ? result.reason.message : String(result.reason)
     console.error(`BLN3 score failed for field ${b_id}:`, errorMessage)
-    return { b_id, score: null, error: errorMessage }
+    return {
+      b_id,
+      score: null,
+      error: errorMessage,
+      isExcluded: false,
+      isBufferstrip: field.b_bufferstrip === true,
+      isNature: false,
+    }
   })
 }
 
@@ -168,7 +206,6 @@ export async function getMeasureApplicabilityForField({
   b_year: number
   timeframe?: Timeframe
 }): Promise<Record<string, MeasureApplicabilityInfo>> {
-  const nmiApiKey = getNmiApiKey()
   const inputs = await collectInputForBln3MeasureApplicability(
     fdm,
     principal_id,
@@ -176,6 +213,11 @@ export async function getMeasureApplicabilityForField({
     b_year,
     timeframe,
   )
+  if (inputs.isExcluded) {
+    return {}
+  }
+
+  const nmiApiKey = getNmiApiKey()
   const result = await getBln3MeasureApplicability(fdm, {
     ...inputs,
     nmiApiKey,
@@ -279,7 +321,6 @@ export async function getMeasureAdviceForField({
   timeframe?: Timeframe
 }): Promise<Bln3MeasureAdviceResult | null> {
   try {
-    const nmiApiKey = getNmiApiKey()
     const inputs = await collectInputForBln3MeasureApplicability(
       fdm,
       principal_id,
@@ -287,6 +328,11 @@ export async function getMeasureAdviceForField({
       b_year,
       timeframe,
     )
+    if (inputs.isExcluded) {
+      return null
+    }
+
+    const nmiApiKey = getNmiApiKey()
     return await getBln3MeasureAdvice(fdm, {
       ...inputs,
       nmiApiKey,

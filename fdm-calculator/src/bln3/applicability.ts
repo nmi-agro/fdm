@@ -22,6 +22,16 @@ import pkg from "../package"
 export async function requestBln3MeasureApplicability(
   inputs: Bln3MeasureApplicabilityInputs,
 ): Promise<Bln3MeasureApplicabilityResult> {
+  if (
+    inputs.isExcluded ||
+    inputs.b_bufferstrip === true ||
+    inputs.b_lu_croprotation === "nature" ||
+    inputs.b_lu_catalogue === "nl_343" ||
+    inputs.b_lu_catalogue === "nl_6801"
+  ) {
+    return { applicability: [] }
+  }
+
   const { nmiApiKey, ...fieldData } = inputs
 
   if (!nmiApiKey) {
