@@ -58,6 +58,8 @@ export type FieldBln3Score = {
   score: Bln3Score | null
   error: string | null
   isExcluded?: boolean
+  isBufferstrip?: boolean
+  isNature?: boolean
 }
 
 export type FieldBln3Result = {
@@ -128,19 +130,37 @@ export async function getIndicatorsForFarm({
   )
 
   return results.map((result, index) => {
-    const b_id = fields[index].b_id
+    const field = fields[index]
+    const b_id = field.b_id
     if (result.status === "fulfilled") {
+      const inputs = result.value.inputs
+      const isBufferstrip = field.b_bufferstrip === true || inputs.b_bufferstrip === true
+      const isNature =
+        !isBufferstrip &&
+        (inputs.b_lu_croprotation === "nature" ||
+          (inputs.b_lu_catalogue != null &&
+            EXCLUDED_BLN3_BRP_CODES.includes(inputs.b_lu_catalogue)) ||
+          inputs.isExcluded === true)
       return {
         b_id,
         score: result.value.score,
         error: null,
         isExcluded: result.value.inputs.isExcluded ?? false,
+        isBufferstrip,
+        isNature,
       }
     }
     const errorMessage =
       result.reason instanceof Error ? result.reason.message : String(result.reason)
     console.error(`BLN3 score failed for field ${b_id}:`, errorMessage)
-    return { b_id, score: null, error: errorMessage, isExcluded: false }
+    return {
+      b_id,
+      score: null,
+      error: errorMessage,
+      isExcluded: false,
+      isBufferstrip: field.b_bufferstrip === true,
+      isNature: false,
+    }
   })
 }
 

@@ -156,17 +156,49 @@ export default function FieldMap({
       {/* Hover tooltip */}
       {hoveredFeature && (
         <div className="bg-background/95 pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-md backdrop-blur-sm">
-          <p className="font-semibold">{hoveredFeature.properties?.b_name ?? "Onbekend perceel"}</p>
-          {scoreLabel && <p className="text-muted-foreground text-xs">{scoreLabel}</p>}
-          {hoveredScore !== null && (
-            <span
-              className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold text-white"
-              style={{
-                backgroundColor: getScoreColor(hoveredScore),
-              }}
-            >
-              {hoveredScore} – {getScoreVerdict(hoveredScore)}
-            </span>
+          <div className="flex items-start justify-between gap-1.5">
+            <p className="font-semibold">
+              {hoveredFeature.properties?.b_name ?? "Onbekend perceel"}
+            </p>
+            {Boolean(
+              hoveredFeature.properties?.b_bufferstrip || hoveredFeature.properties?.isBufferstrip,
+            ) && (
+              <span className="shrink-0 rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+                Bufferstrook
+              </span>
+            )}
+            {!hoveredFeature.properties?.b_bufferstrip &&
+              !hoveredFeature.properties?.isBufferstrip &&
+              Boolean(hoveredFeature.properties?.isNature) && (
+                <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  Natuurperceel
+                </span>
+              )}
+          </div>
+          {hoveredFeature.properties?.b_bufferstrip ||
+          hoveredFeature.properties?.isBufferstrip ||
+          hoveredFeature.properties?.isNature ? (
+            <p className="text-muted-foreground mt-0.5 italic">
+              {hoveredFeature.properties?.b_bufferstrip || hoveredFeature.properties?.isBufferstrip
+                ? "Geen indicatoren beschikbaar (bufferstrook)"
+                : "Geen indicatoren beschikbaar (natuurperceel)"}
+            </p>
+          ) : (
+            <>
+              {scoreLabel && <p className="text-muted-foreground text-xs">{scoreLabel}</p>}
+              {hoveredScore !== null ? (
+                <span
+                  className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold text-white"
+                  style={{
+                    backgroundColor: getScoreColor(hoveredScore),
+                  }}
+                >
+                  {hoveredScore} – {getScoreVerdict(hoveredScore)}
+                </span>
+              ) : (
+                <p className="text-muted-foreground mt-0.5 italic">Geen data</p>
+              )}
+            </>
           )}
         </div>
       )}

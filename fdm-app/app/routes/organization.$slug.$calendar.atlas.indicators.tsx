@@ -29,7 +29,7 @@ export const meta: MetaFunction = () => {
   return [{ title: `Indicatoren | Atlas | Organisatie | ${clientConfig.name}` }]
 }
 
-type FlattenedScores = Record<string, number | null>
+type FlattenedScores = Record<string, number | boolean | null>
 type FieldFlattenedScores =
   | {
       b_id: string
@@ -109,11 +109,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
               }
 
               const avgScore = computeFieldAvgScore(fieldScore)
+              const isBufferstrip = fieldScore.isBufferstrip === true
+              const isNature =
+                fieldScore.isNature === true || (!isBufferstrip && fieldScore.isExcluded === true)
 
               return {
                 b_id: fieldScore.b_id,
                 flattenedScores: {
                   avgScore,
+                  b_bufferstrip: isBufferstrip,
+                  isBufferstrip,
+                  isNature,
+                  isExcluded: isBufferstrip || isNature,
                   ...aggProps,
                   ...indicatorProps,
                 },
@@ -163,6 +170,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                 b_id: field.b_id,
                 b_name: field.b_name,
                 b_area: field.b_area,
+                b_bufferstrip: field.b_bufferstrip ?? false,
               },
             }
           })

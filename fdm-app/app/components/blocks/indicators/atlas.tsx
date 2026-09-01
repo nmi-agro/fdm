@@ -202,7 +202,21 @@ export default function IndicatorsMap({
             transform: "translateY(-100%)",
           }}
         >
-          <p className="text-foreground font-semibold">{hoverInfo.fieldName}</p>
+          <div className="flex items-start justify-between gap-1.5">
+            <p className="text-foreground font-semibold">{hoverInfo.fieldName}</p>
+            {Boolean(hoverInfo.properties.b_bufferstrip || hoverInfo.properties.isBufferstrip) && (
+              <span className="shrink-0 rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+                Bufferstrook
+              </span>
+            )}
+            {!hoverInfo.properties.b_bufferstrip &&
+              !hoverInfo.properties.isBufferstrip &&
+              Boolean(hoverInfo.properties.isNature) && (
+                <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                  Natuurperceel
+                </span>
+              )}
+          </div>
           {hoverInfo.properties.b_area != null && (
             <p className="text-muted-foreground mt-0.5">
               {Number(hoverInfo.properties.b_area).toFixed(2)} ha
@@ -211,72 +225,88 @@ export default function IndicatorsMap({
           {hoverInfo.properties.b_name_farm != null && (
             <p className="text-muted-foreground mt-0.5">{hoverInfo.properties.b_name_farm}</p>
           )}
-          {label && (
-            <div className="mt-1.5 flex items-center justify-between gap-3 border-t pt-1.5">
-              <span className="text-muted-foreground truncate">{label}</span>
-              {hoverScore != null ? (
-                <span
-                  className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-semibold text-white"
-                  style={{
-                    backgroundColor: getScoreColor(hoverScore),
-                  }}
-                >
-                  {hoverScore} – {getScoreVerdict(hoverScore)}
-                </span>
-              ) : (
-                <span className="text-muted-foreground italic">Geen data</span>
-              )}
+          {hoverInfo.properties.b_bufferstrip ||
+          hoverInfo.properties.isBufferstrip ||
+          hoverInfo.properties.isNature ? (
+            <div className="mt-1.5 border-t pt-1.5">
+              <p className="text-muted-foreground italic">
+                {hoverInfo.properties.b_bufferstrip || hoverInfo.properties.isBufferstrip
+                  ? "Geen indicatoren beschikbaar (bufferstrook)"
+                  : "Geen indicatoren beschikbaar (natuurperceel)"}
+              </p>
             </div>
-          )}
-          {!label && (
-            <p className="text-muted-foreground mt-0.5">
-              {hoverScore != null ? (
-                <>
-                  Score:{" "}
-                  <span
-                    className="font-semibold"
-                    style={{
-                      color: getScoreColor(hoverScore),
-                    }}
-                  >
-                    {hoverScore}
-                  </span>
-                  {" – "}
-                  {getScoreVerdict(hoverScore)}
-                </>
-              ) : (
-                "Geen data"
+          ) : (
+            <>
+              {label && (
+                <div className="mt-1.5 flex items-center justify-between gap-3 border-t pt-1.5">
+                  <span className="text-muted-foreground truncate">{label}</span>
+                  {hoverScore != null ? (
+                    <span
+                      className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-semibold text-white"
+                      style={{
+                        backgroundColor: getScoreColor(hoverScore),
+                      }}
+                    >
+                      {hoverScore} – {getScoreVerdict(hoverScore)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground italic">Geen data</span>
+                  )}
+                </div>
               )}
-            </p>
-          )}
-          {/* Child sub-scores (one level below the selected layer) */}
-          {childEntries && childEntries.length > 0 && (
-            <div className="mt-1.5 space-y-1 border-t pt-1.5">
-              {childEntries.map((child) => {
-                const childScore =
-                  typeof hoverInfo.properties[child.id] === "number" &&
-                  (hoverInfo.properties[child.id] as number) >= 0
-                    ? (hoverInfo.properties[child.id] as number)
-                    : null
-                return (
-                  <div key={child.id} className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground truncate text-xs">{child.label}</span>
-                    {childScore != null ? (
+              {!label && (
+                <p className="text-muted-foreground mt-0.5">
+                  {hoverScore != null ? (
+                    <>
+                      Score:{" "}
                       <span
-                        className="shrink-0 text-xs font-semibold tabular-nums"
+                        className="font-semibold"
                         style={{
-                          color: getScoreColor(childScore),
+                          color: getScoreColor(hoverScore),
                         }}
                       >
-                        {childScore}
+                        {hoverScore}
                       </span>
-                    ) : (
-                      <span className="text-muted-foreground shrink-0 text-xs italic">–</span>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                      {" – "}
+                      {getScoreVerdict(hoverScore)}
+                    </>
+                  ) : (
+                    "Geen data"
+                  )}
+                </p>
+              )}
+              {/* Child sub-scores (one level below the selected layer) */}
+              {childEntries && childEntries.length > 0 && (
+                <div className="mt-1.5 space-y-1 border-t pt-1.5">
+                  {childEntries.map((child) => {
+                    const childScore =
+                      typeof hoverInfo.properties[child.id] === "number" &&
+                      (hoverInfo.properties[child.id] as number) >= 0
+                        ? (hoverInfo.properties[child.id] as number)
+                        : null
+                    return (
+                      <div key={child.id} className="flex items-center justify-between gap-2">
+                        <span className="text-muted-foreground truncate text-xs">
+                          {child.label}
+                        </span>
+                        {childScore != null ? (
+                          <span
+                            className="shrink-0 text-xs font-semibold tabular-nums"
+                            style={{
+                              color: getScoreColor(childScore),
+                            }}
+                          >
+                            {childScore}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground shrink-0 text-xs italic">–</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

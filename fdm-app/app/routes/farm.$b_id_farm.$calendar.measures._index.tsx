@@ -401,21 +401,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       Promise.all(fields.map((f) => getCultivations(fdm, session.principal_id, f.b_id))),
     ])
 
-    // Exclude buffer strips, nature plots, and non-agricultural fields from measures calculations and UI
-    const eligibleFieldsWithCultivations = fields
-      .map((f, i) => ({
-        field: f,
-        cultivations: fieldCultivations[i],
-        mainCultivation: getMainCultivation(fieldCultivations[i], calendar) ?? null,
-      }))
-      .filter(
-        ({ field, mainCultivation }) =>
-          !isExcludedFromBln3({
-            b_bufferstrip: field.b_bufferstrip,
-            b_lu_croprotation: mainCultivation?.b_lu_croprotation,
-            b_lu_catalogue: mainCultivation?.b_lu_catalogue,
-          }),
-      )
+    const fieldsWithCultivations = fields.map((f, i) => ({
+      field: f,
+      cultivations: fieldCultivations[i],
+      mainCultivation: getMainCultivation(fieldCultivations[i], calendar) ?? null,
+    }))
+
+    // Exclude buffer strips, nature plots, and non-agricultural fields from measures recommendations
+    const eligibleFieldsWithCultivations = fieldsWithCultivations.filter(
+      ({ field, mainCultivation }) =>
+        !isExcludedFromBln3({
+          b_bufferstrip: field.b_bufferstrip,
+          b_lu_croprotation: mainCultivation?.b_lu_croprotation,
+          b_lu_catalogue: mainCultivation?.b_lu_catalogue,
+        }),
+    )
 
     // Lazy, batched farm-wide advice fetch for the "Aanbevolen
     // maatregelen" card — not awaited so it never blocks the rest of the page.
@@ -451,15 +451,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         : null,
     }))
 
-    // Build GeoJSON with measureCount per field for eligible fields
+    // Build GeoJSON with measureCount per field for all fields
     const fieldsGeoJSON: FeatureCollection = {
       type: "FeatureCollection",
-      features: eligibleFieldsWithCultivations.map(({ field }) => ({
+      features: fields.map((field) => ({
         type: "Feature" as const,
         properties: {
           b_id: field.b_id,
           b_name: field.b_name ?? null,
           b_area: field.b_area ?? null,
+          b_bufferstrip: field.b_bufferstrip ?? false,
           measureCount: measuresMap.get(field.b_id)?.length ?? 0,
         },
         geometry: (field.b_geometry
@@ -478,17 +479,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     // Build unique-measure rows grouped by m_id, including b_id_measure/dates
-    const eligibleFieldIds = new Set(eligibleFieldsWithCultivations.map(({ field }) => field.b_id))
     const measuresByMId = new Map<string, MeasureTableRow>()
     for (const [b_id, measures] of measuresMap.entries()) {
-      if (!eligibleFieldIds.has(b_id)) continue
-      const fieldEntry_item = eligibleFieldsWithCultivations.find(
-        ({ field }) => field.b_id === b_id,
-      )
+      const fieldEntry_item = fields.find((f) => f.b_id === b_id)
       for (const m of measures) {
         const fieldEntry = {
           b_id,
-          b_name: fieldEntry_item?.field.b_name ?? null,
+          b_name: fieldEntry_item?.b_name ?? null,
           b_id_measure: m.b_id_measure,
           m_start: m.m_start,
           m_end: m.m_end,
@@ -510,15 +507,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     )
 
     // Compute summary stats from measuresMap for eligible fields
-    const totalMeasures = [...measuresMap.entries()]
-      .filter(([b_id]) => eligibleFieldIds.has(b_id))
-      .reduce((sum, [, measures]) => sum + measures.length, 0)
+    const totalMeasures = [...measuresMap.values()].reduce(
+      (sum, measures) => sum + measures.length,
+      0,
+    )
     const fieldsWithMeasures = eligibleFieldsWithCultivations.filter(
       ({ field }) => (measuresMap.get(field.b_id)?.length ?? 0) > 0,
     ).length
     const fieldsWithoutMeasures = eligibleFieldsWithCultivations.length - fieldsWithMeasures
 
-    // Per-field summary for the table — derived from existing data for eligible fields
+    // Per-field summary for the table — only eligible fields (excluded fields like buffer strips and nature areas are not listed)
     const fieldSummaries = eligibleFieldsWithCultivations.map(({ field, mainCultivation }) => {
       const fieldMeasures = measuresMap.get(field.b_id) ?? []
       return {
