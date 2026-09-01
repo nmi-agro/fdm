@@ -293,10 +293,20 @@ export async function runCalculationJob(
 
   try {
     const result = await meta.run()
-    await releaseCalculationLock(ctx.fdm, calculationHash, { success: true, result })
-    return { job, outcome: "computed" }
+    const unlocked = await releaseCalculationLock(
+      ctx.fdm,
+      calculationHash,
+      { success: true, result },
+      acquired.is_processing_since,
+    )
+    return unlocked ? { job, outcome: "computed" } : { job, outcome: "attached" }
   } catch (e: unknown) {
-    await releaseCalculationLock(ctx.fdm, calculationHash, { success: false })
+    await releaseCalculationLock(
+      ctx.fdm,
+      calculationHash,
+      { success: false },
+      acquired.is_processing_since,
+    )
     const errorMessage = e instanceof Error ? e.message : String(e)
     return { job, outcome: "error", error: errorMessage }
   }
