@@ -1,3 +1,4 @@
+/* v8 ignore start */
 import { FdmType, getLatestCachedResultForEntity } from "@nmi-agro/fdm-core"
 
 export const createId = () => (Math.random() * 0xefffffff + 0x10000000).toString(16)
@@ -22,3 +23,4 @@ export async function pollLatestCachedResultForEntity(
   }
   throw new Error("Timed out.")
 }
+/* v8 ignore stop */
