@@ -538,7 +538,7 @@ export default function FarmAtlasElevationBlock() {
         onZoom={(e) => setCurrentZoom(e.viewState.zoom)}
         onLoad={(e) => {
           setCurrentZoom(e.target.getZoom())
-          throttledUpdate()
+          void throttledUpdate()
         }}
       >
         <Controls
