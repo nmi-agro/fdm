@@ -44,7 +44,7 @@
     "drizzle-orm": "catalog:",
     "hono": "^4.13.5",
     "nanoid": "catalog:",
-    "zod": "^4.5.4"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
