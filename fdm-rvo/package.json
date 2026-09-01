@@ -70,9 +70,9 @@
     "@turf/intersect": "^7.4.0",
     "@turf/union": "^7.4.0",
     "@types/geojson": "^7946.0.16",
-    "proj4": "^2.21.0",
+    "proj4": "^2.22.0",
     "shpjs": "^6.2.0",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@nmi-agro/fdm-core": "workspace:*",
@@ -86,5 +86,5 @@
   "engines": {
     "node": ">=24.0.0"
   },
-  "packageManager": "pnpm@11.17.0"
+  "packageManager": "pnpm@11.25.0"
 }

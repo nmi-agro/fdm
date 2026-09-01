@@ -212,7 +212,7 @@ function AtlasLayerSwitchInner({ currentLayer }: { currentLayer: MapLayer }) {
               onClick={() => {
                 const selectedOpt = layerOptions.find((opt) => opt.value === item.value)
                 if (selectedOpt) {
-                  navigate(selectedOpt.url)
+                  void navigate(selectedOpt.url)
                 }
               }}
             >

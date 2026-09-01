@@ -174,7 +174,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
       }
     }
 
-    performSearch()
+    void performSearch()
 
     // Cleanup: abort request on unmount or query change
     return () => {
