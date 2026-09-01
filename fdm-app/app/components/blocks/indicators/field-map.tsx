@@ -9,32 +9,31 @@
  */
 
 import type { FeatureCollection } from "geojson"
-import type { StyleSpecification } from "maplibre-gl"
 import * as maplibregl from "maplibre-gl"
-import { useCallback, useMemo, useState } from "react"
-import {
-  Layer,
-  Map as MapGL,
-  type MapMouseEvent,
-  type ViewState,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
+import { useCallback, useMemo } from "react"
+import { Layer } from "react-map-gl/maplibre"
 import { useNavigate } from "react-router"
+import { MapStyleVariant } from "@/app/integrations/map"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
+import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { ScoreLegend } from "~/components/blocks/atlas/atlas-legend"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
   getFieldsScoreOutlineStyle,
   getFieldsScoreStyle,
 } from "~/components/blocks/atlas/atlas-styles"
+import { AtlasTooltip } from "~/components/blocks/atlas/atlas-tooltip"
 import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { getScoreColor, getScoreVerdict } from "~/lib/indicators"
+import { Button } from "~/components/ui/button"
+import { ScoreTooltipBody } from "./score-tooltip-body"
 
 type FieldMapProps = {
   /** GeoJSON with all farm fields. Each feature needs b_id, b_name and score properties. */
   fieldsGeoJSON: FeatureCollection
   /** GeoJSON with only the currently-selected field, for the yellow highlight. */
   selectedFieldGeoJSON: FeatureCollection
-  mapStyle: string | StyleSpecification
+  mapStyle?: MapStyleVariant
   /** Base path to navigate to — the b_id will be appended: `${basePath}/${b_id}` */
   basePath: string
   /**
@@ -66,24 +65,10 @@ export default function FieldMap({
 }: FieldMapProps) {
   const navigate = useNavigate()
   const initialViewState = getViewState(fieldsGeoJSON)
-  const [viewState, setViewState] = useState<ViewState>(initialViewState as ViewState)
-  const [hoveredFieldId, setHoveredFieldId] = useState<string | null>(null)
 
-  const onViewportChange = useCallback(
-    (event: ViewStateChangeEvent) => setViewState(event.viewState),
-    [],
-  )
-
-  const onMouseMove = useCallback((e: MapMouseEvent) => {
-    const feature = e.features?.[0]
-    setHoveredFieldId(feature ? ((feature.properties?.b_id as string) ?? null) : null)
-  }, [])
-
-  const onMouseLeave = useCallback(() => setHoveredFieldId(null), [])
-
-  const onClick = useCallback(
-    (e: MapMouseEvent) => {
-      const b_id = e.features?.[0]?.properties?.b_id as string | undefined
+  const onFeatureClicked = useCallback(
+    (feature: maplibregl.MapGeoJSONFeature) => {
+      const b_id = feature.properties?.b_id as string | undefined
       if (b_id) void navigate(`${basePath}/${b_id}`)
     },
     [navigate, basePath],
@@ -95,36 +80,21 @@ export default function FieldMap({
     [scoreKey],
   )
 
-  // Hover data for tooltip
-  const hoveredFeature = useMemo(() => {
-    if (!hoveredFieldId) return null
-    return fieldsGeoJSON.features.find((f) => f.properties?.b_id === hoveredFieldId) ?? null
-  }, [fieldsGeoJSON, hoveredFieldId])
-
-  const hoveredScore =
-    typeof hoveredFeature?.properties?.[scoreKey] === "number" &&
-    hoveredFeature.properties[scoreKey] >= 0
-      ? (hoveredFeature.properties[scoreKey] as number)
-      : null
-
   return (
     <div className="relative" style={{ height }}>
-      <MapGL
-        {...viewState}
-        style={{
-          height: "100%",
-          width: "100%",
-          borderRadius: "0.5rem",
-        }}
-        mapStyle={mapStyle as any}
-        mapLib={maplibregl}
+      <Atlas
+        interactive={true}
         interactiveLayerIds={[FIELDS_LAYER]}
-        onMove={onViewportChange}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-        onClick={onClick}
-        cursor={hoveredFieldId ? "pointer" : "default"}
+        initialViewState={initialViewState}
+        useStoredViewState={false}
+        style={{ height: "100%" }}
+        mapStyle={mapStyle}
       >
+        <Controls
+          initialViewState={initialViewState}
+          showGeocoder={false}
+          showStyleSelect={false}
+        />
         <MapTilerAttribution />
 
         {/* All farm fields coloured by score */}
@@ -151,25 +121,39 @@ export default function FieldMap({
             paint={{ "line-color": "#ffcf0d", "line-width": 3 }}
           />
         </FieldsSourceNotClickable>
-      </MapGL>
 
-      {/* Hover tooltip */}
-      {hoveredFeature && (
-        <div className="bg-background/95 pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg border px-2.5 py-1.5 text-xs shadow-md backdrop-blur-sm">
-          <p className="font-semibold">{hoveredFeature.properties?.b_name ?? "Onbekend perceel"}</p>
-          {scoreLabel && <p className="text-muted-foreground text-xs">{scoreLabel}</p>}
-          {hoveredScore !== null && (
-            <span
-              className="mt-0.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold text-white"
-              style={{
-                backgroundColor: getScoreColor(hoveredScore),
-              }}
-            >
-              {hoveredScore} – {getScoreVerdict(hoveredScore)}
-            </span>
-          )}
-        </div>
-      )}
+        {/* Hover tooltip */}
+        <AtlasTooltip
+          layers={[FIELDS_LAYER]}
+          onFeatureClicked={onFeatureClicked}
+          render={({ features, mode }) => {
+            if (features.length === 0) return null
+            const feature = features[0]
+
+            const hoveredScore =
+              typeof feature.properties?.[scoreKey] === "number" &&
+              feature.properties[scoreKey] >= 0
+                ? (feature.properties[scoreKey] as number)
+                : null
+
+            return (
+              <>
+                <p className="font-semibold">{feature.properties?.b_name ?? "Onbekend perceel"}</p>
+                <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="row" />
+                {mode === "popup" && (
+                  <Button type="button" onClick={() => onFeatureClicked(feature)}>
+                    Meer details
+                  </Button>
+                )}
+              </>
+            )
+          }}
+        />
+      </Atlas>
+
+      <div className="absolute bottom-2 left-2 z-10">
+        <ScoreLegend label={scoreLabel} showSelectedFieldSwatch />
+      </div>
     </div>
   )
 }

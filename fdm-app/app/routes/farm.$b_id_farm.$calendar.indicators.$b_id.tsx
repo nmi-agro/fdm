@@ -50,7 +50,6 @@ import {
   getMeasureAdviceForField,
   getMeasureApplicabilityForField,
 } from "~/integrations/bln3.server"
-import { getMapStyle } from "~/integrations/map"
 import { AGG_IDS, type AggregationId, getFieldAggregationScore } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
@@ -431,7 +430,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldMeasures,
       fieldsGeoJSON,
       selectedFieldGeoJSON,
-      mapStyle: getMapStyle("satellite"),
       currentCultivationName: currentCultivation?.b_lu_name ?? null,
       currentCultivationCropRotation: currentCultivation?.b_lu_croprotation ?? null,
       cultivationSummaries,
@@ -495,7 +493,6 @@ export default function IndicatorsFieldDetail() {
     fieldMeasures,
     fieldsGeoJSON,
     selectedFieldGeoJSON,
-    mapStyle,
     currentCultivationName,
     currentCultivationCropRotation,
     cultivationSummaries,
@@ -760,7 +757,7 @@ export default function IndicatorsFieldDetail() {
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
                 <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
-                  <SelectTrigger className="bg-background/90 h-7 w-48 text-xs shadow-sm backdrop-blur-sm">
+                  <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>
                   <SelectContent align="end">
@@ -782,7 +779,6 @@ export default function IndicatorsFieldDetail() {
                 <FieldMap
                   fieldsGeoJSON={fieldsGeoJSON as FeatureCollection}
                   selectedFieldGeoJSON={selectedFieldGeoJSON as FeatureCollection}
-                  mapStyle={mapStyle}
                   basePath={basePath}
                   scoreKey={mapScoreKey}
                   scoreLabel={findScoreLabel(mapScoreKey)}
@@ -790,8 +786,8 @@ export default function IndicatorsFieldDetail() {
                 />
               </Suspense>
             </div>
-            <p className="text-muted-foreground mt-2 px-1 text-[11px]">
-              Percelen gekleurd op gekozen score. Klik om te wisselen van perceel.
+            <p className="text-muted-foreground mt-2 px-1 text-xs">
+              Klik op een perceel om te wisselen.
             </p>
           </aside>
         </div>

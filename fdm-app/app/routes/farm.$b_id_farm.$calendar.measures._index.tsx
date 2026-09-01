@@ -1018,7 +1018,7 @@ export default function MeasuresFarmIndex() {
                 fieldsGeoJSON={fieldsGeoJSON}
                 selectedFieldGeoJSON={emptyGeoJSON}
                 mapStyle={mapStyle}
-                className="h-64 md:h-[480px]"
+                className="h-64 md:h-120"
                 onFieldClick={handleFieldClick}
               />
             </Suspense>
