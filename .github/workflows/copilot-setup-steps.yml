@@ -68,7 +68,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/setup@v2
         with:
-          version: 11.17.0
+          version: 11.25.0
           install: false
 
       - name: Setup Node.js
