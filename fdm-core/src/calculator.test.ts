@@ -299,10 +299,16 @@ describe("withCalculationCache", () => {
     const calculate = vi.fn(async (inputs: { b_id: string }) => `result for ${inputs.b_id}`)
     const calculatorVersion = "1.0.0"
     const input = { b_id: "field-1" }
-    const getCalculation = withCalculationCache(calculate, "calculateForField", calculatorVersion, [], {
-      entityType: "field",
-      getEntityId: (i) => i.b_id,
-    })
+    const getCalculation = withCalculationCache(
+      calculate,
+      "calculateForField",
+      calculatorVersion,
+      [],
+      {
+        entityType: "field",
+        getEntityId: (i) => i.b_id,
+      },
+    )
 
     await expect(getCalculation(fdm, input)).resolves.toBe("result for field-1")
 
@@ -465,8 +471,33 @@ describe("calculation cache locking", () => {
       "field-1",
     )
 
-    const latest = await getLatestCachedResultForEntity(fdm, "calculateForField", "field", "field-1")
+    const latest = await getLatestCachedResultForEntity(
+      fdm,
+      "calculateForField",
+      "field",
+      "field-1",
+    )
     expect(latest).toBe("new result")
+  })
+
+  it("should fail on invalid calculation function name", async () => {
+    const calculationFunction = vi.fn(() => 42)
+
+    await expect(
+      withCalculationCache(calculationFunction, "", "fdm-calculator:0.7.0")(fdm, {}),
+    ).rejects.toThrow(
+      "Calculation function name not provided for caching. Please provide a valid function name.",
+    )
+  })
+
+  it("should fail on invalid calculator version", async () => {
+    const calculationFunction = vi.fn(() => 42)
+
+    await expect(
+      withCalculationCache(calculationFunction, "calculateDeepThought", "")(fdm, {}),
+    ).rejects.toThrow(
+      "Calculator version not provided for caching. Please provide a valid version string.",
+    )
   })
 })
 
@@ -524,9 +555,7 @@ describe("getCalculationCacheStatus", () => {
       entityId: "field-1",
     })
 
-    expect(status).toEqual(
-      expect.objectContaining({ state: "fresh", result: "fresh result" }),
-    )
+    expect(status).toEqual(expect.objectContaining({ state: "fresh", result: "fresh result" }))
   })
 
   it("falls back to the entity's last known result when the input changed since the last computation", async () => {
@@ -581,6 +610,30 @@ describe("getCalculationCacheStatus", () => {
     })
 
     expect(status.state).toBe("processing")
+  })
+
+  it("returns the stale result as null if the cached result for this hash is null, and the entityType or ID aren't specified for stale result retrieval either", async () => {
+    const input = { b_id: "field-1" }
+    const hash = generateCalculationHash("calculateForField", "1.0.0", input)
+    await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input,
+      entityType: "field",
+      entityId: "field-1",
+    })
+
+    const status = await getCalculationCacheStatus({
+      fdm,
+      calculationFunctionName: "calculateForField",
+      calculatorVersion: "1.0.0",
+      input,
+    })
+
+    expect(status.state).toBe("processing")
+    expect((status as typeof status & { state: "processing" }).staleResult).toBeNull()
   })
 
   it("treats an expired lock as stale/missing again, not processing", async () => {
