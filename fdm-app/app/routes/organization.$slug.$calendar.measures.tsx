@@ -24,6 +24,7 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { isExcludedFromBln3 } from "~/lib/indicators"
 import type { Route } from "./+types/organization.$slug.$calendar.measures"
 
 const MeasuresMap = lazy(() => import("@/app/components/blocks/measures/measures-atlas"))
@@ -146,14 +147,30 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         mainCultivations: MainCultivation[]
       }
     >()
+    const farmEligibleFields = new Map<string, Awaited<ReturnType<typeof getFields>>>()
     await Promise.all(
       farms.map(async (farm) => {
         const [fieldMeasuresMap, farmCultivations] = await Promise.all([
           getMeasuresForFarm(fdm, organization.id, farm.b_id_farm, timeframe),
           getCultivationsForFarm(fdm, organization.id, farm.b_id_farm, timeframe),
         ])
+
+        const rawFields = farmFields.get(farm.b_id_farm) ?? []
+        const eligibleFields = rawFields.filter((field) => {
+          const fieldCultivations = farmCultivations.get(field.b_id) ?? []
+          const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
+          return !isExcludedFromBln3({
+            b_bufferstrip: field.b_bufferstrip,
+            b_lu_croprotation: defaultCultivation?.b_lu_croprotation,
+            b_lu_catalogue: defaultCultivation?.b_lu_catalogue,
+          })
+        })
+        farmEligibleFields.set(farm.b_id_farm, eligibleFields)
+        const eligibleFieldIds = new Set(eligibleFields.map((f) => f.b_id))
+
         const collectedMeasures = new Map<string, MeasureAggregate>()
-        for (const fieldMeasures of fieldMeasuresMap.values()) {
+        for (const [b_id, fieldMeasures] of fieldMeasuresMap.entries()) {
+          if (!eligibleFieldIds.has(b_id)) continue
           for (const measure of fieldMeasures) {
             const existingMeasure = collectedMeasures.get(measure.m_id)
             collectedMeasures.set(measure.m_id, combineMeasureAggregate(existingMeasure, measure))
@@ -169,7 +186,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             b_area: number
           }
         >()
-        for (const field of farmFields.get(farm.b_id_farm) ?? []) {
+        for (const field of eligibleFields) {
           const fieldCultivations = farmCultivations.get(field.b_id)
           if (!fieldCultivations || fieldCultivations.length === 0) continue
           const defaultCultivation = getMainCultivation(fieldCultivations, calendar)
@@ -200,26 +217,30 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }),
     )
 
+    const eligibleFarms = farms.filter(
+      (farm) => (farmEligibleFields.get(farm.b_id_farm) ?? []).length > 0,
+    )
+
     // Build GeoJSON with measureCount per field
     const fieldsGeoJSON: FeatureCollection = {
       type: "FeatureCollection",
-      features: farms.map((farm) => ({
+      features: eligibleFarms.map((farm) => ({
         type: "Feature" as const,
         properties: {
           b_id: farm.b_id_farm,
           b_name: farm.b_name_farm ?? null,
-          b_area: farmFields
+          b_area: farmEligibleFields
             .get(farm.b_id_farm)
             ?.reduce((total, field) => total + (field.b_area ?? 0), 0),
           measureCount: farmMeasures.get(farm.b_id_farm)?.measures.length ?? 0,
         },
-        geometry: buildFarmMultiPolygon(farmFields.get(farm.b_id_farm) ?? []),
+        geometry: buildFarmMultiPolygon(farmEligibleFields.get(farm.b_id_farm) ?? []),
       })),
     }
 
     // Build unique-measure rows grouped by m_id, including dates
     const measuresByMId = new Map<string, MeasureTableRow>()
-    for (const farm of farms) {
+    for (const farm of eligibleFarms) {
       const measures = farmMeasures.get(farm.b_id_farm)?.measures
       if (!measures) continue
       for (const m of measures) {
@@ -250,17 +271,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     )
 
     // Compute summary stats from measuresMap (no extra API calls needed)
-    const totalMeasures = [...farmMeasures.values()].reduce(
+    const eligibleFarmMeasures = eligibleFarms.map(
+      (farm) => farmMeasures.get(farm.b_id_farm) ?? { measures: [], mainCultivations: [] },
+    )
+    const totalMeasures = eligibleFarmMeasures.reduce(
       (sum, entry) => sum + entry.measures.length,
       0,
     )
-    const fieldsWithMeasures = [...farmMeasures.values()].filter(
-      (x) => x.measures.length > 0,
-    ).length
-    const fieldsWithoutMeasures = farms.length - fieldsWithMeasures
+    const fieldsWithMeasures = eligibleFarmMeasures.filter((x) => x.measures.length > 0).length
+    const fieldsWithoutMeasures = eligibleFarms.length - fieldsWithMeasures
 
     // Per-field summary for the table — derived from existing data
-    const fieldSummaries = farms.map((farm) => {
+    const fieldSummaries = eligibleFarms.map((farm) => {
       const { measures, mainCultivations } = farmMeasures.get(farm.b_id_farm) ?? {
         measures: [],
         mainCultivations: [],
@@ -268,7 +290,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       return {
         b_id: farm.b_id_farm,
         b_name: farm.b_name_farm ?? null,
-        b_area: (farmFields.get(farm.b_id_farm) ?? []).reduce(
+        b_area: (farmEligibleFields.get(farm.b_id_farm) ?? []).reduce(
           (total, field) => total + (field.b_area ?? 0),
           0,
         ),
@@ -289,7 +311,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       mapStyle: getMapStyle("satellite"),
       fieldSummaries,
       stats: {
-        totalFields: farms.length,
+        totalFields: eligibleFarms.length,
         totalMeasures,
         fieldsWithMeasures,
         fieldsWithoutMeasures,

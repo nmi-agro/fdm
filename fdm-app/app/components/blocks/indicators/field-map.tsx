@@ -138,8 +138,36 @@ export default function FieldMap({
 
             return (
               <>
-                <p className="font-semibold">{feature.properties?.b_name ?? "Onbekend perceel"}</p>
-                <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="row" />
+                <div className="flex items-start justify-between gap-1.5">
+                  <p className="font-semibold">
+                    {feature.properties?.b_name ?? "Onbekend perceel"}
+                  </p>
+                  {Boolean(
+                    feature.properties?.b_bufferstrip || feature.properties?.isBufferstrip,
+                  ) && (
+                    <span className="shrink-0 rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+                      Bufferstrook
+                    </span>
+                  )}
+                  {!feature.properties?.b_bufferstrip &&
+                    !feature.properties?.isBufferstrip &&
+                    Boolean(feature.properties?.isNature) && (
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        Natuurperceel
+                      </span>
+                    )}
+                </div>
+                {feature.properties?.b_bufferstrip ||
+                feature.properties?.isBufferstrip ||
+                feature.properties?.isNature ? (
+                  <p className="text-muted-foreground mt-0.5 italic">
+                    {feature.properties?.b_bufferstrip || feature.properties?.isBufferstrip
+                      ? "Geen indicatoren beschikbaar (bufferstrook)"
+                      : "Geen indicatoren beschikbaar (natuurperceel)"}
+                  </p>
+                ) : (
+                  <ScoreTooltipBody score={hoveredScore} label={scoreLabel} layout="row" />
+                )}
                 {mode === "popup" && (
                   <Button type="button" onClick={() => onFeatureClicked(feature)}>
                     Meer details

@@ -27,9 +27,7 @@ import { HeatmapTable } from "~/components/blocks/indicators/table"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
-import { Label } from "~/components/ui/label"
 import { Separator } from "~/components/ui/separator"
-import { Switch } from "~/components/ui/switch"
 import { useAnalytics } from "~/hooks/use-analytics"
 import {
   type FarmMeasureRecommendationsResult,
@@ -128,18 +126,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
 
-    const fieldScores = await getIndicatorsForFarm({
+    const allFieldScores = await getIndicatorsForFarm({
       principal_id: session.principal_id,
       b_id_farm,
       timeframe,
       preloadedFields: fields,
     })
 
-    for (const result of fieldScores) {
+    for (const result of allFieldScores) {
       if (result.error) {
         reportError(new Error(`BLN3 score failed for field ${result.b_id}: ${result.error}`))
       }
     }
+
+    // Exclude buffer strips and nature plots from indicator calculations and views
+    const fieldScores = allFieldScores.filter((s) => !s.isExcluded)
+    const eligibleFieldIds = new Set(fieldScores.map((s) => s.b_id))
+    const eligibleFields = fields.filter((f) => eligibleFieldIds.has(f.b_id))
 
     // Lazy, batched farm-wide advice fetch — not awaited so it never blocks
     // the rest of the page; resolved client-side via <Await>/<Suspense>.
@@ -150,7 +153,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const farmMeasureRecommendationsPromise = getFarmMeasureRecommendations({
       principal_id: session.principal_id,
       b_id_farm,
-      b_ids: fields.map((f) => f.b_id),
+      b_ids: eligibleFields.map((f) => f.b_id),
       b_year,
       timeframe,
       fieldScores,
@@ -160,7 +163,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     })
 
     return {
-      fields: fields.map((f) => ({
+      fields: eligibleFields.map((f) => ({
         b_id: f.b_id,
         b_name: f.b_name,
         b_bufferstrip: f.b_bufferstrip ?? false,
@@ -189,7 +192,6 @@ export default function IndicatorsFarmIndex() {
 
   const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
   const [withMeasures, setWithMeasures] = useState(true)
-  const [hideBufferstrips, setHideBufferstrips] = useState(true)
   const [fieldSearch, setFieldSearch] = useState("")
   const [isPending, startTransition] = useTransition()
 
@@ -222,19 +224,12 @@ export default function IndicatorsFarmIndex() {
     startTransition(() => setWithMeasures(checked))
   }
 
-  const handleToggleBufferstrips = (checked: boolean) => {
-    startTransition(() => setHideBufferstrips(!checked))
-  }
-
-  // Filter fields based on bufferstrip toggle and search text
+  // Filter fields based on search text
   const filteredFields = useMemo(() => {
-    let result = hideBufferstrips ? fields.filter((f) => !f.b_bufferstrip) : fields
-    if (fieldSearch) {
-      const q = fieldSearch.toLowerCase()
-      result = result.filter((f) => (f.b_name ?? f.b_id).toLowerCase().includes(q))
-    }
-    return result
-  }, [fields, hideBufferstrips, fieldSearch])
+    if (!fieldSearch) return fields
+    const q = fieldSearch.toLowerCase()
+    return fields.filter((f) => (f.b_name ?? f.b_id).toLowerCase().includes(q))
+  }, [fields, fieldSearch])
   const filteredFieldIds = useMemo(
     () => new Set(filteredFields.map((f) => f.b_id)),
     [filteredFields],
@@ -350,19 +345,6 @@ export default function IndicatorsFarmIndex() {
                     onChange={(e) => setFieldSearch(e.target.value)}
                     className="h-8 w-44 text-sm"
                   />
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="bufferstrip-toggle"
-                      checked={!hideBufferstrips}
-                      onCheckedChange={handleToggleBufferstrips}
-                    />
-                    <Label
-                      htmlFor="bufferstrip-toggle"
-                      className="cursor-pointer text-sm select-none"
-                    >
-                      {hideBufferstrips ? "Zonder bufferstroken" : "Met bufferstroken"}
-                    </Label>
-                  </div>
                   <MeasuresToggle withMeasures={withMeasures} onToggle={handleToggleMeasures} />
                 </div>
               </div>

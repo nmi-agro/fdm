@@ -526,6 +526,52 @@ describe("collectInputForBln3Score", () => {
     expect(result).not.toHaveProperty("a_sc_bcs")
     expect(result).not.toHaveProperty("a_ew_bcs")
   })
+
+  it("should mark isExcluded and b_bufferstrip when field is a buffer strip", async () => {
+    mockedGetField.mockResolvedValue({ ...mockField, b_bufferstrip: true })
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result.b_bufferstrip).toBe(true)
+    expect(result.isExcluded).toBe(true)
+  })
+
+  it("should mark isExcluded when main cultivation crop rotation is nature", async () => {
+    const natureCultivation: Cultivation = {
+      ...mockCultivation,
+      b_lu_catalogue: "nl_331",
+      b_lu_croprotation: "nature",
+    }
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([natureCultivation])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result.b_lu_croprotation).toBe("nature")
+    expect(result.isExcluded).toBe(true)
+  })
+
+  it("should mark isExcluded when main cultivation is sloot (nl_343) or schouwpad (nl_6801)", async () => {
+    const ditchCultivation: Cultivation = {
+      ...mockCultivation,
+      b_lu_catalogue: "nl_343",
+      b_lu_croprotation: "other",
+    }
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([ditchCultivation])
+    mockedGetMeasures.mockResolvedValue([])
+
+    const result = await collectInputForBln3Score(mockFdm, principal_id, b_id, timeframe)
+
+    expect(result.b_lu_catalogue).toBe("nl_343")
+    expect(result.isExcluded).toBe(true)
+  })
 })
 
 import { findHoofdteelt } from "../shared/hoofdteelt"
@@ -598,6 +644,52 @@ describe("collectInputForBln3MeasureApplicability", () => {
     await expect(
       collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2026),
     ).rejects.toThrow(`Failed to collect BLN3 measure applicability inputs for field ${b_id}`)
+  })
+
+  it("should mark isExcluded when field is a buffer strip", async () => {
+    mockedGetField.mockResolvedValue({ ...mockField, b_bufferstrip: true })
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([mockCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2024)
+
+    expect(result.b_bufferstrip).toBe(true)
+    expect(result.isExcluded).toBe(true)
+  })
+
+  it("should mark isExcluded when main cultivation in b_year is nature", async () => {
+    const natureCultivation: Cultivation = {
+      ...mockCultivation,
+      b_lu_catalogue: "nl_331",
+      b_lu_croprotation: "nature",
+    }
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([natureCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2024)
+
+    expect(result.b_lu_croprotation).toBe("nature")
+    expect(result.isExcluded).toBe(true)
+  })
+
+  it("should mark isExcluded when main cultivation in b_year is schouwpad (nl_6801)", async () => {
+    const padCultivation: Cultivation = {
+      ...mockCultivation,
+      b_lu_catalogue: "nl_6801",
+      b_lu_croprotation: "other",
+    }
+    mockedGetField.mockResolvedValue(mockField)
+    mockedGetSoilAnalyses.mockResolvedValue([])
+    mockedGetCultivations.mockResolvedValue([padCultivation])
+    mockedGetFertilizerApplications.mockResolvedValue([])
+
+    const result = await collectInputForBln3MeasureApplicability(mockFdm, principal_id, b_id, 2024)
+
+    expect(result.b_lu_catalogue).toBe("nl_6801")
+    expect(result.isExcluded).toBe(true)
   })
 })
 

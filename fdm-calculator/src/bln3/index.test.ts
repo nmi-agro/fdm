@@ -48,6 +48,50 @@ describe("requestBln3Score", () => {
     vi.restoreAllMocks()
   })
 
+  it("should return null immediately without calling fetch if isExcluded is true", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      isExcluded: true,
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_bufferstrip is true", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_bufferstrip: true,
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_lu_croprotation is nature", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_croprotation: "nature",
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_lu_catalogue is nl_343 or nl_6801", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_catalogue: "nl_343",
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it("should throw if nmiApiKey is not provided", async () => {
     const inputs: Bln3ScoreInputs = { ...baseInputs, nmiApiKey: undefined }
     await expect(requestBln3Score(inputs)).rejects.toThrow("NMI API key not provided")

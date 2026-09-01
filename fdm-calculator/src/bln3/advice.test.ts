@@ -52,6 +52,50 @@ describe("requestBln3MeasureAdvice", () => {
     vi.restoreAllMocks()
   })
 
+  it("should return null immediately without calling fetch if isExcluded is true", async () => {
+    const inputs: Bln3MeasureAdviceInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      isExcluded: true,
+    }
+    const result = await requestBln3MeasureAdvice(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_bufferstrip is true", async () => {
+    const inputs: Bln3MeasureAdviceInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_bufferstrip: true,
+    }
+    const result = await requestBln3MeasureAdvice(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_lu_croprotation is nature", async () => {
+    const inputs: Bln3MeasureAdviceInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_croprotation: "nature",
+    }
+    const result = await requestBln3MeasureAdvice(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_lu_catalogue is nl_343", async () => {
+    const inputs: Bln3MeasureAdviceInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_catalogue: "nl_343",
+    }
+    const result = await requestBln3MeasureAdvice(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it("should throw if nmiApiKey is not provided", async () => {
     const inputs: Bln3MeasureAdviceInputs = {
       ...baseInputs,
@@ -141,7 +185,7 @@ describe("requestBln3MeasureAdvice", () => {
 
     const result = await requestBln3MeasureAdvice(baseInputs)
 
-    expect(result.indicator_advice[0].measures[0].m_id).toBe("bln_BM226")
+    expect(result?.indicator_advice[0].measures[0].m_id).toBe("bln_BM226")
   })
 
   it("should throw if the NMI API returns a non-ok response", async () => {

@@ -5,7 +5,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react"
 import { data, type MetaFunction, useLoaderData } from "react-router"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
 import { Badge } from "~/components/ui/badge"
-import { type Bln3Score, getIndicatorsForFarm } from "~/integrations/bln3.server"
+import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import {
   AGG_IDS,
@@ -29,7 +29,7 @@ export const meta: MetaFunction = () => {
   return [{ title: `Indicatoren | Atlas | Organisatie | ${clientConfig.name}` }]
 }
 
-type FlattenedScores = Record<string, number | null>
+type FlattenedScores = Record<string, number | boolean | null>
 type FieldFlattenedScores =
   | {
       b_id: string
@@ -90,36 +90,49 @@ export async function loader({ request, params }: Route.LoaderArgs) {
             }
           }
 
-          const fieldFlattenedScores = fieldScores
-            .filter((fieldScore) => fieldScore.score !== null)
-            .map((fieldScore) => {
-              const aggProps: Record<string, number> = {}
-              for (const aggId of AGG_IDS) {
-                const scoreVal = getFieldAggregationScore(fieldScore.score as Bln3Score, aggId)
-                aggProps[aggId] = scoreVal !== null ? Math.round(scoreVal * 100) : -1
-              }
-
-              const indicatorProps: Record<string, number> = {}
-              for (const indicator of INDICATORS) {
-                const rawScore = fieldScore.score?.indicators.find(
-                  (item) => item.indicator_id === indicator.id,
-                )?.score
-                indicatorProps[indicator.id] =
-                  rawScore != null && !Number.isNaN(rawScore) ? Math.round(rawScore * 100) : -1
-              }
-
-              const avgScore = computeFieldAvgScore(fieldScore)
-
+          const fieldFlattenedScores = fieldScores.map((fieldScore) => {
+            if (fieldScore.error) {
               return {
                 b_id: fieldScore.b_id,
-                flattenedScores: {
-                  avgScore,
-                  ...aggProps,
-                  ...indicatorProps,
-                },
-                error: null,
+                flattenedScores: null,
+                error: fieldScore.error,
               } satisfies FieldFlattenedScores
-            })
+            }
+
+            const aggProps: Record<string, number> = {}
+            for (const aggId of AGG_IDS) {
+              const scoreVal = getFieldAggregationScore(fieldScore.score, aggId)
+              aggProps[aggId] = scoreVal !== null ? Math.round(scoreVal * 100) : -1
+            }
+
+            const indicatorProps: Record<string, number> = {}
+            for (const indicator of INDICATORS) {
+              const rawScore = fieldScore.score?.indicators.find(
+                (item) => item.indicator_id === indicator.id,
+              )?.score
+              indicatorProps[indicator.id] =
+                rawScore != null && !Number.isNaN(rawScore) ? Math.round(rawScore * 100) : -1
+            }
+
+            const avgScore = computeFieldAvgScore(fieldScore)
+            const isBufferstrip = fieldScore.isBufferstrip === true
+            const isNature =
+              fieldScore.isNature === true || (!isBufferstrip && fieldScore.isExcluded === true)
+
+            return {
+              b_id: fieldScore.b_id,
+              flattenedScores: {
+                avgScore,
+                b_bufferstrip: isBufferstrip,
+                isBufferstrip,
+                isNature,
+                isExcluded: isBufferstrip || isNature,
+                ...aggProps,
+                ...indicatorProps,
+              },
+              error: null,
+            } satisfies FieldFlattenedScores
+          })
 
           return {
             b_id_farm: b_id_farm,
@@ -163,6 +176,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
                 b_id: field.b_id,
                 b_name: field.b_name,
                 b_area: field.b_area,
+                b_bufferstrip: field.b_bufferstrip ?? false,
               },
             }
           })
