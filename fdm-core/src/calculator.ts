@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, isNull, lt, or } from "drizzle-orm"
+import { and, desc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm"
 import { createHash } from "node:crypto"
 import stableStringify from "safe-stable-stringify"
 import type { FdmType } from "./fdm.types"
@@ -74,6 +74,10 @@ export function getCachedCalculation<T_Output>(
 /**
  * Stores a calculation result in the cache.
  *
+ * This function is not compatible with `releaseCalculationLock`. `releaseCalculationLock` is able to
+ * still release the lock even if `setCachedCalculation` has been called since, possibly overwriting
+ * the result stored by `setCachedCalculation`.
+ *
  * @template T_Input - The type of the input object for the calculation function.
  * @template T_Output - The type of the calculation result.
  * @param {FdmType} fdm - The FDM instance, providing database access.
@@ -111,7 +115,20 @@ export async function setCachedCalculation<T_Input extends object, T_Output>(
       is_processing: false,
       is_processing_since: null,
     })
-    .onConflictDoNothing()
+    .onConflictDoUpdate({
+      target: calculationCacheTable.calculation_hash,
+      setWhere: isNull(calculationCacheTable.result),
+      set: {
+        calculation_function: calculationFunctionName,
+        calculator_version: calculatorVersion,
+        input: input,
+        result: result,
+        entity_type: entityType ?? null,
+        entity_id: entityId ?? null,
+        is_processing: false,
+        is_processing_since: null,
+      },
+    })
 }
 
 /**
@@ -414,6 +431,15 @@ export async function getLatestCachedResultForEntity<T_Output>(
   return rows.length ? (rows[0].result as T_Output) : null
 }
 
+type LockedCalculationCacheEntry = Pick<
+  CalculationCacheTypeSelect & { is_processing_since: Date },
+  "calculation_hash" | "is_processing" | "is_processing_since"
+>
+const lockedCalculationCacheEntryFields = {
+  calculation_hash: calculationCacheTable.calculation_hash,
+  is_processing: calculationCacheTable.is_processing,
+  is_processing_since: calculationCacheTable.is_processing_since,
+}
 /**
  * Attempts to acquire the `is_processing` lock for a calculation hash, so at most one background
  * worker recomputes a given (function, version, input) at a time. Other callers attempting the
@@ -456,9 +482,7 @@ export async function tryAcquireCalculationLock<T_Input extends object>({
   entityType?: string
   entityId?: string
   lockTimeoutMs?: number
-}): Promise<boolean> {
-  const now = new Date()
-
+}): Promise<LockedCalculationCacheEntry | null> {
   // 1. The hash is genuinely missing: try to insert a fresh placeholder row that claims the lock.
   const inserted = await fdm
     .insert(calculationCacheTable)
@@ -471,23 +495,22 @@ export async function tryAcquireCalculationLock<T_Input extends object>({
       entity_type: entityType ?? null,
       entity_id: entityId ?? null,
       is_processing: true,
-      is_processing_since: now,
+      is_processing_since: sql`now()`,
     })
     .onConflictDoNothing()
-    .returning({ calculation_hash: calculationCacheTable.calculation_hash })
+    .returning(lockedCalculationCacheEntryFields)
 
   if (inserted.length > 0) {
-    return true
+    return inserted[0] as LockedCalculationCacheEntry
   }
 
   // 2. A row already exists for this hash: reclaim the lock only if it's not currently held, or if
   // it's been held for longer than the timeout (a stuck lock).
-  const cutoff = new Date(now.getTime() - lockTimeoutMs)
   const updated = await fdm
     .update(calculationCacheTable)
     .set({
       is_processing: true,
-      is_processing_since: now,
+      is_processing_since: sql`now()`,
     })
     .where(
       and(
@@ -495,13 +518,16 @@ export async function tryAcquireCalculationLock<T_Input extends object>({
         or(
           eq(calculationCacheTable.is_processing, false),
           isNull(calculationCacheTable.is_processing_since),
-          lt(calculationCacheTable.is_processing_since, cutoff),
+          lt(
+            calculationCacheTable.is_processing_since,
+            sql`now() - (${lockTimeoutMs} * interval '1 ms')`,
+          ),
         ),
       ),
     )
-    .returning({ calculation_hash: calculationCacheTable.calculation_hash })
+    .returning(lockedCalculationCacheEntryFields)
 
-  return updated.length > 0
+  return updated.length > 0 ? (updated[0] as LockedCalculationCacheEntry) : null
 }
 
 /**
@@ -509,18 +535,25 @@ export async function tryAcquireCalculationLock<T_Input extends object>({
  * either storing the freshly computed result (on success) or simply clearing the lock so a future
  * attempt can retry (on failure).
  *
+ * If the lock has been acquired by another process since the computation has started, the lock will
+ * not be released and the function will return false. This is based on the was_processing_since
+ * parameter, and the lock will only be released if `is_processing_since` in the database is not after
+ * `was_processing_since`. If `is_processing_since` is null in the database, the lock release will
+ * succeed and the result will be stored.
+ *
  * @template T_Output - The type of the calculation result.
  * @param {FdmType} fdm - The FDM instance, providing database access.
  * @param {string} calculationHash - The unique hash of the calculation whose lock should be released.
  * @param {{ success: true; result: T_Output } | { success: false }} outcome - The outcome of the calculation.
- * @returns {Promise<void>} A promise that resolves when the lock has been released.
+ * @returns {Promise<boolean>} A promise that resolves for whether the lock is released *for* this calculation.
  */
 export async function releaseCalculationLock<T_Output>(
   fdm: FdmType,
   calculationHash: string,
   outcome: { success: true; result: T_Output } | { success: false },
-): Promise<void> {
-  await fdm
+  was_processing_since: Date,
+): Promise<boolean> {
+  const releasedLocks = await fdm
     .update(calculationCacheTable)
     .set(
       outcome.success
@@ -535,7 +568,18 @@ export async function releaseCalculationLock<T_Output>(
             is_processing_since: null,
           },
     )
-    .where(eq(calculationCacheTable.calculation_hash, calculationHash))
+    .where(
+      and(
+        eq(calculationCacheTable.calculation_hash, calculationHash),
+        or(
+          isNull(calculationCacheTable.is_processing_since),
+          sql`date_trunc('milliseconds', ${calculationCacheTable.is_processing_since}) = ${was_processing_since.toISOString()}::timestamptz`,
+        ),
+      ),
+    )
+    .returning({ calculationHash: calculationCacheTable.calculation_hash })
+
+  return releasedLocks.length > 0
 }
 
 /** The current state of a calculation's cache entry, as returned by {@link getCalculationCacheStatus}. */
@@ -630,4 +674,3 @@ export async function getCalculationCacheStatus<T_Input extends object, T_Output
 
   return { state: entry ? "stale" : "missing", calculationHash, staleResult }
 }
-

@@ -350,7 +350,7 @@ describe("calculation cache locking", () => {
       entityId: "field-1",
     })
 
-    expect(acquired).toBe(true)
+    expect(acquired).not.toBeNull()
     const entry = await getCachedCalculationEntry(fdm, hash)
     expect(entry?.is_processing).toBe(true)
     expect(entry?.result).toBeNull()
@@ -371,8 +371,8 @@ describe("calculation cache locking", () => {
     const first = await tryAcquireCalculationLock(lockArgs)
     const second = await tryAcquireCalculationLock(lockArgs)
 
-    expect(first).toBe(true)
-    expect(second).toBe(false)
+    expect(first).not.toBeNull()
+    expect(second).toBeNull()
   })
 
   it("allows reclaiming a lock that has been held longer than the timeout", async () => {
@@ -400,12 +400,12 @@ describe("calculation cache locking", () => {
       lockTimeoutMs: 15 * 60 * 1000,
     })
 
-    expect(reclaimed).toBe(true)
+    expect(reclaimed).not.toBeNull()
   })
 
   it("releases the lock and stores the result on success", async () => {
     const hash = "hash-release-success"
-    await tryAcquireCalculationLock({
+    const acquired = await tryAcquireCalculationLock({
       fdm,
       calculationHash: hash,
       calculationFunctionName: "calculate",
@@ -413,7 +413,18 @@ describe("calculation cache locking", () => {
       input: { a: 1 },
     })
 
-    await releaseCalculationLock(fdm, hash, { success: true, result: "final result" })
+    if (!acquired) {
+      throw new Error("Expected locking to succeed.")
+    }
+
+    await expect(
+      releaseCalculationLock(
+        fdm,
+        hash,
+        { success: true, result: "final result" },
+        acquired.is_processing_since,
+      ),
+    ).resolves.toBe(true)
 
     const entry = await getCachedCalculationEntry(fdm, hash)
     expect(entry?.is_processing).toBe(false)
@@ -421,9 +432,41 @@ describe("calculation cache locking", () => {
     expect(entry?.result).toBe("final result")
   })
 
+  it("fails to release the lock if it was locked again at a later time somehow", async () => {
+    // Let's assume this was locked 5 minutes ago, and lock it again today.
+    const input = { success: true, result: "old result" }
+    const hash = generateCalculationHash("calculate", "1.0.0", input)
+    const acquired = await tryAcquireCalculationLock({
+      fdm,
+      calculationHash: hash,
+      calculationFunctionName: "calculate",
+      calculatorVersion: "1.0.0",
+      input: input,
+    })
+
+    if (!acquired) {
+      throw new Error("Expected locking to succeed.")
+    }
+
+    // Assume this is for the hypothetical locking event 5 minutes ago. It will fail.
+    await expect(
+      releaseCalculationLock(
+        fdm,
+        hash,
+        { success: true, result: "final result" },
+        new Date(acquired.is_processing_since.getTime() - 5 * 60 * 1000),
+      ),
+    ).resolves.toBe(false)
+
+    const entry = await getCachedCalculationEntry(fdm, hash)
+    expect(entry?.is_processing).toBe(true)
+    expect(entry?.is_processing_since).not.toBeNull()
+    expect(entry?.result).toBeNull()
+  })
+
   it("releases the lock without a result on failure, allowing a future retry", async () => {
     const hash = "hash-release-failure"
-    await tryAcquireCalculationLock({
+    const acquired = await tryAcquireCalculationLock({
       fdm,
       calculationHash: hash,
       calculationFunctionName: "calculate",
@@ -431,7 +474,13 @@ describe("calculation cache locking", () => {
       input: { a: 1 },
     })
 
-    await releaseCalculationLock(fdm, hash, { success: false })
+    if (!acquired) {
+      throw new Error("Expected locking to succeed.")
+    }
+
+    await expect(
+      releaseCalculationLock(fdm, hash, { success: false }, acquired?.is_processing_since),
+    ).resolves.toBe(true)
 
     const entry = await getCachedCalculationEntry(fdm, hash)
     expect(entry?.is_processing).toBe(false)
@@ -444,7 +493,7 @@ describe("calculation cache locking", () => {
       calculatorVersion: "1.0.0",
       input: { a: 1 },
     })
-    expect(reacquired).toBe(true)
+    expect(reacquired).not.toBeNull()
   })
 
   it("returns the latest cached result for an entity across different hashes", async () => {
