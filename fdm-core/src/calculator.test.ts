@@ -385,10 +385,10 @@ describe("calculation cache locking", () => {
       input: { a: 1 },
     })
 
-    // Simulate a stuck lock by backdating is_processing_since.
+    // Simulate a stuck lock by backdating updated_at.
     await fdm
       .update(calculationCache)
-      .set({ is_processing_since: new Date(Date.now() - 20 * 60 * 1000) })
+      .set({ updated_at: new Date(Date.now() - 20 * 60 * 1000) })
       .where(eq(calculationCache.calculation_hash, hash))
 
     const reclaimed = await tryAcquireCalculationLock({
@@ -422,13 +422,13 @@ describe("calculation cache locking", () => {
         fdm,
         hash,
         { success: true, result: "final result" },
-        acquired.is_processing_since,
+        acquired.updated_at,
       ),
     ).resolves.toBe(true)
 
     const entry = await getCachedCalculationEntry(fdm, hash)
     expect(entry?.is_processing).toBe(false)
-    expect(entry?.is_processing_since).toBeNull()
+    expect(entry?.updated_at).toBeNull()
     expect(entry?.result).toBe("final result")
   })
 
@@ -454,13 +454,13 @@ describe("calculation cache locking", () => {
         fdm,
         hash,
         { success: true, result: "final result" },
-        new Date(acquired.is_processing_since.getTime() - 5 * 60 * 1000),
+        new Date(acquired.updated_at.getTime() - 5 * 60 * 1000),
       ),
     ).resolves.toBe(false)
 
     const entry = await getCachedCalculationEntry(fdm, hash)
     expect(entry?.is_processing).toBe(true)
-    expect(entry?.is_processing_since).not.toBeNull()
+    expect(entry?.updated_at).not.toBeNull()
     expect(entry?.result).toBeNull()
   })
 
@@ -479,7 +479,7 @@ describe("calculation cache locking", () => {
     }
 
     await expect(
-      releaseCalculationLock(fdm, hash, { success: false }, acquired?.is_processing_since),
+      releaseCalculationLock(fdm, hash, { success: false }, acquired?.updated_at),
     ).resolves.toBe(true)
 
     const entry = await getCachedCalculationEntry(fdm, hash)
@@ -697,7 +697,7 @@ describe("getCalculationCacheStatus", () => {
     })
     await fdm
       .update(calculationCache)
-      .set({ is_processing_since: new Date(Date.now() - 20 * 60 * 1000) })
+      .set({ updated_at: new Date(Date.now() - 20 * 60 * 1000) })
       .where(eq(calculationCache.calculation_hash, hash))
 
     const status = await getCalculationCacheStatus({

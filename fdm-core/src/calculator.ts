@@ -113,7 +113,7 @@ export async function setCachedCalculation<T_Input extends object, T_Output>(
       entity_type: entityType ?? null,
       entity_id: entityId ?? null,
       is_processing: false,
-      is_processing_since: null,
+      updated_at: null,
     })
     .onConflictDoUpdate({
       target: calculationCacheTable.calculation_hash,
@@ -126,7 +126,7 @@ export async function setCachedCalculation<T_Input extends object, T_Output>(
         entity_type: entityType ?? null,
         entity_id: entityId ?? null,
         is_processing: false,
-        is_processing_since: null,
+        updated_at: null,
       },
     })
 }
@@ -432,13 +432,13 @@ export async function getLatestCachedResultForEntity<T_Output>(
 }
 
 type LockedCalculationCacheEntry = Pick<
-  CalculationCacheTypeSelect & { is_processing_since: Date },
-  "calculation_hash" | "is_processing" | "is_processing_since"
+  CalculationCacheTypeSelect & { updated_at: Date },
+  "calculation_hash" | "is_processing" | "updated_at"
 >
 const lockedCalculationCacheEntryFields = {
   calculation_hash: calculationCacheTable.calculation_hash,
   is_processing: calculationCacheTable.is_processing,
-  is_processing_since: calculationCacheTable.is_processing_since,
+  updated_at: calculationCacheTable.updated_at,
 }
 /**
  * Attempts to acquire the `is_processing` lock for a calculation hash, so at most one background
@@ -495,7 +495,7 @@ export async function tryAcquireCalculationLock<T_Input extends object>({
       entity_type: entityType ?? null,
       entity_id: entityId ?? null,
       is_processing: true,
-      is_processing_since: sql`now()`,
+      updated_at: sql`now()`,
     })
     .onConflictDoNothing()
     .returning(lockedCalculationCacheEntryFields)
@@ -510,18 +510,15 @@ export async function tryAcquireCalculationLock<T_Input extends object>({
     .update(calculationCacheTable)
     .set({
       is_processing: true,
-      is_processing_since: sql`now()`,
+      updated_at: sql`now()`,
     })
     .where(
       and(
         eq(calculationCacheTable.calculation_hash, calculationHash),
         or(
           eq(calculationCacheTable.is_processing, false),
-          isNull(calculationCacheTable.is_processing_since),
-          lt(
-            calculationCacheTable.is_processing_since,
-            sql`now() - (${lockTimeoutMs} * interval '1 ms')`,
-          ),
+          isNull(calculationCacheTable.updated_at),
+          lt(calculationCacheTable.updated_at, sql`now() - (${lockTimeoutMs} * interval '1 ms')`),
         ),
       ),
     )
@@ -537,8 +534,8 @@ export async function tryAcquireCalculationLock<T_Input extends object>({
  *
  * If the lock has been acquired by another process since the computation has started, the lock will
  * not be released and the function will return false. This is based on the was_processing_since
- * parameter, and the lock will only be released if `is_processing_since` in the database is not after
- * `was_processing_since`. If `is_processing_since` is null in the database, the lock release will
+ * parameter, and the lock will only be released if `updated_at` in the database is not after
+ * `was_processing_since`. If `updated_at` is null in the database, the lock release will
  * succeed and the result will be stored.
  *
  * @template T_Output - The type of the calculation result.
@@ -560,20 +557,20 @@ export async function releaseCalculationLock<T_Output>(
         ? {
             result: outcome.result,
             is_processing: false,
-            is_processing_since: null,
             created_at: new Date(),
+            updated_at: null,
           }
         : {
             is_processing: false,
-            is_processing_since: null,
+            updated_at: null,
           },
     )
     .where(
       and(
         eq(calculationCacheTable.calculation_hash, calculationHash),
         or(
-          isNull(calculationCacheTable.is_processing_since),
-          sql`date_trunc('milliseconds', ${calculationCacheTable.is_processing_since}) = ${was_processing_since.toISOString()}::timestamptz`,
+          isNull(calculationCacheTable.updated_at),
+          sql`date_trunc('milliseconds', ${calculationCacheTable.updated_at}) = ${was_processing_since.toISOString()}::timestamptz`,
         ),
       ),
     )
@@ -640,7 +637,7 @@ export async function getCalculationCacheStatus<T_Input extends object, T_Output
   }
 
   if (entry?.is_processing) {
-    const since = entry.is_processing_since
+    const since = entry.updated_at
     const lockExpired = !since || Date.now() - since.getTime() > lockTimeoutMs
     if (!lockExpired) {
       // Someone else is already (re)computing this exact hash; attach rather than duplicate.

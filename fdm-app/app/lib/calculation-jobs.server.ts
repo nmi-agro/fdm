@@ -301,16 +301,11 @@ export async function runCalculationJob(
       ctx.fdm,
       calculationHash,
       { success: true, result },
-      acquired.is_processing_since,
+      acquired.updated_at,
     )
     return unlocked ? { job, outcome: "computed" } : { job, outcome: "attached" }
   } catch (e: unknown) {
-    await releaseCalculationLock(
-      ctx.fdm,
-      calculationHash,
-      { success: false },
-      acquired.is_processing_since,
-    )
+    await releaseCalculationLock(ctx.fdm, calculationHash, { success: false }, acquired.updated_at)
     const errorMessage = e instanceof Error ? e.message : String(e)
     return { job, outcome: "error", error: errorMessage }
   }

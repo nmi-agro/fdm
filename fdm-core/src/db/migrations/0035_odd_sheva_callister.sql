@@ -1,2 +1,2 @@
 ALTER TABLE "fdm-calculator"."calculation_cache" ALTER COLUMN "result" DROP NOT NULL;--> statement-breakpoint
-ALTER TABLE "fdm-calculator"."calculation_cache" ADD COLUMN "is_processing_since" timestamp with time zone;
+ALTER TABLE "fdm-calculator"."calculation_cache" ADD COLUMN "updated_at" timestamp with time zone;

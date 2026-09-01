@@ -14,7 +14,7 @@ export const calculationCache = fdmCalculatorSchema.table(
     entity_type: text(), // e.g., 'farm', 'field'
     entity_id: text(), // The ID of the farm or field
     is_processing: boolean().notNull().default(false), // Lock for background workers
-    is_processing_since: timestamp({ withTimezone: true }), // When the lock was (re)acquired; used to detect and expire stuck locks
+    updated_at: timestamp({ withTimezone: true }), // When the lock was (re)acquired; used to detect and expire stuck locks
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
