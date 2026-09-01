@@ -145,12 +145,7 @@ Specific nitrogen usage norm reductions (`kortingen`) apply when grassland is re
 
 ### 1. Grassland Renewal (Gras-na-Gras)
 
-When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. This is only allowed within specific periods:
-
-- **Sand and Loess Soils**: June 1st – August 31st.
-- **Clay and Peat Soils**: February 1st – September 15th.
-
-Because derogation ended after 2025, the clay and peat period no longer varies by derogation status or `NV-gebied`.
+When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. Per footnote 14, this applies across all soil types when renewal occurs between **June 1st and August 31st**.
 
 ### 2. Grassland Destruction (Gras-naar-Bouwland)
 
@@ -170,7 +165,7 @@ The reduction is not applied when the preceding crop was itself a catch crop, si
 
 The `fdm-calculator` detects grassland renewal and destruction events by analysing the sequence of cultivations, then verifies the soil region and `NV-gebied` status to apply the correct reduction.
 
-If a renewal or destruction action is performed **outside** the legally allowed periods, the calculator raises a descriptive error rather than returning a norm.
+If a renewal or destruction action is performed **outside** the legally allowed periods, the calculator withholds the reduction (no korting applied) without raising an error.
 
 :::info Reductions are cumulative
 Article 28d applies alongside the grassland provisions, so a grassland reduction and a catch crop reduction can both apply to the same field and are added together. A field that was destroyed for maize without a catch crop the previous autumn therefore receives 65 + 20 = 85 kg N/ha. The `normSource` lists every reduction that was applied.

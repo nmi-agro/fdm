@@ -1803,10 +1803,15 @@ describe("NL2026 stikstof additional branch coverage", () => {
 })
 
 describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   const kleiCentroid: [number, number] = [5.64188724, 51.977587] // klei
   const sandCentroid: [number, number] = [5.656346970245633, 51.987872886419524] // zand_nwc (NV)
 
   it("should accumulate norms for wintertarwe + non-vlinderbloemige groenbemester (compliant dates)", async () => {
+    setupGeoMock(4, 1) // Sand, NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: sandCentroid } as Field,
@@ -1835,6 +1840,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should grant 0 norm for groenbemester if sown on or after 1 September (footnote 7a)", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -1861,6 +1867,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should grant 0 norm for groenbemester if destroyed before 1 February (footnote 7a)", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -1887,6 +1894,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should grant 50% groenbemester norm on sand after gras op bouwland (footnote 7a)", async () => {
+    setupGeoMock(4, 1) // Sand, NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: sandCentroid } as Field,
@@ -1914,6 +1922,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should accumulate spinazie 1e teelt + spinazie volgteelt", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -1940,6 +1949,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should accumulate graszaad hoofdteelt + graszaad volgteelt", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -1966,6 +1976,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should grant 0 norm for groenbemester and tijdelijk grasland following maize (footnotes 2 & 6)", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -1994,6 +2005,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should grant 0 norm with preceding crop explanation even if sown on or after 1 September", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -2020,6 +2032,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should return norm 0 for groene braak (nl_6794) under Geen plaatsingsruimte", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -2039,6 +2052,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   })
 
   it("should return norm 0 without throwing for nature codes nl_332 and nl_335", async () => {
+    setupGeoMock(1, 0) // Clay, non-NV
     const mockInput332: NL2026NormsInput = {
       farm: { has_grazing_intention: false },
       field: { b_id: "1", b_centroid: kleiCentroid } as Field,
@@ -2221,6 +2235,11 @@ describe("calculateNL2026StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
   it("should fallback to standard with subtypes when isVolgteelt is true but no volgteelt standard exists", async () => {
     setupGeoMock(1, 0)
     const dataSpy = spyNitrogenStandards([
+      {
+        b_lu_catalogue_match: ["nl_hoofd_only_2026"],
+        cultivation_rvo_table2: "Gewas zonder subtypes",
+        norms: regionNorms(50),
+      } as unknown as NitrogenStandard,
       {
         b_lu_catalogue_match: ["nl_hoofd_only_2026"],
         cultivation_rvo_table2: "Hoofdteelt gewas",

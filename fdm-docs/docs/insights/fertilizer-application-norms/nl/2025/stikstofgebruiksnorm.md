@@ -128,13 +128,10 @@ In 2025, specific nitrogen usage norm reductions (`kortingen`) apply when grassl
 
 ### 1. Grassland Renewal (Gras-na-Gras)
 
-When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. This is only allowed within specific periods:
+When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. Per footnote 14, this applies within the following conditions:
 
-- **Sand and Loess Soils**: June 1st – August 31st.
-- **Clay and Peat Soils**:
-  - **Derogation Farm + NV-Area**: June 1st – August 31st.
-  - **Derogation Farm + Non-NV-Area**: June 1st – September 15th.
-  - **Non-Derogation Farm**: February 1st – September 15th.
+- **Sand and Loess Soils**: June 1st – August 31st (all farms).
+- **Clay and Peat Soils**: June 1st – August 31st (only for farms with a derogation permit).
 
 ### 2. Grassland Destruction (Gras-naar-Bouwland)
 
@@ -152,7 +149,7 @@ When grassland is replaced by Maize or specific Potato types, a reduction of **6
 
 The `fdm-calculator` automatically detects grassland renewal and destruction events by analyzing the sequence of cultivations. It verifies the soil type, location (NV-gebied), and farm derogation status to apply the correct reduction.
 
-If a renewal or destruction action is performed **outside** the legally allowed periods, the calculator will provide a descriptive error message to ensure compliance.
+If a renewal or destruction action is performed **outside** the legally allowed periods, the calculator does not apply the grassland reduction and does not raise an error.
 
 :::info Reductions are cumulative
 Article 28d applies alongside the grassland provisions, so a grassland reduction and a catch crop reduction can both apply to the same field and are added together. A field that was destroyed for maize without a catch crop the previous autumn therefore receives 65 + 20 = 85 kg N/ha. The `normSource` lists every reduction that was applied.

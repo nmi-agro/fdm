@@ -2637,12 +2637,17 @@ describe("calculateNL2025StikstofGebruiksNorm - Multi-Teelt & Compliance Tests",
 
     const result = await calculateNL2025StikstofGebruiksNorm(mockInput)
     // Catch crop is skipped in grassland destruction check, so no 65kg discount is applied
-    expect(result.normSource).not.toContain("Korting: 65kg N/ha: scheuren grasland")
+    expect(result.normSource).not.toContain("Korting: 65kg N/ha: graslandvernietiging")
   })
 
   it("should fallback to standard with subtypes when isVolgteelt is true but no volgteelt standard exists", async () => {
     setupGeoMock(1, 0)
     const dataSpy = spyNitrogenStandards([
+      {
+        b_lu_catalogue_match: ["nl_hoofd_only"],
+        cultivation_rvo_table2: "Gewas zonder subtypes",
+        norms: regionNorms(50),
+      } as unknown as NitrogenStandard,
       {
         b_lu_catalogue_match: ["nl_hoofd_only"],
         cultivation_rvo_table2: "Hoofdteelt gewas",
