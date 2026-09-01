@@ -78,15 +78,8 @@ export function deriveCropPlanFractions(
   }
   if (years.size === 0) return empty
 
-  // Build catalogue → croprotation lookup (first occurrence wins)
-  const catalogueToRotation = new Map<string, string | null>()
-  for (const c of cultivations) {
-    if (!catalogueToRotation.has(c.b_lu_catalogue)) {
-      catalogueToRotation.set(c.b_lu_catalogue, c.b_lu_croprotation ?? null)
-    }
-  }
-
   const cultivationsForHoofdteelt = cultivations.map((c) => ({
+    ...c,
     b_lu_catalogue: c.b_lu_catalogue,
     b_lu_start: c.b_lu_start ? new Date(c.b_lu_start) : null,
     b_lu_end: c.b_lu_end ? new Date(c.b_lu_end) : null,
@@ -102,8 +95,8 @@ export function deriveCropPlanFractions(
   let bcsYearRotation: string | null = null
 
   for (const year of Array.from(years).sort((a, b) => a - b)) {
-    const catalogue = findHoofdteelt(cultivationsForHoofdteelt, year)
-    const rotation = catalogueToRotation.get(catalogue) ?? null
+    const hoofdteelt = findHoofdteelt(cultivationsForHoofdteelt, year, true)
+    const rotation = hoofdteelt?.b_lu_croprotation ?? null
     const bucket = rotation ? ROTATION_TO_BUCKET[rotation] : undefined
     if (bucket) counts[bucket]++
     if (year === bcsYear) bcsYearRotation = rotation

@@ -19,6 +19,7 @@ import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNorms } from "~/components/blocks/header/norms"
 import { NormCard } from "~/components/blocks/norms/norm-card"
+import { NormsDisclaimer } from "~/components/blocks/norms/norms-disclaimer"
 import { NormsFallback } from "~/components/blocks/norms/skeletons"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -247,7 +248,9 @@ export default function FieldNormsBlock() {
         <FarmTitle
           title={"Gebruiksruimte"}
           description={`Bekijk de gebruiksruimte en opvulling voor ${loaderData.field.b_name}.`}
-        />
+        >
+          <NormsDisclaimer calendar={loaderData.calendar} />
+        </FarmTitle>
         <Suspense key={`${loaderData.b_id}#${loaderData.calendar}`} fallback={<NormsFallback />}>
           <FieldNormsContent {...loaderData} />
         </Suspense>
@@ -316,6 +319,13 @@ const FertilizerApplicationCard = ({
     )
   }
 
+  const formattedAmount =
+    application.p_app_amount_display !== null && application.p_app_amount_display !== undefined
+      ? `${application.p_app_amount_display} ${application.p_app_amount_unit}`
+      : application.p_app_amount !== null && application.p_app_amount !== undefined
+        ? `${application.p_app_amount} kg/ha`
+        : "Onbekende hoeveelheid"
+
   return (
     <Card>
       <CardHeader>
@@ -324,7 +334,7 @@ const FertilizerApplicationCard = ({
           {format(new Date(application.p_app_date), "d MMMM yyyy", {
             locale: nl,
           })}{" "}
-          - {application.p_app_amount} kg/ha
+          - {formattedAmount}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -426,36 +436,32 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
   return (
     <FarmContent>
       <div className="space-y-6 pb-10">
-        <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
-          <AlertTriangle className="h-4 w-4 !text-amber-800" />
-          <AlertTitle>Disclaimer</AlertTitle>
-          <AlertDescription>
-            Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
-            gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische
-            naleving. Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor definitieve
-            normen.
-          </AlertDescription>
-        </Alert>
-
         <div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div
+            className={`grid grid-cols-1 gap-6 md:grid-cols-2 ${
+              showRenure ? "lg:grid-cols-4" : "lg:grid-cols-3"
+            }`}
+          >
             <NormCard
               title="Stikstof, werkzaam"
               norm={norms?.nitrogen.normValue ?? 0}
               filling={normsFilling?.nitrogen.normFilling}
               unit="kg N"
+              description={norms?.nitrogen.normSource}
             />
             <NormCard
               title="Fosfaat"
               norm={norms?.phosphate.normValue ?? 0}
               filling={normsFilling?.phosphate.normFilling}
               unit="kg P₂O₅"
+              description={norms?.phosphate.normSource}
             />
             <NormCard
               title="Stikstof uit dierlijke mest"
               norm={norms?.manure.normValue ?? 0}
               filling={normsFilling?.manure.normFilling}
               unit="kg N"
+              description={norms?.manure.normSource}
             />
             {showRenure && (
               <NormCard
@@ -463,6 +469,7 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
                 norm={norms?.renure?.normValue ?? 0}
                 filling={normsFilling?.renure?.normFilling}
                 unit="kg N"
+                description={norms?.renure?.normSource}
               />
             )}
           </div>

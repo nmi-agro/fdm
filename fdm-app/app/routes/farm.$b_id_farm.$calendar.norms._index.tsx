@@ -9,7 +9,6 @@ import {
   aggregateNormsToFarmLevel,
 } from "@nmi-agro/fdm-calculator"
 import { getFarm, getFarms, getFields } from "@nmi-agro/fdm-core"
-import { AlertTriangle } from "lucide-react"
 import { Suspense, use, useEffect } from "react"
 import {
   data,
@@ -28,8 +27,8 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNorms } from "~/components/blocks/header/norms"
 import { FarmNorms } from "~/components/blocks/norms/farm-norms"
 import { FieldNorms, type FieldNorm } from "~/components/blocks/norms/field-norms"
+import { NormsDisclaimer } from "~/components/blocks/norms/norms-disclaimer"
 import { NormsFallback } from "~/components/blocks/norms/skeletons"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
@@ -243,7 +242,9 @@ export default function FarmNormsBlock() {
         <FarmTitle
           title={"Gebruiksruimte"}
           description={"Bekijk de gebruiksruimte en opvulling voor je bedrijf en percelen."}
-        />
+        >
+          <NormsDisclaimer calendar={loaderData.calendar} />
+        </FarmTitle>
         <Suspense
           key={`${loaderData.b_id_farm}#${loaderData.calendar}`}
           fallback={<NormsFallback />}
@@ -324,17 +325,6 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
       <FarmContent>
         <div className="space-y-6 pb-10">
           {refreshReady && <CalculationRefreshBanner onRefresh={() => revalidator.revalidate()} />}
-          <Alert className="mb-8 border-amber-200 bg-amber-50 text-amber-800" variant="default">
-            <AlertTriangle className="h-4 w-4 !text-amber-800" />
-            <AlertTitle>Disclaimer</AlertTitle>
-            <AlertDescription>
-              Deze getallen zijn uitsluitend bedoeld voor informatieve doeleinden. De getoonde
-              gebruiksnormen zijn indicatief en dienen te worden geverifieerd voor juridische
-              naleving. Raadpleeg altijd de officiële RVO-publicaties en uw adviseur voor
-              definitieve normen.
-            </AlertDescription>
-          </Alert>
-
           <FarmNorms
             farmNorms={farmNorms}
             farmFillings={farmFillings}

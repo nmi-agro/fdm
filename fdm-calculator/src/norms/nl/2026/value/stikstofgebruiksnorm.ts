@@ -5,213 +5,54 @@ import type {
   NitrogenStandard,
   NL2026NormsInput,
   NL2026NormsInputForCultivation,
-  NormsByRegion,
   RegionKey,
 } from "./types"
 import { NormNotApplicableError } from "../../../../error"
 import pkg from "../../../../package"
-import { determineNLHoofdteelt } from "../../2025/value/hoofdteelt"
-import { getRegion, isFieldInNVGebied } from "../../2025/value/stikstofgebruiksnorm"
-import { nonBouwlandCodes } from "../../constant"
+import { findHoofdteelt } from "../../../../shared/hoofdteelt"
+import {
+  getNormsForCultivation,
+  getRegion,
+  isFieldInNVGebied,
+} from "../../2025/value/stikstofgebruiksnorm"
+import { calculateVanggewasWinterteeltKorting } from "../../2025/value/vanggewas-winterteelt"
+import {
+  graanCodes,
+  graszaadCodes,
+  koolzaadCodes,
+  maisCodes,
+  nonBouwlandCodes,
+  tijdelijkGraslandCodes,
+} from "../../constant"
 import { nitrogenStandardsData } from "./stikstofgebruiksnorm-data"
 
 /**
- * Retrieves the appropriate set of nitrogen norms (`NormsByRegion`) for a given cultivation.
- * This function applies a set of specific rules and conditions to select the most accurate
- * norm from the available `NitrogenStandard` data, considering factors like cultivation
- * sub-types, specific varieties, and farm derogation status.
+ * Determines the specific sub-type 'omschrijving' for a cultivation in 2026.
  *
- * @param selectedStandard - The base `NitrogenStandard` object that broadly matches the cultivation.
- *   This object contains various norm categories (e.g., general, sub-type specific, variety-specific).
- * @param b_lu_variety - Optional. The specific variety of the cultivation (e.g., a potato variety).
- *   This is used to apply variety-specific norms where applicable.
- * @param b_lu_end - The termination date of the cultivation. This is crucial for determining
- *   applicable sub-type periods, especially for temporary grasslands where norms can vary
- *   based on the period of the year.
- * @returns A `NormsByRegion` object containing standard and NV-gebied norms for all regions
- *   (e.g., "zand_nwc", "zand_zuid", "klei", "veen", "loess") that apply to the specific cultivation and conditions.
- *   Returns `undefined` if no applicable norms can be found based on the provided criteria.
+ * Sub-types in RVO Tabel 2 differentiate nitrogen norms based on crop management, cultivation history,
+ * or botanical characteristics:
+ * - **Grasland**: Differentiates between grazing (`beweiden`) and pure mowing (`volledig maaien`).
+ * - **Aardappel**: Matches specific potato varieties to standard groupings (e.g. early, late, seed, starch).
+ * - **Mais**: No subtype applies in 2026 (derogation expired at the end of 2025).
+ * - **Luzerne**: Differentiates first-year (`eerste jaar`) from subsequent years (`volgende jaren`) based on prior-year presence.
+ * - **Koolzaad**: Differentiates winter (`winter`, `nl_1922`) from summer (`zomer`, `nl_1923`) varieties.
+ * - **Gras voor industriële verwerking / Graszaad / Roodzwenkgras**: Differentiates establishment / 1st year from multi-year / overjarig stands.
+ * - **Zaaiui / Winterui**: Differentiates 1st year (`nl_1932`) from 2nd year (`nl_1933`).
+ * - **Bladgewassen (Spinazie, Slasoorten, Andijvie)**: Differentiates 1st cultivation (`1e teelt`) for the main crop from subsequent cultivation (`volgteelt`).
  *
- * @remarks
- * The function prioritizes norm selection based on the following hierarchy:
- * 1.  **Sub-Type Norms (e.g., Temporary Grasslands)**:
- *     If `selectedStandard` has `sub_types` defined (e.g., for temporary grasslands),
- *     it checks if the `b_lu_end` date falls within any of the specified `period_start_month`
- *     and `period_end_month` ranges. If a matching sub-type period is found, its associated
- *     norms are returned. This ensures that time-sensitive norms are correctly applied.
- * 2.  **Variety-Specific Norms (e.g., Potatoes)**:
- *     If the `selectedStandard` is for "aardappel" (potato) and `b_lu_variety` is provided,
- *     the function checks if the variety matches any in `varieties_hoge_norm` (high norms)
- *     or `varieties_lage_norm` (low norms). If a match is found, the corresponding norms
- *     (`norms_hoge_norm` or `norms_lage_norm`) are returned. If the variety doesn't match
- *     these specific lists, it falls back to `norms_overig` (other) potato norms if available.
- * 4.  **Default Norms**:
- *     If none of the above specific conditions are met, the function defaults to returning
- *     the primary `norms` defined directly within the `selectedStandard` object.
- *
- * This structured approach ensures that the most specific and applicable nitrogen norm
- * is always retrieved for the given cultivation context.
- */
-function getNormsForCultivation(
-  selectedStandard: NitrogenStandard,
-  b_lu_end: Date,
-  b_lu_start: Date | null | undefined,
-  subTypeOmschrijving?: string,
-): NormsByRegion | undefined {
-  if (selectedStandard.sub_types) {
-    type SubType = NonNullable<NitrogenStandard["sub_types"]>[number]
-    let matchingSubType: SubType | undefined
-
-    // 1. Check for a direct match on omschrijving
-    if (subTypeOmschrijving) {
-      matchingSubType = selectedStandard.sub_types.find(
-        (sub) => sub.omschrijving === subTypeOmschrijving,
-      )
-      if (matchingSubType) {
-        return matchingSubType.norms
-      }
-    }
-
-    // 2. Fallback to time-based logic for temporary grasslands if no omschrijving match
-    const endDate = new Date(b_lu_end)
-    endDate.setHours(12, 0, 0, 0) // Avoid timezone issues at midnight
-    const startDate = b_lu_start ? new Date(b_lu_start) : new Date(endDate.getFullYear(), 0, 1)
-    startDate.setHours(12, 0, 0, 0)
-
-    // Find all matching sub-types
-    const potentialMatches = selectedStandard.sub_types.filter((sub) => {
-      if (
-        sub.period_start_month !== null &&
-        sub.period_start_month !== undefined &&
-        sub.period_end_month !== null &&
-        sub.period_end_month !== undefined
-      ) {
-        const startPeriod = new Date(
-          endDate.getFullYear(),
-          sub.period_start_month - 1,
-          sub.period_start_day ?? 1,
-          12,
-          0,
-          0,
-          0,
-        )
-        const endPeriod = new Date(
-          endDate.getFullYear(),
-          sub.period_end_month - 1,
-          sub.period_end_day ?? 1,
-          12,
-          0,
-          0,
-          0,
-        )
-
-        // Handle periods that might wrap (though none currently do in the data)
-        if (sub.period_start_month > sub.period_end_month) {
-          endPeriod.setFullYear(endDate.getFullYear() + 1)
-        }
-
-        // Special handling for "vanaf" (Late sowing or summer/autumn teelten)
-        // For "vanaf" periods, the crop must start on or after the startPeriod.
-        const isVanaf =
-          sub.period_start_month !== null &&
-          sub.period_start_month !== undefined &&
-          sub.period_start_month > 1
-
-        if (isVanaf) {
-          // If it's a "tot minstens" period (implied by end month < 12), it must also last until endPeriod.
-          if (
-            sub.period_end_month !== null &&
-            sub.period_end_month !== undefined &&
-            sub.period_end_month < 12
-          ) {
-            return startDate >= startPeriod && endDate >= endPeriod
-          }
-          // For "vanaf X" (without "tot minstens", e.g. "vanaf 15 oktober"), we only check if it starts on or after X.
-          return startDate >= startPeriod
-        }
-
-        // Standard "van 1 januari tot minstens X" logic:
-        // Crop must be present from startPeriod (or earlier) to at least endPeriod.
-        return startDate <= startPeriod && endDate >= endPeriod
-      }
-      return false
-    })
-
-    // Select the best match
-    // Prefer the one with the *earliest* period_start (most specific start requirement)
-    // If tied, prefer the one with the *latest* period_end (longest mandated duration = typically higher norm)
-    if (potentialMatches.length > 0) {
-      potentialMatches.sort((a, b) => {
-        const aStart = (a.period_start_month ?? -1) * 100 + (a.period_start_day ?? -1)
-        const bStart = (b.period_start_month ?? -1) * 100 + (b.period_start_day ?? -1)
-        if (aStart !== bStart) {
-          return aStart - bStart
-        }
-        const aEnd = (a.period_end_month ?? -1) * 100 + (a.period_end_day ?? -1)
-        const bEnd = (b.period_end_month ?? -1) * 100 + (b.period_end_day ?? -1)
-        return bEnd - aEnd
-      })
-      matchingSubType = potentialMatches[0]
-    }
-
-    // If no match found using the stricter "minstens" logic, fallback to the original bucket logic
-    // to prevent "undefined" regressions for edge cases, but with timezone fix.
-    if (!matchingSubType) {
-      matchingSubType = selectedStandard.sub_types.find((sub) => {
-        if (
-          sub.period_start_month !== null &&
-          sub.period_start_month !== undefined &&
-          sub.period_end_month !== null &&
-          sub.period_end_month !== undefined
-        ) {
-          const startPeriod = new Date(
-            endDate.getFullYear(),
-            sub.period_start_month - 1,
-            sub.period_start_day ?? 1,
-            12,
-            0,
-            0,
-            0,
-          )
-          const endPeriod = new Date(
-            endDate.getFullYear(),
-            sub.period_end_month - 1,
-            sub.period_end_day ?? 1,
-            12,
-            0,
-            0,
-            0,
-          )
-          if (sub.period_start_month > sub.period_end_month) {
-            endPeriod.setFullYear(endDate.getFullYear() + 1)
-          }
-          return endDate >= startPeriod && endDate <= endPeriod
-        }
-        return false
-      })
-    }
-
-    return matchingSubType?.norms
-  }
-
-  // Default case if no sub_types are defined
-  return selectedStandard.norms
-}
-
-/**
- * Determines the specific sub-type 'omschrijving' for a cultivation that is part of a larger group.
- * This is necessary for standards that use sub_types to differentiate norms, e.g., for winter vs. summer varieties.
- *
- * @param cultivation - The specific cultivation for which to determine the sub-type.
- * @param standard - The matched NitrogenStandard which may contain sub_types.
- * @param cultivations - An array of cultivation objects for the current and previous year.
- * @returns The 'omschrijving' of the matching sub-type as a string, or undefined if no specific sub-type applies.
+ * @param cultivation - The cultivation object being evaluated.
+ * @param standard - The matching `NitrogenStandard` definition from Tabel 2 (2026).
+ * @param cultivations - All cultivations on the field (used to inspect cultivation history across years).
+ * @param has_grazing_intention - Grazing intention for grassland parcels.
+ * @param isHoofdteelt - Whether this cultivation is the designated main crop (`hoofdteelt`) of the year.
+ * @returns The matching sub-type description key, or `undefined` if no specific sub-type applies.
  */
 function determineSubTypeOmschrijving(
   cultivation: NL2026NormsInputForCultivation,
   standard: NitrogenStandard,
   cultivations: NL2026NormsInputForCultivation[],
   has_grazing_intention: boolean | undefined,
+  isHoofdteelt: boolean = true,
 ): string | undefined {
   // Grasland logic based on grazing intention
   if (standard.type === "grasland") {
@@ -236,8 +77,8 @@ function determineSubTypeOmschrijving(
 
   // Maize logic based on derogation status
   if (standard.cultivation_rvo_table2 === "Akkerbouwgewassen, mais") {
-    // In 2026 derogation is no longer possible, so we always return "non-derogatie"
-    return "non-derogatie"
+    // Derogation ended after 2025; no subtype applies for maize in 2026.
+    return undefined
   }
 
   // Luzerne logic based on cultivation history
@@ -302,7 +143,7 @@ function determineSubTypeOmschrijving(
     if (cultivation.b_lu_catalogue === "nl_1933") return "2e jaars"
   }
 
-  // Bladgewassen logic based on hoofdteelt
+  // Bladgewassen logic based on hoofdteelt vs volgteelt
   const bladgewasRvoTable2s = [
     "Bladgewassen, Spinazie",
     "Bladgewassen, Slasoorten",
@@ -310,49 +151,48 @@ function determineSubTypeOmschrijving(
   ]
 
   if (bladgewasRvoTable2s.includes(standard.cultivation_rvo_table2)) {
-    const hoofdteeltCatalogue = determineNLHoofdteelt(cultivations, 2026)
-    if (cultivation.b_lu_catalogue === hoofdteeltCatalogue) {
-      return "1e teelt"
-    }
-    // TODO: Implement volgteelt logic here later
+    return isHoofdteelt ? "1e teelt" : "volgteelt"
   }
-
-  /*
-   * --- Cultivations with Unclear Differentiation Logic (may require matching on b_lu string or external context): ---
-   * - Bladgewassen, Bladgewassen overig (e.g., "eenmalige oogst" vs. "meermalige oogst")
-   * - Kruiden (differentiating between bladgewas, wortelgewassen, zaadgewassen)
-   * - Bloembollengewassen, Iris (e.g., "grofbollig" vs. "fijnbollig")
-   * - Bloembollengewassen, Krokus (e.g., "grote gele" vs. "overig")
-   * - Bloembollengewassen, Gladiool (e.g., "pitten" vs. "kralen")
-   */
 
   return undefined
 }
 
 /**
- * Calculates the "korting" (reduction) on the nitrogen usage norm based on the presence
- * of winter crops or catch crops in the previous year.
+ * Calculates statutory reductions ("kortingen") on the annual nitrogen usage norm for 2026.
  *
- * @param cultivations - An array of cultivation objects for the current and previous year.
- * @param region - The soil region of the field (e.g., "zand_nwc", "zand_zuid", "loess").
- * @returns An object containing the reduction amount in kilograms of nitrogen per hectare (kg N/ha) and a description.
+ * Implements three statutory reduction mechanisms:
+ * 1. **Grassland renewal (Graslandvernieuwing, Footnote 14)**:
+ *    - Applies a **50 kg N/ha** reduction when grassland is renewed (gras-na-gras transition) between 1 June and 31 August.
+ *    - In 2026: Applies on all soil types (sand, loess, clay, peat) for all farms (as derogation no longer exists in 2026).
+ * 2. **Grassland destruction (Graslandvernietiging / Scheuren)**:
+ *    - Applies a **65 kg N/ha** reduction when grassland is converted to arable land (gras-naar-bouwland transition)
+ *      for maize or eligible potato cultivations (excluding seed potatoes and early harvest varieties).
+ *    - Allowed destruction windows:
+ *      - Sand & Loess: 1 February – 10 May.
+ *      - Clay & Peat (NV-gebied): 1 February – 15 March.
+ *      - Clay & Peat (Non-NV): 1 February – 31 May.
+ *    - Catch crops (vanggewas) sown in autumn of the previous year are excluded from triggering grassland destruction korting.
+ * 3. **Article 28d Meststoffenwet (Catch crops and winter crops after sand/loess main crops)**:
+ *    - Evaluated by `calculateVanggewasWinterteeltKorting` anchored to the main crop of year N-1.
+ *
+ * @param cultivations - Array of cultivations across current and preceding years.
+ * @param region - Soil region (`zand_nwc`, `zand_zuid`, `loess`, `klei`, `veen`).
+ * @param is_nv_area - Flag indicating if the parcel is located in a nutrient-polluted zone (NV-gebied).
+ * @returns An object containing the total reduction amount (Decimal) and formatted descriptive text.
  */
 function calculateKorting(
   cultivations: NL2026NormsInputForCultivation[],
   region: RegionKey,
+  is_nv_area: boolean,
 ): { amount: Decimal; description: string } {
   const currentYear = 2026
   const previousYear = currentYear - 1
 
   const sandyOrLoessRegions: RegionKey[] = ["zand_nwc", "zand_zuid", "loess"]
+  const clayOrPeatRegions: RegionKey[] = ["klei", "veen"]
 
-  // Check if field is outside regions with korting (2026: ONLY Sand/Loess)
-  if (!sandyOrLoessRegions.includes(region)) {
-    return {
-      amount: new Decimal(0),
-      description: ".",
-    }
-  }
+  let totalAmount = new Decimal(0)
+  const descriptions: string[] = []
 
   // Sort cultivations by start date
   const sortedCultivations = [...cultivations].sort((a, b) => {
@@ -381,39 +221,38 @@ function calculateKorting(
     const isCurrGrass = nonBouwlandCodes.includes(currCult.b_lu_catalogue)
 
     // 1. Grassland Renewal (Gras-na-Gras) -> 50 kg N/ha korting
-    // Only applies on Sand/Loess (already checked above)
     if (isPrevGrass && isCurrGrass) {
       const renewalDate = prevCult.b_lu_end
-      // Sand/Loess: June 1 - August 31
-      if (
+      let isValidRenewal = false
+
+      // Footnote 14 (2026): Renewal between 1 June and 31 August for all soil types
+      const isJuneToAugust =
         renewalDate >= new Date(currentYear, 5, 1) && // June 1
         renewalDate <= new Date(currentYear, 7, 31) // Aug 31
-      ) {
-        return {
-          amount: new Decimal(50),
-          description: ". Korting: 50kg N/ha: graslandvernieuwing",
-        }
+
+      if (isJuneToAugust) {
+        isValidRenewal = true
       }
-      // Error if date is invalid for renewal
-      throw new NormNotApplicableError(
-        "Graslandvernieuwing op zand- en lössgrond is alleen toegestaan tussen 1 juni en 31 augustus.",
-      )
+
+      if (isValidRenewal) {
+        totalAmount = totalAmount.plus(50)
+        descriptions.push("Korting: 50kg N/ha: graslandvernieuwing")
+      }
     }
 
     // 2. Grassland Destruction (Gras-naar-Bouwland) -> 65 kg N/ha korting
     const isMaize = currStandard?.cultivation_rvo_table2.includes("mais")
     const isPotato = currStandard?.type === "aardappel"
-    const isSeedPotato =
+    const isExcludedPotato =
       currStandard?.cultivation_rvo_table2.includes("pootaardappelen") ||
       currCult.b_lu_catalogue === "nl_2015" ||
       currCult.b_lu_catalogue === "nl_2016" ||
+      currCult.b_lu_catalogue === "nl_1911" ||
+      currCult.b_lu_catalogue === "nl_1912" ||
       currStandard?.cultivation_rvo_table2.includes("uitgroeiteelt")
 
-    if (isPrevGrass && (isMaize || (isPotato && !isSeedPotato))) {
+    if (isPrevGrass && (isMaize || (isPotato && !isExcludedPotato))) {
       // Check Exclusion: Was previous grass a Catch Crop?
-      // "Infer from sowing date (late previous year)"
-      // If sown in autumn of previous year (e.g. >= Aug 1), it's a catch crop.
-      // Also check is_vanggewas property if true.
       const isCatchCrop =
         prevStandard?.is_vanggewas ||
         (prevCult.b_lu_start &&
@@ -421,243 +260,104 @@ function calculateKorting(
           prevCult.b_lu_start.getMonth() >= 7) // August or later
 
       if (isCatchCrop) {
-        // No korting allowed if it was a catch crop
         continue
       }
 
       const destructionDate = prevCult.b_lu_end
-      // Sand/Loess: Feb 1 - May 10
-      if (
-        destructionDate >= new Date(currentYear, 1, 1) && // Feb 1
-        destructionDate <= new Date(currentYear, 4, 10) // May 10
-      ) {
-        return {
-          amount: new Decimal(65),
-          description: ". Korting: 65kg N/ha: graslandvernietiging",
+      let isValidDestruction = false
+
+      if (sandyOrLoessRegions.includes(region)) {
+        // Sand/Loess: Feb 1 - May 10
+        if (
+          destructionDate >= new Date(currentYear, 1, 1) && // Feb 1
+          destructionDate <= new Date(currentYear, 4, 10) // May 10
+        ) {
+          isValidDestruction = true
+        }
+      } else if (clayOrPeatRegions.includes(region)) {
+        if (is_nv_area) {
+          // Clay/Peat NV: Feb 1 - Mar 15
+          if (
+            destructionDate >= new Date(currentYear, 1, 1) &&
+            destructionDate <= new Date(currentYear, 2, 15)
+          ) {
+            isValidDestruction = true
+          }
+        } else {
+          // Clay/Peat Non-NV: Feb 1 - May 31
+          if (
+            destructionDate >= new Date(currentYear, 1, 1) &&
+            destructionDate <= new Date(currentYear, 4, 31)
+          ) {
+            isValidDestruction = true
+          }
         }
       }
-      // Error if date is invalid for destruction
-      throw new NormNotApplicableError(
-        "Graslandvernietiging op zand- en lössgrond is alleen toegestaan tussen 1 februari en 10 mei.",
-      )
-    }
-  }
 
-  // Determine hoofdteelt for the current year (2026)
-  const hoofdteelt2026 = determineNLHoofdteelt(cultivations, 2026)
-  const hoofdteelt2026Standard = nitrogenStandardsData.find((ns) =>
-    ns.b_lu_catalogue_match.includes(hoofdteelt2026),
-  )
-
-  // Grasland is exlcuded from korting
-  if (nonBouwlandCodes.includes(hoofdteelt2026)) {
-    return {
-      amount: new Decimal(0),
-      description: ".",
-    }
-  }
-
-  // Check for winterteelt exception (hoofdteelt of 2026 is winterteelt, sown in late 2025)
-  if (hoofdteelt2026Standard?.is_winterteelt) {
-    return {
-      amount: new Decimal(0),
-      description: ". Geen korting: winterteelt aanwezig",
-    }
-  }
-
-  // Filter cultivations for the previous year (2025)
-  const cultivations2025 = cultivations.filter(
-    (c) => c.b_lu_start && c.b_lu_start.getFullYear() === previousYear,
-  )
-
-  // Check for vanggewas exception in 2025
-  const vanggewassen2025 = cultivations2025.filter((prevCultivation) => {
-    const matchingStandard = nitrogenStandardsData.find((ns) =>
-      ns.b_lu_catalogue_match.includes(prevCultivation.b_lu_catalogue),
-    )
-    const matchingYear =
-      prevCultivation.b_lu_start &&
-      prevCultivation.b_lu_start.getTime() < new Date(currentYear, 1, 1).getTime() &&
-      prevCultivation.b_lu_start.getTime() > new Date(previousYear, 6, 15).getTime() // Vanggewas should be sown between July 15th, 2025 and February 1st 2026 (exclusive)
-    return matchingStandard?.is_vanggewas === true && matchingYear === true
-  })
-  if (vanggewassen2025.length === 0) {
-    return {
-      amount: new Decimal(20),
-      description: ". Korting: 20kg N/ha: geen vanggewas of winterteelt",
-    }
-  }
-
-  // Check if a vanggewas is present to February 1st
-  const vanggewassenCompleted2025 = vanggewassen2025.filter((prevCultivation) => {
-    return (
-      prevCultivation.b_lu_end === null ||
-      (prevCultivation.b_lu_end &&
-        prevCultivation.b_lu_end.getTime() >= new Date(currentYear, 1).getTime()) // Month 1 is February
-    )
-  })
-  if (vanggewassenCompleted2025.length === 0) {
-    return {
-      amount: new Decimal(20),
-      description: ". Korting: 20kg N/ha: vanggewas staat niet tot 1 februari",
-    }
-  }
-  // If multiple vanggewassen are completed to February 1st select the vangewas that was first sown
-  const sortedVanggewassen = vanggewassenCompleted2025
-    .filter((v) => v.b_lu_start !== undefined)
-    .sort((a, b) => {
-      if (!a.b_lu_start || !b.b_lu_start) {
-        return 0
+      if (isValidDestruction) {
+        totalAmount = totalAmount.plus(65)
+        descriptions.push("Korting: 65kg N/ha: graslandvernietiging")
       }
-      return a.b_lu_start.getTime() - b.b_lu_start.getTime()
-    })
-  const vanggewas2025 = sortedVanggewassen[0]
-
-  const sowDate = vanggewas2025.b_lu_start
-  if (!sowDate) {
-    return {
-      amount: new Decimal(20),
-      description: ". Korting: 20kg N/ha, geen zaaidatum bekend",
     }
   }
 
-  const october1 = new Date(previousYear, 9, 1) // October 1st
-  const october15 = new Date(previousYear, 9, 15) // October 15th
-  const november1 = new Date(previousYear, 10, 1) // November 1st
+  // Calculate catch crop korting
+  const catchCropAmount = calculateVanggewasWinterteeltKorting(
+    cultivations,
+    region,
+    currentYear,
+    descriptions,
+  )
+  totalAmount = totalAmount.plus(catchCropAmount)
 
-  let kortingAmount: Decimal
-  let kortingDescription: string
-
-  if (sowDate <= october1) {
-    kortingAmount = new Decimal(0)
-    kortingDescription = ". Geen korting: vanggewas gezaaid uiterlijk 1 oktober"
-  } else if (sowDate > october1 && sowDate < october15) {
-    kortingAmount = new Decimal(5)
-    kortingDescription = ". Korting: 5kg N/ha, vanggewas gezaaid tussen 2 t/m 14 oktober"
-  } else if (sowDate >= october15 && sowDate < november1) {
-    kortingAmount = new Decimal(10)
-    kortingDescription = ". Korting: 10kg N/ha, vanggewas gezaaid tussen 15 t/m 31 oktober"
-  } else {
-    kortingAmount = new Decimal(20)
-    kortingDescription = ". Korting: 20kg N/ha, vanggewas gezaaid op of na 1 november"
-  }
-
-  return { amount: kortingAmount, description: kortingDescription }
+  const descriptionStr = descriptions.length > 0 ? `. ${descriptions.join(". ")}` : "."
+  return { amount: totalAmount, description: descriptionStr }
 }
 
 /**
- * Determines the 'gebruiksnorm' (usage standard) for nitrogen for a given cultivation
- * based on its BRP code, geographical location, and other specific characteristics.
- * This function is the primary entry point for calculating the nitrogen usage norm
- * according to the Dutch RVO's "Tabel 2 Stikstof landbouwgrond 2026" and related annexes.
+ * Calculates the nitrogen usage standard for an individual cultivation in 2026 according to RVO Tabel 2.
  *
- * @param input - An object of type `NL2026NormsInput` containing all necessary data:
- *   - `farm.is_derogatie_bedrijf`: A boolean indicating if the farm operates under derogation.
- *   - `field.b_centroid`: An object with the latitude and longitude of the field's centroid.
- *   - `cultivations`: An array of cultivation objects, from which the `hoofdteelt` (main crop)
- *     will be determined.
- * @returns A promise that resolves to an object of type `GebruiksnormResult` containing:
- *   - `normValue`: The determined nitrogen usage standard in kilograms per hectare (kg/ha).
- *   - `normSource`: The descriptive name from RVO Table 2 used for the calculation.
- *   - `kortingDescription`: A description of any korting (reduction) applied to the norm.
- * Returns `null` if no matching standard or applicable norm can be found for the given input.
- * @throws {Error} If the `hoofdteelt` cultivation cannot be found or if geographical data
- *   queries fail.
+ * This function performs multi-step agronomic compliance checks:
+ * 1. **Standard & Subtype Resolution**: Matches `b_lu_catalogue` to Tabel 2 (2026) records. For non-main crops (`!isHoofdteelt`),
+ *    it prioritizes explicit `volgteelt` entries where available.
+ * 2. **Regional & NV-area Norm Selection**: Fetches the applicable base norm in kg N/ha for the field's soil region
+ *    and NV-gebied designation.
+ * 3. **Footnote 2 & 6 Compliance (Maïs follow-up suppression)**:
+ *    - Suppresses norms (sets 0 kg N/ha) for green manures (`Groenbemesters`), catch crops (`is_vanggewas`),
+ *      and temporary grassland (`tijdelijkGraslandCodes`) following maize on the same field in the calendar year.
+ * 4. **Footnote 7a Compliance (Green manure conditions)**:
+ *    - Green manure norms (`Groenbemesters, niet-vlinderbloemige`) are conditional upon:
+ *      - Having an immediate preceding crop in the same calendar year.
+ *      - Preceding crop being a cereal (`graanCodes`), grass seed (`graszaadCodes`), or rapeseed (`koolzaadCodes`) for a full 100% norm.
+ *      - On sand/loess following temporary grassland (`tijdelijkGraslandCodes`), granting a 50% norm.
+ *      - Sowing date strictly before 1 September.
+ *      - Standing until at least 1 February of the following year.
+ *    - If conditions are unmet, grants 0 kg N/ha with an explanatory status note.
+ * 5. **Footnote 7b Compliance (Graszaadstoppel)**:
+ *    - Requires cultivation start on or before 16 September; otherwise grants 0 kg N/ha.
+ * 6. **Grassland Renewal Sod Continuation**:
+ *    - Resown grassland (`isGrass && hasGrassBeforeInYear`) shares the single annual grassland allowance (0 kg N/ha for 2nd sod).
  *
- * @remarks
- * The function follows a comprehensive, multi-step process to accurately determine the
- * correct nitrogen norm:
- *
- * 1.  **Identify Main Crop (`hoofdteelt`)**:
- *     The `determineNLHoofdteelt` function is called to identify the primary cultivation
- *     (`b_lu_catalogue`) for the field based on the provided `cultivations` array. This is
- *     the first step to narrow down the applicable nitrogen standards.
- *
- * 2.  **Determine Geographical Context**:
- *     -   `isFieldInNVGebied`: This asynchronous helper function is called to check if the
- *         field's centroid falls within a Nitraatkwetsbaar Gebied (NV-gebied). Fields in NV-gebieds
- *         often have stricter (lower) nitrogen norms.
- *     -   `getRegion`: This asynchronous helper function determines the specific soil region
- *         (e.g., "zand" for sandy soil, "klei" for clay soil) based on the field's coordinates.
- *         Nitrogen norms can vary significantly by soil type.
- *     Both functions use efficient spatial queries to retrieve this information.
- *
- * 3.  **Match Nitrogen Standard Data**:
- *     The `nitrogenStandardsData` (loaded from a JSON file) is filtered to find all entries
- *     (`NitrogenStandard` objects) whose `b_lu_catalogue_match` array includes the identified
- *     `b_lu_catalogue` of the `hoofdteelt`.
- *
- * 4.  **Refine by Variety (for Potatoes)**:
- *     If the `hoofdteelt` has a specific `b_lu_variety` (e.g., for potatoes), the matching
- *     standards are further filtered. Potatoes can have "high" (`varieties_hoge_norm`) or
- *     "low" (`varieties_lage_norm`) nitrogen norms based on their variety. If a specific
- *     variety match is not found, it falls back to "overig" (other) potato norms if available.
- *
- * 5.  **Select the Most Specific Standard**:
- *     If multiple `NitrogenStandard` entries still match after initial filtering and
- *     variety-specific refinement, the function attempts to select the most specific one.
- *     This prioritization ensures that detailed rules (e.g., those without `variety_type`
- *     or `sub_types` if a direct match is found) are applied correctly.
- *
- * 6.  **Retrieve Applicable Norms**:
- *     The `getNormsForCultivation` helper function is called with the `selectedStandard`
- *     and other relevant parameters (variety, cultivation end date).
- *     This function applies a hierarchy of rules (sub-type periods, variety-specific,
- *     derogation-specific) to return the precise `NormsByRegion` object for the cultivation.
- *
- * 7.  **Calculate Final Norm Value**:
- *     From the `applicableNorms` object, the function retrieves the specific norms for the
- *     determined `region`. The final `normValue` is then selected: if the field is in an
- *     `is_nv_area`, the `nv_area` norm is used; otherwise, the `standard` norm is applied.
- *
- * 8.  **Apply "Korting" (Reduction)**:
- *     The `calculateKorting` function is called to determine if a reduction should be applied
- *     based on the previous year's cultivations and the field's region. The calculated
- *     `kortingAmount` is then subtracted from the `normValue`.
- *
- * This detailed process ensures that the calculated nitrogen usage norm is accurate and
- * compliant with RVO regulations, taking into account all relevant agricultural and
- * geographical factors.
- *
- * @see {@link https://www.rvo.nl/sites/default/files/2025-12/Tabel-2-Stikstof-landbouwgrond-2026_0.pdf | RVO Tabel 2 Stikstof landbouwgrond 2026} - Official document for nitrogen norms.
- * @see {@link https://www.rvo.nl/onderwerpen/mest/gebruiken-en-uitrijden/stikstof-en-fosfaat/gebruiksnormen-stikstof | RVO Gebruiksnormen stikstof (official page)} - General information on nitrogen and phosphate norms.
+ * @param cultivation - The cultivation being calculated.
+ * @param isHoofdteelt - True if this cultivation is the designated main crop of the year.
+ * @param prevCultivationsInYear - Prior cultivations in the same calendar year on this parcel.
+ * @param cultivations - Complete array of cultivations on the field.
+ * @param has_grazing_intention - Grazing intention for grassland parcels.
+ * @param region - Soil region classification.
+ * @param is_nv_area - Nutrient-polluted area (NV-gebied) indicator.
+ * @returns Object containing the calculated norm value, standard name, subtype text, and explanatory footnote note.
+ * @throws {NormNotApplicableError} If no matching crop standard exists in Tabel 2.
  */
-export async function calculateNL2026StikstofGebruiksNorm(
-  input: NL2026NormsInput,
-): Promise<GebruiksnormResult> {
-  const has_grazing_intention = input.farm.has_grazing_intention
-  const field = input.field
-  const cultivations = input.cultivations
-
-  // Check for buffer strip
-  if (field.b_bufferstrip) {
-    return {
-      normValue: 0,
-      normSource: "Bufferstrook: geen plaatsingsruimte",
-    }
-  }
-
-  // Determine hoofdteelt
-  const b_lu_catalogue = determineNLHoofdteelt(cultivations, 2026)
-  let cultivation = cultivations.find((c) => c.b_lu_catalogue === b_lu_catalogue)
-
-  //Create cultivation in case of braak
-  if (b_lu_catalogue === "nl_6794") {
-    cultivation = {
-      b_lu: "Groene braak, spontane opkomst",
-      b_lu_catalogue: "nl_6794",
-      b_lu_start: new Date("2026-01-01"),
-      b_lu_end: new Date("2026-12-31"),
-      b_lu_variety: null,
-    }
-  }
-  if (!cultivation) {
-    throw new NormNotApplicableError(`Cultivation with b_lu_catalogue ${b_lu_catalogue} not found`)
-  }
-
-  // Determine region and NV gebied
-  const is_nv_area = await isFieldInNVGebied(field.b_centroid)
-  const region = await getRegion(field.b_centroid)
+function calculateSingleCultivationNorm(
+  cultivation: NL2026NormsInputForCultivation,
+  isHoofdteelt: boolean,
+  prevCultivationsInYear: NL2026NormsInputForCultivation[],
+  cultivations: NL2026NormsInputForCultivation[],
+  has_grazing_intention: boolean | undefined,
+  region: RegionKey,
+  is_nv_area: boolean,
+): { normValue: Decimal; sourceName: string; subTypeText: string; noteText: string } {
+  const b_lu_catalogue = cultivation.b_lu_catalogue
 
   // Find matching nitrogen standard data based on b_lu_catalogue_match
   const matchingStandards: NitrogenStandard[] = nitrogenStandardsData.filter(
@@ -670,18 +370,33 @@ export async function calculateNL2026StikstofGebruiksNorm(
     )
   }
 
-  // Prioritize exact matches if multiple exist (e.g., for specific potato types)
+  // Prioritize exact matches if multiple exist (e.g., for volgteelt or specific potato types)
   let selectedStandard: NitrogenStandard | undefined
 
   if (matchingStandards.length === 1) {
     selectedStandard = matchingStandards[0]
   } else if (matchingStandards.length > 1) {
-    // If multiple standards match b_lu_catalogue, try to find a more specific one
-    // This could be based on sub_types with specific omschrijving or varieties
-    selectedStandard =
-      matchingStandards.find((ns) =>
-        ns.sub_types?.some((sub) => sub.omschrijving || sub.varieties),
-      ) || matchingStandards[0] // Fallback to the first if no specific sub_type is found
+    if (!isHoofdteelt) {
+      selectedStandard = matchingStandards.find((ns) =>
+        ns.cultivation_rvo_table2.toLowerCase().includes("volgteelt"),
+      )
+    } else {
+      selectedStandard =
+        matchingStandards.find(
+          (ns) =>
+            !ns.cultivation_rvo_table2.toLowerCase().includes("volgteelt") &&
+            ns.sub_types?.some((sub) => sub.omschrijving || sub.varieties),
+        ) ||
+        matchingStandards.find(
+          (ns) => !ns.cultivation_rvo_table2.toLowerCase().includes("volgteelt"),
+        )
+    }
+    if (!selectedStandard) {
+      selectedStandard =
+        matchingStandards.find((ns) =>
+          ns.sub_types?.some((sub) => sub.omschrijving || sub.varieties),
+        ) || matchingStandards[0]
+    }
   }
 
   if (!selectedStandard) {
@@ -698,6 +413,7 @@ export async function calculateNL2026StikstofGebruiksNorm(
     selectedStandard,
     cultivations,
     has_grazing_intention,
+    isHoofdteelt,
   )
 
   const applicableNorms = getNormsForCultivation(
@@ -722,37 +438,265 @@ export async function calculateNL2026StikstofGebruiksNorm(
   }
 
   let normValue = new Decimal(is_nv_area ? normsForRegion.nv_area : normsForRegion.standard)
+  let noteText = ""
+
+  // Footnote 2 & 6: Suppression of groenbemester, tijdelijk grasland and vanggewas norms after maize
+  const immediatePrecedingCrop =
+    prevCultivationsInYear.length > 0
+      ? prevCultivationsInYear[prevCultivationsInYear.length - 1]
+      : undefined
+
+  const hasMaizeBefore =
+    !isHoofdteelt &&
+    Boolean(
+      immediatePrecedingCrop &&
+      (maisCodes.includes(immediatePrecedingCrop.b_lu_catalogue) ||
+        nitrogenStandardsData
+          .find((ns) => ns.b_lu_catalogue_match.includes(immediatePrecedingCrop.b_lu_catalogue))
+          ?.cultivation_rvo_table2.toLowerCase()
+          .includes("mais")),
+    )
+
+  const isGroenbemesterOrCatchOrTempGrass =
+    selectedStandard.type === "groenbemester" ||
+    selectedStandard.is_vanggewas ||
+    selectedStandard.type === "grasland_tijdelijk" ||
+    tijdelijkGraslandCodes.includes(cultivation.b_lu_catalogue)
+
+  if (hasMaizeBefore && isGroenbemesterOrCatchOrTempGrass) {
+    normValue = new Decimal(0)
+    noteText = " (geen extra ruimte na maïs, voetnoot 2/6)"
+  } else if (selectedStandard.cultivation_rvo_table2 === "Groenbemesters, niet-vlinderbloemige") {
+    // Footnote 7a: Groenbemester conditions
+    const isPrecedingCerealOrRapeseedOrGrassSeed =
+      immediatePrecedingCrop &&
+      (graanCodes.includes(immediatePrecedingCrop.b_lu_catalogue) ||
+        koolzaadCodes.includes(immediatePrecedingCrop.b_lu_catalogue) ||
+        graszaadCodes.includes(immediatePrecedingCrop.b_lu_catalogue))
+
+    const isPrecedingGrasOpBouwland =
+      immediatePrecedingCrop &&
+      tijdelijkGraslandCodes.includes(immediatePrecedingCrop.b_lu_catalogue)
+
+    const isSandyOrLoess = ["zand_nwc", "zand_zuid", "loess"].includes(region)
+
+    const isSownBeforeSept1 =
+      cultivation.b_lu_start &&
+      (cultivation.b_lu_start.getFullYear() < 2026 ||
+        (cultivation.b_lu_start.getFullYear() === 2026 && cultivation.b_lu_start.getMonth() < 8))
+
+    const isNotDestroyedBeforeFeb1 =
+      !cultivation.b_lu_end || cultivation.b_lu_end >= new Date(2027, 1, 1)
+
+    if (!immediatePrecedingCrop) {
+      normValue = new Decimal(0)
+      noteText = " (geen extra ruimte: geen voorafgaande teelt, voetnoot 7a)"
+    } else if (
+      !isPrecedingCerealOrRapeseedOrGrassSeed &&
+      !(isSandyOrLoess && isPrecedingGrasOpBouwland)
+    ) {
+      normValue = new Decimal(0)
+      noteText = " (geen extra ruimte: niet geteeld na granen, graszaad of koolzaad, voetnoot 7a)"
+    } else if (!isSownBeforeSept1) {
+      normValue = new Decimal(0)
+      noteText = " (geen extra ruimte: gezaaid op of na 1 september, voetnoot 7a)"
+    } else if (!isNotDestroyedBeforeFeb1) {
+      normValue = new Decimal(0)
+      noteText = " (geen extra ruimte: vernietigd vóór 1 februari, voetnoot 7a)"
+    } else if (isPrecedingCerealOrRapeseedOrGrassSeed) {
+      // 100% of norm
+      noteText = " (volgteelt na granen, graszaad of koolzaad, voetnoot 7a)"
+    } else if (isSandyOrLoess && isPrecedingGrasOpBouwland) {
+      // 50% of norm on sand or loess after grass on arable land
+      normValue = normValue.dividedBy(2)
+      noteText = " (extra ruimte (50%) na gras op bouwland, voetnoot 7a)"
+    }
+  }
+
+  // Footnote 7b: Graszaadstoppel
+  if (
+    selectedStandard.cultivation_rvo_table2 ===
+    "Graszaadstoppel ter vernietiging in najaar of vroege voorjaar"
+  ) {
+    const isBeforeSept16 =
+      !cultivation.b_lu_start ||
+      cultivation.b_lu_start.getMonth() < 8 ||
+      (cultivation.b_lu_start.getMonth() === 8 && cultivation.b_lu_start.getDate() < 16)
+
+    if (isBeforeSept16) {
+      noteText = " (graszaadstoppel, voetnoot 7b)"
+    } else {
+      normValue = new Decimal(0)
+      noteText = " (geen extra ruimte: niet voldaan aan voorwaarden graszaadstoppel, voetnoot 7b)"
+    }
+  }
+
+  // Grassland renewal: multiple grass crops on the same field in the same year share the annual grassland allowance
+  const isGrass = nonBouwlandCodes.includes(cultivation.b_lu_catalogue)
+  const hasGrassBeforeInYear = prevCultivationsInYear.some((c) =>
+    nonBouwlandCodes.includes(c.b_lu_catalogue),
+  )
+  if (isGrass && hasGrassBeforeInYear) {
+    normValue = new Decimal(0)
+    noteText = " (heringezaaid)"
+  }
+
+  const subTypeText = subTypeOmschrijving ? ` (${subTypeOmschrijving})` : ""
+  return {
+    normValue,
+    sourceName: selectedStandard.cultivation_rvo_table2,
+    subTypeText,
+    noteText,
+  }
+}
+
+/**
+ * Determines the 'gebruiksnorm' (nitrogen application standard) for a given field and cultivation plan in 2026
+ * by accumulating per-teelt norms across all active crops in the calendar year according to
+ * Dutch RVO "Tabel 2 Stikstof landbouwgrond 2026".
+ *
+ * ### Agronomic & Legal Workflow:
+ * 1. **Buffer Strip Check**: Parcels marked with `b_bufferstrip` receive 0 kg N/ha.
+ * 2. **Geographical Resolution**: Determines soil type (`getRegion`) and NV-gebied status (`isFieldInNVGebied`).
+ * 3. **Main Crop Identification**: Identifies the statutory `hoofdteelt` (present between 15 May and 15 July).
+ * 4. **Multi-Teelt Accumulation**:
+ *    - Iterates over all active cultivations in the calendar year (including overwintering main crops).
+ *    - The main crop receives its 1st cultivation standard (`1e teelt`).
+ *    - Successive crops receive volgteelt / subtype standards with applicable footnote checks (footnotes 2, 6, 7a, 7b).
+ * 5. **Statutory Reductions ("Kortingen")**:
+ *    - Grassland renewal reduction (50 kg N/ha on all soils, footnote 14).
+ *    - Grassland destruction reduction (65 kg N/ha).
+ *    - Article 28d catch-crop / winter-crop shortfall reductions.
+ * 6. **Floor & Formatting**: Enforces non-negative norm floor (min 0) and generates a detailed audit breakdown string.
+ *
+ * @param input - Input data containing farm settings, field centroid/bufferstrip, and cultivation schedule.
+ * @returns An object containing the aggregated `normValue` (in kg N/ha) and the descriptive `normSource`.
+ *
+ * @see `fdm-docs/docs/insights/fertilizer-application-norms/nl/2026/stikstofgebruiksnorm.md`
+ */
+export async function calculateNL2026StikstofGebruiksNorm(
+  input: NL2026NormsInput,
+): Promise<GebruiksnormResult> {
+  const has_grazing_intention = input.farm.has_grazing_intention
+  const field = input.field
+  const cultivations = input.cultivations
+
+  // Check for buffer strip
+  if (field.b_bufferstrip) {
+    return {
+      normValue: 0,
+      normSource: "Bufferstrook: geen plaatsingsruimte",
+    }
+  }
+
+  // Determine region and NV gebied
+  const is_nv_area = await isFieldInNVGebied(field.b_centroid)
+  const region = await getRegion(field.b_centroid)
+
+  // Find hoofdteelt (May 15 - July 15)
+  const hoofdteelt = findHoofdteelt(cultivations, 2026, false, true)
+
+  // Filter cultivations active in 2026
+  const yearStart = new Date(2026, 0, 1)
+  const yearEnd = new Date(2026, 11, 31, 23, 59, 59, 999)
+
+  let yearCultivations = cultivations.filter((c) => {
+    // Must overlap with the norm year
+    const start = c.b_lu_start ? new Date(c.b_lu_start) : yearStart
+    const end = c.b_lu_end ? new Date(c.b_lu_end) : yearEnd
+    if (start > yearEnd || end < yearStart) return false
+
+    // If it started before the norm year, it is only included if it is the hoofdteelt of the norm year
+    if (c.b_lu_start && new Date(c.b_lu_start).getFullYear() < 2026) {
+      return c === hoofdteelt
+    }
+    // If it started after the norm year, it is not part of this year
+    if (c.b_lu_start && new Date(c.b_lu_start).getFullYear() > 2026) {
+      return false
+    }
+
+    return true
+  })
+
+  // If no cultivations active in 2026, use fallback hoofdteelt (groene braak)
+  if (yearCultivations.length === 0) {
+    yearCultivations = [hoofdteelt as NL2026NormsInputForCultivation]
+  }
+
+  // Sort chronologically by start date
+  const sortedCultivations = [...yearCultivations].sort((a, b) => {
+    const aTime = a.b_lu_start ? new Date(a.b_lu_start).getTime() : 0
+    const bTime = b.b_lu_start ? new Date(b.b_lu_start).getTime() : 0
+    return aTime - bTime
+  })
+
+  // Determine which index in sortedCultivations is the hoofdteelt
+  const hoofdteeltIndex = sortedCultivations.findIndex((c) =>
+    c.b_lu && hoofdteelt.b_lu ? c.b_lu === hoofdteelt.b_lu : c === hoofdteelt,
+  )
+
+  let totalNormValue = new Decimal(0)
+  const normBreakdownItems: Array<{
+    sourceName: string
+    subTypeText: string
+    noteText: string
+    normValue: Decimal
+  }> = []
+
+  for (let i = 0; i < sortedCultivations.length; i++) {
+    const cult = sortedCultivations[i]
+    const isHoofd = hoofdteeltIndex !== -1 ? i === hoofdteeltIndex : i === 0
+    const prevCults = sortedCultivations.slice(0, i)
+
+    const result = calculateSingleCultivationNorm(
+      cult,
+      isHoofd,
+      prevCults,
+      cultivations,
+      has_grazing_intention,
+      region,
+      is_nv_area,
+    )
+
+    totalNormValue = totalNormValue.plus(result.normValue)
+    normBreakdownItems.push(result)
+  }
 
   // Apply korting
   const { amount: kortingAmount, description: kortingDescription } = calculateKorting(
     cultivations,
     region,
+    is_nv_area,
   )
-  normValue = new Decimal(normValue).minus(kortingAmount)
+  let finalNormValue = totalNormValue.minus(kortingAmount)
 
   // If normvalue is negative, e.g. Geen plaatsingsruimte plus korting, set it to 0
-  if (normValue.isNegative()) {
-    normValue = new Decimal(0)
+  if (finalNormValue.isNegative()) {
+    finalNormValue = new Decimal(0)
   }
 
-  const subTypeText = subTypeOmschrijving ? ` (${subTypeOmschrijving})` : ""
+  let normSourceStr: string
+  if (normBreakdownItems.length === 1) {
+    const item = normBreakdownItems[0]
+    normSourceStr = `${item.sourceName}${item.subTypeText}${item.noteText}${kortingDescription}`
+  } else {
+    const breakdown = normBreakdownItems
+      .map(
+        (item) =>
+          `${item.sourceName}${item.subTypeText}${item.noteText} (${item.normValue.toNumber()} kg N/ha)`,
+      )
+      .join(" + ")
+    normSourceStr = `${breakdown}${kortingDescription}`
+  }
+
   return {
-    normValue: normValue.toNumber(),
-    normSource: `${selectedStandard.cultivation_rvo_table2}${subTypeText}${kortingDescription}`,
+    normValue: finalNormValue.toNumber(),
+    normSource: normSourceStr,
   }
 }
 
 /**
  * Memoized version of {@link calculateNL2026StikstofGebruiksNorm}.
- *
- * This function is wrapped with `withCalculationCache` to optimize performance by caching
- * results based on the input and the current calculator version.
- *
- * @param {NL2026NormsInput} input - An object of type `NL2026NormsInput` containing all necessary data.
- * @returns {Promise<GebruiksnormResult>} A promise that resolves to an object of type `GebruiksnormResult` containing:
- *   - `normValue`: The determined nitrogen usage standard in kilograms per hectare (kg/ha).
- *   - `normSource`: The descriptive name from RVO Table 2 used for the calculation.
- *   - `kortingDescription`: A description of any korting (reduction) applied to the norm.
  */
 export const getNL2026StikstofGebruiksNorm = withCalculationCache(
   calculateNL2026StikstofGebruiksNorm,

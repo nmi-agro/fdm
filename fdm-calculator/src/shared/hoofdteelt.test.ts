@@ -16,7 +16,7 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-07-20"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_B")
+    expect(findHoofdteelt(cultivations, 2025)).toBe(cultivations[1])
   })
 
   it("should return the alphabetically first cultivation in case of a tie", () => {
@@ -32,7 +32,7 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-07-15"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_C")
+    expect(findHoofdteelt(cultivations, 2025)).toBe(cultivations[0])
   })
 
   it("should return GROENE_BRAAK by default if no cultivation overlaps the period", () => {
@@ -43,7 +43,7 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-05-14"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe(GROENE_BRAAK)
+    expect(findHoofdteelt(cultivations, 2025).b_lu_catalogue).toBe(GROENE_BRAAK)
   })
 
   it("should return null instead of GROENE_BRAAK when returnNull is true and nothing overlaps", () => {
@@ -65,7 +65,7 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-07-20"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025, true)).toBe("cat_B")
+    expect(findHoofdteelt(cultivations, 2025, true)).toBe(cultivations[0])
   })
 
   it("should handle cultivations that only partially overlap", () => {
@@ -81,11 +81,11 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-05-20"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_F")
+    expect(findHoofdteelt(cultivations, 2025)).toBe(cultivations[0])
   })
 
   it("should handle an empty array of cultivations by returning GROENE_BRAAK", () => {
-    expect(findHoofdteelt([], 2025)).toBe(GROENE_BRAAK)
+    expect(findHoofdteelt([], 2025).b_lu_catalogue).toBe(GROENE_BRAAK)
   })
 
   it("should handle an empty array of cultivations by returning null when returnNull is true", () => {
@@ -100,7 +100,7 @@ describe("findHoofdteelt", () => {
         b_lu_end: null,
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_H")
+    expect(findHoofdteelt(cultivations, 2025)).toBe(cultivations[0])
   })
 
   it("should skip cultivations without a b_lu_start", () => {
@@ -111,7 +111,7 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-06-01"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe(GROENE_BRAAK)
+    expect(findHoofdteelt(cultivations, 2025).b_lu_catalogue).toBe(GROENE_BRAAK)
   })
 
   it("should break ties by effective (clamped) duration, not raw cultivation length", () => {
@@ -127,7 +127,7 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-05-25"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_aa_early")
+    expect(findHoofdteelt(cultivations, 2025)).toBe(cultivations[1])
   })
 
   it("should prefer the cultivation with the larger effective overlap when raw durations are equal", () => {
@@ -143,6 +143,28 @@ describe("findHoofdteelt", () => {
         b_lu_end: new Date("2025-06-19"),
       },
     ]
-    expect(findHoofdteelt(cultivations, 2025)).toBe("cat_fully_inside")
+    expect(findHoofdteelt(cultivations, 2025)).toBe(cultivations[1])
+  })
+
+  it("should return a synthetic groene braak cultivation when no cultivation overlaps", () => {
+    const result = findHoofdteelt([], 2025)
+
+    expect(result).toEqual({
+      b_lu: "Groene braak, spontane opkomst",
+      b_lu_catalogue: GROENE_BRAAK,
+      b_lu_start: new Date("2025-01-01"),
+      b_lu_end: new Date("2025-12-31"),
+      b_lu_variety: null,
+    })
+  })
+
+  it("should treat a missing start date as already present when requested", () => {
+    const cultivation: CultivationForHoofdteelt = {
+      b_lu_catalogue: "cat_unknown_start",
+      b_lu_start: undefined,
+      b_lu_end: new Date("2025-07-01"),
+    }
+
+    expect(findHoofdteelt([cultivation], 2025, false, true)).toBe(cultivation)
   })
 })

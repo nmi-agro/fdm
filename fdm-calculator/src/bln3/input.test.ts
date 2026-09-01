@@ -613,7 +613,7 @@ describe("findHoofdteelt boundary and tie-break cases", () => {
       ],
       2024,
     )
-    expect(result).toBe("nl_265")
+    expect(result.b_lu_catalogue).toBe("nl_265")
   })
 
   it("excludes a cultivation that starts exactly on July 15 (zero-length overlap)", () => {
@@ -628,7 +628,7 @@ describe("findHoofdteelt boundary and tie-break cases", () => {
       ],
       2024,
     )
-    expect(result).toBe("nl_6794") // groene braak
+    expect(result.b_lu_catalogue).toBe("nl_6794") // groene braak
   })
 
   it("resolves a tie by choosing the alphabetically-first b_lu_catalogue", () => {
@@ -648,6 +648,6 @@ describe("findHoofdteelt boundary and tie-break cases", () => {
       ],
       2024,
     )
-    expect(result).toBe("nl_100")
+    expect(result.b_lu_catalogue).toBe("nl_100")
   })
 })

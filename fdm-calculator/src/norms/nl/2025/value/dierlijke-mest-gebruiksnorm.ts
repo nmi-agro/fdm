@@ -17,12 +17,15 @@ import { isFieldInNVGebied } from "./stikstofgebruiksnorm"
  *   and `false` if the value is 0.
  * @throws {Error} If the GeoTIFF returns an unexpected value, or if there are issues fetching or processing the file.
  */
-export async function isFieldInGWGBGebied(b_centroid: Field["b_centroid"]): Promise<boolean> {
+export async function isFieldInGWGBGebied(
+  b_centroid: Field["b_centroid"],
+  getGeoTiffValueFn: typeof getGeoTiffValue = getGeoTiffValue,
+): Promise<boolean> {
   const fdmPublicDataUrl = getFdmPublicDataUrl()
   const url = `${fdmPublicDataUrl}norms/nl/2024/gwbg.tiff`
   const longitude = b_centroid[0]
   const latitude = b_centroid[1]
-  const gwbgCode = await getGeoTiffValue(url, longitude, latitude)
+  const gwbgCode = await getGeoTiffValueFn(url, longitude, latitude)
 
   switch (gwbgCode) {
     case 1: {
@@ -48,12 +51,15 @@ export async function isFieldInGWGBGebied(b_centroid: Field["b_centroid"]): Prom
  *   and `false` if the value is 0.
  * @throws {Error} If the GeoTIFF returns an unexpected value, or if there are issues fetching or processing the file.
  */
-export async function isFieldInNatura2000Gebied(b_centroid: Field["b_centroid"]): Promise<boolean> {
+export async function isFieldInNatura2000Gebied(
+  b_centroid: Field["b_centroid"],
+  getGeoTiffValueFn: typeof getGeoTiffValue = getGeoTiffValue,
+): Promise<boolean> {
   const fdmPublicDataUrl = getFdmPublicDataUrl()
   const url = `${fdmPublicDataUrl}norms/nl/2024/natura2000.tiff`
   const longitude = b_centroid[0]
   const latitude = b_centroid[1]
-  const natura2000Code = await getGeoTiffValue(url, longitude, latitude)
+  const natura2000Code = await getGeoTiffValueFn(url, longitude, latitude)
 
   switch (natura2000Code) {
     case 1: {
@@ -81,12 +87,13 @@ export async function isFieldInNatura2000Gebied(b_centroid: Field["b_centroid"])
  */
 export async function isFieldInDerogatieVrijeZone(
   b_centroid: Field["b_centroid"],
+  getGeoTiffValueFn: typeof getGeoTiffValue = getGeoTiffValue,
 ): Promise<boolean> {
   const fdmPublicDataUrl = getFdmPublicDataUrl()
   const url = `${fdmPublicDataUrl}norms/nl/2025/derogatievrije_zones.tiff`
   const longitude = b_centroid[0]
   const latitude = b_centroid[1]
-  const derogatieVrijeZoneCode = await getGeoTiffValue(url, longitude, latitude)
+  const derogatieVrijeZoneCode = await getGeoTiffValueFn(url, longitude, latitude)
 
   switch (derogatieVrijeZoneCode) {
     case 1: {
@@ -133,6 +140,7 @@ export async function isFieldInDerogatieVrijeZone(
  */
 export async function calculateNL2025DierlijkeMestGebruiksNorm(
   input: NL2025NormsInput,
+  getGeoTiffValueFn: typeof getGeoTiffValue = getGeoTiffValue,
 ): Promise<DierlijkeMestGebruiksnormResult> {
   const is_derogatie_bedrijf = input.farm.is_derogatie_bedrijf ?? false
   const field = input.field
@@ -147,10 +155,10 @@ export async function calculateNL2025DierlijkeMestGebruiksNorm(
 
   const [is_nv_gebied, is_gwbg_gebied, is_natura2000_gebied, is_derogatie_vrije_zone] =
     await Promise.all([
-      isFieldInNVGebied(field.b_centroid),
-      isFieldInGWGBGebied(field.b_centroid),
-      isFieldInNatura2000Gebied(field.b_centroid),
-      isFieldInDerogatieVrijeZone(field.b_centroid),
+      isFieldInNVGebied(field.b_centroid, getGeoTiffValueFn),
+      isFieldInGWGBGebied(field.b_centroid, getGeoTiffValueFn),
+      isFieldInNatura2000Gebied(field.b_centroid, getGeoTiffValueFn),
+      isFieldInDerogatieVrijeZone(field.b_centroid, getGeoTiffValueFn),
     ])
 
   let normValue: number

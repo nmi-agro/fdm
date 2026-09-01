@@ -31,21 +31,7 @@ export function getMainCultivation(
     return undefined
   }
 
-  const b_lu_catalogue = findHoofdteelt(
-    cultivations.map((c) => ({
-      b_lu_catalogue: c.b_lu_catalogue,
-      b_lu_start: c.b_lu_start,
-      b_lu_end: c.b_lu_end,
-    })),
-    Number(calendarYear),
-    true,
-  )
-
-  if (b_lu_catalogue === null) {
-    return undefined
-  }
-
-  return cultivations.find((c) => c.b_lu_catalogue === b_lu_catalogue)
+  return findHoofdteelt(cultivations, Number(calendarYear), true) ?? undefined
 }
 
 export type FieldOption = {

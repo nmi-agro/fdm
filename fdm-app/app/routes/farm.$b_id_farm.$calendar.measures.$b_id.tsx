@@ -28,6 +28,7 @@ import {
   useNavigate,
   useNavigation,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -56,7 +57,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/u
 import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
 import { Label } from "~/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
-import { getIndicatorsForField, getMeasureApplicabilityForField } from "~/integrations/bln3.server"
+import {
+  getIndicatorsForField,
+  getMeasureAdviceForField,
+  getMeasureApplicabilityForField,
+  getTopOpportunitiesForField,
+} from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -64,6 +70,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { cn } from "~/lib/utils"
 
 const MeasuresMap = lazy(() => import("~/components/blocks/measures/measures-atlas"))
 
@@ -103,6 +110,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const timeframe = getTimeframe(params)
     const calendarYear = Number(calendar)
 
+    const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
+
     const [
       field,
       fields,
@@ -112,6 +121,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       cultivations,
       bln3Result,
       applicabilityMap,
+      advice,
       fieldWritePermission,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
@@ -128,11 +138,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       getMeasureApplicabilityForField({
         principal_id: session.principal_id,
         b_id,
-        b_year: Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear(),
+        b_year,
         timeframe,
       }).catch((err) => {
         console.error(
           `BLN3 applicability check failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
+      getMeasureAdviceForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year,
+        timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 measure advice failed for field ${b_id}:`,
           err instanceof Error ? err.message : String(err),
         )
         return null
@@ -191,6 +213,47 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       features: selectedFeature ? [selectedFeature] : [],
     }
 
+    // Compute ranked measure recommendations for this field, cross-referenced
+    // against current score, fresh applicability, and already-active measures.
+    // `advice` is null when the NMI fetch failed — omit recommendations
+    // entirely in that case rather than deriving them from empty data.
+    const activeMeasureIds = new Set(measures.map((m) => m.m_id))
+    const topOpportunities =
+      advice && applicabilityMap
+        ? getTopOpportunitiesForField({
+            advice,
+            score: bln3Result?.score ?? null,
+            applicability: applicabilityMap,
+            activeMeasureIds,
+          })
+        : undefined
+
+    // Raw per-indicator impact per measure (all indicators, not only weak
+    // ones) for the configure step of the add-measure dialog: "what will
+    // this measure do?" for any measure, not just recommended ones.
+    // Undefined when advice was unavailable — the dialog then hides the
+    // impact section rather than implying zero impact.
+    const measureImpacts:
+      | Record<string, { indicator_id: string; measure_impact: number }[]>
+      | undefined = advice
+      ? (() => {
+          const map: Record<string, { indicator_id: string; measure_impact: number }[]> = {}
+          for (const entry of advice.indicator_advice) {
+            for (const measure of entry.measures) {
+              if (measure.measure_impact <= 0) continue
+              ;(map[measure.m_id] ??= []).push({
+                indicator_id: entry.indicator,
+                measure_impact: measure.measure_impact,
+              })
+            }
+          }
+          for (const impacts of Object.values(map)) {
+            impacts.sort((a, b) => b.measure_impact - a.measure_impact)
+          }
+          return map
+        })()
+      : undefined
+
     return {
       field,
       fieldWritePermission,
@@ -207,6 +270,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })),
       fieldScore: bln3Result?.score ?? null,
       applicabilityMap,
+      topOpportunities,
+      measureImpacts,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -476,7 +541,9 @@ function MeasureEditDialog({
                 <Button type="button" variant="outline" onClick={onClose}>
                   Annuleren
                 </Button>
-                <Button type="submit">{closeMode ? "Afsluiten" : "Opslaan"}</Button>
+                <Button type="submit" disabled={fetcher.state !== "idle"}>
+                  {fetcher.state !== "idle" ? "Opslaan…" : closeMode ? "Afsluiten" : "Opslaan"}
+                </Button>
               </div>
             </FieldGroup>
           </form>
@@ -498,25 +565,54 @@ export default function MeasuresFieldDetail() {
     calendarYearStart,
     fieldScore,
     applicabilityMap,
+    topOpportunities,
+    measureImpacts,
     fieldWritePermission,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
   const navigation = useNavigation()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [focusIndicatorId, setFocusIndicatorId] = useState<string | undefined>(undefined)
+  const [initialMeasureId, setInitialMeasureId] = useState<string | undefined>(undefined)
   const [editingMeasure, setEditingMeasure] = useState<EditingMeasure | null>(null)
   const [closingMeasure, setClosingMeasure] = useState<EditingMeasure | null>(null)
 
   const indicatorsHref = `/farm/${b_id_farm}/${calendar}/indicators/${b_id}`
 
+  const handleOpenAddMeasure = (indicator_id?: string) => {
+    setFocusIndicatorId(indicator_id)
+    setInitialMeasureId(undefined)
+    setDialogOpen(true)
+  }
+
+  // Deep-link support: opening this page with ?openMeasure=<m_id>&indicator=<id>
+  // (e.g. from the Indicatoren page's "+ Toevoegen" quick action) auto-opens
+  // the dialog pre-selected on that measure. The params are kept while the
+  // dialog is open — clearing them immediately would lose the context on
+  // refresh — and removed when the dialog closes.
+  const openMeasure = searchParams.get("openMeasure")
+  const indicator = searchParams.get("indicator") ?? undefined
+
+  useEffect(() => {
+    if (!openMeasure) return
+    setInitialMeasureId(openMeasure)
+    setFocusIndicatorId(indicator)
+    setDialogOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openMeasure, indicator])
+
   return (
     <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">
-      <Bln3BetaBanner />
-
-      {/* Title + actions */}
+      {/* Title + actions — the beta badge scopes the BLN3 content below, so
+          it lives in the header as a title attribute, not as a separate slab. */}
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">{field.b_name ?? b_id}</h2>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="truncate text-2xl font-bold tracking-tight">{field.b_name ?? b_id}</h2>
+            <Bln3BetaBanner />
+          </div>
           <p className="text-muted-foreground mt-0.5">
             {measures.length === 0
               ? "Nog geen maatregelen vastgelegd"
@@ -525,7 +621,7 @@ export default function MeasuresFieldDetail() {
         </div>
         {fieldWritePermission && (
           <div className="flex shrink-0 items-center gap-2">
-            <Button onClick={() => setDialogOpen(true)} size="sm">
+            <Button onClick={() => handleOpenAddMeasure()} size="sm">
               <Plus className="mr-1 h-4 w-4" />
               Toevoegen
             </Button>
@@ -533,29 +629,50 @@ export default function MeasuresFieldDetail() {
         )}
       </div>
 
-      {/* Indicator impact summary (shown when BLN3 data is available) */}
+      {/* Indicator status cluster — the two blocks are peers ("what needs
+          attention" vs. "what measures already achieve"): side by side on xl,
+          stacked attention-first below. With no active measures the impact
+          block is meaningless and hidden, and the cluster stays single-column. */}
       {fieldScore && fieldScore.indicators.length > 0 && (
-        <ImpactSummary indicators={fieldScore.indicators} />
+        <div
+          className={cn(
+            "flex flex-col gap-3",
+            measures.length > 0 && "xl:grid xl:grid-cols-2 xl:items-start",
+          )}
+        >
+          <IndicatorAttention
+            indicators={fieldScore.indicators}
+            onAddMeasure={handleOpenAddMeasure}
+            indicatorsHref={indicatorsHref}
+            canAddMeasure={fieldWritePermission}
+          />
+          {/* No active measures → nothing to attribute influence to, so the
+              block is hidden rather than showing a misleading empty state. */}
+          {measures.length > 0 && (
+            <ImpactSummary
+              indicators={fieldScore.indicators}
+              activeMeasures={measures.map((m) => ({ m_id: m.m_id, m_name: m.m_name }))}
+              measureImpacts={measureImpacts}
+            />
+          )}
+        </div>
       )}
 
-      {/* Indicators needing attention (or compliment when all green) */}
-      {fieldScore && fieldScore.indicators.length > 0 && (
-        <IndicatorAttention
-          indicators={fieldScore.indicators}
-          onAddMeasure={() => setDialogOpen(true)}
-          indicatorsHref={indicatorsHref}
-          canAddMeasure={fieldWritePermission}
-        />
-      )}
-
-      {/* List + map side-by-side on xl screens */}
-      <div className="flex flex-col items-start gap-6 xl:flex-row">
+      {/* List + map side-by-side on xl screens; the wider break above (mt-2 on
+          top of gap-6) separates this content region from the status cluster. */}
+      <div className="mt-2 flex flex-col items-start gap-6 xl:flex-row">
         {/* Active measures list */}
         <div className="min-w-0 flex-1">
           {measures.length === 0 ? (
             <div className="text-muted-foreground rounded-lg border py-12 text-center">
               <p className="text-sm font-medium">Geen maatregelen actief</p>
-              <p className="mt-1 text-xs">Voeg maatregelen toe via de knop hierboven.</p>
+              <p className="mt-1 text-xs">Voeg de eerste maatregel toe om te beginnen.</p>
+              {fieldWritePermission && (
+                <Button onClick={() => handleOpenAddMeasure()} size="sm" className="mt-4">
+                  <Plus className="mr-1 h-4 w-4" />
+                  Toevoegen
+                </Button>
+              )}
             </div>
           ) : (
             <div className="divide-y overflow-hidden rounded-lg border">
@@ -585,7 +702,7 @@ export default function MeasuresFieldDetail() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-5 px-2 text-xs"
+                          className="h-6 px-2 text-xs"
                           onClick={() =>
                             setClosingMeasure({
                               b_id_measure: m.b_id_measure,
@@ -608,6 +725,7 @@ export default function MeasuresFieldDetail() {
                         size="icon"
                         className="text-muted-foreground hover:text-foreground h-8 w-8"
                         title="Bewerken / afsluiten"
+                        aria-label={`${m.m_name} bewerken of afsluiten`}
                         onClick={() =>
                           setEditingMeasure({
                             b_id_measure: m.b_id_measure,
@@ -627,6 +745,7 @@ export default function MeasuresFieldDetail() {
                             size="icon"
                             className="text-muted-foreground hover:text-destructive h-8 w-8"
                             title="Verwijderen"
+                            aria-label={`${m.m_name} verwijderen`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -672,15 +791,15 @@ export default function MeasuresFieldDetail() {
           )}
         </div>
 
-        {/* Mini map */}
-        <div className="w-full overflow-hidden rounded-lg border xl:w-96 xl:shrink-0">
+        {/* Mini map — a field-switcher, subordinate to the list */}
+        <div className="w-full overflow-hidden rounded-lg border xl:w-80 xl:shrink-0 ">
           <Suspense fallback={<div className="bg-muted h-64 animate-pulse rounded-lg" />}>
             <MeasuresMap
               fieldsGeoJSON={fieldsGeoJSON}
               selectedFieldGeoJSON={selectedFieldGeoJSON}
               initialFitGeoJSON={selectedFieldGeoJSON}
               mapStyle={mapStyle}
-              height="400px"
+              className="h-64 md:h-100"
               onFieldClick={(b_id) => navigate(`/farm/${b_id_farm}/${calendar}/measures/${b_id}`)}
             />
           </Suspense>
@@ -690,12 +809,33 @@ export default function MeasuresFieldDetail() {
       {/* Add Measure dialog */}
       <AddMeasureDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(next) => {
+          setDialogOpen(next)
+          if (!next) {
+            setFocusIndicatorId(undefined)
+            setInitialMeasureId(undefined)
+            if (searchParams.has("openMeasure")) {
+              setSearchParams(
+                (prev) => {
+                  const nextParams = new URLSearchParams(prev)
+                  nextParams.delete("openMeasure")
+                  nextParams.delete("indicator")
+                  return nextParams
+                },
+                { replace: true },
+              )
+            }
+          }
+        }}
         catalogue={catalogue}
         activeMeasures={measures}
         calendarYearStart={calendarYearStart}
         harvestDate={harvestDate}
         applicabilityMap={applicabilityMap ?? undefined}
+        topOpportunities={topOpportunities}
+        measureImpacts={measureImpacts}
+        focusIndicatorId={focusIndicatorId}
+        initialMeasureId={initialMeasureId}
       />
 
       {/* Edit Measure dialog */}

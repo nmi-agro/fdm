@@ -3,6 +3,7 @@ import type { FeatureCollection, GeoJsonProperties, Geometry } from "geojson"
 import { TriangleAlert } from "lucide-react"
 import { useId, useMemo } from "react"
 import { Bar, BarChart, type BarShapeProps, Rectangle, XAxis, YAxis } from "recharts"
+import { cn } from "@/app/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { ChartContainer } from "~/components/ui/chart"
 import { Spinner } from "~/components/ui/spinner"
@@ -15,6 +16,111 @@ import {
   type ShadedSoilParameters,
   transformGradientStops,
 } from "./atlas-soil-analysis"
+
+/** Shared swatch row for the "currently selected field" highlight used across atlas surfaces. */
+export function SelectedFieldSwatch({ color = "#ffcf0d" }: { color?: string }) {
+  return (
+    <div className="text-muted-foreground mt-1.5 flex items-center gap-1">
+      <div
+        className="border-foreground/20 h-2.5 w-2.5 shrink-0 rounded-full border"
+        style={{ backgroundColor: color }}
+      />
+      <span>Huidig perceel</span>
+    </div>
+  )
+}
+
+interface ScoreLegendProps {
+  /** Human-readable label shown above the scale, e.g. the selected indicator's name. */
+  label?: string
+  /** Whether to show the "currently selected field" swatch (field-detail surfaces only). */
+  showSelectedFieldSwatch?: boolean
+}
+
+function ScoreLegendBar({
+  size,
+  marker,
+  color,
+  roundStart,
+  roundEnd,
+}: {
+  size: number
+  marker: number
+  color: string
+  roundStart?: boolean
+  roundEnd?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        "relative h-2.5 overflow-visible",
+        roundStart && "rounded-l-sm",
+        roundEnd && "rounded-r-sm",
+      )}
+      style={{ flex: size, backgroundColor: color }}
+    >
+      <div className="text-muted-foreground absolute top-full right-0 z-20 translate-x-1/2 translate-y-0.5 text-xs tabular-nums">
+        {marker}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Legend for maps that colour fields on the shared 0–100 red→yellow→green score scale
+ * (`getScoreColor`/`getScoreTier` in `~/lib/indicators`, and the matching `step` expression
+ * in `getFieldsScoreStyle`). Used by the farm-level indicators atlas and the field-level
+ * indicators mini-map so both surfaces explain the same colour key.
+ */
+export function ScoreLegend({ label, showSelectedFieldSwatch }: ScoreLegendProps) {
+  return (
+    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+      {label && <p className="text-foreground mb-1.5 truncate font-medium">{label}</p>}
+      <div className="mb-5 flex h-2.5 w-full gap-px px-1.5">
+        <ScoreLegendBar size={0} marker={0} color="#ef4444" />
+        <ScoreLegendBar size={40} marker={40} color="#ef4444" roundStart />
+        <ScoreLegendBar size={30} marker={70} color="#eab308" />
+        <ScoreLegendBar size={30} marker={100} color="#22c55e" roundEnd />
+      </div>
+      <div className="text-muted-foreground mt-1.5 flex items-center gap-1">
+        <div className="bg-muted-foreground/40 h-2.5 w-2.5 shrink-0 rounded-full" />
+        <span>Geen data</span>
+      </div>
+      {showSelectedFieldSwatch && <SelectedFieldSwatch />}
+    </Card>
+  )
+}
+
+/**
+ * Legend for maps that colour fields by measure count on a grey → light-green → dark-green
+ * scale (see `getMeasureCountFillStyle` in `measures-atlas.tsx`).
+ */
+export function MeasureCountLegend({
+  showSelectedFieldSwatch,
+}: {
+  showSelectedFieldSwatch?: boolean
+}) {
+  return (
+    <Card className="pointer-events-none max-w-[200px] p-2 text-xs shadow-sm">
+      <p className="text-foreground mb-1.5 font-medium">Maatregelen</p>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1.5">
+          <div className="border-foreground/10 h-2.5 w-2.5 shrink-0 rounded-full border bg-[#d1d5db]" />
+          <span className="text-muted-foreground">Geen maatregelen</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="border-foreground/10 h-2.5 w-2.5 shrink-0 rounded-full border bg-[#86efac]" />
+          <span className="text-muted-foreground">1 maatregel</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="border-foreground/10 h-2.5 w-2.5 shrink-0 rounded-full border bg-[#16a34a]" />
+          <span className="text-muted-foreground">5+ maatregelen</span>
+        </div>
+      </div>
+      {showSelectedFieldSwatch && <SelectedFieldSwatch />}
+    </Card>
+  )
+}
 
 interface ElevationLegendProps {
   min?: number
@@ -37,7 +143,7 @@ export function ElevationLegend({
 }: ElevationLegendProps) {
   return (
     <div className="w-40">
-      <Card className="bg-background/90 shadow-sm backdrop-blur-sm">
+      <Card className="shadow-xs">
         <CardContent className="p-3">
           <div className="mb-2 flex items-center justify-between">
             <h4 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
@@ -70,7 +176,7 @@ export function ElevationLegend({
                   }}
                 />
               </div>
-              <div className="text-muted-foreground flex justify-between font-mono text-[12px] font-medium">
+              <div className="text-muted-foreground flex justify-between text-xs font-medium tabular-nums">
                 <span>{min !== undefined ? `${min.toFixed(1)}m` : "Laag"}</span>
                 <span>{max !== undefined ? `${max.toFixed(1)}m` : "Hoog"}</span>
               </div>
@@ -121,7 +227,7 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
   const title = parameterDescription ? `${parameterDescription.name}${unitDisplay}` : undefined
 
   return (
-    <Card className="min-h-0 flex-initial space-y-2 overflow-y-auto p-4">
+    <Card className="min-h-0 flex-initial space-y-2 overflow-y-auto p-4 shadow-xs">
       <CardHeader className="p-0">
         <CardTitle className="text-muted-foreground text-center text-xs">{title}</CardTitle>
       </CardHeader>
@@ -133,7 +239,7 @@ export function SoilAnalysisLegend(props: SoilAnalysisLegendProps) {
           <GradientSoilAnalysisLegend {...props} selectedParameter={selectedParameter} />
         )}
         {fieldsData && fieldsData.features.length > 0 && !anyDataAvailable && (
-          <p className="flex flex-row items-center gap-2 text-[10pt]">
+          <p className="flex flex-row items-center gap-2 text-xs">
             <TriangleAlert className="h-4 w-4 text-orange-500" />
             Geen data op hele bedrijf
           </p>
@@ -206,8 +312,8 @@ function GradientSoilAnalysisLegend(
   return (
     <ChartContainer
       config={{}}
-      initialDimension={{ width: 200, height: 50 }}
-      className="-mx-3 aspect-24/5 min-w-60 last:-mbe-3"
+      initialDimension={{ width: 150, height: 40 }}
+      className="-mx-3 aspect-3/1 min-w-40 last:-mbe-3"
     >
       <BarChart
         className="overflow-visible"
@@ -215,8 +321,8 @@ function GradientSoilAnalysisLegend(
         data={chartData}
         layout="vertical"
         margin={{
-          left: 15,
-          right: 15,
+          left: 12,
+          right: 12,
           top: 0,
           bottom: 0,
         }}
