@@ -40,7 +40,11 @@ const JOB_TYPES: CalculationJobType[] = [
   "normRenure",
 ]
 
-/** Bounds how much recompute work a single request can trigger; excess jobs are dropped. */
+/**
+ * Bounds how much recompute work a single request can trigger. Unique jobs beyond this limit are
+ * not dropped: they are reported with a `"skipped"` outcome so the client hook can requeue them
+ * in a follow-up request instead of leaving them stuck in a "pending" state forever.
+ */
 const MAX_JOBS_PER_BATCH = 100
 
 function parseJob(value: unknown): CalculationJobRequest | null {
@@ -85,7 +89,9 @@ export async function action({ request }: ActionFunctionArgs) {
     .filter((job): job is CalculationJobRequest => job !== null)
 
   // Deduplicate by job key so a client retry/re-render can't cause the same job to be processed
-  // (and reported) more than once in a batch, then cap the batch size to bound server work.
+  // (and reported) more than once in a batch. The batch size is still capped to bound server work
+  // per request, but jobs beyond the cap are carried over as `skippedJobs` and get an explicit
+  // "skipped" outcome below, rather than being dropped without any outcome at all.
   const seenKeys = new Set<string>()
   const jobs: CalculationJobRequest[] = []
   for (const job of parsedJobs) {
@@ -93,7 +99,6 @@ export async function action({ request }: ActionFunctionArgs) {
     if (seenKeys.has(key)) continue
     seenKeys.add(key)
     jobs.push(job)
-    if (jobs.length >= MAX_JOBS_PER_BATCH) break
   }
 
   if (jobs.length === 0) {
@@ -103,52 +108,67 @@ export async function action({ request }: ActionFunctionArgs) {
     })
   }
 
+  const jobsToProcess = jobs.slice(0, MAX_JOBS_PER_BATCH)
+  const skippedJobs = jobs.slice(MAX_JOBS_PER_BATCH)
+
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
+      // Report jobs beyond the batch cap up front so the client hook never leaves them "pending".
+      for (const job of skippedJobs) {
+        controller.enqueue(
+          encoder.encode(
+            `${JSON.stringify({ key: getCalculationJobKey(job), outcome: "skipped" })}\n`,
+          ),
+        )
+      }
+
       let nextIndex = 0
       const concurrency = 4
 
-      const workers = Array.from({ length: Math.min(concurrency, jobs.length) }, async () => {
-        while (nextIndex < jobs.length) {
-          const job = jobs[nextIndex++]
-          if (!job) continue
+      const workers = Array.from(
+        { length: Math.min(concurrency, jobsToProcess.length) },
+        async () => {
+          while (nextIndex < jobsToProcess.length) {
+            const job = jobsToProcess[nextIndex++]
+            if (!job) continue
 
-          try {
-            const result = await runCalculationJob(
-              {
-                fdm,
-                principal_id: session.principal_id,
-                timeframe: {
-                  start: new Date(`${job.calendar}-01-01T00:00:00.000Z`),
-                  end: new Date(`${job.calendar}-12-31T23:59:59.999Z`),
+            try {
+              const result = await runCalculationJob(
+                {
+                  fdm,
+                  principal_id: session.principal_id,
+                  timeframe: {
+                    start: new Date(`${job.calendar}-01-01T00:00:00.000Z`),
+                    end: new Date(`${job.calendar}-12-31T23:59:59.999Z`),
+                  },
                 },
-              },
-              job,
-            )
+                job,
+              )
 
-            controller.enqueue(
-              encoder.encode(
-                `${JSON.stringify({
-                  key: getCalculationJobKey(job),
-                  outcome: result.outcome,
-                  error: result.error,
-                })}\n`,
-              ),
-            )
-          } catch (err) {
-            controller.enqueue(
-              encoder.encode(
-                `${JSON.stringify({
-                  key: getCalculationJobKey(job),
-                  outcome: "error",
-                  error: err instanceof Error ? err.message : "Recompute mislukt",
-                })}\n`,
-              ),
-            )
+              controller.enqueue(
+                encoder.encode(
+                  `${JSON.stringify({
+                    key: getCalculationJobKey(job),
+                    outcome: result.outcome,
+                    error: result.error,
+                  })}\n`,
+                ),
+              )
+            } catch (err) {
+              controller.enqueue(
+                encoder.encode(
+                  `${JSON.stringify({
+                    key: getCalculationJobKey(job),
+                    outcome: "error",
+                    error: err instanceof Error ? err.message : "Recompute mislukt",
+                  })}\n`,
+                ),
+              )
+            }
           }
-        }
-      })
+        },
+      )
 
       await Promise.all(workers)
       controller.close()

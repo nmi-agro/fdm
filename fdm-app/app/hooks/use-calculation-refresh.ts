@@ -6,12 +6,13 @@ import { getCalculationJobKey } from "~/lib/calculation-jobs"
 export type CalculationRefreshJobState = "pending" | "computed" | "attached" | "error"
 
 /**
- * Wire outcome from the NDJSON stream, which also includes `"timeout"`: the attach-wait loop gave
- * up without observing a terminal result. This is not a completed state — the job's cache entry
- * may still be processing — so it is never stored in `jobStates` directly; the corresponding job
- * is instead resubmitted until it resolves to a genuinely terminal outcome.
+ * Wire outcome from the NDJSON stream, which also includes `"timeout"` and `"skipped"`: the
+ * attach-wait loop gave up without observing a terminal result, or the server's per-request batch
+ * cap was reached before this job could be processed. Neither is a completed state — the job may
+ * still need to run — so they are never stored in `jobStates` directly; the corresponding job is
+ * instead resubmitted until it resolves to a genuinely terminal outcome.
  */
-type CalculationRefreshOutcome = CalculationRefreshJobState | "timeout"
+type CalculationRefreshOutcome = CalculationRefreshJobState | "timeout" | "skipped"
 
 export interface CalculationRefreshState {
   /** Per-job state, keyed by `getCalculationJobKey(job)`. Only contains jobs sent to the API. */
@@ -24,6 +25,8 @@ export interface CalculationRefreshState {
   refreshReady: boolean
 }
 
+/** Number of jobs to be complete before showing the refresh banner. */
+const SHOW_REFRESH_BANNER_AFTER_N_DONE = 20
 /**
  * Posts the given stale/missing calculation jobs to the background NDJSON refresh route and
  * tracks their completion incrementally, so callers can render a scoped spinner per field while a
@@ -70,11 +73,14 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
     const controller = new AbortController()
     abortControllerRef.current = controller
 
-    // Posts a (sub)batch of jobs and applies their outcomes. Jobs that come back as "timeout" are
-    // not terminal — the underlying calculation may still be running elsewhere — so they are
-    // resubmitted here instead of being reflected as done, until a real outcome arrives.
+    // Posts a (sub)batch of jobs and applies their outcomes. Jobs that come back as "timeout" or
+    // "skipped" are not terminal — the calculation may still be running elsewhere, or the server
+    // deferred it because the request's batch cap was reached — so instead of being reflected as
+    // done, they are collected and resubmitted together as a single follow-up batch once this
+    // stream finishes.
     async function postBatch(batchJobs: CalculationJobRequest[]) {
       const batchKeys = batchJobs.map(getCalculationJobKey)
+      const retryJobs: CalculationJobRequest[] = []
       try {
         const response = await fetch("/api/calculation-refresh", {
           method: "POST",
@@ -111,9 +117,9 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
                 key: string
                 outcome: CalculationRefreshOutcome
               }
-              if (parsed.outcome === "timeout") {
+              if (parsed.outcome === "timeout" || parsed.outcome === "skipped") {
                 const retryJob = batchJobs.find((j) => getCalculationJobKey(j) === parsed.key)
-                if (retryJob && !controller.signal.aborted) void postBatch([retryJob])
+                if (retryJob) retryJobs.push(retryJob)
                 continue
               }
               const outcome = parsed.outcome
@@ -127,6 +133,10 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
               // page keeps showing cached/stale data until the user next revalidates.
             }
           }
+        }
+
+        if (retryJobs.length > 0 && !controller.signal.aborted) {
+          void postBatch(retryJobs)
         }
       } catch {
         if (controller.signal.aborted) return
@@ -145,8 +155,10 @@ export function useCalculationRefresh(jobs: CalculationJobRequest[]): Calculatio
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- jobs is recreated every render; we dedupe on batchKey (derived from job keys) instead of the array identity.
   }, [batchKey])
 
+  const wantedDone = Math.min(SHOW_REFRESH_BANNER_AFTER_N_DONE, jobStates.size)
   const refreshReady =
-    jobStates.size > 0 && [...jobStates.values()].every((state) => state !== "pending")
+    jobStates.size > 0 &&
+    [...jobStates.values()].filter((state) => state !== "pending").length >= wantedDone
 
   return { jobStates, refreshReady }
 }

@@ -14,7 +14,7 @@ export function CalculationRefreshBanner({ onRefresh }: { onRefresh: () => void 
   const [refreshing, setRefreshing] = useState(false)
   return (
     <AnimatePresence>
-      <Alert className="bg-card fixed right-4 bottom-4 max-w-60 items-center justify-between gap-4 shadow-sm">
+      <Alert className="bg-card fixed right-4 bottom-4 z-30 max-w-60 items-center justify-between gap-4 shadow-sm">
         <AlertDescription className="text-foreground">
           Nieuwe resultaten zijn beschikbaar.
         </AlertDescription>
