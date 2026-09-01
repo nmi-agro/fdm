@@ -46,7 +46,7 @@
     "date-fns": "^4.4.0",
     "decimal.js": "^10.6.0",
     "geotiff": "^3.0.5",
-    "zod": "^4.5.4"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",

@@ -60,7 +60,7 @@
     "safe-stable-stringify": "^2.5.0",
     "unique-username-generator": "^1.5.1",
     "validator": "^13.15.35",
-    "zod": "^4.5.4"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",

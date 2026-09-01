@@ -35,7 +35,7 @@
     "@posthog/ai": "^8.9.0",
     "langchain": "^1.5.10",
     "posthog-node": "^5.51.4",
-    "zod": "^4.5.4"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@nmi-agro/fdm-calculator": "workspace:*",
