@@ -4,19 +4,25 @@ import { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { FdmType } from "./fdm.types"
-import { createId } from "./id"
 import { FertilizerPlan, FoundFertilizerPlan } from "./fertilizer-plan.types"
+import { createId } from "./id"
 
 const fertilizerPlanColumns = {
   p_id_plan: schema.fertilizerPlans.p_id_plan,
   p_plan_year: schema.fertilizerPlans.p_plan_year,
   p_plan_file_path: schema.fertilizerPlans.p_plan_file_path,
   p_plan_hash: schema.fertilizerPlans.p_plan_hash,
-} as const satisfies Record<Exclude<keyof schema.fertilizerPlansTypeSelect, "created" | "updated">, any>
+} as const satisfies Record<
+  Exclude<keyof schema.fertilizerPlansTypeSelect, "created" | "updated">,
+  any
+>
 const fertilizerPlanEstablishingColumns = {
   b_id_farm: schema.fertilizerPlanEstablishing.b_id_farm,
   p_plan_date: schema.fertilizerPlanEstablishing.p_plan_date,
-} as const satisfies Record<Exclude<keyof schema.fertilizerPlanEstablishingTypeSelect, "p_id_plan" | "created" | "updated">, any>
+} as const satisfies Record<
+  Exclude<keyof schema.fertilizerPlanEstablishingTypeSelect, "p_id_plan" | "created" | "updated">,
+  any
+>
 
 /**
  * Gets the saved fertilizer plans for the given year.

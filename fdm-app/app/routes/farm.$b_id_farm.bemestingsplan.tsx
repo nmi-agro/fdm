@@ -22,13 +22,13 @@ import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BemestingsplanPDF } from "~/components/blocks/pdf/bemestingsplan/BemestingsplanPDF"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
+import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
+import { getSession } from "~/lib/auth.server"
 import {
   collectBemestingsplanInputFromDatabase,
   computeBemestingsplanData,
   getBemestingsplanInputHash,
 } from "~/lib/bemestingsplan.server"
-import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
-import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -126,6 +126,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     const formValues = await extractFormValuesFromRequest(request, ActionSchema)
 
     if (formValues.intent === "establish_plan") {
+      const dataCollectionDate = new Date()
       const collectedData = await collectBemestingsplanInputFromDatabase(
         fdm,
         session.principal_id,
@@ -141,6 +142,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         formValues.year,
         `inputHash.pdf`,
         inputHash,
+        dataCollectionDate,
       )
       const objectKey = buildObjectKey("bemestingsplan", p_id_plan, "pdf")
       const pdfStream = await renderToStream(<BemestingsplanPDF data={computedData} />)
