@@ -30,12 +30,12 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import fs from "node:fs/promises"
 import path from "node:path"
+import type { FieldNormFillings, FieldNormValues } from "~/integrations/calculator"
 import { BemestingsplanData } from "~/components/blocks/pdf/bemestingsplan/types"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { serverConfig } from "~/lib/config.server"
 import { fdm } from "~/lib/fdm.server"
-import type { FieldNormFillings, FieldNormValues } from "./calculator"
 
 async function getBase64Image(filePath: string | undefined): Promise<string | undefined> {
   if (!filePath) return undefined

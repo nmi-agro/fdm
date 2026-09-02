@@ -26,7 +26,7 @@ import {
   collectBemestingsplanInputFromDatabase,
   computeBemestingsplanData,
   getBemestingsplanInputHash,
-} from "~/integrations/bemestingsplan.server"
+} from "~/lib/bemestingsplan.server"
 import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
