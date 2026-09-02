@@ -6,10 +6,11 @@ type OmittedPlanColumns = "created" | "updated"
 type OmittedEstablishingColumns = "p_id_plan" | "created" | "updated"
 
 /** A saved fertilizer plan. */
-export type FertilizerPlan = Omit<schema.fertilizerPlanEstablishingTypeSelect, OmittedEstablishingColumns> & Omit<
-  schema.fertilizerPlansTypeSelect,
-  OmittedPlanColumns
->
+export type FertilizerPlan = Omit<
+  schema.fertilizerPlanEstablishingTypeSelect,
+  OmittedEstablishingColumns
+> &
+  Omit<schema.fertilizerPlansTypeSelect, OmittedPlanColumns>
 
 /** A saved fertilizer plan. Information about the related farm may be unknown. */
 export type FoundFertilizerPlan = Omit<
