@@ -10,7 +10,7 @@ import {
   getFarms,
 } from "@nmi-agro/fdm-core"
 import { renderToStream } from "@react-pdf/renderer"
-import { Outlet, useLoaderData } from "react-router"
+import { MetaFunction, Outlet, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import z from "zod"
 import { columns } from "@/app/components/blocks/bemestingsplan/columns"
@@ -29,10 +29,21 @@ import {
   computeBemestingsplanData,
   getBemestingsplanInputHash,
 } from "~/lib/bemestingsplan.server"
+import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { Route } from "./+types/farm.$b_id_farm.bemestingsplan"
+
+export const meta: MetaFunction = () => {
+  return [
+    { title: `Bemestingsplan | ${clientConfig.name}` },
+    {
+      name: "description",
+      content: "PDFs met gebruiksruimte en bemestingsadvies op bedrijfs- en perceelsniveau.",
+    },
+  ]
+}
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   try {
@@ -207,7 +218,7 @@ export default function FertilizerPlanTable() {
       </Header>
       <main>
         <FarmTitle
-          title="Bemestingsplannen"
+          title="Bemestingsplan"
           description="Overzicht van de gegenereerde bemestingsplannen voor dit bedrijf."
         />
         <div className="p-6">
