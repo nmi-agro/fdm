@@ -162,12 +162,20 @@ export async function addFertilizerPlan(
   }
 }
 
+/**
+ * Updates the file path for the fertilizer plan with the given ID.
+ *
+ * @param fdm The FDM instance providing the connection to the database.
+ * @param principal_id ID of the principal updating the plan.
+ * @param p_id_plan ID of the fertilizer plan to update.
+ * @param p_plan_file_path File path to set.
+ */
 export async function updateFertilizerPlanFilePath(
   fdm: FdmType,
   principal_id: PrincipalId,
   p_id_plan: schema.fertilizerPlansTypeSelect["p_id_plan"],
   p_plan_file_path: schema.fertilizerPlansTypeInsert["p_plan_file_path"],
-) {
+): Promise<void> {
   try {
     return await fdm.transaction(async (tx) => {
       await checkPermission(
