@@ -2,6 +2,7 @@ import { memo } from "react"
 import type { IndicatorInfo } from "~/lib/indicators"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { getScoreColor, getScoreVerdict, scoreToDisplay } from "~/lib/indicators"
+import { cn } from "~/lib/utils"
 
 type HeatmapCellProps = {
   indicator: IndicatorInfo
@@ -49,18 +50,24 @@ export const HeatmapCell = memo(function HeatmapCell({
         <div className="relative flex items-center justify-center">
           {/* Coloured score circle */}
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-            style={{
-              backgroundColor: color ?? "#e5e7eb",
-              color: color ? "white" : "#6b7280",
-            }}
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+              color ? "text-white" : "text-muted-foreground bg-muted",
+            )}
+            style={
+              color
+                ? {
+                    backgroundColor: color,
+                  }
+                : undefined
+            }
           >
             {display !== null ? display : "—"}
           </div>
 
           {/* Delta badge (top-right corner) */}
           {delta !== null && (
-            <span className="absolute -top-1 -right-1 rounded-full bg-green-500 px-1 text-[9px] leading-tight font-bold text-white">
+            <span className="absolute -top-1 -right-1 rounded-full bg-green-500 px-1 text-xs leading-tight font-bold text-white">
               +{delta}
             </span>
           )}

@@ -10,7 +10,7 @@ import {
   Plus,
   Scale,
   Target,
-  TrendingUp,
+  MoveUpRight,
   ClipboardList,
 } from "lucide-react"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "~/components/ui/hover-card"
@@ -226,7 +226,7 @@ function IndicatorCalculationFlowVertical() {
         />
         <FlowConnector label="bepaalt" />
         <FlowStep
-          icon={TrendingUp}
+          icon={MoveUpRight}
           title="Impact"
           description="Het gecombineerde effect van uw maatregelen op deze indicator."
           detail={FLOW_STEP_DETAILS.impact}
@@ -364,7 +364,7 @@ function IndicatorCalculationFlowHorizontal() {
         <motion.div {...node(0.25)} className="col-start-3 row-start-3">
           <FlowStep
             compact
-            icon={TrendingUp}
+            icon={MoveUpRight}
             title="Impact"
             description="Effect van maatregelen."
             detail={FLOW_STEP_DETAILS.impact}

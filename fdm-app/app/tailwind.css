@@ -129,6 +129,8 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.5rem;
+    /** Height of the fixed app header — used to size full-height panes (e.g. atlas maps) below it. */
+    --app-header-height: 64px;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -197,6 +199,7 @@
   margin-left: 44px;
   padding-block: 32px;
   gap: 16px;
+  z-index: 15;
   /* margin: 20px; */
   /* font-size: 13px; */
   /* line-height: 2; */
@@ -210,17 +213,6 @@
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
-}
-
-/* MapLibre Geocoder Fixes */
-.maplibregl-ctrl-geocoder--icon-close {
-  background-repeat: no-repeat;
-}
-.maplibregl-ctrl-geocoder--icon-close svg {
-  display: none;
-}
-.maplibregl-ctrl-geocoder--input::-webkit-search-cancel-button {
-  display: none;
 }
 
 /* MapLibre Popup Close Button Fix */
@@ -241,4 +233,43 @@
 .maplibregl-popup-content {
   border-radius: 0.5rem;
   padding: 0;
+}
+
+/* atlas-popup: strip maplibre's chrome; the Card component provides all visual styling.
+   The built-in .maplibregl-popup-tip is coloured to match the opaque bg-card surface. */
+.atlas-popup .maplibregl-popup-content {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.atlas-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--color-card);
+}
+.atlas-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.atlas-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--color-card);
+}
+.atlas-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-card);
+}
+.atlas-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-card);
+}
+
+/** Corner radii when the popup is anchored at one of its corners. */
+.atlas-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-native-card {
+  border-bottom-left-radius: 0;
+}
+.atlas-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-native-card {
+  border-bottom-right-radius: 0;
+}
+.atlas-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-native-card {
+  border-top-left-radius: 0;
+}
+.atlas-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-native-card {
+  border-top-right-radius: 0;
 }

@@ -358,3 +358,48 @@ export function getIndicatorsByEcosysteemdienst(
 ): IndicatorInfo[] {
   return INDICATORS.filter((i) => i.ecosysteemdienst === ecosysteemdienst)
 }
+
+// ── BLN3 Exclusions ────────────────────────────────────────────────────────
+
+/** BRP catalogue codes for non-agricultural plots (ditches, inspection paths) excluded from BLN3 */
+export const EXCLUDED_BLN3_BRP_CODES = ["nl_343", "nl_6801"]
+
+/**
+ * Determines whether a field / cultivation is excluded from BLN3 calculations and soil measures.
+ */
+export function isExcludedFromBln3({
+  b_bufferstrip,
+  b_lu_croprotation,
+  b_lu_catalogue,
+}: {
+  b_bufferstrip?: boolean | null
+  b_lu_croprotation?: string | null
+  b_lu_catalogue?: string | null
+}): boolean {
+  if (b_bufferstrip === true) return true
+  if (b_lu_croprotation === "nature") return true
+  if (b_lu_catalogue && EXCLUDED_BLN3_BRP_CODES.includes(b_lu_catalogue)) return true
+  return false
+}
+
+/**
+ * Returns a user-facing explanation in Dutch of why BLN and measures are unavailable for a field.
+ */
+export function getBln3ExclusionMessage({
+  b_bufferstrip,
+  cultivationName,
+  calendarYear,
+}: {
+  b_bufferstrip?: boolean | null
+  cultivationName?: string | null
+  calendarYear?: number | string | null
+}): string {
+  if (b_bufferstrip) {
+    return "Dit perceel is geregistreerd als bufferstrook. Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn niet beschikbaar voor bufferstroken."
+  }
+  const yearStr = calendarYear ? String(calendarYear) : "dit jaar"
+  if (cultivationName) {
+    return `Voor ${yearStr} is op dit perceel '${cultivationName}' geregistreerd (natuur/geen gewasperceel). Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn voor dit type perceel in ${yearStr} niet beschikbaar.`
+  }
+  return `Voor ${yearStr} is op dit perceel een natuur- of niet-landbouwkundig gewas geregistreerd. Bodemkwaliteitsindicatoren (BLN) en bodemmaatregelen zijn voor dit type perceel in ${yearStr} niet beschikbaar.`
+}

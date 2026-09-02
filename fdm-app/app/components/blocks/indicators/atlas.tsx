@@ -7,21 +7,15 @@
  */
 
 import type { FeatureCollection, GeoJsonProperties } from "geojson"
-import type { StyleSpecification } from "maplibre-gl"
+import type { MapGeoJSONFeature, StyleSpecification } from "maplibre-gl"
 import { LayoutList } from "lucide-react"
-import * as maplibregl from "maplibre-gl"
-import { type Dispatch, type SetStateAction, useCallback, useMemo, useRef, useState } from "react"
-import {
-  Layer,
-  Map as MapGL,
-  type MapMouseEvent,
-  type MapRef,
-  type ViewState,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
+import { type Dispatch, type SetStateAction, useMemo, useRef } from "react"
+import { Layer, type MapRef } from "react-map-gl/maplibre"
 import { Link, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
+import { ScoreLegend } from "~/components/blocks/atlas/atlas-legend"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
   getFieldsScoreOutlineStyle,
@@ -41,7 +35,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { getScoreColor, getScoreVerdict, INDICATORS } from "~/lib/indicators"
+import { INDICATORS } from "~/lib/indicators"
+import { AtlasTooltip, AtlasTooltipFooter, AtlasTooltipHeader } from "../atlas/atlas-tooltip"
+import { ScoreTooltipBody } from "./score-tooltip-body"
 
 type ChildScoreEntry = {
   id: string
@@ -67,20 +63,12 @@ type IndicatorsMapProps = {
     }
 )
 
-type HoverInfo = {
-  x: number
-  y: number
-  fieldName: string
-  properties: Record<string, number | string | null>
-} | null
-
 const SCORE_LAYER = "indicatorsScore"
 const OUTLINE_LAYER = "indicatorsScoreOutline"
 const SOURCE_ID = "indicatorsFields"
 
 export default function IndicatorsMap({
   fieldsGeoJSON,
-  mapStyle,
   basePath,
   basePathFormatter,
   selectedProperty = "avgScore",
@@ -91,32 +79,6 @@ export default function IndicatorsMap({
   const navigate = useNavigate()
   const mapRef = useRef<MapRef>(null)
   const initialViewState = getViewState(fieldsGeoJSON)
-  const [viewState, setViewState] = useState<ViewState>(initialViewState as ViewState)
-  const [hoverInfo, setHoverInfo] = useState<HoverInfo>(null)
-
-  const onViewportChange = useCallback(
-    (event: ViewStateChangeEvent) => setViewState(event.viewState),
-    [],
-  )
-
-  const onMouseMove = useCallback((e: MapMouseEvent) => {
-    const feature = e.features?.[0]
-    if (feature) {
-      setHoverInfo({
-        x: e.point.x,
-        y: e.point.y,
-        fieldName:
-          (feature.properties?.b_name as string) ??
-          (feature.properties?.b_id as string) ??
-          "Onbekend perceel",
-        properties: feature.properties as Record<string, number | string | null>,
-      })
-    } else {
-      setHoverInfo(null)
-    }
-  }, [])
-
-  const onMouseLeave = useCallback(() => setHoverInfo(null), [])
 
   // Recompute paint expressions only when the active property changes
   const scoreStyle = useMemo(
@@ -128,180 +90,129 @@ export default function IndicatorsMap({
     [selectedProperty],
   )
 
-  // Current hover score (reactive to selectedProperty changes)
-  const hoverScore =
-    hoverInfo != null &&
-    typeof hoverInfo.properties[selectedProperty] === "number" &&
-    (hoverInfo.properties[selectedProperty] as number) >= 0
-      ? (hoverInfo.properties[selectedProperty] as number)
-      : null
+  const onFeatureClicked = (feature: MapGeoJSONFeature) => {
+    if (basePathFormatter) {
+      const formatted = basePathFormatter(feature.properties)
+      if (typeof formatted === "string") {
+        void navigate(formatted)
+      }
+      return
+    }
+    const b_id = feature.properties.b_id
+    if (!b_id) return
+    void navigate(`${basePath}/${b_id}`)
+  }
 
   return (
     <div className="relative" style={{ height }}>
-      <MapGL
+      <Atlas
         ref={mapRef}
-        {...viewState}
-        style={{
-          height: "100%",
-          width: "100%",
-          borderRadius: "0.5rem",
-        }}
-        mapStyle={mapStyle as any}
-        mapLib={maplibregl}
+        initialViewState={initialViewState}
+        interactive={true}
         interactiveLayerIds={[SCORE_LAYER]}
-        onMove={onViewportChange}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
-        onClick={(e) => {
-          if (!e.features || e.features.length === 0) return
-          if (basePathFormatter) {
-            const b_id = e.features?.[0]?.properties
-            void navigate(basePathFormatter(b_id))
-            return
-          }
-          const b_id = e.features?.[0]?.properties?.b_id as string | undefined
-          if (b_id) {
-            void navigate(`${basePath}/${b_id}`)
-          }
-        }}
       >
         <Controls
-          onViewportChange={({ longitude, latitude, zoom }) =>
-            setViewState((s) => ({
-              ...s,
-              longitude,
-              latitude,
-              zoom,
-            }))
-          }
+          initialViewState={initialViewState}
           showFlyToFields={fieldsGeoJSON.features.length > 0 ? true : undefined}
-          onFlyToFields={() => {
-            setViewState({ ...(initialViewState as ViewState) })
-            if ((initialViewState as any).bounds) {
-              mapRef.current?.fitBounds(
-                (initialViewState as any).bounds,
-                (initialViewState as any).fitBoundsOptions,
-              )
-            }
-          }}
         />
         <MapTilerAttribution />
         <FieldsSourceNotClickable id={SOURCE_ID} fieldsData={fieldsGeoJSON}>
           <Layer {...(scoreStyle as any)} id={SCORE_LAYER} source={SOURCE_ID} />
           <Layer {...(outlineStyle as any)} id={OUTLINE_LAYER} source={SOURCE_ID} />
         </FieldsSourceNotClickable>
-      </MapGL>
 
-      {/* Hover tooltip */}
-      {hoverInfo && (
-        <div
-          className="bg-background/95 pointer-events-none absolute z-20 max-w-[260px] min-w-[180px] rounded-lg border px-3 py-2 text-xs shadow-md backdrop-blur-sm"
-          style={{
-            left: hoverInfo.x + 12,
-            top: hoverInfo.y - 8,
-            transform: "translateY(-100%)",
-          }}
-        >
-          <p className="text-foreground font-semibold">{hoverInfo.fieldName}</p>
-          {hoverInfo.properties.b_area != null && (
-            <p className="text-muted-foreground mt-0.5">
-              {Number(hoverInfo.properties.b_area).toFixed(2)} ha
-            </p>
-          )}
-          {hoverInfo.properties.b_name_farm != null && (
-            <p className="text-muted-foreground mt-0.5">{hoverInfo.properties.b_name_farm}</p>
-          )}
-          {label && (
-            <div className="mt-1.5 flex items-center justify-between gap-3 border-t pt-1.5">
-              <span className="text-muted-foreground truncate">{label}</span>
-              {hoverScore != null ? (
-                <span
-                  className="inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
-                  style={{
-                    backgroundColor: getScoreColor(hoverScore),
-                  }}
-                >
-                  {hoverScore} – {getScoreVerdict(hoverScore)}
-                </span>
-              ) : (
-                <span className="text-muted-foreground italic">Geen data</span>
-              )}
-            </div>
-          )}
-          {!label && (
-            <p className="text-muted-foreground mt-0.5">
-              {hoverScore != null ? (
-                <>
-                  Score:{" "}
-                  <span
-                    className="font-semibold"
-                    style={{
-                      color: getScoreColor(hoverScore),
-                    }}
-                  >
-                    {hoverScore}
-                  </span>
-                  {" – "}
-                  {getScoreVerdict(hoverScore)}
-                </>
-              ) : (
-                "Geen data"
-              )}
-            </p>
-          )}
-          {/* Child sub-scores (one level below the selected layer) */}
-          {childEntries && childEntries.length > 0 && (
-            <div className="mt-1.5 space-y-1 border-t pt-1.5">
-              {childEntries.map((child) => {
-                const childScore =
-                  typeof hoverInfo.properties[child.id] === "number" &&
-                  (hoverInfo.properties[child.id] as number) >= 0
-                    ? (hoverInfo.properties[child.id] as number)
-                    : null
-                return (
-                  <div key={child.id} className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground truncate text-[10px]">
-                      {child.label}
-                    </span>
-                    {childScore != null ? (
-                      <span
-                        className="shrink-0 text-[10px] font-semibold tabular-nums"
-                        style={{
-                          color: getScoreColor(childScore),
-                        }}
-                      >
-                        {childScore}
+        {/* Hover tooltip */}
+        <AtlasTooltip
+          layers={[SCORE_LAYER]}
+          onFeatureClicked={onFeatureClicked}
+          render={({ features, mode }) => {
+            if (features.length === 0) return null
+            const feature = features[0]
+
+            // Current hover score (reactive to selectedProperty changes)
+            const hoverScore =
+              typeof feature.properties[selectedProperty] === "number" &&
+              (feature.properties[selectedProperty] as number) >= 0
+                ? (feature.properties[selectedProperty] as number)
+                : null
+            return (
+              <div className="space-y-1.5">
+                <AtlasTooltipHeader>
+                  <div className="flex items-start justify-between gap-1.5">
+                    <p className="text-foreground font-semibold">
+                      {(feature.properties?.b_name as string) ??
+                        (feature.properties?.b_id as string) ??
+                        "Onbekend perceel"}
+                    </p>
+                    {Boolean(
+                      feature.properties?.b_bufferstrip || feature.properties?.isBufferstrip,
+                    ) && (
+                      <span className="shrink-0 rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 dark:bg-teal-950/40 dark:text-teal-300">
+                        Bufferstrook
                       </span>
-                    ) : (
-                      <span className="text-muted-foreground shrink-0 text-[10px] italic">–</span>
                     )}
+                    {!feature.properties?.b_bufferstrip &&
+                      !feature.properties?.isBufferstrip &&
+                      Boolean(feature.properties?.isNature) && (
+                        <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          Natuurperceel
+                        </span>
+                      )}
                   </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Legend overlay — pointer-events-none so it doesn't block field clicks */}
-      <div className="bg-background/90 pointer-events-none absolute bottom-6 left-2 z-10 max-w-[200px] rounded-md p-2 text-xs shadow-sm backdrop-blur-sm">
-        {label && <p className="text-foreground mb-1.5 truncate font-medium">{label}</p>}
-        <div
-          className="h-2.5 w-full rounded-sm"
-          style={{
-            background: "linear-gradient(to right, #ef4444, #eab308, #22c55e)",
+                  {feature.properties.b_area != null && (
+                    <p className="text-muted-foreground mt-0.5">
+                      {Number(feature.properties.b_area).toFixed(2)} ha
+                    </p>
+                  )}
+                  {feature.properties.b_name_farm != null && (
+                    <p className="text-muted-foreground mt-0.5">{feature.properties.b_name_farm}</p>
+                  )}
+                </AtlasTooltipHeader>
+                {feature.properties?.b_bufferstrip ||
+                feature.properties?.isBufferstrip ||
+                feature.properties?.isNature ? (
+                  <div className="mt-1.5 border-t pt-1.5">
+                    <p className="text-muted-foreground italic">
+                      {feature.properties.b_bufferstrip || feature.properties.isBufferstrip
+                        ? "Geen indicatoren beschikbaar (bufferstrook)"
+                        : "Geen indicatoren beschikbaar (natuurperceel)"}
+                    </p>
+                  </div>
+                ) : (
+                  <ScoreTooltipBody
+                    score={hoverScore}
+                    label={label}
+                    childScores={childEntries?.map((child) => ({
+                      id: child.id,
+                      label: child.label,
+                      score:
+                        typeof feature.properties[child.id] === "number" &&
+                        (feature.properties[child.id] as number) >= 0
+                          ? (feature.properties[child.id] as number)
+                          : null,
+                    }))}
+                  />
+                )}
+                {mode === "popup" && (
+                  <AtlasTooltipFooter>
+                    <Button
+                      type="button"
+                      className="grow"
+                      onClick={() => onFeatureClicked(feature)}
+                    >
+                      Meer details
+                    </Button>
+                  </AtlasTooltipFooter>
+                )}
+              </div>
+            )
           }}
         />
-        <div className="text-muted-foreground mt-0.5 flex justify-between">
-          <span>0</span>
-          <span>40</span>
-          <span>70</span>
-          <span>100</span>
-        </div>
-        <div className="text-muted-foreground mt-1.5 flex items-center gap-1">
-          <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9ca3af]" />
-          <span>Geen data</span>
-        </div>
+      </Atlas>
+
+      {/* Legend overlay — pointer-events-none so it doesn't block field clicks */}
+      <div className="absolute bottom-6 left-2 z-10">
+        <ScoreLegend label={label} />
       </div>
     </div>
   )
@@ -320,7 +231,7 @@ export function ScoreSelect({
     /* Floating indicator selector + info banner */
   }
   return (
-    <Card className="bg-background/90 absolute top-3 left-3 z-10 w-64 shadow-md backdrop-blur-sm">
+    <Card className="absolute top-3 left-3 z-10 w-64 shadow-md">
       <CardContent className="space-y-2 p-2">
         <div className="flex items-center gap-2">
           <Select value={selectedProperty} onValueChange={setSelectedProperty}>
