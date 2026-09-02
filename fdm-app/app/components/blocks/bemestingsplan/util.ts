@@ -26,5 +26,5 @@ export function getBemestingsplanTitle(plan: FoundFertilizerPlan): string {
   const dateLabel = plan.p_plan_date
     ? formatDate(plan.p_plan_date, "PP", { locale: nl })
     : "Datum onbekend"
-  return `Bemestingsplan teeltjaar ${plan.p_plan_year} - opgesteld op ${dateLabel}`
+  return `Bemestingsplan teeltjaar ${plan.p_plan_year} - gegenereerd op ${dateLabel}`
 }

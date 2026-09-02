@@ -156,7 +156,7 @@ export const columns = [
                 <AlertDialogHeader>
                   <AlertDialogTitle>Weet u het zeker?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    U kunt later opnieuw een bemestingsplan opstellen voor teeltjaar{" "}
+                    U kunt later opnieuw een bemestingsplan genereren voor teeltjaar{" "}
                     {row.original.p_plan_year}.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -251,7 +251,7 @@ function StatusDisplay({
               {isSubmitting && <Spinner className="ml-1.5 h-3.5 w-3.5" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Een nieuw bemestingsplan voor teeltjaar {year} opstellen</TooltipContent>
+          <TooltipContent>Een nieuw bemestingsplan voor teeltjaar {year} genereren</TooltipContent>
         </Tooltip>
       )}
     </div>

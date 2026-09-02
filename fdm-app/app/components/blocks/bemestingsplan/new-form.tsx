@@ -43,7 +43,7 @@ export function NewBemestingsplanForm({ className }: { className?: string }) {
           </SelectContent>
         </Select>
         <Button type="submit" disabled={isSubmitting}>
-          Opstellen{isSubmitting && <Spinner className="ml-1.5 h-4 w-4" />}
+          Genereren {isSubmitting && <Spinner className="ml-1.5 h-4 w-4" />}
         </Button>
       </div>
     </fetcher.Form>

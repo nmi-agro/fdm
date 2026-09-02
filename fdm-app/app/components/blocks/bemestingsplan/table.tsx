@@ -79,7 +79,7 @@ export function DataTable<T extends BemestingsplanRowData>({
       {canModify && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm">
-            Overzicht van opgestelde bemestingsplannen per teeltjaar.
+            Overzicht van gegenereerde bemestingsplannen per teeltjaar.
           </p>
           <div className="flex items-center gap-2">
             <NewBemestingsplanForm />

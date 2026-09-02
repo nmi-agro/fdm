@@ -167,7 +167,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
       return redirectWithSuccess(
         `/farm/${b_id_farm}/bemestingsplan/${p_id_plan}`,
-        `Bemestingsplan voor teeltjaar ${formValues.year} is succesvol opgesteld.`,
+        `Bemestingsplan voor teeltjaar ${formValues.year} is succesvol gegenereerd.`,
       )
     }
 
@@ -206,17 +206,17 @@ export default function FertilizerPlanTable() {
       <main>
         <FarmTitle
           title="Bemestingsplannen"
-          description="Overzicht van de opgestelde bemestingsplannen voor dit bedrijf."
+          description="Overzicht van de gegenereerde bemestingsplannen voor dit bedrijf."
         />
         <div className="p-6">
           {fertilizerPlans.length === 0 ? (
             <Empty>
               <EmptyHeader>
                 <EmptyTitle>
-                  Er zijn nog geen bemestingsplannen opgesteld voor dit bedrijf.
+                  Er zijn nog geen bemestingsplannen gegenereerd voor dit bedrijf.
                 </EmptyTitle>
                 <EmptyContent>
-                  Hieronder kunt u een nieuw bemestingsplan opstellen per teeltjaar.
+                  Hieronder kunt u een nieuw bemestingsplan genereren per teeltjaar.
                 </EmptyContent>
               </EmptyHeader>
               {farmWritePermission && (
