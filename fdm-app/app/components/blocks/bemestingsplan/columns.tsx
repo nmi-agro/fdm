@@ -17,6 +17,7 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { DataTableColumnHeader } from "./column-header"
 import { getBemestingsplanDownloadName } from "./util"
 
@@ -118,6 +119,7 @@ export const columns = [
                 <Trash2 aria-label="Verwijderen" />
               </Button>
             </AlertDialogTrigger>
+
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Weet u het zeker?</AlertDialogTitle>
@@ -176,27 +178,32 @@ function StatusDisplay({
 
   return (
     <div className="text-muted-foreground flex items-center gap-2">
-      {statusCode === "expired" ? "Verlopen" : "Onbekend"}
+      {statusCode === "expired" ? "Verouderd" : "Onbekend"}
       {canModify && (
-        <Button
-          disabled={disabled || isSubmitting}
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            reestablishFetcher.submit(
-              new URLSearchParams([
-                ["intent", "establish_plan"],
-                ["year", String(year)],
-              ]),
-              {
-                method: "POST",
-              },
-            )
-          }}
-        >
-          Herstellen
-          {isSubmitting && <Spinner />}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={disabled || isSubmitting}
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                reestablishFetcher.submit(
+                  new URLSearchParams([
+                    ["intent", "establish_plan"],
+                    ["year", String(year)],
+                  ]),
+                  {
+                    method: "POST",
+                  },
+                )
+              }}
+            >
+              Herstellen
+              {isSubmitting && <Spinner />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Een nieuw bemestingsplan voor {year} opstellen</TooltipContent>
+        </Tooltip>
       )}
     </div>
   )

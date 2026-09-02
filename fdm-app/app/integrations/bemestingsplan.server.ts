@@ -276,7 +276,7 @@ export async function computeBemestingsplanData({
                   ),
                   (normFillingFunctions as any).calculateFertilizerApplicationFillingForRenure?.(
                     fdm,
-                    normInput,
+                    fillingInput,
                   ) as NormFilling | undefined,
                 ])
               })
