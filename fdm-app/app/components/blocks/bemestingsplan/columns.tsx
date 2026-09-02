@@ -151,20 +151,25 @@ export const columns = [
 
           {meta?.canModify && (
             <>
-              {isDeleting && <Spinner className="mr-1 h-4 w-4" />}
+              {isDeleting && <Spinner className="text-muted-foreground mr-1 h-4 w-4" />}
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    type="button"
-                    disabled={disabled}
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive h-8 w-8"
-                    aria-label="Verwijderen"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        type="button"
+                        disabled={disabled}
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive h-8 w-8"
+                        aria-label="Verwijderen"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Verwijderen</TooltipContent>
+                </Tooltip>
 
                 <AlertDialogContent>
                   <AlertDialogHeader>
