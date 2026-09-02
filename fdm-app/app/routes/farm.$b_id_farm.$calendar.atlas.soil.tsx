@@ -1,27 +1,24 @@
 import type { FeatureCollection, Geometry } from "geojson"
+import type { MapMouseEvent } from "maplibre-gl"
 import { getFields } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import DOMPurify from "dompurify"
-import maplibregl from "maplibre-gl"
+import { X } from "lucide-react"
 import proj4 from "proj4"
 import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  Layer,
-  Map as MapGL,
-  type MapLayerMouseEvent,
-  type MapRef,
-  Popup,
-  Source,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
+import { Layer, type MapRef, Source } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
+import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
+import { SATELLITE_BACKGROUND_REQUIRED_MESSAGE } from "~/components/blocks/atlas/atlas-style-select"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { AtlasPopup } from "~/components/blocks/atlas/atlas-tooltip"
+import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { Badge } from "~/components/ui/badge"
+import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
@@ -105,10 +102,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+const SOIL_WMS_LAYER_ID = "soil-wms"
+
 export default function FarmAtlasSoilBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const fields = loaderData.fields
-  const mapStyle = loaderData.mapStyle
   const routeParams = useParams()
   const { capture } = useAnalytics()
 
@@ -118,7 +116,7 @@ export default function FarmAtlasSoilBlock() {
       calendar: routeParams.calendar,
       layer: "soil_map",
     })
-  }, [])
+  }, [capture, routeParams.b_id_farm, routeParams.calendar])
   const mapRef = useRef<MapRef>(null)
 
   // State
@@ -149,33 +147,6 @@ export default function FarmAtlasSoilBlock() {
 
   // ViewState logic
   const initialViewState = getViewState(fields)
-  const [viewState, setViewState] = useState<AtlasViewState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const savedViewState = sessionStorage.getItem("mapViewState")
-        if (savedViewState) {
-          return JSON.parse(savedViewState)
-        }
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-    return initialViewState
-  })
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-  }, [viewState])
-
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
 
   const fetchBodemData = useCallback(
     async (first_soilcode: string | undefined, signal?: AbortSignal) => {
@@ -256,7 +227,7 @@ export default function FarmAtlasSoilBlock() {
   }, [])
 
   const onMapClick = useCallback(
-    async (event: MapLayerMouseEvent) => {
+    async (event: MapMouseEvent) => {
       if (!showSoil || !mapRef.current) return
 
       // Cancel previous request
@@ -376,44 +347,38 @@ export default function FarmAtlasSoilBlock() {
     setShowFields((prev) => !prev)
   }, [])
 
-  const onControlsViewportChange = useCallback(
-    ({ longitude, latitude, zoom }: { longitude: number; latitude: number; zoom: number }) => {
-      setViewState((current) => ({
-        ...current,
-        longitude,
-        latitude,
-        zoom,
-      }))
-    },
-    [],
-  )
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPopupInfo(null)
+      }
+    }
+    addEventListener("keydown", onKeyDown)
+
+    return () => {
+      removeEventListener("keydown", onKeyDown)
+    }
+  }, [])
 
   return (
     <div className="relative h-full w-full">
-      <MapGL
+      <Atlas
         ref={mapRef}
-        {...viewState}
-        style={{ height: "calc(100vh - 64px)", width: "100%" }}
+        initialViewState={initialViewState}
         interactive={true}
-        mapStyle={mapStyle}
-        mapLib={maplibregl}
-        onMove={onViewportChange}
+        mapStyle="satellite"
+        interactiveLayerIds={[SOIL_WMS_LAYER_ID]}
         onClick={onMapClick}
-        cursor={showSoil ? "pointer" : undefined}
       >
         <Controls
-          onViewportChange={onControlsViewportChange}
           showFields={showFields}
           onToggleFields={onToggleFields}
           showSoil={showSoil}
           onToggleSoil={onToggleSoil}
+          initialViewState={initialViewState}
           showFlyToFields={fields && fields.features.length > 0 ? true : undefined}
-          onFlyToFields={() => {
-            setViewState({ ...initialViewState })
-            if (initialViewState.bounds) {
-              mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-            }
-          }}
+          showStyleSelect={true}
+          styleSelectWarning={SATELLITE_BACKGROUND_REQUIRED_MESSAGE}
         />
 
         <MapTilerAttribution />
@@ -421,7 +386,7 @@ export default function FarmAtlasSoilBlock() {
         {/* Soil WMS Layer */}
         {showSoil && (
           <Source
-            id="soil-wms"
+            id={SOIL_WMS_LAYER_ID}
             type="raster"
             tiles={[
               "https://service.pdok.nl/bzk/bro-bodemkaart/wms/v1_0?service=WMS&request=GetMap&layers=soilarea&styles=&format=image/png&transparent=true&version=1.3.0&width=256&height=256&crs=EPSG:3857&bbox={bbox-epsg-3857}",
@@ -460,18 +425,24 @@ export default function FarmAtlasSoilBlock() {
 
         {/* Popup */}
         {showSoil && popupInfo && (
-          <Popup
+          <AtlasPopup
             longitude={popupInfo.longitude}
             latitude={popupInfo.latitude}
-            closeButton={true}
-            closeOnClick={false}
-            onClose={() => {
-              setSelectedSoilFeature(null)
-              setPopupInfo(null)
-            }}
-            anchor="bottom"
-            maxWidth="350px"
+            className="max-w-75"
           >
+            <Button
+              type="button"
+              variant="ghost"
+              className="absolute top-0.5 right-0.5 has-[>svg]:p-1"
+              title="Sluiten"
+              aria-label="Sluiten"
+              onClick={() => {
+                setSelectedSoilFeature(null)
+                setPopupInfo(null)
+              }}
+            >
+              <X />
+            </Button>
             <div className="p-3">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-sm leading-snug font-semibold">
@@ -495,15 +466,15 @@ export default function FarmAtlasSoilBlock() {
                 <Spinner />
               )}
             </div>
-          </Popup>
+          </AtlasPopup>
         )}
 
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-4">
-          <div className="grid w-87.5 gap-4">
-            <FieldsPanelHover zoomLevelFields={ZOOM_LEVEL_FIELDS} layer={fieldsSavedId} />
-          </div>
-        </div>
-      </MapGL>
+        <FieldTooltip
+          zoomLevelFields={ZOOM_LEVEL_FIELDS}
+          layer={fieldsSavedId}
+          touchDisplaysPopupInstead={false}
+        />
+      </Atlas>
     </div>
   )
 }

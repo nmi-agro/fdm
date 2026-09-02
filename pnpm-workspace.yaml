@@ -10,21 +10,22 @@ packages:
   - fdm-helpdesk
 
 catalog:
-  "@better-auth/api-key": ^1.6.25
-  jose: ^6.2.4
-  "@dotenvx/dotenvx": ^2.19.0
-  "@types/node": ^26.1.2
-  "@vitest/coverage-v8": 4.1.10
-  better-auth: ^1.6.25
+  "@better-auth/api-key": 1.6.27
+  jose: ^6.2.10
+  "@dotenvx/dotenvx": ^2.22.0
+  "@types/node": ^26.4.0
+  "@vitest/coverage-v8": 4.1.11
+  better-auth: 1.6.27
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
-  nanoid: ^6.0.0
+  nanoid: ^6.0.1
   tsdown: ^0.22.14
   typedoc: ^0.28.20
   typedoc-plugin-missing-exports: ^4.1.4
   typescript: ^7.0.2
   vite-tsconfig-paths: ^5.1.4
-  vitest: ^4.1.10
+  vitest: ^4.1.11
+  zod: ^4.5.4
 
 strictDepBuilds: true
 blockExoticSubdeps: true

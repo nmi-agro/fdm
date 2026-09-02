@@ -25,7 +25,7 @@ import { modifySearchParams } from "@/app/lib/url-utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useRotationSelectionStore } from "@/app/store/rotation-selection"
-import { getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
+import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -342,7 +342,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
       ? "Selecteer één gewas om oogst/snede toe te voegen"
       : harvestErrorMessage
         ? harvestErrorMessage
-        : `${getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation)} toevoegen aan geselecteerd gewas`
+        : `${getHarvestTerm(selectedCultivations[0].b_lu_croprotation, false, selectedCultivations[0].b_lu_harvestable, true)} toevoegen aan geselecteerd gewas`
 
   function makeWizardUrl(url: string) {
     return modifySearchParams(url, (searchParams) => {
@@ -443,7 +443,12 @@ export function DataTable<TData extends RotationExtended, TValue>({
                     <Button disabled={isHarvestButtonDisabled}>
                       <Plus className="mr-2 h-4 w-4" />
                       {selectedCultivations.length === 1
-                        ? getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation)
+                        ? getHarvestTerm(
+                            selectedCultivations[0].b_lu_croprotation,
+                            false,
+                            selectedCultivations[0].b_lu_harvestable,
+                            true,
+                          )
                         : "Oogst"}{" "}
                       toevoegen
                     </Button>
@@ -451,7 +456,12 @@ export function DataTable<TData extends RotationExtended, TValue>({
                     <Button onClick={() => notify.error(harvestErrorMessage)}>
                       <Plus className="mr-2 h-4 w-4" />
                       {selectedCultivations.length === 1
-                        ? getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation)
+                        ? getHarvestTerm(
+                            selectedCultivations[0].b_lu_croprotation,
+                            false,
+                            selectedCultivations[0].b_lu_harvestable,
+                            true,
+                          )
                         : "Oogst"}{" "}
                       toevoegen
                     </Button>
@@ -460,7 +470,12 @@ export function DataTable<TData extends RotationExtended, TValue>({
                       <Button>
                         <Plus className="mr-2 h-4 w-4" />
                         {selectedCultivations.length === 1
-                          ? getHarvestCapitalizedTerm(selectedCultivations[0].b_lu_croprotation)
+                          ? getHarvestTerm(
+                              selectedCultivations[0].b_lu_croprotation,
+                              false,
+                              selectedCultivations[0].b_lu_harvestable,
+                              true,
+                            )
                           : "Oogst"}{" "}
                         toevoegen
                       </Button>

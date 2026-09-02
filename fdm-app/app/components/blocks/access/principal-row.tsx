@@ -3,9 +3,21 @@ import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
+import { BadgeCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -17,6 +29,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
 // Define the props type based on usage in the original file
@@ -31,6 +44,9 @@ type PrincipalRowProps = {
   invitation_id?: string
   invitation_expires_at?: Date | string
   hasSharePermission: boolean
+  isVerificationProvider: boolean
+  isLastVerificationProvider: boolean
+  farmName: string | null
 }
 
 export const PrincipalRow = ({
@@ -44,6 +60,9 @@ export const PrincipalRow = ({
   invitation_id,
   invitation_expires_at,
   hasSharePermission,
+  isVerificationProvider,
+  isLastVerificationProvider,
+  farmName,
 }: PrincipalRowProps) => {
   const fetcher = useFetcher()
 
@@ -77,6 +96,20 @@ export const PrincipalRow = ({
     )
   }
 
+  const removeButton = (
+    <Button
+      type={isLastVerificationProvider ? "button" : "submit"}
+      variant="destructive"
+      className="shrink-0"
+      name={isLastVerificationProvider ? undefined : "intent"}
+      value={isLastVerificationProvider ? undefined : "remove_user"}
+      disabled={fetcher.state !== "idle"}
+      onClick={isLastVerificationProvider ? undefined : handleRemove}
+    >
+      Verwijder
+    </Button>
+  )
+
   // Handler for changing the role via Select dropdown
   const handleSelectChange = async (value: string) => {
     // Optimistically update displayed role
@@ -97,6 +130,8 @@ export const PrincipalRow = ({
 
   const isPending = status === "pending"
 
+  const farmLabel = farmName || "dit bedrijf"
+
   const expiryLabel =
     isPending && invitation_expires_at
       ? formatDistanceToNow(new Date(invitation_expires_at), {
@@ -114,16 +149,37 @@ export const PrincipalRow = ({
         </Avatar>
         <div>
           <p className="text-sm leading-none font-medium">{displayUserName}</p>
-          {isPending ? (
-            <p className="text-muted-foreground text-sm">
-              Uitnodiging
-              {expiryLabel ? ` · verloopt ${expiryLabel}` : ""}
-            </p>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              {type === "user" ? "Gebruiker" : type === "organization" ? "Organisatie" : "Onbekend"}
-            </p>
-          )}
+          <div className="flex items-center space-x-2">
+            {isPending ? (
+              <p className="text-muted-foreground text-sm">
+                Uitnodiging
+                {expiryLabel ? ` · verloopt ${expiryLabel}` : ""}
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                {type === "user"
+                  ? "Gebruiker"
+                  : type === "organization"
+                    ? "Organisatie"
+                    : "Onbekend"}
+              </p>
+            )}
+            {isVerificationProvider && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Badge variant="outline" className="mt-2 gap-1 border-green-600 text-green-700">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                    {isLastVerificationProvider ? "Enige verificatiehouder" : "Verificatiehouder"}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isLastVerificationProvider
+                    ? "Als deze gebruiker wordt verwijderd, verliest dit bedrijf de geverifieerde status."
+                    : "Deze gebruiker heeft dit bedrijf via eHerkenning geverifieerd."}
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </div>
       </div>
       {hasSharePermission ? (
@@ -165,18 +221,28 @@ export const PrincipalRow = ({
             )}
 
             {/* Button to trigger removal */}
-            <Button
-              type="submit" // Submit the fetcher.Form
-              variant="destructive"
-              className="shrink-0"
-              name="intent" // Set intent for this button
-              value="remove_user"
-              // Disable button while submitting
-              disabled={fetcher.state !== "idle"}
-              onClick={handleRemove}
-            >
-              Verwijder
-            </Button>
+            {isLastVerificationProvider ? (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>{removeButton}</AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Laatste verificatiehouder verwijderen?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Deze gebruiker is de enige gebruiker die {farmLabel} via eHerkenning heeft
+                      geverifieerd. Als u deze gebruiker verwijdert, verliest {farmLabel} direct de
+                      geverifieerde status. Weet u zeker dat u de toegang van deze gebruiker wilt
+                      verwijderen?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleRemove}>Verwijderen</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              removeButton
+            )}
           </fieldset>
         </fetcher.Form>
       ) : (

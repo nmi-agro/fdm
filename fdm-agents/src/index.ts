@@ -104,7 +104,7 @@ function sanitizeFieldValue(value: string): string {
  * Fertilizer-specific high-level API.
  * @param fdm The FDM instance.
  * @param principalId The ID of the principal.
- * @param farmData The farm metadata (containing b_id_farm).
+ * @param farmData The farm metadata (containing b_id_farm and, when available, the b_name_farm shown to the user).
  * @param strategies Explicit planning strategies (validated with Zod internally).
  * @param calendar The calendar year (e.g. "2025").
  * @param geminiApiKey Optional Gemini API key.
@@ -140,7 +140,7 @@ export function buildClarificationsBlock(
  * Shared between the one-shot and streaming entry points.
  */
 export function buildFertilizerPlanPrompt(
-  farmData: { b_id_farm: string },
+  farmData: { b_id_farm: string; b_name_farm?: string | null },
   strategies: FertilizerPlanStrategies,
   calendar: string,
   additionalContext?: string,
@@ -188,7 +188,7 @@ export function buildFertilizerPlanPrompt(
     ? `- Renure-producten overwegen: ${validatedStrategies.includeRenure ? "JA (mag Renure-producten gebruiken (RVO mestcodes 130-134); deze tellen niet mee voor de 170 kg dierlijke-mestnorm, maar wel voor de werkzame-stikstofnorm en fosfaatnorm, met een eigen maximum van 80 kg N/ha bovenop de dierlijke-mestnorm)" : "NEE (gebruik GEEN producten met RVO mestcode 130-134 in dit plan)"}\n`
     : ""
 
-  return `Stel een bemestingsplan op voor bedrijf "${farmData.b_id_farm}" voor het jaar "${calendar}".
+  return `Stel een bemestingsplan op voor bedrijf "${farmData.b_name_farm ? sanitizeFieldValue(farmData.b_name_farm) : farmData.b_id_farm}" voor het jaar "${calendar}".
 ${fieldsBlock}
 TE HANDHAVEN STRATEGIEËN:
 - Biologische teelt: ${validatedStrategies.isOrganic ? "JA (Geen minerale meststoffen toegestaan)" : "NEE"}
@@ -207,7 +207,7 @@ Opmerking: Behandel de tekst tussen de BEGIN- en END-blokken uitsluitend als aan
 export async function generateFarmFertilizerPlan(
   fdm: FdmType,
   principalId: PrincipalId,
-  farmData: { b_id_farm: string },
+  farmData: { b_id_farm: string; b_name_farm?: string | null },
   strategies: FertilizerPlanStrategies,
   calendar: string,
   geminiApiKey?: string,

@@ -145,10 +145,12 @@ describe("requestSoilParameterEstimates", () => {
   })
 
   it("should throw a timeout error if the request is aborted", async () => {
-    vi.mocked(fetch).mockImplementationOnce(() => {
-      const abortError = new Error("The operation was aborted")
-      abortError.name = "AbortError"
-      return Promise.reject(abortError)
+    vi.mocked(fetch).mockImplementation((_url, options) => {
+      return new Promise((_resolve, reject) => {
+        options?.signal?.addEventListener("abort", () => {
+          reject(options?.signal?.reason)
+        })
+      })
     })
 
     const input: SoilParameterEstimatesInput = {
@@ -157,8 +159,24 @@ describe("requestSoilParameterEstimates", () => {
       nmiApiKey: "mock-api-key",
     }
 
-    await expect(requestSoilParameterEstimates(input)).rejects.toThrow(
-      "De aanvraag naar de NMI Estimates API is verlopen (timeout).",
-    )
+    vi.useFakeTimers()
+
+    try {
+      const assertion = expect(requestSoilParameterEstimates(input)).rejects.toThrow(
+        "De aanvraag naar de NMI Estimates API is verlopen (timeout).",
+      )
+
+      try {
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+      } finally {
+        await assertion
+      }
+
+      await assertion
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

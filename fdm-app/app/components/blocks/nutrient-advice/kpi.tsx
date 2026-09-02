@@ -2,6 +2,7 @@ import type { Dose } from "@nmi-agro/fdm-calculator"
 import type { FertilizerApplication } from "@nmi-agro/fdm-core"
 import { ArrowDownToLine, Gauge, Leaf, Sprout } from "lucide-react"
 import { useNavigation } from "react-router"
+import { computeAdviceProgress } from "~/components/blocks/nutrient-advice/progress-bar"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardFooter } from "~/components/ui/card"
 import { Spinner } from "~/components/ui/spinner"
@@ -32,7 +33,7 @@ export function NutrientKPICardForTotalApplications({
   const numberOfFertilizerApplications = fertilizerApplications.length
   const numberOfNutrientsApplied = Object.values(doses.dose).filter((value) => value > 0).length
   return (
-    <Card className="border-l-primary border-l-4">
+    <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -84,34 +85,20 @@ export function NutrientKPICardForNutrientDeficit({
   doses,
 }: NutrientKPICardForNutrientDeficitProps) {
   const navigation = useNavigation()
-  const deficitThreshold = 90
 
   const deficitNutrients = descriptions
     .map((nutrient: NutrientDescription) => {
-      const adviceParameter = nutrient.adviceParameter
-      const doseParameter = nutrient.doseParameter
-
-      const dose = doses.dose[doseParameter]
-      const advice = advices[adviceParameter]
-
-      const percentage = advice ? (dose / advice) * 100 : 0
-      if (percentage < deficitThreshold) {
-        return nutrient.symbol
-      }
-      return null
+      const dose = doses.dose[nutrient.doseParameter] ?? 0
+      const advice = advices[nutrient.adviceParameter] ?? 0
+      const { status } = computeAdviceProgress(dose, advice, nutrient.symbol === "EOC")
+      return status === "under" ? nutrient.symbol : null
     })
     .filter((x) => x !== null)
 
+  const hasDeficit = deficitNutrients.length > 0
+
   return (
-    <Card
-      className={
-        navigation.state === "loading"
-          ? "border-l-4 border-l-black"
-          : deficitNutrients.length > 0
-            ? "border-l-4 border-l-red-500"
-            : "border-l-4 border-l-green-500"
-      }
-    >
+    <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -136,7 +123,7 @@ export function NutrientKPICardForNutrientDeficit({
             className={
               navigation.state === "loading"
                 ? "rounded-full bg-black/10 p-3"
-                : deficitNutrients.length > 0
+                : hasDeficit
                   ? "rounded-full bg-red-500/10 p-3"
                   : "rounded-full bg-green-500/10 p-3"
             }
@@ -145,7 +132,7 @@ export function NutrientKPICardForNutrientDeficit({
               className={
                 navigation.state === "loading"
                   ? "h-6 w-6 text-black"
-                  : deficitNutrients.length > 0
+                  : hasDeficit
                     ? "h-6 w-6 text-red-500"
                     : "h-6 w-6 text-green-500"
               }
@@ -154,9 +141,9 @@ export function NutrientKPICardForNutrientDeficit({
         </div>
       </CardContent>
       <CardFooter className="text-muted-foreground text-sm">
-        {deficitNutrients.length > 0
+        {hasDeficit
           ? "Minder geven dan geadviseerd kan leiden tot opbrengstverlies"
-          : ""}
+          : "Geen nutriënten onder advies"}
       </CardFooter>
     </Card>
   )
@@ -187,35 +174,20 @@ export function NutrientKPICardForNutrientExcess({
   doses,
 }: NutrientKPICardForNutrientExcessProps) {
   const navigation = useNavigation()
-  const excessThreshold = 105
 
   const excessNutrients = descriptions
     .map((nutrient: NutrientDescription) => {
-      const adviceParameter = nutrient.adviceParameter
-      const doseParameter = nutrient.doseParameter
-
-      const dose = doses.dose[doseParameter]
-      const advice = advices[adviceParameter]
-
-      const percentage = advice ? (dose / advice) * 100 : 0
-      if (percentage >= excessThreshold) {
-        return nutrient.symbol
-      }
-      return null
+      const dose = doses.dose[nutrient.doseParameter] ?? 0
+      const advice = advices[nutrient.adviceParameter] ?? 0
+      const { status } = computeAdviceProgress(dose, advice, nutrient.symbol === "EOC")
+      return status === "over" ? nutrient.symbol : null
     })
-    // EOC (Effective Organic Carbon) is excluded from excess calculations as higher values are generally beneficial
-    .filter((x) => x !== null && x !== "EOC")
+    .filter((x) => x !== null)
+
+  const hasExcess = excessNutrients.length > 0
 
   return (
-    <Card
-      className={
-        navigation.state === "loading"
-          ? "border-l-4 border-l-black"
-          : excessNutrients.length > 0
-            ? "border-l-4 border-l-orange-500"
-            : "border-l-4 border-l-green-500"
-      }
-    >
+    <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -238,17 +210,19 @@ export function NutrientKPICardForNutrientExcess({
           </div>
           <div
             className={
-              excessNutrients.length > 0
-                ? "rounded-full bg-orange-500/10 p-3"
-                : "rounded-full bg-green-500/10 p-3"
+              navigation.state === "loading"
+                ? "rounded-full bg-black/10 p-3"
+                : hasExcess
+                  ? "rounded-full bg-orange-500/10 p-3"
+                  : "rounded-full bg-green-500/10 p-3"
             }
           >
             <Leaf
               className={
                 navigation.state === "loading"
                   ? "h-6 w-6 text-black"
-                  : excessNutrients.length > 0
-                    ? "h-6 w-6 text-red-500"
+                  : hasExcess
+                    ? "h-6 w-6 text-orange-500"
                     : "h-6 w-6 text-green-500"
               }
             />
@@ -256,9 +230,9 @@ export function NutrientKPICardForNutrientExcess({
         </div>
       </CardContent>
       <CardFooter className="text-muted-foreground text-sm">
-        {excessNutrients.length > 0
+        {hasExcess
           ? "Meer geven dan geadviseerd kan leiden tot verlies naar milieu"
-          : ""}
+          : "Geen nutriënten boven advies"}
       </CardFooter>
     </Card>
   )

@@ -1,5 +1,21 @@
 # fdm-docs
 
+## 0.14.0
+
+### Minor Changes
+
+- [#735](https://github.com/nmi-agro/fdm/pull/735) [`69ba843`](https://github.com/nmi-agro/fdm/commit/69ba843bf4a8b1747972b05736194abb9ee54804) Thanks [@SvenVw](https://github.com/SvenVw)! - Add more information about how the fdm data schema works and can be expanded
+
+- [#753](https://github.com/nmi-agro/fdm/pull/753) [`46f75be`](https://github.com/nmi-agro/fdm/commit/46f75be1e49db2a84a3e9f6543fed569cbade4f2) Thanks [@SvenVw](https://github.com/SvenVw)! - Update 2025 and 2026 Dutch nitrogen usage norm (`stikstofgebruiksruimte`) documentation:
+
+  - Document per-teelt accumulation and volgteelt rules per RVO Tabel 2.
+  - Document footnote 7a green manure conditions and footnote 2/6 maize exclusions.
+  - Document hoofdgewas definition (longest presence in 15 May – 15 July window).
+  - Document intentional crop code mappings (quinoa to spinach volgteelt, grass catch crops to grass seed rows, nature/fallow to 0 kg N/ha).
+  - Add explicit out-of-scope / not-yet-implemented section covering yield-based norm increases (stikstofdifferentiatie / art. 28c Urm Tabel 1a), French-fry potatoes on clay (Tabel 2a), grass seed with fodder cut, grass seed stubble destruction (footnote 7b), mixed cropping/undersowing, fixed farm norm (footnote 9), and two-year winter crop budget splits (footnote 5/18).
+
+- [#753](https://github.com/nmi-agro/fdm/pull/753) [`63e93f9`](https://github.com/nmi-agro/fdm/commit/63e93f9504cab01560ff7d5f2aa9e1bbd81e8a9c) Thanks [@SvenVw](https://github.com/SvenVw)! - Add documentation about the 2026 fertilizer application norms in the Netherlands and extend the 2025 documentation about catch crops and winter crops
+
 ## 0.13.1
 
 ### Patch Changes

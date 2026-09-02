@@ -1,4 +1,5 @@
 import type { FeatureCollection, Geometry } from "geojson"
+import type { MapGeoJSONFeature } from "maplibre-gl"
 import type { MetaFunction } from "react-router"
 import {
   getCurrentSoilDataForFarm,
@@ -8,20 +9,13 @@ import {
 import { simplify } from "@turf/simplify"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
-import maplibregl, { type GeoJSONFeature } from "maplibre-gl"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  Layer,
-  type LayerProps,
-  Map as MapGL,
-  type MapMouseEvent,
-  type MapRef,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
+import { useEffect, useMemo, useState } from "react"
+import { Layer, type LayerProps } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, useLoaderData, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { SoilAnalysisLegend } from "~/components/blocks/atlas/atlas-legend"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   getShadedSoilParameters,
   getShadingParameterMapper,
@@ -29,10 +23,17 @@ import {
   SHADED_SOIL_TYPES,
   type ShadedSoilParameters,
 } from "~/components/blocks/atlas/atlas-soil-analysis"
-import { FieldSourceClickable } from "~/components/blocks/atlas/atlas-sources"
+import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
-import { Card, CardContent, CardHeader } from "~/components/ui/card"
+import {
+  AtlasTooltip,
+  AtlasTooltipContent,
+  AtlasTooltipFooter,
+  AtlasTooltipHeader,
+} from "~/components/blocks/atlas/atlas-tooltip"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { Button } from "~/components/ui/button"
+import { Card, CardContent } from "~/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "~/components/ui/select"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
@@ -153,7 +154,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * It integrates geolocation and navigation controls, wraps the field layer in a non-interactive source, and includes a panel for displaying additional field details on hover.
  */
 export default function FarmAtlasFieldSoilAnalysisBlock() {
-  const { calendar, b_id_farm, mapStyle, fieldsData, soilParametersDescriptions } =
+  const { calendar, b_id_farm, fieldsData, soilParametersDescriptions } =
     useLoaderData<typeof loader>()
   const navigate = useNavigate()
   const { capture } = useAnalytics()
@@ -218,21 +219,7 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
   const heatmapLayerStyle = getSoilAnalysisLayerStyle(selectedParameter, min, max)
   const heatmapLayerOutlineStyle = getFieldsStyle(heatmapOutlineLayerId)
 
-  // ViewState logic
   const initialViewState = getViewState(fieldsData)
-  const [viewState, setViewState] = useState<AtlasViewState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const savedViewState = sessionStorage.getItem("mapViewState")
-        if (savedViewState) {
-          return JSON.parse(savedViewState)
-        }
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-    return initialViewState
-  })
 
   const [showFields, setShowFields] = useState(true)
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const
@@ -240,99 +227,99 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
     ...heatmapLayerOutlineStyle,
     layout: layerLayout,
   } as LayerProps
-  type HoverInfo = {
-    x: number
-    y: number
-    feature: GeoJSONFeature
+
+  function onFieldClick(feature: MapGeoJSONFeature) {
+    if (feature.properties.b_id) {
+      void navigate(
+        `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
+      )
+    }
   }
-  const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null)
-
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
-
-  const mapRef = useRef<MapRef>(null)
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-  }, [viewState])
-
-  const onMouseMove = useCallback((e: MapMouseEvent) => {
-    const feature = e.features?.[0]
-    if (feature) {
-      setHoverInfo({
-        x: e.point.x,
-        y: e.point.y,
-        feature: feature,
-      })
-    } else {
-      setHoverInfo(null)
-    }
-  }, [])
-
-  const onMouseLeave = useCallback(() => setHoverInfo(null), [])
 
   return (
     <div className="relative">
-      <MapGL
-        {...viewState}
-        ref={mapRef}
-        style={{ height: "calc(100vh - 64px)", width: "100%" }}
+      <Atlas
+        initialViewState={initialViewState}
         interactive={true}
-        mapStyle={mapStyle}
-        mapLib={maplibregl}
         interactiveLayerIds={[heatmapLayerId]}
-        onMove={onViewportChange}
-        onMouseMove={onMouseMove}
-        onMouseLeave={onMouseLeave}
       >
         <Controls
-          onViewportChange={({ longitude, latitude, zoom }) =>
-            setViewState((currentViewState) => ({
-              ...currentViewState,
-              longitude,
-              latitude,
-              zoom,
-              pitch: currentViewState.pitch, // Ensure pitch is carried over
-              bearing: currentViewState.bearing, // Ensure bearing is carried over
-            }))
-          }
+          showFlyToFields={fieldsData && fieldsData.features.length > 0}
+          initialViewState={initialViewState}
           showFields={showFields}
           onToggleFields={() => setShowFields(!showFields)}
-          showFlyToFields={fieldsData && fieldsData.features.length > 0 ? true : undefined}
-          onFlyToFields={() => {
-            setViewState({ ...initialViewState })
-            if (initialViewState.bounds) {
-              mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-            }
-          }}
         />
 
         <MapTilerAttribution />
 
         {fieldsData && (
-          <FieldSourceClickable
-            id={heatmapLayerId}
-            fieldsData={fieldsData}
-            onFieldClick={(feature) => {
-              void navigate(
-                `/farm/${b_id_farm}/${calendar}/atlas/soil-analysis/${feature.properties.b_id}/soil`,
-              )
-            }}
-          >
+          <FieldsSourceNotClickable id={heatmapLayerId} fieldsData={fieldsData}>
             <Layer id={heatmapLayerId} {...heatmapLayerStyle} layout={layerLayout} />
             <Layer id={heatmapOutlineLayerId} {...heatmapOutlineLayer} />
-          </FieldSourceClickable>
+          </FieldsSourceNotClickable>
         )}
-      </MapGL>
+        <AtlasTooltip
+          layers={[heatmapLayerId]}
+          onFeatureClicked={onFieldClick}
+          render={({ features, mode }) => {
+            if (features.length === 0) return null
+            const feature = features[0]
+
+            return (
+              <>
+                <AtlasTooltipHeader>
+                  <p className="text-foreground font-semibold">{feature.properties.b_name}</p>
+                  {feature.properties.b_area != null && (
+                    <p className="text-muted-foreground mt-0.5">
+                      {Number(feature.properties.b_area).toFixed(2)} ha
+                    </p>
+                  )}
+                </AtlasTooltipHeader>
+                <AtlasTooltipContent>
+                  <p className="text-muted-foreground">{parameterDescription?.name}</p>
+                  {typeof feature.properties[selectedParameter] === "undefined" ? (
+                    <p>Geen data</p>
+                  ) : parameterDescription?.type === "date" ? (
+                    <p>
+                      {formatDate(feature.properties[selectedParameter], "PP", {
+                        locale: nl,
+                      })}
+                    </p>
+                  ) : selectedParameter === "b_soiltype_agr" ? (
+                    <p>
+                      <span
+                        className="me-0.5 inline-block size-2.5 rounded align-middle"
+                        style={{
+                          backgroundColor:
+                            SHADED_SOIL_TYPES.find(
+                              (item) => item.value === feature.properties[selectedParameter],
+                            )?.fill ?? "#777777",
+                        }}
+                      />
+                      {SHADED_SOIL_TYPES.find(
+                        (item) => item.value === feature.properties[selectedParameter],
+                      )?.label ?? feature.properties[selectedParameter]}
+                    </p>
+                  ) : (
+                    <p>
+                      {feature.properties[selectedParameter]} {parameterDescription?.unit}
+                    </p>
+                  )}
+                </AtlasTooltipContent>
+                {mode === "popup" && (
+                  <AtlasTooltipFooter>
+                    <Button type="button" onClick={() => onFieldClick(feature)} className="grow">
+                      Bekijk analyse
+                    </Button>
+                  </AtlasTooltipFooter>
+                )}
+              </>
+            )
+          }}
+        />
+      </Atlas>
       {/* Soil Parameter Dropdown */}
-      <Card className="bg-background/90 absolute top-3 left-3 z-10 w-52 shadow-md backdrop-blur-sm">
+      <Card className="absolute top-3 left-3 z-10 w-52 shadow-md">
         <CardContent className="p-2">
           <Select
             value={selectedParameter}
@@ -357,57 +344,6 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
           </Select>
         </CardContent>
       </Card>
-      {/* Hover tooltip */}
-      {hoverInfo && (
-        <Card
-          className="bg-background/95 pointer-events-none absolute z-20 min-w-[160px] px-3 py-2 text-xs shadow-md backdrop-blur-sm"
-          style={{
-            left: hoverInfo.x + 12,
-            top: hoverInfo.y - 8,
-            transform: "translateY(-100%)",
-          }}
-        >
-          <CardHeader className="mb-1.5 p-0">
-            <p className="text-foreground font-semibold">{hoverInfo.feature.properties.b_name}</p>
-            {hoverInfo.feature.properties.b_area != null && (
-              <p className="text-muted-foreground mt-0.5">
-                {Number(hoverInfo.feature.properties.b_area).toFixed(2)} ha
-              </p>
-            )}
-          </CardHeader>
-          <CardContent className="mt-1.5 flex items-center justify-between gap-3 border-t p-0 pt-1.5">
-            <p className="text-muted-foreground">{parameterDescription?.name}</p>
-            {typeof hoverInfo.feature.properties[selectedParameter] === "undefined" ? (
-              <p>Geen data</p>
-            ) : parameterDescription?.type === "date" ? (
-              <p>
-                {formatDate(typeof hoverInfo.feature.properties[selectedParameter], "PP", {
-                  locale: nl,
-                })}
-              </p>
-            ) : selectedParameter === "b_soiltype_agr" ? (
-              <p>
-                <span
-                  className="me-0.5 inline-block size-2.5 rounded align-middle"
-                  style={{
-                    backgroundColor:
-                      SHADED_SOIL_TYPES.find(
-                        (item) => item.value === hoverInfo.feature.properties[selectedParameter],
-                      )?.fill ?? "#777777",
-                  }}
-                />
-                {SHADED_SOIL_TYPES.find(
-                  (item) => item.value === hoverInfo.feature.properties[selectedParameter],
-                )?.label ?? hoverInfo.feature.properties[selectedParameter]}
-              </p>
-            ) : (
-              <p>
-                {hoverInfo.feature.properties[selectedParameter]} {parameterDescription?.unit}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
       {/* Soil Analysis Color Legend */}
       <div className="pointer-none absolute bottom-9 left-4">
         <SoilAnalysisLegend

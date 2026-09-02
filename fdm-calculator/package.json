@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-calculator",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "private": false,
   "description": "Calculate various insights based on the Farm Data Model",
   "homepage": "https://github.com/nmi-agro/fdm",
@@ -46,7 +46,7 @@
     "date-fns": "^4.4.0",
     "decimal.js": "^10.6.0",
     "geotiff": "^3.0.5",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
@@ -63,5 +63,5 @@
   "engines": {
     "node": ">=24.0.0"
   },
-  "packageManager": "pnpm@11.17.0"
+  "packageManager": "pnpm@11.25.0"
 }

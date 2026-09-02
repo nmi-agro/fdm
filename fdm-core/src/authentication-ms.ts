@@ -21,7 +21,7 @@ async function loadPrivateKey(pemKey: string) {
  */
 async function computeX5t(certificatePem: string): Promise<string> {
   const der = pemToDer(certificatePem)
-  const sha1 = createHash("sha1").update(der).digest()
+  const sha1 = createHash("sha1").update(new Uint8Array(der)).digest()
   return Buffer.from(sha1)
     .toString("base64")
     .replace(/\+/g, "-")

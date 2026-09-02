@@ -22,6 +22,7 @@ export { createDisplayUsername, createFdmAuth, updateUserProfile } from "./authe
 export { checkPermission, withAuditContext, writeAuditEntry } from "./authorization"
 export type { AuditContext, PrincipalId } from "./authorization.types"
 export {
+  generateCalculationHash,
   getCachedCalculation,
   setCachedCalculation,
   setCalculationError,
@@ -68,7 +69,12 @@ export {
   visualImageTypeOptions,
 } from "./db/schema"
 export { rateLimit } from "./db/schema-authn"
-export type { invitationTypeInsert, invitationTypeSelect } from "./db/schema-authz"
+export type {
+  farmVerificationTypeInsert,
+  farmVerificationTypeSelect,
+  invitationTypeInsert,
+  invitationTypeSelect,
+} from "./db/schema-authz"
 export {
   addDerogation,
   isDerogationGrantedForYear,
@@ -112,6 +118,14 @@ export {
   updateFertilizerApplication,
   updateFertilizerFromCatalogue,
 } from "./fertilizer"
+export {
+  addFertilizerPlan,
+  getFertilizerPlan,
+  getFertilizerPlans,
+  removeFertilizerPlan,
+  updateFertilizerPlanFilePath,
+} from "./fertilizer-plan"
+export type { FertilizerPlan, FoundFertilizerPlan } from "./fertilizer-plan.types"
 export type {
   BaseFertilizerApplication,
   Fertilizer,
@@ -207,6 +221,21 @@ export type {
   SoilParameterDescription,
   SoilParameters,
 } from "./soil.types"
+export {
+  addFarmVerification,
+  getActiveFarmVerifications,
+  getFarmVerifications,
+  getLatestFarmVerification,
+  isFarmVerifiedForPrincipal,
+  revokeFarmVerification,
+  revokeFarmVerificationStatus,
+} from "./verification"
+export type {
+  AddFarmVerificationInput,
+  FarmVerification,
+  FarmVerificationMethod,
+  FarmVerificationResult,
+} from "./verification.types"
 export {
   addSoilImage,
   addSoilImageAnnotation,

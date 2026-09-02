@@ -300,7 +300,7 @@ export function SidebarFarm({
                     <SidebarMenuSub>
                       {calendarSelection?.map((item) => {
                         // Construct the new URL with the selected calendar
-                        const newUrl = location.pathname.replace(/\/(\d{4}|all)/, `/${item}`)
+                        const newUrl = `${location.pathname.replace(/\/(\d{4}|all)(\/|$)/, `/${item}/`)}${location.search}`
                         return (
                           <SidebarMenuSubItem
                             key={item}

@@ -193,10 +193,10 @@ export const columns: ColumnDef<RotationExtended>[] = [
             </TooltipTrigger>
             <TooltipContent>
               {tooltipMessageNumHarvests > 1
-                ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation, true)} bijwerken.`
+                ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation, true, cultivation.b_lu_harvestable)} bijwerken.`
                 : tooltipMessageNumHarvests === 1
-                  ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation)} bijwerken.`
-                  : `U zou in plaats daarvan een ${getHarvestTerm(cultivation.b_lu_croprotation)} moeten toevoegen.`}
+                  ? `U zou in plaats daarvan de huidige ${getHarvestTerm(cultivation.b_lu_croprotation, false, cultivation.b_lu_harvestable)} bijwerken.`
+                  : `U zou in plaats daarvan een ${getHarvestTerm(cultivation.b_lu_croprotation, false, cultivation.b_lu_harvestable)} moeten toevoegen.`}
             </TooltipContent>
           </Tooltip>
         </span>

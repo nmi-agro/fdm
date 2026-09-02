@@ -368,6 +368,46 @@ export const fertilizerPicking = fdmSchema.table("fertilizer_picking", {
 export type fertilizerPickingTypeSelect = typeof fertilizerPicking.$inferSelect
 export type fertilizerPickingTypeInsert = typeof fertilizerPicking.$inferInsert
 
+// Define fertilizer_plans table
+export const fertilizerPlans = fdmSchema.table(
+  "fertilizer_plans",
+  {
+    p_id_plan: text().primaryKey(),
+    p_plan_year: integer().notNull(), // Calendar year, e.g. 2025, 2026
+    p_plan_file_path: text().notNull(), // GCS object key, e.g. "bemestingsplan/{p_id_plan}.pdf"
+    p_plan_hash: text().notNull(), // SHA-256 hash of calculation input snapshot at generation time
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [uniqueIndex("p_id_plan_idx").on(table.p_id_plan)],
+)
+
+export type fertilizerPlansTypeSelect = typeof fertilizerPlans.$inferSelect
+export type fertilizerPlansTypeInsert = typeof fertilizerPlans.$inferInsert
+
+// Define fertilizer_plan_establishing table
+export const fertilizerPlanEstablishing = fdmSchema.table(
+  "fertilizer_plan_establishing",
+  {
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm, { onDelete: "cascade" }),
+    p_id_plan: text()
+      .notNull()
+      .references(() => fertilizerPlans.p_id_plan, { onDelete: "cascade" }),
+    p_plan_date: timestamp({ withTimezone: true }).notNull().defaultNow(), // Date when the plan was established/generated
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.b_id_farm, table.p_id_plan] }),
+    index("fertilizer_plan_establishing_farm_date_idx").on(table.b_id_farm, table.p_plan_date),
+  ],
+)
+
+export type fertilizerPlanEstablishingTypeSelect = typeof fertilizerPlanEstablishing.$inferSelect
+export type fertilizerPlanEstablishingTypeInsert = typeof fertilizerPlanEstablishing.$inferInsert
+
 // Define cultivations table
 export const cultivations = fdmSchema.table(
   "cultivations",

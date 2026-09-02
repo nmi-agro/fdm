@@ -1,6 +1,6 @@
 {
   "name": "@nmi-agro/fdm-api",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "description": "Hono-based REST API for the Farm Data Model",
   "bin": {
@@ -34,25 +34,25 @@
     "watch": "vitest"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.12",
-    "@hono/zod-openapi": "^1.5.1",
+    "@hono/node-server": "^2.1.1",
+    "@hono/zod-openapi": "^1.6.1",
     "@nmi-agro/fdm-calculator": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
-    "@scalar/hono-api-reference": "^0.11.11",
-    "@sentry/node": "^10.68.0",
-    "@sentry/profiling-node": "^10.68.0",
+    "@scalar/hono-api-reference": "^0.12.0",
+    "@sentry/node": "^10.72.0",
+    "@sentry/profiling-node": "^10.72.0",
     "drizzle-orm": "catalog:",
-    "hono": "^4.12.32",
+    "hono": "^4.13.5",
     "nanoid": "catalog:",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
-    "@scalar/openapi-parser": "^0.28.10",
+    "@scalar/openapi-parser": "^0.29.0",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "tsdown": "catalog:",
-    "tsx": "^4.23.1",
+    "tsx": "^4.23.13",
     "typedoc": "catalog:",
     "typedoc-plugin-missing-exports": "catalog:",
     "typescript": "catalog:",

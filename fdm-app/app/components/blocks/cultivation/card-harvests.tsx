@@ -3,7 +3,7 @@ import { NavLink } from "react-router"
 import type { HarvestableType } from "~/components/blocks/harvest/types"
 import { cn } from "@/app/lib/utils"
 import { HarvestsList } from "~/components/blocks/harvest/list"
-import { getHarvestCapitalizedTerm } from "~/components/blocks/harvest/utils"
+import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 
@@ -33,7 +33,12 @@ export function CultivationHarvestsCard({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-xl font-semibold tracking-tight text-gray-900">
-          {getHarvestCapitalizedTerm(b_lu_croprotation, b_lu_harvestable === "multiple")}
+          {getHarvestTerm(
+            b_lu_croprotation,
+            b_lu_harvestable === "multiple",
+            b_lu_harvestable,
+            true,
+          )}
         </CardTitle>
         <div className="flex justify-between">
           <Button asChild variant="default" className={cn(!canAddHarvest ? "hidden" : "")}>
@@ -46,7 +51,7 @@ export function CultivationHarvestsCard({
               }}
               className={!canAddHarvest ? "cursor-not-allowed" : ""}
             >
-              {getHarvestCapitalizedTerm(b_lu_croprotation)} toevoegen
+              {getHarvestTerm(b_lu_croprotation, false, b_lu_harvestable, true)} toevoegen
             </NavLink>
           </Button>
         </div>

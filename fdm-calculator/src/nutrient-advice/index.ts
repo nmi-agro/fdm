@@ -1,7 +1,31 @@
 import type { CurrentSoilData } from "@nmi-agro/fdm-core"
 import { withCalculationCache } from "@nmi-agro/fdm-core"
-import type { NutrientAdvice, NutrientAdviceInputs, NutrientAdviceResponse } from "./types"
+import { z } from "zod"
+import type {
+  NutrientAdvice,
+  NutrientAdviceCut,
+  NutrientAdviceInputs,
+  NutrientAdviceResponse,
+} from "./types"
 import pkg from "../package"
+
+const nutrientAdviceCutSchema: z.ZodType<NutrientAdviceCut> = z.object({
+  yieldclass: z.enum(["G", "HM", "LG", "LM", "M", "VLG"]),
+  cut: z.union([
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+    z.literal(5),
+    z.literal(6),
+  ]),
+  d_n_req: z.number(),
+  d_p_req: z.number(),
+  d_k_req: z.number(),
+  d_s_req: z.number(),
+})
+
+const nutrientAdviceCutsSchema = z.array(nutrientAdviceCutSchema)
 
 // Requests nutrient advice from the NMI API based on provided field and soil data.
 //
@@ -110,6 +134,10 @@ export async function requestNutrientAdvice({
     d_na_req,
     d_b_req,
   } = result.data.year
+  const parsedCuts = result.data.cut
+    ? nutrientAdviceCutsSchema.safeParse(result.data.cut)
+    : undefined
+  const cuts = parsedCuts?.success ? parsedCuts.data : undefined
 
   return {
     d_n_req,
@@ -126,6 +154,7 @@ export async function requestNutrientAdvice({
     d_mo_req,
     d_na_req,
     d_b_req,
+    ...(cuts ? { cuts } : {}),
   }
 }
 

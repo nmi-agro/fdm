@@ -165,7 +165,7 @@ export function AggregationTree({
               <Badge
                 variant="outline"
                 className={cn(
-                  "px-2 py-0.5 text-[10px] tracking-wider uppercase",
+                  "px-2 py-0.5 text-xs tracking-wider uppercase",
                   getScoreBadgeClass(displayScore),
                 )}
               >
@@ -275,10 +275,7 @@ export function AggregationTree({
                           ) : (
                             <div className="w-3.5 shrink-0" />
                           )}
-                          <Badge
-                            variant="secondary"
-                            className="h-5 px-1.5 py-0 font-mono text-[10px]"
-                          >
+                          <Badge variant="secondary" className="h-5 px-1.5 py-0 font-mono text-xs">
                             {indId}
                           </Badge>
                           <span className="text-foreground/90 truncate font-medium">
@@ -291,7 +288,7 @@ export function AggregationTree({
                                 <TooltipTrigger asChild>
                                   <Badge
                                     variant="outline"
-                                    className="text-muted-foreground h-5 cursor-help px-1.5 py-0 text-[10px] font-medium"
+                                    className="text-muted-foreground h-5 cursor-help px-1.5 py-0 text-xs font-medium"
                                   >
                                     + {otherImpacted.length}{" "}
                                     {otherImpacted.length === 1 ? "ander thema" : "andere thema's"}
@@ -324,9 +321,7 @@ export function AggregationTree({
                               />
                             </>
                           ) : (
-                            <span className="text-muted-foreground text-[10px] italic">
-                              geen data
-                            </span>
+                            <span className="text-muted-foreground text-xs italic">geen data</span>
                           )}
                         </div>
                       </button>
@@ -341,14 +336,14 @@ export function AggregationTree({
                           }}
                         >
                           {worstFields.length === 0 ? (
-                            <p className="text-muted-foreground px-2 py-1 text-[10px] italic">
+                            <p className="text-muted-foreground px-2 py-1 text-xs italic">
                               {domain === "organization"
                                 ? "Geen bedrijfsdata beschikbaar."
                                 : "Geen perceelsdata beschikbaar."}
                             </p>
                           ) : (
                             <>
-                              <p className="text-muted-foreground pb-0.5 text-[10px] font-semibold tracking-wide uppercase">
+                              <p className="text-muted-foreground pb-0.5 text-xs font-semibold tracking-wide uppercase">
                                 Top {worstFields.length}{" "}
                                 {domain === "organization" ? "bedrijven" : "percelen"} met hoogste
                                 negatieve impact
@@ -370,7 +365,7 @@ export function AggregationTree({
                                         `${domain === "organization" ? "Bedrijf" : "Perceel"} ${field.b_id}`}
                                     </span>
                                     {field.b_area != null && (
-                                      <span className="text-muted-foreground shrink-0 text-[10px]">
+                                      <span className="text-muted-foreground shrink-0 text-xs">
                                         ({field.b_area.toFixed(1)} ha)
                                       </span>
                                     )}
