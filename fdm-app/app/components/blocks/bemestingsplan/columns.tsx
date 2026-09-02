@@ -92,17 +92,19 @@ export const columns = [
         row.original,
       )
       const isDeleting = (table.options.meta as TableMeta)?.deleting(row.original.p_id_plan)
+      const contents = (
+        <>
+          <FileText className="text-muted-foreground mr-1.5 h-4 w-4 shrink-0" />
+          <span>{downloadName}</span>
+        </>
+      )
       return (
-        <Button
-          variant="link"
-          className="h-auto p-0 text-left font-medium"
-          disabled={isDeleting}
-          asChild
-        >
-          <NavLink to={`./${row.original.p_id_plan}`}>
-            <FileText className="text-muted-foreground mr-1.5 h-4 w-4 shrink-0" />
-            <span>{downloadName}</span>
-          </NavLink>
+        <Button variant="link" className="h-auto p-0 text-left font-medium" asChild>
+          {isDeleting ? (
+            <span>{contents}</span>
+          ) : (
+            <NavLink to={`./${row.original.p_id_plan}`}>{contents}</NavLink>
+          )}
         </Button>
       )
     },
@@ -119,69 +121,82 @@ export const columns = [
 
       return (
         <div className="flex items-center justify-end gap-1">
-          {isDeleting && <Spinner className="mr-1 h-4 w-4" />}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground h-8 w-8"
-                disabled={disabled}
-                asChild
-              >
-                <a href={downloadUrl} download aria-label="PDF downloaden">
-                  <Download className="h-4 w-4" />
-                </a>
-              </Button>
+              {isDeleting ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground h-8 w-8"
+                  disabled
+                  aria-label="PDF downloaden"
+                >
+                  <Download className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground h-8 w-8"
+                  asChild
+                >
+                  <a href={downloadUrl} download aria-label="PDF downloaden">
+                    <Download className="h-4 w-4" aria-hidden="true" />
+                  </a>
+                </Button>
+              )}
             </TooltipTrigger>
             <TooltipContent>PDF direct downloaden</TooltipContent>
           </Tooltip>
 
           {meta?.canModify && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  disabled={disabled}
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground hover:text-destructive h-8 w-8"
-                  aria-label="Verwijderen"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Weet u het zeker?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    U kunt later opnieuw een bemestingsplan genereren voor teeltjaar{" "}
-                    {row.original.p_plan_year}.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={isDeleting}>Annuleren</AlertDialogCancel>
+            <>
+              {isDeleting && <Spinner className="mr-1 h-4 w-4" />}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
                   <Button
                     type="button"
-                    variant="destructive"
-                    disabled={isDeleting}
-                    onClick={() => {
-                      meta?.onDelete(row.original.p_id_plan)
-                    }}
+                    disabled={disabled}
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive h-8 w-8"
+                    aria-label="Verwijderen"
                   >
-                    {isDeleting ? (
-                      <div className="flex items-center space-x-2">
-                        <Spinner />
-                        <span>Verwijderen</span>
-                      </div>
-                    ) : (
-                      "Verwijderen"
-                    )}
+                    <Trash2 className="h-4 w-4" />
                   </Button>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                </AlertDialogTrigger>
+
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Weet u het zeker?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      U kunt later opnieuw een bemestingsplan genereren voor teeltjaar{" "}
+                      {row.original.p_plan_year}.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Annuleren</AlertDialogCancel>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={isDeleting}
+                      onClick={() => {
+                        meta?.onDelete(row.original.p_id_plan)
+                      }}
+                    >
+                      {isDeleting ? (
+                        <div className="flex items-center space-x-2">
+                          <Spinner />
+                          <span>Verwijderen</span>
+                        </div>
+                      ) : (
+                        "Verwijderen"
+                      )}
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
           )}
         </div>
       )
