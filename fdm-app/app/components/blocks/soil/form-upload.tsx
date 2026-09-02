@@ -43,8 +43,8 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
   } | null>()
   const navigation = useNavigation()
 
-  // Determine if the form is currently submitting or disabled
-  const isSubmitting = navigation.state !== "idle" || Boolean(disabled)
+  // Determine if the form is currently submitting
+  const isSubmitting = navigation.state !== "idle"
 
   useEffect(() => {
     if (isSubmitting) {
@@ -86,7 +86,7 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
         <CardContent className="space-y-6">
           <RemixFormProvider {...form}>
             <Form id="soilAnalysisUploadForm" method="post" encType="multipart/form-data">
-              <fieldset disabled={isSubmitting}>
+              <fieldset disabled={isSubmitting || disabled}>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-4">
                     <FormField
@@ -102,6 +102,7 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
                             accept=".pdf"
                             maxSize={fileSizeLimit}
                             required
+                            disabled={disabled}
                             className={cn(
                               "h-32",
                               uploadStatus === "success" && "border-green-500 bg-green-50",
@@ -161,7 +162,7 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isSubmitting || uploadStatus === "success"}
+                      disabled={isSubmitting || disabled || uploadStatus === "success"}
                     >
                       {isSubmitting ? (
                         <div className="flex items-center space-x-2">
