@@ -1,5 +1,11 @@
 # fdm-data
 
+## 0.23.1
+
+### Patch Changes
+
+- [#752](https://github.com/nmi-agro/fdm/pull/752) [`800258c`](https://github.com/nmi-agro/fdm/commit/800258c90a2bebf54f6bdb2404570138541b9707) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix b_lu_harvestable for grass seeds to be "once" instead of "multiple"
+
 ## 0.23.0
 
 ### Minor Changes

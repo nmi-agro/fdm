@@ -69,7 +69,7 @@ export class NmiApiClient {
   }) {
     const maxConcurrency = tryAsPositive(
       options?.maxConcurrency,
-      tryAsPositive(process.env.NMI_MAX_CONCURRENCY, 10),
+      tryAsPositive(process.env.NMI_MAX_CONCURRENCY, 25),
     )
     const maxRetries = tryAsPositive(
       options?.maxRetries,
@@ -77,7 +77,7 @@ export class NmiApiClient {
     )
     const timeout = tryAsPositive(
       options?.timeout,
-      tryAsPositive(process.env.NMI_REQUEST_TIMEOUT, 30000),
+      tryAsPositive(process.env.NMI_REQUEST_TIMEOUT, 60000),
     )
 
     this.semaphore = new Semaphore(Math.max(1, Math.round(maxConcurrency)))

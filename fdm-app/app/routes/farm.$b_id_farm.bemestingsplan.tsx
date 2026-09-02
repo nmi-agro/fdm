@@ -167,12 +167,12 @@ export async function action({ params, request }: Route.ActionArgs) {
           try {
             await deleteObject(objectKey)
           } catch (deleteError) {
-            handleActionError(deleteError)
+            void handleActionError(deleteError)
           }
           try {
             await removeFertilizerPlan(fdm, session.principal_id, p_id_plan)
           } catch (removeError) {
-            handleActionError(removeError)
+            void handleActionError(removeError)
           }
         }
         throw uploadObjectError

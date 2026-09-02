@@ -242,12 +242,15 @@ export async function computeBemestingsplanData({
 
             const normForPhosphatePromise = normFunctions.calculateNormForPhosphate(fdm, normInput)
 
+            const renurePromise: Promise<GebruiksnormResult | undefined> =
+              "calculateNormForRenure" in normFunctions
+                ? normFunctions.calculateNormForRenure(fdm, normInput)
+                : Promise.resolve(undefined)
+
             const [nitrogen, manure, renure] = await Promise.all([
               normFunctions.calculateNormForNitrogen(fdm, normInput),
               normFunctions.calculateNormForManure(fdm, normInput),
-              (normFunctions as any).calculateNormForRenure?.(fdm, normInput) as
-                | GebruiksnormResult
-                | undefined,
+              renurePromise,
             ])
 
             const [nitrogenFilling, phosphateFilling, manureFilling, renureFilling] =
@@ -261,6 +264,14 @@ export async function computeBemestingsplanData({
                   fosfaatgebruiksnorm: fosfaatgebruiksnorm.normValue,
                   b_centroid: field.b_centroid,
                 }
+                const renureFillingPromise: Promise<NormFilling | undefined> =
+                  "calculateFertilizerApplicationFillingForRenure" in normFillingFunctions
+                    ? normFillingFunctions.calculateFertilizerApplicationFillingForRenure(
+                        fdm,
+                        fillingInput,
+                      )
+                    : Promise.resolve(undefined)
+
                 return Promise.all([
                   normFillingFunctions.calculateFertilizerApplicationFillingForNitrogen(
                     fdm,
@@ -274,10 +285,7 @@ export async function computeBemestingsplanData({
                     fdm,
                     fillingInput,
                   ),
-                  (normFillingFunctions as any).calculateFertilizerApplicationFillingForRenure?.(
-                    fdm,
-                    fillingInput,
-                  ) as NormFilling | undefined,
+                  renureFillingPromise,
                 ])
               })
 
