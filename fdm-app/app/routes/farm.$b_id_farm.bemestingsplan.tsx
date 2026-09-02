@@ -196,9 +196,18 @@ export async function action({ params, request }: Route.ActionArgs) {
     }
 
     if (formValues.intent === "delete_plan") {
+      if (!isGcsConfigured()) {
+        return dataWithError(
+          null,
+          "Het verwijderen van een bemestingsplan is niet beschikbaar omdat Google Cloud Storage niet is geconfigureerd (GCS_BUCKET_NAME ontbreekt).",
+        )
+      }
+
       const plan = await getFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
       await removeFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
-      await deleteObject(plan.p_plan_file_path)
+      if (plan.p_plan_file_path) {
+        await deleteObject(plan.p_plan_file_path)
+      }
 
       return redirectWithSuccess(
         `/farm/${b_id_farm}/bemestingsplan`,
