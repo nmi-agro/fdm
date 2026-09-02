@@ -1,39 +1,22 @@
-import { and, asc, eq } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 import { checkPermission } from "./authorization"
 import { PrincipalId } from "./authorization.types"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { FdmType } from "./fdm.types"
 import { createId } from "./id"
+import { FertilizerPlan, FoundFertilizerPlan } from "./fertilizer-plan.types"
 
 const fertilizerPlanColumns = {
   p_id_plan: schema.fertilizerPlans.p_id_plan,
   p_plan_year: schema.fertilizerPlans.p_plan_year,
   p_plan_file_path: schema.fertilizerPlans.p_plan_file_path,
   p_plan_hash: schema.fertilizerPlans.p_plan_hash,
-} as const
+} as const satisfies Record<Exclude<keyof schema.fertilizerPlansTypeSelect, "created" | "updated">, any>
 const fertilizerPlanEstablishingColumns = {
   b_id_farm: schema.fertilizerPlanEstablishing.b_id_farm,
   p_plan_date: schema.fertilizerPlanEstablishing.p_plan_date,
-} as const
-
-/** A saved fertilizer plan. */
-export type FertilizerPlan = Pick<
-  schema.fertilizerPlansTypeSelect,
-  keyof typeof fertilizerPlanColumns
-> &
-  Pick<schema.fertilizerPlanEstablishingTypeSelect, keyof typeof fertilizerPlanEstablishingColumns>
-
-/** A saved fertilizer plan. Information about the related farm may be unknown. */
-export type FoundFertilizerPlan = Pick<
-  {
-    [k in keyof schema.fertilizerPlanEstablishingTypeSelect]:
-      | schema.fertilizerPlanEstablishingTypeSelect[k]
-      | null
-  },
-  keyof typeof fertilizerPlanEstablishingColumns
-> &
-  Pick<schema.fertilizerPlansTypeSelect, keyof typeof fertilizerPlanColumns>
+} as const satisfies Record<Exclude<keyof schema.fertilizerPlanEstablishingTypeSelect, "p_id_plan" | "created" | "updated">, any>
 
 /**
  * Gets the saved fertilizer plans for the given year.
@@ -73,8 +56,8 @@ export async function getFertilizerPlans(
         ),
       )
       .orderBy(
-        asc(schema.fertilizerPlans.p_plan_year),
-        asc(schema.fertilizerPlanEstablishing.p_plan_date),
+        desc(schema.fertilizerPlans.p_plan_year),
+        desc(schema.fertilizerPlanEstablishing.p_plan_date),
       )
   } catch (e) {
     throw handleError(e, "Exception for getFertilizerPlans", { principal_id, b_id_farm, year })
@@ -111,6 +94,7 @@ export async function getFertilizerPlan(
         eq(schema.fertilizerPlans.p_id_plan, schema.fertilizerPlanEstablishing.p_id_plan),
       )
       .where(eq(schema.fertilizerPlans.p_id_plan, p_id_plan))
+      .limit(1)
 
     return found[0]
   } catch (e) {

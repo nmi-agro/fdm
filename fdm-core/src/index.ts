@@ -119,14 +119,13 @@ export {
   updateFertilizerFromCatalogue,
 } from "./fertilizer"
 export {
-  type FertilizerPlan,
-  type FoundFertilizerPlan,
   addFertilizerPlan,
   getFertilizerPlan,
   getFertilizerPlans,
   removeFertilizerPlan,
   updateFertilizerPlanFilePath,
 } from "./fertilizer-plan"
+export type { FertilizerPlan, FoundFertilizerPlan } from "./fertilizer-plan.types"
 export type {
   BaseFertilizerApplication,
   Fertilizer,
