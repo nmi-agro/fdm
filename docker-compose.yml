@@ -35,10 +35,11 @@ services:
       - PUBLIC_MAP_PROVIDER=${PUBLIC_MAP_PROVIDER:-osm}
       - PUBLIC_MAPTILER_API_KEY=${PUBLIC_MAPTILER_API_KEY:-}
 
-      # Mail Configuration (Optional - in dev, logs to console if empty)
+      # Mail Configuration (Optional - in dev, logs to console when ENABLE_LOCAL_EMAIL_LOGGING is true)
       - POSTMARK_API_KEY=${POSTMARK_API_KEY:-}
       - POSTMARK_SENDER_ADDRESS=${POSTMARK_SENDER_ADDRESS:-}
       - POSTMARK_SENDER_NAME=${POSTMARK_SENDER_NAME:-}
+      - ENABLE_LOCAL_EMAIL_LOGGING=${ENABLE_LOCAL_EMAIL_LOGGING:-true}
 
       # NMI Services (Optional)
       - NMI_API_KEY=${NMI_API_KEY:-}

@@ -20,6 +20,13 @@ function hasPostmarkApiKey(): boolean {
   return Boolean(key && key !== "YOUR_POSTMARK_API_KEY" && key !== "dummy")
 }
 
+function isLocalEmailLoggingEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") return false
+  return ["1", "true", "on"].includes(
+    process.env.ENABLE_LOCAL_EMAIL_LOGGING?.toLowerCase() ?? "",
+  )
+}
+
 let _client: postmark.ServerClient | null = null
 function getPostmarkClient(): postmark.ServerClient {
   if (!_client) {
@@ -371,18 +378,20 @@ export async function renderHelpdeskNewMessageEmail(
 
 export async function sendEmail(email: Email): Promise<void> {
   if (!hasPostmarkApiKey()) {
-    if (process.env.NODE_ENV !== "production") {
+    if (isLocalEmailLoggingEnabled()) {
       console.log("\n==================== [LOCAL DEV EMAIL] ====================")
       console.log(`To:      ${email.To}`)
       console.log(`Subject: ${email.Subject}`)
       console.log(`Tag:     ${email.Tag}`)
       if (email.ReplyTo) console.log(`ReplyTo: ${email.ReplyTo}`)
       console.log("-----------------------------------------------------------")
-      console.log("[Dev Notice] Email simulated in console (no POSTMARK_API_KEY).")
+      console.log("[Dev Notice] Email simulated in console (ENABLE_LOCAL_EMAIL_LOGGING=true).")
       console.log("===========================================================\n")
       return
     }
-    throw new Error("POSTMARK_API_KEY is not configured")
+    throw new Error(
+      "POSTMARK_API_KEY is not configured. Set ENABLE_LOCAL_EMAIL_LOGGING=true in non-production to simulate emails in console.",
+    )
   }
   await getPostmarkClient().sendEmail(email)
 }
@@ -398,7 +407,7 @@ export async function sendMagicLinkEmailToUser(
   code: string,
 ): Promise<void> {
   const email = await renderMagicLinkEmail(emailAddress, magicLinkUrl, code)
-  if (!hasPostmarkApiKey() && process.env.NODE_ENV !== "production") {
+  if (!hasPostmarkApiKey() && isLocalEmailLoggingEnabled()) {
     console.log("\n==================== [LOCAL DEV MAGIC LINK] ====================")
     console.log(`Recipient:       ${emailAddress}`)
     console.log(`Login OTP Code:  ${code}`)

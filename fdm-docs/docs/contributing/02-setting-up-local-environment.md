@@ -73,6 +73,7 @@ PUBLIC_MAP_PROVIDER=osm
 FDM_SESSION_SECRET=dev-session-secret-change-in-production-min-32-chars
 BETTER_AUTH_SECRET=dev-better-auth-secret-change-in-production-min-32-chars
 BETTER_AUTH_URL=http://localhost:5173
+ENABLE_LOCAL_EMAIL_LOGGING=true
 
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
