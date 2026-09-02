@@ -18,7 +18,7 @@ import {
   ChevronUp,
   CloudDownload,
   CloudUpload,
-  DownloadIcon,
+  File,
   FileStack,
   Home,
   Icon,
@@ -47,7 +47,6 @@ import {
   useSearchParams,
 } from "react-router"
 import { dataWithSuccess } from "remix-toast"
-import { toast } from "sonner"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -448,7 +447,6 @@ export default function FarmDashboardIndex() {
   const setCalendar = useCalendarStore((state) => state.setCalendar)
   const [searchParams, setSearchParams] = useSearchParams()
   const years = getCalendarSelection()
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
   const [showMissingCultivationDetails, setShowMissingCultivationDetails] = useState(false)
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
@@ -511,38 +509,6 @@ export default function FarmDashboardIndex() {
   const handleOpenReviewForSingleField = (b_id: string) => {
     setSelectedFieldIds([b_id])
     setIsReviewDialogOpen(true)
-  }
-
-  const handleDownloadPdf = async (e: React.MouseEvent) => {
-    e.preventDefault()
-    if (isGeneratingPdf) return
-
-    setIsGeneratingPdf(true)
-    toast.info("Bemestingsplan wordt gegenereerd", {
-      description: "Dit kan enkele seconden duren...",
-    })
-
-    try {
-      const response = await fetch(`/farm/${loaderData.b_id_farm}/${calendar}/bemestingsplan.pdf`)
-      if (!response.ok) throw new Error("Download failed")
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `Bemestingsplan_${loaderData.b_name_farm}_${calendar}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-
-      toast.success("Download voltooid")
-    } catch (error) {
-      console.error(error)
-      toast.error("Er ging iets mis bij het genereren van de PDF")
-    } finally {
-      setIsGeneratingPdf(false)
-    }
   }
 
   return (
@@ -696,38 +662,26 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
-                  <Card
-                    className={cn(
-                      "h-full transition-all",
-                      isGeneratingPdf ? "opacity-60" : "hover:shadow-md",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={handleDownloadPdf}
-                      disabled={isGeneratingPdf}
-                      aria-busy={isGeneratingPdf}
+                  <Card>
+                    <NavLink
+                      to="bemestingsplan"
                       className="focus-visible:ring-ring w-full cursor-pointer rounded-xl text-left outline-hidden focus-visible:ring-[3px] disabled:cursor-not-allowed"
                     >
                       <CardHeader>
                         <div className="flex items-center gap-4">
                           <div className="bg-muted rounded-lg p-3">
-                            {isGeneratingPdf ? (
-                              <Loader2 className="text-primary h-6 w-6 animate-spin" />
-                            ) : (
-                              <DownloadIcon className="text-primary h-6 w-6" />
-                            )}
+                            <File />
                           </div>
                           <div>
-                            <CardTitle>Download bemestingsplan</CardTitle>
+                            <CardTitle>Bemestingsplan</CardTitle>
                             <CardDescription>
-                              pdf met gebruiksruimte en bemestingsadvies op bedrijfs- en
+                              pdf's met gebruiksruimte en bemestingsadvies op bedrijfs- en
                               perceelsniveau.
                             </CardDescription>
                           </div>
                         </div>
                       </CardHeader>
-                    </button>
+                    </NavLink>
                   </Card>
                 </div>
               </div>

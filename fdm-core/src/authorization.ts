@@ -26,6 +26,7 @@ export const resources: Resource[] = [
   "field",
   "cultivation",
   "fertilizer_application",
+  "fertilizer_plan",
   "soil_analysis",
   "soil_image",
   "harvesting",
@@ -136,6 +137,21 @@ export const permissions: Permission[] = [
   },
   {
     resource: "fertilizer_application",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "fertilizer_plan",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "fertilizer_plan",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "fertilizer_plan",
     role: "researcher",
     action: ["read"],
   },
@@ -905,6 +921,7 @@ async function getResourceChain(
       "cultivation",
       "harvesting",
       "fertilizer_application",
+      "fertilizer_plan",
       "soil_analysis",
       "soil_image",
     ]
@@ -990,6 +1007,19 @@ async function getResourceChain(
         .limit(1)
       if (result.length === 0) {
         // Resource not found, return empty chain
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "fertilizer_plan") {
+      const result = await fdm
+        .select({
+          farm: schema.fertilizerPlanEstablishing.b_id_farm,
+          fertilizer_plan: schema.fertilizerPlanEstablishing.p_id_plan,
+        })
+        .from(schema.fertilizerPlanEstablishing)
+        .where(eq(schema.fertilizerPlanEstablishing.p_id_plan, resource_id))
+        .limit(1)
+      if (result.length === 0) {
         return []
       }
       chain.push(...buildBeadsFromRow(result[0]))

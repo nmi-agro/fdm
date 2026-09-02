@@ -798,6 +798,7 @@ describe("Authorization Functions", () => {
         "field",
         "cultivation",
         "fertilizer_application",
+        "fertilizer_plan",
         "soil_analysis",
         "soil_image",
         "harvesting",

@@ -9,6 +9,7 @@ export type Resource =
   | "soil_analysis"
   | "soil_image"
   | "fertilizer_application"
+  | "fertilizer_plan"
   | "harvesting"
 export type Role = "owner" | "advisor" | "researcher"
 export type Action = "read" | "write" | "list" | "share"
