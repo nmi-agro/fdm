@@ -1,5 +1,21 @@
 # Changelog fdm-core
 
+## 0.37.0
+
+### Minor Changes
+
+- [#730](https://github.com/nmi-agro/fdm/pull/730) [`c5286b4`](https://github.com/nmi-agro/fdm/commit/c5286b4098cb76633c5032fb02013f4f4390a8cf) Thanks [@SvenVw](https://github.com/SvenVw)! - When a farm has a verified relationship between an user and the farm (based on KvK number), the b_businessid_farm is not possible to update
+
+- [#730](https://github.com/nmi-agro/fdm/pull/730) [`c5286b4`](https://github.com/nmi-agro/fdm/commit/c5286b4098cb76633c5032fb02013f4f4390a8cf) Thanks [@SvenVw](https://github.com/SvenVw)! - Add functions and table to store verified relationships between user and farm: addFarmVerification, getActiveFarmVerifications, getFarmVerifications, getLatestFarmVerification, isFarmVerifiedForPrincipal and revokeFarmVerification.
+
+- [#773](https://github.com/nmi-agro/fdm/pull/773) [`da715c6`](https://github.com/nmi-agro/fdm/commit/da715c6e142a35c8a4b5d0ffe47fc18e2df84cc1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Generated bemestingsplan PDFs are now saved in Google Cloud Storage and their up-to-dateness is checked by comparing the current data hash with the PDFs stored data hash.
+
+### Patch Changes
+
+- [#730](https://github.com/nmi-agro/fdm/pull/730) [`0b481fb`](https://github.com/nmi-agro/fdm/commit/0b481fb25ff5a66bfeed2461dc1a2620287a5ff9) Thanks [@SvenVw](https://github.com/SvenVw)! - Return the `audit_id` at `writeAuditEntry` instead of nothing
+- Updated dependencies [[`800258c`](https://github.com/nmi-agro/fdm/commit/800258c90a2bebf54f6bdb2404570138541b9707)]:
+  - @nmi-agro/fdm-data@0.23.1
+
 ## 0.36.0
 
 ### Minor Changes

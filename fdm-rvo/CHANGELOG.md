@@ -1,5 +1,16 @@
 # @nmi-agro/fdm-rvo
 
+## 0.4.0
+
+### Minor Changes
+
+- [#730](https://github.com/nmi-agro/fdm/pull/730) [`d51f9e5`](https://github.com/nmi-agro/fdm/commit/d51f9e515ee0015696edfc9ae39aa5c63c5f79c6) Thanks [@SvenVw](https://github.com/SvenVw)! - Add isRvoPermissionDeniedError to separate permission errors and server errors
+
+### Patch Changes
+
+- Updated dependencies [[`c5286b4`](https://github.com/nmi-agro/fdm/commit/c5286b4098cb76633c5032fb02013f4f4390a8cf), [`0b481fb`](https://github.com/nmi-agro/fdm/commit/0b481fb25ff5a66bfeed2461dc1a2620287a5ff9), [`c5286b4`](https://github.com/nmi-agro/fdm/commit/c5286b4098cb76633c5032fb02013f4f4390a8cf), [`da715c6`](https://github.com/nmi-agro/fdm/commit/da715c6e142a35c8a4b5d0ffe47fc18e2df84cc1)]:
+  - @nmi-agro/fdm-core@0.37.0
+
 ## 0.3.2
 
 ### Patch Changes
