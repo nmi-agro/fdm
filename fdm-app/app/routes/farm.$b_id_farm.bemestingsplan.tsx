@@ -167,7 +167,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
       return redirectWithSuccess(
         `/farm/${b_id_farm}/bemestingsplan/${p_id_plan}`,
-        `Bemestingsplan voor ${formValues.year} is succesvol opgericht.`,
+        `Bemestingsplan voor teeltjaar ${formValues.year} is succesvol opgesteld.`,
       )
     }
 
@@ -178,7 +178,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
       return redirectWithSuccess(
         `/farm/${b_id_farm}/bemestingsplan`,
-        `Bemestingsplan voor ${plan.p_plan_year} is succesvol verwijdert.`,
+        `Bemestingsplan voor teeltjaar ${plan.p_plan_year} is succesvol verwijderd.`,
       )
     }
   } catch (err) {
@@ -205,8 +205,8 @@ export default function FertilizerPlanTable() {
       </Header>
       <main>
         <FarmTitle
-          title="Bemestingsplannen voor dit bedrijf"
-          description="Hier kunt u de eerder ingestelde bemestingsplannen beheren."
+          title="Bemestingsplannen"
+          description="Overzicht van de opgestelde bemestingsplannen voor dit bedrijf."
         />
         <div className="p-6">
           {fertilizerPlans.length === 0 ? (
@@ -215,10 +215,12 @@ export default function FertilizerPlanTable() {
                 <EmptyTitle>
                   Er zijn nog geen bemestingsplannen opgesteld voor dit bedrijf.
                 </EmptyTitle>
-                <EmptyContent>Hieronder kunt u een nieuw bemestingsplan opstellen.</EmptyContent>
+                <EmptyContent>
+                  Hieronder kunt u een nieuw bemestingsplan opstellen per teeltjaar.
+                </EmptyContent>
               </EmptyHeader>
               {farmWritePermission && (
-                <EmptyContent>
+                <EmptyContent className="mt-2 flex justify-center">
                   <NewBemestingsplanForm />
                 </EmptyContent>
               )}

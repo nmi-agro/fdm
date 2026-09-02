@@ -34,7 +34,7 @@ export default function BemestingsplanViewer() {
     <Dialog
       open
       onOpenChange={(v) => {
-        if (!v) navigate("./..")
+        if (!v) void navigate("./..")
       }}
     >
       <PdfViewerDialogContent title={title} downloadUrl={downloadUrl} filename={filename} />

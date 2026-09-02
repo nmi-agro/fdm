@@ -75,11 +75,17 @@ export function DataTable<T extends BemestingsplanRowData>({
   })
 
   return (
-    <div>
-      <div className="mb-2 flex items-center justify-end gap-4">
-        Nieuw bemestingsplan voor
-        <NewBemestingsplanForm />
-      </div>
+    <div className="space-y-4">
+      {canModify && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-muted-foreground text-sm">
+            Overzicht van opgestelde bemestingsplannen per teeltjaar.
+          </p>
+          <div className="flex items-center gap-2">
+            <NewBemestingsplanForm />
+          </div>
+        </div>
+      )}
       <div className="relative overflow-x-auto rounded-md border">
         <Table>
           <TableHeader className="bg-background sticky top-0 z-5">
