@@ -7,10 +7,12 @@ services:
       - "5173:5173"
     environment:
       # General Configuration
+      - PORT=5173
       - NODE_ENV=${NODE_ENV:-development}
       - PUBLIC_FDM_NAME=${PUBLIC_FDM_NAME:-FDM}
       - PUBLIC_FDM_URL=${PUBLIC_FDM_URL:-http://localhost:5173}
       - PUBLIC_FDM_API_URL=${PUBLIC_FDM_API_URL:-http://fdm-api:8080}
+      - PUBLIC_FDM_DATASETS_URL=${PUBLIC_FDM_DATASETS_URL:-https://storage.googleapis.com/fdm-public-data}
       - FDM_SESSION_SECRET=${FDM_SESSION_SECRET:-dev-session-secret-change-in-production-min-32-chars}
 
       # Database Configuration

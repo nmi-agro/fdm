@@ -45,7 +45,8 @@ export const serverConfig: ServerConfig = {
   name: String(process.env.PUBLIC_FDM_NAME),
   url: String(process.env.PUBLIC_FDM_URL),
   privacy_url: process.env.FDM_PRIVACY_URL,
-  datasets_url: String(process.env.PUBLIC_FDM_DATASETS_URL),
+  datasets_url:
+    process.env.PUBLIC_FDM_DATASETS_URL || "https://storage.googleapis.com/fdm-public-data",
 
   // Authentication
   auth: {
