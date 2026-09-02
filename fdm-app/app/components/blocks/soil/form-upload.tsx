@@ -21,7 +21,7 @@ import { Spinner } from "~/components/ui/spinner"
 
 type UploadStatus = "idle" | "uploading" | "success" | "error"
 
-export function SoilAnalysisUploadForm() {
+export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}) {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle")
   const [uploadProgress, setUploadProgress] = useState(0)
 
@@ -43,8 +43,8 @@ export function SoilAnalysisUploadForm() {
   } | null>()
   const navigation = useNavigation()
 
-  // Determine if the form is currently submitting
-  const isSubmitting = navigation.state !== "idle"
+  // Determine if the form is currently submitting or disabled
+  const isSubmitting = navigation.state !== "idle" || Boolean(disabled)
 
   useEffect(() => {
     if (isSubmitting) {

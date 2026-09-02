@@ -7,11 +7,13 @@ import {
 import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { fileTypeFromBuffer } from "file-type"
-import { type ActionFunctionArgs, data, type LoaderFunctionArgs } from "react-router"
+import { AlertCircle } from "lucide-react"
+import { type ActionFunctionArgs, data, type LoaderFunctionArgs, NavLink, useLoaderData } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FormSchema, SoilAnalysisUploadForm } from "~/components/blocks/soil/form-upload"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
-import { extractSoilAnalysisAndBuffer } from "~/integrations/nmi.server"
+import { extractSoilAnalysisAndBuffer, getNmiApiKey } from "~/integrations/nmi.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
@@ -60,11 +62,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Get soil parameter descriptions
     const soilParameterDescription = getSoilParametersDescription()
+    const isNmiConfigured = Boolean(getNmiApiKey())
 
     // Return user information from loader
     return {
       field: field,
       soilParameterDescription: soilParameterDescription,
+      isNmiConfigured,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -77,9 +81,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  * @returns The JSX element for the soil analysis upload form.
  */
 export default function FarmFieldSoilAnalysisUploadBlock() {
+  const { isNmiConfigured } = useLoaderData<typeof loader>()
+
   return (
     <div className="space-y-6">
-      <SoilAnalysisUploadForm />
+      {!isNmiConfigured && (
+        <Alert variant="default" className="border-amber-200 bg-amber-50 text-amber-800">
+          <AlertCircle className="h-4 w-4 text-amber-800!" />
+          <AlertTitle>Automatische PDF-uitlezing niet beschikbaar</AlertTitle>
+          <AlertDescription>
+            Het automatisch uitlezen van PDF-bodemanalyses via de NMI API is in deze omgeving niet geconfigureerd (NMI_API_KEY ontbreekt). U kunt bodemanalyses{" "}
+            <NavLink to="../standard" className="font-semibold underline">
+              handmatig invoeren
+            </NavLink>.
+          </AlertDescription>
+        </Alert>
+      )}
+      <SoilAnalysisUploadForm disabled={!isNmiConfigured} />
     </div>
   )
 }
@@ -234,6 +252,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
       return dataWithError(
         null,
         "Het bestand is ongeldig. Controleer het bestand en probeer het opnieuw",
+      )
+    }
+
+    if (error instanceof Error && error.message.toLowerCase().includes("nmi api key")) {
+      return dataWithError(
+        null,
+        "Het automatisch inlezen van PDF-bodemanalyses is niet geconfigureerd (NMI_API_KEY ontbreekt). Voer de analyse handmatig in.",
       )
     }
 
