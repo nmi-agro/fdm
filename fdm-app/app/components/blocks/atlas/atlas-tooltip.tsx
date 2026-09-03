@@ -28,6 +28,10 @@ const TOUCH_DRAG_TOLERANCE = 8
  * position changes it determines the rendered map features under it, then passes the array of features to the
  * render function. If the render function returns null or undefined, nothing is rendered at all, including
  * the tooltip speech bubble.
+ *
+ * `render(...)` may return null or undefined to indicate that there should be no tooltip rendered for the
+ * currently hovered features. It also needs to handle an empty array of features (often by returning null in
+ * that case.)
  */
 export function AtlasTooltip({
   render,
@@ -78,7 +82,7 @@ export function AtlasTooltip({
 
       return features
     },
-    [map, layersSet, layersExcludeSet],
+    [layersSet, layersExcludeSet],
   )
 
   // Throttle tooltip updates to reduce flashing.
@@ -269,10 +273,22 @@ export function AtlasTooltip({
     onFeatureClicked,
   ])
 
-  if (!mapContainer) return
+  if (!mapContainer || !hoverPosition) return null
 
-  if (hoverPosition?.mode === "popup") {
-    return createPortal(
+  if (hoverPosition.mode === "popup") {
+    const renderedContents = render({
+      features: hoveredFeatures,
+      mode: "popup",
+      longitude: hoverPosition.lngLat.lng,
+      latitude: hoverPosition.lngLat.lat,
+    })
+
+    // render(...) may return null or undefined to indicate that no popup should be rendered.
+    if (renderedContents === null || renderedContents === undefined) {
+      return null
+    }
+
+    return (
       <AtlasPopup
         longitude={hoverPosition.lngLat.lng}
         latitude={hoverPosition.lngLat.lat}
@@ -297,30 +313,29 @@ export function AtlasTooltip({
             <X />
           </Button>
         </div>
-        {render({
-          features: hoveredFeatures,
-          mode: "popup",
-          longitude: hoverPosition.lngLat.lng,
-          latitude: hoverPosition.lngLat.lat,
-        })}
-      </AtlasPopup>,
-      mapContainer,
+        {renderedContents}
+      </AtlasPopup>
     )
   }
 
-  if (hoverPosition) {
-    return createPortal(
-      <AtlasTooltipCard x={hoverPosition.x} y={hoverPosition.y} interactive={false}>
-        {render({
-          features: hoveredFeatures,
-          mode: "tooltip",
-          longitude: hoverPosition.lngLat.lng,
-          latitude: hoverPosition.lngLat.lat,
-        })}
-      </AtlasTooltipCard>,
-      mapContainer,
-    )
+  const renderedContents = render({
+    features: hoveredFeatures,
+    mode: "tooltip",
+    longitude: hoverPosition.lngLat.lng,
+    latitude: hoverPosition.lngLat.lat,
+  })
+
+  // render(...) may return null or undefined to indicate that no tooltip should be rendered.
+  if (renderedContents === null || renderedContents === undefined) {
+    return null
   }
+
+  return createPortal(
+    <AtlasTooltipCard x={hoverPosition.x} y={hoverPosition.y} interactive={false}>
+      {renderedContents}
+    </AtlasTooltipCard>,
+    mapContainer,
+  )
 }
 
 /**
