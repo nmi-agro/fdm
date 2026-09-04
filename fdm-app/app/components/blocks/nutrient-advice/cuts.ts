@@ -13,6 +13,18 @@ export const CUT_YIELD_CLASS_LABELS: Record<NutrientAdviceCut["yieldclass"], str
   HM: "Zware maai",
 }
 
+/**
+ * Relative weight order for snedezwaarte (yield class) from light to heavy.
+ */
+export const CUT_YIELD_CLASS_ORDER: Record<NutrientAdviceCut["yieldclass"], number> = {
+  VLG: 1,
+  LG: 2,
+  G: 3,
+  LM: 4,
+  M: 5,
+  HM: 6,
+}
+
 export type CutSeasonState = "realised" | "next" | "upcoming"
 
 export interface CutSeasonHarvest {
@@ -39,8 +51,8 @@ export interface CutSeasonRow {
   /** Cut number within the year (1–6). */
   cut: number
   /**
-   * Advice variants for this snede, one per snedezwaarte, in API order. The snedezwaarte is a
-   * scenario the advisor chooses (grazing, mowing, …); only one applies per snede.
+   * Advice variants for this snede, one per snedezwaarte, ordered from low to heavy cut weight.
+   * The snedezwaarte is a scenario the advisor chooses (grazing, mowing, …); only one applies per snede.
    */
   variants: NutrientAdviceCut[]
   /**
@@ -133,7 +145,10 @@ export function buildCutSeason({
   })
 
   const rows = cutNumbers.map((cut, index): CutSeasonRow => {
-    const variants = variantsByCut.get(cut) ?? []
+    const variants = (variantsByCut.get(cut) ?? []).sort(
+      (a, b) =>
+        (CUT_YIELD_CLASS_ORDER[a.yieldclass] ?? 0) - (CUT_YIELD_CLASS_ORDER[b.yieldclass] ?? 0),
+    )
     const harvest = datedHarvests[index] ?? null
 
     let nitrogenDose: number | null = null
