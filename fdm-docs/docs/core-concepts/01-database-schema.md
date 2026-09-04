@@ -516,6 +516,91 @@ This schema holds the primary data related to farm operations.
 
 ---
 
+### Livestock
+
+#### `animal_categories_catalogue`
+
+**Purpose**: Standardised list of livestock category definitions used for UI lists, reporting and conversion to livestock units (LSU).
+
+| Column                             | Type                 | Constraints | Description                                                                                   |
+| ---------------------------------- | -------------------- | ----------- | --------------------------------------------------------------------------------------------- |
+| **l_id_category**                  | `text`               | Primary Key | Catalogue identifier (opaque id).                                                             |
+| **l_category_source**              | `text`               | Not Null    | Source identifier for the catalogue entry (e.g. an official dataset such as RVO).             |
+| **l_category**                     | `text`               | Not Null    | Human-readable category label (e.g. "adult dairy cow").                                       |
+| **l_specie**                       | `l_specie` enum      | Not Null    | Species code (see `l_specie` enum: `cattle`, `pig`, `poultry`, ...).                          |
+| **l_sex_options**                  | `l_sex`[]            | Not Null    | Allowed sex codes for this category (array of `l_sex`, e.g. `['female']`).                    |
+| **l_lsu**                          | `numeric`            | Not Null    | Livestock units per animal. Numeric conversion factor available to calculators and reporting. |
+| **hash**, **created**, **updated** | `text` / `timestamp` |             | Standard catalogue bookkeeping columns.                                                       |
+
+**Indexes:**
+
+- Unique index on `l_id_category`.
+- Index on `l_category_source`.
+
+#### `animal_category_catalogue_selecting`
+
+**Purpose**: Links a farm to the livestock category sources it uses.
+
+| Column                   | Type        | Constraints                                          | Description                                      |
+| ------------------------ | ----------- | ---------------------------------------------------- | ------------------------------------------------ |
+| **b_id_farm**            | `text`      | Not Null, Foreign Key (references `farms.b_id_farm`) | Identifier of the farm.                          |
+| **l_category_source**    | `text`      | Not Null                                             | Identifier of the chosen animal-category source. |
+| **created**, **updated** | `timestamp` |                                                      | Bookkeeping timestamps.                          |
+
+**Constraints:**
+
+- Primary Key on (`b_id_farm`, `l_category_source`).
+
+#### Herds and animals
+
+- **`herds.l_id_category`**: optional reference to `animal_categories_catalogue.l_id_category`. Use this to classify a herd by a standard category.
+- **`animals.l_specie`**: species enum used on animal rows (default `cattle`). Note the singular column name `l_specie` (schema) — older documentation or integrations may have used `l_species`.
+- **`l_sex` / `l_sex_options`**: `l_sex` is an enum for animal sex; category rows enumerate allowed `l_sex_options` that animals in that category may use.
+- **`l_lsu`**: livestock units per animal stored on the catalogue row; calculators sum `count * l_lsu` to obtain total LSU for a herd or farm.
+
+**RVO source:**
+
+- The Dutch Rijksdienst voor Ondernemend Nederland (RVO) publishes official conversion tables and normative category definitions used by Dutch reporting and calculators. The bundled RVO catalogue uses `l_category_source = "rvo"`. Use the `l_category_source` column to record provenance for additional sources.
+
+**Breaking rename note:**
+
+- The schema intentionally uses the plural `animal_categories_catalogue` for the catalogue table but the singular `animal_category_catalogue_selecting` for the farm-selection table. Additionally the database column name for species is `l_specie` (singular) — this was an intentional, breaking rename. Integrations and queries must use the exact schema names above to avoid runtime errors.
+
+---
+
+### Feeds
+
+#### **`feeds_catalogue`**
+
+**Purpose**: Stores standardized and farm-specific feed catalogue entries.
+
+| Column          | Type                       | Constraints | Description                                      |
+| --------------- | -------------------------- | ----------- | ------------------------------------------------ |
+| **f_id_catalogue** | `text`                  | Primary Key | Opaque catalogue identifier.                     |
+| **f_source**    | `text`                     | Not Null    | Catalogue source, such as `nmi` or a farm ID.    |
+| **f_name_nl**   | `text`                     | Not Null    | Dutch feed name.                                 |
+| **f_type_rvo**  | `text`                     | Not Null    | Original stable feed option code.               |
+| **f_dm**        | `numeric` (custom)         |             | g DM / kg fresh product.                         |
+| **f_n_dm**      | `numeric` (custom)         |             | g N / kg DM.                                     |
+| **f_p_dm**      | `numeric` (custom)         |             | g P2O5 / kg DM.                                  |
+| **hash**        | `text`                     |             | Content hash for catalogue synchronization.      |
+| **created**     | `timestamp with time zone` | Not Null    | Timestamp when the row was created.              |
+| **updated**     | `timestamp with time zone` |             | Timestamp when the row was last updated.         |
+
+The bundled `nmi` source is based on [RVO Tabel 8 (January 2026)](https://www.rvo.nl/sites/default/files/2026-02/Tabel-8-Opbrengst-en-stikstof-en-fosfaat-in-diervoer-2026.pdf). The former `overig` enum value is removed.
+
+#### **`feedCatalogueEnabling`**
+
+**Purpose**: Records which feed catalogue sources a farm has enabled.
+
+The primary key is (`b_id_farm`, `f_source`). Farm-created catalogue entries use the farm ID as `f_source`.
+
+#### **`feed_batches`**
+
+**Purpose**: Stores feed batches and their catalogue reference.
+
+`f_id_catalogue` is a not-null foreign key to `feeds_catalogue.f_id_catalogue`. Batch analysis values remain in `feed_analyses` and do not replace catalogue defaults.
+
 ### Derogations & Certifications
 
 #### **`derogations`**

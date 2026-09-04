@@ -1,10 +1,13 @@
 import { eq } from "drizzle-orm"
 import { beforeAll, beforeEach, describe, expect, inject, it } from "vitest"
+import { getAnimalCategoriesCatalogue } from "@nmi-agro/fdm-data"
 import type { FdmAuth } from "./authentication"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
+import { addAnimal } from "./animal"
 import { createFdmAuth } from "./authentication"
 import { grantRole, listPrincipalsForResource } from "./authorization"
+import { addBarn, addHousing } from "./barn"
 import * as schema from "./db/schema"
 import * as authNSchema from "./db/schema-authn"
 import * as authZSchema from "./db/schema-authz"
@@ -26,10 +29,16 @@ import {
   updateRoleOfPrincipalAtFarm,
 } from "./farm"
 import { createFdmServer } from "./fdm-server"
+import { addFeedBatch, addFeedingHerd } from "./feed"
 import { addFertilizer, addFertilizerToCatalogue } from "./fertilizer"
 import { addField, getFields } from "./field"
+import { addGrazing } from "./grazing"
+import { addHerd } from "./herd"
+import { syncAnimalCategoryCatalogueArray } from "./catalogues"
 import { createId } from "./id"
 import { acceptInvitation, declineInvitation } from "./invitation"
+import { addExcreting, addManureDisposing, addManurePit } from "./manure"
+import { addMilkDelivery, addMilkingHerd, addMilkTank } from "./milk"
 import { getPrincipal } from "./principal"
 import { addFarmVerification, revokeFarmVerification } from "./verification"
 
@@ -53,6 +62,7 @@ describe("Farm Functions", () => {
     const password = inject("password")
     const database = inject("database")
     fdm = createFdmServer(host, port, user, password, database)
+    await syncAnimalCategoryCatalogueArray(fdm, await getAnimalCategoriesCatalogue("rvo"))
 
     const googleAuth = {
       clientId: "mock_google_client_id",
@@ -122,6 +132,8 @@ describe("Farm Functions", () => {
           b_businessid_farm: farmBusinessId,
           b_address_farm: farmAddress,
           b_postalcode_farm: farmPostalCode,
+          b_farm_livestock: false,
+          b_farm_dairy: false,
           roles: [
             {
               principal_id: principal_id,
@@ -158,7 +170,6 @@ describe("Farm Functions", () => {
       )
     })
   })
-
   describe("getFarms", () => {
     it("should retrieve a list of farms accessible by the principal", async () => {
       const farms = await getFarms(fdm, principal_id)
@@ -320,6 +331,36 @@ describe("Farm Functions", () => {
       )
       expect(updatedFarm.b_businessid_farm).toBe(changedBusinessId)
     })
+  })
+
+  it("should include livestock and dairy flags in the getFarm response", async () => {
+  const herdId = await addHerd(fdm, principal_id, b_id_farm, {
+    l_herd_name: "Status Kudde",
+    l_id_category: "rvo_100",
+  })
+  await addAnimal(fdm, principal_id, b_id_farm, herdId, {
+    l_id_eartag: "NL_STATUS_1",
+  })
+
+  const farmAfterAnimals = await getFarm(fdm, principal_id, b_id_farm)
+  expect(farmAfterAnimals.b_farm_livestock).toBe(true)
+  expect(farmAfterAnimals.b_farm_dairy).toBe(false)
+
+  const l_id_milktank = await addMilkTank(fdm, principal_id, b_id_farm, {
+    l_milktank_name: "Status Tank",
+  })
+  await addMilkingHerd(
+    fdm,
+    principal_id,
+    herdId,
+    l_id_milktank,
+    new Date("2025-05-15T06:00:00.000Z"),
+    { l_milking_amount: 80 },
+  )
+
+  const farmAfterDairy = await getFarm(fdm, principal_id, b_id_farm)
+  expect(farmAfterDairy.b_farm_livestock).toBe(true)
+  expect(farmAfterDairy.b_farm_dairy).toBe(true)
   })
 
   describe("grantRoleToFarm", () => {
@@ -783,6 +824,162 @@ describe("Farm Functions", () => {
         .from(authZSchema.invitation)
         .where(eq(authZSchema.invitation.resource_id, testFarmId))
       expect(farmInvitations).toEqual([])
+    })
+
+    it("should remove all livestock, dairy, manure, feed, and grazing data when removing a farm", async () => {
+      const livestockFarmId = await addFarm(
+        fdm,
+        testPrincipalId,
+        "Farm with Livestock",
+        "888888",
+        "Livestock Lane",
+        "88888",
+      )
+
+      const b_id = await addField(
+        fdm,
+        testPrincipalId,
+        livestockFarmId,
+        "Grazing Field",
+        "source-livestock-field",
+        {
+          type: "Polygon",
+          coordinates: [
+            [
+              [0, 0],
+              [0, 1],
+              [1, 1],
+              [1, 0],
+              [0, 0],
+            ],
+          ],
+        },
+        new Date(),
+        "unknown",
+      )
+
+      const l_id_herd = await addHerd(fdm, testPrincipalId, livestockFarmId, {
+        l_herd_name: "Melkkoeien",
+        l_id_category: "rvo_100",
+      })
+      const l_id_animal = await addAnimal(fdm, testPrincipalId, livestockFarmId, l_id_herd, {
+        l_id_eartag: "NL_LIVESTOCK_TEST",
+      })
+
+      const b_id_barn = await addBarn(fdm, testPrincipalId, livestockFarmId, {
+        b_barn_name: "Stal 1",
+      })
+      await addHousing(fdm, testPrincipalId, l_id_herd, b_id_barn, new Date("2025-01-01"))
+
+      const l_id_milktank = await addMilkTank(fdm, testPrincipalId, livestockFarmId)
+      await addMilkingHerd(fdm, testPrincipalId, l_id_herd, l_id_milktank, new Date("2025-02-01"), {
+        l_milking_amount: 100,
+      })
+      await addMilkDelivery(fdm, testPrincipalId, l_id_milktank, new Date("2025-02-02"), 500, {
+        l_milk_fat: 4.1,
+      })
+
+      const b_id_manurepit = await addManurePit(fdm, testPrincipalId, livestockFarmId)
+      await addExcreting(fdm, testPrincipalId, l_id_herd, b_id_manurepit, {
+        l_excreting_amount: 1000,
+      })
+      await addManureDisposing(fdm, testPrincipalId, b_id_manurepit, new Date("2025-02-03"), 800, {
+        p_n_rt: 4.0,
+      })
+
+      const f_id_batch = await addFeedBatch(
+        fdm,
+        testPrincipalId,
+        livestockFarmId,
+        "krachtvoer",
+        "purchased",
+      )
+      await addFeedingHerd(fdm, testPrincipalId, f_id_batch, l_id_herd, new Date("2025-02-04"))
+
+      await addGrazing(fdm, testPrincipalId, l_id_herd, new Date("2025-03-01"), { b_id })
+
+      await removeFarm(fdm, testPrincipalId, livestockFarmId)
+
+      const remainingHerds = await fdm
+        .select()
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.b_id_farm, livestockFarmId))
+      expect(remainingHerds).toEqual([])
+      expect(
+        await fdm.select().from(schema.herds).where(eq(schema.herds.l_id_herd, l_id_herd)),
+      ).toEqual([])
+
+      expect(
+        await fdm.select().from(schema.animals).where(eq(schema.animals.l_id_animal, l_id_animal)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.animalAssigning)
+          .where(eq(schema.animalAssigning.l_id_animal, l_id_animal)),
+      ).toEqual([])
+
+      expect(
+        await fdm.select().from(schema.barns).where(eq(schema.barns.b_id_barn, b_id_barn)),
+      ).toEqual([])
+      expect(
+        await fdm.select().from(schema.housing).where(eq(schema.housing.b_id_barn, b_id_barn)),
+      ).toEqual([])
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.milkTanks)
+          .where(eq(schema.milkTanks.l_id_milktank, l_id_milktank)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.milkingHerd)
+          .where(eq(schema.milkingHerd.l_id_milktank, l_id_milktank)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.milkDelivering)
+          .where(eq(schema.milkDelivering.l_id_milktank, l_id_milktank)),
+      ).toEqual([])
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.manurePits)
+          .where(eq(schema.manurePits.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.excreting)
+          .where(eq(schema.excreting.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.manureDisposing)
+          .where(eq(schema.manureDisposing.b_id_manurepit, b_id_manurepit)),
+      ).toEqual([])
+
+      expect(
+        await fdm
+          .select()
+          .from(schema.feedBatches)
+          .where(eq(schema.feedBatches.f_id_batch, f_id_batch)),
+      ).toEqual([])
+      expect(
+        await fdm
+          .select()
+          .from(schema.feedingHerd)
+          .where(eq(schema.feedingHerd.f_id_batch, f_id_batch)),
+      ).toEqual([])
+
+      expect(
+        await fdm.select().from(schema.grazing).where(eq(schema.grazing.l_id_herd, l_id_herd)),
+      ).toEqual([])
     })
 
     it("should throw an error if the principal does not have write access", async () => {

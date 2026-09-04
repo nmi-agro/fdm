@@ -30,6 +30,12 @@ export const resources: Resource[] = [
   "soil_analysis",
   "soil_image",
   "harvesting",
+  "barn",
+  "herd",
+  "animal",
+  "milk",
+  "feed",
+  "manure",
 ] as const
 export const roles: Role[] = ["owner", "advisor", "researcher"] as const
 export const actions: Action[] = ["read", "write", "list", "share"] as const
@@ -168,6 +174,96 @@ export const permissions: Permission[] = [
   {
     resource: "organization",
     role: "advisor",
+    action: ["read"],
+  },
+  {
+    resource: "barn",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "barn",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "barn",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "herd",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "herd",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "herd",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "animal",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "animal",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "animal",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "milk",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "milk",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "milk",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "feed",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "feed",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "feed",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "manure",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "manure",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "manure",
+    role: "researcher",
     action: ["read"],
   },
 ]
@@ -924,6 +1020,12 @@ async function getResourceChain(
       "fertilizer_plan",
       "soil_analysis",
       "soil_image",
+      "barn",
+      "herd",
+      "animal",
+      "milk",
+      "feed",
+      "manure",
     ]
     const chain: ResourceBead[] = []
     if (resource === "farm") {
@@ -1061,6 +1163,210 @@ async function getResourceChain(
         return []
       }
       chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "barn") {
+      const result = await fdm
+        .select({
+          farm: schema.barnConstructing.b_id_farm,
+          barn: schema.barnConstructing.b_id_barn,
+        })
+        .from(schema.barnConstructing)
+        .where(eq(schema.barnConstructing.b_id_barn, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "herd") {
+      const result = await fdm
+        .select({
+          farm: schema.herdStarting.b_id_farm,
+          herd: schema.herdStarting.l_id_herd,
+        })
+        .from(schema.herdStarting)
+        .where(eq(schema.herdStarting.l_id_herd, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "animal") {
+      const result = await fdm
+        .select({
+          farm: schema.animalArriving.b_id_farm,
+          animal: schema.animalArriving.l_id_animal,
+        })
+        .from(schema.animalArriving)
+        .where(eq(schema.animalArriving.l_id_animal, resource_id))
+        .limit(1)
+      if (result.length === 0) {
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "milk") {
+      // Run the independent milk-resource lookups concurrently; take the first
+      // match in precedence order (tank, milking herd, delivering, milking animal).
+      const [tankResult, milkingResult, deliveringResult, milkingAnimalResult] = await Promise.all([
+        fdm
+          .select({
+            farm: schema.milkTanks.b_id_farm,
+            milk: schema.milkTanks.l_id_milktank,
+          })
+          .from(schema.milkTanks)
+          .where(eq(schema.milkTanks.l_id_milktank, resource_id))
+          .limit(1),
+        fdm
+          .select({
+            farm: schema.herdStarting.b_id_farm,
+            herd: schema.milkingHerd.l_id_herd,
+            milk: schema.milkingHerd.l_id_herd,
+          })
+          .from(schema.milkingHerd)
+          .leftJoin(
+            schema.herdStarting,
+            eq(schema.milkingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+          )
+          .where(eq(schema.milkingHerd.l_id_herd, resource_id))
+          .limit(1),
+        fdm
+          .select({
+            farm: schema.milkTanks.b_id_farm,
+            milk: schema.milkDelivering.l_id_milkdelivery,
+          })
+          .from(schema.milkDelivering)
+          .leftJoin(
+            schema.milkTanks,
+            eq(schema.milkDelivering.l_id_milktank, schema.milkTanks.l_id_milktank),
+          )
+          .where(eq(schema.milkDelivering.l_id_milkdelivery, resource_id))
+          .limit(1),
+        fdm
+          .select({
+            farm: schema.animalArriving.b_id_farm,
+            animal: schema.milkingAnimal.l_id_animal,
+            milk: schema.milkingAnimal.l_id_animal,
+          })
+          .from(schema.milkingAnimal)
+          .leftJoin(
+            schema.animalArriving,
+            eq(schema.milkingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+          )
+          .where(eq(schema.milkingAnimal.l_id_animal, resource_id))
+          .limit(1),
+      ])
+
+      const candidates: Array<Record<string, unknown>>[] = [
+        tankResult,
+        milkingResult,
+        deliveringResult,
+        milkingAnimalResult,
+      ]
+      const match = candidates.find((rows) => rows.length > 0 && rows[0].farm)
+
+      if (!match) {
+        return []
+      }
+      chain.push(...buildBeadsFromRow(match[0]))
+    } else if (resource === "feed") {
+      const batchResult = await fdm
+        .select({
+          farm: schema.feedBatches.b_id_farm,
+          feed: schema.feedBatches.f_id_batch,
+        })
+        .from(schema.feedBatches)
+        .where(eq(schema.feedBatches.f_id_batch, resource_id))
+        .limit(1)
+
+      if (batchResult.length > 0 && batchResult[0].farm) {
+        chain.push(...buildBeadsFromRow(batchResult[0]))
+      } else {
+        const feedingResult = await fdm
+          .select({
+            farm: schema.herdStarting.b_id_farm,
+            herd: schema.feedingHerd.l_id_herd,
+            feed: schema.feedingHerd.l_id_herd,
+          })
+          .from(schema.feedingHerd)
+          .leftJoin(
+            schema.herdStarting,
+            eq(schema.feedingHerd.l_id_herd, schema.herdStarting.l_id_herd),
+          )
+          .where(eq(schema.feedingHerd.l_id_herd, resource_id))
+          .limit(1)
+
+        if (feedingResult.length > 0 && feedingResult[0].farm) {
+          chain.push(...buildBeadsFromRow(feedingResult[0]))
+        } else {
+          const feedingAnimalResult = await fdm
+            .select({
+              farm: schema.animalArriving.b_id_farm,
+              animal: schema.feedingAnimal.l_id_animal,
+              feed: schema.feedingAnimal.l_id_animal,
+            })
+            .from(schema.feedingAnimal)
+            .leftJoin(
+              schema.animalArriving,
+              eq(schema.feedingAnimal.l_id_animal, schema.animalArriving.l_id_animal),
+            )
+            .where(eq(schema.feedingAnimal.l_id_animal, resource_id))
+            .limit(1)
+
+          if (feedingAnimalResult.length > 0 && feedingAnimalResult[0].farm) {
+            chain.push(...buildBeadsFromRow(feedingAnimalResult[0]))
+          } else {
+            return []
+          }
+        }
+      }
+    } else if (resource === "manure") {
+      const pitResult = await fdm
+        .select({
+          farm: schema.manurePits.b_id_farm,
+          manure: schema.manurePits.b_id_manurepit,
+        })
+        .from(schema.manurePits)
+        .where(eq(schema.manurePits.b_id_manurepit, resource_id))
+        .limit(1)
+
+      if (pitResult.length > 0 && pitResult[0].farm) {
+        chain.push(...buildBeadsFromRow(pitResult[0]))
+      } else {
+        const excretingResult = await fdm
+          .select({
+            farm: schema.herdStarting.b_id_farm,
+            herd: schema.excreting.l_id_herd,
+            manure: schema.excreting.l_id_excreting,
+          })
+          .from(schema.excreting)
+          .leftJoin(
+            schema.herdStarting,
+            eq(schema.excreting.l_id_herd, schema.herdStarting.l_id_herd),
+          )
+          .where(eq(schema.excreting.l_id_excreting, resource_id))
+          .limit(1)
+
+        if (excretingResult.length > 0 && excretingResult[0].farm) {
+          chain.push(...buildBeadsFromRow(excretingResult[0]))
+        } else {
+          const disposingResult = await fdm
+            .select({
+              farm: schema.manurePits.b_id_farm,
+              manure: schema.manureDisposing.p_id_delivery,
+            })
+            .from(schema.manureDisposing)
+            .leftJoin(
+              schema.manurePits,
+              eq(schema.manureDisposing.b_id_manurepit, schema.manurePits.b_id_manurepit),
+            )
+            .where(eq(schema.manureDisposing.p_id_delivery, resource_id))
+            .limit(1)
+
+          if (disposingResult.length > 0 && disposingResult[0].farm) {
+            chain.push(...buildBeadsFromRow(disposingResult[0]))
+          } else {
+            return []
+          }
+        }
+      }
     } else {
       throw new Error("Resource is not known")
     }

@@ -14,6 +14,11 @@ A `Farm` has the following properties, which are stored in the `farms` table:
 - **`b_address_farm`**: The physical address of the farm.
 - **`b_postalcode_farm`**: The postal code of the farm address.
 
+Livestock and milk-production status are **derived** from recorded domain data rather than stored on the farm row. In `fdm-core`, use `getFarmLivestockStatus`:
+
+- `hasLivestock`: true when at least one herd or animal arrival exists for the farm.
+- `hasMilking`: true when at least one milk tank, herd-level milking row, animal-level milking row, or milk delivery row exists for the farm.
+
 ## Users and Roles
 
 Users are associated with a `Farm` through the `fdm-authz` schema. The `role` table links a `principal_id` (the user) to a `resource_id` (the `b_id_farm`). This allows you to control who has access to the farm's data and what actions they can perform.
@@ -27,4 +32,6 @@ In addition to the basic properties, a `Farm` can have several other types of da
 - **Organic Certifications:** You can store information about a farm's organic certifications in the `organicCertifications` and `organicCertificationsHolding` tables. This includes details like the certification body, certification numbers (e.g., TRACES, Skal), and the dates the certification was issued and expires.
 - **Derogations:** The `derogations` and `derogationApplying` tables are used to track any special permissions (derogations) that a farm has been granted for a specific year. These are related to legal norms for fertilizer application.
 - **Grazing Intentions:** The `intendingGrazing` table allows you to record a farm's intention to graze animals for a specific year. This is a boolean flag associated with the farm and the year.
-- **Catalogue Preferences:** The `fertilizerCatalogueEnabling` and `cultivationCatalogueSelecting` tables allow you to specify which data sources a farm uses for its fertilizer and cultivation catalogues. This provides flexibility in managing standardized data.
+  When the first grazing action is recorded for a farm in a year, `fdm-core` automatically sets that year's grazing intention to `true`.
+- **Catalogue Preferences:** The `fertilizerCatalogueEnabling` and `cultivationCatalogueSelecting` tables allow you to specify which data sources a farm uses for its fertilizer and cultivation catalogues. In addition, livestock categories are managed via the `animal_categories_catalogue` table and farms choose which category sources to use with `animal_category_catalogue_selecting` (linking `b_id_farm` to an `l_category_source`).
+  Herds reference the chosen category using `herds.l_id_category` (references `animal_categories_catalogue.l_id_category`), and individual animals carry `animals.l_specie` and `animals.l_sex`. The `l_lsu` value from the category is used by `fdm-calculator` and reporting to convert animals to livestock units (LSU). This provides flexibility in managing standardised livestock data and conversion rules.
