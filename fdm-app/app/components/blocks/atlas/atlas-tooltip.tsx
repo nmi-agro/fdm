@@ -38,12 +38,14 @@ export function AtlasTooltip({
   layers,
   layersExclude,
   onFeatureClicked,
+  zoomLevelFields,
   touchDisplaysPopupInstead = true,
 }: {
   render: (props: AtlasTooltipRenderProps) => ReactNode
   layers: string[]
   layersExclude?: string[]
   onFeatureClicked?: (feature: MapGeoJSONFeature) => void
+  zoomLevelFields?: number
   touchDisplaysPopupInstead?: boolean
 }) {
   const { current: map } = useMap()
@@ -66,9 +68,23 @@ export function AtlasTooltip({
     (map: MapRef, x: number, y: number) => {
       const coords = new Point(x, y)
 
-      if (layersExcludeSet.size > 0) {
+      const zoom = map.getZoom()
+      if (typeof zoomLevelFields === "number" && zoom < zoomLevelFields) return []
+      if (!map.isStyleLoaded()) return []
+
+      const renderedIncludedLayers = [...layersSet].filter((layerId) => map.getLayer(layerId))
+
+      if (renderedIncludedLayers.length === 0) {
+        return []
+      }
+
+      const renderedExcludedLayers = [...layersExcludeSet].filter((layerId) =>
+        map.getLayer(layerId),
+      )
+
+      if (renderedExcludedLayers.length > 0) {
         const excludedFeatures = map.queryRenderedFeatures(coords, {
-          layers: [...layersExcludeSet],
+          layers: renderedExcludedLayers,
         })
 
         if (excludedFeatures.length > 0) {
@@ -76,13 +92,11 @@ export function AtlasTooltip({
         }
       }
 
-      const features = map.queryRenderedFeatures(coords, {
-        layers: [...layersSet],
+      return map.queryRenderedFeatures(coords, {
+        layers: renderedIncludedLayers,
       })
-
-      return features
     },
-    [layersSet, layersExcludeSet],
+    [layersSet, layersExcludeSet, zoomLevelFields],
   )
 
   // Throttle tooltip updates to reduce flashing.
