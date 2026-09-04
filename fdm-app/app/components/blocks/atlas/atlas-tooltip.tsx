@@ -70,11 +70,21 @@ export function AtlasTooltip({
 
       const zoom = map.getZoom()
       if (zoom < zoomLevelFields) return []
-      if (!map.getStyle()) return []
+      if (!map.isStyleLoaded()) return []
 
-      if (layersExcludeSet.size > 0) {
+      const renderedIncludedLayers = [...layersSet].filter((layerId) => map.getLayer(layerId))
+
+      if (renderedIncludedLayers.length === 0) {
+        return []
+      }
+
+      const renderedExcludedLayers = [...layersExcludeSet].filter((layerId) =>
+        map.getLayer(layerId),
+      )
+
+      if (renderedExcludedLayers.length > 0) {
         const excludedFeatures = map.queryRenderedFeatures(coords, {
-          layers: [...layersExcludeSet].filter((layerId) => map.getLayer(layerId)),
+          layers: renderedExcludedLayers,
         })
 
         if (excludedFeatures.length > 0) {
@@ -82,11 +92,9 @@ export function AtlasTooltip({
         }
       }
 
-      const features = map.queryRenderedFeatures(coords, {
-        layers: [...layersSet].filter((layerId) => map.getLayer(layerId)),
+      return map.queryRenderedFeatures(coords, {
+        layers: renderedIncludedLayers,
       })
-
-      return features
     },
     [layersSet, layersExcludeSet, zoomLevelFields],
   )
