@@ -8,7 +8,7 @@ import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Card, CardHeader, CardContent, CardFooter } from "~/components/ui/card"
 import { useMapContainer } from "./atlas-shell"
-import { useStableSet } from "./atlas-util"
+import { useStableSet, ZOOM_LEVEL_FIELDS } from "./atlas-util"
 
 type AtlasTooltipRenderProps = {
   features: MapGeoJSONFeature[]
@@ -38,12 +38,14 @@ export function AtlasTooltip({
   layers,
   layersExclude,
   onFeatureClicked,
+  zoomLevelFields = ZOOM_LEVEL_FIELDS,
   touchDisplaysPopupInstead = true,
 }: {
   render: (props: AtlasTooltipRenderProps) => ReactNode
   layers: string[]
   layersExclude?: string[]
   onFeatureClicked?: (feature: MapGeoJSONFeature) => void
+  zoomLevelFields?: number
   touchDisplaysPopupInstead?: boolean
 }) {
   const { current: map } = useMap()
@@ -66,9 +68,13 @@ export function AtlasTooltip({
     (map: MapRef, x: number, y: number) => {
       const coords = new Point(x, y)
 
+      const zoom = map.getZoom()
+      if (zoom < zoomLevelFields) return []
+      if (!map.getStyle()) return []
+
       if (layersExcludeSet.size > 0) {
         const excludedFeatures = map.queryRenderedFeatures(coords, {
-          layers: [...layersExcludeSet],
+          layers: [...layersExcludeSet].filter((layerId) => map.getLayer(layerId)),
         })
 
         if (excludedFeatures.length > 0) {
@@ -77,12 +83,12 @@ export function AtlasTooltip({
       }
 
       const features = map.queryRenderedFeatures(coords, {
-        layers: [...layersSet],
+        layers: [...layersSet].filter((layerId) => map.getLayer(layerId)),
       })
 
       return features
     },
-    [layersSet, layersExcludeSet],
+    [layersSet, layersExcludeSet, zoomLevelFields],
   )
 
   // Throttle tooltip updates to reduce flashing.
