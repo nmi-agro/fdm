@@ -8,7 +8,7 @@ import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Card, CardHeader, CardContent, CardFooter } from "~/components/ui/card"
 import { useMapContainer } from "./atlas-shell"
-import { useStableSet, ZOOM_LEVEL_FIELDS } from "./atlas-util"
+import { useStableSet } from "./atlas-util"
 
 type AtlasTooltipRenderProps = {
   features: MapGeoJSONFeature[]
@@ -38,7 +38,7 @@ export function AtlasTooltip({
   layers,
   layersExclude,
   onFeatureClicked,
-  zoomLevelFields = ZOOM_LEVEL_FIELDS,
+  zoomLevelFields,
   touchDisplaysPopupInstead = true,
 }: {
   render: (props: AtlasTooltipRenderProps) => ReactNode
@@ -69,7 +69,7 @@ export function AtlasTooltip({
       const coords = new Point(x, y)
 
       const zoom = map.getZoom()
-      if (zoom < zoomLevelFields) return []
+      if (typeof zoomLevelFields === "number" && zoom < zoomLevelFields) return []
       if (!map.isStyleLoaded()) return []
 
       const renderedIncludedLayers = [...layersSet].filter((layerId) => map.getLayer(layerId))
