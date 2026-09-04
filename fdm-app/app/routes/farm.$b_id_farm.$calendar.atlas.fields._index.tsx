@@ -8,7 +8,7 @@ import { Layer, type LayerProps } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, useLoaderData, useNavigate, useParams } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
-import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
+import { FieldsPanelZoomWarning, FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   FieldsSourceAvailable,
@@ -190,6 +190,11 @@ export default function FarmAtlasFieldsBlock() {
           void navigate(featureCentroidCoordinates)
         }}
       />
+      {fields && fields.features.length > 0 && (
+        <div className="fields-panel">
+          <FieldsPanelZoomWarning />
+        </div>
+      )}
     </Atlas>
   )
 }

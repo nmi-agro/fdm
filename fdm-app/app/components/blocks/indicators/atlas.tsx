@@ -15,6 +15,7 @@ import { Link, useNavigate } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { ScoreLegend } from "~/components/blocks/atlas/atlas-legend"
+import { FieldsPanelZoomWarning } from "~/components/blocks/atlas/atlas-panels"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { FieldsSourceNotClickable } from "~/components/blocks/atlas/atlas-sources"
 import {
@@ -213,6 +214,7 @@ export default function IndicatorsMap({
       {/* Legend overlay — pointer-events-none so it doesn't block field clicks */}
       <div className="absolute bottom-6 left-2 z-10">
         <ScoreLegend label={label} />
+        {fieldsGeoJSON.features.length > 0 && <FieldsPanelZoomWarning />}
       </div>
     </div>
   )

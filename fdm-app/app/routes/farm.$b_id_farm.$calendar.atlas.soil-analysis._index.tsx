@@ -15,6 +15,7 @@ import { type LoaderFunctionArgs, useLoaderData, useNavigate } from "react-route
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { SoilAnalysisLegend } from "~/components/blocks/atlas/atlas-legend"
+import { FieldsPanelZoomWarning } from "~/components/blocks/atlas/atlas-panels"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   getShadedSoilParameters,
@@ -319,31 +320,34 @@ export default function FarmAtlasFieldSoilAnalysisBlock() {
         />
       </Atlas>
       {/* Soil Parameter Dropdown */}
-      <Card className="absolute top-3 left-3 z-10 w-52 shadow-md">
-        <CardContent className="p-2">
-          <Select
-            value={selectedParameter}
-            onValueChange={(val) => setSelectedParameter(val as ShadedSoilParameters)}
-          >
-            <SelectTrigger className="h-8 w-full text-xs">
-              {parameterDescription?.name}
-            </SelectTrigger>
-            {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
-            <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
-              {soilParameterOptions.map((opt) => {
-                return (
-                  <SelectItem key={opt.parameter} value={opt.parameter}>
-                    <div>
-                      <div className="font-medium">{opt.name}</div>
-                      <div className="text-muted-foreground text-xs">{opt.description}</div>
-                    </div>
-                  </SelectItem>
-                )
-              })}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+      <div className="absolute top-3 left-3 z-10 max-w-52 space-y-3">
+        <Card className=" shadow-md">
+          <CardContent className="p-2">
+            <Select
+              value={selectedParameter}
+              onValueChange={(val) => setSelectedParameter(val as ShadedSoilParameters)}
+            >
+              <SelectTrigger className="h-8 w-full text-xs">
+                {parameterDescription?.name}
+              </SelectTrigger>
+              {/* var(--radix-select-content-available-height) is the recommended max-height here, however we have fallbacks in case that variable is missing. */}
+              <SelectContent className="max-h-[min(var(--radix-select-content-available-height,100vh),calc(var(--radix-select-trigger-height,0)+100*var(--spacing)))]">
+                {soilParameterOptions.map((opt) => {
+                  return (
+                    <SelectItem key={opt.parameter} value={opt.parameter}>
+                      <div>
+                        <div className="font-medium">{opt.name}</div>
+                        <div className="text-muted-foreground text-xs">{opt.description}</div>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+        {fieldsData && fieldsData.features.length > 0 && <FieldsPanelZoomWarning />}
+      </div>
       {/* Soil Analysis Color Legend */}
       <div className="pointer-none absolute bottom-9 left-4">
         <SoilAnalysisLegend
