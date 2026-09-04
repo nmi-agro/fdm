@@ -225,4 +225,21 @@ describe("collectNL2025InputForFertilizerApplicationFillingForFarm", () => {
       timeframe2025,
     )
   })
+
+  it("should default missing farm maps and fosfaat norm to empty arrays and zero", async () => {
+    vi.mocked(getCultivationsForFarm).mockResolvedValue(new Map())
+    vi.mocked(getFertilizerApplicationsForFarm).mockResolvedValue(new Map())
+
+    const result = await collectNL2025InputForFertilizerApplicationFillingForFarm(
+      mockFdm,
+      mockPrincipalId,
+      mockFarmId,
+      new Map(),
+    )
+
+    const fieldInput = result.get(mockFieldId)!
+    expect(fieldInput.cultivations).toEqual([])
+    expect(fieldInput.applications).toEqual([])
+    expect(fieldInput.fosfaatgebruiksnorm).toBe(0)
+  })
 })

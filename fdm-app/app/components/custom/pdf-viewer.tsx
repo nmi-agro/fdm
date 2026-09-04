@@ -1,38 +1,32 @@
 import { Download, Eye } from "lucide-react"
-import { useEffect, useState } from "react"
+import { ComponentProps, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { modifySearchParams } from "@/app/lib/url-utils"
 import { Button } from "~/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog"
+import { DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
 
 /**
- * Dialog content that shows a soil analysis PDF inline (via an iframe
- * pointing at the app's own streaming download route), so users can view
+ * Dialog content that shows a PDF inline via an iframe, so users can view
  * the original document without ever leaving the application. A separate
  * download action next to the viewer saves the file to disk.
  *
- * Exported separately from `PdfViewerDialog` so callers that already
- * control their own `Dialog` open state (e.g. a dropdown menu) can render
- * just the content.
+ * It must be used within a shadcn `Dialog` component, possibly paired with
+ * a `DialogTrigger`, which can make use of `ViewPdfButton`.
  */
 export function PdfViewerDialogContent({
-  a_id,
   filename,
   title,
+  downloadUrl,
 }: {
-  a_id: string
+  downloadUrl: string
   filename: string
   title: string
 }) {
-  const viewUrl = `/api/soil-analysis/download/${a_id}.pdf?disposition=inline`
-  const downloadUrl = `/api/soil-analysis/download/${a_id}.pdf`
+  const viewUrl = modifySearchParams(downloadUrl, (searchParams) => {
+    searchParams.set("disposition", "inline")
+  })
   const [status, setStatus] = useState<"checking" | "loading" | "loaded" | "error">("checking")
 
   // An <iframe> doesn't fire onError for a same-origin 404/500 response —
@@ -60,7 +54,7 @@ export function PdfViewerDialogContent({
   }, [viewUrl])
 
   return (
-    <DialogContent className="flex h-[85vh] max-h-[640px] w-full max-w-4xl flex-col sm:max-h-[85vh]">
+    <DialogContent className="flex h-[85vh] max-h-160 w-full max-w-4xl flex-col sm:max-h-[85vh]">
       <DialogHeader className="flex-row items-center justify-between space-y-0 pr-8">
         <DialogTitle className="truncate">{title}</DialogTitle>
         <Button variant="ghost" size="sm" asChild onClick={() => toast("PDF wordt gedownload")}>
@@ -107,42 +101,12 @@ export function PdfViewerDialogContent({
   )
 }
 
-/**
- * Trigger button + modal dialog that shows a soil analysis PDF inline,
- * so users can view the original document without ever leaving the
- * application.
- */
-export function PdfViewerDialog({
-  a_id,
-  filename,
-  title,
-  triggerLabel = "Bekijk PDF",
-  triggerVariant = "outline",
-  triggerSize,
-  triggerClassName,
-}: {
-  a_id: string
-  filename: string
-  title: string
-  triggerLabel?: string
-  triggerVariant?: React.ComponentProps<typeof Button>["variant"]
-  triggerSize?: React.ComponentProps<typeof Button>["size"]
-  triggerClassName?: string
-}) {
+/** Styled button to be used to let the user view the PDF viewer dialog.  */
+export function ViewPdfButton({ ...buttonProps }: Omit<ComponentProps<typeof Button>, "children">) {
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant={triggerVariant}
-          size={triggerSize}
-          type="button"
-          className={triggerClassName}
-        >
-          <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
-          {triggerLabel}
-        </Button>
-      </DialogTrigger>
-      <PdfViewerDialogContent a_id={a_id} filename={filename} title={title} />
-    </Dialog>
+    <Button variant="outline" type="button" {...buttonProps}>
+      <Eye className="mr-2 h-4 w-4" aria-hidden="true" />
+      Bekijk PDF
+    </Button>
   )
 }

@@ -43,6 +43,14 @@ export type Bln3ScoreCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
+  /** Buffer strip flag */
+  b_bufferstrip?: boolean
+  /** Crop rotation category of the target year's main cultivation */
+  b_lu_croprotation?: string
+  /** Catalogue code of the target year's main cultivation */
+  b_lu_catalogue?: string
+  /** Flag indicating field is excluded from BLN3 calculations */
+  isExcluded?: boolean
 
   // ── Soil analysis ────────────────────────────────────────────────────────
   /** Calcium occupation of the CEC (%) */
@@ -212,6 +220,14 @@ export type Bln3MeasureApplicabilityCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
+  /** Buffer strip flag */
+  b_bufferstrip?: boolean
+  /** Crop rotation category of the target year's main cultivation */
+  b_lu_croprotation?: string
+  /** Catalogue code of the target year's main cultivation */
+  b_lu_catalogue?: string
+  /** Flag indicating field is excluded from BLN3 calculations */
+  isExcluded?: boolean
 
   // Groundwater / soil potential estimates (optional)
   b_gwl_glg?: number
@@ -276,5 +292,65 @@ export type Bln3MeasureApplicabilityResponse = {
       applicability: Bln3MeasureApplicabilityStatus
       message: string
     }[]
+  }
+}
+
+/**
+ * A single candidate measure and its predicted impact on one indicator, as
+ * returned by `POST /maatwerk/bln3/measure/advice`. `measure_impact` uses a
+ * consistent unit across indicators (confirmed with NMI), so it is valid to
+ * sum or compare it across indicators and fields without normalization.
+ * Higher is always better.
+ */
+export type Bln3IndicatorMeasureAdvice = {
+  /** ID of the measure (namespaced with "bln_", e.g. "bln_BM226") */
+  m_id: string
+  /** Predicted impact of taking this measure on this indicator; higher is always better */
+  measure_impact: number
+}
+
+/**
+ * Ranked measure advice for a single BLN3 indicator. `measures` is already
+ * sorted descending by `measure_impact` by the NMI API. An empty array means
+ * no measure meaningfully improves this indicator further.
+ */
+export type Bln3IndicatorAdvice = {
+  /** Indicator identifier (e.g. "B_DI", "C_N", "P_DS") */
+  indicator: string
+  measures: Bln3IndicatorMeasureAdvice[]
+}
+
+/**
+ * Input parameters for `requestBln3MeasureAdvice`. The request body is
+ * identical to `measure/applicability`'s `bln_model`, so the same collected
+ * inputs type is reused.
+ */
+export type Bln3MeasureAdviceInputs = Bln3MeasureApplicabilityCollectedInputs & {
+  /** NMI API key for authentication — redacted from cache hash */
+  nmiApiKey: string | undefined
+}
+
+/**
+ * The BLN3 measure advice result returned by `requestBln3MeasureAdvice` / `getBln3MeasureAdvice`.
+ *
+ * Note: the NMI API does not guarantee `indicator_advice[].measures` excludes
+ * measures that are inapplicable to the field or already taken. Callers must
+ * always cross-reference results against a fresh `measure/applicability`
+ * call (the definitive source of truth for applicability) before display.
+ */
+export type Bln3MeasureAdviceResult = {
+  indicator_advice: Bln3IndicatorAdvice[]
+}
+
+/**
+ * Response envelope from the NMI API for `POST /maatwerk/bln3/measure/advice`.
+ */
+export type Bln3MeasureAdviceResponse = {
+  request_id: string
+  success: boolean
+  status: number
+  message: string | null
+  data: {
+    indicator_advice: Bln3IndicatorAdvice[]
   }
 }

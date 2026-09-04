@@ -1,6 +1,6 @@
 ---
-title: Dierlijke Mest Gebruiksnorm 2025
-sidebar_label: "Dierlijke Mest Gebruiksnorm"
+title: Dierlijke mest gebruiksnorm 2025
+sidebar_label: "Dierlijke mest gebruiksnorm"
 ---
 
 This document explains how the FDM Calculator determines the official Dutch legal usage norm (`gebruiksnorm`) for nitrogen from animal manure and how the applied animal manure counts towards this norm (the `filling`). It also covers the derogation regulations for 2025.

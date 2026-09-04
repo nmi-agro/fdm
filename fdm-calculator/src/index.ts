@@ -77,14 +77,20 @@ export { calcPhDelta } from "./bcs/ph-delta"
 export {
   collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
+  getBln3MeasureAdvice,
   getBln3MeasureApplicability,
   getBln3Score,
+  requestBln3MeasureAdvice,
   requestBln3MeasureApplicability,
   requestBln3Score,
 } from "./bln3"
 export type {
   Bln3AggregationResult,
+  Bln3IndicatorAdvice,
+  Bln3IndicatorMeasureAdvice,
   Bln3IndicatorResult,
+  Bln3MeasureAdviceInputs,
+  Bln3MeasureAdviceResult,
   Bln3MeasureApplicabilityCollectedInputs,
   Bln3MeasureApplicabilityInputs,
   Bln3MeasureApplicabilityItem,
@@ -152,11 +158,12 @@ export type {
 export { collectInputForSoilParameterEstimates } from "./estimates/input"
 export { getSoilParameterEstimates, requestSoilParameterEstimates } from "./estimates/index"
 export type { SoilParameterEstimatesInput, SoilParameterEstimatesResponse } from "./estimates/types"
+export { bln3Client, soilEstimatesClient, soilReaderClient } from "./nmi/client"
 export type { NlvParams, NlvSupplyBySomParams } from "./other/nlv-supply"
 export { calculateNlv, calculateNlvSupplyIncreaseBySomPotential } from "./other/nlv-supply"
 export type { WaterSupplyBySomParams } from "./other/water-supply-by-som"
 export { calculateWaterSupplyBySom } from "./other/water-supply-by-som"
-export type { CultivationForHoofdteelt } from "./shared/hoofdteelt"
+export type { CompleteHoofdteeltCultivation, CultivationForHoofdteelt } from "./shared/hoofdteelt"
 export { findHoofdteelt, GROENE_BRAAK } from "./shared/hoofdteelt"
 export {
   GROWING_SEASON_START_DAY,

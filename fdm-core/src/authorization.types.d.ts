@@ -9,6 +9,7 @@ export type Resource =
   | "soil_analysis"
   | "soil_image"
   | "fertilizer_application"
+  | "fertilizer_plan"
   | "harvesting"
   | "barn"
   | "herd"

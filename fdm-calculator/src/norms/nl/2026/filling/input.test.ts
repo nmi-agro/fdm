@@ -289,4 +289,14 @@ describe("collectNL2026InputForFertilizerApplicationFillingForFarm", () => {
     expect(getCultivationsForFarm).toHaveBeenCalled()
     expect(getFertilizerApplicationsForFarm).toHaveBeenCalled()
   })
+
+  it("should default fosfaatgebruiksnorm to zero when field norm is absent", async () => {
+    const result = await collectNL2026InputForFertilizerApplicationFillingForFarm(
+      mockFdm,
+      mockPrincipalId,
+      mockFarmId,
+      new Map(),
+    )
+    expect(result.get(mockFieldId)?.fosfaatgebruiksnorm).toBe(0)
+  })
 })

@@ -54,6 +54,15 @@ function getThrownStatus(
     return { status: error.status, statusText }
   }
 
+  // better-auth's `APIError` (from the `better-call` package) uses `.status` for a string enum
+  // key (e.g. "BAD_REQUEST") and keeps the numeric HTTP status under `.statusCode` instead, so the
+  // checks above never match it and it would otherwise fall through to the generic 500 branch.
+  if ("statusCode" in error && typeof error.statusCode === "number") {
+    const statusText =
+      "status" in error && typeof error.status === "string" ? error.status : undefined
+    return { status: error.statusCode, statusText }
+  }
+
   return null
 }
 

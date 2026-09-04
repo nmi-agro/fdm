@@ -444,4 +444,72 @@ describe("calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm", ()
       "OS-rijke meststof, geen korting toegepast. Plus 15.00kg (100% geteld) boven de kortingslimiet.",
     )
   })
+
+  it("should throw when an application references a missing fertilizer", () => {
+    expect(() =>
+      calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm({
+        applications: [createApplication("missing-fert", 1000, "missing-app")],
+        fertilizers: mockFertilizers,
+        has_organic_certification: false,
+        fosfaatgebruiksnorm: 60,
+        cultivations: [],
+        has_grazing_intention: false,
+        b_centroid: [0, 0],
+      } as NL2025NormsFillingInput),
+    ).toThrow("Fertilizer missing-fert not found for application missing-app")
+  })
+
+  it("should default to zero when amount or rvo type is missing", () => {
+    const result = calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm({
+      applications: [
+        {
+          ...createApplication("f-null", 0, "null-app"),
+          p_app_amount: undefined,
+        } as unknown as BaseFertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "f-null",
+          p_id_catalogue: "f-null",
+          p_type_rvo: null,
+          p_p_rt: null,
+        } as unknown as Fertilizer,
+      ],
+      has_organic_certification: false,
+      fosfaatgebruiksnorm: 60,
+      cultivations: [],
+      has_grazing_intention: false,
+      b_centroid: [0, 0],
+    } as NL2025NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling[0].normFilling).toBe(0)
+  })
+
+  it("should handle missing amount with non-zero phosphate and null rvo type", () => {
+    const result = calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm({
+      applications: [
+        {
+          ...createApplication("f-null-rvo", 0, "null-rvo-app"),
+          p_app_amount: undefined,
+        } as unknown as BaseFertilizerApplication,
+      ],
+      fertilizers: [
+        {
+          p_id: "f-null-rvo",
+          p_id_catalogue: "f-null-rvo",
+          p_type_rvo: null,
+          p_p_rt: 1.2,
+        } as unknown as Fertilizer,
+      ],
+      has_organic_certification: false,
+      fosfaatgebruiksnorm: 60,
+      cultivations: [],
+      has_grazing_intention: false,
+      b_centroid: [0, 0],
+    } as NL2025NormsFillingInput)
+
+    expect(result.normFilling).toBe(0)
+    expect(result.applicationFilling[0].normFilling).toBe(0)
+  })
 })

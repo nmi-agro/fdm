@@ -13,6 +13,46 @@ import {
 } from "@nmi-agro/fdm-core"
 import type { NL2025NormsInput } from "./types.d"
 
+export type NL2025FdmCoreOperations = {
+  getField: typeof getField
+  getFields: typeof getFields
+  getCultivations: typeof getCultivations
+  getCultivationsForFarm: typeof getCultivationsForFarm
+  getCurrentSoilData: typeof getCurrentSoilData
+  getCurrentSoilDataForFarm: typeof getCurrentSoilDataForFarm
+  getGrazingIntention: typeof getGrazingIntention
+  isDerogationGrantedForYear: typeof isDerogationGrantedForYear
+}
+
+export type NL2025SingleFdmCoreOperations = Pick<
+  NL2025FdmCoreOperations,
+  | "getField"
+  | "getCultivations"
+  | "getCurrentSoilData"
+  | "getGrazingIntention"
+  | "isDerogationGrantedForYear"
+>
+
+export type NL2025FarmFdmCoreOperations = Pick<
+  NL2025FdmCoreOperations,
+  | "getFields"
+  | "getCultivationsForFarm"
+  | "getCurrentSoilDataForFarm"
+  | "getGrazingIntention"
+  | "isDerogationGrantedForYear"
+>
+
+const defaultOperations: NL2025FdmCoreOperations = {
+  getField,
+  getFields,
+  getCultivations,
+  getCultivationsForFarm,
+  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
+  getGrazingIntention,
+  isDerogationGrantedForYear,
+}
+
 /**
  * Collects all necessary input data from the FDM to calculate the Dutch (NL) norms for the year 2025.
  *
@@ -29,6 +69,7 @@ export async function collectNL2025InputForNorms(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id: string,
+  operations: NL2025SingleFdmCoreOperations = defaultOperations,
 ): Promise<NL2025NormsInput> {
   // Create timeframe for 2025
   const year = 2025
@@ -41,10 +82,10 @@ export async function collectNL2025InputForNorms(
   }
 
   // 1. Get the details for the field.
-  const field = await getField(fdm, principal_id, b_id)
+  const field = await operations.getField(fdm, principal_id, b_id)
 
   // 2. Get the details for the farm
-  const is_derogatie_bedrijf = await isDerogationGrantedForYear(
+  const is_derogatie_bedrijf = await operations.isDerogationGrantedForYear(
     fdm,
     principal_id,
     field.b_id_farm,
@@ -52,13 +93,28 @@ export async function collectNL2025InputForNorms(
   )
 
   // 3. Get the grazing intention for the farm
-  const has_grazing_intention = await getGrazingIntention(fdm, principal_id, field.b_id_farm, 2025)
+  const has_grazing_intention = await operations.getGrazingIntention(
+    fdm,
+    principal_id,
+    field.b_id_farm,
+    2025,
+  )
 
   // 4. Get the details of the cultivations
-  const cultivations = await getCultivations(fdm, principal_id, b_id, timeframe2025Cultivation)
+  const cultivations = await operations.getCultivations(
+    fdm,
+    principal_id,
+    b_id,
+    timeframe2025Cultivation,
+  )
 
   // 4. Get the details of the soil analyses
-  const soilAnalysis = await getCurrentSoilData(fdm, principal_id, field.b_id, timeframe2025)
+  const soilAnalysis = await operations.getCurrentSoilData(
+    fdm,
+    principal_id,
+    field.b_id,
+    timeframe2025,
+  )
   const soilAnalysisPicked = {
     a_p_cc:
       (soilAnalysis.find((x: { parameter: string }) => x.parameter === "a_p_cc")?.value as
@@ -96,6 +152,7 @@ export async function collectNL2025InputForNormsForFarm(
   fdm: FdmType,
   principal_id: PrincipalId,
   b_id_farm: string,
+  operations: NL2025FarmFdmCoreOperations = defaultOperations,
 ): Promise<Map<string, NL2025NormsInput>> {
   const year = 2025
   const startOfYear = new Date(year, 0, 1)
@@ -113,11 +170,11 @@ export async function collectNL2025InputForNormsForFarm(
     cultivationsByField,
     soilDataByField,
   ] = await Promise.all([
-    getFields(fdm, principal_id, b_id_farm, timeframe2025Cultivation),
-    isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year),
-    getGrazingIntention(fdm, principal_id, b_id_farm, year),
-    getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2025Cultivation),
-    getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe2025),
+    operations.getFields(fdm, principal_id, b_id_farm, timeframe2025Cultivation),
+    operations.isDerogationGrantedForYear(fdm, principal_id, b_id_farm, year),
+    operations.getGrazingIntention(fdm, principal_id, b_id_farm, year),
+    operations.getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe2025Cultivation),
+    operations.getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm, timeframe2025),
   ])
 
   const result = new Map<string, NL2025NormsInput>()

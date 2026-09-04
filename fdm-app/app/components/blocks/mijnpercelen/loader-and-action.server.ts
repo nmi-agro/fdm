@@ -306,26 +306,33 @@ export async function genericAction(
 
       const nmiApiKey = getNmiApiKey()
       if (nmiApiKey) {
-        for (const { b_id, geometry } of addedFields) {
-          try {
-            const soilEstimates = await getSoilParameterEstimatesForGeometry(
-              fdm,
-              geometry,
-              nmiApiKey,
-            )
-            await addSoilAnalysis(
-              fdm,
-              session.principal_id,
-              undefined,
-              "nl-other-nmi",
-              b_id,
-              soilEstimates.a_depth_lower ?? 30,
-              undefined,
-              soilEstimates,
-              soilEstimates.a_depth_upper,
-            )
-          } catch (e) {
-            console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
+        const chunkSize = 10
+        const chunkedFeatures: { b_id: string; geometry: FieldGeometry }[][] = []
+        for (let i = 0; i < addedFields.length; i += chunkSize) {
+          chunkedFeatures.push(addedFields.slice(i, i + chunkSize))
+        }
+        for (const chunk of chunkedFeatures) {
+          for (const { b_id, geometry } of chunk) {
+            try {
+              const soilEstimates = await getSoilParameterEstimatesForGeometry(
+                fdm,
+                geometry,
+                nmiApiKey,
+              )
+              await addSoilAnalysis(
+                fdm,
+                session.principal_id,
+                undefined,
+                "nl-other-nmi",
+                b_id,
+                soilEstimates.a_depth_lower ?? 30,
+                undefined,
+                soilEstimates,
+                soilEstimates.a_depth_upper,
+              )
+            } catch (e) {
+              console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
+            }
           }
         }
       }

@@ -20,7 +20,6 @@ import fuzzysort from "fuzzysort"
 import { Plus } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { useParams } from "react-router"
-import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import {
@@ -54,7 +53,6 @@ export function FieldSummaryTable({
 
   const { b_id_farm } = useParams()
   const syncFarm = useFieldFilterStore((s) => s.syncFarm)
-  const showProductiveOnly = useFieldFilterStore((s) => s.showProductiveOnly)
   const searchTerms = useFieldFilterStore((s) => s.searchTerms)
   const setSearchTerms = useFieldFilterStore((s) => s.setSearchTerms)
 
@@ -66,10 +64,6 @@ export function FieldSummaryTable({
 
   const filteredData = useMemo(() => {
     let rows = data
-
-    if (showProductiveOnly) {
-      rows = rows.filter((r) => !r.b_bufferstrip)
-    }
 
     if (searchTerms.trim()) {
       rows = rows.filter((r) => {
@@ -85,7 +79,7 @@ export function FieldSummaryTable({
     }
 
     return rows
-  }, [data, searchTerms, showProductiveOnly])
+  }, [data, searchTerms])
 
   const table = useReactTable({
     data: filteredData,
@@ -118,7 +112,6 @@ export function FieldSummaryTable({
           className="w-full max-w-sm sm:w-auto sm:flex-grow"
         />
         <div className="ml-auto flex items-center gap-2">
-          <FieldFilterToggle />
           {canModify && (
             <TooltipProvider>
               <Tooltip>
@@ -184,9 +177,7 @@ export function FieldSummaryTable({
                   colSpan={columns.length}
                   className="text-muted-foreground h-20 text-center text-sm"
                 >
-                  {searchTerms || showProductiveOnly
-                    ? "Geen percelen gevonden."
-                    : "Geen percelen beschikbaar."}
+                  {searchTerms ? "Geen percelen gevonden." : "Geen percelen beschikbaar."}
                 </TableCell>
               </TableRow>
             )}
