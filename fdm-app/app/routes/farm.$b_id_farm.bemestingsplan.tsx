@@ -10,8 +10,10 @@ import {
   getFarms,
 } from "@nmi-agro/fdm-core"
 import { renderToStream } from "@react-pdf/renderer"
+import { AlertCircle } from "lucide-react"
 import { MetaFunction, Outlet, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import { dataWithError } from "remix-toast"
 import z from "zod"
 import { columns } from "@/app/components/blocks/bemestingsplan/columns"
 import { NewBemestingsplanForm } from "@/app/components/blocks/bemestingsplan/new-form"
@@ -20,11 +22,15 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BemestingsplanPDF } from "~/components/blocks/pdf/bemestingsplan/BemestingsplanPDF"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
-import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
-import { buildObjectKey, deleteObject, isGcsConfigured, uploadObject } from "~/integrations/gcs.server"
+import {
+  buildObjectKey,
+  deleteObject,
+  isGcsConfigured,
+  uploadObject,
+} from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import {
   collectBemestingsplanInputFromDatabase,
@@ -36,7 +42,6 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { Route } from "./+types/farm.$b_id_farm.bemestingsplan"
-import { dataWithError } from "remix-toast"
 
 export const meta: MetaFunction = () => {
   return [
@@ -220,8 +225,14 @@ export async function action({ params, request }: Route.ActionArgs) {
 }
 
 export default function FertilizerPlanTable() {
-  const { fertilizerPlans, b_name_farm, b_id_farm, farmWritePermission, farmOptions, isGcsConfigured } =
-    useLoaderData<typeof loader>()
+  const {
+    fertilizerPlans,
+    b_name_farm,
+    b_id_farm,
+    farmWritePermission,
+    farmOptions,
+    isGcsConfigured,
+  } = useLoaderData<typeof loader>()
 
   return (
     <>
@@ -241,13 +252,14 @@ export default function FertilizerPlanTable() {
           title="Bemestingsplan"
           description="Overzicht van de gegenereerde bemestingsplannen voor dit bedrijf."
         />
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 p-6">
           {!isGcsConfigured && (
             <Alert variant="default" className="border-amber-200 bg-amber-50 text-amber-800">
               <AlertCircle className="h-4 w-4 text-amber-800!" />
               <AlertTitle>Opslag van bemestingsplannen niet beschikbaar</AlertTitle>
               <AlertDescription>
-                Het genereren en opslaan van PDF-bemestingsplannen vereist Google Cloud Storage (GCS_BUCKET_NAME ontbreekt).
+                Het genereren en opslaan van PDF-bemestingsplannen vereist Google Cloud Storage
+                (GCS_BUCKET_NAME ontbreekt).
               </AlertDescription>
             </Alert>
           )}

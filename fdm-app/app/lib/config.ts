@@ -105,10 +105,8 @@ export const clientConfig: ClientConfig = {
     ? String(getConfigValue("PUBLIC_FDM_API_URL"))
     : undefined,
   datasets_url: String(
-    getConfigValue(
-      "PUBLIC_FDM_DATASETS_URL",
+    getConfigValue("PUBLIC_FDM_DATASETS_URL", "https://storage.googleapis.com/fdm-public-data") ||
       "https://storage.googleapis.com/fdm-public-data",
-    ) || "https://storage.googleapis.com/fdm-public-data",
   ),
 
   analytics: {

@@ -22,9 +22,7 @@ function hasPostmarkApiKey(): boolean {
 
 function isLocalEmailLoggingEnabled(): boolean {
   if (process.env.NODE_ENV === "production") return false
-  return ["1", "true", "on"].includes(
-    process.env.ENABLE_LOCAL_EMAIL_LOGGING?.toLowerCase() ?? "",
-  )
+  return ["1", "true", "on"].includes(process.env.ENABLE_LOCAL_EMAIL_LOGGING?.toLowerCase() ?? "")
 }
 
 let _client: postmark.ServerClient | null = null

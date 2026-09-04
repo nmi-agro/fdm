@@ -12,8 +12,8 @@ packages:
 catalog:
   "@better-auth/api-key": 1.6.27
   jose: ^6.2.10
-  "@dotenvx/dotenvx": ^2.22.0
-  "@types/node": ^26.4.0
+  "@dotenvx/dotenvx": ^2.23.0
+  "@types/node": ^26.4.1
   "@vitest/coverage-v8": 4.1.11
   better-auth: 1.6.27
   drizzle-kit: ^0.31.10
@@ -32,6 +32,8 @@ blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - "@nmi-agro/*"
+overrides:
+  "@better-auth/core": 1.6.27
 allowBuilds:
   "@geomatico/maplibre-cog-protocol": true
   "@geomatico/maplibre-cog-protocol@https://codeload.github.com/SvenVw/maplibre-cog-protocol/tar.gz/fd6765830cd1453c3d20d290d6c40684153c5b7d": true

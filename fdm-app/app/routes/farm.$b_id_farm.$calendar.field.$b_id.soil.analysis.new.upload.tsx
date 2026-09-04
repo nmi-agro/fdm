@@ -8,7 +8,13 @@ import { createFsFileStorage } from "@remix-run/file-storage/fs"
 import { type FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { fileTypeFromBuffer } from "file-type"
 import { AlertCircle } from "lucide-react"
-import { type ActionFunctionArgs, data, type LoaderFunctionArgs, NavLink, useLoaderData } from "react-router"
+import {
+  type ActionFunctionArgs,
+  data,
+  type LoaderFunctionArgs,
+  NavLink,
+  useLoaderData,
+} from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { FormSchema, SoilAnalysisUploadForm } from "~/components/blocks/soil/form-upload"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
@@ -90,10 +96,12 @@ export default function FarmFieldSoilAnalysisUploadBlock() {
           <AlertCircle className="h-4 w-4 text-amber-800!" />
           <AlertTitle>Automatische PDF-uitlezing niet beschikbaar</AlertTitle>
           <AlertDescription>
-            Het automatisch uitlezen van PDF-bodemanalyses via de NMI API is in deze omgeving niet geconfigureerd (NMI_API_KEY ontbreekt). U kunt bodemanalyses{" "}
+            Het automatisch uitlezen van PDF-bodemanalyses via de NMI API is in deze omgeving niet
+            geconfigureerd (NMI_API_KEY ontbreekt). U kunt bodemanalyses{" "}
             <NavLink to="../standard" className="font-semibold underline">
               handmatig invoeren
-            </NavLink>.
+            </NavLink>
+            .
           </AlertDescription>
         </Alert>
       )}
