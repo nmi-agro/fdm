@@ -1,5 +1,13 @@
 # Changelog fdm-app
 
+## 0.36.2
+
+### Patch Changes
+
+- [#783](https://github.com/nmi-agro/fdm/pull/783) [`6338ac2`](https://github.com/nmi-agro/fdm/commit/6338ac2a769e7ddc9bcfd86049a0abc8427a968a) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the info popup on the fields atlas not rendering properly on touch screens sometimes.
+
+- [#783](https://github.com/nmi-agro/fdm/pull/783) [`1ad6b5c`](https://github.com/nmi-agro/fdm/commit/1ad6b5c324123ce5776e2c39396b63b083e25233) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Sort cut weight options (snedezwaarte) from light to heavy in grassland nutrient advice per cut.
+
 ## 0.36.1
 
 ### Patch Changes
