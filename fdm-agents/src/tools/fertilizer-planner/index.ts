@@ -76,17 +76,25 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       if (!principalId) {
         throw new Error("Missing principalId in agent context")
       }
+      const b_id_farm = (config?.configurable?.b_id_farm as string) || input?.b_id_farm
+      if (!b_id_farm) {
+        throw new Error("Missing b_id_farm in agent context")
+      }
+      const calendar =
+        (config?.configurable?.calendar as string) ||
+        input?.calendar ||
+        new Date().getFullYear().toString()
       const timeframe = {
-        start: new Date(`${input.calendar}-01-01`),
-        end: new Date(`${input.calendar}-12-31`),
+        start: new Date(`${calendar}-01-01`),
+        end: new Date(`${calendar}-12-31`),
       }
 
-      const fields = await getFields(fdm, principalId, input.b_id_farm, timeframe)
+      const fields = await getFields(fdm, principalId, b_id_farm, timeframe)
       const fieldDetails = await Promise.all(
         fields.map(async (f) => {
           const cultivations = await getCultivations(fdm, principalId, f.b_id, timeframe)
           const currentSoilData = await getCurrentSoilData(fdm, principalId, f.b_id, timeframe)
-          const mainLu = getMainCultivation(cultivations, input.calendar)
+          const mainLu = getMainCultivation(cultivations, calendar)
 
           const getSoilParam = (param: string) =>
             currentSoilData.find((d) => d.parameter === param)?.value ?? null
@@ -119,7 +127,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Haal de lijst op van alle percelen die bij het bedrijf horen voor het huidige jaar, inclusief de hoofdteeltgegevens en belangrijkste bodemeigenschappen (landbouwgrondsoort, textuur, grondwaterklasse, organische stof).",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf"),
+        b_id_farm: z.string().describe("Het ID van het bedrijf (b_id_farm)"),
         calendar: z.string().describe('Het kalenderjaar (bijv. "2025")'),
       }),
     },
@@ -258,7 +266,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Haal de drie wettelijke grenzen op (dierlijke mest stikstof, werkzame stikstof totaal en fosfaat) voor percelen.",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf"),
+        b_id_farm: z.string().describe("Het ID van het bedrijf (b_id_farm)"),
         b_ids: z.array(z.string()).describe("Lijst van perceel-ID's (b_id) om te controleren"),
       }),
     },
@@ -269,14 +277,15 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    */
   const searchFertilizersTool = tool(
     async (input: any, config?: RunnableConfig) => {
-      const args = input as SearchArgs
+      const args = (input || {}) as SearchArgs
       const principalId = config?.configurable?.principalId as PrincipalId
+      const b_id_farm = (config?.configurable?.b_id_farm as string) || args.b_id_farm
 
-      if (!fdm || !principalId || !args.b_id_farm) {
+      if (!fdm || !principalId || !b_id_farm) {
         return { fertilizers: [] }
       }
 
-      const farmFertilizers = await getFertilizers(fdm, principalId, args.b_id_farm)
+      const farmFertilizers = await getFertilizers(fdm, principalId, b_id_farm)
       let results = [...farmFertilizers]
 
       // Restrict to the user-selected fertilizers if provided (non-empty list only).
@@ -341,7 +350,9 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Zoek naar meststofproducten beschikbaar in de bedrijfsvoorraad (inclusief eigen producten) op naam of type.",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf om de voorraad voor te doorzoeken"),
+        b_id_farm: z
+          .string()
+          .describe("Het ID van het bedrijf (b_id_farm) om de voorraad voor te doorzoeken"),
         query: z.string().optional().describe('Zoekterm (bijv. "varkensdrijfmest", "KAS")'),
         p_type: z
           .enum(["manure", "mineral", "compost"])
@@ -358,11 +369,12 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
     async (input: any, config?: RunnableConfig) => {
       const args = input as SimulationArgs
       const principalId = config?.configurable?.principalId as PrincipalId
+      const b_id_farm = (config?.configurable?.b_id_farm as string) || args.b_id_farm
       const calendar =
         (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
       const nmiApiKey = config?.configurable?.nmiApiKey as string | undefined
 
-      if (!fdm || !principalId || !args.b_id_farm) {
+      if (!fdm || !principalId || !b_id_farm) {
         throw new Error("Database connection or Farm ID missing")
       }
 
@@ -372,9 +384,9 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       }
 
       const [omInput, nInput, fertilizers] = await Promise.all([
-        collectInputForOrganicMatterBalance(fdm, principalId, args.b_id_farm, timeframe),
-        collectInputForNitrogenBalance(fdm, principalId, args.b_id_farm, timeframe),
-        getFertilizers(fdm, principalId, args.b_id_farm),
+        collectInputForOrganicMatterBalance(fdm, principalId, b_id_farm, timeframe),
+        collectInputForNitrogenBalance(fdm, principalId, b_id_farm, timeframe),
+        getFertilizers(fdm, principalId, b_id_farm),
       ])
 
       const normFuncs = createFunctionsForNorms("NL", calendar as any)
@@ -628,7 +640,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       const validFieldResults = fieldResults.filter((r: any) => r.isValid && r.b_area)
 
       // Compute norms for ALL farm fields.
-      const allFarmFields = await getFields(fdm, principalId, args.b_id_farm, timeframe)
+      const allFarmFields = await getFields(fdm, principalId, b_id_farm, timeframe)
       const failedNormFields: string[] = []
       const allFarmFieldNorms = await Promise.all(
         allFarmFields
@@ -985,7 +997,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Simuleert een voorgesteld bemestingsplan om de conformiteit met alle 3 gebruiksruimtes, de organische stofbalans en de stikstofbalans te controleren.",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf"),
+        b_id_farm: z.string().describe("Het ID van het bedrijf (b_id_farm)"),
         strategies: z
           .object({
             isOrganic: z.boolean().optional(),

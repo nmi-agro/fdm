@@ -136,24 +136,32 @@ export async function computePlanMetrics(
           throw err
         }
 
-        const syntheticApps: FertilizerApplication[] = field.applications.map((app, i) => {
-          // eslint-disable-next-line no-control-regex -- Non-ASCII control character matching is explicitly required to safely sanitize and strip malformed catalogue IDs.
-          const sanitizedCatalogueId = app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
-          const fert = fertilizers.find((f) => f.p_id_catalogue === sanitizedCatalogueId)
-          return {
-            p_id: fert?.p_id ?? sanitizedCatalogueId,
-            p_id_catalogue: sanitizedCatalogueId,
-            p_name_nl: fert?.p_name_nl ?? null,
-            p_app_amount: app.p_app_amount,
-            p_app_date: new Date(app.p_app_date),
-            p_app_id: `plan-${field.b_id}-${i}`,
-            p_app_method: app.p_app_method ?? null,
-            p_source: "fdm" as const,
-            p_source_id: null,
-            b_id: field.b_id,
-            b_calendar: year,
-          } as unknown as FertilizerApplication
-        })
+        const syntheticApps: FertilizerApplication[] = field.applications
+          .map((app, i) => {
+            // eslint-disable-next-line no-control-regex -- Non-ASCII control character matching is explicitly required to safely sanitize and strip malformed catalogue IDs.
+            const sanitizedCatalogueId = app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
+            const fert = fertilizers.find((f) => f.p_id_catalogue === sanitizedCatalogueId)
+            if (!fert) {
+              console.warn(
+                `[computePlanMetrics] Skipping application with unknown fertilizer ${sanitizedCatalogueId} for field ${field.b_id}`,
+              )
+              return null
+            }
+            return {
+              p_id: fert.p_id,
+              p_id_catalogue: sanitizedCatalogueId,
+              p_name_nl: fert.p_name_nl ?? null,
+              p_app_amount: app.p_app_amount,
+              p_app_date: new Date(app.p_app_date),
+              p_app_id: `plan-${field.b_id}-${i}`,
+              p_app_method: app.p_app_method ?? null,
+              p_source: "fdm" as const,
+              p_source_id: null,
+              b_id: field.b_id,
+              b_calendar: year,
+            } as unknown as FertilizerApplication
+          })
+          .filter((app): app is FertilizerApplication => app !== null)
 
         let manureFilling: NormFilling
         let nitrogenFilling: NormFilling

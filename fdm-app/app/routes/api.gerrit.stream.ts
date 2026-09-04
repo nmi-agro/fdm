@@ -66,7 +66,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     includeRenure: url.searchParams.get("includeRenure") === "true",
   }
   const additionalContext = url.searchParams.get("additionalContext") || ""
-  const modelName = url.searchParams.get("geminiModel") || "gemini-3.6-flash"
+  const modelName = url.searchParams.get("geminiModel") || "gemini-3.7-flash"
 
   // Parse selectedFertilizerIds (allow only safe catalogue ID chars: alphanumeric, _, -)
   const SAFE_ID = /^[A-Za-z0-9_-]+$/
@@ -342,38 +342,48 @@ export async function loader({ request }: LoaderFunctionArgs) {
             b_lu_croprotation: fd.b_lu_croprotation,
             b_area: fd.b_area,
             b_bufferstrip: fd.b_bufferstrip ?? false,
-            applications: (proposedField?.applications || []).map((app) => {
-              // eslint-disable-next-line no-control-regex -- Non-ASCII control character matching is explicitly required to safely sanitize and strip malformed catalogue IDs.
-              const sanitizedCatalogueId = app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
-              const fert = fertilizers.find(
-                (f: Fertilizer) => f.p_id_catalogue === sanitizedCatalogueId,
-              )
-              const methodMeta = applicationMethods?.options?.find(
-                (x: any) => x.value === app.p_app_method,
-              )
-              const p_app_amount_display = fert
-                ? fromKgPerHa(app.p_app_amount, fert.p_app_amount_unit, fert.p_density)
-                : null
-              const unitConvertedAmount =
-                fert && p_app_amount_display !== null
-                  ? {
-                      p_app_amount_display: p_app_amount_display,
-                      p_app_amount_unit: fert.p_app_amount_unit,
-                    }
-                  : {
-                      p_app_amount_display: app.p_app_amount,
-                      p_app_amount_unit: "kg/ha",
-                    }
-              return {
-                ...app,
-                p_id_catalogue: sanitizedCatalogueId,
-                ...unitConvertedAmount,
-                p_name_nl: fert?.p_name_nl || sanitizedCatalogueId,
-                p_type: fert?.p_type || "other",
-                p_type_rvo: fert?.p_type_rvo || null,
-                p_app_method_name: methodMeta?.label ?? app.p_app_method,
-              }
-            }),
+            applications: (proposedField?.applications || [])
+              .map((app) => {
+                // eslint-disable-next-line no-control-regex -- Non-ASCII control character matching is explicitly required to safely sanitize and strip malformed catalogue IDs.
+                const sanitizedCatalogueId = app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
+                const fert = fertilizers.find(
+                  (f: Fertilizer) => f.p_id_catalogue === sanitizedCatalogueId,
+                )
+                if (!fert) {
+                  console.warn(
+                    `[api.gerrit.stream] Dropping application with unknown fertilizer ${sanitizedCatalogueId} on field ${fd.b_id}`,
+                  )
+                  return null
+                }
+                const methodMeta = applicationMethods?.options?.find(
+                  (x: any) => x.value === app.p_app_method,
+                )
+                const p_app_amount_display = fromKgPerHa(
+                  app.p_app_amount,
+                  fert.p_app_amount_unit,
+                  fert.p_density,
+                )
+                const unitConvertedAmount =
+                  p_app_amount_display !== null
+                    ? {
+                        p_app_amount_display: p_app_amount_display,
+                        p_app_amount_unit: fert.p_app_amount_unit,
+                      }
+                    : {
+                        p_app_amount_display: app.p_app_amount,
+                        p_app_amount_unit: "kg/ha",
+                      }
+                return {
+                  ...app,
+                  p_id_catalogue: sanitizedCatalogueId,
+                  ...unitConvertedAmount,
+                  p_name_nl: fert.p_name_nl || sanitizedCatalogueId,
+                  p_type: fert.p_type || "other",
+                  p_type_rvo: fert.p_type_rvo || null,
+                  p_app_method_name: methodMeta?.label ?? app.p_app_method,
+                }
+              })
+              .filter((app): app is NonNullable<typeof app> => app !== null),
             fieldMetrics: (proposedField as any)?.fieldMetrics ?? null,
             fieldSummary: proposedField?.fieldSummary ?? null,
           }
