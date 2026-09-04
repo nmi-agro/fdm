@@ -10,7 +10,7 @@ import { Layer, type MapRef, Source } from "react-map-gl/maplibre"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData, useParams } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
-import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
+import { FieldsPanelZoomWarning, FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import { SATELLITE_BACKGROUND_REQUIRED_MESSAGE } from "~/components/blocks/atlas/atlas-style-select"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
@@ -474,6 +474,11 @@ export default function FarmAtlasSoilBlock() {
           layer={fieldsSavedId}
           touchDisplaysPopupInstead={false}
         />
+        {fields && fields.features.length > 0 && (
+          <div className="fields-panel">
+            <FieldsPanelZoomWarning />
+          </div>
+        )}
       </Atlas>
     </div>
   )

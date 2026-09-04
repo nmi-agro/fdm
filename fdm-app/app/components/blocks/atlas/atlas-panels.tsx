@@ -25,6 +25,7 @@ import {
   AtlasTooltipFooter,
   AtlasTooltipHeader,
 } from "./atlas-tooltip"
+import { ZOOM_LEVEL_FIELDS } from "./atlas-util"
 
 /**
  * Renders a tooltip or popup showing the field name or the cultivation name and the corresponding area,
@@ -166,7 +167,13 @@ export function FieldTooltip({
   )
 }
 
-export function FieldsPanelZoom({ zoomLevelFields }: { zoomLevelFields: number }) {
+export function FieldsPanelZoomWarning({
+  zoomLevelFields = ZOOM_LEVEL_FIELDS,
+  canSelectFields = false,
+}: {
+  zoomLevelFields?: number
+  canSelectFields?: boolean
+}) {
   const { current: map } = useMap()
   const [panel, setPanel] = useState<React.ReactNode | null>(null)
 
@@ -178,9 +185,13 @@ export function FieldsPanelZoom({ zoomLevelFields }: { zoomLevelFields: number }
         if (zoom && zoom <= zoomLevelFields) {
           setPanel(
             <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Let op!</AlertTitle>
-              <AlertDescription>Zoom in om percelen te kunnen selecteren.</AlertDescription>
+              <Info className="text-muted-foreground h-4 w-4" />
+              <AlertTitle className="text-muted-foreground">Let op!</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
+                {canSelectFields
+                  ? "Zoom in om percelen te kunnen selecteren."
+                  : "Zoom in om percelen te kunnen zien."}
+              </AlertDescription>
             </Alert>,
           )
         } else {
@@ -202,7 +213,7 @@ export function FieldsPanelZoom({ zoomLevelFields }: { zoomLevelFields: number }
         map.off("zoom", throttledUpdatePanel)
       }
     }
-  }, [map, zoomLevelFields])
+  }, [map, zoomLevelFields, canSelectFields])
 
   return panel
 }

@@ -26,7 +26,7 @@ import { generateFeatureClass } from "~/components/blocks/atlas/atlas-functions"
 import {
   FieldTooltip,
   FieldsPanelSelection,
-  FieldsPanelZoom,
+  FieldsPanelZoomWarning,
 } from "~/components/blocks/atlas/atlas-panels"
 import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
@@ -303,7 +303,7 @@ export default function Index() {
                     numFieldsSaved={loaderData.fieldsSaved.features.length}
                     continueTo={loaderData.continueTo}
                   />
-                  <FieldsPanelZoom zoomLevelFields={ZOOM_LEVEL_FIELDS} />
+                  <FieldsPanelZoomWarning canSelectFields />
                 </div>
               </Atlas>
             )}
