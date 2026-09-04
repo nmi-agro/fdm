@@ -1,3 +1,4 @@
+import { cowHead } from "@lucide/lab"
 import type { getFarm } from "@nmi-agro/fdm-core"
 import {
   Bot,
@@ -9,10 +10,13 @@ import {
   GanttChart,
   Grid2x2,
   House,
+  Icon,
   LandPlot,
   LayoutGrid,
   Shapes,
   Sprout,
+  SquareArrowRightExit,
+  Warehouse,
 } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState, useEffect } from "react"
@@ -57,12 +61,14 @@ export function SidebarFarm({
   fields = [],
   activeFieldId,
   fieldWritePermission = false,
+  hasHerds = false,
 }: {
   farm: Awaited<ReturnType<typeof getFarm>> | undefined
   farms?: { b_id_farm: string; b_name_farm: string | null }[]
   fields?: FieldOption[]
   activeFieldId?: string | null
   fieldWritePermission?: boolean
+  hasHerds?: boolean
 }) {
   function getSuperiorRole(allRoles: { role: "owner" | "advisor" | "researcher" }[]) {
     if (allRoles.length > 0) {
@@ -103,6 +109,7 @@ export function SidebarFarm({
     : null
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [isPerceelOpen, setIsPerceelOpen] = useState(false)
+  const [isMelkveeOpen, setIsMelkveeOpen] = useState(false)
   const [targetSegment, setTargetSegment] = useState("")
 
   // Which farm-scoped feature the user tried to reach without a farm selected.
@@ -146,6 +153,13 @@ export function SidebarFarm({
       setIsPerceelOpen(true)
     }
   }, [activeFieldId])
+
+  // Auto-expand Melkvee when on livestock or grazing route
+  useEffect(() => {
+    if (location.pathname.includes("/livestock") || location.pathname.includes("/grazing")) {
+      setIsMelkveeOpen(true)
+    }
+  }, [location.pathname])
 
   const getActiveSegment = () => {
     if (location.pathname.includes("/cultivation")) return "cultivation"
@@ -517,6 +531,75 @@ export function SidebarFarm({
                 </Tooltip>
               )}
             </SidebarMenuItem>
+
+            {/* Melkvee group or onboarding CTA */}
+            {isFarmSelected && (
+              hasHerds ? (
+                <Collapsible
+                  asChild
+                  open={isMelkveeOpen}
+                  className="group/collapsible"
+                  onOpenChange={setIsMelkveeOpen}
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={"Melkvee"}
+                        isActive={
+                          location.pathname.includes("/livestock") ||
+                          location.pathname.includes("/grazing")
+                        }
+                        className="flex items-center"
+                      >
+                        <Icon iconNode={cowHead} className="size-4" />
+                        <span>Melkvee</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location.pathname.includes("/livestock")}
+                          >
+                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock`}>
+                              <Warehouse className="size-4" />
+                              <span>Veestapel</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location.pathname.includes("/grazing")}
+                          >
+                            <NavLink to={`/farm/${farmId}/${selectedCalendar}/grazing`}>
+                              <SquareArrowRightExit className="size-4" />
+                              <span>Beweiding</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ) : (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Melkvee toevoegen"
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <NavLink to={`/farm/${farmId}/${selectedCalendar}/livestock/new`}>
+                      <Icon iconNode={cowHead} className="size-4" />
+                      <span>Melkvee toevoegen</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )
+            )}
+
             {/* Context-aware Perceel group */}
             {isFarmSelected ? (
               <Collapsible

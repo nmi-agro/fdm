@@ -6,6 +6,7 @@ import {
   getFarm,
   getFarms,
   getFields,
+  getHerdsForFarm,
 } from "@nmi-agro/fdm-core"
 import { format } from "date-fns"
 import {
@@ -229,6 +230,20 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       false,
     )
     const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
+    const [herds, farmWritePermission] = await Promise.all([
+      getHerdsForFarm(fdm, session.principal_id, b_id_farm),
+      checkPermission(
+        fdm,
+        "farm",
+        "write",
+        b_id_farm,
+        session.principal_id,
+        new URL(request.url).pathname,
+        false,
+      ),
+    ])
+
+    const hasHerds = herds.length > 0
 
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
@@ -248,6 +263,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       farmWritePermission,
       farmVerification,
       isRvoConfigured,
+      hasHerds,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -662,9 +678,36 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
-                  <Card>
-                    <NavLink
-                      to="bemestingsplan"
+                  {loaderData.hasHerds && (
+                    <NavLink to={`${calendar}/grazing/insights`}>
+                      <Card className="h-full transition-all hover:shadow-md">
+                        <CardHeader>
+                          <div className="flex items-center gap-4">
+                            <div className="bg-muted rounded-lg p-3">
+                              <Icon iconNode={cowHead} className="text-primary h-6 w-6" />
+                            </div>
+                            <div>
+                              <CardTitle>Weidegang</CardTitle>
+                              <CardDescription>
+                                Weidedagen, uren en veebezetting.
+                              </CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    </NavLink>
+                  )}
+                  <Card
+                    className={cn(
+                      "h-full transition-all",
+                      isGeneratingPdf ? "opacity-60" : "hover:shadow-md",
+                    )}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleDownloadPdf}
+                      disabled={isGeneratingPdf}
+                      aria-busy={isGeneratingPdf}
                       className="focus-visible:ring-ring w-full cursor-pointer rounded-xl text-left outline-hidden focus-visible:ring-[3px] disabled:cursor-not-allowed"
                     >
                       <CardHeader>

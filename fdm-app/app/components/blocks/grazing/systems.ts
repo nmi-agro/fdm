@@ -1,0 +1,62 @@
+export const GRAZING_SYSTEMS = {
+  omweiden: {
+    name: "Omweiden",
+    description: "Steeds een nieuw perceel na enkele dagen",
+    defaultPeriodDays: 4,
+    defaultHoursPerDay: 8,
+    grazingType: "full" as const,
+    requiresGrazingRecords: true,
+  },
+  standweiden: {
+    name: "Standweiden",
+    description: "Continu weiden op één vast perceel of platform",
+    defaultPeriodDays: 21,
+    defaultHoursPerDay: 8,
+    grazingType: "full" as const,
+    requiresGrazingRecords: true,
+  },
+  modern_standweiden: {
+    name: "Modern standweiden",
+    description: "Roterend standweiden / Nieuw Nederlands Weiden op deelblokken van het perceel",
+    defaultPeriodDays: 14,
+    defaultHoursPerDay: 8,
+    grazingType: "partial" as const,
+    requiresGrazingRecords: true,
+  },
+  stripgrazen: {
+    name: "Stripgrazen",
+    description: "Elke dag een nieuwe strook vers gras",
+    defaultPeriodDays: 1,
+    defaultHoursPerDay: 8,
+    grazingType: "partial" as const,
+    requiresGrazingRecords: true,
+  },
+  rantsoenbeweiding: {
+    name: "Rantsoenbeweiding",
+    description: "Nieuwe strook aansluitend op het vorige land",
+    defaultPeriodDays: 1,
+    defaultHoursPerDay: 8,
+    grazingType: "partial" as const,
+    requiresGrazingRecords: true,
+  },
+  zomerstalvoedering: {
+    name: "Zomerstalvoedering",
+    description: "Geen weidegang; vers gras op stal gevoerd",
+    defaultPeriodDays: 0,
+    defaultHoursPerDay: 0,
+    grazingType: null,
+    requiresGrazingRecords: false,
+    normConsequence: "geheel_maaien",
+  },
+  summerfeeding: {
+    name: "Summerfeeding",
+    description: "Geen weidegang; kuilvoerrantsoen op stal",
+    defaultPeriodDays: 0,
+    defaultHoursPerDay: 0,
+    grazingType: null,
+    requiresGrazingRecords: false,
+    normConsequence: "geheel_maaien",
+  },
+} as const
+
+export type GrazingSystemKey = keyof typeof GRAZING_SYSTEMS

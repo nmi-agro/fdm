@@ -72,6 +72,17 @@ export type TimelineSoilAnalysis = {
   a_source: string | null
 }
 
+export type TimelineGrazing = {
+  l_id_grazing: string
+  l_id_herd: string
+  l_herd_name: string | null
+  l_grazing_start: Date
+  l_grazing_end: Date | null
+  l_grazing_hours: number | null
+  l_grazing_area: number | null
+  l_grazing_type: "full" | "partial" | null
+}
+
 export type TimelineCultivation = {
   b_lu: string
   b_lu_name: string | null
@@ -90,6 +101,7 @@ export type TimelineField = {
   fertilizerApplications: TimelineFertilizerApplication[]
   harvests: TimelineHarvest[]
   soilAnalyses: TimelineSoilAnalysis[]
+  grazings?: TimelineGrazing[]
 }
 
 export type TimelineFilters = {
@@ -98,6 +110,7 @@ export type TimelineFilters = {
   showFertilizers: boolean
   showHarvests: boolean
   showSoilSamplings: boolean
+  showGrazing?: boolean
   /** Mobile-only: desktop's Gantt always shows the full range regardless of this flag. */
   showFutureEvents: boolean
 }
@@ -340,6 +353,32 @@ function buildFieldFeatures(
           detail,
         },
       )
+    }
+  }
+
+  if (filters.showGrazing && field.grazings) {
+    for (const grazing of field.grazings) {
+      const startAt = grazing.l_grazing_start
+      const endAt = grazing.l_grazing_end ?? openCultivationEndAt
+      const name = grazing.l_herd_name ?? "Beweiding"
+      const hoursText = grazing.l_grazing_hours ? ` (${grazing.l_grazing_hours}u/dag)` : ""
+      const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/grazing`
+      orphanFeatures.push({
+        id: `grazing-${grazing.l_id_grazing}`,
+        name: `${name}${hoursText}`,
+        startAt,
+        endAt,
+        status: {
+          id: "grazing",
+          name: "Beweiding",
+          color: hexToRgba("#10b981", 0.6),
+        },
+        color: hexToRgba("#10b981", 0.6),
+        lane: field.b_id,
+        kind: "cultivation",
+        href,
+        detail: `Beweiding: ${name}${hoursText}\n${field.b_name}\n${formatNl(startAt)} – ${grazing.l_grazing_end ? formatNl(grazing.l_grazing_end) : "nu actief"}`,
+      })
     }
   }
 
