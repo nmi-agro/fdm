@@ -98,6 +98,8 @@ jobs:
         if: steps.schedule_check.outputs.proceed == 'true' && steps.existing_pr_check.outputs.proceed == 'true' && steps.copilot_check.outputs.proceed == 'true'
         run: |
           branch_date="$(TZ=Europe/Amsterdam date +'%Y%m%d')"
+          head_ref="copilot/dependencies/${branch_date}"
+          echo "head_ref=$head_ref" >> "$GITHUB_OUTPUT"
           echo "branch_date=$branch_date" >> "$GITHUB_OUTPUT"
           # ISO week number/year (%V/%G), not the plain calendar year (%Y), so the
           # week and year stay consistent for the rare ISO week that spans a
@@ -111,6 +113,7 @@ jobs:
           GH_TOKEN: ${{ secrets.COPILOT_AGENT_PAT }}
         run: |
           branch_date="${{ steps.prepare_task.outputs.branch_date }}"
+          head_ref="${{ steps.prepare_task.outputs.head_ref }}"
           week_number="${{ steps.prepare_task.outputs.week_number }}"
           week_year="${{ steps.prepare_task.outputs.week_year }}"
           prompt_body="$(sed \
@@ -121,7 +124,8 @@ jobs:
           prompt_json=$(jq -n \
             --arg prompt "$prompt_body" \
             --arg base_ref "development" \
-            '{prompt: $prompt, base_ref: $base_ref, create_pull_request: true}')
+            --arg head_ref "$head_ref" \
+            '{prompt: $prompt, base_ref: $base_ref, head_ref: $head_ref, create_pull_request: true}')
 
           if ! response=$(gh api \
             --method POST \
