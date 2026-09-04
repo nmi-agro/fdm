@@ -4,6 +4,7 @@ import type {
   UserChoiceMap,
 } from "@nmi-agro/fdm-rvo/types"
 import {
+  addFarmVerification,
   addSoilAnalysis,
   type Cultivation,
   type FdmType,
@@ -48,7 +49,13 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { compareFields, fetchRvoFields, generateAuthUrl, processRvoImport } from "~/lib/rvo.server"
+import {
+  compareFields,
+  fetchRvoFields,
+  generateAuthUrl,
+  isRvoPermissionDeniedError,
+  processRvoImport,
+} from "~/lib/rvo.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
 
@@ -104,7 +111,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       const rvoClient = createConfiguredRvoClient(rvoCredentials)
       rvoClient.setAccessToken(rvoAccessToken)
 
-      const rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
+      let rvoFields: Awaited<ReturnType<typeof fetchRvoFields>>
+      try {
+        rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
+      } catch (fetchError) {
+        if (isRvoPermissionDeniedError(fetchError)) {
+          // RVO completed the request but denied access for this KvK number: this is a
+          // definitive negative result, not a system fault, so it's worth recording.
+          await addFarmVerification(fdm, session.principal_id, b_id_farm, {
+            verification_method: "rvo_eherkenning",
+            verification_result: "not_verified",
+            b_businessid_farm: farm.b_businessid_farm,
+          })
+          throw new Response(
+            "U heeft met deze eHerkenning geen machtiging voor dit KvK-nummer bij RVO. Dit bedrijf kon daarom niet worden geverifieerd.",
+            { status: 403 },
+          )
+        }
+        throw fetchError
+      }
+
+      // A successful response verifies the farm regardless of how many fields RVO returns —
+      // zero fields is a valid state for a farm that has not yet registered any percelen.
+      await addFarmVerification(fdm, session.principal_id, b_id_farm, {
+        verification_method: "rvo_eherkenning",
+        verification_result: "verified",
+        b_businessid_farm: farm.b_businessid_farm,
+      })
 
       const cultivationsCatalogue = await getCultivationsFromCatalogue(
         fdm,
@@ -121,8 +154,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         year,
         cultivationsCatalogue,
       )
-    } catch (e: any) {
+    } catch (e) {
       console.error("RVO Import Fout:", e)
+      if (e instanceof Response && e.status === 403) {
+        throw e
+      }
       error = await extractErrorMessage(e)
     }
   } else if (!url.searchParams.has("start_import")) {
@@ -423,30 +459,9 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
         throw new Error("Invalid review data format")
       }
 
-      const onFieldAdded = async (tx: FdmType, b_id: string, geometry: FieldGeometry) => {
-        const nmiApiKey = getNmiApiKey()
-        if (nmiApiKey) {
-          try {
-            const soilEstimates = await getSoilParameterEstimatesForGeometry(
-              fdm,
-              geometry,
-              nmiApiKey,
-            )
-            await addSoilAnalysis(
-              tx,
-              session.principal_id,
-              undefined,
-              "nl-other-nmi",
-              b_id,
-              soilEstimates.a_depth_lower ?? 30,
-              undefined,
-              soilEstimates,
-              soilEstimates.a_depth_upper,
-            )
-          } catch (e) {
-            console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
-          }
-        }
+      const addedFields: { b_id: string; geometry: FieldGeometry }[] = []
+      const onFieldAdded = async (_: FdmType, b_id: string, geometry: FieldGeometry) => {
+        addedFields.push({ b_id, geometry })
       }
 
       await processRvoImport(
@@ -458,6 +473,42 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
         year,
         onFieldAdded,
       )
+
+      const nmiApiKey = getNmiApiKey()
+      if (nmiApiKey) {
+        const chunkSize = 10
+        const chunkedFeatures: { b_id: string; geometry: FieldGeometry }[][] = []
+        for (let i = 0; i < addedFields.length; i += chunkSize) {
+          chunkedFeatures.push(addedFields.slice(i, i + chunkSize))
+        }
+        for (const chunk of chunkedFeatures) {
+          await Promise.all(
+            chunk.map(async ({ b_id, geometry }) => {
+              try {
+                const soilEstimates = await getSoilParameterEstimatesForGeometry(
+                  fdm,
+                  geometry,
+                  nmiApiKey,
+                )
+                await addSoilAnalysis(
+                  fdm,
+                  session.principal_id,
+                  undefined,
+                  "nl-other-nmi",
+                  b_id,
+                  soilEstimates.a_depth_lower ?? 30,
+                  undefined,
+                  soilEstimates,
+                  soilEstimates.a_depth_upper,
+                )
+              } catch (e) {
+                console.warn(`Failed to fetch soil estimates for field ${b_id}:`, e)
+              }
+            }),
+          )
+        }
+      }
+
       return redirect(`/farm/create/${b_id_farm}/${yearString}/fields`)
     } catch (e: any) {
       console.error("Error at saving RVO fields: ", e)
@@ -467,6 +518,4 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
       }
     }
   }
-
-  return {}
 }

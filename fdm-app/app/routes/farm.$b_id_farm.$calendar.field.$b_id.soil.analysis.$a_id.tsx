@@ -13,12 +13,13 @@ import {
 } from "~/components/blocks/soil/download"
 import { SoilAnalysisForm } from "~/components/blocks/soil/form"
 import { FormSchema } from "~/components/blocks/soil/formschema"
-import { PdfViewerDialog } from "~/components/blocks/soil/pdf-viewer-dialog"
+import { PdfViewerDialogContent, ViewPdfButton } from "~/components/custom/pdf-viewer"
 import { Separator } from "~/components/ui/separator"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { Dialog, DialogTrigger } from "../components/ui/dialog"
 
 /**
  * Loader function for the soil data page of a specific farm field.
@@ -134,18 +135,23 @@ export default function FarmFieldSoilOverviewBlock() {
           </p>
         </div>
         {loaderData.soilAnalysis.a_file_path && (
-          <PdfViewerDialog
-            a_id={loaderData.soilAnalysis.a_id}
-            filename={getSoilAnalysisDownloadName(
-              loaderData.soilAnalysis,
-              loaderData.field.b_name,
-              loaderData.soilParameterDescription,
-            )}
-            title={getSoilAnalysisTitle(
-              loaderData.soilAnalysis,
-              loaderData.soilParameterDescription,
-            )}
-          />
+          <Dialog>
+            <DialogTrigger asChild>
+              <ViewPdfButton />
+            </DialogTrigger>
+            <PdfViewerDialogContent
+              downloadUrl={`/api/soil-analysis/download/${loaderData.soilAnalysis.a_id}.pdf`}
+              filename={getSoilAnalysisDownloadName(
+                loaderData.soilAnalysis,
+                loaderData.field.b_name,
+                loaderData.soilParameterDescription,
+              )}
+              title={getSoilAnalysisTitle(
+                loaderData.soilAnalysis,
+                loaderData.soilParameterDescription,
+              )}
+            />
+          </Dialog>
         )}
       </div>
       <Separator />

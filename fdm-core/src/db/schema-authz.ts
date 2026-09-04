@@ -59,6 +59,35 @@ export const audit = fdmAuthZSchema.table("audit", {
 export type auditTypeSelect = typeof audit.$inferSelect
 export type auditTypeInsert = typeof audit.$inferInsert
 
+export const farmVerification = fdmAuthZSchema.table(
+  "farm_verification",
+  {
+    verification_id: text().primaryKey(),
+    b_id_farm: text().notNull(),
+    principal_id: text().notNull(),
+    b_businessid_farm: text().notNull(),
+    verification_method: text().$type<"rvo_eherkenning" | "eherkenning_saml">().notNull(),
+    verification_result: text().$type<"verified" | "not_verified">().notNull(),
+    assurance_level: text(),
+    legal_subject_id: text(),
+    acting_subject_id: text(),
+    audit_id: text(),
+    verified_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    revoked_at: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    index("farm_verification_farm_principal_revoked_idx").on(
+      table.b_id_farm,
+      table.principal_id,
+      table.revoked_at,
+    ),
+  ],
+)
+
+export type farmVerificationTypeSelect = typeof farmVerification.$inferSelect
+export type farmVerificationTypeInsert = typeof farmVerification.$inferInsert
+
 export const invitation = fdmAuthZSchema.table(
   "invitation",
   {

@@ -1,5 +1,81 @@
 # Changelog fdm-app
 
+## 0.36.2
+
+### Patch Changes
+
+- [#783](https://github.com/nmi-agro/fdm/pull/783) [`6338ac2`](https://github.com/nmi-agro/fdm/commit/6338ac2a769e7ddc9bcfd86049a0abc8427a968a) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the info popup on the fields atlas not rendering properly on touch screens sometimes.
+
+- [#783](https://github.com/nmi-agro/fdm/pull/783) [`1ad6b5c`](https://github.com/nmi-agro/fdm/commit/1ad6b5c324123ce5776e2c39396b63b083e25233) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Sort cut weight options (snedezwaarte) from light to heavy in grassland nutrient advice per cut.
+
+## 0.36.1
+
+### Patch Changes
+
+- [#786](https://github.com/nmi-agro/fdm/pull/786) [`ba7151c`](https://github.com/nmi-agro/fdm/commit/ba7151c5297e42b1d1167db06cce9f9f63434079) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed all POST actions returning `400 Bad Request` in production. `fdm-app` ran behind a TLS-terminating reverse proxy without Express `trust proxy` enabled, so `react-router-serve` always saw requests as plain `http://`. Since `react-router@8.3.1` tightened its single-fetch CSRF check to compare the full request origin (instead of just the host), the mismatch between the browser's `https://` `Origin` header and the server's reconstructed `http://` origin caused every action submission — including logout — to be rejected before the route's `action` ran.
+
+  Replaced `@react-router/serve` with a small custom Express server (`server.js`) that enables `trust proxy`, strips any incoming `X-Forwarded-Host` header (which the proxy does not set) to avoid host-header injection, and otherwise serves the app the same way `react-router-serve` did.
+
+  Also hardened error handling: `getThrownStatus` now recognises better-auth's `APIError` shape (`.statusCode`, not `.status`), and `/logout` now uses better-auth's `signOut` endpoint, which does not throw when the session is already invalid and always clears the session cookie, with a manual cookie-expiry fallback if it ever does throw unexpectedly.
+
+## 0.36.0
+
+### Minor Changes
+
+- [#773](https://github.com/nmi-agro/fdm/pull/773) [`da715c6`](https://github.com/nmi-agro/fdm/commit/da715c6e142a35c8a4b5d0ffe47fc18e2df84cc1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now the user is able to view the bemestingsplan PDF before downloading it.
+
+- [#753](https://github.com/nmi-agro/fdm/pull/753) [`9e01eb3`](https://github.com/nmi-agro/fdm/commit/9e01eb34239a08714378f227e527847a83372986) Thanks [@SvenVw](https://github.com/SvenVw)! - Improve gebruiksruimte UI with field-level norm explanations and non-supported edge cases context:
+
+  - Display per-norm calculation descriptions and footnote breakdowns (`normSource`) on the individual field norms page (`NormCard`).
+  - Display application amounts with their display unit (`p_app_amount_display` and `p_app_amount_unit`) on the individual field norms page.
+  - Move the gebruiksruimte disclaimer and edge-cases explanation component (`NormsDisclaimer`) into `FarmTitle` with a quieter inline design and collapsible details for non-supported Meststoffenwet provisions.
+
+- [#775](https://github.com/nmi-agro/fdm/pull/775) [`17bbcc2`](https://github.com/nmi-agro/fdm/commit/17bbcc25263392d4735795653b6cc9ab578f407c) Thanks [@SvenVw](https://github.com/SvenVw)! - Hide and exclude buffer strips, nature parcels, and non-agricultural BRP codes (`nl_343` and `nl_6801`) from BLN3 indicator and measure UI views, summaries, aggregations, and actions.
+
+- [#740](https://github.com/nmi-agro/fdm/pull/740) [`5965b17`](https://github.com/nmi-agro/fdm/commit/5965b17d8c44b981231a67cfc521d10dde464a0e) Thanks [@SvenVw](https://github.com/SvenVw)! - Add BLN3 measure advice UI: the Maatregelen and Indicatoren apps now show ranked, per-indicator measure recommendations (from the NMI `measure/advice` endpoint, always cross-checked against a fresh `measure/applicability` result) so a weak indicator score comes with a concrete "what to do about it" suggestion instead of just a diagnosis.
+
+  - Field measure picker (`measures/:b_id`): "Aanbevolen voor dit perceel" quick-add cards, a "Sorteer op impact" option, and relative-impact bars/tooltips in the add-measure dialog; opening the dialog from a specific indicator now biases sorting towards that indicator's impact.
+  - Field indicator detail (`indicators/:b_id`): each non-green indicator card gets an "Aanbevolen maatregelen" sub-section with a one-click "+ Toevoegen" action; `?indicator=<id>` deep links expand and scroll to that indicator's card.
+  - Farm indicators overview (`indicators`): the Knelpunten panel gains a lazily-loaded "Waar te beginnen" section ranking the best measure(s) for the selected indicator across the farm, area-weighted by field.
+  - Farm measures overview (`measures`): a lazily-loaded "Aanbevolen maatregelen" card below the measures table groups recommendations by measure and links the affected fields.
+
+  Impact bars use the true 0–1 `measure_impact` scale, so bars are comparable across surfaces; a failed advice fetch hides the recommendations UI entirely instead of showing a false "no measures found" state. The "Wat is BLN3?" help dialog now explains the recommendations and the relative impact scale.
+  Also fixes horizontal overflow in the shared `DialogContent` component by constraining its grid columns (`grid-cols-[minmax(0,1fr)]`), which affects all dialogs in the app.
+
+  Layout pass on the field measures page (`measures/:b_id`): the beta badge moved into the title row, the two indicator blocks now form one tight status cluster (`ImpactSummary` lost its heavy card chrome and fixed-height scroll area), the empty state carries its own "Toevoegen" action, long field names truncate, and the map is narrower (`xl:w-80`) so the measures list clearly leads. "Invloed op bodemindicatoren" now attributes each improved indicator to the active measure(s) causing it ("Door: BM…").
+
+- [#755](https://github.com/nmi-agro/fdm/pull/755) [`52453f4`](https://github.com/nmi-agro/fdm/commit/52453f4fe691d7502e5268438c979cdbafc0a776) Thanks [@SvenVw](https://github.com/SvenVw)! - Show per-cut nutrient advice (snedezwaarte) for grassland on the field advice page. A new "Advies per snede" card shows one row per snede: the advisor picks the applicable snedezwaarte per row (the NMI API returns one advice per snede x snedezwaarte scenario), and the advice and nitrogen filling follow that choice. For completed cuts the snedezwaarte is derived from the recorded dry matter yield, and the Oogst column shows the harvest date and kg DS/ha. Nitrogen filling per snede is shown for every year with recorded harvests; in the current year the next upcoming snede is highlighted.
+
+  Also on the field advice page: nutrient cards now show the difference with the advice in kilograms ("-25 kg" / "+35 kg") instead of a percentage, keep two decimals for sub-kg trace elements, show the surplus when the advice is zero, and offer a "Toevoegen" shortcut when a nutrient has no applications yet. The KPI cards reuse the same 90%/110% advice-status thresholds as the per-nutrient progress bars, drop the side-stripe accents, and state explicitly when no nutrient is under or over advice. A failed advice calculation now renders an inline, actionable message instead of a full-screen error page, and the unit labels in the overview table are more legible.
+
+- [#730](https://github.com/nmi-agro/fdm/pull/730) [`b5138de`](https://github.com/nmi-agro/fdm/commit/b5138de998000f280cdc78bbfa684b6d76c22b56) Thanks [@SvenVw](https://github.com/SvenVw)! - When a user retrieves fields from RVO via eHerkenning, the verified relationship is stored and the farm receives a verified state.
+
+- [#730](https://github.com/nmi-agro/fdm/pull/730) [`b5138de`](https://github.com/nmi-agro/fdm/commit/b5138de998000f280cdc78bbfa684b6d76c22b56) Thanks [@SvenVw](https://github.com/SvenVw)! - Show the farm's verification status and, on the 'Toegang' page, which users have a verified relationship with the farm.
+
+- [#773](https://github.com/nmi-agro/fdm/pull/773) [`da715c6`](https://github.com/nmi-agro/fdm/commit/da715c6e142a35c8a4b5d0ffe47fc18e2df84cc1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Generated bemestingsplan PDFs are now saved in Google Cloud Storage and their up-to-dateness is checked by comparing the current data hash with the PDFs stored data hash.
+
+### Patch Changes
+
+- [#759](https://github.com/nmi-agro/fdm/pull/759) [`b25320c`](https://github.com/nmi-agro/fdm/commit/b25320cf780323c1beb00cd3d166d7a8b00747e4) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - In the rotation table for a farm and during farm creation, the cultivation variety options are now sorted alphabetically, in case there are options.
+
+- [#765](https://github.com/nmi-agro/fdm/pull/765) [`2b0d0af`](https://github.com/nmi-agro/fdm/commit/2b0d0af57e0aa57ec39e06a106dfdd53378fba13) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - The number of fields, total area, and cultivation advice on the farm dashboard is now shown for the current selected year instead of the actual current year.
+
+- [#752](https://github.com/nmi-agro/fdm/pull/752) [`373a57d`](https://github.com/nmi-agro/fdm/commit/373a57d6ccfd959358a7d87cc86ad67f44b4794a) Thanks [@SvenVw](https://github.com/SvenVw)! - For cultivations with `b_lu_croprotation: "grass"` and `b_lu_harvestable: "once"`, use "oogst" instead of "snede".
+
+- [#756](https://github.com/nmi-agro/fdm/pull/756) [`d09a916`](https://github.com/nmi-agro/fdm/commit/d09a91608d37109123bf71ec19413fddd3425262) Thanks [@copilot-swe-agent](https://github.com/apps/copilot-swe-agent)! - Upgrade major dependencies: maplibre-gl 5→6 (ESM-only, namespace import migration), framer-motion 12→13, fuzzysort 3→4, @lucide/lab 0.1→0.2
+- Updated dependencies [[`d51f9e5`](https://github.com/nmi-agro/fdm/commit/d51f9e515ee0015696edfc9ae39aa5c63c5f79c6), [`25d0271`](https://github.com/nmi-agro/fdm/commit/25d0271a0e932c17ff29831df53f06ce36e1e593), [`800258c`](https://github.com/nmi-agro/fdm/commit/800258c90a2bebf54f6bdb2404570138541b9707), [`e9da046`](https://github.com/nmi-agro/fdm/commit/e9da046dac5e807e04374cb9f9f2c757eff1ea5f), [`3e3230c`](https://github.com/nmi-agro/fdm/commit/3e3230cc91e57e2abc3e3df7081700391f58038b), [`c5286b4`](https://github.com/nmi-agro/fdm/commit/c5286b4098cb76633c5032fb02013f4f4390a8cf), [`85457b3`](https://github.com/nmi-agro/fdm/commit/85457b3c39d1d4e729c89d8f7838854e4edc64d2), [`42beda5`](https://github.com/nmi-agro/fdm/commit/42beda51e13e28b4294c30a001646e17873e73be), [`8c09b32`](https://github.com/nmi-agro/fdm/commit/8c09b325c439e23556fec2194a1ff8be617e717b), [`0b481fb`](https://github.com/nmi-agro/fdm/commit/0b481fb25ff5a66bfeed2461dc1a2620287a5ff9), [`c5286b4`](https://github.com/nmi-agro/fdm/commit/c5286b4098cb76633c5032fb02013f4f4390a8cf), [`34f19e1`](https://github.com/nmi-agro/fdm/commit/34f19e1e5c46e9b6e3a726cac2472be609391a08), [`da715c6`](https://github.com/nmi-agro/fdm/commit/da715c6e142a35c8a4b5d0ffe47fc18e2df84cc1), [`b1e8cfd`](https://github.com/nmi-agro/fdm/commit/b1e8cfda34f1f36c75460982ee4b977bc01ec5b0)]:
+  - @nmi-agro/fdm-rvo@0.4.0
+  - @nmi-agro/fdm-agents@0.5.2
+  - @nmi-agro/fdm-data@0.23.1
+  - @nmi-agro/fdm-calculator@0.19.0
+  - @nmi-agro/fdm-core@0.37.0
+
+## 0.35.3
+
+### Patch Changes
+
+- [#770](https://github.com/nmi-agro/fdm/pull/770) [`288e0b1`](https://github.com/nmi-agro/fdm/commit/288e0b1c1ad9144f7aa5bf2a0ba54f2bad1bfa92) Thanks [@SvenVw](https://github.com/SvenVw)! - Fix the farm overview linking to the latest available calendar year (which can be in the future) instead of the current year when opening Atlas, elevation or soil map, which could show new users an empty year with no fields yet.
+
 ## 0.35.2
 
 ### Patch Changes

@@ -1,6 +1,11 @@
 import type { Control, Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { checkPermission, getFarm, updateFarm } from "@nmi-agro/fdm-core"
+import {
+  checkPermission,
+  getFarm,
+  revokeFarmVerificationStatus,
+  updateFarm,
+} from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
 import {
   type ActionFunctionArgs,
@@ -8,12 +13,24 @@ import {
   Form,
   type LoaderFunctionArgs,
   type MetaFunction,
+  useFetcher,
   useLoaderData,
 } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithSuccess } from "remix-toast"
 import validator from "validator"
 import { z } from "zod"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import {
   FormControl,
@@ -29,6 +46,7 @@ import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { cn } from "~/lib/utils"
@@ -91,11 +109,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       new URL(request.url).pathname,
       false,
     )
+    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     // Return user information from loader
     return {
       farm: farm,
       farmWritePermission: farmWritePermission,
+      farmVerification,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -111,6 +131,7 @@ type FormValues = z.infer<typeof FormSchema>
 
 export default function FarmSettingsPropertiesBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  const unlockFetcher = useFetcher()
 
   const form = useRemixForm<FormValues>({
     mode: "onTouched",
@@ -167,10 +188,57 @@ export default function FarmSettingsPropertiesBlock() {
                     <FormItem>
                       <FormLabel>Kvk nummer</FormLabel>
                       <FormControl>
-                        <Input placeholder="bv. 9102 1934" {...field} />
+                        <Input
+                          placeholder="bv. 91021934"
+                          {...field}
+                          disabled={loaderData.farmVerification.isVerified}
+                        />
                       </FormControl>
                       <FormDescription>
-                        Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven
+                        {loaderData.farmVerification.isVerified ? (
+                          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                            Het KvK-nummer is vergrendeld omdat dit bedrijf hierop is geverifieerd.
+                            Wijzig het nummer alleen als het onjuist is.
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="link"
+                                  className="h-auto p-0 text-xs"
+                                  disabled={!loaderData.farmWritePermission}
+                                >
+                                  KvK-nummer corrigeren?
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>KvK-nummer wijzigen?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Dit bedrijf is geverifieerd op basis van het huidige KvK-nummer.
+                                    Als u het nummer wijzigt, vervalt de geverifieerde status en
+                                    moet dit bedrijf opnieuw geverifieerd worden via RVO met
+                                    eHerkenning.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() =>
+                                      unlockFetcher.submit(
+                                        { intent: "unlock_kvk" },
+                                        { method: "post" },
+                                      )
+                                    }
+                                  >
+                                    KvK-nummer ontgrendelen
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </span>
+                        ) : (
+                          "Het Kamer van Koophandel nummer waarmee dit bedrijf is ingeschreven"
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -262,6 +330,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
+    // Peek at the intent without consuming the request body, so the main
+    // update flow below can still read the full form via extractFormValuesFromRequest.
+    const intentFormData = await request.clone().formData()
+    if (intentFormData.get("intent") === "unlock_kvk") {
+      await revokeFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
+      return dataWithSuccess(null, {
+        message: "Verificatie ingetrokken. Het KvK-nummer is nu aanpasbaar.",
+      })
+    }
+
     const formValues = await extractFormValuesFromRequest(request, FormSchema)
 
     // Remove new lines in address
@@ -290,7 +368,13 @@ const FormSchema = z.object({
   b_name_farm: z.string().trim().min(3, {
     error: "Naam van bedrijf moet minimaal 3 karakters bevatten",
   }),
-  b_businessid_farm: z.string().optional(),
+  b_businessid_farm: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || /^\d{8}$/.test(value), {
+      error: "KvK-nummer moet uit 8 cijfers bestaan",
+    }),
   b_address_farm: z.string().optional(),
   b_postalcode_farm: z
     .string()

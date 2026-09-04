@@ -18,11 +18,13 @@ export interface BemestingsplanData {
     nitrogen: number
     manure: number
     phosphate: number
+    renure?: number
   }
   normsFilling: {
     nitrogen: number
     manure: number
     phosphate: number
+    renure?: number
   }
   totalAdvice: {
     d_n_req: number
@@ -65,11 +67,13 @@ export interface BemestingsplanData {
       nitrogen: number
       manure: number
       phosphate: number
+      renure?: number
     }
     normsFilling: {
       nitrogen: number
       manure: number
       phosphate: number
+      renure?: number
     }
     advice: {
       d_n_req: number

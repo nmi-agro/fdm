@@ -9,11 +9,9 @@ import {
   getFarms,
   getFields,
 } from "@nmi-agro/fdm-core"
-import { featureCollection } from "@turf/helpers"
 import { simplify } from "@turf/simplify"
-import * as maplibregl from "maplibre-gl"
-import { useCallback, useRef, useState } from "react"
-import { Layer, Map as MapGL, type MapRef, type ViewStateChangeEvent } from "react-map-gl/maplibre"
+import { useState } from "react"
+import { Layer } from "react-map-gl/maplibre"
 import {
   type ActionFunctionArgs,
   data,
@@ -23,22 +21,23 @@ import {
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { ClientOnly } from "remix-utils/client-only"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
 import { generateFeatureClass } from "~/components/blocks/atlas/atlas-functions"
 import {
-  FieldsPanelHover,
+  FieldTooltip,
   FieldsPanelSelection,
   FieldsPanelZoom,
 } from "~/components/blocks/atlas/atlas-panels"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   FieldsSourceAvailable,
   FieldsSourceNotClickable,
   FieldsSourceSelected,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import FieldDetailsInfoPopup from "~/components/blocks/field/popup"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -193,13 +192,6 @@ export default function Index() {
   const initialViewState = getViewState(loaderData.fieldsSaved)
   const fieldsAvailableStyle = getFieldsStyle(fieldsAvailableId)
 
-  const [viewState, setViewState] = useState<AtlasViewState>(initialViewState)
-
-  // onViewportChange handler as Controls requires it
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
-
   const [open, setOpen] = useState(false)
 
   const [selectedField, setSelectedField] = useState<Feature<Polygon> | null>(null)
@@ -225,8 +217,6 @@ export default function Index() {
 
   const [showFields, setShowFields] = useState(true) // Added showFields state
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const // Define layerLayout
-
-  const mapRef = useRef<MapRef>(null)
 
   return (
     <SidebarInset>
@@ -267,18 +257,10 @@ export default function Index() {
         <div>
           <ClientOnly fallback={<Skeleton className="h-full w-full rounded-xl" />}>
             {() => (
-              <MapGL
-                {...viewState} // Use viewState directly
-                ref={mapRef}
-                style={{
-                  height: "calc(100vh - 64px - 123px - 24px)",
-                  width: "100%",
-                }}
+              <Atlas
+                initialViewState={initialViewState}
                 interactive={true}
-                mapStyle={loaderData.mapStyle}
-                mapLib={maplibregl}
                 interactiveLayerIds={[fieldsAvailableId, fieldsSelectedId, fieldsSavedId]}
-                onMove={onViewportChange}
                 onClick={(evt) => {
                   if (!evt.features) return
                   const polygonFeature = evt.features.find(
@@ -290,33 +272,14 @@ export default function Index() {
                 }}
               >
                 <Controls
-                  onViewportChange={(viewport) =>
-                    setViewState((currentViewState) => ({
-                      ...currentViewState,
-                      ...viewport,
-                      pitch: currentViewState.pitch,
-                      bearing: currentViewState.bearing,
-                    }))
-                  }
                   showFields={showFields}
                   onToggleFields={() => setShowFields(!showFields)}
+                  initialViewState={initialViewState}
                   showFlyToFields={
                     fieldsSaved.features.length + selectedFieldsData.features.length > 0
                       ? true
                       : undefined
                   }
-                  onFlyToFields={() => {
-                    const overallViewState = getViewState(
-                      featureCollection([...fieldsSaved.features, ...selectedFieldsData.features]),
-                    )
-                    setViewState(overallViewState)
-                    if (overallViewState.bounds) {
-                      mapRef.current?.fitBounds(
-                        overallViewState.bounds,
-                        overallViewState.fitBoundsOptions,
-                      )
-                    }
-                  }}
                 />
 
                 <MapTilerAttribution />
@@ -361,6 +324,13 @@ export default function Index() {
                   <Layer {...fieldsSavedStyle} />
                 </FieldsSourceNotClickable>
 
+                <FieldTooltip
+                  zoomLevelFields={ZOOM_LEVEL_FIELDS}
+                  layer={[fieldsAvailableId, fieldsSelectedId]}
+                  layerExclude={[fieldsSavedId]}
+                  touchDisplaysPopupInstead={false}
+                />
+
                 <div className="fields-panel">
                   <FieldsPanelSelection
                     fields={selectedFieldsData}
@@ -368,13 +338,8 @@ export default function Index() {
                     continueTo={loaderData.continueTo}
                   />
                   <FieldsPanelZoom zoomLevelFields={ZOOM_LEVEL_FIELDS} />
-                  <FieldsPanelHover
-                    zoomLevelFields={ZOOM_LEVEL_FIELDS}
-                    layer={[fieldsAvailableId, fieldsSelectedId]}
-                    layerExclude={[fieldsSavedId]}
-                  />
                 </div>
-              </MapGL>
+              </Atlas>
             )}
           </ClientOnly>
         </div>
@@ -441,81 +406,90 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
     const selectedFields = JSON.parse(selectedFieldsRaw)
 
-    // Add fields to farm
-    const fieldIds: string[] = await Promise.all(
-      selectedFields.features.map(
-        async (field: Feature<Polygon, GeoJsonProperties>, index: number) => {
-          if (!field.properties) {
-            throw new Error("missing: field.properties")
-          }
-          const b_name = `Perceel ${firstFieldIndex + index}`
-          const b_id_source = field.properties.b_id_source
-          if (!b_id_source) throw new Error("missing: field.properties.b_id_source")
-          const b_lu_catalogue = field.properties.b_lu_catalogue
-          if (!b_lu_catalogue) throw new Error("missing: field.properties.b_lu_catalogue")
-          const b_geometry = field.geometry
-          if (!b_geometry) throw new Error("missing: b_geometry")
+    // Add fields to farm in chunks
+    const chunkSize = 10
+    const chunkedFeatures: Feature<Polygon>[][] = []
+    for (let i = 0; i < selectedFields.features.length; i += chunkSize) {
+      chunkedFeatures.push(selectedFields.features.slice(i, i + chunkSize))
+    }
+    const fieldIds: string[] = []
+    for (let chunkIndex = 0; chunkIndex < chunkedFeatures.length; chunkIndex++) {
+      const chunk = chunkedFeatures[chunkIndex]
+      fieldIds.push(
+        ...(await Promise.all(
+          chunk.map(async (field: Feature<Polygon, GeoJsonProperties>, index: number) => {
+            if (!field.properties) {
+              throw new Error("missing: field.properties")
+            }
+            const b_name = `Perceel ${firstFieldIndex + chunkIndex * chunkSize + index}`
+            const b_id_source = field.properties.b_id_source
+            if (!b_id_source) throw new Error("missing: field.properties.b_id_source")
+            const b_lu_catalogue = field.properties.b_lu_catalogue
+            if (!b_lu_catalogue) throw new Error("missing: field.properties.b_lu_catalogue")
+            const b_geometry = field.geometry
+            if (!b_geometry) throw new Error("missing: b_geometry")
 
-          const parsedYear = Number.parseInt(String(calendar ?? ""), 10)
-          const currentYear =
-            Number.isInteger(parsedYear) && parsedYear >= 1970 && parsedYear < 2100
-              ? parsedYear
-              : timeframe.start?.getFullYear()
-          if (!currentYear && currentYear !== 0) {
-            throw new Error("missing: year")
-          }
-          const cultivationDefaultDates = await getDefaultDatesOfCultivation(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            b_lu_catalogue,
-            currentYear,
-          )
-          const b_start = new Date(`${currentYear}-01-01`)
-          const b_lu_start = cultivationDefaultDates.b_lu_start
-          const b_lu_end = cultivationDefaultDates.b_lu_end
-          const b_end = undefined
-          const b_acquiring_method = "unknown"
-
-          const b_id = await addField(
-            fdm,
-            session.principal_id,
-            b_id_farm,
-            b_name,
-            b_id_source,
-            b_geometry,
-            b_start,
-            b_acquiring_method,
-            b_end,
-          )
-          await addCultivation(
-            fdm,
-            session.principal_id,
-            b_lu_catalogue,
-            b_id,
-            b_lu_start,
-            b_lu_end,
-          )
-
-          if (nmiApiKey) {
-            const estimates = await getSoilParameterEstimatesForGeometry(fdm, field, nmiApiKey)
-
-            await addSoilAnalysis(
+            const parsedYear = Number.parseInt(String(calendar ?? ""), 10)
+            const currentYear =
+              Number.isInteger(parsedYear) && parsedYear >= 1970 && parsedYear < 2100
+                ? parsedYear
+                : timeframe.start?.getFullYear()
+            if (!currentYear && currentYear !== 0) {
+              throw new Error("missing: year")
+            }
+            const cultivationDefaultDates = await getDefaultDatesOfCultivation(
               fdm,
               session.principal_id,
-              undefined,
-              estimates.a_source,
-              b_id,
-              estimates.a_depth_lower,
-              undefined,
-              estimates,
+              b_id_farm,
+              b_lu_catalogue,
+              currentYear,
             )
-          }
+            const b_start = new Date(`${currentYear}-01-01`)
+            const b_lu_start = cultivationDefaultDates.b_lu_start
+            const b_lu_end = cultivationDefaultDates.b_lu_end
+            const b_end = undefined
+            const b_acquiring_method = "unknown"
 
-          return b_id
-        },
-      ),
-    )
+            const b_id = await addField(
+              fdm,
+              session.principal_id,
+              b_id_farm,
+              b_name,
+              b_id_source,
+              b_geometry,
+              b_start,
+              b_acquiring_method,
+              b_end,
+            )
+            await addCultivation(
+              fdm,
+              session.principal_id,
+              b_lu_catalogue,
+              b_id,
+              b_lu_start,
+              b_lu_end,
+            )
+
+            if (nmiApiKey) {
+              const estimates = await getSoilParameterEstimatesForGeometry(fdm, field, nmiApiKey)
+
+              await addSoilAnalysis(
+                fdm,
+                session.principal_id,
+                undefined,
+                estimates.a_source,
+                b_id,
+                estimates.a_depth_lower,
+                undefined,
+                estimates,
+              )
+            }
+
+            return b_id
+          }),
+        )),
+      )
+    }
 
     for (const b_id of fieldIds) {
       captureEvent(session.principal_id, "field_created", {

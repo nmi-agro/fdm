@@ -1,27 +1,22 @@
 import type { FeatureCollection, Geometry } from "geojson"
 import type { MetaFunction } from "react-router"
 import { getFields } from "@nmi-agro/fdm-core"
+import centroid from "@turf/centroid"
 import { simplify } from "@turf/simplify"
-import * as maplibregl from "maplibre-gl"
-import { useCallback, useEffect, useRef, useState } from "react"
-import {
-  Layer,
-  type LayerProps,
-  Map as MapGL,
-  type MapRef,
-  type ViewStateChangeEvent,
-} from "react-map-gl/maplibre"
-import { type LoaderFunctionArgs, useLoaderData, useParams } from "react-router"
-import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas"
+import { useEffect, useState } from "react"
+import { Layer, type LayerProps } from "react-map-gl/maplibre"
+import { type LoaderFunctionArgs, useLoaderData, useNavigate, useParams } from "react-router"
 import { MapTilerAttribution } from "~/components/blocks/atlas/atlas-attribution"
 import { Controls } from "~/components/blocks/atlas/atlas-controls"
-import { FieldsPanelHover } from "~/components/blocks/atlas/atlas-panels"
+import { FieldTooltip } from "~/components/blocks/atlas/atlas-panels"
+import { Atlas } from "~/components/blocks/atlas/atlas-shell"
 import {
   FieldsSourceAvailable,
   FieldsSourceNotClickable,
 } from "~/components/blocks/atlas/atlas-sources"
 import { getFieldsStyle } from "~/components/blocks/atlas/atlas-styles"
-import { type AtlasViewState, getViewState } from "~/components/blocks/atlas/atlas-viewstate"
+import { ZOOM_LEVEL_FIELDS } from "~/components/blocks/atlas/atlas-util"
+import { getViewState } from "~/components/blocks/atlas/atlas-viewstate"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { getMapStyle } from "~/integrations/map"
 import { getSession } from "~/lib/auth.server"
@@ -118,6 +113,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmAtlasFieldsBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const params = useParams()
+  const navigate = useNavigate()
   const { capture } = useAnalytics()
 
   useEffect(() => {
@@ -126,7 +122,7 @@ export default function FarmAtlasFieldsBlock() {
       calendar: loaderData.calendar,
       layer: "fields",
     })
-  }, [])
+  }, [capture, params.b_id_farm, loaderData.calendar])
 
   const id = "fieldsSaved"
   const fields = loaderData.savedFields
@@ -136,37 +132,8 @@ export default function FarmAtlasFieldsBlock() {
   const fieldsSavedOutlineStyle = getFieldsStyle("fieldsSavedOutline")
   // ViewState logic
   const initialViewState = getViewState(fields)
-  const [viewState, setViewState] = useState<AtlasViewState>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const savedViewState = sessionStorage.getItem("mapViewState")
-        if (savedViewState) {
-          return JSON.parse(savedViewState)
-        }
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-    return initialViewState
-  })
 
   const [showFields, setShowFields] = useState(true)
-
-  const onViewportChange = useCallback((event: ViewStateChangeEvent) => {
-    setViewState(event.viewState)
-  }, [])
-
-  const mapRef = useRef<MapRef>(null)
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("mapViewState", JSON.stringify(viewState))
-      } catch {
-        // ignore storage errors (e.g., private mode)
-      }
-    }
-  }, [viewState])
 
   const layerLayout = { visibility: showFields ? "visible" : "none" } as const
   const fieldsAvailableLayer = {
@@ -183,36 +150,16 @@ export default function FarmAtlasFieldsBlock() {
   } as LayerProps
 
   return (
-    <MapGL
-      {...viewState}
-      ref={mapRef}
-      style={{ height: "calc(100vh - 64px)", width: "100%" }}
+    <Atlas
+      initialViewState={initialViewState}
       interactive={true}
-      mapStyle={loaderData.mapStyle}
-      mapLib={maplibregl}
-      interactiveLayerIds={[id, fieldsAvailableId]}
-      onMove={onViewportChange}
+      interactiveLayerIds={[fieldsSavedLayer.id ?? "", fieldsAvailableId]}
     >
       <Controls
-        onViewportChange={({ longitude, latitude, zoom }) =>
-          setViewState((currentViewState) => ({
-            ...currentViewState,
-            longitude,
-            latitude,
-            zoom,
-            pitch: currentViewState.pitch, // Ensure pitch is carried over
-            bearing: currentViewState.bearing, // Ensure bearing is carried over
-          }))
-        }
         showFields={showFields}
         onToggleFields={() => setShowFields(!showFields)}
         showFlyToFields={fields && fields.features.length > 0 ? true : undefined}
-        onFlyToFields={() => {
-          setViewState({ ...initialViewState })
-          if (initialViewState.bounds) {
-            mapRef.current?.fitBounds(initialViewState.bounds, initialViewState.fitBoundsOptions)
-          }
-        }}
+        initialViewState={initialViewState}
       />
 
       <MapTilerAttribution />
@@ -221,7 +168,7 @@ export default function FarmAtlasFieldsBlock() {
         id={fieldsAvailableId}
         calendar={loaderData.calendar}
         zoomLevelFields={ZOOM_LEVEL_FIELDS}
-        redirectToDetailsPage={true}
+        redirectToDetailsPage={false}
       >
         <Layer {...fieldsAvailableLayer} />
       </FieldsSourceAvailable>
@@ -233,13 +180,16 @@ export default function FarmAtlasFieldsBlock() {
         </FieldsSourceNotClickable>
       )}
 
-      <div className="fields-panel">
-        <FieldsPanelHover
-          zoomLevelFields={ZOOM_LEVEL_FIELDS}
-          layer={[fieldsAvailableId, id]}
-          clickRedirectsToDetailsPage={true}
-        />
-      </div>
-    </MapGL>
+      <FieldTooltip
+        zoomLevelFields={ZOOM_LEVEL_FIELDS}
+        layer={[fieldsAvailableId, id]}
+        clickRedirectsToDetailsPage={true}
+        onFeatureClicked={(clickedFeature) => {
+          const featureCentroid = centroid(clickedFeature)
+          const featureCentroidCoordinates = featureCentroid.geometry.coordinates.join(",")
+          void navigate(featureCentroidCoordinates)
+        }}
+      />
+    </Atlas>
   )
 }

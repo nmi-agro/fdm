@@ -1,10 +1,11 @@
 import type { FeatureCollection, Geometry } from "geojson"
-import { type CultivationForHoofdteelt, findHoofdteelt } from "@nmi-agro/fdm-calculator"
+import { GROENE_BRAAK, findHoofdteelt } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivations,
   getField,
   getFields,
+  getMeasuresFromCatalogue,
   getSoilParametersDescription,
 } from "@nmi-agro/fdm-core"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
@@ -19,6 +20,7 @@ import {
   type MetaFunction,
   useLoaderData,
   useParams,
+  useSearchParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
@@ -45,8 +47,9 @@ import {
   getFieldMeasuresForIndicators,
   getIndicatorsForFarm,
   getIndicatorsForField,
+  getMeasureAdviceForField,
+  getMeasureApplicabilityForField,
 } from "~/integrations/bln3.server"
-import { getMapStyle } from "~/integrations/map"
 import { AGG_IDS, type AggregationId, getFieldAggregationScore } from "~/lib/aggregations"
 import { getSession } from "~/lib/auth.server"
 import { BCS_INDICATORS } from "~/lib/bcs"
@@ -55,7 +58,12 @@ import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
-import { type Ecosysteemdienst, INDICATORS, scoreToDisplay } from "~/lib/indicators"
+import {
+  type Ecosysteemdienst,
+  getBln3ExclusionMessage,
+  INDICATORS,
+  scoreToDisplay,
+} from "~/lib/indicators"
 
 const FieldMap = lazy(() => import("~/components/blocks/indicators/field-map"))
 
@@ -203,6 +211,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldMeasures,
       cultivations,
       brpCatalogue,
+      measureCatalogue,
+      applicabilityMap,
+      advice,
       fieldWritePermission,
     ] = await Promise.all([
       getField(fdm, session.principal_id, b_id),
@@ -219,6 +230,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }),
       getCultivations(fdm, session.principal_id, b_id),
       getCultivationCatalogue("brp"),
+      getMeasuresFromCatalogue(fdm),
+      getMeasureApplicabilityForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year: calendarYear,
+        timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 applicability check failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
+      getMeasureAdviceForField({
+        principal_id: session.principal_id,
+        b_id,
+        b_year: calendarYear,
+        timeframe,
+      }).catch((err) => {
+        console.error(
+          `BLN3 measure advice failed for field ${b_id}:`,
+          err instanceof Error ? err.message : String(err),
+        )
+        return null
+      }),
       checkPermission(
         fdm,
         "field",
@@ -259,12 +295,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       features: fields.map((f) => {
         const fs = farmScores.find((s) => s.b_id === f.b_id)
         const scores = computeFieldScores(fs)
+        const isBufferstrip = f.b_bufferstrip === true || fs?.isBufferstrip === true
+        const isNature = fs?.isNature === true || (!isBufferstrip && fs?.isExcluded === true)
         return {
           type: "Feature" as const,
           properties: {
             b_id: f.b_id,
             b_name: f.b_name ?? null,
             b_area: f.b_area ?? null,
+            b_bufferstrip: isBufferstrip,
+            isBufferstrip,
+            isNature,
+            isExcluded: isBufferstrip || isNature,
             avgScore: scores.avg, // kept for backward compat
             ...scores,
           },
@@ -332,11 +374,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // window) — exactly consistent with what is submitted to the BLN3 API.
     // Only show years within the range of known cultivation data; gaps get groene braak.
     const maxCalendarYear = calendarYear
-    const cultivationsForHoofdteelt: CultivationForHoofdteelt[] = cultivations.map((c) => ({
-      b_lu_catalogue: c.b_lu_catalogue,
-      b_lu_start: c.b_lu_start ?? null,
-      b_lu_end: c.b_lu_end ?? null,
-    }))
     const minCalendarYear = cultivations.reduce((min, c) => {
       const y = c.b_lu_start?.getFullYear()
       return y !== undefined && y < min ? y : min
@@ -352,13 +389,45 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       croprotation: string | null
     }> = []
     for (let year = maxCalendarYear; year >= minCalendarYear; year--) {
-      const catalogue = findHoofdteelt(cultivationsForHoofdteelt, year)
-      const match = cultivations.find((c) => c.b_lu_catalogue === catalogue)
+      const hoofdteelt = findHoofdteelt(cultivations, year, true)
+      const catalogue = hoofdteelt?.b_lu_catalogue ?? GROENE_BRAAK
       cultivationSummaries.push({
-        name: match?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
+        name: hoofdteelt?.b_lu_name ?? brpNameByCode.get(catalogue) ?? catalogue,
         year,
-        croprotation: match?.b_lu_croprotation ?? null,
+        croprotation: hoofdteelt?.b_lu_croprotation ?? null,
       })
+    }
+
+    // Build per-indicator recommended measures: raw advice, cross-referenced
+    // against a fresh applicability check and already-active measures (the
+    // advice endpoint's own list is never trusted to be pre-filtered), keyed
+    // by indicator ID, top 3 per indicator, with catalogue names resolved.
+    // `advice` is null when the NMI fetch failed — signal unavailability with
+    // null so cards hide the section instead of showing a false empty state.
+    const measureNameById = new Map(measureCatalogue.map((m) => [m.m_id, m.m_name]))
+    const activeMeasureIds = new Set(fieldMeasures.map((m) => m.m_id))
+    const adviceUnavailable = applicabilityMap === null || advice === null
+    const indicatorAdvice: Record<
+      string,
+      { m_id: string; m_name: string; measure_impact: number }[]
+    > | null = adviceUnavailable ? null : {}
+    if (applicabilityMap !== null && advice !== null && indicatorAdvice !== null) {
+      for (const entry of advice?.indicator_advice ?? []) {
+        const recommendations = entry.measures
+          .filter(
+            (measure) =>
+              applicabilityMap[measure.m_id]?.applicability === "applicable" &&
+              !activeMeasureIds.has(measure.m_id),
+          )
+          .sort((a, b) => b.measure_impact - a.measure_impact)
+          .slice(0, 3)
+          .map((measure) => ({
+            m_id: measure.m_id,
+            m_name: measureNameById.get(measure.m_id) ?? measure.m_id.replace("bln_", ""),
+            measure_impact: measure.measure_impact,
+          }))
+        indicatorAdvice[entry.indicator] = recommendations
+      }
     }
 
     return {
@@ -367,10 +436,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldMeasures,
       fieldsGeoJSON,
       selectedFieldGeoJSON,
-      mapStyle: getMapStyle("satellite"),
       currentCultivationName: currentCultivation?.b_lu_name ?? null,
       currentCultivationCropRotation: currentCultivation?.b_lu_croprotation ?? null,
       cultivationSummaries,
+      indicatorAdvice,
+      adviceUnavailable,
+      isExcluded: bln3Result.inputs.isExcluded ?? false,
       soilData: {
         soilType: bln3Inputs.b_soiltype_agr ?? null,
         gwlClass: bln3Inputs.b_gwl_class ?? null,
@@ -429,10 +500,12 @@ export default function IndicatorsFieldDetail() {
     fieldMeasures,
     fieldsGeoJSON,
     selectedFieldGeoJSON,
-    mapStyle,
     currentCultivationName,
     currentCultivationCropRotation,
     cultivationSummaries,
+    indicatorAdvice,
+    adviceUnavailable,
+    isExcluded,
     soilData,
   } = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
@@ -463,6 +536,34 @@ export default function IndicatorsFieldDetail() {
     } catch {}
   }, [mapScoreKey])
 
+  // Deep-link: ?indicator=<id> (e.g. from the farm overview's "Waar te
+  // beginnen" panel) expands that indicator's card — recommended measures
+  // included — and scrolls it into view.
+  const [searchParams] = useSearchParams()
+  const indicatorParam = searchParams.get("indicator")
+  const deepLinkIndicator = INDICATORS.find((info) => info.id === indicatorParam)
+  const indicatorId = deepLinkIndicator?.id
+
+  // If a deep-linked indicator is specified and the current category filter
+  // excludes its category, select/retain that category so it remains visible
+  useEffect(() => {
+    if (!deepLinkIndicator) return
+    setActiveCategories((prev) => {
+      if (prev.length > 0 && !prev.includes(deepLinkIndicator.ecosysteemdienst)) {
+        return [...prev, deepLinkIndicator.ecosysteemdienst]
+      }
+      return prev
+    })
+  }, [deepLinkIndicator])
+
+  useEffect(() => {
+    if (!indicatorId) return
+    const el = document.getElementById(`indicator-${indicatorId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [indicatorId, activeCategories])
+
   const handleCategoryToggle = (dienst: Ecosysteemdienst) => {
     setActiveCategories((prev) =>
       prev.includes(dienst) ? prev.filter((c) => c !== dienst) : [...prev, dienst],
@@ -472,13 +573,17 @@ export default function IndicatorsFieldDetail() {
   const handleCategoryAll = () => setActiveCategories([])
   const handleMeasuresToggle = (value: boolean) => setWithMeasures(value)
 
-  // Filter indicators by active ecosystem service
+  // Filter indicators by active ecosystem service, while ensuring a deep-linked indicator remains visible
   const visibleIndicatorInfos = useMemo(
     () =>
       activeCategories.length === 0
         ? INDICATORS
-        : INDICATORS.filter((i) => activeCategories.includes(i.ecosysteemdienst)),
-    [activeCategories],
+        : INDICATORS.filter(
+            (i) =>
+              activeCategories.includes(i.ecosysteemdienst) ||
+              (indicatorId && i.id === indicatorId),
+          ),
+    [activeCategories, indicatorId],
   )
 
   // Sort indicator results: red (< 40) → yellow (40–69) → green (≥ 70), then alphabetical
@@ -544,71 +649,91 @@ export default function IndicatorsFieldDetail() {
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* ── Main content column ──────────────────────────── */}
           <div className="min-w-0 flex-1 space-y-4">
-            {/* Aggregations tree + input dialog */}
-            <div className="flex flex-col gap-4">
-              {fieldScore && (
-                <Card className="border-border shadow-sm">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
-                        <CardDescription className="mt-1.5 text-xs">
-                          Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie voor dit
-                          perceel. Klik op de knoppen om in te zoomen.
-                        </CardDescription>
-                      </div>
-                      <div className="shrink-0">
-                        <FieldInputDialog
-                          cultivations={cultivationSummaries}
-                          fieldMeasures={fieldMeasures}
-                          soilData={soilData}
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Filters */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <CategoryFilter
-                activeCategories={activeCategories}
-                onToggle={handleCategoryToggle}
-                onClearAll={handleCategoryAll}
-              />
-              <MeasuresToggle withMeasures={withMeasures} onToggle={handleMeasuresToggle} />
-            </div>
-
-            {/* No score state */}
-            {!fieldScore && (
+            {isExcluded ? (
               <div className="bg-muted/30 text-muted-foreground rounded-lg border p-8 text-center text-sm">
-                <p className="font-medium">Geen indicatoren beschikbaar</p>
+                <p className="text-foreground font-medium">Bodemkwaliteit (BLN) niet beschikbaar</p>
                 <p className="mt-1">
-                  Er is geen bodemanalyse beschikbaar voor dit perceel, of de berekening is mislukt.
+                  {getBln3ExclusionMessage({
+                    b_bufferstrip: field.b_bufferstrip,
+                    cultivationName: currentCultivationName,
+                    calendarYear: calendar,
+                  })}
                 </p>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Aggregations tree + input dialog */}
+                <div className="flex flex-col gap-4">
+                  {fieldScore && (
+                    <Card className="border-border shadow-sm">
+                      <CardHeader className="pb-3">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <CardTitle className="text-base font-bold">Perceelsscore</CardTitle>
+                            <CardDescription className="mt-1.5 text-xs">
+                              Hieronder ziet u de officiële BLN-bodemkwaliteitshiërarchie voor dit
+                              perceel. Klik op de knoppen om in te zoomen.
+                            </CardDescription>
+                          </div>
+                          <div className="shrink-0">
+                            <FieldInputDialog
+                              cultivations={cultivationSummaries}
+                              fieldMeasures={fieldMeasures}
+                              soilData={soilData}
+                            />
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <AggregationTree scoreOf={scoreOf} indicatorScoreOf={indicatorScoreOf} />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
 
-            {/* Indicator cards */}
-            {sortedIndicatorResults.length > 0 && (
-              <div className="space-y-2">
-                {sortedIndicatorResults.map(({ info, result }) => (
-                  <IndicatorCard
-                    key={info.id}
-                    info={info}
-                    result={result}
-                    fieldMeasures={fieldMeasures}
-                    measuresHref={measuresHref}
-                    showIndex={!withMeasures}
+                <Separator />
+
+                {/* Filters */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <CategoryFilter
+                    activeCategories={activeCategories}
+                    onToggle={handleCategoryToggle}
+                    onClearAll={handleCategoryAll}
                   />
-                ))}
-              </div>
+                  <MeasuresToggle withMeasures={withMeasures} onToggle={handleMeasuresToggle} />
+                </div>
+
+                {/* No score state */}
+                {!fieldScore && (
+                  <div className="bg-muted/30 text-muted-foreground rounded-lg border p-8 text-center text-sm">
+                    <p className="font-medium">Geen indicatoren beschikbaar</p>
+                    <p className="mt-1">
+                      Er is geen bodemanalyse beschikbaar voor dit perceel, of de berekening is
+                      mislukt.
+                    </p>
+                  </div>
+                )}
+
+                {/* Indicator cards */}
+                {sortedIndicatorResults.length > 0 && (
+                  <div className="space-y-2">
+                    {sortedIndicatorResults.map(({ info, result }) => (
+                      <IndicatorCard
+                        key={info.id}
+                        info={info}
+                        result={result}
+                        fieldMeasures={fieldMeasures}
+                        measuresHref={measuresHref}
+                        showIndex={!withMeasures}
+                        defaultExpanded={info.id === indicatorId}
+                        recommendedMeasures={
+                          adviceUnavailable ? null : (indicatorAdvice?.[info.id] ?? [])
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Adopted measures for this field */}
@@ -656,7 +781,7 @@ export default function IndicatorsFieldDetail() {
               {/* Score selector overlaid on top of the map */}
               <div className="absolute top-2 right-2 z-10">
                 <Select value={mapScoreKey} onValueChange={setMapScoreKey}>
-                  <SelectTrigger className="bg-background/90 h-7 w-48 text-xs shadow-sm backdrop-blur-sm">
+                  <SelectTrigger className="bg-background h-7 w-48 text-xs shadow-sm">
                     <SelectValue placeholder="Kies score" />
                   </SelectTrigger>
                   <SelectContent align="end">
@@ -678,7 +803,6 @@ export default function IndicatorsFieldDetail() {
                 <FieldMap
                   fieldsGeoJSON={fieldsGeoJSON as FeatureCollection}
                   selectedFieldGeoJSON={selectedFieldGeoJSON as FeatureCollection}
-                  mapStyle={mapStyle}
                   basePath={basePath}
                   scoreKey={mapScoreKey}
                   scoreLabel={findScoreLabel(mapScoreKey)}
@@ -686,8 +810,8 @@ export default function IndicatorsFieldDetail() {
                 />
               </Suspense>
             </div>
-            <p className="text-muted-foreground mt-2 px-1 text-[11px]">
-              Percelen gekleurd op gekozen score. Klik om te wisselen van perceel.
+            <p className="text-muted-foreground mt-2 px-1 text-xs">
+              Klik op een perceel om te wisselen.
             </p>
           </aside>
         </div>

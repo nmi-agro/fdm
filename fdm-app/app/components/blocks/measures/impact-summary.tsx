@@ -5,17 +5,22 @@
  * displaying their pre-measure vs post-measure scores and the positive delta.
  */
 import type { Bln3IndicatorResult } from "@nmi-agro/fdm-calculator"
-import { Plus, TrendingUp } from "lucide-react"
-import { Badge } from "~/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
-import { ScrollArea } from "~/components/ui/scroll-area"
+import { MoveUpRight } from "lucide-react"
 import { getIndicatorInfo, scoreToDisplay } from "~/lib/indicators"
 
 type ImpactSummaryProps = {
   indicators: Bln3IndicatorResult[]
+  /** Measures currently active on this field */
+  activeMeasures: { m_id: string; m_name: string }[]
+  /**
+   * Raw per-indicator impact per measure, used to attribute each improved
+   * indicator to the active measure(s) causing it. `undefined` when advice
+   * was unavailable — attribution lines are then simply omitted.
+   */
+  measureImpacts?: Record<string, { indicator_id: string; measure_impact: number }[]>
 }
 
-export function ImpactSummary({ indicators }: ImpactSummaryProps) {
+export function ImpactSummary({ indicators, activeMeasures, measureImpacts }: ImpactSummaryProps) {
   // Filter and rank indicators that have positive measure impact
   const improvedIndicators = indicators
     .map((ind) => {
@@ -33,55 +38,80 @@ export function ImpactSummary({ indicators }: ImpactSummaryProps) {
     // Sort by highest impact first
     .sort((a, b) => b.impact - a.impact)
 
+  // Attribute each improved indicator to the active measures with known
+  // impact on it (advice may include already-taken measures; impact > 0 only).
+  const contributingMeasures = (indicatorId: string) =>
+    activeMeasures
+      .map((m) => ({
+        m_id: m.m_id,
+        m_name: m.m_name,
+        impact:
+          measureImpacts?.[m.m_id]?.find((i) => i.indicator_id === indicatorId)?.measure_impact ??
+          0,
+      }))
+      .filter((m) => m.impact > 0)
+      .sort((a, b) => b.impact - a.impact)
+
   if (improvedIndicators.length === 0) {
     return (
       <div className="bg-muted/20 text-muted-foreground rounded-lg border p-4 text-center text-xs">
-        De geselecteerde maatregelen hebben op dit moment geen directe invloed op de BLN3
-        bodemkwaliteitsindicatoren van dit perceel.
+        Genomen maatregelen hebben geen directe invloed op de indicatoren van dit perceel.
       </div>
     )
   }
 
   return (
-    <Card className="border-border shadow-sm">
-      <CardHeader className="border-b pb-3">
+    <div className="overflow-hidden rounded-lg border">
+      <div className="border-b px-4 py-3">
         <div className="flex items-center gap-2">
-          <TrendingUp className="text-muted-foreground h-4 w-4" />
-          <CardTitle className="text-base font-bold">Invloed op bodemindicatoren</CardTitle>
+          <MoveUpRight className="text-muted-foreground h-4 w-4" />
+          <p className="text-sm font-semibold">Invloed op bodemindicatoren</p>
         </div>
-        <CardDescription className="text-xs">
-          De geselecteerde maatregelen zorgen voor een directe verbetering van de volgende
-          bodemindicatoren op dit perceel.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <ScrollArea className="h-[220px] w-full pr-3">
+        <p className="text-muted-foreground mt-0.5 text-xs">
+          Genomen maatregelen verbeteren deze indicatoren direct.
+        </p>
+      </div>
+      <div className="px-4 py-3">
+        {/* Native scroll region: max-h so the block hugs short lists and only
+            scrolls when long (ScrollArea's h-full viewport requires a fixed
+            height and would clip instead of scroll under max-h). */}
+        <div
+          tabIndex={0}
+          aria-label="Invloed op bodemindicatoren"
+          className="max-h-[160px] w-full overflow-y-auto pr-3"
+        >
           <div className="space-y-2">
-            {improvedIndicators.map((ind) => (
-              <div
-                key={ind.id}
-                className="bg-muted/30 border-border flex items-center justify-between gap-3 rounded-md border p-2 text-xs"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <Badge variant="secondary" className="h-5 px-1.5 py-0 font-mono text-[10px]">
-                    {ind.id}
-                  </Badge>
-                  <span className="text-foreground truncate font-medium">{ind.name}</span>
+            {improvedIndicators.map((ind) => {
+              const contributors = contributingMeasures(ind.id)
+              return (
+                <div
+                  key={ind.id}
+                  className="bg-muted/30 border-border rounded-md border p-2 text-xs"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-foreground min-w-0 truncate font-medium">{ind.name}</span>
+                    <span className="text-muted-foreground shrink-0">
+                      {ind.index} → {ind.score}
+                    </span>
+                  </div>
+                  {contributors.length > 0 && (
+                    <p className="text-muted-foreground mt-1 truncate">
+                      Door:{" "}
+                      {contributors.map((m, i) => (
+                        <span key={m.m_id}>
+                          {i > 0 && " · "}
+                          <span className="font-mono">{m.m_id.replace("bln_", "")}</span>{" "}
+                          <span className="text-foreground">{m.m_name}</span>
+                        </span>
+                      ))}
+                    </p>
+                  )}
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-muted-foreground text-[10px]">
-                    {ind.index} → {ind.score}
-                  </span>
-                  <Badge variant="default" className="h-5 px-1.5 py-0 text-[10px] font-bold">
-                    <Plus className="mr-0.5 h-3 w-3" />
-                    {ind.impact}
-                  </Badge>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </div>
   )
 }

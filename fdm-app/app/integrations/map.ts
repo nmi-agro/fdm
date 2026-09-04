@@ -1,7 +1,9 @@
 import type { StyleSpecification } from "maplibre-gl"
 import { clientConfig } from "@/app/lib/config"
 
-export function getMapStyle(variant: "satellite" | "standard"): string | StyleSpecification {
+export type MapStyleVariant = "satellite" | "standard"
+
+export function getMapStyle(variant: MapStyleVariant): string | StyleSpecification {
   const { provider, maptilerKey } = clientConfig.integrations.map
 
   if (provider === "maptiler") {
@@ -18,7 +20,7 @@ export function getMapStyle(variant: "satellite" | "standard"): string | StyleSp
   return getFallbackStyle(variant)
 }
 
-function getFallbackStyle(variant: "satellite" | "standard"): StyleSpecification {
+function getFallbackStyle(variant: MapStyleVariant): StyleSpecification {
   // OSM / Esri
   if (variant === "standard") {
     return {

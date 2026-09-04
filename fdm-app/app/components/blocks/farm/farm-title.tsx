@@ -15,6 +15,7 @@ interface FarmTitleProps {
     to: string
     label: string
   }
+  children?: ReactNode
 }
 
 export function FarmTitle({
@@ -23,6 +24,7 @@ export function FarmTitle({
   descriptionNode,
   rightNode,
   action,
+  children,
 }: FarmTitleProps) {
   return (
     <div className="space-y-6 p-4 pb-0 md:px-8 md:py-8">
@@ -46,6 +48,7 @@ export function FarmTitle({
           )}
         </div>
       </div>
+      {children}
       <Separator className="my-6" />
     </div>
   )

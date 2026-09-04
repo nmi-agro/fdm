@@ -1,34 +1,53 @@
 import type { ControlPosition, IControl, Map as MapLibreMap } from "maplibre-gl"
 import { Layers, Mountain, PanelsRightBottom, Scan } from "lucide-react"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
-import { createRoot, type Root } from "react-dom/client"
-import { GeolocateControl, NavigationControl, useControl } from "react-map-gl/maplibre"
-import { useIsMobile } from "~/hooks/use-mobile"
+import { type ReactNode, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
+import { GeolocateControl, NavigationControl, useControl, useMap } from "react-map-gl/maplibre"
+import { useAtlasViewState } from "~/store/atlas-view-state"
 import { GeocoderControl } from "./atlas-geocoder"
+import { AtlasLayerSwitch } from "./atlas-layer"
+import { AtlasStyleSelect } from "./atlas-style-select"
+import { AtlasViewState } from "./atlas-viewstate"
 
 type ControlsProps = {
-  onViewportChange: (viewport: { longitude: number; latitude: number; zoom: number }) => void
+  initialViewState?: AtlasViewState
+  showGeocoder?: boolean
+  showStyleSelect?: boolean
+  styleSelectWarning?: string
+  showFlyToFields?: boolean
   showFields?: boolean
   onToggleFields?: () => void
   showElevation?: boolean
   onToggleElevation?: () => void
   showSoil?: boolean
   onToggleSoil?: () => void
-  showFlyToFields?: boolean
-  onFlyToFields?: () => void
 }
 
 /**
  * Show different atlas buttons and toggles as required according to the props
  *
  * To hide a button you can pass undefined to the corresponding `show...` or just not provide the corresponding `on...` callback.
+ *
+ * styleSelectWarning can be used to disable the style select button and show a tooltip explaining why.
  */
 export function Controls(props: ControlsProps) {
-  const isMobile = useIsMobile()
+  const { setViewState } = useAtlasViewState()
+  const { current: map } = useMap()
+
+  const showGeocoder = props.showGeocoder ?? true
+  const showStyleSelect = props.showStyleSelect ?? true
+
   return (
     <>
-      <GeocoderControl onViewportChange={props.onViewportChange} collapsed={isMobile} />
+      {showGeocoder && <GeocoderControl position="top-right" />}
+      <AtlasLayerSwitch position="top-right" />
       <AtlasControls position="top-right">
+        {showStyleSelect && (
+          <AtlasStyleSelect
+            disabled={!!props.styleSelectWarning}
+            title={props.styleSelectWarning}
+          />
+        )}
         {props.showFields !== undefined && props.onToggleFields && (
           <FieldsControl showFields={props.showFields} onToggle={props.onToggleFields} />
         )}
@@ -41,8 +60,19 @@ export function Controls(props: ControlsProps) {
         {props.showSoil !== undefined && props.onToggleSoil && (
           <SoilControl showSoil={props.showSoil} onToggle={props.onToggleSoil} />
         )}
-        {props.showFlyToFields !== undefined && props.onFlyToFields && (
-          <FlyToFieldsControl onClick={props.onFlyToFields} />
+        {props.showFlyToFields && (
+          <FlyToFieldsControl
+            onClick={() => {
+              if (!props.initialViewState) return
+              setViewState({ ...props.initialViewState })
+              if (props.initialViewState.bounds) {
+                map?.fitBounds(
+                  props.initialViewState.bounds,
+                  props.initialViewState.fitBoundsOptions,
+                )
+              }
+            }}
+          />
         )}
       </AtlasControls>
       <GeolocateControl positionOptions={{ enableHighAccuracy: true }} trackUserLocation={true} />
@@ -57,36 +87,42 @@ interface AtlasControlsProps {
 }
 
 /**
- * MapGL control that is compatible with `useControl` that maintains a ReactDOM root and renders it whenever its props change
+ * MapGL control that is compatible with `useControl` that maintains a div inside the map controls container.
+ *
+ * Then, `AtlasControls` works by creating a portal to that div.
  */
 class CustomControl implements IControl {
   _map: MapLibreMap | undefined
   _container: HTMLDivElement | undefined
-  _root: Root | undefined
   _props: AtlasControlsProps
+  _onContainerReady: (container: HTMLDivElement) => void
 
-  constructor(initialProps: AtlasControlsProps) {
+  constructor(
+    initialProps: AtlasControlsProps,
+    onContainerReady: (container: HTMLDivElement) => void,
+  ) {
     this._props = initialProps
+    this._onContainerReady = onContainerReady
   }
 
   onAdd(map: MapLibreMap): HTMLElement {
     this._map = map
     this._container = document.createElement("div")
-
-    this._root = createRoot(this._container)
-    this._render()
-
+    // Prevent the responsive map click logic from picking it up.
+    this._container.onpointerdown = (e) => {
+      e.stopPropagation()
+    }
+    this._container.onpointerenter = (e) => {
+      e.stopPropagation()
+    }
+    this._container.onpointerleave = (e) => {
+      e.stopPropagation()
+    }
+    this._onContainerReady(this._container)
     return this._container
   }
 
   onRemove(): void {
-    if (this._root) {
-      const root = this._root
-      setTimeout(() => {
-        root.unmount()
-      }, 0)
-      this._root = undefined
-    }
     this._container?.parentNode?.removeChild(this._container)
     this._container = undefined
     this._map = undefined
@@ -95,33 +131,26 @@ class CustomControl implements IControl {
   getDefaultPosition(): ControlPosition {
     return "top-right"
   }
-
-  updateProps(newProps: AtlasControlsProps) {
-    this._props = newProps
-    this._render()
-  }
-
-  _render() {
-    if (this._root) {
-      this._root.render(this._props.children)
-    }
-  }
 }
 
 /**
- * React root that can be added to a react-map-gl Map to include buttons etc. on it
+ * Control container that can be added to a react-map-gl `Map` to include buttons etc. on it
  *
  * - position will tell MapGL where to put the controls
  */
 export function AtlasControls(props: AtlasControlsProps) {
-  const control = useControl(() => new CustomControl(props), {
+  const [container, setContainer] = useState<HTMLDivElement | undefined>(undefined)
+  const setContainerRef = useRef(setContainer)
+
+  useControl(() => new CustomControl(props, (c) => setContainerRef.current(c)), {
     position: props.position,
   })
 
-  useEffect(() => control.updateProps(props), [props, control])
-
-  // Buttons are shown using side effects
-  return null
+  if (container && document.body.contains(container)) {
+    return createPortal(props.children, container)
+  } else {
+    return null
+  }
 }
 
 interface CommonButtonProps {
@@ -132,6 +161,8 @@ interface CommonButtonProps {
 
 interface ButtonProps extends CommonButtonProps {
   onClick?: () => void
+  /** Set when this button represents a toggleable state, for `aria-pressed`. Omit for plain actions. */
+  pressed?: boolean
 }
 
 interface ToggleProps extends CommonButtonProps {
@@ -153,6 +184,7 @@ function AtlasButton({ active = true, ...props }: ButtonProps) {
       type="button"
       title={props.label}
       aria-label={props.label}
+      aria-pressed={props.pressed}
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -185,6 +217,7 @@ function AtlasToggle(props: ToggleProps) {
     <AtlasButton
       {...props}
       active={active}
+      pressed={active}
       onClick={onToggleFn}
       label={specificLabel ?? props.label}
     />
@@ -196,7 +229,7 @@ function AtlasToggle(props: ToggleProps) {
  *
  * Multiple AtlasButtons and AtlasToggles can be added as children to create button groups.
  */
-function AtlasControlGroup({ children }: { children: ReactNode }) {
+export function AtlasControlGroup({ children }: { children: ReactNode }) {
   return <div className="maplibregl-ctrl maplibregl-ctrl-group">{children}</div>
 }
 
@@ -243,7 +276,7 @@ function FieldsControl({ showFields, onToggle }: { showFields: boolean; onToggle
  * Specialized button to have the map focus on the selected and/or saved fields.
  */
 function FlyToFieldsControl({ onClick }: { onClick: () => void }) {
-  return <SingleAtlasButton onClick={onClick} label="Vliegen naar percelen" Icon={Scan} />
+  return <SingleAtlasButton onClick={onClick} label="Terug naar percelen" Icon={Scan} />
 }
 
 /**

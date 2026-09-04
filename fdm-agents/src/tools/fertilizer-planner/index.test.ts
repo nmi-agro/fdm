@@ -1163,9 +1163,9 @@ describe("tool execute functions", () => {
         makeSimInput(),
         makeConfigurable({ nmiApiKey: "test-nmi-key" }),
       )
-      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort (Stikstof)"))).toBe(
-        true,
-      )
+      expect(
+        result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort (Stikstof)")),
+      ).toBe(true)
     })
 
     it("should not warn about nutrient advice shortfall when the proposed dose meets advice", async () => {
@@ -1176,13 +1176,17 @@ describe("tool execute functions", () => {
         makeSimInput(),
         makeConfigurable({ nmiApiKey: "test-nmi-key" }),
       )
-      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(false)
+      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(
+        false,
+      )
     })
 
     it("should not warn about nutrient advice shortfall when no advice is available", async () => {
       // No nmiApiKey configured -> advice stays null/skipped.
       const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
-      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(false)
+      expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(
+        false,
+      )
     })
 
     it("should handle omBalance calculation error gracefully", async () => {

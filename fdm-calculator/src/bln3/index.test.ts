@@ -48,6 +48,50 @@ describe("requestBln3Score", () => {
     vi.restoreAllMocks()
   })
 
+  it("should return null immediately without calling fetch if isExcluded is true", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      isExcluded: true,
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_bufferstrip is true", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_bufferstrip: true,
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_lu_croprotation is nature", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_croprotation: "nature",
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("should return null immediately without calling fetch if b_lu_catalogue is nl_343 or nl_6801", async () => {
+    const inputs: Bln3ScoreInputs = {
+      ...baseInputs,
+      nmiApiKey: undefined,
+      b_lu_catalogue: "nl_343",
+    }
+    const result = await requestBln3Score(inputs)
+    expect(result).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it("should throw if nmiApiKey is not provided", async () => {
     const inputs: Bln3ScoreInputs = { ...baseInputs, nmiApiKey: undefined }
     await expect(requestBln3Score(inputs)).rejects.toThrow("NMI API key not provided")
@@ -102,7 +146,7 @@ describe("requestBln3Score", () => {
   })
 
   it("should throw if the NMI API returns a non-ok response", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
+    vi.mocked(fetch).mockResolvedValue({
       ok: false,
       status: 500,
       statusText: "Internal Server Error",
@@ -112,7 +156,7 @@ describe("requestBln3Score", () => {
     await expect(requestBln3Score(baseInputs)).rejects.toThrow(
       "BLN3 score request failed with status 500",
     )
-    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledTimes(3)
   })
 
   it("should throw if the NMI API returns success: false", async () => {
@@ -147,19 +191,37 @@ describe("requestBln3Score", () => {
   })
 
   it("should rethrow network errors from fetch", async () => {
-    vi.mocked(fetch).mockRejectedValueOnce(new Error("Network connection lost"))
+    vi.mocked(fetch).mockRejectedValue(new Error("Network connection lost"))
 
     await expect(requestBln3Score(baseInputs)).rejects.toThrow("Network connection lost")
   })
 
   it("should map AbortError to a specific timeout message", async () => {
-    const abortError = new Error("The operation was aborted")
-    abortError.name = "AbortError"
-    vi.mocked(fetch).mockRejectedValueOnce(abortError)
+    vi.useFakeTimers()
 
-    await expect(requestBln3Score(baseInputs)).rejects.toThrow(
-      "BLN3 score request timed out (30s). The NMI API did not respond in time.",
-    )
+    try {
+      vi.mocked(fetch).mockImplementation((_url, options) => {
+        return new Promise((_resolve, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            reject(options?.signal?.reason)
+          })
+        })
+      })
+
+      const assertion = expect(requestBln3Score(baseInputs)).rejects.toThrow(
+        "BLN3 score request timed out. The NMI API did not respond in time.",
+      )
+
+      try {
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(32_000)
+      } finally {
+        await assertion
+      }
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

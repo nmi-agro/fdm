@@ -45,7 +45,8 @@ export const serverConfig: ServerConfig = {
   name: String(process.env.PUBLIC_FDM_NAME),
   url: String(process.env.PUBLIC_FDM_URL),
   privacy_url: process.env.FDM_PRIVACY_URL,
-  datasets_url: String(process.env.PUBLIC_FDM_DATASETS_URL),
+  datasets_url:
+    process.env.PUBLIC_FDM_DATASETS_URL || "https://storage.googleapis.com/fdm-public-data",
 
   // Authentication
   auth: {
@@ -70,8 +71,13 @@ export const serverConfig: ServerConfig = {
   // Integrations
   integrations: {
     map: {
-      provider: (process.env.MAP_PROVIDER as "maptiler" | "osm") || "osm",
-      maptilerKey: String(process.env.MAPTILER_API_KEY),
+      provider:
+        (process.env.PUBLIC_MAP_PROVIDER as "maptiler" | "osm") ||
+        (process.env.MAP_PROVIDER as "maptiler" | "osm") ||
+        "osm",
+      maptilerKey: String(
+        process.env.PUBLIC_MAPTILER_API_KEY ?? process.env.MAPTILER_API_KEY ?? "",
+      ),
     },
     nmi: {
       api_key: String(process.env.NMI_API_KEY),

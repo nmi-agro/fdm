@@ -1,0 +1,152 @@
+---
+slug: release-august-2026
+title: August 2026 Release
+authors: [svenverweij]
+tags: [release, fdm-app, fdm-core, fdm-calculator, fdm-data, fdm-agents, fdm-rvo, fdm-docs]
+date: 2026-09-02
+---
+
+The August 2026 release makes it easier to see which BLN3 measure will help most: measures are now ranked by their predicted impact, while bufferstroken and natuurpercelen are excluded from the calculations altogether. It further reworks the stikstofgebruiksnorm, which is now accumulated per teelt over the calendar year following RVO Tabel 2 rather than calculated for the hoofdteelt alone, with corrected vanggewas and winterteelt classification for the Article 28d korting and an explanation of every norm shown in the interface. Alongside these, the release adds per-cut nutrient advice for grassland, records a verified relationship between a user and a farm when fields are retrieved from RVO through eHerkenning, stores generated bemestingsplan PDFs in Google Cloud Storage, and makes Gerrit more aware to check its own plans against the nutrient advice.
+
+{/* truncate */}
+
+### BLN3 Measure Advice
+
+Measures could already be recorded, and their applicability per field was determined in the July release. What was left to the user was the choice of which of the applicable measures to record first. That choice depends on the indicator you want to improve, on the field and on the measures already in place. This release ranks candidate measures by their predicted impact, so that the ordering is visible where the meeasures can be selected.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- `requestBln3MeasureAdvice` and `getBln3MeasureAdvice` call the NMI `POST /maatwerk/bln3/measure/advice` endpoint to rank candidate measures by predicted impact. They reuse the input collector of the existing `measure/applicability` call and the calculation cache, so no separate data collection is needed.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The field measure picker (`measures/:b_id`) gained "Aanbevolen voor dit perceel" quick-add cards, a "Sorteer op impact" option and relative-impact bars in the add-measure dialog. Opening that dialog from a specific indicator biases the sorting towards that indicator's impact.
+- On the field indicator detail page (`indicators/:b_id`), every non-green indicator card carries an "Aanbevolen maatregelen" sub-section with a one-click "+ Toevoegen" action. `?indicator=<id>` deep links expand and scroll to the corresponding card.
+- On the farm indicators overview, the Knelpunten panel gained a "Waar te beginnen" section ranking the best measures for the selected indicator across the farm, area-weighted by field. The farm measures overview gained an "Aanbevolen maatregelen" card that groups recommendations by measure and links the affected fields. Both are loaded lazily.
+- Impact bars use the true 0–1 `measure_impact` scale, so they are comparable between these surfaces. The advice is always cross-checked against a fresh `measure/applicability` result, and a failed advice request hides the recommendations entirely rather than showing a misleading "no measures found" state. The "Wat is BLN3?" help dialog explains the recommendations and the relative impact scale.
+- The field measures page received a layout pass: the beta badge moved into the title row, the two indicator blocks form one status cluster (`ImpactSummary` lost its card chrome and fixed-height scroll area), the empty state carries its own "Toevoegen" action, long field names truncate, and the map is narrower so the measures list leads. "Invloed op bodemindicatoren" now attributes each improved indicator to the measure or measures causing it.
+- A horizontal overflow in the shared `DialogContent` component has been fixed by constraining its grid columns, which affects every dialog in the application.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- Bufferstroken, natuurpercelen and other non-agricultural BRP codes (`nl_343` and `nl_6801`) are excluded from BLN3 indicator calculations, measure applicability checks and measure advice requests, and are hidden from the indicator and measure views, summaries, aggregations and actions in the interface. These fields are registered as fields but are not farmed, so an agricultural soil quality score for them is not meaningful and would distort farm-level aggregates.
+
+### Stikstofgebruiksnormen
+
+Until now the stikstofgebruiksnorm of a field was derived from its hoofdteelt. In practice a field can carry several cultivations within one calendar year, and RVO Tabel 2 assigns a norm to each of them, with separate rows for a crop grown as volgteelt. This release calculates the norm per teelt and sums the results, and reworks the kortingen that apply on top of it.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- The nitrogen usage norm for norm years 2025 and 2026 is now accumulated over all cultivations grown in a calendar year, per RVO Tabel 2, instead of being calculated exclusively for the hoofdteelt. Volgteelt sub-types and standard rows are selected for successor cultivations such as spinach, the lettuce varieties, endive and grass seed.
+- Groenbemesters are subject to the statutory conditions of footnote 7a: sowing strictly before 1 September, standing until at least 1 February of the following year, and a valid preceding crop (granen, koolzaad or graszaad for the full norm; 50% on zand and löss after tijdelijk grasland). Following maize, footnotes 2 and 6 suppress the norm to 0 kg N per hectare for groenbemesters, tijdelijk grasland and vanggewassen.
+- The korting for graslandvernieuwing (footnote 14) has been aligned to the 1 June – 31 August window, applying on clay and peat in 2025 only to derogation permit holders and on all soil types in 2026. For graslandvernietiging (footnotes 15 and 16), the 2025 korting on clay and peat is likewise gated on a derogation permit, the catch-crop-grass exclusion has been backported to 2025, and destruction outside the statutory windows now withholds the korting instead of raising an error.
+- Data corrections: the Veldbeemdgras standard norms on sand have been corrected to 100 kg N per hectare on `zand_nwc` and 80 kg N per hectare on `zand_zuid`, a number of typos have been fixed, and the nature and non-agricultural codes `nl_332` and `nl_335` are mapped to "Geen plaatsingsruimte" (0 kg N per hectare).
+- The calculation returns an informative `normSource` string describing the per-teelt breakdown and stating explicitly why a footnote condition or exemption applied.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)** — Article 28d korting on zand and löss
+
+- The classification of vanggewassen and winterteelten has been refactored from category-based rules to exact crop-code lists (`b_lu_catalogue`). This corrects false positive winter cultivations such as snijmaïs (`nl_259`), false positive catch cultivations such as triticale (`nl_314`) and false negative catch cultivations such as bladrammenas-stoppelknollen (`nl_3521`).
+- The evaluation is anchored to the hoofdteelt of year N-1 rather than to any cultivation in the window. The fixed 15 July lower bound has been removed, the winterteelt exemption categories have been corrected (Tabel 6 ∩ 7 with the Article 4a conditions; Tabel 7 only for late-harvested and autumn-sown cultivations), and the grassland route is based on the hoofdteelt of year N-1 as well.
+- Winterteelt now has conditional cases: suiker- and voederbieten only qualify when harvested on or after 1 November, and the maize variants (korrelmaïs, corncob mix, energiemaïs, suikermaïs) only when undersown with a vanggewas.
+- The Article 28d korting is cumulated with the kortingen for graslandvernieuwing (50 kg N per hectare) and graslandvernietiging (65 kg N per hectare). The applicability of those two on clay and peat has been restored for norm year 2026.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The field norm card (`NormCard`) shows the per-norm calculation description and the footnote breakdown from `normSource`, so the reason a norm has the value it has can be read on the page itself. Application amounts are shown in their display unit (`p_app_amount_display` and `p_app_amount_unit`).
+- The gebruiksruimte disclaimer and the edge-case explanation (`NormsDisclaimer`) have moved into `FarmTitle` with a quieter inline design, with the provisions of the Meststoffenwet that FDM does not support behind a collapsible.
+
+**FDM Documentation (`@nmi-agro/fdm-docs`)**
+
+- The documentation of the Dutch stikstofgebruiksruimte for 2025 and 2026 has been updated to describe per-teelt accumulation and the volgteelt rules of RVO Tabel 2, the footnote 7a groenbemester conditions, the footnote 2 and 6 maize exclusions, the definition of the hoofdgewas as the crop with the longest presence in the 15 May – 15 July window, and the intentional crop code mappings (quinoa to the spinach volgteelt, grasvanggewassen to the graszaad rows, natuur and braak to 0 kg N per hectare).
+- An explicit out-of-scope section lists what is deliberately not yet implemented: stikstofdifferentiatie (Article 28c Urm, Tabel 1a), fritesaardappelen on clay (Tabel 2a), graszaad with a voedersnede, graszaadstoppelvernietiging (footnote 7b), mengteelt, the fixed farm norm (footnote 9), and the two-year winterteelt budget splits (footnotes 5 and 18).
+- Separately, the documentation of the 2026 fertilizer application norms has been added and the 2025 documentation on vanggewassen and winterteelten extended.
+
+### Per-Cut Nutrient Advice for Grassland
+
+The fertilizer applications for grassland are often determined per cut, and the advice for a cut depends on its cut weight: the intended or realised dry matter yield of that cut. A single advice per field per year therefore says little about what to apply and when.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- The per-cut nutrient advice is exposed for grassland fields.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The field advice page gained an "Advies per snede" card with one row per cut. The NMI API returns one advice per combination of cut and cut weight; the user selects the applicable cut weight per row, and the advice and the stikstofvulling follow that choice. For completed cuts the cut weight is derived from the recorded dry matter yield and the Oogst column shows the harvest date and the kg DS per hectare. The stikstofvulling per cut is shown for every year with recorded harvests, and in the current year the next upcoming cut is highlighted.
+- The rest of the field advice page was revised as well: the nutrient cards state the difference with the advice in kilograms ("-25 kg" / "+35 kg") instead of as a percentage, keep two decimals for sub-kilogram trace elements, show the surplus when the advice is zero, and offer a "Toevoegen" shortcut for a nutrient without applications. The KPI cards use the same 90% and 110% thresholds as the per-nutrient progress bars, drop the side-stripe accents and state explicitly when no nutrient is under or over advice. A failed advice calculation renders an inline, actionable message instead of a full-screen error page, and the unit labels in the overview table are more legible.
+- For cultivations with `b_lu_croprotation: "grass"` and `b_lu_harvestable: "once"`, such as graszaad, the interface says "oogst" rather than "snede".
+
+**FDM Data (`@nmi-agro/fdm-data`)**
+
+- `b_lu_harvestable` for graszaden has been corrected from "multiple" to "once".
+
+**FDM Agents (`@nmi-agro/fdm-agents`)**
+
+- The per-cut grassland advice is passed through Gerrit's fertilizer-planner tools, with the interpretation of the cut weight documented in the prompt.
+
+### Farm Verification
+
+Knowing that a user is genuinely connected to the farm they administer matters for the data that is exchanged on that farm's behalf. Retrieving fields from RVO through eHerkenning is such a proof: it can only succeed for someone authorised to act for that KvK number.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- A table and a set of functions have been added to record a verified relationship between a user and a farm: `addFarmVerification`, `getActiveFarmVerifications`, `getFarmVerifications`, `getLatestFarmVerification`, `isFarmVerifiedForPrincipal` and `revokeFarmVerification`.
+- Once a farm has a verified relationship based on its KvK number, `b_businessid_farm` can no longer be changed, so the identifier the verification rests on cannot drift away from it.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Retrieving fields from RVO via eHerkenning stores the verified relationship and gives the farm a verified state. That state is shown on the farm, and the Toegang page lists which users have a verified relationship with it.
+
+**FDM RVO (`@nmi-agro/fdm-rvo`)**
+
+- `isRvoPermissionDeniedError` distinguishes a permission error from a server error, so a user who is not authorised for a KvK number can be told so instead of seeing a generic failure.
+
+### Bemestingsplan PDFs
+
+**FDM Core (`@nmi-agro/fdm-core`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- Generated bemestingsplan PDFs are stored in Google Cloud Storage. Whether a stored plan is still up to date is determined by comparing the hash of the current data with the hash stored alongside the PDF.
+- A bemestingsplan can be viewed in the application before it is downloaded.
+
+### Gerrit (Labs)
+
+Gerrit remains a research preview. This release makes it check its own plans against the agronomic advice and improves the Dutch it produces.
+
+**FDM Agents (`@nmi-agro/fdm-agents`)**
+
+- `simulateFarmPlan` flags fields whose proposed nitrogen, phosphate or potassium dose falls meaningfully short of the nutrient advice through a new `agronomicWarnings` entry, and the prompt instructs the agent to check for such shortfalls and close them with a suitable mineral or organic fertilizer where legal farm-level room remains for nitrogen and phosphate, or without restriction for potassium, which has no legal norm. This check is independent of the opt-in strategy for filling the plaatsingsruimte for manure, which remains a separate, financially motivated strategy.
+- The generated Dutch no longer leaks internal identifiers such as the farm ID, field summaries no longer open with the crop type name, and the prompt guards against stray non-Latin script characters. `buildFertilizerPlanPrompt` and `generateFarmFertilizerPlan` accept an optional `b_name_farm`, so the prompt can refer to the farm by name rather than by its internal ID.
+
+### Smaller Improvements and Under the Hood
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The number of fields, the total area and the cultivation advice on the farm dashboard are shown for the selected year instead of the actual current year.
+- Cultivation variety options in the rotation table and during farm creation are sorted alphabetically where options exist.
+- Major dependencies have been upgraded: maplibre-gl 5 to 6 (ESM-only, requiring a namespace import migration), framer-motion 12 to 13, fuzzysort 3 to 4 and `@lucide/lab` 0.1 to 0.2.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- `writeAuditEntry` returns the `audit_id` instead of nothing, so a caller can refer to the entry it just wrote.
+
+**FDM Documentation (`@nmi-agro/fdm-docs`)**
+
+- The documentation on how the FDM data schema works and how it can be extended has been expanded.
+
+### Hotfixes since July 2026
+
+Three patch releases were published between the July 2026 and August 2026 releases, on 7, 10 and 19 August. They contained the following fixes.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The card that lets new users create a farm has been restored on the initial signed-in screen.
+- The BodemConditieScore showed an inconsistent, lower score on the BCS overview page because the lab-based pH and organic matter sub-scores were missing from it; these are now included.
+- Indicators that count negatively towards the BodemConditieScore (Plasvorming, Scheuren, Spoorvorming) are shown with a minus sign on the BCS detail page, in the field indicators dialog and in the new-measurement wizard, making clear that they subtract from the total.
+- Opening Atlas, the elevation map or the soil map from the farm overview linked to the latest available calendar year, which can lie in the future, instead of the current year. New users could therefore land on an empty year without fields.
+
+**FDM Application (`@nmi-agro/fdm-app`)** and **FDM Agents (`@nmi-agro/fdm-agents`)**
+
+- The AI observability events for Gerrit were missing in PostHog in production and are recorded again.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), [fdm-calculator](https://github.com/nmi-agro/fdm/blob/main/fdm-calculator/CHANGELOG.md), [fdm-data](https://github.com/nmi-agro/fdm/blob/main/fdm-data/CHANGELOG.md), [fdm-agents](https://github.com/nmi-agro/fdm/blob/main/fdm-agents/CHANGELOG.md), [fdm-rvo](https://github.com/nmi-agro/fdm/blob/main/fdm-rvo/CHANGELOG.md), and [fdm-docs](https://github.com/nmi-agro/fdm/blob/main/fdm-docs/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.

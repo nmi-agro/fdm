@@ -109,12 +109,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         // Get harvests of the active cultivation, to relate per-cut advice to recorded cuts
         let harvests: Awaited<ReturnType<typeof getHarvests>> = []
         try {
-          harvests = await getHarvests(
-            fdm,
-            session.principal_id,
-            activeCultivation.b_lu,
-            timeframe,
-          )
+          harvests = await getHarvests(fdm, session.principal_id, activeCultivation.b_lu, timeframe)
         } catch (error) {
           console.error("Failed to load harvests for nutrient advice:", error)
         }

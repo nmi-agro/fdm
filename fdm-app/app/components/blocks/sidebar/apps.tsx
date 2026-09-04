@@ -1,8 +1,12 @@
 import { ArrowRightLeft, BookOpenText, Gauge, Landmark, MapIcon, Minus, Plus } from "lucide-react"
 import { useState } from "react"
-import { NavLink, useLocation, useNavigate, useSearchParams } from "react-router"
+import { NavLink, useLocation, useNavigate, useParams, useSearchParams } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import { useFarmStore } from "@/app/store/farm"
+import {
+  useAvailableAtlasLayers,
+  useCurrentAtlasLayer,
+} from "~/components/blocks/atlas/atlas-layer"
 import { FarmPickerDialog } from "~/components/blocks/sidebar/farm-picker-dialog"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import {
@@ -17,6 +21,7 @@ import {
   SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { getCalendarSelection } from "~/lib/calendar"
 
 export function SidebarApps({
   farms = [],
@@ -30,6 +35,9 @@ export function SidebarApps({
   // Check if the page or its return page contains `farm/create` in url
   const location = useLocation()
   const [searchParams] = useSearchParams()
+  const params = useParams()
+  const calendar = params.calendar ?? getCalendarSelection()[0]
+
   const isCreateFarmWizard =
     location.pathname.includes("farm/create") ||
     searchParams.get("returnUrl")?.includes("farm/create")
@@ -57,47 +65,8 @@ export function SidebarApps({
     setPendingFeature(null)
   }
 
-  let atlasLink: string | undefined
-  let atlasFieldsLink: string | undefined
-  let atlasElevationLink: string | undefined
-  let atlasSoilLink: string | undefined
-  let atlasSoilAnalysisLink: string | undefined
-  let atlasIndicatorsLink: string | undefined
-  if (isCreateFarmWizard) {
-    atlasLink = undefined
-    atlasFieldsLink = undefined
-    atlasElevationLink = undefined
-    atlasSoilLink = undefined
-    atlasSoilAnalysisLink = undefined
-    atlasIndicatorsLink = undefined
-  } else if (farmId && farmId !== "undefined") {
-    atlasLink = `/farm/${farmId}/${selectedCalendar}/atlas`
-    atlasFieldsLink = `/farm/${farmId}/${selectedCalendar}/atlas/fields`
-    atlasElevationLink = `/farm/${farmId}/${selectedCalendar}/atlas/elevation`
-    atlasSoilLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil`
-    atlasSoilAnalysisLink = `/farm/${farmId}/${selectedCalendar}/atlas/soil-analysis`
-    atlasIndicatorsLink = `/farm/${farmId}/${selectedCalendar}/atlas/indicators`
-  } else {
-    atlasLink = `/farm/undefined/${selectedCalendar}/atlas`
-    atlasFieldsLink = `/farm/undefined/${selectedCalendar}/atlas/fields`
-    atlasElevationLink = `/farm/undefined/${selectedCalendar}/atlas/elevation`
-    atlasSoilLink = `/farm/undefined/${selectedCalendar}/atlas/soil`
-    atlasSoilAnalysisLink = undefined
-    atlasIndicatorsLink = undefined
-  }
-
-  const activeAtlasTab =
-    atlasIndicatorsLink && location.pathname.includes(atlasIndicatorsLink)
-      ? "indicators"
-      : atlasFieldsLink && location.pathname.includes(atlasFieldsLink)
-        ? "fields"
-        : atlasElevationLink && location.pathname.includes(atlasElevationLink)
-          ? "elevation"
-          : atlasSoilAnalysisLink && location.pathname.includes(atlasSoilAnalysisLink)
-            ? "soil-analysis"
-            : atlasSoilLink && location.pathname.includes(atlasSoilLink)
-              ? "soil"
-              : undefined
+  const activeAtlasTab = useCurrentAtlasLayer()
+  const atlasLinks = useAvailableAtlasLayers(true)
 
   let nitrogenBalanceLink: string | undefined
   if (isCreateFarmWizard || isFarmOverview) {
@@ -151,13 +120,13 @@ export function SidebarApps({
         <SidebarGroupContent>
           <SidebarMenu>
             <Collapsible
-              defaultOpen={!!atlasLink && location.pathname.includes(atlasLink)}
+              defaultOpen={!!atlasLinks.length && location.pathname.includes("/atlas/")}
               className="group/collapsible"
             >
               <SidebarMenuItem>
-                {atlasLink ? (
+                {!isCreateFarmWizard ? (
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton isActive={location.pathname.includes(atlasLink)}>
+                    <SidebarMenuButton isActive={location.pathname.includes("/atlas/")}>
                       <MapIcon />
                       <span>Atlas</span>
                       <Plus className="ml-auto group-data-[state=open]/collapsible:hidden" />
@@ -182,95 +151,50 @@ export function SidebarApps({
                 )}
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {atlasFieldsLink ? (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={activeAtlasTab === "fields"}>
-                          <NavLink to={atlasFieldsLink}>
-                            <span>Gewaspercelen</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ) : null}
-                    {atlasSoilAnalysisLink ? (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={activeAtlasTab === "soil-analysis"}>
-                          <NavLink to={atlasSoilAnalysisLink}>
-                            <span>Bodemanalyses</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ) : !isCreateFarmWizard ? (
-                      <SidebarMenuSubItem>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <SidebarMenuSubButton
-                              className="text-muted-foreground"
-                              onClick={() =>
-                                openFarmPicker(
-                                  "bodemanalyses",
-                                  (b_id_farm) =>
-                                    `/farm/${b_id_farm}/${selectedCalendar}/atlas/soil-analysis`,
-                                )
-                              }
-                            >
-                              <span>Bodemanalyses</span>
-                            </SidebarMenuSubButton>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            Bodemanalyses is beschikbaar nadat u een bedrijf heeft geselecteerd
-                          </TooltipContent>
-                        </Tooltip>
-                      </SidebarMenuSubItem>
-                    ) : null}
-                    {atlasElevationLink ? (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={activeAtlasTab === "elevation"}>
-                          <NavLink to={atlasElevationLink}>
-                            <span>Hoogtekaart</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ) : null}
-                    {atlasSoilLink ? (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={activeAtlasTab === "soil"}>
-                          <NavLink to={atlasSoilLink}>
-                            <span>Bodemkaart</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ) : null}
-                    {atlasIndicatorsLink ? (
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={activeAtlasTab === "indicators"}>
-                          <NavLink to={atlasIndicatorsLink}>
-                            <span>Indicatoren</span>
-                          </NavLink>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ) : !isCreateFarmWizard ? (
-                      <SidebarMenuSubItem>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <SidebarMenuSubButton
-                              className="text-muted-foreground"
-                              onClick={() =>
-                                openFarmPicker(
-                                  "indicatoren",
-                                  (b_id_farm) =>
-                                    `/farm/${b_id_farm}/${selectedCalendar}/atlas/indicators`,
-                                )
-                              }
-                            >
-                              <span>Indicatoren</span>
-                            </SidebarMenuSubButton>
-                          </TooltipTrigger>
-                          <TooltipContent side="right">
-                            Indicatoren is beschikbaar nadat u een bedrijf heeft geselecteerd
-                          </TooltipContent>
-                        </Tooltip>
-                      </SidebarMenuSubItem>
-                    ) : null}
+                    {atlasLinks.map((info) => {
+                      if (info.requiresFarm && canPickFarm) {
+                        return (
+                          <SidebarMenuSubItem key={info.value}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <SidebarMenuSubButton
+                                  className="text-muted-foreground"
+                                  onClick={() =>
+                                    openFarmPicker(
+                                      info.value === "indicators"
+                                        ? "de indicatoren"
+                                        : info.value === "soil-analysis"
+                                          ? "de bodemanalyses"
+                                          : info.label.toLowerCase(),
+                                      (b_id_farm) =>
+                                        info.config.url({
+                                          ...params,
+                                          b_id_farm,
+                                          calendar,
+                                        }) as string,
+                                    )
+                                  }
+                                >
+                                  <span>{info.label}</span>
+                                </SidebarMenuSubButton>
+                              </TooltipTrigger>
+                              <TooltipContent side="right">
+                                {info.label} is beschikbaar nadat u een bedrijf heeft geselecteerd
+                              </TooltipContent>
+                            </Tooltip>
+                          </SidebarMenuSubItem>
+                        )
+                      }
+                      return (
+                        <SidebarMenuSubItem key={info.value}>
+                          <SidebarMenuSubButton asChild isActive={activeAtlasTab === info.value}>
+                            <NavLink to={info.url}>
+                              <span>{info.label}</span>
+                            </NavLink>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )
+                    })}
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>

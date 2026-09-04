@@ -26,6 +26,7 @@ export const resources: Resource[] = [
   "field",
   "cultivation",
   "fertilizer_application",
+  "fertilizer_plan",
   "soil_analysis",
   "soil_image",
   "harvesting",
@@ -142,6 +143,21 @@ export const permissions: Permission[] = [
   },
   {
     resource: "fertilizer_application",
+    role: "researcher",
+    action: ["read"],
+  },
+  {
+    resource: "fertilizer_plan",
+    role: "owner",
+    action: ["read", "write", "list", "share"],
+  },
+  {
+    resource: "fertilizer_plan",
+    role: "advisor",
+    action: ["read", "write", "list"],
+  },
+  {
+    resource: "fertilizer_plan",
     role: "researcher",
     action: ["read"],
   },
@@ -342,6 +358,7 @@ export async function checkPermission(
  * @param granting_resource - The resource type that grants this access.
  * @param granting_resource_id - The ID of the granting resource.
  * @param duration - Time taken in milliseconds.
+ * @returns The generated audit entry ID.
  */
 export async function writeAuditEntry(
   fdm: FdmType,
@@ -352,13 +369,14 @@ export async function writeAuditEntry(
   granting_resource: string,
   granting_resource_id: string,
   duration: number,
-): Promise<void> {
+): Promise<string> {
   const { channel, credential_id } = getAuditContext()
   const resolvedPrincipalId = Array.isArray(principal_id)
     ? principal_id[0] || "unknown"
     : principal_id || "unknown"
+  const audit_id = createId()
   await fdm.insert(authZSchema.audit).values({
-    audit_id: createId(),
+    audit_id,
     audit_origin: origin,
     audit_channel: channel,
     credential_id: credential_id ?? null,
@@ -371,6 +389,7 @@ export async function writeAuditEntry(
     allowed: true,
     duration: Math.round(duration),
   })
+  return audit_id
 }
 
 /**
@@ -998,6 +1017,7 @@ async function getResourceChain(
       "cultivation",
       "harvesting",
       "fertilizer_application",
+      "fertilizer_plan",
       "soil_analysis",
       "soil_image",
       "barn",
@@ -1089,6 +1109,19 @@ async function getResourceChain(
         .limit(1)
       if (result.length === 0) {
         // Resource not found, return empty chain
+        return []
+      }
+      chain.push(...buildBeadsFromRow(result[0]))
+    } else if (resource === "fertilizer_plan") {
+      const result = await fdm
+        .select({
+          farm: schema.fertilizerPlanEstablishing.b_id_farm,
+          fertilizer_plan: schema.fertilizerPlanEstablishing.p_id_plan,
+        })
+        .from(schema.fertilizerPlanEstablishing)
+        .where(eq(schema.fertilizerPlanEstablishing.p_id_plan, resource_id))
+        .limit(1)
+      if (result.length === 0) {
         return []
       }
       chain.push(...buildBeadsFromRow(result[0]))
