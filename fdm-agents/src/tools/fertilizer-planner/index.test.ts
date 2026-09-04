@@ -628,6 +628,16 @@ describe("tool execute functions", () => {
       expect(result.fertilizers).toHaveLength(1)
     })
 
+    it("should prioritize config.configurable.b_id_farm over input b_id_farm", async () => {
+      ;(getFertilizers as any).mockResolvedValue([mockFertilizer])
+      const result = await getTool("searchFertilizers").invoke(
+        { b_id_farm: "wrong-farm-name" },
+        makeConfigurable({ b_id_farm: "farm-1" }),
+      )
+      expect(getFertilizers).toHaveBeenCalledWith(expect.anything(), "principal-1", "farm-1")
+      expect(result.fertilizers).toHaveLength(1)
+    })
+
     it("should expose p_type_rvo in the returned fertilizer fields", async () => {
       ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "115" }])
       const result = await getTool("searchFertilizers").invoke(
@@ -1203,6 +1213,15 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
       expect(result.fieldResults[0].fieldMetrics?.nBalanceError).toBe("N balance failed")
+    })
+
+    it("should prioritize config.configurable.b_id_farm over input b_id_farm", async () => {
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput({ b_id_farm: "wrong-farm-name" }),
+        makeConfigurable({ b_id_farm: "farm-1" }),
+      )
+      expect(getFertilizers).toHaveBeenCalledWith(expect.anything(), "principal-1", "farm-1")
+      expect(result.isValid).toBe(true)
     })
   })
 })
