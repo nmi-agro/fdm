@@ -541,7 +541,7 @@ export default function GerritApp() {
           ? (fertilizerOptions.map((f) => f.p_id_catalogue) as any)
           : undefined,
       additionalContext: "",
-      geminiModel: "gemini-3.6-flash",
+      geminiModel: "gemini-3.7-flash",
     },
     submitHandlers: {
       onValid: handleSubmit,

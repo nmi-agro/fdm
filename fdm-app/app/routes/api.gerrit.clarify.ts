@@ -32,7 +32,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     })
   }
 
-  const modelName = url.searchParams.get("geminiModel") || "gemini-3.6-flash"
+  const modelName = url.searchParams.get("geminiModel") || "gemini-3.7-flash"
 
   // Parse selectedFertilizerIds (allow only safe catalogue ID chars)
   const SAFE_ID = /^[A-Za-z0-9_-]+$/

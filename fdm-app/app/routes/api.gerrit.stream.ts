@@ -66,7 +66,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     includeRenure: url.searchParams.get("includeRenure") === "true",
   }
   const additionalContext = url.searchParams.get("additionalContext") || ""
-  const modelName = url.searchParams.get("geminiModel") || "gemini-3.6-flash"
+  const modelName = url.searchParams.get("geminiModel") || "gemini-3.7-flash"
 
   // Parse selectedFertilizerIds (allow only safe catalogue ID chars: alphanumeric, _, -)
   const SAFE_ID = /^[A-Za-z0-9_-]+$/
