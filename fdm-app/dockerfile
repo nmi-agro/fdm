@@ -87,6 +87,7 @@ COPY --from=builder --chown=user:nodejs /app/fdm-app/build ./fdm-app/build
 COPY --from=builder --chown=user:nodejs /app/fdm-app/app ./fdm-app/app
 COPY --from=builder --chown=user:nodejs /app/fdm-app/public ./fdm-app/public
 COPY --from=builder --chown=user:nodejs /app/fdm-app/instrument.server.mjs ./fdm-app/instrument.server.mjs
+COPY --from=builder --chown=user:nodejs /app/fdm-app/server.js ./fdm-app/server.js
 
 # Create uploads directory with correct ownership before switching to non-root user
 RUN mkdir -p /app/fdm-app/uploads/shapefiles && \
@@ -111,4 +112,4 @@ WORKDIR /app/fdm-app
 # dependency status check, which compares node_modules/.modules.yaml (written by
 # the builder running as root) against the runner's store path (non-root user) and
 # tries to purge + reinstall — failing because the runner has no pnpm store.
-CMD ["/bin/sh", "-c", "node ./app/lib/fdm-migrate.server.js && export NODE_OPTIONS='--import ./instrument.server.mjs' && exec ./node_modules/.bin/react-router-serve ./build/server/index.js"]
+CMD ["/bin/sh", "-c", "node ./app/lib/fdm-migrate.server.js && exec node ./server.js"]

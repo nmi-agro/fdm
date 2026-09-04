@@ -1,5 +1,23 @@
 # Changelog fdm-app
 
+## 0.36.2
+
+### Patch Changes
+
+- [#783](https://github.com/nmi-agro/fdm/pull/783) [`6338ac2`](https://github.com/nmi-agro/fdm/commit/6338ac2a769e7ddc9bcfd86049a0abc8427a968a) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the info popup on the fields atlas not rendering properly on touch screens sometimes.
+
+- [#783](https://github.com/nmi-agro/fdm/pull/783) [`1ad6b5c`](https://github.com/nmi-agro/fdm/commit/1ad6b5c324123ce5776e2c39396b63b083e25233) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Sort cut weight options (snedezwaarte) from light to heavy in grassland nutrient advice per cut.
+
+## 0.36.1
+
+### Patch Changes
+
+- [#786](https://github.com/nmi-agro/fdm/pull/786) [`ba7151c`](https://github.com/nmi-agro/fdm/commit/ba7151c5297e42b1d1167db06cce9f9f63434079) Thanks [@SvenVw](https://github.com/SvenVw)! - Fixed all POST actions returning `400 Bad Request` in production. `fdm-app` ran behind a TLS-terminating reverse proxy without Express `trust proxy` enabled, so `react-router-serve` always saw requests as plain `http://`. Since `react-router@8.3.1` tightened its single-fetch CSRF check to compare the full request origin (instead of just the host), the mismatch between the browser's `https://` `Origin` header and the server's reconstructed `http://` origin caused every action submission — including logout — to be rejected before the route's `action` ran.
+
+  Replaced `@react-router/serve` with a small custom Express server (`server.js`) that enables `trust proxy`, strips any incoming `X-Forwarded-Host` header (which the proxy does not set) to avoid host-header injection, and otherwise serves the app the same way `react-router-serve` did.
+
+  Also hardened error handling: `getThrownStatus` now recognises better-auth's `APIError` shape (`.statusCode`, not `.status`), and `/logout` now uses better-auth's `signOut` endpoint, which does not throw when the session is already invalid and always clears the session cookie, with a manual cookie-expiry fallback if it ever does throw unexpectedly.
+
 ## 0.36.0
 
 ### Minor Changes
