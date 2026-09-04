@@ -10,12 +10,12 @@ packages:
   - fdm-helpdesk
 
 catalog:
-  "@better-auth/api-key": 1.6.27
+  "@better-auth/api-key": 1.7.2
   jose: ^6.2.10
   "@dotenvx/dotenvx": ^2.22.0
   "@types/node": ^26.4.0
   "@vitest/coverage-v8": 4.1.11
-  better-auth: 1.6.27
+  better-auth: 1.7.2
   drizzle-kit: ^0.31.10
   drizzle-orm: ^0.45.2
   nanoid: ^6.0.1
