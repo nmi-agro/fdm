@@ -47,7 +47,7 @@ app.use(
 app.use(express.static("build/client", { maxAge: "1h" }))
 
 app.all(
-    "*",
+    "/{*splat}",
     createRequestHandler({
         build: () => import(BUILD_PATH),
         mode: process.env.NODE_ENV,
