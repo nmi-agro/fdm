@@ -75,10 +75,10 @@ export const handle = { hideNavigationProgress: true }
 
 export const meta: MetaFunction = () => {
   return [
-    { title: `Gerrit's Bemestingsplan | ${clientConfig.name}` },
+    { title: `Gerrit (AI-bemestingsassistent) | ${clientConfig.name}` },
     {
       name: "description",
-      content: "AI-gedreven bemestingsplan genereren",
+      content: "AI-beslissingsondersteunend systeem voor bemestingsplanning",
     },
   ]
 }
@@ -701,24 +701,26 @@ export default function GerritApp() {
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* ── Left column ── */}
             <div className="flex flex-col gap-6 lg:col-span-1">
-              {/* Research preview notice + daily usage counter */}
+              {/* AI system notice + daily usage counter */}
               <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <FlaskConical className="h-4 w-4 shrink-0 text-amber-600" />
-                    <p className="text-sm font-semibold text-amber-800">Experimenteel</p>
+                    <p className="text-sm font-semibold text-amber-800">
+                      AI-assistent (Experimenteel)
+                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowInfoDialog(true)}
-                    className="shrink-0 text-[11px] text-amber-700 hover:underline"
+                    className="shrink-0 text-[11px] font-medium text-amber-700 hover:underline"
                   >
-                    Meer info
+                    AI-transparantie
                   </button>
                 </div>
                 <p className="text-xs leading-relaxed text-amber-700">
-                  Gerrit is een vroege onderzoeksversie. De uitkomsten kunnen onjuist zijn —
-                  controleer altijd het gegenereerde plan.
+                  Gerrit is een AI-systeem. Uitkomsten zijn adviezen en dienen altijd door de teler
+                  of adviseur te worden gecontroleerd voordat ze in de praktijk worden toegepast.
                 </p>
                 {gerritUsage.limit !== null && (
                   <p className="text-xs font-medium text-amber-700">
@@ -801,9 +803,9 @@ export default function GerritApp() {
                     Gerrit staat voor je klaar
                   </h3>
                   <p className="text-muted-foreground max-w-lg leading-relaxed">
-                    Selecteer aan de linkerkant jouw bedrijfsvoorkeuren. Gerrit berekent een
-                    integraal bemestingsplan voor het hele bedrijf, rekening houdend met
-                    gebruiksnormen, bemestingsadvies en je voorkeuren.
+                    Selecteer aan de linkerkant jouw bedrijfsvoorkeuren. Als AI-assistent berekent
+                    Gerrit een integraal bemestingsplan voor het hele bedrijf, rekening houdend met
+                    wettelijke gebruiksnormen, bemestingsadvies en je voorkeuren.
                   </p>
                 </Card>
               )}
@@ -813,73 +815,116 @@ export default function GerritApp() {
       </SidebarInset>
       {blockerDialog}
       <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-lg">
               <Bot className="text-primary h-5 w-5" />
-              Hoe werkt Gerrit?
+              Hoe werkt Gerrit? (AI-transparantie)
             </DialogTitle>
             <DialogDescription>
-              Gerrit stelt een bemestingsplan op op basis van jouw gekozen strategie. Elk voorstel
-              wordt direct getoetst en doorloopt een cyclus van verbeteringen tot het plan optimaal
-              is.
+              Gerrit is een AI-beslissingsondersteunend systeem voor bemestingsplanning. Elk
+              voorstel wordt direct getoetst en doorloopt een iteratieve cyclus tot het plan
+              optimaal is.
             </DialogDescription>
           </DialogHeader>
-          <ol className="mt-2 space-y-4">
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                1
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Inventarisatie</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Eerst worden alle gegevens verzameld: je percelen, de gewassen, de bodemanalyses
-                  en welke meststoffen beschikbaar zijn.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                2
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Verduidelijkende vragen</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Als er onduidelijkheden zijn over je strategie of percelen, stelt Gerrit een paar
-                  gerichte vragen. Je kunt deze beantwoorden of overslaan.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                3
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Ontwerpen en controleren</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Gerrit maakt een eerste bemestingsplan en rekent dit direct door. Er wordt
-                  getoetst of het plan past binnen de gebruiksruimte en of de gewassen voldoende
-                  krijgen.
-                </p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                4
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Bijsturen tot het klopt</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Als het eerste ontwerp niet voldoet, past Gerrit het plan zelfstandig aan. Dit
-                  herhaalt zich tot er een agronomisch en wettelijk correct voorstel ligt.
-                </p>
-              </div>
-            </li>
-          </ol>
-          <p className="text-muted-foreground mt-2 text-xs italic">
-            Het uiteindelijke voorstel zie je op je scherm. Pas als je op 'Plan toepassen' klikt,
-            worden de bemestingen opgeslagen.
-          </p>
+
+          <div className="space-y-6 text-sm">
+            <div>
+              <h4 className="text-foreground mb-3 font-semibold">Stappenplan</h4>
+              <ol className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    1
+                  </div>
+                  <div>
+                    <p className="font-semibold">Inventarisatie</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Verzamelen van percelen, teelten, bodemanalyses en beschikbare meststoffen uit
+                      je bedrijf.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    2
+                  </div>
+                  <div>
+                    <p className="font-semibold">Verduidelijkende vragen</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Bij ambiguïteiten in de strategie stelt de AI gerichte keuzes voor die je kunt
+                      beantwoorden of overslaan.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    3
+                  </div>
+                  <div>
+                    <p className="font-semibold">Ontwerpen en controleren</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Genereren van een plan via LLM-redeneerstappen en deterministische berekening
+                      van wettelijke normen en NPK-adviezen.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 text-primary flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                    4
+                  </div>
+                  <div>
+                    <p className="font-semibold">Bijsturen tot het klopt</p>
+                    <p className="text-muted-foreground text-xs leading-relaxed">
+                      Zelfstandig verfijnen en simuleren tot het plan voldoet aan de wettelijke
+                      kaders en jouw bedrijfsstrategie.
+                    </p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="text-foreground mb-2 font-semibold">
+                AI & Transparantieverantwoording
+              </h4>
+              <ul className="text-muted-foreground space-y-2 text-xs">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">AI-systeem:</strong> Gerrit is een
+                    kunstmatige intelligentie (AI) en geen menselijke adviseur. Uitkomsten zijn
+                    niet-bindende adviezen.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">Reasoner-Verifier architectuur:</strong>{" "}
+                    Generatieve AI redeneert over de verdeling en strategie, terwijl harde
+                    rekenregels en wetgeving (RVO-normen en NMI-bemestingsadviezen) deterministisch
+                    worden berekend.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">Gegevensbescherming:</strong>{" "}
+                    Bedrijfsgegevens worden verwerkt via beveiligde API-verbindingen onder een Zero
+                    Data Retention (ZDR) overeenkomst en worden niet opgeslagen door de
+                    modelaanbieder of gebruikt voor modeltraining.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary font-bold">•</span>
+                  <span>
+                    <strong className="text-foreground">Jij beslist:</strong> Je beslist altijd zelf
+                    of je het voorgestelde plan wilt gebruiken. Pas na jouw controle en het klikken
+                    op 'Plan toepassen' wordt het plan definitief opgeslagen.
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

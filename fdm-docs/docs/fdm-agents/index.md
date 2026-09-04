@@ -12,7 +12,7 @@ The FDM Agents are designed to be a collaborative partner. Rather than a "black 
 
 ## Current Agent: Gerrit (Fertilizer Application Planner)
 
-The primary agent currently available is **Gerrit**, an expert Dutch agronomist designed to generate agronomically sound and legally compliant fertilizer plans for Dutch farms.
+The primary agent currently available is **Gerrit**, an AI-driven fertilizer planning assistant and expert Dutch agronomist designed to generate agronomically sound and legally compliant fertilizer plans for Dutch farms.
 
 ### Overview
 
@@ -26,7 +26,7 @@ The FDM Agents framework is built to be extensible. Future iterations will intro
 
 The FDM Agents package follows a "separation of concerns" architecture known as the **Reasoner-Verifier Architecture**:
 
-1. **Reasoning (The LLM)**: The LLM (Gemini) acts as the brain. It formulates strategies, selects fertilizers, and iterates on the plan based on feedback.
+1. **Reasoning (The LLM)**: The default foundation model is **Gemini 3.7 Flash** (configured with hybrid reasoning and thought streaming via `thinkingConfig: { includeThoughts: true }`). It acts as the brain: formulating strategies, selecting fertilizers, and iterating on the plan based on feedback.
 2. **Deterministic Calculation (The Tools)**: All legal and agronomic calculations are handled by the `fdm-calculator` through a set of TypeScript tools. The LLM never performs arithmetic itself; instead, it asks the **Verifier** (the tools) for the exact results of its proposed actions.
 
 ### Available Tools

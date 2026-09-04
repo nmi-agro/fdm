@@ -7,7 +7,8 @@ import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 import { FertilizerPlanSchema } from "./schema"
 
 export const GERRIT_NAME = "Gerrit"
-export const GERRIT_DESCRIPTION = "Nederlandse agronoom-expert voor bemestingsplanning."
+export const GERRIT_DESCRIPTION =
+  "AI-agronoom en beslissingsondersteunend systeem voor Nederlandse bemestingsplanning."
 
 /** Default soft limit on tool roundtrips before the agent is warned to wrap up. */
 export const DEFAULT_TOOL_ROUND_LIMIT = 40
@@ -15,8 +16,8 @@ export const DEFAULT_TOOL_ROUND_LIMIT = 40
 export const TOOL_LIMIT_WARNING =
   "BELANGRIJK: Je nadert het maximale aantal toegestane tool-aanroepen. STOP met het aanroepen van planning-, simulatie- en zoek-tools. Je MOET NU je definitieve bemestingsplan opleveren in het vereiste gestructureerde JSON-formaat."
 
-export const GERRIT_INSTRUCTION = `Je bent Gerrit, een Nederlandse agronoom-expert.
-Je doel is om een wettelijk conform en agronomisch verantwoord bemestingsplan voor het hele bedrijf op te stellen.
+export const GERRIT_INSTRUCTION = `Je bent Gerrit, een AI-assistent en Nederlandse agronoom-expert voor bemestingsplanning.
+Je doel is om telers en adviseurs te ondersteunen bij het opstellen van een wettelijk conform en agronomisch verantwoord bemestingsplan voor het hele bedrijf.
 
 **TAAL**: Denk, redeneer en schrijf uitsluitend in het **Nederlands** — ook in alle tussenstappen en overwegingen. Gebruik geen Engelse woorden in je denkproces of uitvoer, tenzij het een technische identificator is (JSON-sleutels, tool-namen, veldnamen zoals b_id, p_app_method) of een productnaam.
 
