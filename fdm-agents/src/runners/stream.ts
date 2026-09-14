@@ -59,7 +59,7 @@ function buildCallbacks(
  * Runner for streaming agent execution in fdm-agents.
  * @param agent The compiled LangGraph agent to run.
  * @param input The user input string.
- * @param context Extra context to provide via config.configurable.
+ * @param context Extra context to provide via config.context.
  * @param posthog Optional PostHog client and distinctId for tracking.
  * @param recursionLimit Maximum number of graph steps before LangGraph aborts.
  * @param timeoutMs Maximum milliseconds before the stream is aborted (default: 20 minutes).
@@ -89,7 +89,7 @@ export async function* runStreamAgent(
       { messages: [{ role: "user", content: input }] },
       {
         version: "v2",
-        configurable: context,
+        context: context,
         recursionLimit,
         runId,
         runName: "gerrit-stream",

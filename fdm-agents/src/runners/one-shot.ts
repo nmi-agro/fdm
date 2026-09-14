@@ -73,7 +73,7 @@ function buildCallbacks(
  * Common runner for one-shot agent execution in fdm-agents.
  * @param agent The compiled LangGraph agent to run.
  * @param input The user input string.
- * @param context Extra context to provide via config.configurable (e.g. principalId, nmiApiKey).
+ * @param context Extra context to provide via config.context (e.g. principalId, nmiApiKey).
  * @param posthog Optional PostHog client and distinctId for tracking.
  * @param timeoutMs Maximum milliseconds to wait for the agent to complete (default: 20 minutes). Throws AgentTimeoutError on expiry.
  * @param recursionLimit Maximum number of graph steps before LangGraph aborts (default: 100). Each LLM↔tool round-trip is ~2 steps.
@@ -112,7 +112,7 @@ export async function runOneShotAgent(
     const stream = (await agent.stream(
       { messages: [{ role: "user", content: input }] },
       {
-        configurable: context,
+        context: context,
         recursionLimit,
         runId,
         streamMode: ["updates", "custom"],

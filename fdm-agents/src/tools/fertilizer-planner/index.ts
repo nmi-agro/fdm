@@ -71,8 +71,8 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    */
   const getFarmFieldsTool = tool(
     async (input, config) => {
-      const principalId = config?.configurable?.principalId as PrincipalId
-      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
+      const principalId = config?.context?.principalId as PrincipalId
+      const b_id_farm = config?.context?.b_id_farm as string | undefined
       if (!principalId || !b_id_farm) {
         throw new Error("Missing principalId in agent context")
       }
@@ -129,20 +129,19 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    */
   const getFarmNutrientAdviceTool = tool(
     async (input, config) => {
-      const principalId = config?.configurable?.principalId as PrincipalId | undefined
-      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
+      const principalId = config?.context?.principalId as PrincipalId | undefined
+      const b_id_farm = config?.context?.b_id_farm as string | undefined
       if (!principalId || !b_id_farm) {
         throw new Error("Missing principalId in agent context")
       }
-      const calendar =
-        (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
+      const calendar = (config?.context?.calendar as string) || new Date().getFullYear().toString()
       const timeframe = {
         start: new Date(`${calendar}-01-01`),
         end: new Date(`${calendar}-12-31`),
       }
 
       // nmiApiKey is injected server-side via context state — never exposed to the LLM.
-      const nmiApiKey = config?.configurable?.nmiApiKey as string | undefined
+      const nmiApiKey = config?.context?.nmiApiKey as string | undefined
       if (!nmiApiKey) {
         throw new Error("Missing nmiApiKey in agent context")
       }
@@ -216,13 +215,12 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    */
   const getFarmLegalNormsTool = tool(
     async (input, config?) => {
-      const principalId = config?.configurable?.principalId as PrincipalId | undefined
-      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
+      const principalId = config?.context?.principalId as PrincipalId | undefined
+      const b_id_farm = config?.context?.b_id_farm as string | undefined
       if (!principalId || !b_id_farm) {
         throw new Error("Missing principalId in agent context")
       }
-      const calendar =
-        (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
+      const calendar = (config?.context?.calendar as string) || new Date().getFullYear().toString()
 
       const normFunctions = createFunctionsForNorms("NL", calendar as any)
       const results = await Promise.all(
@@ -270,8 +268,8 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
   const searchFertilizersTool = tool(
     async (input, config) => {
       const args = input
-      const principalId = config?.configurable?.principalId as PrincipalId
-      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
+      const principalId = config?.context?.principalId as PrincipalId
+      const b_id_farm = config?.context?.b_id_farm as string | undefined
 
       if (!fdm || !principalId || !b_id_farm) {
         return { fertilizers: [] }
@@ -281,7 +279,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       let results = [...farmFertilizers]
 
       // Restrict to the user-selected fertilizers if provided (non-empty list only).
-      const allowedIds = config?.configurable?.allowedFertilizerCatalogueIds as string[] | undefined
+      const allowedIds = config?.context?.allowedFertilizerCatalogueIds as string[] | undefined
       if (allowedIds && allowedIds.length > 0) {
         results = results.filter((f) => allowedIds.includes(f.p_id_catalogue))
       }
@@ -290,9 +288,9 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       // of using them for this plan. Only meaningful from calendar year 2026 onwards — before
       // then, these codes are legally just regular animal manure with no separate Renure
       // classification, so the toggle must never filter them out for earlier years.
-      const includeRenure = config?.configurable?.includeRenure as boolean | undefined
+      const includeRenure = config?.context?.includeRenure as boolean | undefined
       const calendarForRenure =
-        (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
+        (config?.context?.calendar as string) || new Date().getFullYear().toString()
       if (includeRenure === false && Number.parseInt(calendarForRenure, 10) >= 2026) {
         results = results.filter((f) => !isRenureRvoCode(f.p_type_rvo))
       }
@@ -357,11 +355,10 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
   const simulateFarmPlanTool = tool(
     async (input, config?) => {
       const args = input
-      const principalId = config?.configurable?.principalId as PrincipalId
-      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
-      const calendar =
-        (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
-      const nmiApiKey = config?.configurable?.nmiApiKey as string | undefined
+      const principalId = config?.context?.principalId as PrincipalId
+      const b_id_farm = config?.context?.b_id_farm as string | undefined
+      const calendar = (config?.context?.calendar as string) || new Date().getFullYear().toString()
+      const nmiApiKey = config?.context?.nmiApiKey as string | undefined
 
       if (!fdm || !principalId || !b_id_farm) {
         throw new Error("Database connection or Farm ID missing")

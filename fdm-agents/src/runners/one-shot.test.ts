@@ -121,7 +121,7 @@ describe("runOneShotAgent", () => {
     expect(result.result).toBe("Done.")
     expect(agent.stream).toHaveBeenCalledWith(
       expect.objectContaining({ messages: expect.any(Array) }),
-      expect.objectContaining({ configurable: context }),
+      expect.objectContaining({ context: context }),
     )
   })
 

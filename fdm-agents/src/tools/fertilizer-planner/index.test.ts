@@ -101,9 +101,9 @@ const mockDosage = {
   },
 }
 
-function makeConfigurable(overrides: Record<string, any> = {}) {
+function makeContext(overrides: Record<string, any> = {}) {
   return {
-    configurable: {
+    context: {
       principalId: "principal-1",
       calendar: "2025",
       b_id_farm: "farm-1",
@@ -370,7 +370,7 @@ describe("tool execute functions", () => {
   // ── getFarmFields ────────────────────────────────────────────────────────
   describe("getFarmFields", () => {
     it("should return fields with soil params and cultivation details", async () => {
-      const result = await getTool("getFarmFields").invoke({ calendar: "2025" }, makeConfigurable())
+      const result = await getTool("getFarmFields").invoke({ calendar: "2025" }, makeContext())
       expect(result.fields).toHaveLength(1)
       expect(result.fields[0].b_id).toBe("field-1")
       expect(result.fields[0].b_lu_catalogue).toBe("nl_265")
@@ -387,7 +387,7 @@ describe("tool execute functions", () => {
           b_lu_end: "2025-12-31",
         },
       ])
-      const result = await getTool("getFarmFields").invoke({ calendar: "2025" }, makeConfigurable())
+      const result = await getTool("getFarmFields").invoke({ calendar: "2025" }, makeContext())
       expect(result.fields[0].b_lu_catalogue).toBeNull()
       expect(result.fields[0].b_lu_start).toBeNull()
     })
@@ -398,7 +398,7 @@ describe("tool execute functions", () => {
     it("should return advice when mainLu is found", async () => {
       const result = await getTool("getFarmNutrientAdvice").invoke(
         { b_ids: ["field-1"] },
-        makeConfigurable({ nmiApiKey: "test-key" }),
+        makeContext({ nmiApiKey: "test-key" }),
       )
       expect(result.advicePerField).toHaveLength(1)
       expect(result.advicePerField[0].b_id).toBe("field-1")
@@ -438,7 +438,7 @@ describe("tool execute functions", () => {
 
       const result = await getTool("getFarmNutrientAdvice").invoke(
         { b_ids: ["field-1"] },
-        makeConfigurable({ nmiApiKey: "test-key" }),
+        makeContext({ nmiApiKey: "test-key" }),
       )
 
       expect(result.advicePerField[0].advice).toEqual({
@@ -451,7 +451,7 @@ describe("tool execute functions", () => {
       await expect(
         getTool("getFarmNutrientAdvice").invoke(
           { b_ids: ["field-1"] },
-          { configurable: { nmiApiKey: "test-key" } },
+          { context: { nmiApiKey: "test-key" } },
         ),
       ).rejects.toThrow("Missing principalId in agent context")
       expect(getField).not.toHaveBeenCalled()
@@ -461,7 +461,7 @@ describe("tool execute functions", () => {
 
     it("should throw before fetching fields when nmiApiKey is missing", async () => {
       await expect(
-        getTool("getFarmNutrientAdvice").invoke({ b_ids: ["field-1"] }, makeConfigurable()),
+        getTool("getFarmNutrientAdvice").invoke({ b_ids: ["field-1"] }, makeContext()),
       ).rejects.toThrow("Missing nmiApiKey in agent context")
       expect(getField).not.toHaveBeenCalled()
       expect(getCultivations).not.toHaveBeenCalled()
@@ -478,7 +478,7 @@ describe("tool execute functions", () => {
       ])
       const result = await getTool("getFarmNutrientAdvice").invoke(
         { b_ids: ["field-1"] },
-        makeConfigurable({ nmiApiKey: "test-key" }),
+        makeContext({ nmiApiKey: "test-key" }),
       )
       expect(result.advicePerField[0].advice).toBeNull()
       expect(getNutrientAdvice).not.toHaveBeenCalled()
@@ -496,7 +496,7 @@ describe("tool execute functions", () => {
 
       const result = await getTool("getFarmNutrientAdvice").invoke(
         { b_ids: ["field-1"] },
-        makeConfigurable({ nmiApiKey: "test-key" }),
+        makeContext({ nmiApiKey: "test-key" }),
       )
 
       expect(result.advicePerField[0]).toMatchObject({
@@ -513,7 +513,7 @@ describe("tool execute functions", () => {
     it("should return norms per field", async () => {
       const result = await getTool("getFarmLegalNorms").invoke(
         { b_ids: ["field-1"] },
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.normsPerField).toHaveLength(1)
       expect(result.normsPerField[0].b_id).toBe("field-1")
@@ -528,13 +528,13 @@ describe("tool execute functions", () => {
     it("should return empty array when principalId is missing", async () => {
       const result = await getTool("searchFertilizers").invoke(
         {},
-        { configurable: { b_id_farm: "farm-1" } },
+        { context: { b_id_farm: "farm-1" } },
       )
       expect(result.fertilizers).toEqual([])
     })
 
     it("should return all fertilizers when no filter is applied", async () => {
-      const result = await getTool("searchFertilizers").invoke({}, makeConfigurable())
+      const result = await getTool("searchFertilizers").invoke({}, makeContext())
       expect(result.fertilizers).toHaveLength(1)
       expect(result.fertilizers[0].p_id_catalogue).toBe("fert-1")
     })
@@ -548,10 +548,7 @@ describe("tool execute functions", () => {
           p_type: "manure",
         },
       ])
-      const result = await getTool("searchFertilizers").invoke(
-        { p_type: "manure" },
-        makeConfigurable(),
-      )
+      const result = await getTool("searchFertilizers").invoke({ p_type: "manure" }, makeContext())
       expect(result.fertilizers).toHaveLength(1)
       expect(result.fertilizers[0].p_id_catalogue).toBe("manure-1")
     })
@@ -566,32 +563,29 @@ describe("tool execute functions", () => {
           p_type: "compost",
         },
       ])
-      const result = await getTool("searchFertilizers").invoke(
-        { query: "compost" },
-        makeConfigurable(),
-      )
+      const result = await getTool("searchFertilizers").invoke({ query: "compost" }, makeContext())
       expect(result.fertilizers).toHaveLength(1)
       expect(result.fertilizers[0].p_id_catalogue).toBe("compost-1")
     })
 
-    it("should return empty array when b_id_farm is missing from configurable", async () => {
+    it("should return empty array when b_id_farm is missing from context", async () => {
       const result = await getTool("searchFertilizers").invoke(
         {},
-        makeConfigurable({ b_id_farm: undefined }),
+        makeContext({ b_id_farm: undefined }),
       )
       expect(result.fertilizers).toEqual([])
     })
 
-    it("should use b_id_farm from configurable", async () => {
+    it("should use b_id_farm from context", async () => {
       const result = await getTool("searchFertilizers").invoke(
         {},
-        makeConfigurable({ b_id_farm: "farm-1" }),
+        makeContext({ b_id_farm: "farm-1" }),
       )
       expect(result.fertilizers).toHaveLength(1)
       expect(getFertilizers).toHaveBeenCalledWith(mockFdm, "principal-1", "farm-1")
     })
 
-    it("should filter by allowedFertilizerCatalogueIds from configurable", async () => {
+    it("should filter by allowedFertilizerCatalogueIds from context", async () => {
       ;(getFertilizers as any).mockResolvedValue([
         mockFertilizer,
         {
@@ -603,7 +597,7 @@ describe("tool execute functions", () => {
       ])
       const result = await getTool("searchFertilizers").invoke(
         {},
-        makeConfigurable({ allowedFertilizerCatalogueIds: ["fert-2"] }),
+        makeContext({ allowedFertilizerCatalogueIds: ["fert-2"] }),
       )
       expect(result.fertilizers).toHaveLength(1)
       expect(result.fertilizers[0].p_id_catalogue).toBe("fert-2")
@@ -612,14 +606,14 @@ describe("tool execute functions", () => {
     it("should return all fertilizers when allowedFertilizerCatalogueIds is empty", async () => {
       const result = await getTool("searchFertilizers").invoke(
         {},
-        makeConfigurable({ allowedFertilizerCatalogueIds: [] }),
+        makeContext({ allowedFertilizerCatalogueIds: [] }),
       )
       expect(result.fertilizers).toHaveLength(1)
     })
 
     it("should expose p_type_rvo in the returned fertilizer fields", async () => {
       ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "115" }])
-      const result = await getTool("searchFertilizers").invoke({}, makeConfigurable())
+      const result = await getTool("searchFertilizers").invoke({}, makeContext())
       expect(result.fertilizers[0].p_type_rvo).toBe("115")
     })
 
@@ -630,7 +624,7 @@ describe("tool execute functions", () => {
       ])
       const result = await getTool("searchFertilizers").invoke(
         {},
-        makeConfigurable({ calendar: "2026", includeRenure: false }),
+        makeContext({ calendar: "2026", includeRenure: false }),
       )
       expect(result.fertilizers.map((f: any) => f.p_id_catalogue)).toEqual(["fert-mineral"])
     })
@@ -642,7 +636,7 @@ describe("tool execute functions", () => {
       ])
       const result = await getTool("searchFertilizers").invoke(
         {},
-        makeConfigurable({ calendar: "2025", includeRenure: false }),
+        makeContext({ calendar: "2025", includeRenure: false }),
       )
       expect(result.fertilizers.map((f: any) => f.p_id_catalogue).sort()).toEqual([
         "fert-mineral",
@@ -656,7 +650,7 @@ describe("tool execute functions", () => {
       ])
       const result = await getTool("searchFertilizers").invoke(
         {},
-        makeConfigurable({ calendar: "2026", includeRenure: true }),
+        makeContext({ calendar: "2026", includeRenure: true }),
       )
       expect(result.fertilizers).toHaveLength(1)
     })
@@ -668,7 +662,7 @@ describe("tool execute functions", () => {
       // Pass an unknown code so the skill resolves a non-existent path
       const result = await getTool("getCropFertilizerGuide").invoke(
         { b_lu_catalogues: [] },
-        makeConfigurable(),
+        makeContext(),
       )
       // Either index-not-found or no-matching-codes fallback is acceptable
       expect(result.guide).toBeTruthy()
@@ -678,7 +672,7 @@ describe("tool execute functions", () => {
     it("should return no-match fallback for unrecognised crop codes", async () => {
       const result = await getTool("getCropFertilizerGuide").invoke(
         { b_lu_catalogues: ["nl_99999_unknown"] },
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.matchedCrops).toEqual([])
     })
@@ -686,7 +680,7 @@ describe("tool execute functions", () => {
     it("should return guide content for known crop codes", async () => {
       const result = await getTool("getCropFertilizerGuide").invoke(
         { b_lu_catalogues: ["nl_265"] },
-        makeConfigurable(),
+        makeContext(),
       )
       // nl_265 = grasland, should match grasland.md in skills
       if (result.matchedCrops.length > 0) {
@@ -701,25 +695,22 @@ describe("tool execute functions", () => {
 
   // ── simulateFarmPlan ─────────────────────────────────────────────────────
   describe("simulateFarmPlan", () => {
-    it("should throw when principalId is missing in configurable", async () => {
+    it("should throw when principalId is missing in context", async () => {
       await expect(
         getTool("simulateFarmPlan").invoke(makeSimInput(), {
-          configurable: {},
+          context: {},
         }),
       ).rejects.toThrow("Database connection or Farm ID missing")
     })
 
-    it("should throw when b_id_farm is missing from configurable", async () => {
+    it("should throw when b_id_farm is missing from context", async () => {
       await expect(
-        getTool("simulateFarmPlan").invoke(
-          makeSimInput(),
-          makeConfigurable({ b_id_farm: undefined }),
-        ),
+        getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext({ b_id_farm: undefined })),
       ).rejects.toThrow("Database connection or Farm ID missing")
     })
 
     it("should return valid result for a compliant plan", async () => {
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.isValid).toBe(true)
       expect(result.complianceIssues).toHaveLength(0)
       expect(result.fieldResults).toHaveLength(1)
@@ -734,7 +725,7 @@ describe("tool execute functions", () => {
         b_bufferstrip: true,
         b_centroid: [5.2, 52.1],
       })
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues[0]).toContain("Bufferstrook-overtreding")
       expect(result.fieldResults[0].isBufferStripViolation).toBe(true)
@@ -742,7 +733,7 @@ describe("tool execute functions", () => {
 
     it("should return invalid field result when fertilizer is not found in inventory", async () => {
       ;(getFertilizers as any).mockResolvedValue([])
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.fieldResults[0].isValid).toBe(false)
       expect(result.fieldResults[0].error).toContain("not found in farm inventory")
     })
@@ -751,14 +742,14 @@ describe("tool execute functions", () => {
       ;(getFertilizers as any).mockResolvedValue([
         { ...mockFertilizer, p_app_method_options: ["injection"] },
       ])
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.fieldResults[0].isValid).toBe(false)
       expect(result.fieldResults[0].error).toContain("Invalid application method")
     })
 
     it("should accept any method when p_app_method_options is empty", async () => {
       ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_app_method_options: [] }])
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.isValid).toBe(true)
     })
 
@@ -782,7 +773,7 @@ describe("tool execute functions", () => {
             },
           ],
         }),
-        makeConfigurable({ nmiApiKey: "test-key" }),
+        makeContext({ nmiApiKey: "test-key" }),
       )
 
       expect(getNutrientAdvice).not.toHaveBeenCalled()
@@ -798,7 +789,7 @@ describe("tool execute functions", () => {
         nitrogen: 200,
         phosphate: 50,
       })
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues.some((i: string) => i.includes("Mest-N"))).toBe(true)
     })
@@ -809,7 +800,7 @@ describe("tool execute functions", () => {
         nitrogen: 3000,
         phosphate: 50,
       })
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues.some((i: string) => i.includes("Werkzame N"))).toBe(true)
     })
@@ -820,7 +811,7 @@ describe("tool execute functions", () => {
         nitrogen: 200,
         phosphate: 1000,
       })
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues.some((i: string) => i.includes("Fosfaat"))).toBe(true)
     })
@@ -828,7 +819,7 @@ describe("tool execute functions", () => {
     it("should report organic farming strategy violation for mineral fertilizer", async () => {
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { isOrganic: true } }),
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues.some((i: string) => i.includes("Biologische teelt"))).toBe(
@@ -842,7 +833,7 @@ describe("tool execute functions", () => {
       ])
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { isDerogation: true } }),
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues.some((i: string) => i.includes("Derogatie"))).toBe(true)
@@ -864,7 +855,7 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { includeRenure: false } }),
-        { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
+        { context: { ...makeContext().context, calendar: "2026" } },
       )
       expect(result.isValid).toBe(false)
       expect(result.complianceIssues.some((i: string) => i.includes("Renure"))).toBe(true)
@@ -884,7 +875,7 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { includeRenure: false } }),
-        { configurable: { ...makeConfigurable().configurable, calendar: "2025" } },
+        { context: { ...makeContext().context, calendar: "2025" } },
       )
       expect(result.complianceIssues.some((i: string) => i.includes("Renure"))).toBe(false)
     })
@@ -905,7 +896,7 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { includeRenure: true } }),
-        { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
+        { context: { ...makeContext().context, calendar: "2026" } },
       )
       expect(result.complianceIssues.some((i: string) => i.includes("Renure"))).toBe(false)
     })
@@ -926,7 +917,7 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { includeRenure: true } }),
-        { configurable: { ...makeConfigurable().configurable, calendar: "2026" } },
+        { context: { ...makeContext().context, calendar: "2026" } },
       )
       expect(result.isValid).toBe(false)
       expect(
@@ -945,7 +936,7 @@ describe("tool execute functions", () => {
         makeSimInput({
           strategies: { keepNitrogenBalanceBelowTarget: true },
         }),
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.agronomicWarnings.some((w: string) => w.includes("Stikstofdoel"))).toBe(true)
     })
@@ -993,7 +984,7 @@ describe("tool execute functions", () => {
             },
           ],
         }),
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.agronomicWarnings.some((w: string) => w.includes("Bouwplanniveau"))).toBe(true)
     })
@@ -1041,7 +1032,7 @@ describe("tool execute functions", () => {
             },
           ],
         }),
-        makeConfigurable(),
+        makeContext(),
       )
       // Same applications → no rotation mismatch warning
       expect(result.agronomicWarnings.some((w: string) => w.includes("Bouwplanniveau"))).toBe(false)
@@ -1056,7 +1047,7 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { reduceAmmoniaEmissions: true } }),
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.agronomicWarnings.some((w: string) => w.includes("Ammoniakreductie"))).toBe(
         true,
@@ -1067,7 +1058,7 @@ describe("tool execute functions", () => {
       // Default mock: emission total = -2, supply = 100 → 2% < 30%
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { reduceAmmoniaEmissions: true } }),
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.agronomicWarnings.some((w: string) => w.includes("Ammoniakreductie"))).toBe(
         false,
@@ -1082,7 +1073,7 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput({ strategies: { fillManureSpace: true } }),
-        makeConfigurable(),
+        makeContext(),
       )
       expect(result.agronomicWarnings.some((w: string) => w.includes("Mestruimte vullen"))).toBe(
         true,
@@ -1094,14 +1085,14 @@ describe("tool execute functions", () => {
         balance: -50,
         supply: { fertilizers: { total: 0 } },
       })
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.agronomicWarnings.some((w: string) => w.includes("Organische stof"))).toBe(true)
     })
 
     it("should fetch nutrient advice when nmiApiKey is provided", async () => {
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput(),
-        makeConfigurable({ nmiApiKey: "test-nmi-key" }),
+        makeContext({ nmiApiKey: "test-nmi-key" }),
       )
       expect(getNutrientAdvice).toHaveBeenCalled()
       expect(result.fieldResults[0].fieldMetrics?.advice).toEqual({
@@ -1132,7 +1123,7 @@ describe("tool execute functions", () => {
       // mockDosage has p_dose_nw: 20, advice has d_n_req: 100 -> 80 kg/ha shortfall (> 5%)
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput(),
-        makeConfigurable({ nmiApiKey: "test-nmi-key" }),
+        makeContext({ nmiApiKey: "test-nmi-key" }),
       )
       expect(
         result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort (Stikstof)")),
@@ -1145,7 +1136,7 @@ describe("tool execute functions", () => {
       })
       const result = await getTool("simulateFarmPlan").invoke(
         makeSimInput(),
-        makeConfigurable({ nmiApiKey: "test-nmi-key" }),
+        makeContext({ nmiApiKey: "test-nmi-key" }),
       )
       expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(
         false,
@@ -1154,7 +1145,7 @@ describe("tool execute functions", () => {
 
     it("should not warn about nutrient advice shortfall when no advice is available", async () => {
       // No nmiApiKey configured -> advice stays null/skipped.
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.agronomicWarnings.some((w: string) => w.includes("Agronomisch tekort"))).toBe(
         false,
       )
@@ -1164,7 +1155,7 @@ describe("tool execute functions", () => {
       ;(calculateOrganicMatterBalanceField as any).mockImplementation(() => {
         throw new Error("OM calculation failed")
       })
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.fieldResults[0].fieldMetrics?.omBalanceError).toBe("OM calculation failed")
     })
 
@@ -1172,7 +1163,7 @@ describe("tool execute functions", () => {
       ;(calculateNitrogenBalanceField as any).mockImplementation(() => {
         throw new Error("N balance failed")
       })
-      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeConfigurable())
+      const result = await getTool("simulateFarmPlan").invoke(makeSimInput(), makeContext())
       expect(result.fieldResults[0].fieldMetrics?.nBalanceError).toBe("N balance failed")
     })
   })
