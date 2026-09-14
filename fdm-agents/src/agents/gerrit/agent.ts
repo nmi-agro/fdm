@@ -5,6 +5,8 @@ import { createAgent, dynamicSystemPromptMiddleware, toolStrategy } from "langch
 import z from "zod"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
+import { FdmAgent } from "../../types"
+import { isValidAgent } from "../../util"
 import { FertilizerPlanSchema } from "./schema"
 
 export const GERRIT_NAME = "Gerrit"
@@ -260,24 +262,6 @@ export function countToolRoundtrips(messages: readonly BaseMessage[]): number {
 }
 
 /**
- * Minimal interface for an agent that can be streamed through runOneShotAgent.
- * Using an explicit structural type prevents leaking internal fdm-calculator
- * types (e.g. DierlijkeMestGebruiksnormResult) into the package's declaration files.
- */
-export type AgentGraph = {
-  stream(input: unknown, options?: unknown): Promise<AsyncIterable<unknown>>
-  streamEvents(input: unknown, options?: unknown): AsyncIterable<unknown>
-}
-
-function isAgentGraph(obj: unknown): obj is AgentGraph {
-  return (
-    obj != null &&
-    typeof (obj as AgentGraph).stream === "function" &&
-    typeof (obj as AgentGraph).streamEvents === "function"
-  )
-}
-
-/**
  * Context schema such that LangChain throws an error before even reaching for the LLM.
  */
 const contextSchema = z.object({
@@ -297,7 +281,7 @@ export function createFertilizerPlannerAgent(
   apiKey?: string,
   modelName?: string,
   toolRoundLimit: number = DEFAULT_TOOL_ROUND_LIMIT,
-): AgentGraph {
+): FdmAgent<typeof contextSchema> {
   const resolvedKey = apiKey ?? process.env.GEMINI_API_KEY
   if (!resolvedKey) {
     throw new Error(
@@ -320,7 +304,7 @@ export function createFertilizerPlannerAgent(
     contextSchema: contextSchema,
     middleware: [toolLimitMiddleware],
   })
-  if (!isAgentGraph(result)) {
+  if (!isValidAgent(result)) {
     throw new Error(
       "createAgent did not return an object with callable stream and streamEvents methods.",
     )

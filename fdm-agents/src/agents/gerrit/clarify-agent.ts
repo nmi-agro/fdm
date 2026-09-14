@@ -2,6 +2,7 @@ import type { FdmType } from "@nmi-agro/fdm-core"
 import { createAgent, dynamicSystemPromptMiddleware, toolStrategy } from "langchain"
 import { createDefaultModel } from "../../models/default"
 import { createClarifyAgentTools } from "../../tools/fertilizer-planner"
+import { isValidAgent } from "../../util"
 import { ClarifyingQuestionsSchema } from "./clarify-schema"
 
 export const CLARIFY_NAME = "Gerrit Verduidelijking"
@@ -55,14 +56,6 @@ Elke vraag moet:
 Geef een JSON-object terug met een "questions"-lijst (0–5 vragen). Geef een lege lijst als er geen wezenlijke ambiguïteiten zijn.
 `
 
-function isAgentGraph(obj: unknown): obj is { stream: Function; streamEvents: Function } {
-  return (
-    obj != null &&
-    typeof (obj as any).stream === "function" &&
-    typeof (obj as any).streamEvents === "function"
-  )
-}
-
 /**
  * Creates the Gerrit clarification agent.
  * Uses all planner tools except simulateFarmPlan.
@@ -86,7 +79,7 @@ export function createClarifyAgent(fdm: FdmType, apiKey?: string, modelName?: st
     middleware: [systemPromptMiddleware],
   })
 
-  if (!isAgentGraph(result)) {
+  if (!isValidAgent(result)) {
     throw new Error("createAgent did not return an object with a callable stream method.")
   }
   return result as { stream: Function; streamEvents: Function }

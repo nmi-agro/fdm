@@ -4,8 +4,7 @@ import { createFertilizerPlannerAgent } from "./agents/gerrit/agent"
 import { createClarifyAgent } from "./agents/gerrit/clarify-agent"
 import { runOneShotAgent } from "./runners/one-shot"
 import { getMainCultivation } from "./tools/fertilizer-planner"
-
-export type { AgentGraph } from "./agents/gerrit/agent"
+export type { FdmAgent } from "./types"
 export type {
   ClarificationAnswer,
   ClarifyingQuestion,
@@ -227,19 +226,13 @@ export async function generateFarmFertilizerPlan(
     providedContext,
     fieldsSummary,
   )
-  return (
-    await runOneShotAgent(
-      agent,
-      input,
-      {
-        principalId,
-        b_id_farm: farmData.b_id_farm,
-        calendar,
-        nmiApiKey,
-        strategies: validatedStrategies,
-        additionalContext: providedContext,
-      },
-      posthog,
-    )
-  ).result
+  const agentContext = {
+    principalId: String(principalId),
+    b_id_farm: farmData.b_id_farm,
+    calendar,
+    nmiApiKey,
+    strategies: validatedStrategies,
+    additionalContext: providedContext,
+  }
+  return (await runOneShotAgent(agent, input, agentContext, posthog)).result
 }

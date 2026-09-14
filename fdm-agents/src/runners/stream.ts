@@ -1,6 +1,7 @@
+import type { InferContextInput } from "langchain"
 import { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import { randomUUID } from "node:crypto"
-import type { AgentGraph } from "../agents/gerrit/agent"
+import type { BaseContextSchema, FdmAgent } from "../types"
 
 /**
  * Extracts the final text string from an AI message content value.
@@ -65,10 +66,10 @@ function buildCallbacks(
  * @param timeoutMs Maximum milliseconds before the stream is aborted (default: 20 minutes).
  * @returns An AsyncGenerator yielding structured events.
  */
-export async function* runStreamAgent(
-  agent: AgentGraph,
+export async function* runStreamAgent<T_ContextSchema extends BaseContextSchema>(
+  agent: FdmAgent<T_ContextSchema>,
   input: string,
-  context: Record<string, any> = {},
+  context: InferContextInput<T_ContextSchema> = {} as InferContextInput<T_ContextSchema>,
   posthog?: { client: any; distinctId: string },
   recursionLimit = 100,
   timeoutMs = 20 * 60 * 1000,
@@ -85,22 +86,20 @@ export async function* runStreamAgent(
   }, timeoutMs)
 
   try {
-    const stream = agent.streamEvents(
-      { messages: [{ role: "user", content: input }] },
-      {
-        version: "v2",
-        context: context,
-        recursionLimit,
-        runId,
-        runName: "gerrit-stream",
-        signal: abortController.signal,
-        metadata: {
-          b_id_farm: context.b_id_farm,
-          thread_id: threadId,
-        },
-        ...(callbacks ? { callbacks } : {}),
+    type StreamEventsConfig = NonNullable<Parameters<typeof agent.streamEvents>[1]>
+    const stream = agent.streamEvents({ messages: [{ role: "user", content: input }] }, {
+      version: "v3",
+      context: context,
+      recursionLimit,
+      runId,
+      runName: "gerrit-stream",
+      signal: abortController.signal,
+      metadata: {
+        b_id_farm: context.b_id_farm,
+        thread_id: threadId,
       },
-    ) as AsyncIterable<Record<string, any>>
+      ...(callbacks ? { callbacks } : {}),
+    } as unknown as StreamEventsConfig)
 
     // Robustly capture the final plan payload. The agent state exposes
     // `structuredResponse` (from the responseFormat tool) and `messages`.

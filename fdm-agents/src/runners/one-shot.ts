@@ -1,7 +1,8 @@
+import type { InferContextInput } from "langchain"
 import { isAIMessage } from "@langchain/core/messages"
 import { LangChainCallbackHandler } from "@posthog/ai/langchain"
 import { randomUUID } from "node:crypto"
-import type { AgentGraph } from "../agents/gerrit/agent"
+import type { BaseContextSchema, FdmAgent } from "../types"
 
 export interface OneShotAgentResult {
   result: string
@@ -79,16 +80,16 @@ function buildCallbacks(
  * @param recursionLimit Maximum number of graph steps before LangGraph aborts (default: 100). Each LLM↔tool round-trip is ~2 steps.
  * @returns The final response and token usage from the agent.
  */
-export async function runOneShotAgent(
-  agent: AgentGraph,
+export async function runOneShotAgent<T_ContextSchema extends BaseContextSchema>(
+  agent: FdmAgent<T_ContextSchema>,
   input: string,
-  context: Record<string, any> = {},
+  context: InferContextInput<T_ContextSchema> = {} as InferContextInput<T_ContextSchema>,
   posthog?: { client: any; distinctId: string },
   timeoutMs = 20 * 60 * 1000,
   recursionLimit = 100,
 ): Promise<OneShotAgentResult> {
   const abortController = new AbortController()
-  const callbacks = buildCallbacks(posthog, context)
+  const callbacks = buildCallbacks(posthog, context as Record<string, any>)
   const runId = randomUUID()
   // Unique thread ID per invocation so all LLM and tool runs for this request
   // are grouped under a single thread in LangSmith.
@@ -109,22 +110,20 @@ export async function runOneShotAgent(
     let outputTokens = 0
     const toolCalls: string[] = []
 
-    const stream = (await agent.stream(
-      { messages: [{ role: "user", content: input }] },
-      {
-        context: context,
-        recursionLimit,
-        runId,
-        streamMode: ["updates", "custom"],
-        signal: abortController.signal,
-        runName: "gerrit-one-shot",
-        metadata: {
-          b_id_farm: context.b_id_farm,
-          thread_id: threadId,
-        },
-        ...(callbacks ? { callbacks } : {}),
+    type StreamConfig = NonNullable<Parameters<typeof agent.stream>[1]>
+    const stream = (await agent.stream({ messages: [{ role: "user", content: input }] }, {
+      context: context,
+      recursionLimit,
+      runId,
+      streamMode: ["updates", "custom"],
+      signal: abortController.signal,
+      runName: "gerrit-one-shot",
+      metadata: {
+        b_id_farm: (context as Record<string, any>).b_id_farm,
+        thread_id: threadId,
       },
-    )) as AsyncIterable<unknown>
+      ...(callbacks ? { callbacks } : {}),
+    } as unknown as StreamConfig)) as AsyncIterable<unknown>
 
     for await (const rawChunk of stream) {
       const chunk = rawChunk as [string, Record<string, any>] | Record<string, any>
