@@ -106,6 +106,7 @@ function makeConfigurable(overrides: Record<string, any> = {}) {
     configurable: {
       principalId: "principal-1",
       calendar: "2025",
+      b_id_farm: "farm-1",
       ...overrides,
     },
   }
@@ -113,13 +114,11 @@ function makeConfigurable(overrides: Record<string, any> = {}) {
 
 function makeSimInput(
   overrides: Partial<{
-    b_id_farm: string
     strategies: any
     fields: any[]
   }> = {},
 ) {
   return {
-    b_id_farm: "farm-1",
     strategies: {},
     fields: [
       {
@@ -371,10 +370,7 @@ describe("tool execute functions", () => {
   // ── getFarmFields ────────────────────────────────────────────────────────
   describe("getFarmFields", () => {
     it("should return fields with soil params and cultivation details", async () => {
-      const result = await getTool("getFarmFields").invoke(
-        { b_id_farm: "farm-1", calendar: "2025" },
-        makeConfigurable(),
-      )
+      const result = await getTool("getFarmFields").invoke({ calendar: "2025" }, makeConfigurable())
       expect(result.fields).toHaveLength(1)
       expect(result.fields[0].b_id).toBe("field-1")
       expect(result.fields[0].b_lu_catalogue).toBe("nl_265")
@@ -391,10 +387,7 @@ describe("tool execute functions", () => {
           b_lu_end: "2025-12-31",
         },
       ])
-      const result = await getTool("getFarmFields").invoke(
-        { b_id_farm: "farm-1", calendar: "2025" },
-        makeConfigurable(),
-      )
+      const result = await getTool("getFarmFields").invoke({ calendar: "2025" }, makeConfigurable())
       expect(result.fields[0].b_lu_catalogue).toBeNull()
       expect(result.fields[0].b_lu_start).toBeNull()
     })
@@ -519,7 +512,7 @@ describe("tool execute functions", () => {
   describe("getFarmLegalNorms", () => {
     it("should return norms per field", async () => {
       const result = await getTool("getFarmLegalNorms").invoke(
-        { b_id_farm: "farm-1", b_ids: ["field-1"] },
+        { b_ids: ["field-1"] },
         makeConfigurable(),
       )
       expect(result.normsPerField).toHaveLength(1)
@@ -534,17 +527,14 @@ describe("tool execute functions", () => {
   describe("searchFertilizers", () => {
     it("should return empty array when principalId is missing", async () => {
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        { configurable: {} },
+        {},
+        { configurable: { b_id_farm: "farm-1" } },
       )
       expect(result.fertilizers).toEqual([])
     })
 
     it("should return all fertilizers when no filter is applied", async () => {
-      const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        makeConfigurable(),
-      )
+      const result = await getTool("searchFertilizers").invoke({}, makeConfigurable())
       expect(result.fertilizers).toHaveLength(1)
       expect(result.fertilizers[0].p_id_catalogue).toBe("fert-1")
     })
@@ -559,7 +549,7 @@ describe("tool execute functions", () => {
         },
       ])
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1", p_type: "manure" },
+        { p_type: "manure" },
         makeConfigurable(),
       )
       expect(result.fertilizers).toHaveLength(1)
@@ -577,19 +567,28 @@ describe("tool execute functions", () => {
         },
       ])
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1", query: "compost" },
+        { query: "compost" },
         makeConfigurable(),
       )
       expect(result.fertilizers).toHaveLength(1)
       expect(result.fertilizers[0].p_id_catalogue).toBe("compost-1")
     })
 
-    it("should return empty array when b_id_farm is missing", async () => {
+    it("should return empty array when b_id_farm is missing from configurable", async () => {
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "" },
-        makeConfigurable(),
+        {},
+        makeConfigurable({ b_id_farm: undefined }),
       )
       expect(result.fertilizers).toEqual([])
+    })
+
+    it("should use b_id_farm from configurable", async () => {
+      const result = await getTool("searchFertilizers").invoke(
+        {},
+        makeConfigurable({ b_id_farm: "farm-1" }),
+      )
+      expect(result.fertilizers).toHaveLength(1)
+      expect(getFertilizers).toHaveBeenCalledWith(mockFdm, "principal-1", "farm-1")
     })
 
     it("should filter by allowedFertilizerCatalogueIds from configurable", async () => {
@@ -603,13 +602,8 @@ describe("tool execute functions", () => {
         },
       ])
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        {
-          configurable: {
-            ...makeConfigurable().configurable,
-            allowedFertilizerCatalogueIds: ["fert-2"],
-          },
-        },
+        {},
+        makeConfigurable({ allowedFertilizerCatalogueIds: ["fert-2"] }),
       )
       expect(result.fertilizers).toHaveLength(1)
       expect(result.fertilizers[0].p_id_catalogue).toBe("fert-2")
@@ -617,23 +611,15 @@ describe("tool execute functions", () => {
 
     it("should return all fertilizers when allowedFertilizerCatalogueIds is empty", async () => {
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        {
-          configurable: {
-            ...makeConfigurable().configurable,
-            allowedFertilizerCatalogueIds: [],
-          },
-        },
+        {},
+        makeConfigurable({ allowedFertilizerCatalogueIds: [] }),
       )
       expect(result.fertilizers).toHaveLength(1)
     })
 
     it("should expose p_type_rvo in the returned fertilizer fields", async () => {
       ;(getFertilizers as any).mockResolvedValue([{ ...mockFertilizer, p_type_rvo: "115" }])
-      const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        makeConfigurable(),
-      )
+      const result = await getTool("searchFertilizers").invoke({}, makeConfigurable())
       expect(result.fertilizers[0].p_type_rvo).toBe("115")
     })
 
@@ -643,14 +629,8 @@ describe("tool execute functions", () => {
         { ...mockFertilizer, p_id_catalogue: "fert-renure", p_type_rvo: "132" },
       ])
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        {
-          configurable: {
-            ...makeConfigurable().configurable,
-            calendar: "2026",
-            includeRenure: false,
-          },
-        },
+        {},
+        makeConfigurable({ calendar: "2026", includeRenure: false }),
       )
       expect(result.fertilizers.map((f: any) => f.p_id_catalogue)).toEqual(["fert-mineral"])
     })
@@ -661,14 +641,8 @@ describe("tool execute functions", () => {
         { ...mockFertilizer, p_id_catalogue: "fert-renure", p_type_rvo: "132" },
       ])
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        {
-          configurable: {
-            ...makeConfigurable().configurable,
-            calendar: "2025",
-            includeRenure: false,
-          },
-        },
+        {},
+        makeConfigurable({ calendar: "2025", includeRenure: false }),
       )
       expect(result.fertilizers.map((f: any) => f.p_id_catalogue).sort()).toEqual([
         "fert-mineral",
@@ -681,14 +655,8 @@ describe("tool execute functions", () => {
         { ...mockFertilizer, p_id_catalogue: "fert-renure", p_type_rvo: "132" },
       ])
       const result = await getTool("searchFertilizers").invoke(
-        { b_id_farm: "farm-1" },
-        {
-          configurable: {
-            ...makeConfigurable().configurable,
-            calendar: "2026",
-            includeRenure: true,
-          },
-        },
+        {},
+        makeConfigurable({ calendar: "2026", includeRenure: true }),
       )
       expect(result.fertilizers).toHaveLength(1)
     })
@@ -741,9 +709,12 @@ describe("tool execute functions", () => {
       ).rejects.toThrow("Database connection or Farm ID missing")
     })
 
-    it("should throw when b_id_farm is missing", async () => {
+    it("should throw when b_id_farm is missing from configurable", async () => {
       await expect(
-        getTool("simulateFarmPlan").invoke(makeSimInput({ b_id_farm: "" }), makeConfigurable()),
+        getTool("simulateFarmPlan").invoke(
+          makeSimInput(),
+          makeConfigurable({ b_id_farm: undefined }),
+        ),
       ).rejects.toThrow("Database connection or Farm ID missing")
     })
 

@@ -1,4 +1,3 @@
-import type { RunnableConfig } from "@langchain/core/runnables"
 import type { FdmType, Fertilizer, FertilizerApplication, PrincipalId } from "@nmi-agro/fdm-core"
 import { tool, type StructuredToolInterface } from "@langchain/core/tools"
 import {
@@ -71,9 +70,10 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    * Tool for fetching the list of fields for a farm.
    */
   const getFarmFieldsTool = tool(
-    async (input: any, config?: RunnableConfig) => {
+    async (input, config) => {
       const principalId = config?.configurable?.principalId as PrincipalId
-      if (!principalId) {
+      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
+      if (!principalId || !b_id_farm) {
         throw new Error("Missing principalId in agent context")
       }
       const timeframe = {
@@ -81,7 +81,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         end: new Date(`${input.calendar}-12-31`),
       }
 
-      const fields = await getFields(fdm, principalId, input.b_id_farm, timeframe)
+      const fields = await getFields(fdm, principalId, b_id_farm, timeframe)
       const fieldDetails = await Promise.all(
         fields.map(async (f) => {
           const cultivations = await getCultivations(fdm, principalId, f.b_id, timeframe)
@@ -119,7 +119,6 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Haal de lijst op van alle percelen die bij het bedrijf horen voor het huidige jaar, inclusief de hoofdteeltgegevens en belangrijkste bodemeigenschappen (landbouwgrondsoort, textuur, grondwaterklasse, organische stof).",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf"),
         calendar: z.string().describe('Het kalenderjaar (bijv. "2025")'),
       }),
     },
@@ -129,9 +128,10 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    * Tool for fetching nutrient advice (N, P, K and others).
    */
   const getFarmNutrientAdviceTool = tool(
-    async (input: any, config?: RunnableConfig) => {
+    async (input, config) => {
       const principalId = config?.configurable?.principalId as PrincipalId | undefined
-      if (!principalId) {
+      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
+      if (!principalId || !b_id_farm) {
         throw new Error("Missing principalId in agent context")
       }
       const calendar =
@@ -215,9 +215,10 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    * Tool for fetching legal norms (Animal Manure N, Workable N, Phosphate).
    */
   const getFarmLegalNormsTool = tool(
-    async (input: any, config?: RunnableConfig) => {
+    async (input, config?) => {
       const principalId = config?.configurable?.principalId as PrincipalId | undefined
-      if (!principalId) {
+      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
+      if (!principalId || !b_id_farm) {
         throw new Error("Missing principalId in agent context")
       }
       const calendar =
@@ -258,7 +259,6 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Haal de drie wettelijke grenzen op (dierlijke mest stikstof, werkzame stikstof totaal en fosfaat) voor percelen.",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf"),
         b_ids: z.array(z.string()).describe("Lijst van perceel-ID's (b_id) om te controleren"),
       }),
     },
@@ -268,15 +268,16 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    * Tool for searching fertilizers in the farm inventory.
    */
   const searchFertilizersTool = tool(
-    async (input: any, config?: RunnableConfig) => {
-      const args = input as SearchArgs
+    async (input, config) => {
+      const args = input
       const principalId = config?.configurable?.principalId as PrincipalId
+      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
 
-      if (!fdm || !principalId || !args.b_id_farm) {
+      if (!fdm || !principalId || !b_id_farm) {
         return { fertilizers: [] }
       }
 
-      const farmFertilizers = await getFertilizers(fdm, principalId, args.b_id_farm)
+      const farmFertilizers = await getFertilizers(fdm, principalId, b_id_farm)
       let results = [...farmFertilizers]
 
       // Restrict to the user-selected fertilizers if provided (non-empty list only).
@@ -341,7 +342,6 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Zoek naar meststofproducten beschikbaar in de bedrijfsvoorraad (inclusief eigen producten) op naam of type.",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf om de voorraad voor te doorzoeken"),
         query: z.string().optional().describe('Zoekterm (bijv. "varkensdrijfmest", "KAS")'),
         p_type: z
           .enum(["manure", "mineral", "compost"])
@@ -355,14 +355,15 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
    * Tool for simulating farm plans and checking compliance across all 3 norms and organic matter balance.
    */
   const simulateFarmPlanTool = tool(
-    async (input: any, config?: RunnableConfig) => {
-      const args = input as SimulationArgs
+    async (input, config?) => {
+      const args = input
       const principalId = config?.configurable?.principalId as PrincipalId
+      const b_id_farm = config?.configurable?.b_id_farm as string | undefined
       const calendar =
         (config?.configurable?.calendar as string) || new Date().getFullYear().toString()
       const nmiApiKey = config?.configurable?.nmiApiKey as string | undefined
 
-      if (!fdm || !principalId || !args.b_id_farm) {
+      if (!fdm || !principalId || !b_id_farm) {
         throw new Error("Database connection or Farm ID missing")
       }
 
@@ -372,9 +373,9 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       }
 
       const [omInput, nInput, fertilizers] = await Promise.all([
-        collectInputForOrganicMatterBalance(fdm, principalId, args.b_id_farm, timeframe),
-        collectInputForNitrogenBalance(fdm, principalId, args.b_id_farm, timeframe),
-        getFertilizers(fdm, principalId, args.b_id_farm),
+        collectInputForOrganicMatterBalance(fdm, principalId, b_id_farm, timeframe),
+        collectInputForNitrogenBalance(fdm, principalId, b_id_farm, timeframe),
+        getFertilizers(fdm, principalId, b_id_farm),
       ])
 
       const normFuncs = createFunctionsForNorms("NL", calendar as any)
@@ -628,7 +629,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       const validFieldResults = fieldResults.filter((r: any) => r.isValid && r.b_area)
 
       // Compute norms for ALL farm fields.
-      const allFarmFields = await getFields(fdm, principalId, args.b_id_farm, timeframe)
+      const allFarmFields = await getFields(fdm, principalId, b_id_farm, timeframe)
       const failedNormFields: string[] = []
       const allFarmFieldNorms = await Promise.all(
         allFarmFields
@@ -985,7 +986,6 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Simuleert een voorgesteld bemestingsplan om de conformiteit met alle 3 gebruiksruimtes, de organische stofbalans en de stikstofbalans te controleren.",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf"),
         strategies: z
           .object({
             isOrganic: z.boolean().optional(),
@@ -1118,12 +1118,6 @@ export function createClarifyAgentTools(fdm: FdmType) {
   return createFertilizerPlannerTools(fdm).filter((t) => t.name !== "simulateFarmPlan")
 }
 
-interface SearchArgs {
-  b_id_farm: string
-  query?: string
-  p_type?: "manure" | "mineral" | "compost"
-}
-
 interface SimulationField {
   b_id: string
   b_lu_catalogue: string
@@ -1135,18 +1129,4 @@ interface SimulationField {
     p_app_date: string
     p_app_method?: string
   }[]
-}
-
-interface SimulationArgs {
-  b_id_farm: string
-  strategies?: {
-    isOrganic?: boolean
-    fillManureSpace?: boolean
-    reduceAmmoniaEmissions?: boolean
-    keepNitrogenBalanceBelowTarget?: boolean
-    workOnRotationLevel?: boolean
-    isDerogation?: boolean
-    includeRenure?: boolean
-  }
-  fields: SimulationField[]
 }

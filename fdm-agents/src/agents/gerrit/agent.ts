@@ -2,6 +2,7 @@ import type { BaseMessage } from "@langchain/core/messages"
 import type { FdmType } from "@nmi-agro/fdm-core"
 import { AIMessage } from "@langchain/core/messages"
 import { createAgent, dynamicSystemPromptMiddleware, toolStrategy } from "langchain"
+import z from "zod"
 import { createDefaultModel } from "../../models/default"
 import { createFertilizerPlannerTools } from "../../tools/fertilizer-planner"
 import { FertilizerPlanSchema } from "./schema"
@@ -277,6 +278,14 @@ function isAgentGraph(obj: unknown): obj is AgentGraph {
 }
 
 /**
+ * Context schema such that LangChain throws an error before even reaching for the LLM.
+ */
+const contextSchema = z.object({
+  b_id_farm: z.string(),
+  principalId: z.string(),
+})
+
+/**
  * Creates the Fertilizer Application Planner Agent: "Gerrit"
  * @param fdm The non-serializable FDM database instance.
  * @param apiKey Optional API key for the Gemini model.
@@ -308,6 +317,7 @@ export function createFertilizerPlannerAgent(
     model: createDefaultModel(resolvedKey, modelName),
     tools: createFertilizerPlannerTools(fdm),
     responseFormat: toolStrategy(FertilizerPlanSchema),
+    contextSchema: contextSchema,
     middleware: [toolLimitMiddleware],
   })
   if (!isAgentGraph(result)) {
