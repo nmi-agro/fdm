@@ -238,6 +238,39 @@ export const messages = fdmHelpdeskSchema.table(
 export type MessageTypeSelect = typeof messages.$inferSelect
 export type MessageTypeInsert = typeof messages.$inferInsert
 
+/** MESSAGE ATTACHMENTS */
+/**
+ * File attachment on a message. It logically serves as a attachment for the ticket
+ * if it is on the first message by the sender.
+ *
+ * ticket_id is also included for simplicity.
+ */
+export const attachments = fdmHelpdeskSchema.table(
+  "attachments",
+  {
+    attachment_id: text().primaryKey(),
+    message_id: text()
+      .notNull()
+      .references(() => messages.message_id, { onDelete: "cascade" }),
+    ticket_id: text()
+      .notNull()
+      .references(() => tickets.ticket_id, { onDelete: "cascade" }),
+    file_name: text().notNull(),
+    file_size: integer().notNull(),
+    mime_type: text().notNull(),
+    file_path: text().notNull(),
+    uploaded_by: text().notNull(),
+    deleted_at: timestamp({ withTimezone: true }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("attachment_message_idx").on(table.message_id),
+    index("attachment_ticket_idx").on(table.ticket_id),
+  ],
+)
+export type AttachmentTypeSelect = typeof attachments.$inferSelect
+export type AttachmentTypeInsert = typeof attachments.$inferInsert
+
 /* SAVED REPLIES - TO BE USED AS TEMPLATES */
 /**
  * Saved reply templates for agents.
