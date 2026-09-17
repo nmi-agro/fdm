@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Textarea } from "~/components/ui/textarea"
+import { AttachmentDropzone } from "./attachment-dropzone"
 import { TicketSchema } from "./ticket-schema"
 
 export function TicketComposer({
@@ -94,6 +95,7 @@ export function TicketComposer({
                 </Field>
               )}
             />
+            <AttachmentDropzone name={"attachments"} maxSize={25 * 1024 * 1024} maxFiles={5} />
             <div className="flex items-center justify-end gap-3 pt-2">
               <Button variant="outline" asChild>
                 <NavLink to="/support">Annuleren</NavLink>
