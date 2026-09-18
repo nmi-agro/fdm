@@ -15,7 +15,7 @@ type Attachment = schema.AttachmentTypeSelect
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
- * @param principal_id The principal identifier(s); must have read permission for the message.
+ * @param principal_id The principal identifier(s); must have read permission for the associated message.
  * @param attachment_id ID of the attachment to get.
  * @returns An attachment object.
  * @throws if the principal does not have access to the associated message or an attachment with such ID
@@ -102,7 +102,7 @@ export async function getAttachmentsForMessage(
  *
  * @param fdm The FDM instance providing the connection to the database.The instance can be created with
  * {@link createFdmServer} of fdm-core.
- * @param principal_id The principal identifier(s); must have read permission for the message.
+ * @param principal_id The principal identifier(s); must have read permission for the ticket.
  * @param ticket_id ID of the ticket to list the message attachments for.
  * @returns A Map from each message ID to the message's attachment objects.
  * @throws if the principal does not have access to the given ticket or if it does not exist.
@@ -166,7 +166,7 @@ export async function getAttachmentsForTicket(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
- * @param principal_id The principal identifier(s); must have read permission for the message.
+ * @param principal_id The principal identifier(s); must have write permission for the message.
  * @param message_id ID of the message to attach to.
  * @param file_name Name of the file, intended as the download name.
  * @param file_size Size of the linked file, in octets.
@@ -230,7 +230,7 @@ export async function addAttachment(
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with
  * {@link createFdmServer} of fdm-core.
- * @param principal_id The principal identifier(s); must have read permission for the message.
+ * @param principal_id The principal identifier(s); must have write permission for the associated message.
  * @param attachment_id ID of the attachment to soft delete.
  * @returns true if the attachment was deleted now, and false if it was already deleted.
  * @throws if the attachment does not exist.
