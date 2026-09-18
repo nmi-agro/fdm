@@ -16,11 +16,14 @@ import { Message } from "~/components/blocks/helpdesk/message"
 import { Spinner } from "~/components/ui/spinner"
 import type { HelpdeskUser } from "./types"
 import { AssignmentSelector } from "./assignee-dialog"
+import { AttachmentGrid, AttachmentGridItem } from "./attachment-grid"
 import { MessageComposer } from "./message-composer"
 import { TICKET_PRIORITY, TicketPrioritySelector } from "./ticket-priority"
 import { TICKET_STATUS, TICKET_STATUS_DESCRIPTIONS, TicketStatusSelector } from "./ticket-status"
 import { TicketSubjectEditor } from "./ticket-subject"
 import { TicketTags } from "./ticket-tags"
+
+type MessageExtended = MessageT & { attachments: AttachmentGridItem[] }
 
 export function Ticket({
   ticket,
@@ -36,7 +39,7 @@ export function Ticket({
   principalLookup,
 }: {
   ticket: TicketT
-  messages: MessageT[]
+  messages: MessageExtended[]
   agents?: Agent[]
   agentAvailability?: Map<string, AgentAvailabilityStatus>
   availableTags?: TagSummary[]
@@ -186,6 +189,9 @@ export function Ticket({
               className="text-sm whitespace-pre-wrap"
               dangerouslySetInnerHTML={{ __html: msg.body }}
             />
+            {msg.attachments.length > 0 && (
+              <AttachmentGrid items={msg.attachments} canDelete={false} className="mt-4" />
+            )}
           </Message>
         ))}
         {canAddMessages && (

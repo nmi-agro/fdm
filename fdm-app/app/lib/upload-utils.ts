@@ -6,7 +6,7 @@ export const ALLOWED_IMAGE_MIME_TYPES = [
   "image/heif",
 ]
 
-const MIME_TO_EXT: Record<string, string> = {
+export const IMAGE_MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
@@ -14,10 +14,8 @@ const MIME_TO_EXT: Record<string, string> = {
   "image/heif": "heif",
 }
 
-export function getFileExtensionFromMime(mime: string) {
-  if (!(mime in MIME_TO_EXT)) {
-    throw new Error(`Unrecognized MIME type: ${mime}`)
-  }
+const MIME_TO_EXT = { ...IMAGE_MIME_TO_EXT }
 
-  return MIME_TO_EXT[mime]
+export function getFileExtensionFromMime(mime: string): string | null {
+  return mime in MIME_TO_EXT ? MIME_TO_EXT[mime] : null
 }

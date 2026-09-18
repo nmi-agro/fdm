@@ -1,35 +1,45 @@
 import { Paperclip } from "lucide-react"
-import { useEffect, useState } from "react"
-import { Dropzone } from "~/components/custom/dropzone"
-import { ALLOWED_IMAGE_MIME_TYPES } from "~/lib/upload-utils"
+import { useEffect, useRef, useState } from "react"
+import { Dropzone, DropzoneProps } from "~/components/custom/dropzone"
+import { cn } from "~/lib/utils"
 import { AttachmentGrid, AttachmentGridItem, formatFileSize } from "./attachment-grid"
 
-export const maxAttachmentSize = 25 * 1024 * 1024
-
 export function AttachmentDropzone({
-  name,
+  value,
+  onFilesChange,
   maxSize,
   maxFiles,
-}: {
-  name: string
-  maxSize?: number
-  maxFiles?: number
-}) {
-  const [files, setFiles] = useState<File[]>([])
+  ...props
+}: DropzoneProps & { onFilesChange: Exclude<DropzoneProps["onFilesChange"], undefined> }) {
   const [fileMetas, setFileMetas] = useState<AttachmentGridItem[]>([])
+
+  const objectUrls = useRef<Map<File, string>>(new Map())
 
   // Create object URLs for each file, then build attachment items for each file.
   useEffect(() => {
-    const fileMetas = files.map((file, idx) => {
-      const objectUrl = ALLOWED_IMAGE_MIME_TYPES.includes(file.type)
-        ? URL.createObjectURL(file)
-        : undefined
+    const files = value ?? []
+    const filesSet = new Set(files ?? [])
+
+    for (const oldFile of [...objectUrls.current.keys()]) {
+      if (!filesSet.has(oldFile)) {
+        URL.revokeObjectURL(objectUrls.current.get(oldFile) as string)
+        objectUrls.current.delete(oldFile)
+      }
+    }
+
+    for (const newFile of filesSet) {
+      if (!objectUrls.current.has(newFile)) {
+        objectUrls.current.set(newFile, URL.createObjectURL(newFile))
+      }
+    }
+
+    const fileMetas = (files ?? []).map((file) => {
       return {
-        id: objectUrl ?? String(idx),
+        id: objectUrls.current.get(file) as string,
         object: file,
         name: file.name,
         type: file.type,
-        url: URL.createObjectURL(file),
+        url: objectUrls.current.get(file) as string,
         size: file.size,
       }
     })
@@ -41,29 +51,35 @@ export function AttachmentDropzone({
         URL.revokeObjectURL(fileMeta.url)
       }
     }
-  }, [files])
+  }, [value])
 
-  const filesPhrase = maxFiles === 1 ? "een bestand" : "een of meerdere bestanden"
+  const filesPhrase =
+    maxFiles === 1
+      ? "een bestand"
+      : typeof maxFiles === "number"
+        ? `maximaal ${maxFiles} bestanden`
+        : "een of meerdere bestanden"
 
   return (
     <Dropzone
-      name={name}
       maxSize={maxSize}
       maxFiles={maxFiles}
       multiple={true}
       required={false}
-      value={files}
-      className="relative h-auto min-h-30 w-full"
-      onFilesChange={setFiles}
+      value={value}
+      onFilesChange={onFilesChange}
+      {...props}
+      className={cn("relative h-auto min-h-30 w-full space-y-4", props.className)}
     >
-      {files.length > 0 ? (
+      {fileMetas.length > 0 ? (
         <AttachmentGrid
+          className="self-stretch"
           items={fileMetas}
           canDelete={true}
-          onDelete={(object) => setFiles((current) => current.filter((file) => file !== object))}
+          onDelete={(object) => onFilesChange((value ?? []).filter((file) => file !== object))}
         />
       ) : (
-        <Paperclip className="text-muted-foreground mb-2 h-8 w-8" />
+        <Paperclip className="text-muted-foreground h-8 w-8" />
       )}
       <div className="text-muted-foreground mt-1 text-xs">
         {maxSize

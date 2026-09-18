@@ -6,10 +6,12 @@ import {
   getMessagesForTicket,
   getTicket,
 } from "@nmi-agro/fdm-helpdesk"
+import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { useLoaderData } from "react-router"
-import { redirectWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { attachFiles } from "~/components/blocks/helpdesk/attachment.server"
 import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
 import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
 import { getSession } from "~/lib/auth.server"
@@ -18,8 +20,8 @@ import { serverConfig } from "~/lib/config.server"
 import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { extractFormValuesFromRequest } from "~/lib/form"
 import { performTicketTriage } from "~/lib/support.server"
+import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 import type { Route } from "./+types/support.new"
 
 // Meta
@@ -62,17 +64,63 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
+export const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024
+export const MAX_ATTACHMENTS = 5
+
 export async function action({ request }: Route.ActionArgs) {
   try {
     const session = await getSession(request)
 
-    const ticketCreateInfo = await extractFormValuesFromRequest(request, TicketSchema)
+    const files: { name: string; buffer: Buffer; mime: string }[] = []
+
+    const uploadHandler = async (fileUpload: FileUpload) => {
+      if (fileUpload.fieldName !== "attachments") return undefined
+      const result = await readAndValidateFileUpload(fileUpload)
+
+      files.push({ name: fileUpload.name, ...result })
+    }
+
+    let formData: FormData
+    try {
+      formData = await parseFormData(
+        request,
+        { maxFileSize: MAX_ATTACHMENT_SIZE, maxFiles: MAX_ATTACHMENTS },
+        uploadHandler,
+      )
+    } catch (error) {
+      console.error("Failed to parse form data for profile picture upload:", error)
+      const message = error instanceof Error ? error.message : "Invalid upload"
+      return dataWithError(null, message)
+    }
+
+    const actionSchemaResult = TicketSchema.safeParse(Object.fromEntries(formData.entries()))
+
+    if (actionSchemaResult.error) {
+      console.error("Action validation failed for user profile settings:", actionSchemaResult.error)
+      return dataWithError(null, "De ingevoerde gegevens zijn ongeldig.")
+    }
+
+    const ticketCreateInfo = actionSchemaResult.data
 
     const ticket_id = await createTicket(fdm, session.principal_id, ticketCreateInfo.body, {
       context: {
         b_id_farm: ticketCreateInfo.context_farm_id,
       },
     })
+
+    // Add the attachments
+    try {
+      // An empty file input causes a single file with no content to be submitted.
+      const filesToAttach = files.filter((f) => f.buffer.byteLength > 0).slice(0, MAX_ATTACHMENTS)
+      if (filesToAttach.length > 0) {
+        const ticketMessages = await getMessagesForTicket(fdm, session.principal_id, ticket_id)
+        if (ticketMessages.length > 0) {
+          await attachFiles(fdm, session.principal_id, ticketMessages[0].message_id, filesToAttach)
+        }
+      }
+    } catch (err) {
+      handleLoaderError(err)
+    }
 
     // Assign the ticket to an agent and send an email to them
     try {

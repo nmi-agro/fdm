@@ -1,6 +1,6 @@
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -12,6 +12,7 @@ import {
   FieldDescription,
   FieldError,
   FieldLabel,
+  FieldTitle,
 } from "~/components/ui/field"
 import {
   Select,
@@ -24,6 +25,7 @@ import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
 import type { HelpdeskUser } from "./types"
+import { AttachmentDropzone } from "./attachment-dropzone"
 import { Message } from "./message"
 import { MessageSchema } from "./message-schema"
 
@@ -31,13 +33,14 @@ const formDefaultValues = {
   body: "",
   sender_type: "customer",
   is_internal: false,
+  attachments: [],
 } as const
 
 export function MessageComposer({
   intent,
   principal,
   showAgentControls,
-  defaultValues = { ...formDefaultValues },
+  defaultValues,
   className,
 }: {
   intent: string
@@ -47,6 +50,7 @@ export function MessageComposer({
   className?: string
 }) {
   const fetcher = useFetcher()
+  const formRef = useRef<HTMLFormElement>(null)
 
   const form = useRemixForm({
     mode: "onTouched",
@@ -57,16 +61,43 @@ export function MessageComposer({
       intent: intent,
       ...defaultValues,
     },
+    submitHandlers: {
+      onValid() {
+        if (!formRef.current) return
+        fetcher.submit(new FormData(formRef.current), {
+          method: "POST",
+          encType: "multipart/form-data",
+        })
+      },
+    },
   })
   const sender_role = useWatch({ name: "sender_role", control: form.control })
   const is_internal = useWatch({ name: "is_internal", control: form.control })
-  const messageInputId = useId()
 
+  const lastProcessedActionData = useRef<any>(undefined)
+  useEffect(() => {
+    if (fetcher.data != lastProcessedActionData.current && fetcher.data?.resetMessageForm) {
+      form.reset({
+        ...formDefaultValues,
+        intent: intent,
+        ...defaultValues,
+      })
+    }
+    lastProcessedActionData.current = fetcher.data
+  }, [fetcher.data, defaultValues, form, intent])
+
+  const messageInputId = useId()
   const isSubmitting = fetcher.state !== "idle"
 
   return (
     <RemixFormProvider {...form}>
-      <fetcher.Form method="post" onSubmit={form.handleSubmit} className={className}>
+      <form
+        ref={formRef}
+        method="post"
+        encType="multipart/form-data"
+        onSubmit={form.handleSubmit}
+        className={className}
+      >
         <input type="hidden" name="intent" value={intent} />
         <Message
           principal={principal}
@@ -140,7 +171,7 @@ export function MessageComposer({
             </fieldset>
           }
         >
-          <fieldset disabled={isSubmitting}>
+          <fieldset disabled={isSubmitting} className="space-y-2">
             <Controller
               name="body"
               render={({ field, fieldState }) => (
@@ -152,27 +183,46 @@ export function MessageComposer({
                       id={messageInputId}
                       placeholder={"Schrijf uw bericht hier..."}
                     />
-                    <FieldDescription>
-                      {showAgentControls
-                        ? sender_role === "agent"
-                          ? is_internal
-                            ? "Intern bericht — alleen zichtbaar voor medewerkers."
-                            : "Dit bericht wordt als medewerker verstuurd en is zichtbaar voor de gebruiker."
-                          : "Dit bericht wordt verstuurd als de gebruiker."
-                        : "Voeg aanvullende informatie toe of stel een vervolgvraag. U ontvangt een kopie per e-mail."}
-                    </FieldDescription>
                     <FieldError errors={[fieldState.error]} />
                   </FieldContent>
                 </Field>
               )}
             />
+            <Controller
+              name="attachments"
+              render={({ field }) => {
+                return (
+                  <Field>
+                    <FieldTitle className="text-muted-foreground font-normal">Bijlagen</FieldTitle>
+                    <AttachmentDropzone
+                      name={"attachments"}
+                      maxSize={25 * 1024 * 1024}
+                      maxFiles={5}
+                      value={field.value}
+                      onFilesChange={field.onChange}
+                    />
+                  </Field>
+                )
+              }}
+            />
+            <Field>
+              <FieldDescription>
+                {showAgentControls
+                  ? sender_role === "agent"
+                    ? is_internal
+                      ? "Intern bericht — alleen zichtbaar voor medewerkers."
+                      : "Dit bericht wordt als medewerker verstuurd en is zichtbaar voor de gebruiker."
+                    : "Dit bericht wordt verstuurd als de gebruiker."
+                  : "Voeg aanvullende informatie toe of stel een vervolgvraag. U ontvangt een kopie per e-mail."}
+              </FieldDescription>
+            </Field>
           </fieldset>
           <Button type="submit" className="ms-auto block min-w-0" disabled={isSubmitting}>
             Versturen
             {isSubmitting && <Spinner />}
           </Button>
         </Message>
-      </fetcher.Form>
+      </form>
     </RemixFormProvider>
   )
 }

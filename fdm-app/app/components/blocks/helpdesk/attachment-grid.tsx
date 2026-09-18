@@ -1,10 +1,10 @@
 import { LucideFile, Trash2, X } from "lucide-react"
 import { HTMLAttributes, useState } from "react"
-import { ALLOWED_IMAGE_MIME_TYPES } from "@/app/lib/upload-utils"
 import { PdfViewerDialogContent } from "~/components/custom/pdf-viewer"
 import { Button } from "~/components/ui/button"
 import { Dialog } from "~/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { ALLOWED_IMAGE_MIME_TYPES } from "~/lib/upload-utils"
 import { cn } from "~/lib/utils"
 
 export function formatFileSize(sizeInBytes: number) {
@@ -30,10 +30,12 @@ export interface AttachmentGridItem {
  * `onOpen` and `onDelete` will be called with each item's `object` property. In addition, `id` should be a string unique between the items.
  */
 export function AttachmentGrid({
+  className,
   items,
   canDelete,
   onDelete,
 }: {
+  className?: string
   items: AttachmentGridItem[]
   canDelete: boolean
   onDelete?: (object: any) => void
@@ -43,9 +45,9 @@ export function AttachmentGrid({
   const [openedItem, setOpenedItem] = useState<AttachmentGridItem | null>(null)
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", className)}>
       {imageItems.length > 0 ? (
-        <div className="flex h-40 flex-wrap items-stretch gap-1 sm:h-50">
+        <div className="flex flex-wrap items-stretch gap-4">
           {imageItems.map((item) => (
             <AttachmentGridImage
               key={item.id}
@@ -60,18 +62,21 @@ export function AttachmentGrid({
         </div>
       ) : undefined}
       {nonImageItems.length > 0 ? (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
           {nonImageItems.map((item) => (
-            <div key={item.id} className="bg-muted flex items-center gap-2 rounded-sm text-xs">
+            <div
+              key={item.id}
+              className="bg-card border-muted flex items-center gap-2 rounded-sm border px-2 text-xs"
+            >
               <Button
                 variant="link"
-                className="has-[>svg]:px-1"
+                className="text-muted-foreground min-w-0 flex-initial has-[>svg]:ps-0 has-[>svg]:pe-2"
                 onClick={() => setOpenedItem(item)}
               >
                 <LucideFile />
                 {item.name}
               </Button>
-              <span className="self-end">{formatFileSize(item.size)}</span>
+              <span className="text-muted-foreground ms-auto">{formatFileSize(item.size)}</span>
               {canDelete ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -79,7 +84,7 @@ export function AttachmentGrid({
                       variant="ghost"
                       size="sm"
                       onClick={() => onDelete?.(item.object)}
-                      className="text-muted-foreground hover:text-destructive h-8 self-end px-2 text-xs"
+                      className="text-muted-foreground hover:text-destructive h-8 px-2 text-xs"
                     >
                       <Trash2 className="mr-2 h-3 w-3" />
                     </Button>
@@ -123,20 +128,23 @@ function AttachmentGridImage({
   onClick?: HTMLAttributes<HTMLImageElement>["onClick"]
 }) {
   const [style, setStyle] = useState<HTMLAttributes<HTMLDivElement>["style"]>({
-    flexGrow: "none",
+    flexGrow: 1,
   })
   return (
-    <div className={cn("box-border h-full max-w-60", canDelete && "pt-3 pr-3")} style={style}>
-      <div className="group relative size-full">
+    <div className={cn("box-border h-40 max-w-60 sm:h-50", canDelete && "pt-3 pr-3")} style={style}>
+      <div className="group border-muted-foreground relative size-full border">
         <img
           key={src}
           src={src}
           alt={alt}
-          className="size-full object-cover"
+          className="text-muted-foreground size-full object-cover text-xs"
           onLoad={(e) => {
             setStyle((current) => ({
               ...current,
-              flexGrow: e.currentTarget ? e.currentTarget.width / 1000 : "none",
+              flexGrow:
+                e.currentTarget && e.currentTarget.width > 0 && e.currentTarget.height > 0
+                  ? e.currentTarget.width / e.currentTarget.height
+                  : 1,
             }))
           }}
           onClick={onClick}

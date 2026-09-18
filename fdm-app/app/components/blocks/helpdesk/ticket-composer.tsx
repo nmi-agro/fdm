@@ -1,12 +1,13 @@
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useRef } from "react"
 import { Controller } from "react-hook-form"
-import { Form, NavLink } from "react-router"
+import { NavLink, useSubmit } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
-import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
+import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from "~/components/ui/field"
 import {
   Select,
   SelectContent,
@@ -25,6 +26,9 @@ export function TicketComposer({
   farmOptions: FarmOptions
   initial_context_farm_id?: string | null
 }) {
+  const submit = useSubmit()
+  const formRef = useRef<HTMLFormElement>(null)
+
   const form = useRemixForm<z.infer<typeof TicketSchema>>({
     mode: "onTouched",
     resolver: zodResolver(TicketSchema),
@@ -32,11 +36,26 @@ export function TicketComposer({
     defaultValues: {
       context_farm_id: initial_context_farm_id,
     },
+    submitHandlers: {
+      onValid() {
+        if (!formRef.current) return
+        submit(new FormData(formRef.current), {
+          method: "POST",
+          encType: "multipart/form-data",
+        })
+      },
+    },
   })
 
   return (
     <RemixFormProvider {...form}>
-      <Form method="post" className="mx-auto max-w-5xl space-y-6" onSubmit={form.handleSubmit}>
+      <form
+        ref={formRef}
+        method="post"
+        encType="multipart/form-data"
+        className="mx-auto max-w-5xl space-y-6"
+        onSubmit={form.handleSubmit}
+      >
         <Card>
           <CardContent className="space-y-4 pt-6">
             <Controller
@@ -95,7 +114,26 @@ export function TicketComposer({
                 </Field>
               )}
             />
-            <AttachmentDropzone name={"attachments"} maxSize={25 * 1024 * 1024} maxFiles={5} />
+            <Controller
+              name="attachments"
+              render={({ field }) => {
+                return (
+                  <Field>
+                    <FieldTitle>Bijlagen</FieldTitle>
+                    <FieldDescription>
+                      Voeg enkele afbeeldingen en andere bestanden toe die je vraag ondersteunen.
+                    </FieldDescription>
+                    <AttachmentDropzone
+                      name={"attachments"}
+                      maxSize={25 * 1024 * 1024}
+                      maxFiles={5}
+                      value={field.value}
+                      onFilesChange={field.onChange}
+                    />
+                  </Field>
+                )
+              }}
+            />
             <div className="flex items-center justify-end gap-3 pt-2">
               <Button variant="outline" asChild>
                 <NavLink to="/support">Annuleren</NavLink>
@@ -104,7 +142,7 @@ export function TicketComposer({
             </div>
           </CardContent>
         </Card>
-      </Form>
+      </form>
     </RemixFormProvider>
   )
 }
