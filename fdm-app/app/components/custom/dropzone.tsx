@@ -3,7 +3,7 @@
 import type { CSSProperties, InputHTMLAttributes, ReactNode } from "react"
 import { X } from "lucide-react"
 import { createContext, useContext, useEffect, useId, useRef } from "react"
-import { toast as notify, toast } from "sonner"
+import { toast as notify } from "sonner"
 import { Button } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
 
@@ -92,6 +92,12 @@ export const Dropzone = ({
 
   const handleFilesSet = async (oldFiles: File[], newFiles: File[]) => {
     const finalFiles = await myMergeFiles(oldFiles, newFiles)
+    if (finalFiles && typeof maxFiles === "number" && finalFiles.length > maxFiles) {
+      notify.warning(`Er kunnen maximaal ${maxFiles} bestanden worden bijgevoegd.`, {
+        id: "too-many-files",
+      })
+      return files
+    }
     if (finalFiles && onFilesChange) {
       onFilesChange(finalFiles)
     }
@@ -156,14 +162,7 @@ export const Dropzone = ({
       // In order to reset the input to the previous state if the files are invalid
       let inputFiles = files
       if (validNewFiles.length > 0) {
-        const finalFiles = await handleFilesSet(files, validNewFiles)
-        if (typeof maxFiles === "number" && !(finalFiles.length <= maxFiles)) {
-          notify.warning(`Er kunnen maximaal ${maxFiles} bestanden worden bijgevoegd.`, {
-            id: "too-many-files",
-          })
-        } else {
-          inputFiles = finalFiles
-        }
+        inputFiles = await handleFilesSet(files, validNewFiles)
       }
 
       syncFilesToInput(inputFiles)
@@ -179,12 +178,6 @@ export const Dropzone = ({
       if (validNewFiles.length === 0) return
 
       const finalFiles = await handleFilesSet(files, validNewFiles)
-
-      if (typeof maxFiles === "number" && !(finalFiles.length <= maxFiles)) {
-        notify.warning(`Er kunnen maximaal ${maxFiles} bestanden worden bijgevoegd.`, {
-          id: "too-many-files",
-        })
-      }
 
       syncFilesToInput(finalFiles)
 
