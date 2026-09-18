@@ -1,11 +1,11 @@
 import { LucideFile, Trash2, X } from "lucide-react"
 import { HTMLAttributes, useState } from "react"
-import { PdfViewerDialogContent } from "~/components/custom/pdf-viewer"
 import { Button } from "~/components/ui/button"
 import { Dialog } from "~/components/ui/dialog"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { ALLOWED_IMAGE_MIME_TYPES } from "~/lib/upload-utils"
 import { cn } from "~/lib/utils"
+import { AttachmentViewerDialogContent } from "./attachment-viewer"
 
 export function formatFileSize(sizeInBytes: number) {
   return sizeInBytes > 1024 * 1024
@@ -102,11 +102,7 @@ export function AttachmentGrid({
           if (!value) setOpenedItem(null)
         }}
       >
-        <PdfViewerDialogContent
-          downloadUrl={openedItem?.url ?? ""}
-          filename={openedItem?.name ?? ""}
-          title={openedItem?.name ?? ""}
-        />
+        <AttachmentViewerDialogContent attachment={openedItem ?? { url: "", name: "", type: "" }} />
       </Dialog>
     </div>
   )
