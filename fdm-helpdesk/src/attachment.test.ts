@@ -9,7 +9,7 @@ import {
 } from "./attachment"
 import { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import { createId } from "./id"
-import { addMessage, getMessage, getMessagesForTicket } from "./message"
+import { addMessage, getMessagesForTicket } from "./message"
 import { test } from "./test-util"
 import { createTicket } from "./ticket"
 
@@ -259,12 +259,6 @@ describe("getAttachmentsForTicket", () => {
 
   test("should let the regular users see only non-internal attachments", async ({ fdm }) => {
     const ticketAttachments = await getAttachmentsForTicket(fdm, seed.user_id, seed.user_ticket_id)
-    console.log(
-      await getMessage(fdm, seed.agent_id, seed.user_message_id),
-      await getMessage(fdm, seed.agent_id, seed.internal_message_id),
-      await getMessage(fdm, seed.agent_id, seed.no_attachments_message_id),
-      ticketAttachments,
-    )
     expect(ticketAttachments.size).toBe(1)
     expect(
       ticketAttachments.has(seed.user_message_id),
