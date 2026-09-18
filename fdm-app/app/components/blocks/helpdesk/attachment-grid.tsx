@@ -25,7 +25,7 @@ export interface AttachmentGridItem {
 }
 
 /**
- * A component that renders all the specified image attachment side by side and other attachments below them. Each item can be clicked to open it, which calls `onOpen`. Each item also get a delete button if `canDelete` is set, and `onDelete` is called when they are clicked.
+ * A component that renders all the specified image attachments side by side and other attachments below them. Each item can be clicked to open it, which calls `onOpen`. Each item also get a delete button if `canDelete` is set, and `onDelete` is called when they are clicked.
  *
  * `onOpen` and `onDelete` will be called with each item's `object` property. In addition, `id` should be a string unique between the items.
  */
@@ -66,15 +66,15 @@ export function AttachmentGrid({
           {nonImageItems.map((item) => (
             <div
               key={item.id}
-              className="bg-card border-muted flex items-center gap-2 rounded-sm border px-2 text-xs"
+              className="bg-card border-muted flex min-w-0 items-center gap-2 rounded-sm border px-2 text-xs"
             >
               <Button
                 variant="link"
-                className="text-muted-foreground min-w-0 flex-initial has-[>svg]:ps-0 has-[>svg]:pe-2"
+                className="text-muted-foreground min-w-0 shrink grow justify-start overflow-hidden has-[>svg]:ps-0 has-[>svg]:pe-2"
                 onClick={() => setOpenedItem(item)}
               >
                 <LucideFile />
-                {item.name}
+                <span className="min-w-0 truncate">{item.name}</span>
               </Button>
               <span className="text-muted-foreground ms-auto">{formatFileSize(item.size)}</span>
               {canDelete ? (
