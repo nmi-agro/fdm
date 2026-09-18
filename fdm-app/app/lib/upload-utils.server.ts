@@ -13,16 +13,16 @@ const UNSUPPORTED_FILE_TYPE_MESSAGE = "Unsupported file type."
  */
 export async function readAndValidateFileUpload(
   file: File,
-  allowedMimes: Set<string>,
+  allowedMimes?: Set<string>,
 ): Promise<{ buffer: Buffer; mime: string }> {
   const arrayBuffer = await file.arrayBuffer()
   const fileType = await fileTypeFromBuffer(arrayBuffer)
-  if (!fileType || !allowedMimes.has(fileType.mime)) {
+  if (allowedMimes && (!fileType || !allowedMimes.has(fileType.mime))) {
     throw new Error(`${UNSUPPORTED_FILE_TYPE_MESSAGE} Allowed: ${[...allowedMimes].join(", ")}`)
   }
 
   const fileBuffer = Buffer.from(arrayBuffer)
-  const detectedMime = fileType.mime
+  const detectedMime = fileType?.mime ?? "application/octet-stream"
 
   return { buffer: fileBuffer, mime: detectedMime }
 }

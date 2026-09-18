@@ -33,6 +33,7 @@ export type DropzoneProps = {
   minSize?: number
   maxSize?: number
   multiple?: boolean
+  maxFiles?: number
   required?: boolean
   disabled?: boolean
   readonly?: boolean
@@ -49,6 +50,7 @@ export const Dropzone = ({
   maxSize,
   minSize,
   multiple,
+  maxFiles,
   required,
   disabled,
   style,
@@ -90,6 +92,12 @@ export const Dropzone = ({
 
   const handleFilesSet = async (oldFiles: File[], newFiles: File[]) => {
     const finalFiles = await myMergeFiles(oldFiles, newFiles)
+    if (finalFiles && typeof maxFiles === "number" && finalFiles.length > maxFiles) {
+      notify.warning(`Er kunnen maximaal ${maxFiles} bestanden worden bijgevoegd.`, {
+        id: "too-many-files",
+      })
+      return files
+    }
     if (finalFiles && onFilesChange) {
       onFilesChange(finalFiles)
     }

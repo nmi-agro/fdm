@@ -6,12 +6,7 @@ import z from "zod"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { OrganizationSettingsForm } from "~/components/blocks/organization/form"
 import { OrganizationInfoSchema } from "~/components/blocks/organization/schema"
-import {
-  ALLOWED_MIME_TYPES,
-  MAX_DIMENSIONS,
-  MAX_SIZE_BYTES,
-  MIME_TO_EXT,
-} from "~/components/blocks/profile/profile-picture-manager"
+import { MAX_DIMENSIONS, MAX_SIZE_BYTES } from "~/components/blocks/profile/profile-picture-manager"
 import {
   ProfilePictureFields,
   ProfilePictureSchema,
@@ -20,6 +15,7 @@ import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.s
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
 import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
 import type { Route } from "./+types/organization.new"
 
@@ -79,7 +75,7 @@ export async function action({ request }: Route.ActionArgs) {
       // The file submission will be empty if the user hasn't added a profile picture
       if (fileUpload.name === "" && fileUpload.size === 0) return
 
-      const result = await readAndValidateFileUpload(fileUpload, ALLOWED_MIME_TYPES)
+      const result = await readAndValidateFileUpload(fileUpload, new Set(ALLOWED_IMAGE_MIME_TYPES))
       fileBuffer = result.buffer
       detectedMime = result.mime
 
@@ -134,9 +130,13 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Try to add the profile picture, fail entirely if this fails
     if (organizationImage) {
-      const detectedExt = MIME_TO_EXT[organizationImage.detectedMime]
+      const detectedExt = getFileExtensionFromMime(organizationImage.detectedMime)
 
-      const objectKey = buildObjectKey("profile_picture_organization", organization.id, detectedExt)
+      const objectKey = buildObjectKey(
+        "profile_picture_organization",
+        organization.id,
+        detectedExt as string,
+      )
 
       let uploaded = true
       try {

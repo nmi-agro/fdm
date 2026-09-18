@@ -12,6 +12,11 @@ export type Jsonable =
   | { toJSON(): Jsonable }
 
 /**
+ * Message to be returned when the principal does not have the required access to the resource **or the resource doesn't exist.**
+ */
+export const PERMISSION_ERROR_MESSAGE = "Principal does not have permission to perform this action"
+
+/**
  * Converts an unknown error into a structured BaseError, applying a custom message for permission denials.
  *
  * The function first ensures the input is an Error instance using `ensureError`. If the error message exactly matches

@@ -1,11 +1,11 @@
 import { ApiError } from "@google-cloud/storage"
 import { getPrincipal } from "@nmi-agro/fdm-core"
 import { data, redirect } from "react-router"
-import { MIME_TO_EXT } from "~/components/blocks/profile/profile-picture-manager"
 import { buildObjectKey, generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { IMAGE_MIME_TO_EXT } from "~/lib/upload-utils"
 import type { Route } from "./+types/api.profile-picture.$type.$file_name"
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -22,7 +22,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     const principalId = params.file_name.slice(0, separatorIndex)
     const extension = params.file_name.slice(separatorIndex + 1).toLowerCase()
 
-    if (!Object.values(MIME_TO_EXT).includes(extension)) {
+    if (!Object.values(IMAGE_MIME_TO_EXT).includes(extension)) {
       return data("Invalid file name", { status: 400 })
     }
 
