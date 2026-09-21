@@ -69,6 +69,7 @@ export function AttachmentGrid({
               className="bg-card border-muted flex min-w-0 items-center gap-2 rounded-sm border px-2 text-xs"
             >
               <Button
+                type="button"
                 variant="link"
                 title="Klik om bijlage te bekijken"
                 className="text-muted-foreground hover:text-foreground min-w-0 shrink grow justify-start overflow-hidden text-xs has-[>svg]:ps-0 has-[>svg]:pe-2"
@@ -77,11 +78,14 @@ export function AttachmentGrid({
                 <LucideFile />
                 <span className="min-w-0 truncate underline-offset-2">{item.name}</span>
               </Button>
-              <span className="text-muted-foreground text-xs ms-auto">{formatFileSize(item.size)}</span>
+              <span className="text-muted-foreground ms-auto text-xs">
+                {formatFileSize(item.size)}
+              </span>
               {canDelete ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => onDelete?.(item.object)}
@@ -163,6 +167,7 @@ function AttachmentGridImage({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation()
                   onDelete?.()
