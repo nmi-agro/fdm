@@ -207,19 +207,20 @@ export function AttachmentViewerDialogContent({
 function ImageViewerApp(imageData: { src: string; imageWidth: number; imageHeight: number }) {
   const [cropFramePosition, setCropFramePosition] = useState({ x: 0, y: 0, scale: 1 })
   return (
-    <ImageCropperApp
-      frameShape="rectangle"
-      frameRelativeSize={1.0}
-      imageData={imageData}
-      aspectRatio={
-        imageData.imageWidth > 0 && imageData.imageHeight > 0
-          ? imageData.imageWidth / imageData.imageHeight
-          : 1
-      }
-      appAspectRatio={2}
-      onClear={() => {}}
-      framePosition={cropFramePosition}
-      onFramePositionChange={setCropFramePosition}
-    />
+    <div className="size-full rounded-md">
+      <ImageCropperApp
+        frameShape="hidden"
+        frameRelativeSize={1.0}
+        imageData={imageData}
+        aspectRatio={
+          imageData.imageWidth > 0 && imageData.imageHeight > 0
+            ? imageData.imageWidth / imageData.imageHeight
+            : 1
+        }
+        onClear={() => {}}
+        framePosition={cropFramePosition}
+        onFramePositionChange={setCropFramePosition}
+      />
+    </div>
   )
 }

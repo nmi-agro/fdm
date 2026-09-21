@@ -168,7 +168,6 @@ export function OrganizationSettingsForm({
                   <FieldLabel>Logo (optioneel)</FieldLabel>
                   <div className="relative mx-auto max-w-sm">
                     <ProfilePictureInput
-                      appAspectRatio={3 / 2}
                       frameShape="rectangle"
                       cropBounds="outer"
                       files={profilePictureFiles}
