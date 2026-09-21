@@ -172,6 +172,7 @@ export async function getAttachmentsForTicket(
  * @param file_size Size of the linked file, in octets.
  * @param mime_type MIME type of the file.
  * @param file_path Path to the linked file which would allow retrieval from the storage service.
+ * Occurrences of `{attachment_id}` will be substituted with the generated attachment ID.
  * @param uploaded_by ID of the principal who is attaching the file.
  * @returns the ID of the new attachment.
  * @throws if the principal cannot update the message or if it doesn't exist.
@@ -206,7 +207,7 @@ export async function addAttachment(
       file_name: file_name,
       file_size: file_size,
       mime_type: mime_type,
-      file_path: file_path,
+      file_path: file_path.replaceAll("{attachment_id}", attachment_id),
       uploaded_by: uploaded_by,
     } as schema.AttachmentTypeInsert)
 

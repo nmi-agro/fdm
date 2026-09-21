@@ -53,7 +53,7 @@ async function createAttachmentGetterSeedData(fdm: FdmHelpdeskType) {
     "cat.jpg",
     67_000_000,
     "image/jpeg",
-    "helpdesk-attachments/cat.jpg",
+    "helpdesk_attachment/cat.jpg",
     user_id,
   )
   const internal_attachment_id = await addAttachment(
@@ -63,7 +63,7 @@ async function createAttachmentGetterSeedData(fdm: FdmHelpdeskType) {
     "dog.webp",
     52_000_000,
     "image/webp",
-    "helpdesk-attachments/dog.webp",
+    "helpdesk_attachment/dog.webp",
     agent_id,
   )
   const other_attachment_id = await addAttachment(
@@ -73,7 +73,7 @@ async function createAttachmentGetterSeedData(fdm: FdmHelpdeskType) {
     "gopher.svg",
     64_000,
     "image/svg+xml",
-    "helpdesk-attachments/gopher.svg",
+    "helpdesk_attachment/gopher.svg",
     agent_id,
   )
   const removed_attachment_id = await addAttachment(
@@ -83,7 +83,7 @@ async function createAttachmentGetterSeedData(fdm: FdmHelpdeskType) {
     "cat.jpg",
     67_000_000,
     "image/jpeg",
-    "helpdesk-attachments/cat.jpg",
+    "helpdesk_attachment/cat.jpg",
     user_id,
   )
   await removeAttachment(fdm, user_id, removed_attachment_id)
@@ -122,7 +122,7 @@ describe("getAttachment", () => {
         file_name: "cat.jpg",
         file_size: 67_000_000,
         mime_type: "image/jpeg",
-        file_path: "helpdesk-attachments/cat.jpg",
+        file_path: "helpdesk_attachment/cat.jpg",
       }),
     )
   })
@@ -151,7 +151,7 @@ describe("getAttachment", () => {
         file_name: "dog.webp",
         file_size: 52_000_000,
         mime_type: "image/webp",
-        file_path: "helpdesk-attachments/dog.webp",
+        file_path: "helpdesk_attachment/dog.webp",
       }),
     )
   })
@@ -166,7 +166,7 @@ describe("getAttachment", () => {
         file_name: "cat.jpg",
         file_size: 67_000_000,
         mime_type: "image/jpeg",
-        file_path: "helpdesk-attachments/cat.jpg",
+        file_path: "helpdesk_attachment/cat.jpg",
       }),
     )
   })
@@ -196,7 +196,7 @@ describe("getAttachmentsForMessage", () => {
         file_name: "cat.jpg",
         file_size: 67_000_000,
         mime_type: "image/jpeg",
-        file_path: "helpdesk-attachments/cat.jpg",
+        file_path: "helpdesk_attachment/cat.jpg",
       }),
     ])
   })
@@ -227,7 +227,7 @@ describe("getAttachmentsForMessage", () => {
         file_name: "dog.webp",
         file_size: 52_000_000,
         mime_type: "image/webp",
-        file_path: "helpdesk-attachments/dog.webp",
+        file_path: "helpdesk_attachment/dog.webp",
       }),
     ])
   })
@@ -244,7 +244,7 @@ describe("getAttachmentsForMessage", () => {
         file_name: "cat.jpg",
         file_size: 67_000_000,
         mime_type: "image/jpeg",
-        file_path: "helpdesk-attachments/cat.jpg",
+        file_path: "helpdesk_attachment/cat.jpg",
       }),
     ])
   })
@@ -277,7 +277,7 @@ describe("getAttachmentsForTicket", () => {
         file_name: "cat.jpg",
         file_size: 67_000_000,
         mime_type: "image/jpeg",
-        file_path: "helpdesk-attachments/cat.jpg",
+        file_path: "helpdesk_attachment/cat.jpg",
       }),
     ])
   })
@@ -320,7 +320,7 @@ describe("getAttachmentsForTicket", () => {
         file_name: "cat.jpg",
         file_size: 67_000_000,
         mime_type: "image/jpeg",
-        file_path: "helpdesk-attachments/cat.jpg",
+        file_path: "helpdesk_attachment/cat.jpg",
       }),
     ])
     expect(internalMessageAttachments).toEqual([
@@ -332,7 +332,7 @@ describe("getAttachmentsForTicket", () => {
         file_name: "dog.webp",
         file_size: 52_000_000,
         mime_type: "image/webp",
-        file_path: "helpdesk-attachments/dog.webp",
+        file_path: "helpdesk_attachment/dog.webp",
       }),
     ])
   })
@@ -347,7 +347,7 @@ describe("getAttachmentsForTicket", () => {
       "fat-cat.jpg",
       67_000_000,
       "image/jpeg",
-      "helpdesk-attachments/fat-cat.jpg",
+      "helpdesk_attachment/fat-cat.jpg",
       seed.user_id,
     )
     await addAttachment(
@@ -357,7 +357,7 @@ describe("getAttachmentsForTicket", () => {
       "slim-cat.jpg",
       21_000_000,
       "image/jpeg",
-      "helpdesk-attachments/slim-cat.jpg",
+      "helpdesk_attachment/slim-cat.jpg",
       seed.user_id,
     )
 
@@ -397,7 +397,7 @@ describe("addAttachment", () => {
       "cat.png",
       5_000_000,
       "image/png",
-      "helpdesk-attachments/cat.png",
+      "helpdesk_attachment/cat.png",
       user_id,
     )
 
@@ -408,7 +408,7 @@ describe("addAttachment", () => {
         file_name: "cat.png",
         file_size: 5_000_000,
         mime_type: "image/png",
-        file_path: "helpdesk-attachments/cat.png",
+        file_path: "helpdesk_attachment/cat.png",
         uploaded_by: user_id,
       }),
     )
@@ -425,7 +425,7 @@ describe("addAttachment", () => {
         "cat.png",
         5_000_000,
         "image/png",
-        "helpdesk-attachments/cat.png",
+        "helpdesk_attachment/cat.png",
         user_id,
       ),
     ).rejects.toThrow("Principal does not have permission to perform this action")
@@ -441,7 +441,7 @@ describe("addAttachment", () => {
       "cat.png",
       5_000_000,
       "image/png",
-      "helpdesk-attachments/cat.png",
+      "helpdesk_attachment/cat.png",
       agent_id,
     )
 
@@ -452,10 +452,29 @@ describe("addAttachment", () => {
         file_name: "cat.png",
         file_size: 5_000_000,
         mime_type: "image/png",
-        file_path: "helpdesk-attachments/cat.png",
+        file_path: "helpdesk_attachment/cat.png",
         uploaded_by: agent_id,
       }),
     )
+  })
+
+  test("should substitute {attachment_id} in the file_path with the generated ID", async ({
+    fdm,
+  }) => {
+    const attachment_id = await addAttachment(
+      fdm,
+      user_id,
+      user_message_id,
+      "cat.png",
+      5_000_000,
+      "image/png",
+      "helpdesk_attachment/{attachment_id}",
+      user_id,
+    )
+
+    const attachment = await getAttachment(fdm, user_id, attachment_id)
+
+    expect(attachment.file_path).toBe(`helpdesk_attachment/${attachment_id}`)
   })
 })
 
@@ -484,7 +503,7 @@ describe("removeAttachment", () => {
       "cat.png",
       5_000_000,
       "image/png",
-      "helpdesk-attachments/cat.png",
+      "helpdesk_attachment/cat.png",
       user_id,
     )
     other_attachment_id = await addAttachment(
@@ -494,7 +513,7 @@ describe("removeAttachment", () => {
       "dog.webp",
       5_000_000,
       "image/webp",
-      "helpdesk-attachments/dog.webp",
+      "helpdesk_attachment/dog.webp",
       agent_id,
     )
   })
@@ -537,7 +556,7 @@ describe("removeAttachment", () => {
       "dog.webp",
       5_000_000,
       "image/webp",
-      "helpdesk-attachments/dog.webp",
+      "helpdesk_attachment/dog.webp",
       agent_id,
     )
     await removeAttachment(fdm, user_id, foreign_attachment_id)

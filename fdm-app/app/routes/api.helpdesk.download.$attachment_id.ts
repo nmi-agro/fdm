@@ -1,7 +1,6 @@
 import { ApiError } from "@google-cloud/storage"
 import { getAttachment } from "@nmi-agro/fdm-helpdesk"
 import { data, redirect } from "react-router"
-import { buildAttachmentObjectKey } from "~/components/blocks/helpdesk/attachment.server"
 import { generateSignedReadUrl } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import { handleLoaderError } from "~/lib/error"
@@ -11,12 +10,10 @@ import type { Route } from "./+types/api.helpdesk.download.$attachment_id"
 export async function loader({ params, request }: Route.LoaderArgs) {
   try {
     const session = await getSession(request)
-    await getAttachment(fdm, session.principal_id, params.attachment_id)
+    const attachment = await getAttachment(fdm, session.principal_id, params.attachment_id)
 
     try {
-      // The MIME type doesn't matter much
-      const objectKey = buildAttachmentObjectKey(params.attachment_id, "application/octet-stream")
-      const url = await generateSignedReadUrl(objectKey)
+      const url = await generateSignedReadUrl(attachment.file_path)
 
       const headers = new Headers({
         "Cache-Control": "private, max-age=1800",
