@@ -1,6 +1,6 @@
 import { FdmType } from "@nmi-agro/fdm-core"
 import { addAttachment, removeAttachment } from "@nmi-agro/fdm-helpdesk"
-import { deleteObject, uploadObject } from "~/integrations/gcs.server"
+import { uploadObject } from "~/integrations/gcs.server"
 import { handleActionError } from "~/lib/error"
 
 type AttachmentFile = { name: string; buffer: Buffer; mime: string }
@@ -8,6 +8,7 @@ type AttachmentFile = { name: string; buffer: Buffer; mime: string }
 export function buildAttachmentObjectKey(attachment_id: string, _mime: string) {
   return `helpdesk_attachment/${attachment_id}`
 }
+
 /**
  * Attaches files to an helpdesk message in the name of a single principal. Most importantly,
  * this function uploads the files to Google Cloud Storage, and deletes any uploaded files if
@@ -26,51 +27,36 @@ export async function attachFiles(
   message_id: string,
   files: AttachmentFile[],
 ) {
-  const createdAttachments: string[] = []
-  try {
-    for (const { name, buffer, mime } of files) {
-      createdAttachments.push(
-        await addAttachment(
-          fdm,
-          principal_id,
-          message_id,
-          name,
-          buffer.byteLength,
-          mime,
-          "helpdesk_attachment/dummy",
-          principal_id,
-        ),
+  const uploadPromises: Promise<void>[] = []
+  for (const { name, buffer, mime } of files) {
+    try {
+      const attachment_id = await addAttachment(
+        fdm,
+        principal_id,
+        message_id,
+        name,
+        buffer.byteLength,
+        mime,
+        buildAttachmentObjectKey("{attachment_id}", mime),
+        principal_id,
       )
+
+      const uploadPromise = uploadObject(
+        buildAttachmentObjectKey(attachment_id, mime),
+        buffer,
+        mime,
+      )
+      uploadPromises.push(uploadPromise)
+      uploadPromise.catch(async (uploadError) => {
+        try {
+          await removeAttachment(fdm, principal_id, attachment_id)
+        } catch (revertError) {
+          handleActionError(revertError)
+        }
+        handleActionError(uploadError)
+      })
+    } catch (createError) {
+      handleActionError(new Error("Failed to create an attachment", { cause: createError }))
     }
-    await Promise.all(
-      files.map(async ({ buffer, mime }, i) => {
-        const objectKey = buildAttachmentObjectKey(createdAttachments[i], mime)
-        await uploadObject(objectKey, buffer, mime)
-      }),
-    )
-    // for (let i = 0; i < files.length; i++) {
-    //   const objectKey = buildAttachmentObjectKey(createdAttachments[i], files[i].mime)
-    //   await updateAttachmentFilePath(fdm, principal_id, createdAttachments[i], objectKey)
-    // }
-  } catch (err) {
-    const deleteObjectResults = await Promise.allSettled(
-      files.map(async ({ mime }, i) => {
-        const objectKey = buildAttachmentObjectKey(createdAttachments[i], mime)
-        await deleteObject(objectKey)
-      }),
-    )
-    for (const result of deleteObjectResults) {
-      if (result.status === "rejected") {
-        handleActionError(result.reason)
-      }
-    }
-    for (const attachment_id of createdAttachments) {
-      try {
-        await removeAttachment(fdm, principal_id, attachment_id)
-      } catch (removeError) {
-        handleActionError(removeError)
-      }
-    }
-    throw err
   }
 }

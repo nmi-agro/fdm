@@ -449,7 +449,7 @@ export async function action({ params, request }: Args) {
         // An empty file input causes a single file with no content to be submitted.
         const filesToAttach = files.filter((f) => f.buffer.byteLength > 0).slice(0, MAX_ATTACHMENTS)
         if (filesToAttach.length > 0) {
-          await attachFiles(fdm, session.principal_id, message_id, files)
+          await attachFiles(fdm, session.principal_id, message_id, filesToAttach)
         }
       } catch (err) {
         handleActionError(err)
