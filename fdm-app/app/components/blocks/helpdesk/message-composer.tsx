@@ -24,6 +24,7 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
+import { ALLOWED_ATTACHMENT_EXTENSIONS, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS } from "~/lib/upload-utils"
 import type { HelpdeskUser } from "./types"
 import { AttachmentDropzone } from "./attachment-dropzone"
 import { Message } from "./message"
@@ -196,8 +197,9 @@ export function MessageComposer({
                     <FieldTitle className="text-muted-foreground font-normal">Bijlagen</FieldTitle>
                     <AttachmentDropzone
                       name={"attachments"}
-                      maxSize={25 * 1024 * 1024}
-                      maxFiles={5}
+                      accept={ALLOWED_ATTACHMENT_EXTENSIONS}
+                      maxSize={MAX_ATTACHMENT_SIZE}
+                      maxFiles={MAX_ATTACHMENTS}
                       value={field.value}
                       onFilesChange={field.onChange}
                     />

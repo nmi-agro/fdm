@@ -42,7 +42,18 @@ import {
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { readAndValidateFileUpload } from "~/lib/upload-utils.server"
+import { checkRateLimit } from "~/lib/rate-limit.server"
+import {
+  ALLOWED_ATTACHMENT_MIME_TYPES,
+  MAX_ATTACHMENT_SIZE,
+  MAX_ATTACHMENTS,
+  sanitizeAttachmentFileName,
+} from "~/lib/upload-utils"
+import {
+  ATTACHMENT_UPLOAD_RATE_LIMIT_MAX,
+  ATTACHMENT_UPLOAD_RATE_LIMIT_WINDOW_MS,
+  readAndValidateAttachmentUpload,
+} from "~/lib/upload-utils.server"
 
 interface Args {
   params: { ticket_id: string }
@@ -200,8 +211,6 @@ export async function loader({ params, request }: Args) {
   }
 }
 
-export const MAX_ATTACHMENT_SIZE = 25 * 1024 * 1024
-export const MAX_ATTACHMENTS = 5
 export const ActionSchema = z.discriminatedUnion("intent", [
   z.object({ intent: z.literal("mark_ticket_as_viewed") }),
   z.object({ intent: z.literal("set_ticket_status"), status: z.string() }),
@@ -227,9 +236,22 @@ export async function action({ params, request }: Args) {
 
     const uploadHandler = async (fileUpload: FileUpload) => {
       if (fileUpload.fieldName !== "attachments") return undefined
-      const result = await readAndValidateFileUpload(fileUpload)
 
-      files.push({ name: fileUpload.name, ...result })
+      const rateLimitResult = await checkRateLimit(
+        `helpdesk-attachment-upload:${session.principal_id}`,
+        ATTACHMENT_UPLOAD_RATE_LIMIT_WINDOW_MS,
+        ATTACHMENT_UPLOAD_RATE_LIMIT_MAX,
+      )
+      if (!rateLimitResult.allowed) {
+        throw new Error("U heeft te veel bestanden geüpload. Probeer het later opnieuw.")
+      }
+
+      const result = await readAndValidateAttachmentUpload(
+        fileUpload,
+        ALLOWED_ATTACHMENT_MIME_TYPES,
+      )
+
+      files.push({ name: sanitizeAttachmentFileName(fileUpload.name), ...result })
     }
 
     let formData: FormData

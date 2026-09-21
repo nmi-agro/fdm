@@ -1,4 +1,4 @@
-import { LucideFile, Trash2, X } from "lucide-react"
+import { Eye, LucideFile, Trash2, X } from "lucide-react"
 import { HTMLAttributes, useState } from "react"
 import { Button } from "~/components/ui/button"
 import { Dialog } from "~/components/ui/dialog"
@@ -70,13 +70,14 @@ export function AttachmentGrid({
             >
               <Button
                 variant="link"
-                className="text-muted-foreground min-w-0 shrink grow justify-start overflow-hidden has-[>svg]:ps-0 has-[>svg]:pe-2"
+                title="Klik om bijlage te bekijken"
+                className="text-muted-foreground hover:text-foreground min-w-0 shrink grow justify-start overflow-hidden text-xs has-[>svg]:ps-0 has-[>svg]:pe-2"
                 onClick={() => setOpenedItem(item)}
               >
                 <LucideFile />
-                <span className="min-w-0 truncate">{item.name}</span>
+                <span className="min-w-0 truncate underline-offset-2">{item.name}</span>
               </Button>
-              <span className="text-muted-foreground ms-auto">{formatFileSize(item.size)}</span>
+              <span className="text-muted-foreground text-xs ms-auto">{formatFileSize(item.size)}</span>
               {canDelete ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -133,7 +134,7 @@ function AttachmentGridImage({
           key={src}
           src={src}
           alt={alt}
-          className="text-muted-foreground size-full object-cover text-xs"
+          className="text-muted-foreground size-full cursor-pointer object-cover text-xs"
           onLoad={(e) => {
             setStyle((current) => ({
               ...current,
@@ -145,6 +146,12 @@ function AttachmentGridImage({
           }}
           onClick={onClick}
         />
+        <div
+          className="pointer-events-none invisible absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100"
+          aria-hidden="true"
+        >
+          <Eye className="size-6 text-white drop-shadow" />
+        </div>
         <div
           className={
             "invisible absolute bottom-0 box-border w-full bg-black/50 p-1 text-xs wrap-break-word text-white group-hover:visible"

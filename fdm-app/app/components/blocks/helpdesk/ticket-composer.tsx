@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Textarea } from "~/components/ui/textarea"
+import { ALLOWED_ATTACHMENT_EXTENSIONS, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS } from "~/lib/upload-utils"
 import { AttachmentDropzone } from "./attachment-dropzone"
 import { TicketSchema } from "./ticket-schema"
 
@@ -125,8 +126,9 @@ export function TicketComposer({
                     </FieldDescription>
                     <AttachmentDropzone
                       name={"attachments"}
-                      maxSize={25 * 1024 * 1024}
-                      maxFiles={5}
+                      accept={ALLOWED_ATTACHMENT_EXTENSIONS}
+                      maxSize={MAX_ATTACHMENT_SIZE}
+                      maxFiles={MAX_ATTACHMENTS}
                       value={field.value}
                       onFilesChange={field.onChange}
                     />

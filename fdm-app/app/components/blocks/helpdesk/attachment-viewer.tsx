@@ -1,9 +1,10 @@
-import { Download } from "lucide-react"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
+import {
+  FileViewerDialogHeader,
+  FileViewerFallbackPanel,
+} from "~/components/custom/file-viewer-parts"
 import { ImageCropperApp } from "~/components/custom/image-cropper"
-import { Button } from "~/components/ui/button"
-import { DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
+import { DialogContent } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
 import { ALLOWED_IMAGE_MIME_TYPES } from "~/lib/upload-utils"
 import { cn } from "~/lib/utils"
@@ -129,7 +130,7 @@ export function AttachmentViewerDialogContent({
           }
         }
       } catch (err) {
-        if (abortController.signal.aborted) {
+        if (!abortController.signal.aborted) {
           console.error(err)
           setStatus({ status: "error" })
         }
@@ -150,19 +151,11 @@ export function AttachmentViewerDialogContent({
 
   return (
     <DialogContent className="flex h-[85vh] max-h-160 w-full max-w-4xl flex-col sm:max-h-[85vh]">
-      <DialogHeader className="flex-row items-center justify-between space-y-0 pr-8">
-        <DialogTitle className="truncate">{attachment.name}</DialogTitle>
-        <Button variant="ghost" size="sm" asChild onClick={() => toast("PDF wordt gedownload")}>
-          <a
-            href={objectUrl ?? attachment.url}
-            download={attachment.name}
-            rel="noopener noreferrer"
-          >
-            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-            Downloaden
-          </a>
-        </Button>
-      </DialogHeader>
+      <FileViewerDialogHeader
+        title={attachment.name}
+        downloadUrl={objectUrl ?? attachment.url}
+        filename={attachment.name}
+      />
       <div className="relative h-full min-h-0 w-full flex-1">
         {status.status === "loading" ? (
           <div className="bg-background absolute inset-0 flex items-center justify-center gap-2 rounded-md border">
@@ -187,52 +180,24 @@ export function AttachmentViewerDialogContent({
               imageHeight={status.imageHeight}
             />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-md border text-center">
-              <p className="text-muted-foreground text-sm">Er is geen voorbeeld beschikbaar.</p>
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={objectUrl ?? attachment.url}
-                  download={attachment.name}
-                  rel="noopener noreferrer"
-                >
-                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Downloaden in plaats daarvan
-                </a>
-              </Button>
-            </div>
+            <FileViewerFallbackPanel
+              message="Er is geen voorbeeld beschikbaar."
+              downloadUrl={objectUrl ?? attachment.url}
+              filename={attachment.name}
+            />
           )
         ) : status.status === "not_found" ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-md border text-center">
-            <p className="text-muted-foreground text-sm">
-              Het PDF-bestand kunt niet gevonden zijn.
-            </p>
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={objectUrl ?? attachment.url}
-                download={attachment.name}
-                rel="noopener noreferrer"
-              >
-                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                Downloaden in plaats daarvan
-              </a>
-            </Button>
-          </div>
+          <FileViewerFallbackPanel
+            message="Het bestand kon niet worden gevonden."
+            downloadUrl={objectUrl ?? attachment.url}
+            filename={attachment.name}
+          />
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-md border text-center">
-            <p className="text-muted-foreground text-sm">
-              Het PDF-bestand kon niet worden geladen.
-            </p>
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={objectUrl ?? attachment.url}
-                download={attachment.name}
-                rel="noopener noreferrer"
-              >
-                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                Downloaden in plaats daarvan
-              </a>
-            </Button>
-          </div>
+          <FileViewerFallbackPanel
+            message="Het bestand kon niet worden geladen."
+            downloadUrl={objectUrl ?? attachment.url}
+            filename={attachment.name}
+          />
         )}
       </div>
     </DialogContent>
