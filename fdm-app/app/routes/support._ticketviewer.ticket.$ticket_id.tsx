@@ -229,6 +229,16 @@ export async function action({ params, request }: Args) {
   try {
     const session = await getSession(request)
 
+    const isAgent = await checkHelpdeskPermission(
+      fdm,
+      "ticket-agent-side",
+      "write",
+      params.ticket_id,
+      session.principal_id,
+      "ticket.$ticket_id action",
+      false,
+    )
+
     const files: { name: string; buffer: Buffer; mime: string }[] = []
 
     const uploadHandler = async (fileUpload: FileUpload) => {
@@ -255,7 +265,7 @@ export async function action({ params, request }: Args) {
     try {
       const formData = await parseFormData(
         request,
-        { maxFileSize: MAX_ATTACHMENT_SIZE, maxFiles: MAX_ATTACHMENTS },
+        { maxFileSize: MAX_ATTACHMENT_SIZE, ...(isAgent ? {} : { maxFiles: MAX_ATTACHMENTS }) },
         uploadHandler,
       )
 
@@ -440,7 +450,8 @@ export async function action({ params, request }: Args) {
 
       let attachedFiles: AttachmentGridItem[] = []
       // An empty file input causes a single file with no content to be submitted.
-      const filesToAttach = files.filter((f) => f.buffer.byteLength > 0).slice(0, MAX_ATTACHMENTS)
+      const filesWithContent = files.filter((f) => f.buffer.byteLength > 0)
+      const filesToAttach = isAgent ? filesWithContent : filesWithContent.slice(0, MAX_ATTACHMENTS)
       // Add the attachments
       if (filesToAttach.length > 0) {
         try {

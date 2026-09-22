@@ -39,10 +39,8 @@ export const ALLOWED_ATTACHMENT_MIME_TYPES = new Set<string>([
   "application/pdf",
   "text/plain",
   "text/csv",
-  "text/xml",
   "image/tiff",
   "image/tiff-fx",
-  "image/svg+xml",
   "image/vnd.dxf",
   "image/vnd.dwg",
   "application/text",
@@ -79,7 +77,6 @@ export const ALLOWED_ATTACHMENT_EXTENSIONS = [
   ".heif",
   ".tif",
   ".tiff",
-  ".svg",
   ".dxf",
   ".dwg",
   ".pdf",
@@ -120,6 +117,9 @@ export function sanitizeAttachmentFileName(name: string): string {
   }
   const extensionMatch = safeName.match(/\.[^.]+$/)
   const extension = extensionMatch ? extensionMatch[0] : ""
+  if (extension.length >= MAX_FILENAME_LENGTH) {
+    return safeName.slice(0, MAX_FILENAME_LENGTH)
+  }
   const base = safeName.slice(0, MAX_FILENAME_LENGTH - extension.length)
   return `${base}${extension}`
 }

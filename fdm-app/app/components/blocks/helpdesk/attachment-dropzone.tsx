@@ -45,13 +45,18 @@ export function AttachmentDropzone({
     })
 
     setFileMetas(fileMetas)
-
-    return () => {
-      for (const fileMeta of fileMetas) {
-        URL.revokeObjectURL(fileMeta.file_path)
-      }
-    }
   }, [value])
+
+  // Revoke any leftover object URLs on unmount.
+  useEffect(() => {
+    const urls = objectUrls.current
+    return () => {
+      for (const url of urls.values()) {
+        URL.revokeObjectURL(url)
+      }
+      urls.clear()
+    }
+  }, [])
 
   const filesPhrase =
     maxFiles === 1

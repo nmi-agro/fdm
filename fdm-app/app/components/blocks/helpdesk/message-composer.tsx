@@ -199,7 +199,7 @@ export function MessageComposer({
                       name={"attachments"}
                       accept={ALLOWED_ATTACHMENT_EXTENSIONS}
                       maxSize={MAX_ATTACHMENT_SIZE}
-                      maxFiles={MAX_ATTACHMENTS}
+                      maxFiles={showAgentControls ? undefined : MAX_ATTACHMENTS}
                       value={field.value}
                       onFilesChange={field.onChange}
                     />
