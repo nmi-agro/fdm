@@ -22,7 +22,7 @@ import { AttachmentGridItem } from "./attachment-grid"
 export function AttachmentViewerDialogContent({
   attachment,
 }: {
-  attachment: Pick<AttachmentGridItem, "url" | "name" | "type">
+  attachment: Pick<AttachmentGridItem, "file_path" | "file_name" | "mime_type">
 }) {
   type Status =
     | { status: "loading" }
@@ -48,12 +48,12 @@ export function AttachmentViewerDialogContent({
       }
 
       // Let the browser do its thing for blob URLs since enabling them to JS is dangerous
-      if (attachment.url.startsWith("blob:")) {
+      if (attachment.file_path.startsWith("blob:")) {
         let imageWidth = 0
         let imageHeight = 0
 
         // For images, read the image width and height properly
-        if (ALLOWED_IMAGE_MIME_TYPES.includes(attachment.type)) {
+        if (ALLOWED_IMAGE_MIME_TYPES.includes(attachment.mime_type)) {
           await new Promise<void>((resolve) => {
             const image = new Image()
             image.onload = () => {
@@ -64,16 +64,16 @@ export function AttachmentViewerDialogContent({
             image.onerror = () => {
               resolve()
             }
-            image.src = attachment.url
+            image.src = attachment.file_path
           })
         }
 
         if (!abortController.signal.aborted) {
           setStatus({
             status: "ok",
-            fileName: attachment.name,
-            mimeType: attachment.type,
-            url: attachment.url,
+            fileName: attachment.file_name,
+            mimeType: attachment.mime_type,
+            url: attachment.file_path,
             imageWidth: imageWidth,
             imageHeight: imageHeight,
           })
@@ -84,17 +84,17 @@ export function AttachmentViewerDialogContent({
 
       setStatus({ status: "loading" })
       try {
-        const response = await fetch(attachment.url)
+        const response = await fetch(attachment.file_path)
         if (response.ok) {
           const blob = await response.blob()
-          const file = new File([blob], attachment.name, { type: attachment.type })
+          const file = new File([blob], attachment.file_name, { type: attachment.mime_type })
           const url = URL.createObjectURL(file)
           objectUrl = url
           let imageWidth = 0
           let imageHeight = 0
 
           // For images, read the image width and height properly
-          if (ALLOWED_IMAGE_MIME_TYPES.includes(attachment.type)) {
+          if (ALLOWED_IMAGE_MIME_TYPES.includes(attachment.mime_type)) {
             await new Promise<void>((resolve) => {
               const image = new Image()
               image.onload = () => {
@@ -112,8 +112,8 @@ export function AttachmentViewerDialogContent({
           if (!abortController.signal.aborted) {
             setStatus({
               status: "ok",
-              fileName: attachment.name,
-              mimeType: attachment.type,
+              fileName: attachment.file_name,
+              mimeType: attachment.mime_type,
               url: url,
               imageWidth: imageWidth,
               imageHeight: imageHeight,
@@ -152,9 +152,9 @@ export function AttachmentViewerDialogContent({
   return (
     <DialogContent className="flex h-[85vh] max-h-160 w-full max-w-4xl flex-col sm:max-h-[85vh]">
       <FileViewerDialogHeader
-        title={attachment.name}
-        downloadUrl={objectUrl ?? attachment.url}
-        filename={attachment.name}
+        title={attachment.file_name}
+        downloadUrl={objectUrl ?? attachment.file_path}
+        filename={attachment.file_name}
       />
       <div className="relative h-full min-h-0 w-full flex-1">
         {status.status === "loading" ? (
@@ -166,7 +166,7 @@ export function AttachmentViewerDialogContent({
           status.mimeType === "application/pdf" ? (
             <iframe
               src={status.url}
-              title={attachment.name}
+              title={attachment.file_name}
               className={cn("h-full w-full rounded-md border transition-opacity")}
               onError={(err) => {
                 console.error(err)
@@ -182,21 +182,21 @@ export function AttachmentViewerDialogContent({
           ) : (
             <FileViewerFallbackPanel
               message="Er is geen voorbeeld beschikbaar."
-              downloadUrl={objectUrl ?? attachment.url}
-              filename={attachment.name}
+              downloadUrl={objectUrl ?? attachment.file_path}
+              filename={attachment.file_name}
             />
           )
         ) : status.status === "not_found" ? (
           <FileViewerFallbackPanel
             message="Het bestand kon niet worden gevonden."
-            downloadUrl={objectUrl ?? attachment.url}
-            filename={attachment.name}
+            downloadUrl={objectUrl ?? attachment.file_path}
+            filename={attachment.file_name}
           />
         ) : (
           <FileViewerFallbackPanel
             message="Het bestand kon niet worden geladen."
-            downloadUrl={objectUrl ?? attachment.url}
-            filename={attachment.name}
+            downloadUrl={objectUrl ?? attachment.file_path}
+            filename={attachment.file_name}
           />
         )}
       </div>

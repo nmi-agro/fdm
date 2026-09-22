@@ -13,6 +13,7 @@ import { HelpdeskNewMessageEmail } from "~/components/blocks/email/helpdesk-new-
 import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
 import { WelcomeEmail } from "~/components/blocks/email/welcome"
+import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
 import { serverConfig } from "~/lib/config.server"
 
 function hasPostmarkApiKey(): boolean {
@@ -320,6 +321,7 @@ export async function renderHelpdeskNewMessageEmail(
   ticketId: string,
   messageId: string,
   messageBody: string,
+  attachmentLinks: AttachmentGridItem[] = [],
 ): Promise<Email> {
   const ticketUrl = `${serverConfig.url}/support/ticket/${ticketId}`
 
@@ -342,6 +344,7 @@ export async function renderHelpdeskNewMessageEmail(
       appName: serverConfig.name,
       appBaseUrl: serverConfig.url,
       emailSenderName: helpdeskSenderName,
+      attachments: attachmentLinks,
     }),
     { pretty: true },
   )
@@ -434,8 +437,18 @@ export async function sendHelpdeskNewMessageEmail(
   ticketId: string,
   messageId: string,
   messageBody: string,
+  attachments: AttachmentGridItem[] = [],
 ): Promise<void> {
   try {
+    const attachmentLinks = await Promise.all(
+      attachments.map(async (attachment) => ({
+        ...attachment,
+        file_path: new URL(
+          `/api/helpdesk/download/${attachment.attachment_id}`,
+          serverConfig.url,
+        ).toString(),
+      })),
+    )
     const email = await renderHelpdeskNewMessageEmail(
       recipientEmail,
       recipientName,
@@ -445,6 +458,7 @@ export async function sendHelpdeskNewMessageEmail(
       ticketId,
       messageId,
       messageBody,
+      attachmentLinks,
     )
     await sendEmail(email)
   } catch (error) {

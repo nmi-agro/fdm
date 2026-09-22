@@ -16,11 +16,11 @@ export function formatFileSize(sizeInBytes: number) {
 }
 
 export interface AttachmentGridItem {
-  id: string
-  name: string
-  type: string
-  size: number
-  url: string
+  attachment_id: string
+  file_name: string
+  mime_type: string
+  file_size: number
+  file_path: string
   object?: any
 }
 
@@ -40,8 +40,8 @@ export function AttachmentGrid({
   canDelete: boolean
   onDelete?: (object: any) => void
 }) {
-  const imageItems = items.filter((item) => ALLOWED_IMAGE_MIME_TYPES.includes(item.type))
-  const nonImageItems = items.filter((item) => !ALLOWED_IMAGE_MIME_TYPES.includes(item.type))
+  const imageItems = items.filter((item) => ALLOWED_IMAGE_MIME_TYPES.includes(item.mime_type))
+  const nonImageItems = items.filter((item) => !ALLOWED_IMAGE_MIME_TYPES.includes(item.mime_type))
   const [openedItem, setOpenedItem] = useState<AttachmentGridItem | null>(null)
 
   return (
@@ -50,10 +50,10 @@ export function AttachmentGrid({
         <div className="flex flex-wrap items-stretch gap-4">
           {imageItems.map((item) => (
             <AttachmentGridImage
-              key={item.id}
-              name={item.name}
-              src={item.url as string}
-              alt={item.name}
+              key={item.attachment_id}
+              name={item.file_name}
+              src={item.file_path as string}
+              alt={item.file_name}
               canDelete={canDelete}
               onDelete={() => onDelete?.(item.object)}
               onClick={() => setOpenedItem(item)}
@@ -65,7 +65,7 @@ export function AttachmentGrid({
         <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
           {nonImageItems.map((item) => (
             <div
-              key={item.id}
+              key={item.attachment_id}
               className="bg-card border-muted flex min-w-0 items-center gap-2 rounded-sm border px-2 text-xs"
             >
               <Button
@@ -76,10 +76,10 @@ export function AttachmentGrid({
                 onClick={() => setOpenedItem(item)}
               >
                 <LucideFile />
-                <span className="min-w-0 truncate underline-offset-2">{item.name}</span>
+                <span className="min-w-0 truncate underline-offset-2">{item.file_name}</span>
               </Button>
               <span className="text-muted-foreground ms-auto text-xs">
-                {formatFileSize(item.size)}
+                {formatFileSize(item.file_size)}
               </span>
               {canDelete ? (
                 <Tooltip>
@@ -107,7 +107,9 @@ export function AttachmentGrid({
           if (!value) setOpenedItem(null)
         }}
       >
-        <AttachmentViewerDialogContent attachment={openedItem ?? { url: "", name: "", type: "" }} />
+        <AttachmentViewerDialogContent
+          attachment={openedItem ?? { file_path: "", file_name: "", mime_type: "" }}
+        />
       </Dialog>
     </div>
   )

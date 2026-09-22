@@ -2,6 +2,7 @@ import { FdmType } from "@nmi-agro/fdm-core"
 import { addAttachment, removeAttachment } from "@nmi-agro/fdm-helpdesk"
 import { uploadObject } from "~/integrations/gcs.server"
 import { handleActionError } from "~/lib/error"
+import { AttachmentGridItem } from "./attachment-grid"
 
 type AttachmentFile = { name: string; buffer: Buffer; mime: string }
 
@@ -26,8 +27,8 @@ export async function attachFiles(
   principal_id: string,
   message_id: string,
   files: AttachmentFile[],
-) {
-  const uploadPromises: Promise<void>[] = []
+): Promise<AttachmentGridItem[]> {
+  const uploadPromises: Promise<AttachmentGridItem | null>[] = []
   for (const { name, buffer, mime } of files) {
     try {
       const attachment_id = await addAttachment(
@@ -41,22 +42,35 @@ export async function attachFiles(
         principal_id,
       )
 
-      const uploadPromise = uploadObject(
-        buildAttachmentObjectKey(attachment_id, mime),
-        buffer,
-        mime,
+      const objectKey = buildAttachmentObjectKey(attachment_id, mime)
+      const uploadPromise = uploadObject(objectKey, buffer, mime).then(
+        () => {
+          return {
+            attachment_id: attachment_id,
+            file_name: name,
+            mime_type: mime,
+            file_size: buffer.byteLength,
+            file_path: objectKey,
+          }
+        },
+        async (uploadError) => {
+          try {
+            await removeAttachment(fdm, principal_id, attachment_id)
+          } catch (revertError) {
+            handleActionError(revertError)
+          }
+          handleActionError(uploadError)
+          return null
+        },
       )
       uploadPromises.push(uploadPromise)
-      uploadPromise.catch(async (uploadError) => {
-        try {
-          await removeAttachment(fdm, principal_id, attachment_id)
-        } catch (revertError) {
-          handleActionError(revertError)
-        }
-        handleActionError(uploadError)
-      })
     } catch (createError) {
       handleActionError(new Error("Failed to create an attachment", { cause: createError }))
     }
   }
+
+  return (await Promise.allSettled(uploadPromises))
+    .filter((r) => r.status === "fulfilled")
+    .map((r) => r.value)
+    .filter((x): x is AttachmentGridItem => !!x)
 }

@@ -24,8 +24,8 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { useLoaderData } from "react-router"
-import { dataWithError, dataWithSuccess } from "remix-toast"
-import z from "zod"
+import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
+import z, { ZodError } from "zod"
 import { sendHelpdeskNewMessageEmail } from "@/app/lib/email.server"
 import { AssigneeSchema } from "~/components/blocks/helpdesk/assignee-schema"
 import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
@@ -170,11 +170,8 @@ export async function loader({ params, request }: Args) {
         ...message,
         attachments: (attachments.get(message.message_id) ?? []).map(
           (attachment): AttachmentGridItem => ({
-            id: attachment.attachment_id,
-            name: attachment.file_name,
-            type: attachment.mime_type,
-            size: attachment.file_size,
-            url: `/api/helpdesk/download/${attachment.attachment_id}`,
+            ...attachment,
+            file_path: `/api/helpdesk/download/${attachment.attachment_id}`,
           }),
         ),
       }),
@@ -254,27 +251,24 @@ export async function action({ params, request }: Args) {
       files.push({ name: sanitizeAttachmentFileName(fileUpload.name), ...result })
     }
 
-    let formData: FormData
+    let formValues: z.infer<typeof ActionSchema>
     try {
-      formData = await parseFormData(
+      const formData = await parseFormData(
         request,
         { maxFileSize: MAX_ATTACHMENT_SIZE, maxFiles: MAX_ATTACHMENTS },
         uploadHandler,
       )
+
+      const rawFormValues = Object.fromEntries(formData.entries())
+
+      formValues = ActionSchema.parse(rawFormValues)
     } catch (error) {
-      console.error("Failed to parse form data for profile picture upload:", error)
-      const message = error instanceof Error ? error.message : "Invalid upload"
-      return dataWithError(null, message)
+      console.error("Action validation failed for the single support ticket display:", error)
+      return dataWithError(
+        error instanceof ZodError ? error : null,
+        "De ingevoerde gegevens zijn ongeldig.",
+      )
     }
-
-    const actionSchemaResult = ActionSchema.safeParse(Object.fromEntries(formData.entries()))
-
-    if (actionSchemaResult.error) {
-      console.error("Action validation failed for user profile settings:", actionSchemaResult.error)
-      return dataWithError(null, "De ingevoerde gegevens zijn ongeldig.")
-    }
-
-    const formValues = actionSchemaResult.data
 
     if (formValues.intent === "mark_ticket_as_viewed") {
       await markTicketAsViewed(fdm, session.principal_id, params.ticket_id)
@@ -444,15 +438,16 @@ export async function action({ params, request }: Args) {
         formValues.is_internal,
       )
 
+      let attachedFiles: AttachmentGridItem[] = []
+      // An empty file input causes a single file with no content to be submitted.
+      const filesToAttach = files.filter((f) => f.buffer.byteLength > 0).slice(0, MAX_ATTACHMENTS)
       // Add the attachments
-      try {
-        // An empty file input causes a single file with no content to be submitted.
-        const filesToAttach = files.filter((f) => f.buffer.byteLength > 0).slice(0, MAX_ATTACHMENTS)
-        if (filesToAttach.length > 0) {
-          await attachFiles(fdm, session.principal_id, message_id, filesToAttach)
+      if (filesToAttach.length > 0) {
+        try {
+          attachedFiles = await attachFiles(fdm, session.principal_id, message_id, filesToAttach)
+        } catch (err) {
+          handleActionError(err)
         }
-      } catch (err) {
-        handleActionError(err)
       }
 
       // Send email notification to the other party (non-internal messages only)
@@ -484,6 +479,7 @@ export async function action({ params, request }: Args) {
                 params.ticket_id,
                 message_id,
                 formValues.body,
+                attachedFiles,
               )
             }
           } else {
@@ -505,6 +501,7 @@ export async function action({ params, request }: Args) {
                       params.ticket_id,
                       message_id,
                       formValues.body,
+                      attachedFiles,
                     )
                   }
                 }),
@@ -522,6 +519,17 @@ export async function action({ params, request }: Args) {
       } catch (unreadError) {
         // Marking as not read failed, but continue
         void handleActionError(unreadError)
+      }
+
+      if (attachedFiles.length < filesToAttach.length) {
+        return dataWithWarning(
+          {
+            resetMessageForm: true,
+          },
+          {
+            message: "Bericht ontvangen. Niet alle bijlagen konden worden geüpload.",
+          },
+        )
       }
 
       return dataWithSuccess(

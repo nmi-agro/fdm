@@ -8,9 +8,10 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { useLoaderData } from "react-router"
-import { dataWithError, redirectWithSuccess } from "remix-toast"
+import { dataWithError, dataWithWarning, redirectWithSuccess } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
 import { attachFiles } from "~/components/blocks/helpdesk/attachment.server"
 import { TicketComposer } from "~/components/blocks/helpdesk/ticket-composer"
 import { TicketSchema } from "~/components/blocks/helpdesk/ticket-schema"
@@ -117,7 +118,10 @@ export async function action({ request }: Route.ActionArgs) {
     const actionSchemaResult = TicketSchema.safeParse(Object.fromEntries(formData.entries()))
 
     if (actionSchemaResult.error) {
-      console.error("Action validation failed for user profile settings:", actionSchemaResult.error)
+      console.error(
+        "Action validation failed for the new support ticket page:",
+        actionSchemaResult.error,
+      )
       return dataWithError(null, "De ingevoerde gegevens zijn ongeldig.")
     }
 
@@ -130,17 +134,24 @@ export async function action({ request }: Route.ActionArgs) {
     })
 
     // Add the attachments
-    try {
-      // An empty file input causes a single file with no content to be submitted.
-      const filesToAttach = files.filter((f) => f.buffer.byteLength > 0).slice(0, MAX_ATTACHMENTS)
-      if (filesToAttach.length > 0) {
+    let attachedFiles: AttachmentGridItem[] = []
+    // An empty file input causes a single file with no content to be submitted.
+    const filesToAttach = files.filter((f) => f.buffer.byteLength > 0).slice(0, MAX_ATTACHMENTS)
+    // Add the attachments
+    if (filesToAttach.length > 0) {
+      try {
         const ticketMessages = await getMessagesForTicket(fdm, session.principal_id, ticket_id)
         if (ticketMessages.length > 0) {
-          await attachFiles(fdm, session.principal_id, ticketMessages[0].message_id, filesToAttach)
+          attachedFiles = await attachFiles(
+            fdm,
+            session.principal_id,
+            ticketMessages[0].message_id,
+            filesToAttach,
+          )
         }
+      } catch (err) {
+        handleActionError(err)
       }
-    } catch (err) {
-      handleLoaderError(err)
     }
 
     // Assign the ticket to an agent and send an email to them
@@ -174,6 +185,7 @@ export async function action({ request }: Route.ActionArgs) {
             ticket_id,
             messages[0].message_id,
             messages[0].body,
+            attachedFiles,
           )
         }
       }
@@ -188,6 +200,18 @@ export async function action({ request }: Route.ActionArgs) {
         serverConfig.integrations.gemini.api_key,
         ticket_id,
         ticketCreateInfo.body,
+      )
+    }
+
+    if (attachedFiles.length < filesToAttach.length) {
+      return dataWithWarning(
+        {
+          resetMessageForm: true,
+        },
+        {
+          message:
+            "We hebben uw vraag ontvangen. Niet alle bijlagen konden worden geüpload. Een collega neemt binnenkort contact met u op.",
+        },
       )
     }
 

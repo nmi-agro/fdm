@@ -35,12 +35,12 @@ export function AttachmentDropzone({
 
     const fileMetas = (files ?? []).map((file) => {
       return {
-        id: objectUrls.current.get(file) as string,
+        attachment_id: objectUrls.current.get(file) as string,
         object: file,
-        name: file.name,
-        type: file.type,
-        url: objectUrls.current.get(file) as string,
-        size: file.size,
+        file_name: file.name,
+        mime_type: file.type,
+        file_path: objectUrls.current.get(file) as string,
+        file_size: file.size,
       }
     })
 
@@ -48,7 +48,7 @@ export function AttachmentDropzone({
 
     return () => {
       for (const fileMeta of fileMetas) {
-        URL.revokeObjectURL(fileMeta.url)
+        URL.revokeObjectURL(fileMeta.file_path)
       }
     }
   }, [value])
