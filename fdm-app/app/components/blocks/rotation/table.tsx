@@ -355,18 +355,13 @@ export function DataTable<TData extends RotationExtended>({
 
     // If there was a last row selected and the shift key is pressed
     if (event.shiftKey && lastSelectedRowIndex.current) {
-      let firstRow = table.getRow(lastSelectedRowIndex.current)
-      let lastRow = row
       const flatRows = table.getFilteredRowModel().flatRows
-      let firstRowIndex = flatRows.indexOf(firstRow)
-      let lastRowIndex = flatRows.indexOf(lastRow)
+      let firstRowIndex = flatRows.indexOf(table.getRow(lastSelectedRowIndex.current))
+      let lastRowIndex = flatRows.indexOf(row)
       if (firstRowIndex > lastRowIndex) {
         const tmpIndex = firstRowIndex
         firstRowIndex = lastRowIndex
         lastRowIndex = tmpIndex
-        const tmp = firstRow
-        firstRow = lastRow
-        lastRow = tmp
       }
       for (let i = firstRowIndex; i <= lastRowIndex; i++) {
         const flatRow = flatRows[i]
