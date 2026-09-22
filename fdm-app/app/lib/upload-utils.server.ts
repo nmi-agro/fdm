@@ -1,3 +1,4 @@
+import { detectXml } from "@file-type/xml"
 import { fileTypeFromBuffer } from "file-type"
 import { MAX_ATTACHMENT_SIZE } from "./upload-utils"
 
@@ -23,7 +24,7 @@ export async function readAndValidateFileUpload(
   allowedMimes?: Set<string>,
 ): Promise<{ buffer: Buffer; mime: string }> {
   const arrayBuffer = await file.arrayBuffer()
-  const fileType = await fileTypeFromBuffer(arrayBuffer)
+  const fileType = await fileTypeFromBuffer(arrayBuffer, { customDetectors: [detectXml] })
   if (allowedMimes && (!fileType || !allowedMimes.has(fileType.mime))) {
     throw new Error(`${UNSUPPORTED_FILE_TYPE_MESSAGE} Allowed: ${[...allowedMimes].join(", ")}`)
   }
