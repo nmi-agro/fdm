@@ -200,6 +200,7 @@ export async function action({ request }: Route.ActionArgs) {
         serverConfig.integrations.gemini.api_key,
         ticket_id,
         ticketCreateInfo.body,
+        attachedFiles,
       )
     }
 
