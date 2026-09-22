@@ -1,4 +1,11 @@
-import z from "zod"
+import z, { type ZodType } from "zod"
+
+function stringified<T>(validator: ZodType<T, any>) {
+  return z
+    .string()
+    .transform((x) => JSON.parse(x))
+    .pipe(validator)
+}
 
 export const TagSchema = z.object({
   name: z.string().trim().min(1),
@@ -22,5 +29,5 @@ export const UpdateTagSchema = z.object({
 })
 
 export const TicketTagsSchema = z.object({
-  tags: z.array(z.string().min(1)),
+  tags: stringified(z.array(z.string().min(1))),
 })

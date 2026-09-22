@@ -1,4 +1,6 @@
-import { Button, Heading, Link, Section, Text } from "react-email"
+import { LucideFile } from "lucide-react"
+import { Button, Column, Heading, Link, Row, Section, Text } from "react-email"
+import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
 import BaseEmailLayout from "./layout"
 
 interface HelpdeskNewMessageEmailProps {
@@ -12,6 +14,7 @@ interface HelpdeskNewMessageEmailProps {
   appBaseUrl: string
   emailSenderName?: string
   logoFileName?: string
+  attachments?: AttachmentGridItem[]
 }
 
 const MESSAGE_PREVIEW_LIMIT = 600
@@ -52,6 +55,7 @@ export function HelpdeskNewMessageEmail({
   appBaseUrl,
   emailSenderName,
   logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
+  attachments = [],
 }: HelpdeskNewMessageEmailProps) {
   const previewText = `${senderName} heeft gereageerd op ticket ${ticketRef}.`
   const { text: shownMessage, truncated } = truncateMessage(messageBody, MESSAGE_PREVIEW_LIMIT)
@@ -103,6 +107,28 @@ export function HelpdeskNewMessageEmail({
             </Link>{" "}
             om het volledige bericht te lezen.
           </Text>
+        )}
+        {attachments.length > 0 && (
+          <>
+            <Text className="m-0 mt-6 mb-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+              Bijlagen
+            </Text>
+            {attachments.map((attachment) => (
+              <Row key={attachment.attachment_id} className="pr-8 pl-3">
+                <Column width="24" height="24" align="center" valign="middle">
+                  <LucideFile className="text-gray-500" />
+                </Column>
+                <Column valign="middle">
+                  <Link
+                    className="m-0 text-[14px] leading-6 text-gray-500"
+                    href={attachment.file_path}
+                  >
+                    {attachment.file_name}
+                  </Link>
+                </Column>
+              </Row>
+            ))}
+          </>
         )}
       </Section>
 

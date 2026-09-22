@@ -8,27 +8,28 @@ import {
   getAgentAvailabilityStatuses,
   getAgents,
   getAssigneesForTickets,
+  getAttachmentsForTicket,
   getMessagesForTicket,
   getTags,
   getTagsForTickets,
   getTicket,
   markTicketAsNotViewedByAll,
   markTicketAsViewed,
+  Message,
   removeTagFromTicket,
   unassignTicket,
   updateTicketPriority,
   updateTicketStatus,
   updateTicketSubject,
 } from "@nmi-agro/fdm-helpdesk"
+import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { useLoaderData } from "react-router"
-import { dataWithSuccess } from "remix-toast"
-import z from "zod"
-import { getSession } from "@/app/lib/auth.server"
+import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
+import z, { ZodError } from "zod"
 import { sendHelpdeskNewMessageEmail } from "@/app/lib/email.server"
-import { handleActionError, handleLoaderError } from "@/app/lib/error"
-import { fdm } from "@/app/lib/fdm.server"
-import { extractFormValuesFromRequest } from "@/app/lib/form"
 import { AssigneeSchema } from "~/components/blocks/helpdesk/assignee-schema"
+import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
+import { attachFiles } from "~/components/blocks/helpdesk/attachment.server"
 import { makeHelpdeskUser } from "~/components/blocks/helpdesk/helpdesk-user"
 import { MessageSchema } from "~/components/blocks/helpdesk/message-schema"
 import { notifyAboutReassignments } from "~/components/blocks/helpdesk/reassignment-notification.server"
@@ -38,6 +39,21 @@ import {
   TicketPrioritySchema,
   TicketSubjectSchema,
 } from "~/components/blocks/helpdesk/ticket-schema"
+import { getSession } from "~/lib/auth.server"
+import { handleActionError, handleLoaderError } from "~/lib/error"
+import { fdm } from "~/lib/fdm.server"
+import { checkRateLimit } from "~/lib/rate-limit.server"
+import {
+  ALLOWED_ATTACHMENT_MIME_TYPES,
+  MAX_ATTACHMENT_SIZE,
+  MAX_ATTACHMENTS,
+  sanitizeAttachmentFileName,
+} from "~/lib/upload-utils"
+import {
+  ATTACHMENT_UPLOAD_RATE_LIMIT_MAX,
+  ATTACHMENT_UPLOAD_RATE_LIMIT_WINDOW_MS,
+  readAndValidateAttachmentUpload,
+} from "~/lib/upload-utils.server"
 
 interface Args {
   params: { ticket_id: string }
@@ -48,37 +64,39 @@ export async function loader({ params, request }: Args) {
     const session = await getSession(request)
 
     const ticket = await getTicket(fdm, session.principal_id, params.ticket_id)
-    const [messages, availableTags, canAddMessages, isAgent, isAdmin] = await Promise.all([
-      getMessagesForTicket(fdm, session.principal_id, params.ticket_id),
-      getTags(fdm),
-      checkHelpdeskPermission(
-        fdm,
-        "ticket-user-side",
-        "write",
-        params.ticket_id,
-        session.principal_id,
-        "_ticketviewer.ticket.$ticket_id",
-        false,
-      ),
-      checkHelpdeskPermission(
-        fdm,
-        "ticket-agent-side",
-        "write",
-        params.ticket_id,
-        session.principal_id,
-        "_ticketviewer.ticket.$ticket_id",
-        false,
-      ),
-      checkHelpdeskPermission(
-        fdm,
-        "helpdesk",
-        "write",
-        "",
-        session.principal_id,
-        "_ticketviewer.ticket.$ticket_id",
-        false,
-      ),
-    ])
+    const [messages, attachments, availableTags, canAddMessages, isAgent, isAdmin] =
+      await Promise.all([
+        getMessagesForTicket(fdm, session.principal_id, params.ticket_id),
+        getAttachmentsForTicket(fdm, session.principal_id, params.ticket_id),
+        getTags(fdm),
+        checkHelpdeskPermission(
+          fdm,
+          "ticket-user-side",
+          "write",
+          params.ticket_id,
+          session.principal_id,
+          "_ticketviewer.ticket.$ticket_id",
+          false,
+        ),
+        checkHelpdeskPermission(
+          fdm,
+          "ticket-agent-side",
+          "write",
+          params.ticket_id,
+          session.principal_id,
+          "_ticketviewer.ticket.$ticket_id",
+          false,
+        ),
+        checkHelpdeskPermission(
+          fdm,
+          "helpdesk",
+          "write",
+          "",
+          session.principal_id,
+          "_ticketviewer.ticket.$ticket_id",
+          false,
+        ),
+      ])
 
     // If the user is able to change the agent stuff on the ticket, load the necessary data for forms
     const agents = isAgent ? await getAgents(fdm, session.principal_id, { isActive: true }) : []
@@ -147,10 +165,22 @@ export async function loader({ params, request }: Args) {
       }
     })
 
+    const messagesExtended: (Message & { attachments: AttachmentGridItem[] })[] = messages.map(
+      (message) => ({
+        ...message,
+        attachments: (attachments.get(message.message_id) ?? []).map(
+          (attachment): AttachmentGridItem => ({
+            ...attachment,
+            file_path: `/api/helpdesk/download/${attachment.attachment_id}`,
+          }),
+        ),
+      }),
+    )
+
     return {
       principal_id: session.principal_id,
       ticket: ticket,
-      messages: messages,
+      messages: messagesExtended,
       availableTags: availableTags,
       canAddMessages: canAddMessages,
       isAgent: isAgent,
@@ -198,7 +228,57 @@ export const ActionSchema = z.discriminatedUnion("intent", [
 export async function action({ params, request }: Args) {
   try {
     const session = await getSession(request)
-    const formValues = await extractFormValuesFromRequest(request, ActionSchema)
+
+    const isAgent = await checkHelpdeskPermission(
+      fdm,
+      "ticket-agent-side",
+      "write",
+      params.ticket_id,
+      session.principal_id,
+      "ticket.$ticket_id action",
+      false,
+    )
+
+    const files: { name: string; buffer: Buffer; mime: string }[] = []
+
+    const uploadHandler = async (fileUpload: FileUpload) => {
+      if (fileUpload.fieldName !== "attachments") return undefined
+
+      const rateLimitResult = await checkRateLimit(
+        `helpdesk-attachment-upload:${session.principal_id}`,
+        ATTACHMENT_UPLOAD_RATE_LIMIT_WINDOW_MS,
+        ATTACHMENT_UPLOAD_RATE_LIMIT_MAX,
+      )
+      if (!rateLimitResult.allowed) {
+        throw new Error("U heeft te veel bestanden geüpload. Probeer het later opnieuw.")
+      }
+
+      const result = await readAndValidateAttachmentUpload(
+        fileUpload,
+        ALLOWED_ATTACHMENT_MIME_TYPES,
+      )
+
+      files.push({ name: sanitizeAttachmentFileName(fileUpload.name), ...result })
+    }
+
+    let formValues: z.infer<typeof ActionSchema>
+    try {
+      const formData = await parseFormData(
+        request,
+        { maxFileSize: MAX_ATTACHMENT_SIZE, ...(isAgent ? {} : { maxFiles: MAX_ATTACHMENTS }) },
+        uploadHandler,
+      )
+
+      const rawFormValues = Object.fromEntries(formData.entries())
+
+      formValues = ActionSchema.parse(rawFormValues)
+    } catch (error) {
+      console.error("Action validation failed for the single support ticket display:", error)
+      return dataWithError(
+        error instanceof ZodError ? error : null,
+        "De ingevoerde gegevens zijn ongeldig.",
+      )
+    }
 
     if (formValues.intent === "mark_ticket_as_viewed") {
       await markTicketAsViewed(fdm, session.principal_id, params.ticket_id)
@@ -368,6 +448,19 @@ export async function action({ params, request }: Args) {
         formValues.is_internal,
       )
 
+      let attachedFiles: AttachmentGridItem[] = []
+      // An empty file input causes a single file with no content to be submitted.
+      const filesWithContent = files.filter((f) => f.buffer.byteLength > 0)
+      const filesToAttach = isAgent ? filesWithContent : filesWithContent.slice(0, MAX_ATTACHMENTS)
+      // Add the attachments
+      if (filesToAttach.length > 0) {
+        try {
+          attachedFiles = await attachFiles(fdm, session.principal_id, message_id, filesToAttach)
+        } catch (err) {
+          handleActionError(err)
+        }
+      }
+
       // Send email notification to the other party (non-internal messages only)
       try {
         if (!formValues.is_internal) {
@@ -397,6 +490,7 @@ export async function action({ params, request }: Args) {
                 params.ticket_id,
                 message_id,
                 formValues.body,
+                attachedFiles,
               )
             }
           } else {
@@ -418,6 +512,7 @@ export async function action({ params, request }: Args) {
                       params.ticket_id,
                       message_id,
                       formValues.body,
+                      attachedFiles,
                     )
                   }
                 }),
@@ -437,9 +532,25 @@ export async function action({ params, request }: Args) {
         void handleActionError(unreadError)
       }
 
-      return dataWithSuccess("Bericht ontvangen!", {
-        message: "Bericht ontvangen!",
-      })
+      if (attachedFiles.length < filesToAttach.length) {
+        return dataWithWarning(
+          {
+            resetMessageForm: true,
+          },
+          {
+            message: "Bericht ontvangen. Niet alle bijlagen konden worden geüpload.",
+          },
+        )
+      }
+
+      return dataWithSuccess(
+        {
+          resetMessageForm: true,
+        },
+        {
+          message: "Bericht ontvangen!",
+        },
+      )
     }
   } catch (err) {
     // extractFormValuesFromRequest awaits handleActionError before throwing (see

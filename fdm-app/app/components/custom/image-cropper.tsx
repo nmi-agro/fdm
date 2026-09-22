@@ -1,5 +1,6 @@
-import { PointerEventHandler, useEffect, useMemo, useRef, useState } from "react"
+import { PointerEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Slider } from "~/components/ui/slider"
+import { cn } from "~/lib/utils"
 export interface Rectangle {
   x: number
   y: number
@@ -13,7 +14,7 @@ export interface ImageData {
   imageHeight: number
 }
 
-export type ImageCropperFrameShape = "ellipse" | "rectangle"
+export type ImageCropperFrameShape = "ellipse" | "rectangle" | "hidden"
 
 export type ImageCropperCropBounds = "inner" | "outer"
 
@@ -173,8 +174,8 @@ const SVG_VIEWBOX_HEIGHT = 500
 const MIN_SCALE = 1 / 10
 
 interface ImageCropperAppProps {
+  className?: string
   aspectRatio?: number
-  appAspectRatio?: number
   frameShape?: ImageCropperFrameShape
   frameRelativeSize?: number
   cropBounds?: ImageCropperCropBounds
@@ -191,19 +192,59 @@ interface ImageCropperFramePosition {
   scale: number
 }
 
+/**
+ * Adjusts the new state values so that the frame rectangle stays inside the image rectangle,
+ * then constructs a frame position state object.
+ *
+ * @param nextX value that would be passed to `setX`
+ * @param nextY value that would be passed to `setY`
+ * @param nextScale element of the array that would be passed to `setScaleSliderValue`
+ * @returns the new frame position object
+ */
+function moveIntoRectangle(
+  x: number,
+  y: number,
+  scale: number,
+  imageData: ImageData,
+  aspectRatio: number,
+): ImageCropperFramePosition {
+  const newRect = getResultFrameRect(imageData, aspectRatio, x, y, scale)
+
+  const boundsLeft = Math.min(0, imageData.imageWidth - newRect.width)
+  const boundsRight = Math.max(imageData.imageWidth, newRect.width)
+  const boundsTop = Math.min(0, imageData.imageHeight - newRect.height)
+  const boundsBottom = Math.max(imageData.imageHeight, newRect.height)
+
+  if (newRect.x < boundsLeft) x = boundsLeft + newRect.width / 2 - imageData.imageWidth / 2
+  if (newRect.x + newRect.width > boundsRight)
+    x = boundsRight - newRect.width / 2 - imageData.imageWidth / 2
+
+  if (newRect.y < boundsTop) y = boundsTop + newRect.height / 2 - imageData.imageHeight / 2
+  if (newRect.y + newRect.height > boundsBottom)
+    y = boundsBottom - newRect.height / 2 - imageData.imageHeight / 2
+
+  return { x, y, scale }
+}
+
 export function ImageCropperApp({
+  className,
   aspectRatio = 1 / 1,
   imageData,
   frameRelativeSize = 0.6,
   cropBounds = "inner",
-  appAspectRatio = 1 / 1,
   frameShape = "ellipse",
   framePosition,
   onFramePositionChange,
   onFrameRectangleChange,
 }: ImageCropperAppProps) {
+  // Instead of precisely laying out the application for the target aspect ratio, we only lay out
+  // enough to have the crop frame the correct size, use object-fit: contain, and add transparent
+  // fill to the out of the view-box parts of the SVG.
+  const appAspectRatio = aspectRatio
+
   const svgRef = useRef<SVGSVGElement>(null)
   const [maxScale, setMaxScale] = useState(1)
+  const framePositionRef = useRef(framePosition)
 
   // x and y are relative to the center of the image, in image pixel units.
   // Scaling happens around the center of the frame rectangle / ellipse.
@@ -228,10 +269,12 @@ export function ImageCropperApp({
     }
 
     setMaxScale(nextMaxScale)
-    onFramePositionChange({ x: 0, y: 0, scale: nextMaxScale })
+    const newFramePosition = { x: 0, y: 0, scale: nextMaxScale }
+    onFramePositionChange(newFramePosition)
+    framePositionRef.current = newFramePosition
     onFrameRectangleChange?.(getResultFrameRect(imageData, aspectRatio, 0, 0, nextMaxScale))
     dragState.current.dragging = false
-  }, [imageData, aspectRatio, cropBounds])
+  }, [imageData, aspectRatio, cropBounds, onFramePositionChange, onFrameRectangleChange])
 
   // all other rectangles are fit onto this
   const appRect = {
@@ -262,41 +305,24 @@ export function ImageCropperApp({
     frameRelativeSize,
   )
 
-  const appSvgCommands = getRectangleSvgCommands(appRect).join(" ")
-  const frameSvgCommands =
-    frameShape === "ellipse"
-      ? getEllipseSvgCommands(frameRectScaled).join(" ")
-      : getRectangleSvgCommands(frameRectScaled).join(" ")
-
-  /**
-   * Adjusts the new state values so that the frame rectangle stays inside the image rectangle,
-   * then actually sets the state.
-   *
-   * @param nextX value that would be passed to `setX`
-   * @param nextY value that would be passed to `setY`
-   * @param nextScale element of the array that would be passed to `setScaleSliderValue`
-   */
-  function moveIntoRectAndSet(nextX: number, nextY: number, nextScale: number) {
-    const newRect = getResultFrameRect(imageData, aspectRatio, nextX, nextY, nextScale)
-
-    const boundsLeft = Math.min(0, imageData.imageWidth - newRect.width)
-    const boundsRight = Math.max(imageData.imageWidth, newRect.width)
-    const boundsTop = Math.min(0, imageData.imageHeight - newRect.height)
-    const boundsBottom = Math.max(imageData.imageHeight, newRect.height)
-
-    if (newRect.x < boundsLeft) nextX = boundsLeft + newRect.width / 2 - imageData.imageWidth / 2
-    if (newRect.x + newRect.width > boundsRight)
-      nextX = boundsRight - newRect.width / 2 - imageData.imageWidth / 2
-
-    if (newRect.y < boundsTop) nextY = boundsTop + newRect.height / 2 - imageData.imageHeight / 2
-    if (newRect.y + newRect.height > boundsBottom)
-      nextY = boundsBottom - newRect.height / 2 - imageData.imageHeight / 2
-
-    onFramePositionChange({ x: nextX, y: nextY, scale: nextScale })
-    if (onFrameRectangleChange) {
-      onFrameRectangleChange(getResultFrameRect(imageData, aspectRatio, nextX, nextY, nextScale))
-    }
-  }
+  const handleNewFramePosition = useCallback(
+    (framePosition: ImageCropperFramePosition) => {
+      framePositionRef.current = framePosition
+      onFramePositionChange(framePosition)
+      if (onFrameRectangleChange) {
+        onFrameRectangleChange(
+          getResultFrameRect(
+            imageData,
+            aspectRatio,
+            framePosition.x,
+            framePosition.y,
+            framePosition.scale,
+          ),
+        )
+      }
+    },
+    [imageData, aspectRatio, onFramePositionChange, onFrameRectangleChange],
+  )
 
   const handlePointerDown: PointerEventHandler = (e) => {
     e.preventDefault()
@@ -324,7 +350,7 @@ export function ImageCropperApp({
     let nextX = x - (currentX - dragState.current.lastX) * speed
     let nextY = y - (currentY - dragState.current.lastY) * speed
 
-    moveIntoRectAndSet(nextX, nextY, scale)
+    handleNewFramePosition(moveIntoRectangle(nextX, nextY, scale, imageData, aspectRatio))
     dragState.current.lastX = currentX
     dragState.current.lastY = currentY
   }
@@ -333,10 +359,13 @@ export function ImageCropperApp({
     dragState.current.dragging = false
   }
 
+  /**
+   * Handle zoom input on the slider.
+   */
   function handleZoomInput(value: number[]) {
     const nextScale = value[0] > maxScale ? maxScale : value[0] < MIN_SCALE ? MIN_SCALE : value[0]
 
-    moveIntoRectAndSet(x, y, nextScale)
+    handleNewFramePosition(moveIntoRectangle(x, y, nextScale, imageData, aspectRatio))
   }
 
   useEffect(() => {
@@ -353,11 +382,24 @@ export function ImageCropperApp({
       }
       e.stopPropagation()
 
-      if (e.deltaY > 0) {
-        handleZoomInput([scale * 1.05])
-      } else {
-        handleZoomInput([scale * 0.95])
-      }
+      if (!e.currentTarget) return
+
+      const factor = e.deltaY > 0 ? 1.05 : 0.95
+
+      const nextScale = Math.max(
+        MIN_SCALE,
+        Math.min(maxScale, framePositionRef.current.scale * factor),
+      )
+
+      handleNewFramePosition(
+        moveIntoRectangle(
+          framePositionRef.current.x,
+          framePositionRef.current.y,
+          nextScale,
+          imageData,
+          aspectRatio,
+        ),
+      )
     }
 
     svgElement.addEventListener("wheel", nativeWheelHandler, { passive: false })
@@ -365,40 +407,64 @@ export function ImageCropperApp({
     return () => {
       svgElement.removeEventListener("wheel", nativeWheelHandler)
     }
-  }, [scale, x, y])
+  }, [maxScale, imageData, aspectRatio, frameRelativeSize, handleNewFramePosition, appAspectRatio])
+
+  const transparentOverlay = { fill: "black", fillOpacity: 0.75, stroke: "none" } as const
+  const transparentOverlayOuterExtentX = 3 * SVG_VIEWBOX_HEIGHT
+  const transparentOverlayOuterExtentY = 3 * SVG_VIEWBOX_HEIGHT
+  const transparentOverlayExtentSvgCommands = getRectangleSvgCommands({
+    x: appRect.x - transparentOverlayOuterExtentX,
+    y: appRect.y - transparentOverlayOuterExtentY,
+    width: 2 * transparentOverlayOuterExtentX + appRect.width,
+    height: 2 * transparentOverlayOuterExtentY + appRect.height,
+  }).join(" ")
+  const frameSvgCommands =
+    frameShape === "ellipse"
+      ? getEllipseSvgCommands(frameRectScaled).join(" ")
+      : getRectangleSvgCommands(frameRectScaled).join(" ")
 
   return (
-    <div className="flex flex-col items-stretch gap-4">
-      <div className="w-full" style={{ aspectRatio: `${appAspectRatio}/1` }}>
-        <svg
-          ref={svgRef}
-          viewBox={`0,0,${appAspectRatio * SVG_VIEWBOX_HEIGHT},${SVG_VIEWBOX_HEIGHT}`}
-          className="size-full rounded-md"
-          style={{ touchAction: "none" }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        >
-          <title>Trim de profielfoto</title>
-          <image href={imageData.src} {...imageRectScaled} />
+    <div className={cn("flex size-full flex-col items-stretch gap-4", className)}>
+      <svg
+        ref={svgRef}
+        viewBox={`0,0,${appAspectRatio * SVG_VIEWBOX_HEIGHT},${SVG_VIEWBOX_HEIGHT}`}
+        className="min-h-0 flex-[1_1] rounded-md object-contain"
+        style={{ touchAction: "none" }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        <title>Trim de profielfoto</title>
+        {frameShape === "hidden" && (
+          // Render a transparent overlay in the back of the image if there is no frame overlay.
+          <rect
+            x={-transparentOverlayOuterExtentX}
+            y={-transparentOverlayOuterExtentY}
+            width={2 * transparentOverlayOuterExtentX + appRect.width}
+            height={2 * transparentOverlayOuterExtentY + appRect.height}
+            {...transparentOverlay}
+          />
+        )}
+        <image href={imageData.src} {...imageRectScaled} />
+        {frameShape !== "hidden" && (
+          // Transparent overlay that surrounds the crop frame.
           <path
-            d={`${appSvgCommands} ${frameSvgCommands}`}
-            fill="black"
-            fillOpacity={0.75}
-            stroke="none"
+            d={`${transparentOverlayExtentSvgCommands} ${frameSvgCommands}`}
+            {...transparentOverlay}
             fillRule="evenodd"
           />
-          <path
-            d={frameSvgCommands}
-            fill="none"
-            stroke="white"
-            strokeWidth={SVG_VIEWBOX_HEIGHT * 0.001}
-          />
-        </svg>
-      </div>
+        )}
+        {/* Outline of the cropped region. */}
+        <path
+          d={frameSvgCommands}
+          fill="none"
+          stroke="white"
+          strokeWidth={SVG_VIEWBOX_HEIGHT * 0.001}
+        />
+      </svg>
       <Slider
         value={scaleSliderValue}
-        onValueChange={handleZoomInput}
+        onValueChange={(v) => handleZoomInput(v)}
         min={MIN_SCALE}
         max={maxScale}
         step={0.05}

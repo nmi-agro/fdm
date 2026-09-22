@@ -67,8 +67,9 @@ const plan = await generateFarmFertilizerPlan(
 
 #### Ticket Triage
 
-`generateTicketSubjectAndPriority` takes a raw support ticket message and returns a
-structured triage result with a subject line, a priority level, and the model's reasoning.
+`generateTicketSubjectAndPriority` takes a raw support ticket message and its attachments
+and returns a structured triage result with a subject line, a priority level, and the
+model's reasoning.
 
 **Priority levels:**
 

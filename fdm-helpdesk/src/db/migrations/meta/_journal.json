@@ -29,6 +29,13 @@
       "when": 1784562834637,
       "tag": "0003_rapid_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789552297423,
+      "tag": "0004_luxuriant_goliath",
+      "breakpoints": true
     }
   ]
 }

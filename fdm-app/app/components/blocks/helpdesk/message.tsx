@@ -40,7 +40,7 @@ export function Message({
         className,
       )}
     >
-      <div className="text-muted-foreground relative flex flex-row items-center gap-2">
+      <div className="text-muted-foreground relative flex flex-row items-center gap-2 text-sm">
         <HelpdeskUserAvatar
           className="md: static size-6 md:absolute! md:top-1/2 md:-left-10 md:-translate-y-1/2"
           type={senderType}
@@ -49,13 +49,12 @@ export function Message({
         {title ?? (
           <span>
             {principal?.displayUserName ?? "Onbekende verzender"}{" "}
-            {isInternal && <i className="text-sm italic">(Intern)</i>}
+            {isInternal && <i className="italic">(Intern)</i>}
           </span>
         )}
         <div className="ms-auto">
           {formattedDateTooltip && (
             <span
-              className="text-sm"
               title={
                 (formattedDateDisplay !== formattedDateTooltip ? formattedDateTooltip : null) ??
                 undefined
@@ -67,7 +66,7 @@ export function Message({
         </div>
       </div>
       {senderType === "agent" && (
-        <div className="text-muted-foreground text-[0.8rem]">Medewerker</div>
+        <div className="text-muted-foreground text-xs">Medewerker</div>
       )}
       <div className="mt-4">{children}</div>
     </Card>
