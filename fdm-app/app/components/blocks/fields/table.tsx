@@ -132,6 +132,7 @@ export function DataTable<TData extends FieldExtended>({
 
   const selectedFields = useMemo(() => {
     return table.getFilteredSelectedRowModel().rows.map((row) => row.original)
+    // oxlint-disable-next-line react-hooks/exhaustive-deps We know that selected rows depend on the row selection.
   }, [table, rowSelection])
 
   const selectedFieldIds = selectedFields.map((field) => field.b_id)

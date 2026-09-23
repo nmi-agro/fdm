@@ -92,6 +92,44 @@ function getRowTotalArea(row: Row<typeof rotationTableFeatures, MemoizedRotation
   )
 }
 
+/**
+ * Collects the cultivation start or end dates, either from the given field row, or the field rows under the given crop row.
+ * @param row Crop or field row.
+ * @param key "b_lu_start" or "b_lu_end".
+ * @returns an array of encountered dates with duplicates.
+ */
+function getRowDates(
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>,
+  key: "b_lu_start" | "b_lu_end",
+): Date[] {
+  if (row.original.type === "field") {
+    return row.original[key]
+  }
+
+  return row.subRows
+    .reduce(
+      (concatenated, row) => concatenated.concat((row.original as FieldRow)[key]),
+      [] as Date[],
+    )
+    .sort((a, b) => a.getTime() - b.getTime())
+}
+
+/**
+ * Gets a flat array of harvest dates.
+ * @param row crop or field row to extract the harvest dates from.
+ * @returns an array of dates, which might be empty.
+ */
+function getHarvestDates(row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>) {
+  const fields =
+    row.original.type === "field" ? [row.original] : row.subRows.map((r) => r.original as FieldRow)
+
+  return fields
+    .flatMap((field) =>
+      field.harvests.map((harvest) => harvest.b_lu_harvest_date).filter((x): x is Date => !!x),
+    )
+    .sort((a, b) => a.getTime() - b.getTime())
+}
+
 const columnHelper = createColumnHelper<typeof rotationTableFeatures, MemoizedRotationExtended>()
 export const columns = columnHelper.columns([
   columnHelper.display({
@@ -157,21 +195,28 @@ export const columns = columnHelper.columns([
     },
     cell: (context) => <NameCell {...context} />,
   }),
-  columnHelper.display({
+  // An accessor fn is needed to make the column appear as sortable
+  columnHelper.accessor(() => null, {
     id: "b_lu_start",
     enableSorting: true,
-    sortFn: "datetime",
+    sortFn: (a, b) => {
+      const datesA = getRowDates(a, "b_lu_start")
+      const datesB = getRowDates(b, "b_lu_start")
+
+      return datesA.length > 0 && datesB.length > 0
+        ? datesA[0].getTime() - datesB[0].getTime()
+        : datesA.length === 0 && datesB.length === 0
+          ? 0
+          : datesA.length === 0
+            ? 1
+            : -1
+    },
     header: ({ column }) => {
       return <DataTableColumnHeader column={column} title="Zaaidatum" />
     },
     enableHiding: true, // Enable hiding for mobile
     cell: ({ cell, row }) => {
-      const dates =
-        row.original.type === "field"
-          ? row.original.b_lu_start
-          : (row.subRows ?? [])
-              .flatMap((fieldRow) => (fieldRow.original as FieldRow).b_lu_start)
-              .sort((d1, d2) => d1.getTime() - d2.getTime())
+      const dates = getRowDates(row, "b_lu_start")
       return !row.original.canModify ? (
         <DateRangeDisplay range={dates} emptyContent="Geen" />
       ) : (
@@ -179,21 +224,28 @@ export const columns = columnHelper.columns([
       )
     },
   }),
-  columnHelper.display({
+  // An accessor fn is needed to make the column appear as sortable
+  columnHelper.accessor(() => null, {
     id: "b_lu_end",
     enableSorting: true,
-    sortFn: "datetime",
+    sortFn: (a, b) => {
+      const datesA = getRowDates(a, "b_lu_end")
+      const datesB = getRowDates(b, "b_lu_end")
+
+      return datesA.length > 0 && datesB.length > 0
+        ? datesA[datesA.length - 1].getTime() - datesB[datesB.length - 1].getTime()
+        : datesA.length === 0 && datesB.length === 0
+          ? 0
+          : datesA.length === 0
+            ? 1
+            : -1
+    },
     header: ({ column }) => {
       return <DataTableColumnHeader column={column} title="Einddatum" />
     },
     enableHiding: true, // Enable hiding for mobile
     cell: ({ cell, row }) => {
-      const dates =
-        row.original.type === "field"
-          ? row.original.b_lu_end
-          : (row.subRows ?? [])
-              .flatMap((fieldRow) => (fieldRow.original as FieldRow).b_lu_end)
-              .sort((d1, d2) => d1.getTime() - d2.getTime())
+      const dates = getRowDates(row, "b_lu_end")
       if (!row.original.canModify) {
         return <DateRangeDisplay range={dates} emptyContent="Geen" />
       }
@@ -225,9 +277,22 @@ export const columns = columnHelper.columns([
       )
     },
   }),
-  columnHelper.display({
+  // An accessor fn is needed to make the column appear as sortable
+  columnHelper.accessor(() => null, {
     id: "b_harvest_date",
-    enableSorting: false,
+    enableSorting: true,
+    sortFn: (a, b) => {
+      const datesA = getHarvestDates(a)
+      const datesB = getHarvestDates(b)
+
+      return datesA.length > 0 && datesB.length > 0
+        ? datesA[0].getTime() - datesB[0].getTime()
+        : datesA.length === 0 && datesB.length === 0
+          ? 0
+          : datesA.length === 0
+            ? 1
+            : -1
+    },
     header: ({ column }) => {
       return <DataTableColumnHeader column={column} title="Oogst/Maaidata" />
     },
@@ -236,9 +301,25 @@ export const columns = columnHelper.columns([
       return <HarvestDatesDisplay row={row} />
     },
   }),
-  columnHelper.display({
+  // An accessor fn is needed to make the column appear as sortable
+  columnHelper.accessor(() => null, {
     id: "b_lu_variety",
-    enableSorting: false,
+    enableSorting: true,
+    sortFn: (a, b) => {
+      if (a.original.type === "crop" || b.original.type === "crop") return 0
+      const varietyA = a.original.b_lu_variety.length > 0 ? a.original.b_lu_variety[0][0] : null
+      const varietyB = b.original.b_lu_variety.length > 0 ? b.original.b_lu_variety[0][0] : null
+
+      return varietyA !== null && varietyB !== null
+        ? varietyA < varietyB
+          ? -1
+          : 1
+        : varietyA === varietyB
+          ? 0
+          : varietyA === null
+            ? 1
+            : -1
+    },
     header: ({ column }) => {
       return <DataTableColumnHeader column={column} title="Variëteit" />
     },
@@ -336,7 +417,7 @@ export const columns = columnHelper.columns([
         ? row.b_area
         : (row.fields ?? []).reduce((total, fieldRow) => total + (fieldRow as FieldRow).b_area, 0),
     {
-      id: "column",
+      id: "b_area",
       enableSorting: true,
       sortFn: (rowA, rowB, _columnId) => getRowTotalArea(rowA) - getRowTotalArea(rowB),
       header: ({ column }) => {

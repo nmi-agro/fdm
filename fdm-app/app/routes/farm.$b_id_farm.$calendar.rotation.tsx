@@ -140,9 +140,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     ])
 
     const collectUniqueDates = (dates: (Date | null | undefined)[]) => {
-      return [...new Set(dates.flatMap((date) => (date ? [date.getTime()] : [])))].map(
-        (timestamp) => new Date(timestamp),
-      )
+      return [...new Set(dates.flatMap((date) => (date ? [date.getTime()] : [])))]
+        .sort((a, b) => a - b)
+        .map((timestamp) => new Date(timestamp))
     }
 
     const cultivationsInRotation: string[] = [
@@ -226,9 +226,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
           b_lu_start: collectUniqueDates(
             cultivationsForCatalogue.map((cultivation) => cultivation.b_lu_start),
           ),
-          b_lu_end: cultivationsForCatalogue
-            .map((cultivation) => cultivation.b_lu_end)
-            .filter((date) => date !== null),
+          b_lu_end: collectUniqueDates(
+            cultivationsForCatalogue.map((cultivation) => cultivation.b_lu_end),
+          ),
           harvests: harvestsForCatalogue.map((harvest) => {
             return {
               b_lu: harvest.b_lu,

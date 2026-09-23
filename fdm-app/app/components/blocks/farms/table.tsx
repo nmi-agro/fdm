@@ -60,6 +60,7 @@ export function DataTable<TData extends FarmExtended>({ columns, data }: DataTab
     columns,
     onSortingChange: setSorting,
     getSubRows: (row) => row.fields as typeof memoizedData,
+    onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: (row, _columnId, filterValue) => {
       const result = fuzzysort.go(filterValue, [(row.original as any).searchTarget])
@@ -154,7 +155,7 @@ export function DataTable<TData extends FarmExtended>({ columns, data }: DataTab
                           : row.index === 0
                             ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
                             : row.index === parentRow.subRows.length - 1 &&
-                              "shsadow-[inset_0_-1em_2em_-2em_#00000088]"),
+                              "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (

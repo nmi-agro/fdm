@@ -223,7 +223,7 @@ export function DataTable({
       <TableBody className="text-muted-foreground">
         {table.getRowModel().rows.map((row) => (
           <TableRow key={row.id}>
-            {row.getAllCells().map((cell) => (
+            {row.getVisibleCells().map((cell) => (
               <TableCell
                 key={cell.id}
                 className={cn({
