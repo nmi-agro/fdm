@@ -48,7 +48,13 @@ export function getFieldSummaryColumns(): ColumnDef<
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onClick={(event) =>
+            row.getToggleSelectedHandler()({
+              ...event,
+              target: { ...event.currentTarget, checked: !row.getIsSelected() },
+              currentTarget: { ...event.currentTarget, checked: !row.getIsSelected() },
+            })
+          }
           aria-label="Selecteer rij"
         />
       ),
