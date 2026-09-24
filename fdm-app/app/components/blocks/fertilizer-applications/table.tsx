@@ -1,11 +1,4 @@
-import { flexRender, getCoreRowModel, type RowData, useReactTable } from "@tanstack/react-table"
-
-declare module "@tanstack/react-table" {
-  interface TableMeta<TData extends RowData> {
-    returnUrl?: string
-  }
-}
-
+import { FlexRender, useTable } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { cn } from "@/app/lib/utils"
 import {
@@ -17,6 +10,7 @@ import {
   TableRow,
 } from "~/components/ui/table"
 import { type ApplicationExtended, columns, createDateKey, type FertAppRecordItem } from "./columns"
+import { fertAppTableFeatures } from "./table-features"
 
 type FertAppRecord = Record<string, FertAppRecordItem>
 
@@ -196,11 +190,11 @@ export function DataTable({
     [numFields, fertilizerApplications, records],
   )
 
-  const table = useReactTable({
+  const table = useTable({
     columns: columns,
+    features: fertAppTableFeatures,
     data: records,
-    getCoreRowModel: getCoreRowModel(),
-    meta: { returnUrl } as unknown as any,
+    meta: { returnUrl },
     state: {
       columnVisibility: columnVisibility,
     },
@@ -219,9 +213,7 @@ export function DataTable({
                     "sticky right-0": header.column.id === "modify",
                   })}
                 >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                  <FlexRender header={header} />
                 </TableHead>
               )
             })}
@@ -238,7 +230,7 @@ export function DataTable({
                   "sticky right-0 pe-0": cell.column.id === "modify",
                 })}
               >
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                <FlexRender cell={cell} />
               </TableCell>
             ))}
           </TableRow>

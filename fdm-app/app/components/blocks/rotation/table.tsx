@@ -1,31 +1,21 @@
 /* eslint-disable typescript/unbound-method -- TanStack React Table row models are designed to use destructured methods directly in columns. */
 import {
-  type ColumnDef,
-  type ColumnFiltersState,
-  flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFacetedRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
+  ColumnVisibilityState,
+  FlexRender,
   type Row,
   type RowSelectionState,
-  type SortingState,
-  useReactTable,
-  type VisibilityState,
+  useTable,
 } from "@tanstack/react-table"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { toast as notify } from "sonner"
-import { modifySearchParams } from "@/app/lib/url-utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
-import { useFieldFilterStore } from "@/app/store/field-filter"
-import { useRotationSelectionStore } from "@/app/store/rotation-selection"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
+import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -44,34 +34,67 @@ import {
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
-import type { CropRow, RotationExtended } from "./columns"
-import { FieldFilterToggle } from "../../custom/field-filter-toggle"
+import { useFieldFilterStore } from "~/store/field-filter"
+import { useRotationSelectionStore } from "~/store/rotation-selection"
+import type {
+  columns as ColumnsT,
+  CropRow,
+  MemoizedFieldRow,
+  MemoizedRotationExtended,
+  RotationExtended,
+} from "./columns"
+import { buildRowSelection, handleRowSelection } from "./row-selection"
+import { rotationTableFeatures } from "./table-features"
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+interface DataTableProps<TData> {
+  columns: typeof ColumnsT
   data: TData[]
   canAddItem: boolean
 }
 
-export function DataTable<TData extends RotationExtended, TValue>({
+/**
+ * Check if the given rotation table row matches the search terms and the productivity filter.
+ *
+ * @param data Row data to test.
+ * @param searchTerms Search terms as found in the field filter state.
+ * @param showProductiveOnly Productivity filter as found in the field filter state.
+ * @returns true iff the filters match.
+ */
+function fuzzySearchAndProductivityFilter(
+  data: MemoizedRotationExtended,
+  searchTerms: string,
+  showProductiveOnly: boolean,
+) {
+  if (
+    showProductiveOnly &&
+    !(data.type === "crop"
+      ? data.fields.some((field) => !field.b_bufferstrip)
+      : !data.b_bufferstrip)
+  ) {
+    return false
+  }
+
+  return searchTerms === "" || fuzzysort.go(searchTerms, [data.searchTarget]).length > 0
+}
+
+export function DataTable<TData extends RotationExtended>({
   columns,
   data,
   canAddItem,
-}: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+}: DataTableProps<TData>) {
   const fieldFilter = useFieldFilterStore()
   const isMobile = useIsMobile()
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibilityState>(
     isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
   )
-  const lastSelectedRowIndex = useRef<string | null>(null)
   const location = useLocation()
 
   const selection = useRotationSelectionStore((state) => state.selection)
-  const updateSelection = useRotationSelectionStore((state) => state.updateSelection)
+  const setSelection = useRotationSelectionStore((state) => state.setSelection)
   const syncFarm = useRotationSelectionStore((state) => state.syncFarm)
+  const fieldFilterSyncFarm = fieldFilter.syncFarm
 
   useEffect(() => {
     setColumnVisibility(isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {})
@@ -84,99 +107,11 @@ export function DataTable<TData extends RotationExtended, TValue>({
   useEffect(() => {
     if (b_id_farm) {
       syncFarm(b_id_farm)
-      fieldFilter.syncFarm(b_id_farm)
+      fieldFilterSyncFarm(b_id_farm)
     }
-  }, [b_id_farm, syncFarm, fieldFilter.syncFarm])
+  }, [b_id_farm, syncFarm, fieldFilterSyncFarm])
 
   const clearActiveForm = useActiveTableFormStore((store) => store.clearActiveForm)
-
-  function handleSelection(rowSelection: RowSelectionState) {
-    // Sync to store
-    const newSelection = Object.fromEntries(
-      table
-        .getFilteredRowModel()
-        .rows.map((row) => [
-          row.original.b_lu_catalogue,
-          Object.fromEntries(
-            row.subRows.flatMap((fieldRow) =>
-              fieldRow.original.type === "field"
-                ? [[fieldRow.original.b_id, rowSelection[fieldRow.id]]]
-                : [],
-            ),
-          ),
-        ]),
-    )
-    updateSelection(newSelection)
-  }
-
-  const handleRowClick = (
-    row: Row<MemoizedTData>,
-    event: React.MouseEvent<HTMLTableRowElement>,
-  ) => {
-    // Ignore clicks on interactive elements inside the row
-    const isInteractive = (target: EventTarget | null): boolean => {
-      if (!(target instanceof Element)) return false
-      return !!target.closest(
-        'a,button,input,label,select,textarea,[role="button"],[role="link"],[role="checkbox"],[data-prevent-row-click="true"]',
-      )
-    }
-
-    if (isInteractive(event.target)) {
-      // If a link was clicked, let the default navigation happen
-      return
-    }
-
-    clearActiveForm()
-    if (event.shiftKey) {
-      document.getSelection()?.removeAllRanges()
-      const lastSelectedRow =
-        lastSelectedRowIndex.current && table.getRow(lastSelectedRowIndex.current)
-      if (lastSelectedRow) {
-        const newRowSelection = { ...table.getState().rowSelection }
-        const visibleRows = table.getRowModel().rows
-
-        // Select or deselect everything in between
-        const mode = lastSelectedRow.getIsSelected()
-        const lastIndex = visibleRows.findIndex((r) => r.id === lastSelectedRow.id)
-        const currentIndex = visibleRows.findIndex((r) => r.id === row.id)
-
-        const start = Math.min(lastIndex, currentIndex)
-        const end = Math.max(lastIndex, currentIndex)
-
-        let somethingSelected = false
-
-        for (let i = start; i <= end; i++) {
-          const r = visibleRows[i]
-          if ((newRowSelection[r.id] ?? false) !== mode) {
-            somethingSelected = true
-          }
-          newRowSelection[r.id] = mode
-          if (r.original.type === "crop" && r.getCanExpand()) {
-            // Also select subrows
-            for (const sub of r.subRows) {
-              if ((newRowSelection[sub.id] ?? false) !== mode) {
-                somethingSelected = true
-              }
-              newRowSelection[sub.id] = mode
-              if (sub.id === visibleRows[end].id) break
-            }
-          }
-        }
-
-        if (!somethingSelected) {
-          // Fall back to toggling last clicked row's selection if no visible selection change happens
-          newRowSelection[row.id] = !row.getIsSelected()
-        }
-
-        handleSelection(newRowSelection)
-      }
-    } else {
-      lastSelectedRowIndex.current = null
-      const newIsSelected = !row.getIsSelected()
-      row.toggleSelected(newIsSelected)
-    }
-    lastSelectedRowIndex.current = row.id
-  }
 
   const memoizedData = useMemo(() => {
     return (data as CropRow[]).map((item) => {
@@ -213,65 +148,56 @@ export function DataTable<TData extends RotationExtended, TValue>({
       }
     })
   }, [data])
-  type MemoizedCropRow = (typeof memoizedData)[number]
-  type MemoizedFieldRow = MemoizedCropRow["fields"][number]
-  type MemoizedTData = MemoizedCropRow | MemoizedFieldRow
-  const isMemoizedFieldRow = (row: MemoizedTData): row is MemoizedFieldRow => row.type === "field"
 
-  const fuzzySearchAndProductivityFilter = (
-    data: MemoizedTData,
-    searchTerms: string,
-    showProductiveOnly: boolean,
-  ) => {
-    if (
-      showProductiveOnly &&
-      !(data.type === "crop"
-        ? data.fields.some((field) => !field.b_bufferstrip)
-        : !data.b_bufferstrip)
-    ) {
-      return false
+  const globalFilterFn = useCallback(
+    (row: { original: MemoizedRotationExtended }) =>
+      fuzzySearchAndProductivityFilter(
+        row.original,
+        fieldFilter.searchTerms,
+        fieldFilter.showProductiveOnly,
+      ),
+    [fieldFilter.searchTerms, fieldFilter.showProductiveOnly],
+  )
+
+  const rowSelection = useMemo(
+    () => buildRowSelection(selection, memoizedData, globalFilterFn),
+    [selection, memoizedData, globalFilterFn],
+  )
+
+  const previousSelection = useRef<RowSelectionState>(rowSelection)
+  const lastSelectedRowIndex = useRef<string | null>(null)
+  function handleSelection(nextRowSelection: RowSelectionState) {
+    // Only touch rows currently in the filtered row model so the selection
+    // state of filtered-out rows already in the store is preserved. Always
+    // update the state of these rows. Since TanStack might not return the
+    // state for a row if it is deselected, updating the keys passed to
+    // handleSelection doesn't suffice.
+    const newSelection = Object.fromEntries(
+      Object.entries(selection).map(([k, v]) => [k, { ...v }]),
+    )
+    for (const row of table.getFilteredRowModel().flatRows) {
+      if (row.original.type !== "field") continue
+      const { b_lu_catalogue, b_id } = row.original
+      if (!(b_lu_catalogue in newSelection)) {
+        newSelection[b_lu_catalogue] = {}
+      }
+      newSelection[b_lu_catalogue][b_id] = !!nextRowSelection[row.id]
     }
-
-    return searchTerms === "" || fuzzysort.go(searchTerms, [data.searchTarget]).length > 0
+    setSelection(newSelection)
   }
 
-  const rowSelection = useMemo(() => {
-    return Object.fromEntries([
-      // Crop selection state is derived from whether all its fields are selected
-      ...memoizedData.map((crop) => [
-        `crop_${crop.b_lu_catalogue}`,
-        crop.fields.every(
-          (field) =>
-            !fuzzySearchAndProductivityFilter(
-              field,
-              fieldFilter.searchTerms,
-              fieldFilter.showProductiveOnly,
-            ) || selection[crop.b_lu_catalogue]?.[field.b_id],
-        ),
-      ]),
-      // Include each field's selection state too
-      ...memoizedData.flatMap((crop) =>
-        crop.fields.map((field) => [
-          `${crop.b_lu_catalogue}_${field.b_id}`,
-          selection[crop.b_lu_catalogue]?.[field.b_id],
-        ]),
-      ),
-    ])
-  }, [selection, memoizedData, fieldFilter])
+  const isMemoizedFieldRow = (row: MemoizedRotationExtended): row is MemoizedFieldRow =>
+    row.type === "field"
 
-  const table = useReactTable<MemoizedTData>({
+  const table = useTable({
     data: memoizedData,
-    columns: columns as ColumnDef<MemoizedTData>[],
+    features: rotationTableFeatures,
+    columns: columns,
     getRowId: (row) =>
       row.type === "crop" ? `crop_${row.b_lu_catalogue}` : `${row.b_lu_catalogue}_${row.b_id}`,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
     getSubRows: (row) => (row.type === "crop" ? row.fields : undefined),
+    // Only used when selecting using the select column.
+    enableMultiRowSelection: true,
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: (fn) => {
       const result = typeof fn === "function" ? fn(fieldFilter) : fn
@@ -280,8 +206,10 @@ export function DataTable<TData extends RotationExtended, TValue>({
         fieldFilter.setSearchTerms(newSearchTerms ?? "")
     },
     onRowSelectionChange: (fn) => {
-      const selection = typeof fn === "function" ? fn(rowSelection) : fn
-      handleSelection(selection)
+      // A ref is used in case TanStack Table wants to do multiple selection state updates in the same render pass.
+      const nextSelection = typeof fn === "function" ? fn(previousSelection.current) : fn
+      previousSelection.current = nextSelection
+      handleSelection(nextSelection)
     },
     globalFilterFn: (row) =>
       fuzzySearchAndProductivityFilter(
@@ -294,9 +222,11 @@ export function DataTable<TData extends RotationExtended, TValue>({
     // Filter only one of the columns to gain performance
     getColumnCanGlobalFilter: (column) => column.id === "name",
     filterFromLeafRows: true,
+    meta: {
+      lastSelectedRowIndex,
+      previousSelection,
+    },
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       globalFilter: fieldFilter,
       rowSelection,
@@ -310,6 +240,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
         (row) => row.original.type === "crop" && (row.getIsSelected() || row.getIsSomeSelected()),
       )
       .map((row) => row.original)
+    // oxlint-disable-next-line react-hooks/exhaustive-deps We know that selected rows depend on the row selection.
   }, [table, rowSelection])
 
   const selectedFields = useMemo(() => {
@@ -317,6 +248,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
       .getFilteredSelectedRowModel()
       .flatRows.map((row) => row.original)
       .filter(isMemoizedFieldRow)
+    // oxlint-disable-next-line react-hooks/exhaustive-deps We know that selected rows depend on the row selection.
   }, [table, rowSelection])
 
   const selectedCultivationIds = selectedCultivations.map(
@@ -352,15 +284,28 @@ export function DataTable<TData extends RotationExtended, TValue>({
     })
   }
 
-  function isFirstFieldRowForACrop(flatRows: Row<MemoizedTData>[], i: number) {
+  function isFirstFieldRowForACrop(
+    flatRows: Row<typeof rotationTableFeatures, MemoizedRotationExtended>[],
+    i: number,
+  ) {
     if (flatRows[i].original.type !== "field") return false
     return i === 0 || flatRows[i - 1].original.type === "crop"
   }
 
-  function isLastFieldRowForACrop(flatRows: Row<MemoizedTData>[], i: number) {
+  function isLastFieldRowForACrop(
+    flatRows: Row<typeof rotationTableFeatures, MemoizedRotationExtended>[],
+    i: number,
+  ) {
     if (flatRows[i].original.type !== "field") return false
     return i + 1 === flatRows.length || flatRows[i + 1].original.type === "crop"
   }
+
+  const rows = table.getRowModel().rows
+  useEffect(() => {
+    if (!rows.some((row) => row.id === lastSelectedRowIndex.current)) {
+      lastSelectedRowIndex.current = null
+    }
+  }, [rows])
 
   return (
     <div className="flex h-full w-full min-w-0 flex-col">
@@ -505,9 +450,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                         "min-w-35": header.column.id === "name",
                       })}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </TableHead>
                   )
                 })}
@@ -515,11 +458,35 @@ export function DataTable<TData extends RotationExtended, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row, i, flatRows) => (
+            {rows.length > 0 ? (
+              rows.map((row, i, flatRows) => (
                 <TableRow
                   key={row.id}
-                  onClick={(event) => handleRowClick(row, event)}
+                  onClick={(event) => {
+                    // Ignore clicks on interactive elements inside the row
+                    const isInteractive = (target: EventTarget | null): boolean => {
+                      if (!(target instanceof Element)) return false
+                      return !!target.closest(
+                        'a,button,input,label,select,textarea,[role="button"],[role="link"],[role="checkbox"],[data-prevent-row-click="true"]',
+                      )
+                    }
+
+                    if (isInteractive(event.target)) {
+                      // If a link was clicked, let the default navigation happen
+                      return
+                    }
+
+                    clearActiveForm()
+
+                    handleRowSelection(row, table, {
+                      ...event,
+                      target: {
+                        ...event.currentTarget,
+                        checked: !row.getIsSelected(),
+                      } as EventTarget,
+                      currentTarget: { ...event.currentTarget, checked: row.getIsSelected() },
+                    })
+                  }}
                   className={cn(
                     "data-[state=selected]:bg-muted data-[state=indeterminate]:bg-muted/50",
                     row.getIsSelected()
@@ -544,7 +511,7 @@ export function DataTable<TData extends RotationExtended, TValue>({
                         "sticky right-0": cell.column.id === "actions",
                       })}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <FlexRender cell={cell} />
                     </TableCell>
                   ))}
                 </TableRow>

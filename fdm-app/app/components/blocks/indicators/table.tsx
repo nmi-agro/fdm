@@ -1,4 +1,4 @@
-import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table"
+import { type ColumnDef, FlexRender, tableFeatures, useTable } from "@tanstack/react-table"
 import { useMemo } from "react"
 import { NavLink } from "react-router"
 import type { FieldBln3Score } from "~/integrations/bln3.server"
@@ -55,6 +55,8 @@ type HeatmapTableProps = {
     }
 )
 
+const knelpuntTableFeatures = tableFeatures({})
+
 /**
  * Heatmap table built with TanStack Table for column grouping.
  *
@@ -107,8 +109,8 @@ export function HeatmapTable({
   }, [fields, fieldScores, activeCategories, showIndex])
 
   // Column definitions: field column + knelpunten summary column + one group per category
-  const columns = useMemo<ColumnDef<FieldRow>[]>(() => {
-    const fieldCol: ColumnDef<FieldRow> = {
+  const columns = useMemo<ColumnDef<typeof knelpuntTableFeatures, FieldRow>[]>(() => {
+    const fieldCol: ColumnDef<typeof knelpuntTableFeatures, FieldRow> = {
       id: "field",
       accessorKey: "b_name",
       header: "Perceel",
@@ -126,7 +128,7 @@ export function HeatmapTable({
       ),
     }
 
-    const knelpuntCol: ColumnDef<FieldRow> = {
+    const knelpuntCol: ColumnDef<typeof knelpuntTableFeatures, FieldRow> = {
       id: "knelpunten",
       header: () => (
         <Tooltip>
@@ -154,7 +156,7 @@ export function HeatmapTable({
     }
 
     const categories = activeCategories.length > 0 ? activeCategories : ECOSYSTEEMDIENSTEN
-    const groups: ColumnDef<FieldRow>[] = categories.map((cat) => ({
+    const groups: ColumnDef<typeof knelpuntTableFeatures, FieldRow>[] = categories.map((cat) => ({
       id: cat,
       header: cat,
       columns: INDICATORS.filter((i) => i.ecosysteemdienst === cat).map((ind: IndicatorInfo) => ({
@@ -192,10 +194,10 @@ export function HeatmapTable({
     return [fieldCol, knelpuntCol, ...groups]
   }, [activeCategories, showIndex, basePath, basePathFormatter])
 
-  const table = useReactTable({
+  const table = useTable({
     data,
+    features: knelpuntTableFeatures,
     columns,
-    getCoreRowModel: getCoreRowModel(),
   })
 
   // Always 2 header groups: [category group row, indicator name row]
@@ -288,7 +290,7 @@ export function HeatmapTable({
                     )}
                   >
                     <div className="truncate px-1" title={cat}>
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </div>
                   </th>
                 )
@@ -320,7 +322,7 @@ export function HeatmapTable({
                         "border-border w-12 min-w-[48px] border-r border-b px-1 pb-2 text-center align-middle",
                       )}
                     >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </th>
                   )
                 }
@@ -348,11 +350,11 @@ export function HeatmapTable({
                           )
                         }
                       >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        <FlexRender header={header} />
                       </button>
                     ) : (
                       <div className="flex h-full items-end justify-center overflow-hidden">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
+                        <FlexRender header={header} />
                       </div>
                     )}
                   </th>
@@ -410,14 +412,14 @@ export function HeatmapTable({
             {/* Data rows */}
             {table.getRowModel().rows.map((row) => (
               <tr key={row.id} className="hover:bg-muted/50 transition-colors">
-                {row.getVisibleCells().map((cell) => {
+                {row.getAllCells().map((cell) => {
                   if (cell.column.id === "field") {
                     return (
                       <td
                         key={cell.id}
                         className={cn(stickyCol, "border-border border-r border-b px-3 py-2")}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        <FlexRender cell={cell} />
                       </td>
                     )
                   }
@@ -430,13 +432,13 @@ export function HeatmapTable({
                           "border-border border-r border-b px-1 py-2 text-center",
                         )}
                       >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        <FlexRender cell={cell} />
                       </td>
                     )
                   }
                   return (
                     <td key={cell.id} className={tdBase}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <FlexRender cell={cell} />
                     </td>
                   )
                 })}

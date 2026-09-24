@@ -1,9 +1,16 @@
 import {
+  useTable,
+  columnFilteringFeature,
+  columnVisibilityFeature,
+  createFilteredRowModel,
+  createSortedRowModel,
+  globalFilteringFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  sortFn_text,
+  tableFeatures,
   createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
+  FlexRender,
 } from "@tanstack/react-table"
 import { CheckCircle2, ChevronDown, ChevronUp, Info } from "lucide-react"
 import { Fragment } from "react"
@@ -28,9 +35,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import type { ParsedPlan, PlanRow } from "./types"
 import { getApplicationAmountUnitLabel } from "../fertilizer-applications/utils"
 
-const columnHelper = createColumnHelper<PlanRow>()
+const planTableFeatures = tableFeatures({
+  columnFilteringFeature: columnFilteringFeature,
+  columnVisibilityFeature: columnVisibilityFeature,
+  filteredRowModel: createFilteredRowModel(),
+  globalFilteringFeature: globalFilteringFeature,
+  rowSelectionFeature: rowSelectionFeature,
+  rowSortingFeature: rowSortingFeature,
+  sortedRowModel: createSortedRowModel(),
+  sortFns: { text: sortFn_text },
+})
 
-const columns = [
+const columnHelper = createColumnHelper<typeof planTableFeatures, PlanRow>()
+
+const columns = columnHelper.columns([
   columnHelper.accessor("b_name", {
     header: "Perceel",
     cell: (info) => <span className="text-foreground font-medium">{info.getValue()}</span>,
@@ -111,7 +129,7 @@ const columns = [
       )
     },
   }),
-]
+])
 
 interface PlanTableProps {
   plan: ParsedPlan & { plan: PlanRow[] }
@@ -121,11 +139,10 @@ interface PlanTableProps {
 }
 
 export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTableProps) {
-  const table = useReactTable({
-    data: plan.plan || [],
+  const table = useTable({
     columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    features: planTableFeatures,
+    data: plan.plan || [],
   })
 
   return (
@@ -153,11 +170,9 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
             <TableHeader className="bg-muted/30">
               {table.getHeaderGroups().map((hg) => (
                 <TableRow key={hg.id}>
-                  {hg.headers.map((h) => (
-                    <TableHead key={h.id} className="font-semibold">
-                      {h.isPlaceholder
-                        ? null
-                        : flexRender(h.column.columnDef.header, h.getContext())}
+                  {hg.headers.map((header) => (
+                    <TableHead key={header.id} className="font-semibold">
+                      <FlexRender header={header} />
                     </TableHead>
                   ))}
                   <TableHead className="w-8" />
@@ -186,7 +201,7 @@ export function PlanTable({ plan, isSaving, expandedRows, toggleRow }: PlanTable
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id} className="py-3">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            <FlexRender cell={cell} />
                           </TableCell>
                         ))}
                         <TableCell className="py-3">

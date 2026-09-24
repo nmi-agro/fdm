@@ -4,12 +4,13 @@ import { useFetcher } from "react-router"
 import { RemixFormProvider } from "remix-hook-form"
 import { cn } from "@/app/lib/utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
+import { DatePicker } from "~/components/custom/date-picker-v2"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, MemoizedRotationExtended } from "./columns"
 import type { RotationTableFormSchemaType } from "./schema"
-import { DatePicker } from "../../custom/date-picker-v2"
 import { DateRangeDisplay } from "./date-range-display"
+import { rotationTableFeatures } from "./table-features"
 
 type AllowedFormSchemaType = Pick<RotationTableFormSchemaType, "b_lu_start" | "b_lu_end">
 function TableDateSelectorForm({
@@ -23,7 +24,7 @@ function TableDateSelectorForm({
   fetcher: ReturnType<typeof useFetcher>
   name: keyof AllowedFormSchemaType
   value: Date[]
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   required?: boolean
   onHide?: () => unknown
 }) {
@@ -88,7 +89,7 @@ export function TableDateSelector({
   required,
 }: {
   name: keyof AllowedFormSchemaType
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   cellId: string
   required: boolean
 }) {

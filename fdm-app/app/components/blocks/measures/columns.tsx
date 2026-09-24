@@ -16,6 +16,7 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { measuresTableFeatures } from "./table-features"
 
 export type MeasureTableRow = {
   m_id: string
@@ -41,8 +42,8 @@ export function getColumns(
   onEdit?: (row: MeasureTableRow) => void,
   onClose?: (row: MeasureTableRow) => void,
   deleteAction?: string,
-): ColumnDef<MeasureTableRow>[] {
-  const columns: ColumnDef<MeasureTableRow>[] = [
+): ColumnDef<typeof measuresTableFeatures, MeasureTableRow>[] {
+  const columns: ColumnDef<typeof measuresTableFeatures, MeasureTableRow>[] = [
     {
       accessorKey: "m_name",
       header: "Maatregel",

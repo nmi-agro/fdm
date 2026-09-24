@@ -55,7 +55,7 @@ export default function FarmCreateRotationIndex() {
         <HeaderFarmCreate b_name_farm={currentFarmName} />
       </Header>
       <main>
-        {loaderData.fieldOptions.length === 0 ? (
+        {loaderData.rotationExtended.length === 0 ? (
           <>
             <FarmTitle
               title={`Bouwplan van ${currentFarmName}`}

@@ -1,18 +1,4 @@
-import {
-  type ColumnDef,
-  type ColumnFiltersState,
-  type FilterFn,
-  flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type Row,
-  type RowSelectionState,
-  type SortingState,
-  useReactTable,
-  type VisibilityState,
-} from "@tanstack/react-table"
+import { FlexRender, RowData, type SortingState, useTable } from "@tanstack/react-table"
 import fuzzysort from "fuzzysort"
 import { ChevronDown } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
@@ -34,10 +20,11 @@ import {
 } from "~/components/ui/table"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
-import type { FarmExtended } from "./columns"
+import type { columns as ColumnsT, FarmExtended } from "./columns"
+import { farmTableFeatures } from "./table-features"
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+interface DataTableProps<TData extends RowData> {
+  columns: typeof ColumnsT
   data: TData[]
 }
 
@@ -51,18 +38,13 @@ function withSearchTarget<TData extends FarmExtended>(
   }
 }
 
-export function DataTable<TData extends FarmExtended, TValue>({
-  columns,
-  data,
-}: DataTableProps<TData, TValue>) {
+export function DataTable<TData extends FarmExtended>({ columns, data }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState("")
   const isMobile = useIsMobile()
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(
     isMobile ? { owner: false, b_area: false } : {},
   )
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
   useEffect(() => {
     setColumnVisibility(isMobile ? { owner: false, b_area: false } : {})
@@ -72,32 +54,23 @@ export function DataTable<TData extends FarmExtended, TValue>({
     return data.map((data) => withSearchTarget(data))
   }, [data])
 
-  const fuzzyFilter: FilterFn<TData> = (row, _columnId, filterValue) => {
-    const result = fuzzysort.go(filterValue, [(row.original as any).searchTarget])
-    return result.length > 0
-  }
-
-  const table = useReactTable({
+  const table = useTable({
     data: memoizedData,
+    features: farmTableFeatures,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
+    getSubRows: (row) => row.fields as typeof memoizedData,
     onColumnVisibilityChange: setColumnVisibility,
-    getExpandedRowModel: getExpandedRowModel(),
-    getSubRows: (row) => row.fields as TData[],
     onGlobalFilterChange: setGlobalFilter,
-    onRowSelectionChange: setRowSelection,
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const result = fuzzysort.go(filterValue, [(row.original as any).searchTarget])
+      return result.length > 0
+    },
     filterFromLeafRows: true,
     state: {
       sorting,
-      columnFilters,
       columnVisibility,
       globalFilter,
-      rowSelection,
     },
   })
 
@@ -108,7 +81,7 @@ export function DataTable<TData extends FarmExtended, TValue>({
           placeholder="Zoek op naam, gewas of meststof"
           value={globalFilter ?? ""}
           onChange={(event) => setGlobalFilter(event.target.value)}
-          className="w-full sm:w-auto sm:flex-grow"
+          className="w-full sm:w-auto sm:grow"
         />
         <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
           <DropdownMenu>
@@ -159,9 +132,7 @@ export function DataTable<TData extends FarmExtended, TValue>({
                         "bg-background sticky right-0": header.column.id === "actions",
                       })}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </TableHead>
                   )
                 })}
@@ -170,34 +141,37 @@ export function DataTable<TData extends FarmExtended, TValue>({
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className={cn(
-                    row.original.type === "field" && "bg-muted/50 hover:bg-muted",
-                    row.original.type === "field" &&
-                      ((row.getParentRow() as Row<TData>)?.subRows.length === 1
-                        ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
-                        : row.index === 0
-                          ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
-                          : row.index === (row.getParentRow() as Row<TData>)?.subRows.length - 1 &&
-                            "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn({
-                        "bg-background sticky left-0": cell.column.id === "select",
-                        "bg-background sticky right-0": cell.column.id === "actions",
-                      })}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const parentRow = row.getParentRow()
+                return (
+                  <TableRow
+                    key={row.id}
+                    className={cn(
+                      row.original.type === "field" && "bg-muted/50 hover:bg-muted",
+                      row.original.type === "field" &&
+                        parentRow &&
+                        (parentRow.subRows.length === 1
+                          ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
+                          : row.index === 0
+                            ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
+                            : row.index === parentRow.subRows.length - 1 &&
+                              "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        className={cn({
+                          "bg-background sticky left-0": cell.column.id === "select",
+                          "bg-background sticky right-0": cell.column.id === "actions",
+                        })}
+                      >
+                        <FlexRender cell={cell} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )
+              })
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">

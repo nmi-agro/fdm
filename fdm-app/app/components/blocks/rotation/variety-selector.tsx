@@ -13,8 +13,9 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, MemoizedRotationExtended } from "./columns"
 import type { RotationTableFormSchemaType } from "./schema"
+import { rotationTableFeatures } from "./table-features"
 
 type AllowedFormSchemaType = Pick<RotationTableFormSchemaType, "b_lu_variety">
 function TableVarietySelectorForm({
@@ -27,7 +28,7 @@ function TableVarietySelectorForm({
 }: {
   name: keyof AllowedFormSchemaType
   value: string[]
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   b_lu_variety_options: { label: string; value: string }[]
   onHide?: () => unknown
   fetcher: ReturnType<typeof useFetcher>
@@ -103,7 +104,7 @@ export function TableVarietySelector({
   canModify,
 }: {
   name: keyof AllowedFormSchemaType
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
   cellId: string
   canModify: boolean
 }) {

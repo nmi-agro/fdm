@@ -7,10 +7,11 @@ import { Link } from "react-router"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
-import type { FieldRow, RotationExtended } from "./columns"
+import type { FieldRow, MemoizedRotationExtended } from "./columns"
+import { rotationTableFeatures } from "./table-features"
 
 type HarvestDatesDisplayProps = {
-  row: Row<RotationExtended>
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
 }
 
 type HarvestRecordItem = {

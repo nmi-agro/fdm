@@ -3,11 +3,12 @@ import type { CellContext, ColumnDef } from "@tanstack/react-table"
 import { ArrowUpRightFromSquare, ChevronRight } from "lucide-react"
 import { NavLink, useParams } from "react-router"
 import { cn } from "@/app/lib/utils"
-import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
+import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
+import { farmTableFeatures } from "./table-features"
 import { type DisplayUser, UserDisplay } from "./user-display"
 
 export interface FarmExtended {
@@ -21,7 +22,7 @@ export interface FarmExtended {
   cultivations: Pick<Cultivation, "b_lu_catalogue" | "b_lu_name" | "b_lu_croprotation">[]
 }
 
-export const columns: ColumnDef<FarmExtended>[] = [
+export const columns: ColumnDef<typeof farmTableFeatures, FarmExtended>[] = [
   {
     id: "Children",
     enableHiding: false,
@@ -81,7 +82,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
   {
     accessorKey: "cultivations",
     enableSorting: true,
-    sortingFn: (rowA, rowB, _columnId) => {
+    sortFn: (rowA, rowB, _columnId) => {
       const cultivationA = rowA.original.cultivations[0]?.b_lu_name || ""
       const cultivationB = rowB.original.cultivations[0]?.b_lu_name || ""
       return cultivationA.localeCompare(cultivationB)
@@ -118,7 +119,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
   {
     accessorKey: "fertilizers",
     enableSorting: true,
-    sortingFn: (rowA, rowB, _columnId) => {
+    sortFn: (rowA, rowB, _columnId) => {
       const fertilizerA = rowA.original.fertilizers[0]?.p_name_nl || ""
       const fertilizerB = rowB.original.fertilizers[0]?.p_name_nl || ""
       return fertilizerA.localeCompare(fertilizerB)
@@ -161,7 +162,7 @@ export const columns: ColumnDef<FarmExtended>[] = [
   },
 ]
 
-function FarmNameCell({ row }: CellContext<FarmExtended, unknown>) {
+function FarmNameCell({ row }: CellContext<typeof farmTableFeatures, FarmExtended, unknown>) {
   const params = useParams()
   const farm = row.original
 

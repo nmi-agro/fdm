@@ -1,14 +1,14 @@
 import {
-  type CultivationCatalogue,
   checkPermission,
   getCultivations,
+  getCultivationsForFarm,
   getCultivationsFromCatalogue,
-  getCurrentSoilData,
+  getCurrentSoilDataForFarm,
   getFarms,
-  getFertilizerApplications,
+  getFertilizerApplicationsForFarm,
   getFertilizers,
   getFields,
-  getHarvests,
+  getHarvestsForFarm,
   updateCultivation,
 } from "@nmi-agro/fdm-core"
 import { useEffect } from "react"
@@ -19,7 +19,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { getEffectiveHarvestable } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { type CropRow, columns, type RotationExtended } from "~/components/blocks/rotation/columns"
+import { type CropRow, columns, FieldRow } from "~/components/blocks/rotation/columns"
 import { RotationTableFormSchema } from "~/components/blocks/rotation/schema"
 import { DataTable } from "~/components/blocks/rotation/table"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
@@ -103,27 +103,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }
     })
 
-    // Get the fields to be selected
-    const fields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-    const fieldOptions = fields.map((field) => {
-      if (!field?.b_id || !field?.b_name) {
-        throw new Error("Invalid field data structure")
-      }
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-      }
-    })
-
-    const fertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm)
-
-    const cultivationCatalogue = await getCultivationsFromCatalogue(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-    )
-
     function getHarvestabilityFromCatalogue(b_lu_catalogue: string) {
       return (
         cultivationCatalogue.find(
@@ -132,241 +111,190 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       )
     }
 
-    const fieldsExtended = await Promise.all(
-      fields.map(async (field) => {
-        const cultivations = await getCultivations(fdm, session.principal_id, field.b_id, timeframe)
-
-        const harvests = (
-          await Promise.all(
-            cultivations.map(async (cultivation) => {
-              const b_lu_harvestable = getEffectiveHarvestable(
-                getHarvestabilityFromCatalogue(cultivation.b_lu_catalogue),
-                cultivation.b_lu_croprotation ?? "",
-              )
-
-              return getHarvests(
-                fdm,
-                session.principal_id,
-                cultivation.b_lu,
-                b_lu_harvestable === "once" ? undefined : timeframe,
-              )
-            }),
-          )
-        ).flat()
-
-        const fertilizerApplications = await getFertilizerApplications(
-          fdm,
-          session.principal_id,
-          field.b_id,
-          timeframe,
-        )
-
-        const fertilizerApplicationIds = new Set(fertilizerApplications.map((app) => app.p_id))
-
-        const fertilizersFiltered = fertilizers.filter((fertilizer) =>
-          fertilizerApplicationIds.has(fertilizer.p_id),
-        )
-
-        const currentSoilData = await getCurrentSoilData(
-          fdm,
-          session.principal_id,
-          field.b_id,
-          timeframe,
-        )
-        const a_som_loi =
-          currentSoilData.find((item: { parameter: string }) => item.parameter === "a_som_loi")
-            ?.value ?? null
-        const b_soiltype_agr =
-          currentSoilData.find((item: { parameter: string }) => item.parameter === "b_soiltype_agr")
-            ?.value ?? null
-
-        return {
-          b_id: field.b_id,
-          b_name: field.b_name,
-          cultivations: cultivations,
-          harvests: harvests,
-          fertilizerApplications: fertilizerApplications,
-          fertilizers: fertilizersFiltered,
-          a_som_loi: a_som_loi,
-          b_soiltype_agr: b_soiltype_agr,
-          b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-          b_bufferstrip: field.b_bufferstrip,
-        }
-      }),
-    )
-
-    const farmWritePermission = await checkPermission(
-      fdm,
-      "farm",
-      "write",
-      b_id_farm,
-      session.principal_id,
-      new URL(request.url).pathname,
-      false,
-    )
-
-    type FieldsExtended = typeof fieldsExtended
+    const [
+      fields,
+      fertilizers,
+      cultivationCatalogue,
+      cultivationsForFarm,
+      harvestsForFarm,
+      fertilizerApplicationsForFarm,
+      currentSoilDataForFarm,
+      farmWritePermission,
+    ] = await Promise.all([
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+      getFertilizers(fdm, session.principal_id, b_id_farm),
+      getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
+      getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm),
+      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm),
+      checkPermission(
+        fdm,
+        "farm",
+        "write",
+        b_id_farm,
+        session.principal_id,
+        "routes/farm.$b_id_farm.$calendar.rotation",
+        false,
+      ),
+    ])
 
     const collectUniqueDates = (dates: (Date | null | undefined)[]) => {
-      return [...new Set(dates.flatMap((date) => (date ? [date.getTime()] : [])))].map(
-        (timestamp) => new Date(timestamp),
+      return [...new Set(dates.flatMap((date) => (date ? [date.getTime()] : [])))]
+        .sort((a, b) => a - b)
+        .map((timestamp) => new Date(timestamp))
+    }
+
+    const cultivationsInRotation: string[] = [
+      ...new Set(
+        fields.flatMap((field) => {
+          return (cultivationsForFarm.get(field.b_id) ?? []).flatMap((cultivation) => {
+            return cultivation.b_lu_catalogue
+          })
+        }),
+      ),
+    ]
+
+    const fieldsExtended = fields.map((field) => {
+      const currentSoilData = currentSoilDataForFarm.get(field.b_id)
+      const a_som_loi =
+        (currentSoilData?.find((item) => item.parameter === "a_som_loi")?.value as
+          | number
+          | undefined) ?? 0
+      const b_soiltype_agr =
+        (currentSoilData?.find((item) => item.parameter === "b_soiltype_agr")?.value as
+          | string
+          | undefined) ?? ""
+
+      const p_id_set = new Set(
+        (fertilizerApplicationsForFarm.get(field.b_id) ?? []).map((p) => p.p_id),
       )
-    }
+      const fieldFertilizers = fertilizers
+        .filter((p) => p_id_set.has(p.p_id))
+        .map((p) => ({
+          p_id: p.p_id,
+          p_name_nl: p.p_name_nl,
+          p_type: p.p_type,
+          p_type_rvo: p.p_type_rvo,
+        }))
 
-    const transformFieldsToRotationExtended = (
-      fieldsExtended: FieldsExtended, // TODO: Define a proper type for fieldsExtended
-      _cultivationCatalogue: CultivationCatalogue[],
-    ): CropRow[] => {
-      const cultivationsInRotation: string[] = [
-        ...new Set(
-          fieldsExtended.flatMap((field: { cultivations: { b_lu_catalogue: string }[] }) => {
-            return field.cultivations.flatMap((cultivation) => {
-              return cultivation.b_lu_catalogue
-            })
-          }),
-        ),
-      ]
+      return {
+        ...field,
+        a_som_loi: a_som_loi,
+        b_soiltype_agr: b_soiltype_agr,
+        fertilizers: fieldFertilizers,
+      }
+    })
 
-      return cultivationsInRotation.map((b_lu_catalogue) => {
-        const cultivationsForCatalogue = fieldsExtended.flatMap((field) =>
-          field.cultivations.filter(
-            (cultivation: { b_lu_catalogue: string }) =>
-              cultivation.b_lu_catalogue === b_lu_catalogue,
-          ),
+    const rotationExtended = cultivationsInRotation.map((b_lu_catalogue) => {
+      const catalogueItem = cultivationCatalogue.find(
+        (cat) => cat.b_lu_catalogue === b_lu_catalogue,
+      )
+      if (!catalogueItem) {
+        throw new Error(`Cultivation ${b_lu_catalogue} not found in the catalogue.`)
+      }
+      const { b_lu_name, b_lu_croprotation, b_lu_eom_residue } = catalogueItem
+
+      const fieldsWithThisCultivation = fieldsExtended.filter((field) =>
+        cultivationsForFarm
+          .get(field.b_id)
+          ?.some((cultivation) => cultivation.b_lu_catalogue === b_lu_catalogue),
+      )
+
+      const b_lu_harvestable = getEffectiveHarvestable(
+        getHarvestabilityFromCatalogue(b_lu_catalogue),
+        b_lu_croprotation,
+      )
+
+      const fieldRows = fieldsWithThisCultivation.map((field, _i) => {
+        const cultivationsForCatalogue = (cultivationsForFarm.get(field.b_id) ?? []).filter(
+          (cultivation) => cultivation.b_lu_catalogue === b_lu_catalogue && cultivation.b_lu_start,
+        )
+        const harvestsForCatalogue = cultivationsForCatalogue.flatMap(
+          (cultivation) => harvestsForFarm.get(cultivation.b_lu) ?? [],
         )
 
-        const fieldsWithThisCultivation = fieldsExtended.filter((field) =>
-          field.cultivations.some(
-            (cultivation: { b_lu_catalogue: string }) =>
-              cultivation.b_lu_catalogue === b_lu_catalogue,
-          ),
-        )
-
-        const b_lu = cultivationsForCatalogue.map(
-          (cultivation: { b_lu: string }) => cultivation.b_lu,
-        )
-
-        const b_lu_eom_residue = cultivationsForCatalogue[0]?.b_lu_eom_residue
-        const b_lu_croprotation = cultivationsForCatalogue[0]?.b_lu_croprotation ?? ""
-        const b_lu_harvestable = getEffectiveHarvestable(
-          getHarvestabilityFromCatalogue(b_lu_catalogue),
-          b_lu_croprotation,
-        )
         return {
-          type: "crop",
+          type: "field",
           canModify: farmWritePermission,
-          b_lu_catalogue: b_lu_catalogue,
-          b_lu: b_lu,
-          b_lu_name: cultivationsForCatalogue[0]?.b_lu_name ?? "",
-          b_lu_variety_options:
-            cultivationCatalogue
-              .find((item: { b_lu_catalogue: string }) => item.b_lu_catalogue === b_lu_catalogue)
-              ?.b_lu_variety_options?.map((option: string) => ({
-                value: option,
-                label: option,
-              }))
-              .sort((a, b) => dutchCollator.compare(a.label, b.label)) ?? null,
-          b_lu_croprotation: b_lu_croprotation,
-          b_lu_eom_residue: b_lu_eom_residue,
+          b_id: field.b_id,
+          b_name: field.b_name,
+          b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+          b_bufferstrip: field.b_bufferstrip,
+          a_som_loi: field.a_som_loi ?? 0,
+          b_soiltype_agr: field.b_soiltype_agr ?? "",
+          b_lu_start: collectUniqueDates(
+            cultivationsForCatalogue.map((cultivation) => cultivation.b_lu_start),
+          ),
+          b_lu_end: collectUniqueDates(
+            cultivationsForCatalogue.map((cultivation) => cultivation.b_lu_end),
+          ),
+          harvests: harvestsForCatalogue.map((harvest) => {
+            return {
+              b_lu: harvest.b_lu,
+              b_id_harvesting: harvest.b_id_harvesting,
+              b_lu_harvest_date: harvest.b_lu_harvest_date,
+            }
+          }),
           b_lu_harvestable: b_lu_harvestable,
+          b_lu_variety: Object.entries(
+            cultivationsForCatalogue
+              .flatMap((cultivation: { b_lu_variety: string | null }) =>
+                cultivation.b_lu_variety ? [cultivation.b_lu_variety] : [],
+              )
+              .reduce(
+                (counts, variety) => {
+                  counts[variety] = (counts[variety] ?? 0) + 1
+                  return counts
+                },
+                {} as Record<string, number>,
+              ),
+          ).sort((a, b) => b[1] - a[1]),
+          b_lu_catalogue: b_lu_catalogue,
+          b_lu_croprotation: cultivationsForCatalogue[0]?.b_lu_croprotation ?? "",
+          m_cropresidue: cultivationsForCatalogue.every((cultivation) => cultivation.m_cropresidue)
+            ? "all"
+            : cultivationsForCatalogue.some((cultivation) => cultivation.m_cropresidue)
+              ? "some"
+              : "none",
+          m_cropresidue_ending: cultivationsForCatalogue
+            .filter((cultivation) => cultivation.b_lu_end)
+            .map((cultivation) => [
+              cultivation.b_lu_end as Date,
+              cultivation.m_cropresidue ?? false,
+            ]),
+          b_lu_eom_residue: b_lu_eom_residue,
           calendar: calendar,
-          fields: fieldsWithThisCultivation.map((field, _i) => ({
-            // TODO: Define a proper type for field
-            type: "field",
-            canModify: farmWritePermission,
-            b_id: field.b_id,
-            b_name: field.b_name,
-            b_area: field.b_area,
-            b_bufferstrip: field.b_bufferstrip,
-            a_som_loi: field.a_som_loi ?? 0,
-            b_soiltype_agr: field.b_soiltype_agr ?? "",
-            b_lu_start: collectUniqueDates(
-              field.cultivations
-                .filter(
-                  (cultivation) =>
-                    cultivation.b_lu_catalogue === b_lu_catalogue && cultivation.b_lu_start,
-                )
-                .map((cultivation) => cultivation.b_lu_start),
-            ),
-            b_lu_end: collectUniqueDates(
-              field.cultivations
-                .filter((cultivation) => cultivation.b_lu_catalogue === b_lu_catalogue)
-                .map((cultivation) => cultivation.b_lu_end),
-            ),
-            harvests: field.harvests
-              .filter((harvest: { b_lu: string }) => b_lu.includes(harvest.b_lu))
-              .map((harvest) => {
-                return {
-                  b_lu: harvest.b_lu,
-                  b_id_harvesting: harvest.b_id_harvesting,
-                  b_lu_harvest_date: harvest.b_lu_harvest_date,
-                }
-              }),
-            b_lu_harvestable: b_lu_harvestable,
-            b_lu_variety: Object.entries(
-              field.cultivations
-                .filter((cultivation) => cultivation.b_lu_catalogue === b_lu_catalogue)
-                .flatMap((cultivation: { b_lu_variety: string | null }) =>
-                  cultivation.b_lu_variety ? [cultivation.b_lu_variety] : [],
-                )
-                .reduce(
-                  (counts, variety) => {
-                    counts[variety] = (counts[variety] ?? 0) + 1
-                    return counts
-                  },
-                  {} as Record<string, number>,
-                ),
-            ).sort((a, b) => b[1] - a[1]),
-            b_lu_catalogue: b_lu_catalogue,
-            b_lu_croprotation: cultivationsForCatalogue[0]?.b_lu_croprotation ?? "",
-            m_cropresidue: (() => {
-              const cultivations = field.cultivations.filter(
-                (cultivation) => cultivation.b_lu_catalogue === b_lu_catalogue,
-              )
-
-              return cultivations.every((cultivation) => cultivation.m_cropresidue)
-                ? "all"
-                : cultivations.some((cultivation) => cultivation.m_cropresidue)
-                  ? "some"
-                  : "none"
-            })(),
-            m_cropresidue_ending: field.cultivations
-              .filter(
-                (cultivation) =>
-                  cultivation.b_lu_catalogue === b_lu_catalogue && cultivation.b_lu_end,
-              )
-              .map((cultivation) => [
-                cultivation.b_lu_end as Date,
-                cultivation.m_cropresidue ?? false,
-              ]),
-            b_lu_eom_residue: b_lu_eom_residue,
-            calendar: calendar,
-            fertilizerApplications: field.fertilizerApplications.map((app) => ({
-              p_name_nl: app.p_name_nl,
-              p_id: app.p_id,
-            })),
-            fertilizers: field.fertilizers.map((app) => ({
-              p_name_nl: app.p_name_nl,
-              p_id: app.p_id,
-              p_type: app.p_type,
-              p_type_rvo: app.p_type_rvo,
-            })),
-          })),
-        }
+          fertilizers: field.fertilizers,
+        } satisfies FieldRow
       })
-    }
 
-    const rotationExtended: RotationExtended[] = transformFieldsToRotationExtended(
-      fieldsExtended,
-      cultivationCatalogue,
-    )
+      return {
+        type: "crop",
+        canModify: farmWritePermission,
+        b_lu_catalogue: b_lu_catalogue,
+        b_lu_name: b_lu_name ?? "",
+        b_lu_variety_options:
+          cultivationCatalogue
+            .find((item: { b_lu_catalogue: string }) => item.b_lu_catalogue === b_lu_catalogue)
+            ?.b_lu_variety_options?.map((option: string) => ({
+              value: option,
+              label: option,
+            }))
+            .sort((a, b) => dutchCollator.compare(a.label, b.label)) ?? null,
+        b_lu_croprotation: b_lu_croprotation ?? "",
+        b_lu_eom_residue: b_lu_eom_residue,
+        b_lu_harvestable: b_lu_harvestable,
+        calendar: calendar,
+        fields: fieldRows,
+      } satisfies CropRow
+    })
 
     // Return user information from loader
     return {
       b_id_farm: b_id_farm,
       calendar: calendar,
       farmOptions: farmOptions,
-      fieldOptions: fieldOptions,
       rotationExtended: rotationExtended, // Return filtered data
       userName: session.userName,
       farmWritePermission: farmWritePermission,
@@ -414,7 +342,7 @@ export default function FarmRotationIndex() {
         <BreadcrumbItem className="hidden md:block">Bouwplan</BreadcrumbItem>
       </Header>
       <main className="min-w-0">
-        {loaderData.fieldOptions.length === 0 ? (
+        {loaderData.rotationExtended.length === 0 ? (
           <>
             <FarmTitle
               title={`Bouwplan van ${currentFarmName}`}
