@@ -10,13 +10,10 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale/nl"
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { toast as notify } from "sonner"
-import { modifySearchParams } from "@/app/lib/url-utils"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
-import { useFieldFilterStore } from "@/app/store/field-filter"
-import { useRotationSelectionStore } from "@/app/store/rotation-selection"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
@@ -37,15 +34,18 @@ import {
 } from "~/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { modifySearchParams } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
+import { useFieldFilterStore } from "~/store/field-filter"
+import { useRotationSelectionStore } from "~/store/rotation-selection"
 import type {
   columns as ColumnsT,
   CropRow,
-  FieldRow,
   MemoizedFieldRow,
   MemoizedRotationExtended,
   RotationExtended,
 } from "./columns"
+import { buildRowSelection, handleRowSelection } from "./row-selection"
 import { rotationTableFeatures } from "./table-features"
 
 interface DataTableProps<TData> {
@@ -149,45 +149,23 @@ export function DataTable<TData extends RotationExtended>({
     })
   }, [data])
 
-  function buildRowSelection(
-    mySelection: typeof selection,
-    myMemoizedData: typeof memoizedData,
-    myFieldFilter: typeof fieldFilter,
-  ) {
-    // TanStack Table v9 treats any key present in the selection map as selected
-    // (regardless of its value), so only truthy entries may be included here.
-    return Object.fromEntries(
-      [
-        // Crop selection state is derived from whether all its fields are selected
-        ...myMemoizedData.map((crop) => [
-          `crop_${crop.b_lu_catalogue}`,
-          crop.fields.length > 0 &&
-            crop.fields.every(
-              (field) =>
-                !fuzzySearchAndProductivityFilter(
-                  field,
-                  myFieldFilter.searchTerms,
-                  myFieldFilter.showProductiveOnly,
-                ) || mySelection[crop.b_lu_catalogue]?.[field.b_id],
-            ),
-        ]),
-        // Include each field's selection state too
-        ...myMemoizedData.flatMap((crop) =>
-          crop.fields.map((field) => [
-            `${crop.b_lu_catalogue}_${field.b_id}`,
-            !!mySelection[crop.b_lu_catalogue]?.[field.b_id],
-          ]),
-        ),
-      ].filter(([, value]) => value),
-    )
-  }
+  const globalFilterFn = useCallback(
+    (row: { original: MemoizedRotationExtended }) =>
+      fuzzySearchAndProductivityFilter(
+        row.original,
+        fieldFilter.searchTerms,
+        fieldFilter.showProductiveOnly,
+      ),
+    [fieldFilter.searchTerms, fieldFilter.showProductiveOnly],
+  )
 
   const rowSelection = useMemo(
-    () => buildRowSelection(selection, memoizedData, fieldFilter),
-    [selection, memoizedData, fieldFilter],
+    () => buildRowSelection(selection, memoizedData, globalFilterFn),
+    [selection, memoizedData, globalFilterFn],
   )
 
   const previousSelection = useRef<RowSelectionState>(rowSelection)
+  const lastSelectedRowIndex = useRef<string | null>(null)
   function handleSelection(nextRowSelection: RowSelectionState) {
     // Only touch rows currently in the filtered row model so the selection
     // state of filtered-out rows already in the store is preserved. Always
@@ -244,6 +222,10 @@ export function DataTable<TData extends RotationExtended>({
     // Filter only one of the columns to gain performance
     getColumnCanGlobalFilter: (column) => column.id === "name",
     filterFromLeafRows: true,
+    meta: {
+      lastSelectedRowIndex,
+      previousSelection,
+    },
     state: {
       columnVisibility,
       globalFilter: fieldFilter,
@@ -318,74 +300,6 @@ export function DataTable<TData extends RotationExtended>({
     return i + 1 === flatRows.length || flatRows[i + 1].original.type === "crop"
   }
 
-  const lastSelectedRowIndex = useRef<string | null>(null)
-  const handleRowClick = (
-    row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>,
-    event: React.MouseEvent<HTMLTableRowElement>,
-  ) => {
-    // Ignore clicks on interactive elements inside the row
-    const isInteractive = (target: EventTarget | null): boolean => {
-      if (!(target instanceof Element)) return false
-      return !!target.closest(
-        'a,button,input,label,select,textarea,[role="button"],[role="link"],[role="checkbox"],[data-prevent-row-click="true"]',
-      )
-    }
-
-    if (isInteractive(event.target)) {
-      // If a link was clicked, let the default navigation happen
-      return
-    }
-
-    clearActiveForm()
-
-    const mode = !row.getIsSelected()
-
-    const newSelection = Object.fromEntries(
-      Object.entries(selection).map(([k, v]) => [k, { ...v }]),
-    )
-
-    function setRowSelection(fieldRow: FieldRow, value: boolean) {
-      if (value || newSelection[fieldRow.b_lu_catalogue]) {
-        if (!newSelection[fieldRow.b_lu_catalogue]) {
-          newSelection[fieldRow.b_lu_catalogue] = {}
-        }
-        newSelection[fieldRow.b_lu_catalogue][fieldRow.b_id] = value
-      }
-    }
-
-    // If there was a last row selected and the shift key is pressed
-    if (event.shiftKey && lastSelectedRowIndex.current) {
-      const flatRows = table.getFilteredRowModel().flatRows
-      let firstRowIndex = flatRows.indexOf(table.getRow(lastSelectedRowIndex.current))
-      let lastRowIndex = flatRows.indexOf(row)
-      if (firstRowIndex > lastRowIndex) {
-        const tmpIndex = firstRowIndex
-        firstRowIndex = lastRowIndex
-        lastRowIndex = tmpIndex
-      }
-      for (let i = firstRowIndex; i <= lastRowIndex; i++) {
-        const flatRow = flatRows[i]
-        if (flatRow.original.type === "field") {
-          setRowSelection(flatRow.original, mode)
-        }
-      }
-    }
-
-    // Deal with the currently clicked row
-    if (row.original.type === "crop") {
-      for (const fieldRow of row.subRows) {
-        if (fieldRow.original.type === "field") {
-          setRowSelection(fieldRow.original, mode)
-        }
-      }
-    } else {
-      setRowSelection(row.original, mode)
-    }
-
-    setSelection(newSelection)
-    lastSelectedRowIndex.current = row.id
-    previousSelection.current = buildRowSelection(newSelection, memoizedData, fieldFilter)
-  }
   const rows = table.getRowModel().rows
   useEffect(() => {
     if (!rows.some((row) => row.id === lastSelectedRowIndex.current)) {
@@ -548,7 +462,31 @@ export function DataTable<TData extends RotationExtended>({
               rows.map((row, i, flatRows) => (
                 <TableRow
                   key={row.id}
-                  onClick={(event) => handleRowClick(row, event)}
+                  onClick={(event) => {
+                    // Ignore clicks on interactive elements inside the row
+                    const isInteractive = (target: EventTarget | null): boolean => {
+                      if (!(target instanceof Element)) return false
+                      return !!target.closest(
+                        'a,button,input,label,select,textarea,[role="button"],[role="link"],[role="checkbox"],[data-prevent-row-click="true"]',
+                      )
+                    }
+
+                    if (isInteractive(event.target)) {
+                      // If a link was clicked, let the default navigation happen
+                      return
+                    }
+
+                    clearActiveForm()
+
+                    handleRowSelection(row, table, {
+                      ...event,
+                      target: {
+                        ...event.currentTarget,
+                        checked: !row.getIsSelected(),
+                      } as EventTarget,
+                      currentTarget: { ...event.currentTarget, checked: row.getIsSelected() },
+                    })
+                  }}
                   className={cn(
                     "data-[state=selected]:bg-muted data-[state=indeterminate]:bg-muted/50",
                     row.getIsSelected()

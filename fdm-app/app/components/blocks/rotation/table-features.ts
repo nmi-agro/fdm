@@ -7,6 +7,7 @@ import {
   globalFilteringFeature,
   rowExpandingFeature,
   rowSelectionFeature,
+  RowSelectionState,
   rowSortingFeature,
   sortFn_basic,
   sortFn_datetime,
@@ -25,4 +26,8 @@ export const rotationTableFeatures = tableFeatures({
   rowSortingFeature: rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
   sortFns: { basic: sortFn_basic, text: sortFn_text, datetime: sortFn_datetime },
+  tableMeta: {} as {
+    lastSelectedRowIndex: { current: string | null }
+    previousSelection: { current: RowSelectionState | undefined }
+  },
 })

@@ -21,6 +21,7 @@ import { TableDateSelector } from "./date-selector"
 import { FertilizerDisplay } from "./fertilizer-display"
 import { HarvestDatesDisplay } from "./harvest-dates-display"
 import { NameCell } from "./name-cell"
+import { handleRowSelection } from "./row-selection"
 import { rotationTableFeatures } from "./table-features"
 import { TableVarietySelector } from "./variety-selector"
 
@@ -173,13 +174,19 @@ export const columns = columnHelper.columns([
         </div>
       )
     },
-    cell: ({ row }) => (
+    cell: ({ row, table }) => (
       <div className={cn(row.original.type === "field" ? "ps-4" : "pe-4")}>
         <Checkbox
           checked={row.getIsSelected() ? true : row.getIsSomeSelected() ? "indeterminate" : false}
           // Do not use row.getToggleSelectedHandler() here since it doesn't have the exact child-parent selection behavior we want.
           // It selects all children of the last crop row, while we want to only select until the last clicked field row.
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onClick={(event) =>
+            handleRowSelection(row, table, {
+              ...event,
+              target: { ...event.currentTarget, checked: !row.getIsSelected() } as EventTarget,
+              currentTarget: { ...event.currentTarget, checked: !row.getIsSelected() },
+            })
+          }
           aria-label="Selecteer deze rij"
         />
       </div>
