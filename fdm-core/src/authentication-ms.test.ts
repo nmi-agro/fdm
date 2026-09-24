@@ -377,6 +377,7 @@ describe("createMicrosoftOAuthConfig", () => {
       const result = (await cfg.mapProfileToUser?.({
         email: "john@example.com",
         name: "John Doe",
+        emailVerified: true,
       })) as Record<string, unknown>
       expect(result.email).toBe("john@example.com")
       expect(result.firstname).toBe("John")

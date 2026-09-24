@@ -1,0 +1,1 @@
+DROP INDEX "fdm-authn"."organization_slug_uidx";
