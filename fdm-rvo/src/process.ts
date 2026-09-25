@@ -80,9 +80,9 @@ export async function processRvoImport(
               item.rvoField.geometry,
               new Date(item.rvoField.properties.BeginDate),
               parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
-              item.rvoField.properties.EndDate
+              typeof item.rvoField.properties.EndDate === "string"
                 ? new Date(item.rvoField.properties.EndDate)
-                : undefined,
+                : item.rvoField.properties.EndDate,
               b_bufferstrip,
             )
 
@@ -126,9 +126,7 @@ export async function processRvoImport(
               item.rvoField.geometry,
               new Date(item.rvoField.properties.BeginDate),
               parseAcquiringMethod(item.rvoField.properties.UseTitleCode),
-              item.rvoField.properties.EndDate
-                ? new Date(item.rvoField.properties.EndDate)
-                : undefined,
+              item.rvoField.properties.EndDate ? new Date(item.rvoField.properties.EndDate) : null,
               b_bufferstrip,
             )
 

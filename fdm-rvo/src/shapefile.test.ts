@@ -236,7 +236,7 @@ describe("convertShapefileFeatureIntoRvoField", () => {
       properties: { ...MOCK_PROPERTIES, EINDDAT: 253402297199 },
     })
 
-    expect(parsed.properties.EndDate).toBeUndefined()
+    expect(parsed.properties.EndDate).toBeNull()
   })
 
   it("should throw an error if there are missing but required properties", () => {

@@ -12,7 +12,7 @@ import { bboxOverlap, calculateIoU } from "./utils"
 // A value of 0.99 means the intersection area must be at least 99% of the union area.
 const IOU_THRESHOLD = 0.99
 
-type FieldWithCultivations = Field & { cultivations?: Cultivation[] }
+export type FieldWithCultivations = Field & { cultivations?: Cultivation[] }
 type FieldWithGeometry = FieldWithCultivations & {
   b_geometry: NonNullable<Field["b_geometry"]>
 }

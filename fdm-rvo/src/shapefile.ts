@@ -154,7 +154,7 @@ export function convertShapefileFeatureIntoRvoField(
       CropTypeCode: GEWASCODE, // b_lu_catalogue[1]
       UseTitleCode: TITEL, // b_acquiring_method
       ThirdPartyCropFieldID: undefined, // not needed
-      EndDate: EINDDAT !== 253402297199 ? endDate : undefined, // b_end
+      EndDate: EINDDAT !== 253402297199 ? endDate : null, // b_end
       VarietyCode: undefined, // not needed
       CropProductionPurposeCode: undefined, // not needed
       FieldUseCode: undefined, // not needed
