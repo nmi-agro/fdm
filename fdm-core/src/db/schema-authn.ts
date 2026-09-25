@@ -1,14 +1,5 @@
 import { relations } from "drizzle-orm"
-import {
-  bigint,
-  boolean,
-  index,
-  integer,
-  pgSchema,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core"
+import { bigint, boolean, index, integer, pgSchema, text, timestamp } from "drizzle-orm/pg-core"
 
 export const fdmAuthNSchema = pgSchema("fdm-authn")
 export type fdmSchemaAuthNTypeSelect = typeof fdmAuthNSchema.table
@@ -125,18 +116,14 @@ export const apikey = fdmAuthNSchema.table(
   ],
 )
 
-export const organization = fdmAuthNSchema.table(
-  "organization",
-  {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull().unique(),
-    logo: text("logo"),
-    createdAt: timestamp("created_at").notNull(),
-    metadata: text("metadata"),
-  },
-  (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)],
-)
+export const organization = fdmAuthNSchema.table("organization", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  logo: text("logo"),
+  createdAt: timestamp("created_at").notNull(),
+  metadata: text("metadata"),
+})
 
 export const member = fdmAuthNSchema.table(
   "member",

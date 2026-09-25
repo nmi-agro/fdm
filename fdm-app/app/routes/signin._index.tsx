@@ -307,8 +307,8 @@ export default function SignIn() {
                             setLoadingProvider("microsoft")
                             capture("signin_oauth_clicked", { provider: "microsoft" })
                             try {
-                              await signIn.oauth2({
-                                providerId: "microsoft",
+                              await signIn.social({
+                                provider: "microsoft",
                                 callbackURL: redirectTo,
                                 newUserCallbackURL: socialProviderNewUserCallbackUrl,
                               })

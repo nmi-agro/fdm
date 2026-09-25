@@ -278,7 +278,7 @@ describe("createMicrosoftOAuthConfig", () => {
 
     it("extracts id, email, name, emailVerified from idToken", async () => {
       const idToken = await buildIdToken({
-        sub: "user-123",
+        oid: "user-123",
         email: "jane@example.com",
         name: "Jane Doe",
         email_verified: true,
@@ -298,7 +298,7 @@ describe("createMicrosoftOAuthConfig", () => {
 
     it("falls back to 'mail' claim when 'email' is absent", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         mail: "mail@example.com",
         name: "Mail User",
       })
@@ -313,7 +313,7 @@ describe("createMicrosoftOAuthConfig", () => {
 
     it("derives name from email when name claim is absent", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         email: "noname@example.com",
       })
       global.fetch = fetchReturning(false)
@@ -327,7 +327,7 @@ describe("createMicrosoftOAuthConfig", () => {
 
     it("attaches base64 profile photo when Graph returns ok", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         email: "photo@example.com",
         name: "Photo User",
       })
@@ -342,7 +342,7 @@ describe("createMicrosoftOAuthConfig", () => {
     })
 
     it("throws microsoft_no_email when no email/mail in idToken", async () => {
-      const idToken = await buildIdToken({ sub: "s", name: "No Email" })
+      const idToken = await buildIdToken({ oid: "s", name: "No Email" })
       global.fetch = fetchReturning(false)
       const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
       await expect(cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)).rejects.toThrow(
@@ -352,7 +352,7 @@ describe("createMicrosoftOAuthConfig", () => {
 
     it("does not throw when Graph photo fetch fails", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         email: "e@example.com",
         name: "Err User",
       })
@@ -377,6 +377,7 @@ describe("createMicrosoftOAuthConfig", () => {
       const result = (await cfg.mapProfileToUser?.({
         email: "john@example.com",
         name: "John Doe",
+        emailVerified: true,
       })) as Record<string, unknown>
       expect(result.email).toBe("john@example.com")
       expect(result.firstname).toBe("John")

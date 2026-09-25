@@ -291,7 +291,7 @@ export function createMicrosoftOAuthConfig(
           : !!(email && (claims.verified_primary_email as string[] | undefined)?.includes(email))
 
       return {
-        id: claims.sub as string,
+        id: claims.oid as string,
         name,
         email,
         image: picture,
