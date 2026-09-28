@@ -317,12 +317,12 @@ export const columns = columnHelper.columns([
       const varietyA = a.original.b_lu_variety.length > 0 ? a.original.b_lu_variety[0][0] : null
       const varietyB = b.original.b_lu_variety.length > 0 ? b.original.b_lu_variety[0][0] : null
 
-      return varietyA !== null && varietyB !== null
-        ? varietyA < varietyB
-          ? -1
-          : 1
-        : varietyA === varietyB
-          ? 0
+      return varietyA === varietyB
+        ? 0
+        : varietyA !== null && varietyB !== null
+          ? varietyA < varietyB
+            ? -1
+            : 1
           : varietyA === null
             ? 1
             : -1
@@ -361,7 +361,8 @@ export const columns = columnHelper.columns([
       return <FertilizerDisplay row={row} />
     },
   }),
-  columnHelper.display({
+  // An accessor fn is needed to make the column appear as sortable
+  columnHelper.accessor(() => null, {
     id: "b_name",
     enableSorting: true,
     sortFn: (rowA, rowB, _columnId) => {
