@@ -1,4 +1,4 @@
-import type { GenericOAuthConfig } from "better-auth/plugins"
+import { MicrosoftEntraIDProfile, MicrosoftOptions } from "better-auth"
 import { decodeJwt, importPKCS8, SignJWT } from "jose"
 import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
@@ -187,76 +187,25 @@ export interface MicrosoftOAuthHelpers {
  * @param config Certificate configuration (client ID, tenant, private key, cert/thumbprint).
  * @param helpers FDM user-mapping helpers — passed to avoid a circular dependency.
  */
-export function createMicrosoftOAuthConfig(
+export function createMicrosoftSocialConfig(
   config: MicrosoftCertConfig,
   helpers: MicrosoftOAuthHelpers,
-): GenericOAuthConfig {
+): MicrosoftOptions {
   const { clientId, tenantId = "common" } = config
   const authority = AUTHORITY
-  const tokenEndpoint = `${authority}/${tenantId}/oauth2/v2.0/token`
 
   return {
-    providerId: "microsoft",
-    authorizationUrl: `${authority}/${tenantId}/oauth2/v2.0/authorize`,
-    tokenUrl: tokenEndpoint,
-    clientId,
-    scopes: SCOPES,
-    pkce: true,
+    authority: authority,
+    clientId: clientId,
+    tenantId: tenantId,
+    scope: SCOPES,
     prompt: "select_account",
-
-    // ---------------------------------------------------------------
-    // Token exchange: code → tokens using a certificate client assertion
-    // ---------------------------------------------------------------
-    getToken: async ({ code, redirectURI, codeVerifier }) => {
-      const assertion = await createMicrosoftClientAssertion(config, authority)
-      const body = new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectURI,
-        client_id: clientId,
-        scope: SCOPES.join(" "),
-        client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-        client_assertion: assertion,
-      })
-      if (codeVerifier) body.set("code_verifier", codeVerifier)
-
-      const resp = await fetch(tokenEndpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          accept: "application/json",
-        },
-        body,
-      })
-      if (!resp.ok) {
-        const errorText = await resp.text()
-        throw new Error(`Microsoft token request failed (${resp.status}): ${errorText}`)
-      }
-      const data = (await resp.json()) as {
-        access_token: string
-        token_type: string
-        expires_in: number
-        refresh_token?: string
-        id_token?: string
-        scope?: string
-      }
-      return {
-        accessToken: data.access_token,
-        tokenType: data.token_type,
-        accessTokenExpiresAt: new Date(Date.now() + data.expires_in * 1000),
-        refreshToken: data.refresh_token,
-        idToken: data.id_token,
-        scopes: data.scope?.split(" "),
-        raw: data as unknown as Record<string, unknown>,
-      }
-    },
-
     // ---------------------------------------------------------------
     // User info: decode id_token + fetch profile photo from Graph
     // ---------------------------------------------------------------
     getUserInfo: async (tokens) => {
       if (!tokens.idToken) return null
-      const claims = decodeJwt(tokens.idToken)
+      const claims = decodeJwt(tokens.idToken) as MicrosoftEntraIDProfile
 
       // Profile photo from Graph (best-effort)
       let picture: string | undefined
@@ -291,11 +240,13 @@ export function createMicrosoftOAuthConfig(
           : !!(email && (claims.verified_primary_email as string[] | undefined)?.includes(email))
 
       return {
-        id: claims.oid as string,
-        name,
-        email,
-        image: picture,
-        emailVerified,
+        user: {
+          name,
+          email,
+          image: picture,
+          emailVerified,
+        },
+        data: claims,
       }
     },
 
