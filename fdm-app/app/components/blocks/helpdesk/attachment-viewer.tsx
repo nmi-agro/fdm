@@ -173,7 +173,9 @@ export function AttachmentViewerDialogContent({
                 setStatus({ status: "error" })
               }}
             />
-          ) : ALLOWED_IMAGE_MIME_TYPES.includes(status.mimeType) ? (
+          ) : ALLOWED_IMAGE_MIME_TYPES.includes(status.mimeType) &&
+            status.imageWidth > 0 &&
+            status.imageHeight > 0 ? (
             <ImageViewerApp
               src={status.url}
               imageWidth={status.imageWidth}
