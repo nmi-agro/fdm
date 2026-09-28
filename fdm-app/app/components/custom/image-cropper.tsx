@@ -328,13 +328,13 @@ export function ImageCropperApp({
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
     dragState.current.dragging = true
-
-    const pt = e.currentTarget.createSVGPoint()
-    pt.x = e.clientX
-    pt.y = e.clientY
-    pt.matrixTransform(e.currentTarget.getScreenCTM()?.inverse())
-    dragState.current.lastX = pt.x
-    dragState.current.lastY = pt.y
+    // svg might appear smaller than SVG_VIEWBOX_HEIGHT due to CSS
+    const screenPt = e.currentTarget.createSVGPoint()
+    screenPt.x = e.clientX
+    screenPt.y = e.clientY
+    const svgPt = screenPt.matrixTransform(e.currentTarget.getScreenCTM()?.inverse())
+    dragState.current.lastX = svgPt.x
+    dragState.current.lastY = svgPt.y
   }
 
   const handlePointerMove: PointerEventHandler<SVGSVGElement> = (e) => {
@@ -343,12 +343,12 @@ export function ImageCropperApp({
     }
     e.preventDefault()
     // svg might appear smaller than SVG_VIEWBOX_HEIGHT due to CSS
-    const pt = e.currentTarget.createSVGPoint()
-    pt.x = e.clientX
-    pt.y = e.clientY
-    pt.matrixTransform(e.currentTarget.getScreenCTM()?.inverse())
-    const currentX = pt.x
-    const currentY = pt.y
+    const screenPt = e.currentTarget.createSVGPoint()
+    screenPt.x = e.clientX
+    screenPt.y = e.clientY
+    const svgPt = screenPt.matrixTransform(e.currentTarget.getScreenCTM()?.inverse())
+    const currentX = svgPt.x
+    const currentY = svgPt.y
 
     // Movement amount is scaled by how large the image actually is vs how large it appears
     const speed = imageData.imageWidth / imageRectScaled.width
