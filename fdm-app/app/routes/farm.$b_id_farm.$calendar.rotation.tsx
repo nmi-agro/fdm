@@ -295,6 +295,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       b_id_farm: b_id_farm,
       calendar: calendar,
       farmOptions: farmOptions,
+      hasFields: fields.length > 0,
       rotationExtended: rotationExtended, // Return filtered data
       userName: session.userName,
       farmWritePermission: farmWritePermission,
@@ -353,11 +354,29 @@ export default function FarmRotationIndex() {
                 <h1 className="text-2xl font-semibold tracking-tight">
                   Het lijkt erop dat je nog geen bouwplan hebt :(
                 </h1>
+                {loaderData.hasFields && (
+                  <div className="text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4">
+                    Er moet ten minste één gewas aan ten minste één perceel worden toegevoegd.
+                  </div>
+                )}
               </div>
               <div className="relative flex flex-col items-center">
-                <Button asChild className={cn(!loaderData.farmWritePermission ? "invisible" : "")}>
-                  <NavLink to="../field/new">Maak een perceel</NavLink>
-                </Button>
+                {loaderData.hasFields ? (
+                  <Button asChild>
+                    <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field`}>
+                      Naar percelen
+                    </NavLink>
+                  </Button>
+                ) : (
+                  <Button
+                    asChild
+                    className={cn(!loaderData.farmWritePermission ? "invisible" : "")}
+                  >
+                    <NavLink to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/new`}>
+                      Maak een perceel
+                    </NavLink>
+                  </Button>
+                )}
               </div>
             </div>
           </>
