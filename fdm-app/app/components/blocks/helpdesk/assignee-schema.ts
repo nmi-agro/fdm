@@ -3,7 +3,17 @@ import z, { type ZodType } from "zod"
 function stringified<T>(validator: ZodType<T, any>) {
   return z
     .string()
-    .transform((x) => JSON.parse(x))
+    .transform((x, ctx) => {
+      try {
+        return JSON.parse(x)
+      } catch {
+        ctx.addIssue({
+          code: "custom",
+          message: "Invalid JSON",
+        })
+        return z.NEVER
+      }
+    })
     .pipe(validator)
 }
 
