@@ -1,6 +1,6 @@
 import { LucideFile } from "lucide-react"
 import { Button, Column, Heading, Link, Row, Section, Text } from "react-email"
-import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
+import { AttachmentGridItem, formatFileSize } from "~/components/blocks/helpdesk/attachment-grid"
 import BaseEmailLayout from "./layout"
 
 interface HelpdeskNewMessageEmailProps {
@@ -118,13 +118,16 @@ export function HelpdeskNewMessageEmail({
                 <Column width="24" height="24" align="center" valign="middle">
                   <LucideFile className="text-gray-500" />
                 </Column>
-                <Column valign="middle">
+                <Column valign="middle" width="99%">
                   <Link
                     className="m-0 text-[14px] leading-6 text-gray-500"
                     href={attachment.file_path}
                   >
                     {attachment.file_name}
                   </Link>
+                </Column>
+                <Column valign="middle" className="text-gray-400">
+                  {formatFileSize(attachment.file_size)}
                 </Column>
               </Row>
             ))}
