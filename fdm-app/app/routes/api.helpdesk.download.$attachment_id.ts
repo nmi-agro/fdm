@@ -16,7 +16,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       const url = await generateSignedReadUrl(attachment.file_path)
 
       const headers = new Headers({
-        "Cache-Control": "private, max-age=1800",
+        "Cache-Control": "private, no-store",
       })
 
       return redirect(url, { status: 302, headers })
