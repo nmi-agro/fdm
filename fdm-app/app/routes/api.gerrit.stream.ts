@@ -344,14 +344,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
             b_bufferstrip: fd.b_bufferstrip ?? false,
             applications: (proposedField?.applications || [])
               .map((app) => {
-                // eslint-disable-next-line no-control-regex -- Non-ASCII control character matching is explicitly required to safely sanitize and strip malformed catalogue IDs.
-                const sanitizedCatalogueId = app.p_id_catalogue.replace(/[^\x00-\x7F]/g, "")
+                if (
+                  allowedFertilizerCatalogueIds &&
+                  !allowedFertilizerCatalogueIds.includes(app.p_id_catalogue)
+                ) {
+                  console.warn(
+                    `[api.gerrit.stream] Dropping application with non-allowlisted fertilizer ${app.p_id_catalogue} on field ${fd.b_id}`,
+                  )
+                  return null
+                }
                 const fert = fertilizers.find(
-                  (f: Fertilizer) => f.p_id_catalogue === sanitizedCatalogueId,
+                  (f: Fertilizer) => f.p_id_catalogue === app.p_id_catalogue,
                 )
                 if (!fert) {
                   console.warn(
-                    `[api.gerrit.stream] Dropping application with unknown fertilizer ${sanitizedCatalogueId} on field ${fd.b_id}`,
+                    `[api.gerrit.stream] Dropping application with unknown fertilizer ${app.p_id_catalogue} on field ${fd.b_id}`,
                   )
                   return null
                 }
@@ -375,9 +382,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
                       }
                 return {
                   ...app,
-                  p_id_catalogue: sanitizedCatalogueId,
+                  p_id_catalogue: app.p_id_catalogue,
                   ...unitConvertedAmount,
-                  p_name_nl: fert.p_name_nl || sanitizedCatalogueId,
+                  p_name_nl: fert.p_name_nl || app.p_id_catalogue,
                   p_type: fert.p_type || "other",
                   p_type_rvo: fert.p_type_rvo || null,
                   p_app_method_name: methodMeta?.label ?? app.p_app_method,

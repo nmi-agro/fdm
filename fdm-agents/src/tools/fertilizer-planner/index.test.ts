@@ -144,6 +144,7 @@ function makeSimInput(
 function setupDefaultMocks() {
   ;(getField as any).mockResolvedValue({
     b_id: "field-1",
+    b_id_farm: "farm-1",
     b_area: 10,
     b_bufferstrip: false,
     b_centroid: [5.2, 52.1],
@@ -398,6 +399,23 @@ describe("tool execute functions", () => {
       expect(result.fields[0].b_lu_catalogue).toBeNull()
       expect(result.fields[0].b_lu_start).toBeNull()
     })
+
+    it("should resolve b_id_farm and calendar from configurable when omitted from input", async () => {
+      const result = await getTool("getFarmFields").invoke(
+        {},
+        makeConfigurable({ b_id_farm: "farm-1", calendar: "2025" }),
+      )
+      expect(result.fields).toHaveLength(1)
+      expect(getFields).toHaveBeenCalledWith(
+        expect.anything(),
+        "principal-1",
+        "farm-1",
+        expect.objectContaining({
+          start: new Date("2025-01-01"),
+          end: new Date("2025-12-31"),
+        }),
+      )
+    })
   })
 
   // ── getFarmNutrientAdvice ────────────────────────────────────────────────
@@ -587,9 +605,18 @@ describe("tool execute functions", () => {
     it("should return empty array when b_id_farm is missing", async () => {
       const result = await getTool("searchFertilizers").invoke(
         { b_id_farm: "" },
-        makeConfigurable(),
+        { configurable: { principalId: "principal-1" } },
       )
       expect(result.fertilizers).toEqual([])
+    })
+
+    it("should resolve b_id_farm from configurable when omitted from input", async () => {
+      const result = await getTool("searchFertilizers").invoke(
+        {},
+        makeConfigurable({ b_id_farm: "farm-1" }),
+      )
+      expect(getFertilizers).toHaveBeenCalledWith(expect.anything(), "principal-1", "farm-1")
+      expect(result.fertilizers).toHaveLength(1)
     })
 
     it("should filter by allowedFertilizerCatalogueIds from configurable", async () => {
@@ -769,6 +796,7 @@ describe("tool execute functions", () => {
     it("should flag buffer strip violation", async () => {
       ;(getField as any).mockResolvedValue({
         b_id: "field-1",
+        b_id_farm: "farm-1",
         b_area: 10,
         b_bufferstrip: true,
         b_centroid: [5.2, 52.1],
@@ -1222,6 +1250,56 @@ describe("tool execute functions", () => {
       )
       expect(getFertilizers).toHaveBeenCalledWith(expect.anything(), "principal-1", "farm-1")
       expect(result.isValid).toBe(true)
+    })
+
+    it("should resolve b_id_farm from configurable when omitted from input", async () => {
+      const input = makeSimInput()
+      delete (input as any).b_id_farm
+      const result = await getTool("simulateFarmPlan").invoke(
+        input,
+        makeConfigurable({ b_id_farm: "farm-1" }),
+      )
+      expect(getFertilizers).toHaveBeenCalledWith(expect.anything(), "principal-1", "farm-1")
+      expect(result.isValid).toBe(true)
+    })
+
+    it("should reject fields that do not belong to the resolved b_id_farm", async () => {
+      ;(getField as any).mockResolvedValue({
+        b_id: "field-foreign",
+        b_id_farm: "other-farm",
+        b_area: 12,
+        b_bufferstrip: false,
+        b_centroid: [5.2, 52.1],
+      })
+      const result = await getTool("simulateFarmPlan").invoke(
+        makeSimInput({
+          fields: [
+            {
+              b_id: "field-foreign",
+              b_lu_catalogue: "nl_123",
+              b_lu_name: "Wheat",
+              b_lu_start: "2025-03-01",
+              applications: [
+                {
+                  p_id_catalogue: "fert-1",
+                  p_app_amount: 1000,
+                  p_app_date: "2025-04-01",
+                  p_app_method: "broadcasting",
+                },
+              ],
+            },
+          ],
+        }),
+        makeConfigurable({ b_id_farm: "farm-1" }),
+      )
+      expect(result.isValid).toBe(false)
+      expect(result.fieldResults[0].isValid).toBe(false)
+      expect(result.fieldResults[0].error).toContain("does not belong to farm farm-1")
+      expect(
+        result.complianceIssues.some((issue: string) =>
+          issue.includes("horen niet bij bedrijf farm-1"),
+        ),
+      ).toBe(true)
     })
   })
 })

@@ -127,8 +127,8 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Haal de lijst op van alle percelen die bij het bedrijf horen voor het huidige jaar, inclusief de hoofdteeltgegevens en belangrijkste bodemeigenschappen (landbouwgrondsoort, textuur, grondwaterklasse, organische stof).",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf (b_id_farm)"),
-        calendar: z.string().describe('Het kalenderjaar (bijv. "2025")'),
+        b_id_farm: z.string().optional().describe("Het ID van het bedrijf (b_id_farm)"),
+        calendar: z.string().optional().describe('Het kalenderjaar (bijv. "2025")'),
       }),
     },
   )
@@ -352,6 +352,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       schema: z.object({
         b_id_farm: z
           .string()
+          .optional()
           .describe("Het ID van het bedrijf (b_id_farm) om de voorraad voor te doorzoeken"),
         query: z.string().optional().describe('Zoekterm (bijv. "varkensdrijfmest", "KAS")'),
         p_type: z
@@ -399,6 +400,17 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         args.fields.map(async (fieldData) => {
           try {
             const fieldInfo = await getField(fdm, principalId, fieldData.b_id)
+
+            if (fieldInfo.b_id_farm !== b_id_farm) {
+              return {
+                b_id: fieldData.b_id,
+                b_area: null,
+                error: `Field ${fieldData.b_id} does not belong to farm ${b_id_farm}.`,
+                isValid: false,
+                isForeignField: true,
+                fieldMetrics: null,
+              }
+            }
 
             if (fieldInfo.b_bufferstrip && fieldData.applications.length > 0) {
               return {
@@ -721,6 +733,15 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
         )
       }
 
+      const foreignFields = fieldResults
+        .filter((r: any) => r.isForeignField === true)
+        .map((r: any) => r.b_id)
+      if (foreignFields.length > 0) {
+        complianceIssues.push(
+          `Percelen [${foreignFields.join(", ")}] horen niet bij bedrijf ${b_id_farm}.`,
+        )
+      }
+
       if (farmFillingsKg.manure > farmNormsKg.manure) {
         const excess = Math.round(farmFillingsKg.manure - farmNormsKg.manure)
         complianceIssues.push(
@@ -997,7 +1018,7 @@ export function createFertilizerPlannerTools(fdm: FdmType): StructuredToolInterf
       description:
         "Simuleert een voorgesteld bemestingsplan om de conformiteit met alle 3 gebruiksruimtes, de organische stofbalans en de stikstofbalans te controleren.",
       schema: z.object({
-        b_id_farm: z.string().describe("Het ID van het bedrijf (b_id_farm)"),
+        b_id_farm: z.string().optional().describe("Het ID van het bedrijf (b_id_farm)"),
         strategies: z
           .object({
             isOrganic: z.boolean().optional(),
