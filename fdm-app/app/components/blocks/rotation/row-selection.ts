@@ -73,18 +73,20 @@ export function handleRowSelection(
   // If there was a last row selected and the shift key is pressed
   const lastSelectedRowIndex = table.options.meta?.lastSelectedRowIndex.current
   if (event.shiftKey && lastSelectedRowIndex) {
-    const flatRows = table.getFilteredRowModel().flatRows
-    let firstRowIndex = flatRows.indexOf(table.getRow(lastSelectedRowIndex))
-    let lastRowIndex = flatRows.indexOf(row)
-    if (firstRowIndex > lastRowIndex) {
-      const tmpIndex = firstRowIndex
-      firstRowIndex = lastRowIndex
-      lastRowIndex = tmpIndex
-    }
-    for (let i = firstRowIndex; i <= lastRowIndex; i++) {
-      const flatRow = flatRows[i]
-      if (flatRow.original.type === "field") {
-        setRowSelection(flatRow.original, mode)
+    const flatRows = table.getSortedRowModel().flatRows
+    let firstRowIndex = flatRows.findIndex((r) => r.id === lastSelectedRowIndex)
+    let lastRowIndex = flatRows.findIndex((r) => r.id === row.id)
+    if (firstRowIndex !== -1 && lastRowIndex !== -1) {
+      if (firstRowIndex > lastRowIndex) {
+        const tmpIndex = firstRowIndex
+        firstRowIndex = lastRowIndex
+        lastRowIndex = tmpIndex
+      }
+      for (let i = firstRowIndex; i <= lastRowIndex; i++) {
+        const flatRow = flatRows[i]
+        if (flatRow.original.type === "field") {
+          setRowSelection(flatRow.original, mode)
+        }
       }
     }
   }
