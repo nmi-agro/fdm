@@ -324,25 +324,31 @@ export function ImageCropperApp({
     [imageData, aspectRatio, onFramePositionChange, onFrameRectangleChange],
   )
 
-  const handlePointerDown: PointerEventHandler = (e) => {
+  const handlePointerDown: PointerEventHandler<SVGSVGElement> = (e) => {
     e.preventDefault()
     e.currentTarget.setPointerCapture(e.pointerId)
-    const bcr = e.currentTarget.getBoundingClientRect()
     dragState.current.dragging = true
-    dragState.current.lastX = ((e.clientX - bcr.left) / bcr.height) * SVG_VIEWBOX_HEIGHT
-    dragState.current.lastY = ((e.clientY - bcr.top) / bcr.height) * SVG_VIEWBOX_HEIGHT
+
+    const pt = e.currentTarget.createSVGPoint()
+    pt.x = e.clientX
+    pt.y = e.clientY
+    pt.matrixTransform(e.currentTarget.getScreenCTM()?.inverse())
+    dragState.current.lastX = pt.x
+    dragState.current.lastY = pt.y
   }
 
-  const handlePointerMove: PointerEventHandler = (e) => {
+  const handlePointerMove: PointerEventHandler<SVGSVGElement> = (e) => {
     if (!dragState.current.dragging) {
       return
     }
     e.preventDefault()
-    const bcr = e.currentTarget.getBoundingClientRect()
-
     // svg might appear smaller than SVG_VIEWBOX_HEIGHT due to CSS
-    const currentX = ((e.clientX - bcr.left) / bcr.width) * appAspectRatio * SVG_VIEWBOX_HEIGHT
-    const currentY = ((e.clientY - bcr.top) / bcr.height) * SVG_VIEWBOX_HEIGHT
+    const pt = e.currentTarget.createSVGPoint()
+    pt.x = e.clientX
+    pt.y = e.clientY
+    pt.matrixTransform(e.currentTarget.getScreenCTM()?.inverse())
+    const currentX = pt.x
+    const currentY = pt.y
 
     // Movement amount is scaled by how large the image actually is vs how large it appears
     const speed = imageData.imageWidth / imageRectScaled.width
@@ -447,20 +453,22 @@ export function ImageCropperApp({
         )}
         <image href={imageData.src} {...imageRectScaled} />
         {frameShape !== "hidden" && (
-          // Transparent overlay that surrounds the crop frame.
-          <path
-            d={`${transparentOverlayExtentSvgCommands} ${frameSvgCommands}`}
-            {...transparentOverlay}
-            fillRule="evenodd"
-          />
+          <>
+            // Transparent overlay that surrounds the crop frame.
+            <path
+              d={`${transparentOverlayExtentSvgCommands} ${frameSvgCommands}`}
+              {...transparentOverlay}
+              fillRule="evenodd"
+            />
+            {/* Outline of the cropped region. */}
+            <path
+              d={frameSvgCommands}
+              fill="none"
+              stroke="white"
+              strokeWidth={SVG_VIEWBOX_HEIGHT * 0.001}
+            />
+          </>
         )}
-        {/* Outline of the cropped region. */}
-        <path
-          d={frameSvgCommands}
-          fill="none"
-          stroke="white"
-          strokeWidth={SVG_VIEWBOX_HEIGHT * 0.001}
-        />
       </svg>
       <Slider
         value={scaleSliderValue}
