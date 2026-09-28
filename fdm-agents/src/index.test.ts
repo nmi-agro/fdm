@@ -107,7 +107,7 @@ describe("fdm-agents index", () => {
       expect(prompt).toContain("--- END ADDITIONAL USER CONTEXT ---")
     })
 
-    it("should use the farm name instead of the farm id when available", () => {
+    it("should include the farm name and the farm id when available", () => {
       const farmData = { b_id_farm: "farm-123", b_name_farm: "De Groene Weide" }
       const strategies = {
         isOrganic: false,
@@ -122,7 +122,7 @@ describe("fdm-agents index", () => {
       const prompt = buildFertilizerPlanPrompt(farmData, strategies, "2025")
 
       expect(prompt).toContain('bedrijf "De Groene Weide"')
-      expect(prompt).not.toContain("farm-123")
+      expect(prompt).toContain('(b_id_farm: "farm-123")')
     })
 
     it("should omit the Renure strategy line entirely for years before 2026", () => {

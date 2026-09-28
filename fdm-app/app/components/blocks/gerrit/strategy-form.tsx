@@ -122,7 +122,7 @@ export function StrategyForm({
           </CardTitle>
         </div>
         <CardDescription>
-          Stel de kaders in waarbinnen Gerrit het optimale bemestingsplan berekent.
+          Stel de kaders in waarbinnen AI-assistent Gerrit het optimale bemestingsplan berekent.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -352,7 +352,7 @@ export function StrategyForm({
               {isGenerating ? (
                 <>
                   <Spinner className="mr-3 h-5 w-5" />
-                  Gerrit berekent het plan...
+                  Gerrit (AI) berekent het plan...
                 </>
               ) : isRateLimited ? (
                 "Dagelijks limiet bereikt"
