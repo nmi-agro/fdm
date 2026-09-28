@@ -25,6 +25,7 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { ScrollArea } from "~/components/ui/scroll-area"
 import { Spinner } from "~/components/ui/spinner"
+import { fertAppTableFeatures } from "./table-features"
 
 export type ApplicationExtended = FertilizerApplication & {
   b_id: string
@@ -81,7 +82,7 @@ export function createDateKey(date: Date) {
   return format(endOfDay(date), "yyyy-MM-dd")
 }
 
-export const columns: ColumnDef<FertAppRecordItem>[] = [
+export const columns: ColumnDef<typeof fertAppTableFeatures, FertAppRecordItem>[] = [
   {
     id: "p_app_date",
     header: "Datum",
@@ -167,7 +168,10 @@ export const columns: ColumnDef<FertAppRecordItem>[] = [
  * @param param0 all of the React Table cell context
  * @returns a React node that can be set as the cell contents
  */
-function ModifyCell({ row, table }: CellContext<FertAppRecordItem, unknown>) {
+function ModifyCell({
+  row,
+  table,
+}: CellContext<typeof fertAppTableFeatures, FertAppRecordItem, unknown>) {
   const params = useParams()
   const fetcher = useFetcher()
   const returnUrl = (table.options.meta as unknown as { returnUrl: string }).returnUrl
