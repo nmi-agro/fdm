@@ -82,9 +82,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }
     } catch {}
   }
-  // Empty array = treat as "use all"
-  const allowedFertilizerCatalogueIds =
-    selectedFertilizerIds && selectedFertilizerIds.length > 0 ? selectedFertilizerIds : undefined
+  const allowedFertilizerCatalogueIds = selectedFertilizerIds
   let clarifications: Array<{
     question: string
     selectedOptionLabels: string[]
