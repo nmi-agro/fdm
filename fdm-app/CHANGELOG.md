@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.36.3
+
+### Patch Changes
+
+- [#788](https://github.com/nmi-agro/fdm/pull/788) [`ef2afe0`](https://github.com/nmi-agro/fdm/commit/ef2afe0806d8bb0f69000bb0854852f7fbf5e9b1) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - When no farm is selected (so the fieldsSaved layer is missing) gewaspercelen atlas no longer throws errors and the field tooltip/popup works.
+
 ## 0.36.2
 
 ### Patch Changes

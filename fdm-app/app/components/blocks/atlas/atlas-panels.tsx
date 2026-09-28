@@ -54,28 +54,11 @@ export function FieldTooltip({
   clickRedirectsToDetailsPage?: boolean
   touchDisplaysPopupInstead?: boolean
 }) {
-  const { current: map } = useMap()
-  const [zoom, setZoom] = useState<number | null>(map ? map.getZoom() : null)
-
-  useEffect(() => {
-    if (!map) return
-    const onZoom = () => setZoom(map.getZoom())
-    onZoom()
-    map.on("zoom", onZoom)
-    return () => {
-      map.off("zoom", onZoom)
-    }
-  }, [map])
-
   const layers = useMemo(() => (Array.isArray(layer) ? layer : [layer]), [layer])
   const layersExclude = useMemo(
     () => (!layerExclude ? [] : Array.isArray(layerExclude) ? layerExclude : [layerExclude]),
     [layerExclude],
   )
-
-  if (!map || zoom === null || zoom < zoomLevelFields) {
-    return null
-  }
 
   return (
     <AtlasTooltip
@@ -83,6 +66,7 @@ export function FieldTooltip({
       layersExclude={layersExclude}
       onFeatureClicked={onFeatureClicked}
       touchDisplaysPopupInstead={touchDisplaysPopupInstead}
+      zoomLevelFields={zoomLevelFields}
       render={(props) => {
         const { features, mode } = props
 
