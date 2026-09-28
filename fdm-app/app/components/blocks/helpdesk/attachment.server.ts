@@ -6,8 +6,19 @@ import { AttachmentGridItem } from "./attachment-grid"
 
 type AttachmentFile = { name: string; buffer: Buffer; mime: string }
 
-export function buildAttachmentObjectKey(attachment_id: string, _mime: string) {
-  return `helpdesk_attachment/${attachment_id}`
+export function buildAttachmentObjectKey(
+  attachment_id: string,
+  message_id: string,
+  file_name: string,
+) {
+  // Also allow . in file names, unlike what `sanitizeForFilename` does.
+  const sanitizedFileName = file_name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9.]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+
+  return `helpdesk/${attachment_id}/${message_id}/${sanitizedFileName}`
 }
 
 /**
@@ -38,11 +49,11 @@ export async function attachFiles(
         name,
         buffer.byteLength,
         mime,
-        buildAttachmentObjectKey("{attachment_id}", mime),
+        buildAttachmentObjectKey("{attachment_id}", message_id, name),
         principal_id,
       )
 
-      const objectKey = buildAttachmentObjectKey(attachment_id, mime)
+      const objectKey = buildAttachmentObjectKey(attachment_id, message_id, name)
       const uploadPromise = uploadObject(objectKey, buffer, mime).then(
         () => {
           return {
