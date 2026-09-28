@@ -715,7 +715,7 @@ export default function GerritApp() {
                     onClick={() => setShowInfoDialog(true)}
                     className="shrink-0 text-[11px] font-medium text-amber-700 hover:underline"
                   >
-                    AI-transparantie
+                    Uitleg
                   </button>
                 </div>
                 <p className="text-xs leading-relaxed text-amber-700">
@@ -819,7 +819,7 @@ export default function GerritApp() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
               <Bot className="text-primary h-5 w-5" />
-              Hoe werkt Gerrit? (AI-transparantie)
+              Hoe werkt Gerrit?
             </DialogTitle>
             <DialogDescription>
               Gerrit is een AI-beslissingsondersteunend systeem voor bemestingsplanning. Elk
@@ -864,7 +864,7 @@ export default function GerritApp() {
                     <p className="font-semibold">Ontwerpen en controleren</p>
                     <p className="text-muted-foreground text-xs leading-relaxed">
                       Genereren van een plan via LLM-redeneerstappen en deterministische berekening
-                      van wettelijke normen en NPK-adviezen.
+                      van gebruiksruimte en bemestingsadviezen.
                     </p>
                   </div>
                 </li>
@@ -901,7 +901,7 @@ export default function GerritApp() {
                   <span>
                     <strong className="text-foreground">Reasoner-Verifier architectuur:</strong>{" "}
                     Generatieve AI redeneert over de verdeling en strategie, terwijl harde
-                    rekenregels en wetgeving (RVO-normen en NMI-bemestingsadviezen) deterministisch
+                    rekenregels en wetgeving (gebruiksruimte en bemestingsadviezen) deterministisch
                     worden berekend.
                   </span>
                 </li>
