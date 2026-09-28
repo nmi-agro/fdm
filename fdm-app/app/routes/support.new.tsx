@@ -8,7 +8,7 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { useLoaderData } from "react-router"
-import { dataWithError, dataWithWarning, redirectWithSuccess } from "remix-toast"
+import { dataWithError, redirectWithSuccess, redirectWithWarning } from "remix-toast"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
@@ -205,14 +205,9 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (attachedFiles.length < filesToAttach.length) {
-      return dataWithWarning(
-        {
-          resetMessageForm: true,
-        },
-        {
-          message:
-            "We hebben uw vraag ontvangen. Niet alle bijlagen konden worden geüpload. Een collega neemt binnenkort contact met u op.",
-        },
+      return redirectWithWarning(
+        `/support/ticket/${ticket_id}`,
+        "We hebben uw vraag ontvangen. Niet alle bijlagen konden worden geüpload. Een collega neemt binnenkort contact met u op.",
       )
     }
 
