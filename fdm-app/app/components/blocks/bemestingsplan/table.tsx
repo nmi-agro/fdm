@@ -1,10 +1,4 @@
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table"
+import { ColumnDef, FlexRender, useTable } from "@tanstack/react-table"
 import { useCallback, useState } from "react"
 import { useFetcher } from "react-router"
 import {
@@ -15,18 +9,19 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
-import type { BemestingsplanRowData, BemestingsplanTableMeta } from "./columns"
+import type { BemestingsplanRowData } from "./columns"
 import { NewBemestingsplanForm } from "./new-form"
+import { bemestingsplanTableFeatures } from "./table-features"
 
-export function DataTable<T extends BemestingsplanRowData>({
+export function DataTable<TData extends BemestingsplanRowData>({
   data,
   columns,
   b_id_farm,
   b_name_farm,
   canModify,
 }: {
-  data: T[]
-  columns: ColumnDef<T>[]
+  data: TData[]
+  columns: ColumnDef<typeof bemestingsplanTableFeatures, TData>[]
   b_id_farm: string
   b_name_farm: string | null
   canModify: boolean
@@ -60,18 +55,17 @@ export function DataTable<T extends BemestingsplanRowData>({
 
   const isDeleting = useCallback((p_id_plan: string) => deletedPlans.has(p_id_plan), [deletedPlans])
 
-  const table = useReactTable<T>({
+  const table = useTable({
     data: data,
     columns: columns,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    features: bemestingsplanTableFeatures,
     meta: {
       b_id_farm: b_id_farm,
-      b_name_farm: b_name_farm,
+      b_name_farm: b_name_farm ?? "onbekend bedrijf",
       onDelete: handleDelete,
       deleting: isDeleting,
       canModify: canModify,
-    } as BemestingsplanTableMeta as any,
+    },
   })
 
   return (
@@ -94,9 +88,7 @@ export function DataTable<T extends BemestingsplanRowData>({
                 {headerGroup.headers.map((header) => {
                   return (
                     <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </TableHead>
                   )
                 })}
@@ -107,9 +99,9 @@ export function DataTable<T extends BemestingsplanRowData>({
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
+                  {row.getAllCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <FlexRender cell={cell} />
                     </TableCell>
                   ))}
                 </TableRow>

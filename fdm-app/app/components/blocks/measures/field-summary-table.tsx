@@ -7,14 +7,11 @@
  *  - Sortable columns (field name, cultivation, area, measure count)
  */
 import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
+  FlexRender,
+  Row,
   type RowSelectionState,
   type SortingState,
-  useReactTable,
+  useTable,
 } from "@tanstack/react-table"
 import fuzzysort from "fuzzysort"
 import { Plus } from "lucide-react"
@@ -33,10 +30,11 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { cn } from "~/lib/utils"
 import { useFieldFilterStore } from "~/store/field-filter"
-import type { FieldSummaryRow } from "./field-summary-columns"
+import type { getFieldSummaryColumns, FieldSummaryRow } from "./field-summary-columns"
+import { fieldSummaryTableFeatures } from "./field-summary-table-features"
 
 interface FieldSummaryTableProps {
-  columns: ColumnDef<FieldSummaryRow>[]
+  columns: ReturnType<typeof getFieldSummaryColumns>
   data: FieldSummaryRow[]
   onAddMeasure?: (selectedFieldIds: string[]) => void
   canModify?: boolean
@@ -81,8 +79,9 @@ export function FieldSummaryTable({
     return rows
   }, [data, searchTerms])
 
-  const table = useReactTable({
+  const table = useTable({
     data: filteredData,
+    features: fieldSummaryTableFeatures,
     columns,
     getRowId: (row) => row.b_id,
     state: {
@@ -93,10 +92,29 @@ export function FieldSummaryTable({
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     enableRowSelection: canModify,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
   })
+
+  const handleRowClick = (
+    row: Row<typeof fieldSummaryTableFeatures, FieldSummaryRow>,
+    event: React.MouseEvent<HTMLTableRowElement>,
+  ) => {
+    // Ignore clicks on interactive elements inside the row
+    const isInteractive = (target: EventTarget | null): boolean => {
+      if (!(target instanceof Element)) return false
+      return !!target.closest(
+        'a,button,input,label,select,textarea,[role="button"],[role="link"],[role="checkbox"],[data-prevent-row-click="true"]',
+      )
+    }
+
+    if (isInteractive(event.target)) {
+      // If a link was clicked, let the default navigation happen
+      return
+    }
+
+    document.getSelection()?.removeAllRanges()
+
+    row.getToggleSelectedHandler()({ ...event, target: { checked: !row.getIsSelected() } })
+  }
 
   const selectedIds = Object.keys(rowSelection).filter((k) => rowSelection[k])
   const hasSelection = selectedIds.length > 0
@@ -147,9 +165,7 @@ export function FieldSummaryTable({
                       "bg-background sticky left-0 w-[40px]": header.column.id === "select",
                     })}
                   >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                    <FlexRender header={header} />
                   </TableHead>
                 ))}
               </TableRow>
@@ -158,7 +174,11 @@ export function FieldSummaryTable({
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  onClick={(event) => handleRowClick(row, event)}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
@@ -166,7 +186,7 @@ export function FieldSummaryTable({
                         "bg-background sticky left-0": cell.column.id === "select",
                       })}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <FlexRender cell={cell} />
                     </TableCell>
                   ))}
                 </TableRow>
