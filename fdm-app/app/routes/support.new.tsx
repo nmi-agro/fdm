@@ -84,6 +84,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     const uploadHandler = async (fileUpload: FileUpload) => {
       if (fileUpload.fieldName !== "attachments") return undefined
+      if (fileUpload.size === 0) return undefined
 
       const rateLimitResult = await checkRateLimit(
         `helpdesk-attachment-upload:${session.principal_id}`,
