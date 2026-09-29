@@ -8,10 +8,9 @@ export function useCurrentHelpdeskPage() {
   if (matches.some((match) => match.id === "routes/support.settings.profile")) return "profile"
   if (matches.some((match) => match.id === "routes/support.settings.agents")) return "agents"
   if (matches.some((match) => match.id === "routes/support.settings.absences")) return "absences"
-
-  if (matches.some((match) => match.id === "routes/support.settings.saved-replies"))
-    return "saved_replies"
   if (matches.some((match) => match.id === "routes/support.settings.tags")) return "tags"
+  if (matches.some((match) => match.id.startsWith("routes/support.settings.saved-replies")))
+    return "saved_replies"
   if (matches.some((match) => match.id === "routes/support.settings.blocked-emails"))
     return "blocked_emails"
 

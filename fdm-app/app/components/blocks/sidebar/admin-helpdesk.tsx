@@ -7,6 +7,7 @@ import {
   CalendarOff,
   Tag,
   Users,
+  Bookmark,
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router"
 import { modifySearchParams } from "@/app/lib/url-utils"
@@ -102,17 +103,6 @@ export function SidebarAdminHelpdesk({
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {/* <SidebarMenuItem>
-                        <SidebarMenuButton
-                            asChild
-                            isActive={currentHelpdeskPage === "saved_replies"}
-                        >
-                            <NavLink to={"/support/settings/saved-replies"}>
-                                <Bookmark />
-                                <span>Opgeslagen reacties</span>
-                            </NavLink>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem> */}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -148,6 +138,14 @@ export function SidebarAdminHelpdesk({
                 <NavLink to="/support/settings/tags">
                   <Tag />
                   <span>Tags</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={currentHelpdeskPage === "saved_replies"}>
+                <NavLink to={"/support/settings/saved-replies"}>
+                  <Bookmark />
+                  <span>Opgeslagen reacties</span>
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

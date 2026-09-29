@@ -5,6 +5,8 @@ import type {
   TagSummary,
   Ticket as TicketT,
   AgentAvailabilityStatus,
+  SavedReplySummary,
+  SavedReplyContext,
 } from "@nmi-agro/fdm-helpdesk"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
@@ -34,6 +36,8 @@ export function Ticket({
   todayDate,
   contextFarmName,
   principalLookup,
+  savedReplies,
+  savedReplyContext,
 }: {
   ticket: TicketT
   messages: MessageT[]
@@ -46,6 +50,8 @@ export function Ticket({
   todayDate: Date
   contextFarmName?: string | null
   principalLookup: Map<string, HelpdeskUser>
+  savedReplies?: SavedReplySummary[]
+  savedReplyContext?: SavedReplyContext
 }) {
   const navigation = useNavigation()
   const submit = useSubmit()
@@ -181,6 +187,9 @@ export function Ticket({
             isInternal={msg.is_internal}
             date={msg.created}
             todayDate={todayDate}
+            canSaveReply={isAgent}
+            replyBody={msg.body}
+            replyContext={savedReplyContext}
           >
             <p
               className="text-sm whitespace-pre-wrap"
@@ -194,6 +203,8 @@ export function Ticket({
             intent="add_message"
             principal={principalLookup.get(principal_id) ?? null}
             showAgentControls={isAgent}
+            savedReplies={savedReplies}
+            savedReplyContext={savedReplyContext}
             defaultValues={{
               sender_role: isAgent ? "agent" : "customer",
               is_internal: false,

@@ -1,4 +1,4 @@
-import type { Message as MessageT } from "@nmi-agro/fdm-helpdesk"
+import type { Message as MessageT, SavedReplyContext } from "@nmi-agro/fdm-helpdesk"
 import type { ReactNode } from "react"
 import { formatDate, formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
@@ -6,6 +6,7 @@ import { cn } from "@/app/lib/utils"
 import { Card } from "~/components/ui/card"
 import type { HelpdeskUser } from "./types"
 import { HelpdeskUserAvatar } from "./helpdesk-user"
+import { CreateSavedReplyDialog } from "./saved-reply-dialog"
 
 export type MessageExtended = MessageT & { principal: HelpdeskUser | null }
 export function Message({
@@ -15,6 +16,9 @@ export function Message({
   todayDate,
   senderType,
   isInternal = false,
+  canSaveReply = false,
+  replyContext,
+  replyBody,
   className,
   children,
 }: {
@@ -24,6 +28,9 @@ export function Message({
   todayDate?: Date
   senderType?: string
   isInternal?: boolean
+  canSaveReply?: boolean
+  replyContext?: SavedReplyContext
+  replyBody?: string
   className?: string
   children: ReactNode
 }) {
@@ -35,7 +42,7 @@ export function Message({
   return (
     <Card
       className={cn(
-        "px-2 py-4 md:ms-10",
+        "group/message px-2 py-4 md:ms-10",
         isInternal && "border-amber-100 bg-amber-100/35",
         className,
       )}
@@ -53,6 +60,13 @@ export function Message({
           </span>
         )}
         <div className="ms-auto">
+          {canSaveReply && replyBody && (
+            <CreateSavedReplyDialog
+              body={replyBody}
+              context={replyContext}
+              isInternal={isInternal}
+            />
+          )}
           {formattedDateTooltip && (
             <span
               className="text-sm"

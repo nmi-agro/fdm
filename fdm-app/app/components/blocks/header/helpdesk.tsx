@@ -53,8 +53,8 @@ export function HeaderHelpdesk() {
         <>
           <BreadcrumbSeparator />
           <BreadcrumbItem>Instellingen</BreadcrumbItem>
-          {/* <BreadcrumbSeparator />
-                    <BreadcrumbItem>Opgeslagen reacties</BreadcrumbItem> */}
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>Opgeslagen reacties</BreadcrumbItem>
         </>
       )}
       {currentHelpdeskPage === "agents" && (

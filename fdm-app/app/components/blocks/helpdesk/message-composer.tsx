@@ -1,6 +1,7 @@
+import type { SavedReplyContext, SavedReplySummary } from "@nmi-agro/fdm-helpdesk"
 import type z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -37,16 +38,24 @@ export function MessageComposer({
   intent,
   principal,
   showAgentControls,
+  savedReplies,
+  savedReplyContext,
+  initialRows = 10,
   defaultValues = { ...formDefaultValues },
   className,
 }: {
   intent: string
   principal: HelpdeskUser | null
   showAgentControls?: boolean
+  savedReplies?: SavedReplySummary[]
+  savedReplyContext?: SavedReplyContext
+  initialRows?: number
   defaultValues?: z.infer<typeof MessageSchema>
   className?: string
 }) {
   const fetcher = useFetcher()
+  const savedReplyFetcher = useFetcher()
+  const hasSubmittedMessageRef = useRef(false)
 
   const form = useRemixForm({
     mode: "onTouched",
@@ -58,11 +67,46 @@ export function MessageComposer({
       ...defaultValues,
     },
   })
+
+  useEffect(() => {
+    if (fetcher.state === "submitting") {
+      hasSubmittedMessageRef.current = true
+      return
+    }
+
+    if (fetcher.state !== "idle" || !hasSubmittedMessageRef.current) {
+      return
+    }
+
+    hasSubmittedMessageRef.current = false
+
+    if (fetcher.data?.ok === true) {
+      form.reset({
+        ...formDefaultValues,
+        intent: intent,
+        ...defaultValues,
+      })
+    }
+  }, [fetcher.state, fetcher.data, form, intent, defaultValues])
+
   const sender_role = useWatch({ name: "sender_role", control: form.control })
   const is_internal = useWatch({ name: "is_internal", control: form.control })
   const messageInputId = useId()
 
+  useEffect(() => {
+    if (typeof savedReplyFetcher.data?.body === "string") {
+      const current = form.getValues("body")
+      if (current) {
+        form.setValue("body", `${current}\n\n${savedReplyFetcher.data.body}`)
+      } else {
+        form.setValue("body", savedReplyFetcher.data.body)
+      }
+    }
+  }, [form.getValues, form.setValue, savedReplyFetcher.data])
+
   const isSubmitting = fetcher.state !== "idle"
+  const isFetchingSavedReply = savedReplyFetcher.state !== "idle"
+  const isDisabled = isSubmitting || isFetchingSavedReply
 
   return (
     <RemixFormProvider {...form}>
@@ -73,7 +117,7 @@ export function MessageComposer({
           isInternal={is_internal}
           title={
             <fieldset
-              disabled={isSubmitting}
+              disabled={isDisabled}
               className="flex w-full flex-row items-center gap-2 md:gap-4"
             >
               <span className="min-w-0 flex-1">
@@ -103,7 +147,7 @@ export function MessageComposer({
                             checked={field.value as boolean}
                             onCheckedChange={field.onChange}
                             className="mt-1"
-                            disabled={isSubmitting}
+                            disabled={isDisabled}
                           />
                         </div>
                         <FieldError errors={[fieldState.error]} />
@@ -140,7 +184,37 @@ export function MessageComposer({
             </fieldset>
           }
         >
-          <fieldset disabled={isSubmitting}>
+          <fieldset disabled={isDisabled} className="space-y-4">
+            {savedReplies && savedReplies.length > 0 ? (
+              <Field orientation="horizontal">
+                <FieldLabel>Gebruik een sjabloon: </FieldLabel>
+                <Select
+                  onValueChange={(reply_id) => {
+                    const formData = new FormData()
+                    formData.append("intent", "apply_saved_reply")
+                    formData.append("reply_id", reply_id)
+                    for (const [k, v] of Object.entries(savedReplyContext ?? {})) {
+                      if (typeof v === "string") formData.append(k, v)
+                    }
+                    savedReplyFetcher.submit(formData, {
+                      method: "post",
+                    })
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                    <Spinner className={cn(!isFetchingSavedReply && "invisible")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedReplies.map((reply) => (
+                      <SelectItem key={reply.reply_id} value={reply.reply_id}>
+                        {reply.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            ) : undefined}
             <Controller
               name="body"
               render={({ field, fieldState }) => (
@@ -151,6 +225,7 @@ export function MessageComposer({
                       className="bg-card"
                       id={messageInputId}
                       placeholder={"Schrijf uw bericht hier..."}
+                      rows={initialRows}
                     />
                     <FieldDescription>
                       {showAgentControls
@@ -167,7 +242,7 @@ export function MessageComposer({
               )}
             />
           </fieldset>
-          <Button type="submit" className="ms-auto block min-w-0" disabled={isSubmitting}>
+          <Button type="submit" className="ms-auto block min-w-0" disabled={isDisabled}>
             Versturen
             {isSubmitting && <Spinner />}
           </Button>
