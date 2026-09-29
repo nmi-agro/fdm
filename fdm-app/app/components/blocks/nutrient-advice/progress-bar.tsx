@@ -1,3 +1,4 @@
+import { CSSProperties } from "react"
 import { Progress } from "~/components/ui/progress"
 
 export type AdviceProgressStatus = "under" | "on-target" | "over"
@@ -71,7 +72,11 @@ export function AdviceProgressBar({
   return (
     <Progress
       value={percentage}
-      indicatorClassName={ADVICE_STATUS_INDICATOR_CLASSES[status]}
+      style={
+        {
+          "--color-primary": `var(--color-${ADVICE_STATUS_INDICATOR_CLASSES[status].replace("bg-", "")})`,
+        } as CSSProperties
+      }
       className={className ?? "h-2"}
     />
   )
