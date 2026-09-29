@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, CornerDownRight, Info } from "lucide-react"
-import { useState } from "react"
+import { CSSProperties, useState } from "react"
 import { Link } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
@@ -79,10 +79,10 @@ export function AggregationTree({
     const colorClass = getScoreBarClass(score100)
     // Extract the color name from the bg- class (e.g. bg-emerald-500 -> emerald-500)
     // to pass to our modified Progress component.
-    const colorBar = colorClass.replace("bg-", "")
+    const colorBar = `var(--color-${colorClass.replace("bg-", "")})`
     return (
       <div className="w-24 shrink-0 sm:w-32">
-        <Progress value={score100} colorBar={colorBar} />
+        <Progress value={score100} style={{ "--color-primary": colorBar } as CSSProperties} />
       </div>
     )
   }
