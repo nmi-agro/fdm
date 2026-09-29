@@ -166,6 +166,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       farmOptions: farmOptions,
       organizations: organizations,
       username: session.userName,
+      greeting: getTimeBasedGreeting(),
       pendingInvitations: pendingInvitations,
       pendingOrganizationInvitations: pendingOrganizationInvitations,
     }
@@ -255,7 +256,6 @@ function SupportNote() {
  */
 export default function AppIndex() {
   const loaderData = useLoaderData<typeof loader>()
-  const greeting = getTimeBasedGreeting()
   const calendar = useCalendarStore((state) => state.calendar)
 
   const [userFarms, organizationFarms] = useMemo(() => {
@@ -450,7 +450,7 @@ export default function AppIndex() {
         ) : (
           <>
             <FarmTitle
-              title={`${greeting}, ${loaderData.username}`}
+              title={`${loaderData.greeting}, ${loaderData.username}`}
               description={
                 "Selecteer een bedrijf voor beheer en analyses, waaronder stikstof- en organische stofbalansen voor effectieve doelsturing."
               }
