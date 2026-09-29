@@ -9,6 +9,7 @@ import {
 import { FileUpload, parseFormData } from "@remix-run/form-data-parser"
 import { useLoaderData } from "react-router"
 import { dataWithError, redirectWithSuccess, redirectWithWarning } from "remix-toast"
+import { ZodError } from "zod"
 import type { FarmOptions } from "~/components/blocks/farm/farm"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
@@ -112,8 +113,12 @@ export async function action({ request }: Route.ActionArgs) {
       )
     } catch (error) {
       console.error("Failed to parse form data for profile picture upload:", error)
-      const message = error instanceof Error ? error.message : "Invalid upload"
-      return dataWithError(null, message)
+      return dataWithError(
+        error instanceof ZodError ? error : null,
+        error instanceof Error
+          ? `De ingevoerde gegevens zijn ongeldig: ${error.message}`
+          : "De ingevoerde gegevens zijn ongeldig.",
+      )
     }
 
     const actionSchemaResult = TicketSchema.safeParse(Object.fromEntries(formData.entries()))
