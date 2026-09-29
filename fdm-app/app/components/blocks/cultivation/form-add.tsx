@@ -53,12 +53,13 @@ export function CultivationAddFormDialog({
   )
 }
 
-function CultivationAddForm({
+export function CultivationAddForm({
   options,
   defaultValues,
   onSuccess,
   editable = true,
-}: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void }) {
+  action,
+}: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void; action?: string }) {
   const isSuggested = !!defaultValues
   const form = useRemixForm<z.infer<typeof CultivationAddFormSchema>>({
     mode: "onTouched",
@@ -83,7 +84,7 @@ function CultivationAddForm({
 
   return (
     <RemixFormProvider {...form}>
-      <Form id="formCultivation" onSubmit={form.handleSubmit} method="post">
+      <Form id="formCultivation" onSubmit={form.handleSubmit} method="post" action={action}>
         <fieldset disabled={!editable || form.formState.isSubmitting}>
           <div className="grid gap-4">
             <div className="col-span-1">

@@ -6,6 +6,9 @@ import type {
   TimelineGanttViewHandle,
 } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
+import { AddEventCommand } from "~/components/blocks/timeline/add-event-command"
+import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
+import type { AddEventContext, AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
@@ -22,7 +25,7 @@ import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { fetchTimelineFields } from "~/lib/timeline-data.server"
+import { fetchTimelineEventFormData, fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump } from "~/store/calendar"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
 
@@ -74,13 +77,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     // TIMELINE_START_YEAR/END_YEAR in gantt-view.tsx), so it fetches that same full range up
     // front rather than just the single selected year — otherwise scrolling into any other year
     // always looked empty, even when it genuinely had data.
-    const [timelineFields, fertilizers] = await Promise.all([
+    const [timelineFields, fertilizers, eventFormData] = await Promise.all([
       fetchTimelineFields(
         session.principal_id,
         b_id_farm,
         getTimeframeForYears(TIMELINE_START_YEAR, TIMELINE_END_YEAR),
       ),
       getFertilizers(fdm, session.principal_id, b_id_farm),
+      fetchTimelineEventFormData(session.principal_id, b_id_farm),
     ])
 
     const fertilizerTypeById = new Map(
@@ -92,6 +96,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       farmOptions,
       fields: timelineFields,
       fertilizerTypeById: Object.fromEntries(fertilizerTypeById),
+      eventFormData,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -149,6 +154,23 @@ export default function TimelinePage() {
     showSoilSamplings: true,
     showFutureEvents: false,
   })
+
+  // Quick-add state: an empty-space row click or the toolbar button opens the Command menu
+  // (`commandContext` prefilled for the former, `undefined` for the latter); picking an event
+  // type there — or a cultivation bar's right-click menu directly — opens the Sheet.
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [commandContext, setCommandContext] = useState<AddEventContext>()
+  const [sheetRequest, setSheetRequest] = useState<AddEventSheetRequest>()
+
+  const handleRequestAddEvent = (context: AddEventContext) => {
+    setCommandContext(context)
+    setCommandOpen(true)
+  }
+
+  const handleToolbarAddEvent = () => {
+    setCommandContext(undefined)
+    setCommandOpen(true)
+  }
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
@@ -218,6 +240,7 @@ export default function TimelinePage() {
               rightNode={
                 <TimelineToolbar
                   filters={filters}
+                  onAddEvent={handleToolbarAddEvent}
                   onFiltersChange={setFilters}
                   onJumpToToday={() => ganttRef.current?.scrollToToday()}
                   onRangeChange={setRange}
@@ -234,6 +257,8 @@ export default function TimelinePage() {
                 fields={loaderData.fields}
                 filters={filters}
                 onFiltersChange={setFilters}
+                onRequestAddEvent={handleRequestAddEvent}
+                onSheetRequest={setSheetRequest}
                 range={range}
                 ref={ganttRef}
               />
@@ -241,6 +266,23 @@ export default function TimelinePage() {
           </>
         )}
       </main>
+      <AddEventCommand
+        context={commandContext}
+        fields={loaderData.fields}
+        onOpenChange={setCommandOpen}
+        onSelect={setSheetRequest}
+        open={commandOpen}
+      />
+      <AddEventSheet
+        b_id_farm={loaderData.b_id_farm}
+        calendar={calendar ?? ""}
+        eventFormData={loaderData.eventFormData}
+        fields={loaderData.fields}
+        onOpenChange={(open) => {
+          if (!open) setSheetRequest(undefined)
+        }}
+        request={sheetRequest}
+      />
     </SidebarInset>
   )
 }

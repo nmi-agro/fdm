@@ -1,4 +1,4 @@
-import { Eye, Locate } from "lucide-react"
+import { Eye, Locate, Plus } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { Badge } from "~/components/ui/badge"
@@ -36,12 +36,14 @@ export function TimelineToolbar({
   filters,
   onFiltersChange,
   onJumpToToday,
+  onAddEvent,
 }: {
   range: Range
   onRangeChange: (range: Range) => void
   filters: TimelineFilters
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
+  onAddEvent: () => void
 }) {
   const activeFilterCount = Object.entries(filters).filter(
     ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
@@ -49,6 +51,11 @@ export function TimelineToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <Button onClick={onAddEvent}>
+        <Plus className="size-4" />
+        Toevoegen
+      </Button>
+
       <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>
         <SelectTrigger className="w-40">
           <SelectValue />

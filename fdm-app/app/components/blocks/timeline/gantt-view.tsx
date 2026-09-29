@@ -1,13 +1,26 @@
-import { format } from "date-fns"
+import { addDays, addMonths, format, getDaysInMonth } from "date-fns"
 import { nl } from "date-fns/locale"
 import { LandPlot, TestTube2, Wheat } from "lucide-react"
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react"
+import {
+  forwardRef,
+  useContext,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { NavLink, useNavigate } from "react-router"
+import type {
+  AddEventContext,
+  AddEventSheetRequest,
+} from "~/components/blocks/timeline/add-event-types"
 import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import {
   computeGanttSubRowCount,
+  GanttContext,
   type GanttFeature,
   GanttFeatureList,
   GanttFeatureListGroup,
@@ -21,8 +34,15 @@ import {
   GanttTimeline,
   GanttToday,
   type Range,
+  useGanttScrollX,
 } from "~/components/kibo-ui/gantt"
 import { Button } from "~/components/ui/button"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "~/components/ui/context-menu"
 import {
   Empty,
   EmptyContent,
@@ -36,10 +56,115 @@ import { endMonth, startMonth } from "~/lib/calendar"
 import { getFertilizerCategoryFromRvoCode } from "../fertilizer/utils"
 
 // The years the Gantt renders/scrolls through must never exceed what the app's "Calendar" year
-// picker actually supports (`~/lib/calendar`) — otherwise the timeline could show a year (e.g.
+// picker actually supports (~/lib/calendar) — otherwise the timeline could show a year (e.g.
 // one past the real current year) that isn't a selectable calendar year anywhere else in the app.
 const TIMELINE_START_YEAR = startMonth.getFullYear()
 const TIMELINE_END_YEAR = endMonth.getFullYear()
+
+/**
+ * Inverse of kibo-ui's internal (unexported) `getDateByMousePosition`: given a horizontal offset
+ * (px, relative to the timeline's start date, i.e. already excluding the sidebar and current
+ * scroll position — see `RowClickCatcher`), returns the date at that offset. Reimplemented here
+ * rather than modifying `~/components/kibo-ui/gantt` (a shared, vendored component) since the
+ * zoom is always fixed at 100 in this view.
+ *
+ * @param offsetX X offset from the left edge of the RowClickCatcher.
+ * @returns the Date at that offset.
+ */
+function getDateFromOffsetX(offsetX: number, range: Range): Date {
+  const timelineStartDate = new Date(TIMELINE_START_YEAR, 0, 1)
+  const columnWidth = range === "monthly" ? 150 : range === "quarterly" ? 100 : 50
+  const offset = Math.floor(offsetX / columnWidth)
+  const month =
+    range === "daily" ? addDays(timelineStartDate, offset) : addMonths(timelineStartDate, offset)
+  const daysInMonth = range === "daily" ? 1 : getDaysInMonth(month)
+  const pixelsPerDay = Math.round(columnWidth / daysInMonth)
+  const dayOffset = Math.floor((offsetX % columnWidth) / pixelsPerDay)
+  return addDays(month, dayOffset)
+}
+
+/**
+ * Finds the cultivation covering `date` on this field, preferring the tightest-fitting one (same
+ * "narrowest span wins" rule used to attach fertilizer/harvest/soil events to a bar in
+ * `buildFieldFeatures`) — needed so an empty-space click or the "Oogst" quick-add option can
+ * resolve which cultivation the date falls into.
+ *
+ * @param cultivations:
+ */
+export function findActiveCultivationForDate(
+  cultivations: TimelineCultivation[],
+  date: Date,
+  openCultivationEndAt: Date,
+): TimelineCultivation | undefined {
+  let best: TimelineCultivation | undefined
+  let bestSpan = Number.POSITIVE_INFINITY
+  for (const cultivation of cultivations) {
+    if (!cultivation.b_lu_start) continue
+    const endAt = cultivation.b_lu_end ?? openCultivationEndAt
+    if (date < cultivation.b_lu_start || date > endAt) continue
+    const span = endAt.getTime() - cultivation.b_lu_start.getTime()
+    if (span < bestSpan) {
+      best = cultivation
+      bestSpan = span
+    }
+  }
+  return best
+}
+
+/**
+ * Invisible, full-row click target rendered *behind* a field's `GanttFeatureRow` (i.e. before it
+ * in DOM order — see the "positioned elements painted in DOM order" rule) so cultivation
+ * bars/event icons, painted after, still win hit-testing over their own area, while the rest of
+ * the row's empty space hits this instead. Shows a "+" cursor and, on click, resolves the date
+ * under the cursor and reports it upward to open the add-event Command menu.
+ */
+function RowClickCatcher({ onPick }: { onPick: (date: Date) => void }) {
+  const gantt = useContext(GanttContext)
+  const [scrollX] = useGanttScrollX()
+  // `GanttFeatureListGroup`/`GanttFeatureRow` have no real box width of their own — every bar
+  // inside is `position: absolute`, so none of them contribute to their ancestor's (otherwise
+  // `w-max`) intrinsic width. That left a plain `w-full`/`w-max` overlay only as wide as
+  // whatever tiny box those ancestors collapse to, so most of a row's empty space fell straight
+  // through to the real full-width element behind it: `GanttColumn`'s striped background grid
+  // (sized from the header's real, non-absolutely-positioned columns). Measure the gantt's own
+  // scrollable content width directly instead, so this overlay always spans the full row.
+  const [width, setWidth] = useState(0)
+
+  useEffect(() => {
+    const scrollElement = gantt.ref?.current
+    if (!scrollElement) return
+
+    const updateWidth = () => setWidth(Math.max(0, scrollElement.scrollWidth - gantt.sidebarWidth))
+
+    updateWidth()
+    // Re-measure on resize and whenever content changes (e.g. more years get appended while
+    // scrolling near an edge, extending `scrollWidth`).
+    const resizeObserver = new ResizeObserver(updateWidth)
+    resizeObserver.observe(scrollElement)
+    const mutationObserver = new MutationObserver(updateWidth)
+    mutationObserver.observe(scrollElement, { childList: true, subtree: true })
+
+    return () => {
+      resizeObserver.disconnect()
+      mutationObserver.disconnect()
+    }
+  }, [gantt.ref, gantt.sidebarWidth])
+
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    const ganttRect = gantt.ref?.current?.getBoundingClientRect()
+    const x = event.clientX - (ganttRect?.left ?? 0) + scrollX - gantt.sidebarWidth
+    onPick(getDateFromOffsetX(x, gantt.range))
+  }
+
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: mirrors kibo-ui's own GanttColumn
+    <div
+      className="absolute inset-y-0 left-0 min-h-full cursor-copy"
+      onClick={handleClick}
+      style={{ width }}
+    />
+  )
+}
 
 export type TimelineFertilizerApplication = {
   p_app_id: string
@@ -74,11 +199,13 @@ export type TimelineSoilAnalysis = {
 
 export type TimelineCultivation = {
   b_lu: string
+  b_lu_catalogue: string
   b_lu_name: string | null
   b_lu_croprotation: string | null
   b_lu_start: Date | null
   b_lu_end: Date | null
   b_lu_harvestable: "none" | "once" | "multiple"
+  b_lu_harvestcat: string | null
 }
 
 export type TimelineField = {
@@ -123,6 +250,10 @@ type TimelineFeature = GanttFeature & {
   p_type?: "manure" | "mineral" | "compost" | null
   p_type_rvo?: string | null
   events?: AttachedEvent[]
+  /** Field/cultivation this feature belongs to — only set on `kind: "cultivation"` bars, used to
+   *  drive the right-click quick-add ContextMenu. */
+  b_id?: string
+  b_lu?: string
 }
 
 const cultivationStatus = (b_lu_croprotation: string | null): GanttStatus => ({
@@ -198,6 +329,8 @@ function buildFieldFeatures(
         href: `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/cultivation`,
         detail: `${name} — ${field.b_name}\n${formatNl(startAt)} – ${cultivation.b_lu_end ? formatNl(cultivation.b_lu_end) : "nu actief"}`,
         events: [],
+        b_id: field.b_id,
+        b_lu: cultivation.b_lu,
       })
     }
   }
@@ -406,8 +539,25 @@ function EventOverlay({ event }: { event: AttachedEvent }) {
   )
 }
 
-function FeatureContent({ feature }: { feature: TimelineFeature }) {
+/**
+ * A rounded rectangle to display on the Gantt chart. It may contain the cultivation name, or an icon for fertilizer
+ * applications and harvests. Right clicking a cultivation feature will bring a context menu, and onSheetRequest
+ * will be called with information collected according to whether the user has chosen Add Harvest, Add Fertilizer,
+ * or End Cultivation.
+ */
+function FeatureContent({
+  feature,
+  range,
+  onSheetRequest,
+}: {
+  feature: TimelineFeature
+  range: Range
+  onSheetRequest?: (request: AddEventSheetRequest) => void
+}) {
   const navigate = useNavigate()
+  const gantt = useContext(GanttContext)
+  const [scrollX] = useGanttScrollX()
+  const rightClickDateRef = useRef<Date>(feature.startAt)
 
   // The earliest overlaid event (if any) bounds how much horizontal room the crop-name label
   // can safely claim before it would run under that icon.
@@ -420,7 +570,23 @@ function FeatureContent({ feature }: { feature: TimelineFeature }) {
   )
 
   if (feature.kind === "cultivation") {
-    return (
+    const b_id = feature.b_id
+    const b_lu = feature.b_lu
+
+    const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+      const ganttRect = gantt.ref?.current?.getBoundingClientRect()
+      const x = event.clientX - (ganttRect?.left ?? 0) + scrollX - gantt.sidebarWidth
+      const date = getDateFromOffsetX(x, range)
+      const clamped =
+        date < feature.startAt
+          ? feature.startAt
+          : feature.endAt && date > feature.endAt
+            ? feature.endAt
+            : date
+      rightClickDateRef.current = clamped
+    }
+
+    const bar = (
       <div className="relative h-full min-w-0 flex-1">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -457,6 +623,50 @@ function FeatureContent({ feature }: { feature: TimelineFeature }) {
           <EventOverlay event={event} key={event.id} />
         ))}
       </div>
+    )
+
+    if (!onSheetRequest || !b_id || !b_lu) {
+      return bar
+    }
+
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild onContextMenu={handleContextMenu}>
+          {bar}
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem
+            onClick={() =>
+              onSheetRequest({
+                type: "fertilizer",
+                context: { b_id, date: rightClickDateRef.current, b_lu },
+              })
+            }
+          >
+            Bemesting toevoegen
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() =>
+              onSheetRequest({
+                type: "harvest",
+                context: { b_id, date: rightClickDateRef.current, b_lu },
+              })
+            }
+          >
+            Oogst registreren
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() =>
+              onSheetRequest({
+                type: "cultivation-end",
+                context: { b_id, date: rightClickDateRef.current, b_lu },
+              })
+            }
+          >
+            Gewas beëindigen
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
     )
   }
 
@@ -541,6 +751,8 @@ export const TimelineGanttView = forwardRef<
     calendar: string
     calendarYear: number
     range: Range
+    onRequestAddEvent?: (context: AddEventContext) => void
+    onSheetRequest?: (request: AddEventSheetRequest) => void
   }
 >(function TimelineGanttView(
   {
@@ -552,6 +764,8 @@ export const TimelineGanttView = forwardRef<
     calendar,
     calendarYear,
     range,
+    onRequestAddEvent,
+    onSheetRequest,
   },
   ref,
 ) {
@@ -704,9 +918,20 @@ export const TimelineGanttView = forwardRef<
             <GanttHeader />
             <GanttFeatureList>
               {fieldsWithFeatures.map(({ field, features }) => (
-                <GanttFeatureListGroup key={field.b_id}>
+                <GanttFeatureListGroup key={field.b_id} className="relative">
+                  {onRequestAddEvent ? (
+                    <RowClickCatcher
+                      onPick={(date) => onRequestAddEvent({ b_id: field.b_id, date })}
+                    />
+                  ) : null}
                   <GanttFeatureRow features={features}>
-                    {(feature) => <FeatureContent feature={feature as TimelineFeature} />}
+                    {(feature) => (
+                      <FeatureContent
+                        feature={feature as TimelineFeature}
+                        onSheetRequest={onSheetRequest}
+                        range={range}
+                      />
+                    )}
                   </GanttFeatureRow>
                 </GanttFeatureListGroup>
               ))}
