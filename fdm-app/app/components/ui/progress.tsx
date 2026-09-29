@@ -1,29 +1,28 @@
-import { Progress as ProgressPrimitive } from "radix-ui"
 import * as React from "react"
-import { cn } from "~/lib/utils"
+import { cn } from "cn"
+import { Progress as ProgressPrimitive } from "radix-ui"
 
-const Progress = React.forwardRef<
-  React.ElementRef<typeof ProgressPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> & {
-    colorBar?: string
-    indicatorClassName?: string
-  }
->(({ className, value, colorBar, indicatorClassName, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn("bg-secondary relative h-2 w-full overflow-hidden rounded-full", className)}
-    {...props}
-  >
-    <ProgressPrimitive.Indicator
+function Progress({
+  className,
+  value,
+  ...props
+}: React.ComponentProps<typeof ProgressPrimitive.Root>) {
+  return (
+    <ProgressPrimitive.Root
+      data-slot="progress"
       className={cn(
-        "bg-primary h-full w-full flex-1 transition-all",
-        colorBar && `bg-${colorBar}`,
-        indicatorClassName,
+        "relative flex h-1.5 w-full items-center overflow-x-hidden rounded-full bg-muted",
+        className
       )}
-      style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-    />
-  </ProgressPrimitive.Root>
-))
-Progress.displayName = ProgressPrimitive.Root.displayName
+      {...props}
+    >
+      <ProgressPrimitive.Indicator
+        data-slot="progress-indicator"
+        className="size-full flex-1 bg-primary transition-all"
+        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+      />
+    </ProgressPrimitive.Root>
+  )
+}
 
 export { Progress }

@@ -24,6 +24,7 @@ import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
 import styles from "~/tailwind.css?url"
 import type { Route } from "./+types/root"
+import { TooltipProvider } from "./components/ui/tooltip"
 
 export const middleware: Route.MiddlewareFunction[] = [
   async function auditMiddleware({ request }, next) {
@@ -208,16 +209,18 @@ export function Layout() {
         <Links />
       </head>
       <body>
-        <Outlet />
-        <NavigationProgress />
-        <Banner />
-        <Toaster />
-        <ErrorBoundary error={null} params={{}} />
-        <ScrollRestoration
-          getKey={(location) => {
-            return location.pathname
-          }}
-        />
+        <TooltipProvider>
+          <Outlet />
+          <NavigationProgress />
+          <Banner />
+          <Toaster />
+          <ErrorBoundary error={null} params={{}} />
+          <ScrollRestoration
+            getKey={(location) => {
+              return location.pathname
+            }}
+          />
+        </TooltipProvider>
         {/* Inject runtime environment variables */}
         {runtimeEnv && (
           <script
