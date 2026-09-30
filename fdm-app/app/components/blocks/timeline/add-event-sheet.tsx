@@ -1,7 +1,7 @@
 import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 import { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { useEffect, useMemo, useRef, useState, useTransition } from "react"
-import { useNavigation } from "react-router"
+import { useFetcher, useNavigation } from "react-router"
 import { TimelineHarvestParametersResult } from "@/app/routes/farm.$b_id_farm.$calendar.timeline.harvestable_analysis.$b_lu_catalogue"
 import { CultivationAddForm } from "~/components/blocks/cultivation/form-add"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
@@ -11,9 +11,21 @@ import {
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { HarvestForm } from "~/components/blocks/harvest/form"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog"
+import { Button } from "~/components/ui/button"
+import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "~/components/ui/sheet"
@@ -21,10 +33,12 @@ import type { AddEventSheetRequest } from "./add-event-types"
 import { findActiveCultivationForDate, type TimelineField } from "./gantt-view"
 
 const SHEET_TITLES: Record<AddEventSheetRequest["type"], string> = {
-  fertilizer: "Bemesting toevoegen",
-  harvest: "Oogst registreren",
-  "cultivation-start": "Gewas starten",
+  "cultivation-edit": "Gewas bewerken",
   "cultivation-end": "Gewas beëindigen",
+  "cultivation-start": "Gewas starten",
+  fertilizer: "Bemesting toevoegen",
+  "fertilizer-edit": "Bemesting bewerken",
+  harvest: "Oogst registreren",
 }
 
 /**
@@ -40,6 +54,7 @@ export function AddEventSheet({
   onOpenChange,
   b_id_farm,
   calendar,
+  canModify,
   fields,
   fertilizerOptions,
   cultivationOptions,
@@ -48,6 +63,7 @@ export function AddEventSheet({
   onOpenChange: (open: boolean) => void
   b_id_farm: string
   calendar: string
+  canModify: boolean
   fields: TimelineField[]
   fertilizerOptions: {
     value: string
@@ -60,6 +76,13 @@ export function AddEventSheet({
   const open = !!request
   const field = request ? fields.find((f) => f.b_id === request.context.b_id) : undefined
   const navigation = useNavigation()
+  const deleteFetcher = useFetcher()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+
+  const fertilizerApplication = useMemo(() => {
+    if (!request || request.type !== "fertilizer-edit" || !field) return undefined
+    return field.fertilizerApplications.find((f) => f.p_app_id === request.context.p_app_id)
+  }, [request, field])
 
   const cultivation = useMemo(() => {
     if (!request || !field) return undefined
@@ -117,6 +140,27 @@ export function AddEventSheet({
     }
   }, [])
 
+  const isEditRequest = request?.type === "cultivation-edit" || request?.type === "fertilizer-edit"
+
+  const handleConfirmDelete = () => {
+    if (!request || !field) return
+    if (request.type === "cultivation-edit") {
+      const formData = new FormData()
+      formData.set("intent", "remove_cultivation")
+      formData.set("b_lu", request.context.b_lu)
+      void deleteFetcher.submit(formData, { method: "POST" })
+    } else if (request.type === "fertilizer-edit") {
+      const formData = new FormData()
+      formData.set("p_app_id", request.context.p_app_id)
+      void deleteFetcher.submit(formData, {
+        action: `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/fertilizer`,
+        method: "DELETE",
+      })
+    }
+    setConfirmingDelete(false)
+    onOpenChange(false)
+  }
+
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-lg">
@@ -145,41 +189,49 @@ export function AddEventSheet({
           ) : null}
           {request && field && request.type === "harvest" ? (
             cultivation ? (
-              <HarvestForm
-                key={loadedHarvestableAnalysis.b_lu_catalogue}
-                editable={!areHarvestParametersLoading}
-                allowBatch={false}
-                b_date_harvest_default={loadedHarvestableAnalysis.b_date_harvest_default}
-                b_lu={cultivation.b_lu}
-                b_lu_cp={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_cp ?? undefined}
-                b_lu_croprotation={cultivation.b_lu_croprotation ?? undefined}
-                b_lu_dm={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_dm ?? undefined}
-                b_lu_end={cultivation.b_lu_end}
-                b_lu_harvest_date={request.context.date}
-                b_lu_harvestable={cultivation.b_lu_harvestable}
-                b_lu_moist={
-                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_moist ?? undefined
-                }
-                b_lu_n_harvestable={
-                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_n_harvestable ??
-                  undefined
-                }
-                b_lu_start={cultivation.b_lu_start}
-                b_lu_tarra={
-                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_tarra ?? undefined
-                }
-                b_lu_uww={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_uww ?? undefined}
-                b_lu_yield={
-                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield ?? undefined
-                }
-                b_lu_yield_bruto={
-                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_bruto ?? undefined
-                }
-                b_lu_yield_fresh={
-                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_fresh ?? undefined
-                }
-                harvestParameters={loadedHarvestableAnalysis.harvestParameters ?? []}
-              />
+              cultivation.b_lu_harvestable === "none" ? (
+                <p className="text-muted-foreground text-sm">Dit gewas kan niet geoogst worden.</p>
+              ) : (
+                <HarvestForm
+                  key={loadedHarvestableAnalysis.b_lu_catalogue}
+                  editable={!areHarvestParametersLoading}
+                  allowBatch={false}
+                  b_date_harvest_default={loadedHarvestableAnalysis.b_date_harvest_default}
+                  b_lu={cultivation.b_lu}
+                  b_lu_cp={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_cp ?? undefined}
+                  b_lu_croprotation={cultivation.b_lu_croprotation ?? undefined}
+                  b_lu_dm={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_dm ?? undefined}
+                  b_lu_end={cultivation.b_lu_end}
+                  b_lu_harvest_date={request.context.date}
+                  b_lu_harvestable={cultivation.b_lu_harvestable}
+                  b_lu_moist={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_moist ?? undefined
+                  }
+                  b_lu_n_harvestable={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_n_harvestable ??
+                    undefined
+                  }
+                  b_lu_start={cultivation.b_lu_start}
+                  b_lu_tarra={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_tarra ?? undefined
+                  }
+                  b_lu_uww={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_uww ?? undefined
+                  }
+                  b_lu_yield={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield ?? undefined
+                  }
+                  b_lu_yield_bruto={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_bruto ??
+                    undefined
+                  }
+                  b_lu_yield_fresh={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_fresh ??
+                    undefined
+                  }
+                  harvestParameters={loadedHarvestableAnalysis.harvestParameters ?? []}
+                />
+              )
             ) : (
               <p className="text-muted-foreground text-sm">
                 Er is geen actief gewas op dit perceel voor deze datum.
@@ -207,8 +259,63 @@ export function AddEventSheet({
               options={cultivationOptions}
             />
           ) : null}
+          {request && field && request.type === "cultivation-edit" ? (
+            <CultivationAddForm
+              intent="update_cultivation"
+              b_id={field.b_id}
+              b_lu={request.context.b_lu}
+              defaultValues={{
+                b_lu_catalogue: cultivation?.b_lu_catalogue ?? "",
+                b_lu_start: cultivation?.b_lu_start ?? new Date(),
+                b_lu_end: cultivation?.b_lu_end ?? undefined,
+              }}
+              options={cultivationOptions}
+            />
+          ) : null}
+          {request && field && request.type === "fertilizer-edit" && fertilizerApplication ? (
+            <FertilizerApplicationForm
+              action={`/farm/${b_id_farm}/${calendar}/field/${field.b_id}/fertilizer`}
+              b_id={field.b_id}
+              b_id_farm={b_id_farm}
+              b_id_or_b_lu_catalogue={field.b_id}
+              fertilizerApplication={{
+                ...fertilizerApplication,
+                p_app_amount_display: fertilizerApplication.p_app_amount_display ?? undefined,
+                p_app_method: fertilizerApplication.p_app_method ?? undefined,
+              }}
+              fieldsClassName="md:grid-cols-1"
+              navigation={navigation as never}
+              options={fertilizerOptions}
+            />
+          ) : null}
         </div>
+        {request && (
+          <SheetFooter className="flex-row justify-between border-t pt-4">
+            {canModify && isEditRequest ? (
+              <Button onClick={() => setConfirmingDelete(true)} type="button" variant="destructive">
+                Verwijderen
+              </Button>
+            ) : (
+              <span />
+            )}
+            <Button onClick={() => onOpenChange(false)} type="button" variant="outline">
+              Annuleren
+            </Button>
+          </SheetFooter>
+        )}
       </SheetContent>
+      <AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+            <AlertDialogDescription>Dit kan niet ongedaan worden gemaakt.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   )
 }

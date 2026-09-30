@@ -59,6 +59,8 @@ export function AddEventCommand({
     )
   }, [effectiveField, effectiveDate])
 
+  const canHarvest = activeCultivation ? activeCultivation.b_lu_harvestable !== "none" : true
+
   const reset = () => setPickedField(undefined)
 
   const handleOpenChange = (next: boolean) => {
@@ -93,7 +95,14 @@ export function AddEventCommand({
             )}
             <CommandGroup heading="Type gebeurtenis">
               {EVENT_TYPE_OPTIONS.map(({ type, label, icon: Icon, requiresCultivation }) => {
-                const disabled = requiresCultivation && !activeCultivation
+                const disabled =
+                  (requiresCultivation && !activeCultivation) || (type === "harvest" && !canHarvest)
+                const disabledReason =
+                  requiresCultivation && !activeCultivation
+                    ? "Geen actief gewas"
+                    : type === "harvest" && !canHarvest
+                      ? "Gewas niet oogstbaar"
+                      : null
                 return (
                   <CommandItem
                     disabled={disabled}
@@ -103,9 +112,9 @@ export function AddEventCommand({
                   >
                     <Icon />
                     <span>{label}</span>
-                    {disabled ? (
+                    {disabledReason ? (
                       <span className="text-muted-foreground ml-auto text-xs">
-                        Geen actief gewas
+                        {disabledReason}
                       </span>
                     ) : null}
                   </CommandItem>

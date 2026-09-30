@@ -19,3 +19,5 @@ export type AddEventSheetRequest =
   | { type: "harvest"; context: AddEventContext }
   | { type: "cultivation-start"; context: AddEventContext }
   | { type: "cultivation-end"; context: AddEventContext }
+  | { type: "cultivation-edit"; context: AddEventContext & { b_lu: string } }
+  | { type: "fertilizer-edit"; context: AddEventContext & { p_app_id: string } }

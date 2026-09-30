@@ -6,14 +6,20 @@ import {
   getCultivation,
   getCultivationsFromCatalogue,
   getFarms,
+  getFertilizerApplication,
   getFertilizerParametersDescription,
   getFertilizers,
   getHarvests,
   getParametersForHarvestCat,
+  removeCultivation,
   removeHarvest,
   updateCultivation,
+  updateFertilizerApplication,
+  updateHarvest,
 } from "@nmi-agro/fdm-core"
 import { ApplicationMethods } from "@nmi-agro/fdm-data"
+import { format } from "date-fns"
+import { nl } from "date-fns/locale"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useActionData, useLoaderData, useParams } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -94,6 +100,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     await checkPermission(fdm, "farm", "read", b_id_farm, session.principal_id, "timeline")
 
+    const farmWritePermission = await checkPermission(
+      fdm,
+      "farm",
+      "write",
+      b_id_farm,
+      session.principal_id,
+      "timeline",
+      false,
+    )
+
     const farms = await getFarms(fdm, session.principal_id)
     if (!farms || farms.length === 0) {
       throw data("not found: farms", {
@@ -155,6 +171,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     return {
       b_id_farm,
       calendar,
+      farmWritePermission,
       farmOptions,
       fields: timelineFields,
       fertilizerOptions: fertilizerOptions,
@@ -169,6 +186,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 }
 
+const dateField = z.preprocess(
+  (val) => (typeof val === "string" ? new Date(val) : val),
+  z.date({
+    error: (issue) => (issue.input === undefined ? "Datum is verplicht" : "Datum is ongeldig"),
+  }),
+)
+
 const ActionSchema = z.discriminatedUnion("intent", [
   CultivationAddFormSchema.safeExtend({
     intent: z.literal("add_cultivation"),
@@ -179,6 +203,24 @@ const ActionSchema = z.discriminatedUnion("intent", [
   HarvestFormSchema.safeExtend({ intent: z.literal("single_harvest") }),
   FertilizerApplicationFormSchema.safeExtend({
     intent: z.literal("add_fertilizer"),
+  }),
+  z.object({
+    intent: z.literal("update_fertilizer_date"),
+    p_app_id: z.string(),
+    p_app_date: dateField,
+  }),
+  z.object({
+    intent: z.literal("update_harvest_date"),
+    b_id_harvesting: z.string(),
+    b_lu_harvest_date: dateField,
+  }),
+  z.object({
+    intent: z.literal("remove_cultivation"),
+    b_lu: z.string(),
+  }),
+  z.object({
+    intent: z.literal("remove_harvest"),
+    b_id_harvesting: z.string(),
   }),
 ])
 export async function action({ request, params }: Route.LoaderArgs) {
@@ -200,7 +242,17 @@ export async function action({ request, params }: Route.LoaderArgs) {
       throw err
     }
 
-    if (formValues.intent !== "single_harvest" && !formValues.b_id) {
+    const intentsWithoutBId: (typeof formValues.intent)[] = [
+      "single_harvest",
+      "update_fertilizer_date",
+      "update_harvest_date",
+      "remove_cultivation",
+      "remove_harvest",
+    ]
+    if (
+      !intentsWithoutBId.includes(formValues.intent) &&
+      (!("b_id" in formValues) || !formValues.b_id)
+    ) {
       console.error(`Timeline route didn't submit b_id. Intent was ${formValues.intent}`)
       return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
     }
@@ -351,6 +403,62 @@ export async function action({ request, params }: Route.LoaderArgs) {
           message: `${termCapitalizedSingular} succesvol toegevoegd aan het perceel.`,
         },
       )
+    }
+
+    if (formValues.intent === "update_fertilizer_date") {
+      const original = await getFertilizerApplication(
+        fdm,
+        session.principal_id,
+        formValues.p_app_id,
+      )
+      if (!original) {
+        return dataWithError(null, "Bemesting is niet gevonden.")
+      }
+
+      await updateFertilizerApplication(
+        fdm,
+        session.principal_id,
+        formValues.p_app_id,
+        original.p_id,
+        original.p_app_amount_display,
+        original.p_app_method,
+        formValues.p_app_date,
+      )
+
+      return dataWithSuccess(
+        { closeSheet: false },
+        {
+          message: `Bemesting verplaatst naar ${format(formValues.p_app_date, "d MMMM", { locale: nl })}`,
+        },
+      )
+    }
+
+    if (formValues.intent === "update_harvest_date") {
+      await updateHarvest(
+        fdm,
+        session.principal_id,
+        formValues.b_id_harvesting,
+        formValues.b_lu_harvest_date,
+      )
+
+      return dataWithSuccess(
+        { closeSheet: false },
+        {
+          message: `Oogst verplaatst naar ${format(formValues.b_lu_harvest_date, "d MMMM", { locale: nl })}`,
+        },
+      )
+    }
+
+    if (formValues.intent === "remove_cultivation") {
+      await removeCultivation(fdm, session.principal_id, formValues.b_lu)
+
+      return dataWithSuccess({ closeSheet: false }, { message: "Gewas is verwijderd." })
+    }
+
+    if (formValues.intent === "remove_harvest") {
+      await removeHarvest(fdm, session.principal_id, formValues.b_id_harvesting)
+
+      return dataWithSuccess({ closeSheet: false }, { message: "Oogst is verwijderd." })
     }
   } catch (err) {
     throw handleActionError(err)
@@ -521,6 +629,7 @@ export default function TimelinePage() {
                 b_id_farm={loaderData.b_id_farm}
                 calendar={calendar ?? ""}
                 calendarYear={calendarYear}
+                canModify={loaderData.farmWritePermission}
                 fertilizerTypeById={fertilizerTypeById}
                 fields={loaderData.fields}
                 filters={filters}
@@ -544,11 +653,15 @@ export default function TimelinePage() {
       <AddEventSheet
         b_id_farm={loaderData.b_id_farm}
         calendar={loaderData.calendar}
+        canModify={loaderData.farmWritePermission}
         fertilizerOptions={loaderData.fertilizerOptions}
         cultivationOptions={loaderData.cultivationOptions}
         fields={loaderData.fields}
         onOpenChange={(open) => {
-          if (!open) setSheetRequest(undefined)
+          if (!open) {
+            setSheetRequest(undefined)
+            ganttRef.current?.remount()
+          }
         }}
         request={sheetRequest}
       />

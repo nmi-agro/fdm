@@ -72,6 +72,8 @@ export type GanttFeature = {
   lane?: string // Optional: features with the same lane will share a row
   /** Optional background color (e.g. an rgba string) applied to the feature's card. */
   color?: string
+  resizable?: boolean
+  draggable?: boolean
 }
 
 export type GanttSubRowPositioned<T> = T & { subRow: number }
@@ -904,7 +906,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           left: Math.round(offset),
         }}
       >
-        {onMove && (
+        {onMove && feature.resizable !== false && (
           <DndContext
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
@@ -919,13 +921,13 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           onDragEnd={onDragEnd}
           onDragMove={handleItemDragMove}
           onDragStart={handleItemDragStart}
-          sensors={[mouseSensor]}
+          sensors={feature.draggable === false ? [] : [mouseSensor]}
         >
           <GanttFeatureItemCard color={feature.color} id={feature.id}>
             {children ?? <p className="flex-1 truncate text-xs">{feature.name}</p>}
           </GanttFeatureItemCard>
         </DndContext>
-        {onMove && (
+        {onMove && feature.resizable !== false && (
           <DndContext
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
