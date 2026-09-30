@@ -18,6 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useActionData, useLoaderData, useParams } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import z from "zod"
+import type { Range } from "@/app/components/kibo-ui/gantt"
 import type {
   AddEventContext,
   AddEventSheetRequest,
@@ -26,7 +27,6 @@ import type {
   TimelineFilters,
   TimelineGanttViewHandle,
 } from "~/components/blocks/timeline/gantt-view"
-import type { Range } from "~/components/kibo-ui/gantt"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -252,7 +252,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
         calendar: String(params.calendar),
       })
 
-      return dataWithSuccess({ closeSheet: true }, { message: "Gewas is toegevoegd! 🎉" })
+      return dataWithSuccess({ closeSheet: true }, { message: "Gewas is bijgewerkt." })
     }
 
     if (formValues.intent === "add_fertilizer") {

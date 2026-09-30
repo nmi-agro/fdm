@@ -806,6 +806,31 @@ export const TimelineGanttView = forwardRef<
     [range, scrollToCenteredOffset],
   )
 
+  const currentGanntChartData = useRef(fields)
+  const [ganttChartId, setGanttChartId] = useState(0)
+
+  // Create a new id representing the current fields data in order to remount the Gantt chart
+  // This is needed since the Gantt chart feature start and end dates aren't controllable
+  useEffect(() => {
+    if (currentGanntChartData.current === fields) return
+    setGanttChartId((id) => id + 1)
+    currentGanntChartData.current = fields
+    const originalScrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
+    const originalScrollOffset = originalScrollElement?.scrollLeft ?? NaN
+    setTimeout(() => {
+      // Scroll back to last offset once the component remounts.
+      // The layout of the new chart will be at least similar to beforehand so scrolling to the same offset is good enough.
+      const scrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
+      if (scrollElement) {
+        if (!Number.isNaN(originalScrollOffset)) {
+          scrollElement.scrollTo({ left: originalScrollOffset })
+        } else {
+          scrollToCenteredOffset(computeScrollOffset(new Date(), range))
+        }
+      }
+    }, 100)
+  }, [fields])
+
   const visibleFields = fields
     .filter((field) => filters.showBufferStrips || !field.b_bufferstrip)
     .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name, "nl"))
@@ -887,6 +912,7 @@ export const TimelineGanttView = forwardRef<
     <TooltipProvider delayDuration={150}>
       <div ref={containerRef}>
         <GanttProvider
+          key={ganttChartId}
           className="h-[calc(100vh-16rem)] rounded-lg border"
           endYear={TIMELINE_END_YEAR}
           range={range}
