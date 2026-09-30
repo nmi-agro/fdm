@@ -4,7 +4,6 @@ import {
   CommandDialog,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList,
   CommandSeparator,
@@ -78,7 +77,6 @@ export function AddEventCommand({
 
   return (
     <CommandDialog onOpenChange={handleOpenChange} open={open}>
-      <CommandInput placeholder={effectiveField ? "Zoek een type…" : "Zoek een perceel…"} />
       <CommandList>
         <CommandEmpty>Geen resultaten gevonden.</CommandEmpty>
         {effectiveField ? (

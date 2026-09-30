@@ -161,6 +161,10 @@ function RowClickCatcher({ onPick }: { onPick: (date: Date) => void }) {
     <div
       className="absolute inset-y-0 left-0 min-h-full cursor-copy"
       onClick={handleClick}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        handleClick(e)
+      }}
       style={{ width }}
     />
   )

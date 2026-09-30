@@ -40,6 +40,7 @@ type HarvestFormDialogProps = {
   harvestParameters: HarvestParameters
   exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
   example_b_lu_harvest_date?: Date | null
+  b_lu?: string
   b_lu_harvest_date: Date | string | null | undefined // Changed to allow Date or string
   b_date_harvest_default?: string | null // MM-dd format from cultivation catalogue
   b_lu_yield: number | undefined
@@ -68,6 +69,7 @@ const SchemaWithIntent = FormSchema.extend({
 type HarvestFormValues = z.infer<typeof SchemaWithIntent>
 
 function useHarvestRemixForm({
+  b_lu,
   harvestParameters,
   b_lu_harvest_date,
   b_date_harvest_default,
@@ -157,6 +159,7 @@ function useHarvestRemixForm({
     }) as Resolver<HarvestFormValues>,
     defaultValues: {
       intent: "single_harvest",
+      b_lu: b_lu,
       b_lu_harvest_date: defaultHarvestDate,
       b_lu_yield: harvestParameters.includes("b_lu_yield") ? b_lu_yield : undefined,
       b_lu_yield_fresh: harvestParameters.includes("b_lu_yield_fresh")
@@ -203,6 +206,7 @@ function useHarvestRemixForm({
 function HarvestFields({
   form,
   className,
+  b_lu,
   b_lu_croprotation,
   b_lu_harvestable,
   harvestParameters,
@@ -219,6 +223,7 @@ function HarvestFields({
   return (
     <FieldGroup className={cn("gap-5", className)}>
       <input type="hidden" name="intent" value="single_harvest" />
+      <input type="hidden" name="b_lu" value={b_lu} />
       <Controller
         name="b_lu_harvest_date"
         control={form.control}

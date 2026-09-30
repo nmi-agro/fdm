@@ -1,16 +1,15 @@
-import type { HarvestParameters } from "@nmi-agro/fdm-core"
-import type { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect, useMemo } from "react"
-import { Form, useNavigation } from "react-router"
-import { RemixFormProvider, useRemixForm } from "remix-hook-form"
-import type { TimelineEventFormData } from "~/lib/timeline-data.server"
+import type { AppAmountUnit } from "@nmi-agro/fdm-core"
+import { ApplicationMethods } from "@nmi-agro/fdm-data"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { useNavigation } from "react-router"
+import { TimelineHarvestParametersResult } from "@/app/routes/farm.$b_id_farm.$calendar.timeline.harvestable_analysis.$b_lu_catalogue"
 import { CultivationAddForm } from "~/components/blocks/cultivation/form-add"
-import { CultivationDetailsFormSchema } from "~/components/blocks/cultivation/schema"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
+import {
+  FormSchema as FertilizerApplicationFormSchema,
+  type FormSchemaPartial as FertilizerApplicationFormSchemaPartial,
+} from "~/components/blocks/fertilizer-applications/formschema"
 import { HarvestForm } from "~/components/blocks/harvest/form"
-import { DatePicker } from "~/components/custom/date-picker"
-import { Button } from "~/components/ui/button"
 import {
   Sheet,
   SheetContent,
@@ -42,18 +41,24 @@ export function AddEventSheet({
   b_id_farm,
   calendar,
   fields,
-  eventFormData,
+  fertilizerOptions,
+  cultivationOptions,
 }: {
   request: AddEventSheetRequest | undefined
   onOpenChange: (open: boolean) => void
   b_id_farm: string
   calendar: string
   fields: TimelineField[]
-  eventFormData: TimelineEventFormData
+  fertilizerOptions: {
+    value: string
+    label: string
+    p_app_amount_unit: AppAmountUnit
+    applicationMethodOptions: { value: ApplicationMethods; label: string }[]
+  }[]
+  cultivationOptions: { value: string; label: string }[]
 }) {
   const open = !!request
   const field = request ? fields.find((f) => f.b_id === request.context.b_id) : undefined
-  const basePath = field ? `/farm/${b_id_farm}/${calendar}/field/${field.b_id}` : undefined
   const navigation = useNavigation()
 
   const cultivation = useMemo(() => {
@@ -68,6 +73,50 @@ export function AddEventSheet({
     )
   }, [request, field])
 
+  const [loadedHarvestableAnalysis, setLoadedHarvestableAnalysis] = useState<
+    Partial<TimelineHarvestParametersResult>
+  >({})
+
+  const harvestParametersAbortControllerRef = useRef<AbortController>(null)
+  const [areHarvestParametersLoading, loadHarvestParameters] = useTransition()
+
+  // Load the example harvestable analysis when the request type "harvest" and b_lu_catalogue changes
+  useEffect(() => {
+    harvestParametersAbortControllerRef.current?.abort()
+    if (cultivation && request?.type === "harvest") {
+      const abortController = new AbortController()
+      harvestParametersAbortControllerRef.current = abortController
+      loadHarvestParameters(() => {
+        return (async () => {
+          const response = await fetch(
+            `/farm/${b_id_farm}/${calendar}/timeline/harvestable_analysis/${cultivation?.b_lu_catalogue}`,
+            { signal: abortController.signal },
+          )
+          if (response.ok) {
+            const data = await response.json()
+            setLoadedHarvestableAnalysis(data)
+          } else {
+            console.error(`Harvestable analysis endpoint returned status ${response.status}.`)
+          }
+        })().catch((err) => {
+          if (err instanceof Error && err.name === "AbortError") {
+            return
+          }
+          console.error(err)
+          setLoadedHarvestableAnalysis({})
+          return
+        })
+      })
+    }
+  }, [cultivation?.b_lu_catalogue])
+
+  // Abort any fetches on unmount. This will also end the transition if it was ongoing.
+  useEffect(() => {
+    return () => {
+      harvestParametersAbortControllerRef.current?.abort()
+    }
+  }, [])
+
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-lg">
@@ -78,44 +127,58 @@ export function AddEventSheet({
           </SheetDescription>
         </SheetHeader>
         <div className="px-4 pb-6">
-          {request && field && basePath && request.type === "fertilizer" ? (
+          {request && field && request.type === "fertilizer" ? (
             <FertilizerApplicationForm
-              action={`${basePath}/fertilizer`}
+              intent="add_fertilizer"
+              b_id={field.b_id}
+              action={"#"}
               b_id_farm={b_id_farm}
               b_id_or_b_lu_catalogue={field.b_id}
-              exampleFertilizerApplication={{ p_app_date: request.context.date }}
-              options={eventFormData.fertilizerOptions}
+              fertilizerApplication={{ p_app_date: request.context.date }}
+              options={fertilizerOptions}
               navigation={navigation as never}
+              fieldsClassName="md:grid-cols-1"
+              schema={
+                FertilizerApplicationFormSchema as unknown as typeof FertilizerApplicationFormSchemaPartial
+              }
             />
           ) : null}
-
-          {request && field && basePath && request.type === "harvest" ? (
+          {request && field && request.type === "harvest" ? (
             cultivation ? (
               <HarvestForm
-                action={`${basePath}/cultivation/${cultivation.b_lu}/harvest/new`}
+                key={loadedHarvestableAnalysis.b_lu_catalogue}
+                editable={!areHarvestParametersLoading}
                 allowBatch={false}
-                b_date_harvest_default={
-                  eventFormData.harvestDefaultsByCatalogue[cultivation.b_lu_catalogue]
-                    ?.b_date_harvest_default ?? null
-                }
-                b_lu_cp={undefined}
+                b_date_harvest_default={loadedHarvestableAnalysis.b_date_harvest_default}
+                b_lu={cultivation.b_lu}
+                b_lu_cp={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_cp ?? undefined}
                 b_lu_croprotation={cultivation.b_lu_croprotation ?? undefined}
-                b_lu_dm={undefined}
+                b_lu_dm={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_dm ?? undefined}
                 b_lu_end={cultivation.b_lu_end}
-                b_lu_harvest_date={undefined}
+                b_lu_harvest_date={request.context.date}
                 b_lu_harvestable={cultivation.b_lu_harvestable}
-                b_lu_moist={undefined}
-                b_lu_n_harvestable={undefined}
-                b_lu_start={cultivation.b_lu_start}
-                b_lu_tarra={undefined}
-                b_lu_uww={undefined}
-                b_lu_yield={undefined}
-                b_lu_yield_bruto={undefined}
-                b_lu_yield_fresh={undefined}
-                harvestParameters={
-                  (eventFormData.harvestParametersByCat[cultivation.b_lu_harvestcat ?? ""] ??
-                    []) as HarvestParameters
+                b_lu_moist={
+                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_moist ?? undefined
                 }
+                b_lu_n_harvestable={
+                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_n_harvestable ??
+                  undefined
+                }
+                b_lu_start={cultivation.b_lu_start}
+                b_lu_tarra={
+                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_tarra ?? undefined
+                }
+                b_lu_uww={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_uww ?? undefined}
+                b_lu_yield={
+                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield ?? undefined
+                }
+                b_lu_yield_bruto={
+                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_bruto ?? undefined
+                }
+                b_lu_yield_fresh={
+                  loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_yield_fresh ?? undefined
+                }
+                harvestParameters={loadedHarvestableAnalysis.harvestParameters ?? []}
               />
             ) : (
               <p className="text-muted-foreground text-sm">
@@ -123,86 +186,29 @@ export function AddEventSheet({
               </p>
             )
           ) : null}
-
-          {request && field && basePath && request.type === "cultivation-start" ? (
+          {request &&
+          field &&
+          (request.type === "cultivation-start" || request.type === "cultivation-end") ? (
             <CultivationAddForm
-              action={`${basePath}/cultivation`}
+              intent={cultivation ? "update_cultivation" : "add_cultivation"}
+              b_id={field.b_id}
+              b_lu={cultivation?.b_lu}
               defaultValues={{
-                b_lu_catalogue: "",
-                b_lu_start: request.context.date,
+                b_lu_catalogue: cultivation ? cultivation.b_lu_catalogue : "",
+                b_lu_start:
+                  request.type === "cultivation-start"
+                    ? request.context.date
+                    : (cultivation?.b_lu_start ?? new Date()),
+                b_lu_end:
+                  request.type === "cultivation-end"
+                    ? request.context.date
+                    : (cultivation?.b_lu_end ?? undefined),
               }}
-              options={eventFormData.cultivationCatalogueOptions}
+              options={cultivationOptions}
             />
-          ) : null}
-
-          {request && field && basePath && request.type === "cultivation-end" ? (
-            cultivation ? (
-              <CultivationEndForm
-                action={`${basePath}/cultivation/${cultivation.b_lu}`}
-                b_lu_end={request.context.date}
-                b_lu_start={cultivation.b_lu_start}
-              />
-            ) : (
-              <p className="text-muted-foreground text-sm">Geen gewas gevonden om te beëindigen.</p>
-            )
           ) : null}
         </div>
       </SheetContent>
     </Sheet>
-  )
-}
-
-/** Minimal "cultivation dates" form reused for "Gewas beëindigen": same visual pattern as
- *  starting a cultivation (`CultivationAddForm`), but only exposes the end date — the crop and
- *  start date are already fixed for an existing cultivation — targeting the update route (POST)
- *  instead of the create route. */
-function CultivationEndForm({
-  action,
-  b_lu_start,
-  b_lu_end,
-}: {
-  action: string
-  b_lu_start: Date | null
-  b_lu_end: Date
-}) {
-  const form = useRemixForm<z.infer<typeof CultivationDetailsFormSchema>>({
-    mode: "onTouched",
-    resolver: zodResolver(CultivationDetailsFormSchema) as never,
-    defaultValues: {
-      b_lu_start: b_lu_start ?? new Date(),
-      b_lu_end,
-    },
-  })
-
-  useEffect(() => {
-    form.reset({ b_lu_start: b_lu_start ?? new Date(), b_lu_end })
-    // Only re-seed when the target cultivation/date changes, not on every form state update.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [b_lu_start, b_lu_end])
-
-  return (
-    <RemixFormProvider {...form}>
-      <Form action={action} id="formCultivationEnd" method="post" onSubmit={form.handleSubmit}>
-        <div className="grid gap-4">
-          <DatePicker
-            description="Zaaidatum (kan hier niet worden gewijzigd)"
-            disabled
-            form={form as any}
-            label="Zaaidatum"
-            name="b_lu_start"
-          />
-          <DatePicker
-            description="Datum waarop het gewas wordt beëindigd"
-            disabled={form.formState.isSubmitting}
-            form={form as any}
-            label="Einddatum"
-            name="b_lu_end"
-          />
-          <Button className="w-full" type="submit">
-            {form.formState.isSubmitting ? "Opslaan..." : "Beëindigen"}
-          </Button>
-        </div>
-      </Form>
-    </RemixFormProvider>
   )
 }

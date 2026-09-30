@@ -1,18 +1,42 @@
-import { checkPermission, getFarms, getFertilizers } from "@nmi-agro/fdm-core"
+import {
+  addCultivation,
+  addFertilizerApplication,
+  addHarvest,
+  checkPermission,
+  getCultivation,
+  getCultivationsFromCatalogue,
+  getFarms,
+  getFertilizerParametersDescription,
+  getFertilizers,
+  getHarvests,
+  getParametersForHarvestCat,
+  removeHarvest,
+  updateCultivation,
+} from "@nmi-agro/fdm-core"
+import { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { data, type MetaFunction, useLoaderData, useParams } from "react-router"
+import { data, type MetaFunction, useActionData, useLoaderData, useParams } from "react-router"
+import { dataWithError, dataWithSuccess } from "remix-toast"
+import z from "zod"
+import type {
+  AddEventContext,
+  AddEventSheetRequest,
+} from "~/components/blocks/timeline/add-event-types"
 import type {
   TimelineFilters,
   TimelineGanttViewHandle,
 } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
-import { AddEventCommand } from "~/components/blocks/timeline/add-event-command"
-import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
-import type { AddEventContext, AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
+import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FormSchema as FertilizerApplicationFormSchema } from "~/components/blocks/fertilizer-applications/formschema"
+import { FormSchema as HarvestFormSchema } from "~/components/blocks/harvest/schema"
+import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
+import { AddEventCommand } from "~/components/blocks/timeline/add-event-command"
+import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
 import { TimelineMobileView } from "~/components/blocks/timeline/mobile-view"
 import { TimelineToolbar } from "~/components/blocks/timeline/toolbar"
@@ -20,12 +44,14 @@ import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError } from "~/lib/error"
+import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { fetchTimelineEventFormData, fetchTimelineFields } from "~/lib/timeline-data.server"
+import { extractFormValuesFromRequest } from "~/lib/form"
+import { fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump } from "~/store/calendar"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
 
@@ -56,6 +82,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       })
     }
 
+    const calendar = params.calendar
+    if (!calendar) {
+      throw data("invalid: calendar", {
+        status: 400,
+        statusText: "invalid: calendar",
+      })
+    }
+
     const session = await getSession(request)
 
     await checkPermission(fdm, "farm", "read", b_id_farm, session.principal_id, "timeline")
@@ -77,30 +111,249 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     // TIMELINE_START_YEAR/END_YEAR in gantt-view.tsx), so it fetches that same full range up
     // front rather than just the single selected year — otherwise scrolling into any other year
     // always looked empty, even when it genuinely had data.
-    const [timelineFields, fertilizers, eventFormData] = await Promise.all([
+    const [timelineFields, fertilizers, cultivationCatalogue] = await Promise.all([
       fetchTimelineFields(
         session.principal_id,
         b_id_farm,
         getTimeframeForYears(TIMELINE_START_YEAR, TIMELINE_END_YEAR),
       ),
       getFertilizers(fdm, session.principal_id, b_id_farm),
-      fetchTimelineEventFormData(session.principal_id, b_id_farm),
+      getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
     ])
 
-    const fertilizerTypeById = new Map(
-      fertilizers.map((f) => [f.p_id, { p_type: f.p_type, p_type_rvo: f.p_type_rvo }]),
+    const fertilizerParameterDescription = getFertilizerParametersDescription()
+    const applicationMethods = fertilizerParameterDescription.find(
+      (x: { parameter: string }) => x.parameter === "p_app_method_options",
     )
+    if (!applicationMethods) throw new Error("Parameter metadata missing")
+    const applicationMethodOptions = (applicationMethods.options ?? [])
+      .filter(
+        (option): option is { value: ApplicationMethods; label: string } => option.value !== null,
+      )
+      .map((option) => ({
+        value: option.value,
+        label: option.label,
+      }))
+
+    const fertilizerOptions = fertilizers.map((fertilizer) => ({
+      value: fertilizer.p_id,
+      label: fertilizer.p_name_nl ?? "",
+      p_type: fertilizer.p_type,
+      applicationMethodOptions: (fertilizer.p_app_method_options ?? [])
+        .map((opt) => applicationMethodOptions.find((x) => x.value === opt))
+        .filter(
+          (
+            option,
+          ): option is {
+            value: ApplicationMethods
+            label: string
+          } => option !== undefined,
+        ),
+      p_app_amount_unit: fertilizer.p_app_amount_unit,
+    }))
 
     return {
       b_id_farm,
+      calendar,
       farmOptions,
       fields: timelineFields,
-      fertilizerTypeById: Object.fromEntries(fertilizerTypeById),
-      eventFormData,
+      fertilizerOptions: fertilizerOptions,
+      cultivationOptions: cultivationCatalogue.map((c) => ({
+        value: c.b_lu_catalogue,
+        label: c.b_lu_name,
+      })),
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
     throw normalized ?? error
+  }
+}
+
+const ActionSchema = z.discriminatedUnion("intent", [
+  CultivationAddFormSchema.safeExtend({
+    intent: z.literal("add_cultivation"),
+  }),
+  CultivationAddFormSchema.safeExtend({
+    intent: z.literal("update_cultivation"),
+  }),
+  HarvestFormSchema.safeExtend({ intent: z.literal("single_harvest") }),
+  FertilizerApplicationFormSchema.safeExtend({
+    intent: z.literal("add_fertilizer"),
+  }),
+])
+export async function action({ request, params }: Route.LoaderArgs) {
+  try {
+    const session = await getSession(request)
+
+    let formValues: z.infer<typeof ActionSchema>
+    try {
+      formValues = await extractFormValuesFromRequest(request, ActionSchema)
+    } catch (err) {
+      const warnings = ((err as any)?.data as any)?.warning
+      if (typeof warnings === "string") {
+        try {
+          const zodErrors = JSON.parse(warnings)
+          return dataWithError({ errors: zodErrors }, "De invoer is ongeldig")
+          // oxlint-disable-next-line no-unused-vars We go the default error handling route if we were weong by assuming the warning contains the stringified Zod errors.
+        } catch (_warningParseError) {}
+      }
+      throw err
+    }
+
+    if (formValues.intent !== "single_harvest" && !formValues.b_id) {
+      console.error(`Timeline route didn't submit b_id. Intent was ${formValues.intent}`)
+      return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
+    }
+
+    if (
+      (formValues.intent === "single_harvest" || formValues.intent === "update_cultivation") &&
+      !formValues.b_lu
+    ) {
+      console.error(`Timeline route didn't submit b_lu. Intent was ${formValues.intent}`)
+      return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
+    }
+
+    if (formValues.intent === "add_cultivation") {
+      const { b_lu_catalogue, b_id, b_lu_start, b_lu_end } = formValues
+      await addCultivation(
+        fdm,
+        session.principal_id,
+        b_lu_catalogue,
+        b_id ?? "",
+        b_lu_start,
+        b_lu_end,
+      )
+
+      captureEvent(session.principal_id, "cultivation_added", {
+        b_id_farm: params.b_id_farm,
+        b_id,
+        b_lu_catalogue,
+        calendar: String(params.calendar),
+      })
+
+      return dataWithSuccess({ closeSheet: true }, { message: "Gewas is toegevoegd! 🎉" })
+    }
+
+    if (formValues.intent === "update_cultivation") {
+      const { b_lu_catalogue, b_id, b_lu, b_lu_start, b_lu_end } = formValues
+      await updateCultivation(
+        fdm,
+        session.principal_id,
+        b_lu ?? "",
+        b_lu_catalogue,
+        b_lu_start,
+        b_lu_end,
+      )
+
+      captureEvent(session.principal_id, "cultivation_added", {
+        b_id_farm: params.b_id_farm,
+        b_id,
+        b_lu_catalogue,
+        calendar: String(params.calendar),
+      })
+
+      return dataWithSuccess({ closeSheet: true }, { message: "Gewas is toegevoegd! 🎉" })
+    }
+
+    if (formValues.intent === "add_fertilizer") {
+      const { b_id_farm, calendar = "all" } = params
+      if (!b_id_farm) {
+        throw new Error("Farm ID is missing")
+      }
+
+      await addFertilizerApplication(
+        fdm,
+        session.principal_id,
+        formValues.b_id ?? "",
+        formValues.p_id,
+        formValues.p_app_amount_display,
+        formValues.p_app_method,
+        formValues.p_app_date,
+      )
+
+      captureEvent(session.principal_id, "fertilizer_application_added", {
+        b_id_farm,
+        b_id: formValues.b_id,
+        p_id: formValues.p_id,
+        calendar: String(calendar),
+        source: "rotation_table",
+      })
+
+      return dataWithSuccess(
+        { closeSheet: true },
+        {
+          message: `Bemesting succesvol toegevoegd aan het perceel.`,
+        },
+      )
+    }
+
+    if (formValues.intent === "single_harvest") {
+      const targetCultivationInstance = await getCultivation(
+        fdm,
+        session.principal_id,
+        formValues.b_lu ?? "",
+      )
+
+      const termCapitalizedSingular = getHarvestTerm(
+        targetCultivationInstance.b_lu_croprotation,
+        false,
+        targetCultivationInstance.b_lu_harvestable,
+        true,
+      )
+
+      // Get required harvest parameters for the cultivation's harvest category
+      const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+      )
+
+      // Filter form values to include only required parameters for updateHarvest
+      const harvestProperties: Record<string, number> = {}
+      for (const param of requiredHarvestParameters) {
+        if (formValues[param] !== undefined) {
+          harvestProperties[param] = formValues[param]
+        }
+      }
+
+      const effectiveHarvestable = getEffectiveHarvestable(
+        targetCultivationInstance.b_lu_harvestable ?? "once",
+        targetCultivationInstance.b_lu_croprotation,
+      )
+
+      await fdm.transaction(async (tx) => {
+        if (effectiveHarvestable === "once") {
+          // Check for existing harvests for this specific cultivation instance
+          const existingHarvests = await getHarvests(
+            tx,
+            session.principal_id,
+            targetCultivationInstance.b_lu,
+          )
+
+          if (existingHarvests.length > 0) {
+            // If there are existing harvests, remove them before adding new ones
+            for (const harvest of existingHarvests) {
+              await removeHarvest(tx, session.principal_id, harvest.b_id_harvesting)
+            }
+          }
+        }
+
+        await addHarvest(
+          tx,
+          session.principal_id,
+          targetCultivationInstance.b_lu,
+          formValues.b_lu_harvest_date,
+          harvestProperties,
+        )
+      })
+
+      return dataWithSuccess(
+        { closeSheet: true },
+        {
+          message: `${termCapitalizedSingular} succesvol toegevoegd aan het perceel.`,
+        },
+      )
+    }
+  } catch (err) {
+    throw handleActionError(err)
   }
 }
 
@@ -110,6 +363,8 @@ export default function TimelinePage() {
   const isMobile = useIsMobile()
   const [isLandscape, setIsLandscape] = useState(false)
   const { capture } = useAnalytics()
+  const actionData = useActionData()
+  const lastActionData = useRef<unknown>(undefined)
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) {
@@ -182,8 +437,8 @@ export default function TimelinePage() {
   }, [calendar])
 
   const fertilizerTypeById = useMemo(
-    () => new Map(Object.entries(loaderData.fertilizerTypeById)),
-    [loaderData.fertilizerTypeById],
+    () => new Map(loaderData.fertilizerOptions.map((f) => [f.value, f])),
+    [loaderData.fertilizerOptions],
   )
 
   // While this page is mounted, let the sidebar's Calendar year selector scroll the already-
@@ -202,6 +457,19 @@ export default function TimelinePage() {
       return true
     })
   }, [registerJumpToYear])
+
+  // Close the sheet if the action succeeds.
+  useEffect(() => {
+    if (lastActionData.current === actionData) {
+      return
+    }
+
+    if ((actionData as any)?.closeSheet) {
+      setSheetRequest(undefined)
+    }
+
+    lastActionData.current = actionData
+  }, [actionData])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}`,
@@ -275,8 +543,9 @@ export default function TimelinePage() {
       />
       <AddEventSheet
         b_id_farm={loaderData.b_id_farm}
-        calendar={calendar ?? ""}
-        eventFormData={loaderData.eventFormData}
+        calendar={loaderData.calendar}
+        fertilizerOptions={loaderData.fertilizerOptions}
+        cultivationOptions={loaderData.cultivationOptions}
         fields={loaderData.fields}
         onOpenChange={(open) => {
           if (!open) setSheetRequest(undefined)
