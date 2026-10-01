@@ -720,11 +720,14 @@ export function SidebarLabs() {
                     isActive={location.pathname.includes(
                       `/farm/${farmId}/${selectedCalendar}/gerrit`,
                     )}
-                    tooltip="Gerrit's Bemestingsplan"
+                    tooltip="Gerrit (AI-bemestingsplanner)"
                   >
                     <NavLink to={`/farm/${farmId}/${selectedCalendar}/gerrit`}>
                       <Bot />
                       <span>Gerrit</span>
+                      <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                        AI
+                      </Badge>
                     </NavLink>
                   </SidebarMenuButton>
                 ) : (
@@ -737,6 +740,9 @@ export function SidebarLabs() {
                         <span className="flex items-center gap-2">
                           <Bot />
                           <span>Gerrit</span>
+                          <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                            AI
+                          </Badge>
                         </span>
                       </SidebarMenuButton>
                     </TooltipTrigger>
