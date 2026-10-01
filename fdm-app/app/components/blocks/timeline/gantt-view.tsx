@@ -1541,14 +1541,12 @@ export const TimelineGanttView = forwardRef<
                     />
                   ) : null}
                   <GanttFeatureRow
-                    features={features}
-                    onMove={
+                    features={features.map((feature) =>
                       editing.canModify
-                        ? handleFeatureMove
-                        : () => {
-                            remountPreservingScroll()
-                          }
-                    }
+                        ? feature
+                        : { ...feature, draggable: false, resizable: false },
+                    )}
+                    onMove={editing.canModify ? handleFeatureMove : undefined}
                   >
                     {(feature) => (
                       <FeatureContent

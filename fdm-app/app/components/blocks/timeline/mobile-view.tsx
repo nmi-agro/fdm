@@ -40,6 +40,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -207,6 +208,11 @@ function EventCard({
             )}
             {event.type !== "soil_sampling" && (
               <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" type="button">
+                    Verwijderen
+                  </Button>
+                </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>

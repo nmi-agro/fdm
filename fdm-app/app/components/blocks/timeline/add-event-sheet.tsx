@@ -81,6 +81,14 @@ export function AddEventSheet({
   const navigation = useNavigation()
   const deleteFetcher = useFetcher()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const interactionIdRef = useRef(0)
+  const previousRequestRef = useRef(request)
+  const submittedDeleteInteractionRef = useRef<number | null>(null)
+
+  if (request !== previousRequestRef.current) {
+    if (request) interactionIdRef.current += 1
+    previousRequestRef.current = request
+  }
 
   const fertilizerApplication = useMemo(() => {
     if (!request || request.type !== "fertilizer-edit" || !field) return undefined
@@ -159,6 +167,7 @@ export function AddEventSheet({
 
   const handleConfirmDelete = () => {
     if (!request || !field) return
+    submittedDeleteInteractionRef.current = interactionIdRef.current
     if (request.type === "cultivation-edit") {
       const formData = new FormData()
       formData.set("intent", "remove_cultivation")
@@ -186,10 +195,16 @@ export function AddEventSheet({
   const lastActionData = useRef<unknown>(null)
   useEffect(() => {
     if (lastActionData.current === deleteFetcher.data) return
-    if ((deleteFetcher.data as any)?.closeSheet) {
+    const submittedInteraction = submittedDeleteInteractionRef.current
+    if (
+      (deleteFetcher.data as any)?.closeSheet &&
+      submittedInteraction !== null &&
+      submittedInteraction === interactionIdRef.current
+    ) {
       onOpenChange(false)
     }
     lastActionData.current = deleteFetcher.data
+    submittedDeleteInteractionRef.current = null
   })
 
   return (
