@@ -59,6 +59,7 @@ type HarvestFormDialogProps = {
   b_lu_end: Date | undefined | null
   action?: string
   handleConfirmation?: (data: HarvestFormValues) => Promise<boolean>
+  isHarvestUpdate?: boolean
   editable?: boolean
   allowBatch?: boolean
   onBatchClick?: MouseEventHandler
@@ -533,7 +534,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = props.onDelete || b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.isHarvestUpdate ?? b_lu_harvest_date !== undefined
 
   return (
     <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -630,7 +631,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = props.onDelete || b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.isHarvestUpdate ?? b_lu_harvest_date !== undefined
 
   return (
     <div className="space-y-6">

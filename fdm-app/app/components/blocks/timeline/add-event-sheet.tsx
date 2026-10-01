@@ -250,6 +250,7 @@ export function AddEventSheet({
                   key={loadedHarvestableAnalysis.b_lu_catalogue}
                   editable={!areHarvestParametersLoading}
                   allowBatch={false}
+                  isHarvestUpdate={false}
                   b_date_harvest_default={loadedHarvestableAnalysis.b_date_harvest_default}
                   b_lu={cultivation.b_lu}
                   b_lu_cp={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_cp ?? undefined}
@@ -347,6 +348,7 @@ export function AddEventSheet({
             <HarvestForm
               intent={"update_single_harvest"}
               allowBatch={false}
+              isHarvestUpdate={true}
               b_lu={cultivation.b_lu}
               b_id_harvesting={harvest.b_id_harvesting}
               b_lu_cp={harvest.harvestableAnalysis?.b_lu_cp ?? undefined}
