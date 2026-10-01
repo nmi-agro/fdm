@@ -143,7 +143,10 @@ export default function SignIn() {
           method="POST"
           action={verifyActionUrl}
           className="space-y-4"
-          onSubmit={form.handleSubmit}
+          onSubmit={(e) => {
+            capture("signin_code_submitted")
+            void form.handleSubmit(e)
+          }}
         >
           <AuthCodeField
             control={form.control}

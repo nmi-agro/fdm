@@ -6,7 +6,8 @@ if (process.env.PUBLIC_SENTRY_DSN) {
     dsn: process.env.PUBLIC_SENTRY_DSN,
     integrations: [nodeProfilingIntegration()],
     tracesSampleRate: Number(process.env.PUBLIC_SENTRY_TRACE_SAMPLE_RATE ?? 1),
-    profilesSampleRate: Number(process.env.PUBLIC_SENTRY_PROFILE_SAMPLE_RATE ?? 1),
+    profileSessionSampleRate: Number(process.env.PUBLIC_SENTRY_PROFILE_SAMPLE_RATE ?? 1),
+    profileLifecycle: "trace",
     ignoreErrors: [
       /BodyStreamBuffer was aborted/,
       // Ignore expected 405 Method Not Allowed errors caused by bots/crawlers making OPTIONS requests
@@ -14,6 +15,19 @@ if (process.env.PUBLIC_SENTRY_DSN) {
     ],
     environment: process.env.NODE_ENV ?? "development",
     release: process.env.npm_package_version,
+    dataCollection: {
+      userInfo: true,
+      cookies: true,
+      httpHeaders: {
+        request: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+        response: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+      },
+      httpBodies: [],
+      urlQueryParams: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+      genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      graphQL: { document: false, variables: false },
+    },
   })
   console.log(
     `[Sentry] Server SDK initialized (release: ${process.env.npm_package_version}, env: ${process.env.NODE_ENV ?? "development"})`,
