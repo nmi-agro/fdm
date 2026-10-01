@@ -99,38 +99,66 @@ export async function addSoilAnalysis(
 }
 
 /**
- * Updates an existing soil analysis record and the related soil sampling timestamp.
+ * Updates an existing soil analysis record and its related soil sampling record.
  *
  * This function first verifies whether the principal has write permission for the specified soil
  * analysis record. It then executes a transaction to update the soil analysis entry with the provided
- * changes and refreshes the corresponding soil sampling record's update timestamp.
+ * changes. The sampling date (`b_sampling_date`) and lower sampling depth (`a_depth_lower`) are
+ * stored on the soil sampling record and can be updated through the same call. The update timestamp
+ * of the sampling record is always refreshed.
+ *
+ * Fields that are omitted or `undefined` are left unchanged. Pass `null` for a nullable field
+ * (for example a BCS score such as `a_ss_bcs`) to clear its value.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - Identifier of the principal performing the update.
  * @param a_id - The unique identifier of the soil analysis record to update.
  * @param soilAnalysisData - Object containing the fields to update; supports partial updates.
- * @throws {Error} If the database transaction fails or the permission check does not pass.
+ * @throws {Error} If the database transaction fails, the permission check does not pass, or
+ *   `a_depth_lower` is not greater than the existing upper depth.
  */
 export async function updateSoilAnalysis(
   fdm: FdmType,
   principal_id: PrincipalId,
   a_id: schema.soilAnalysisTypeSelect["a_id"],
-  soilAnalysisData: Partial<schema.soilAnalysisTypeInsert>,
+  soilAnalysisData: Partial<schema.soilAnalysisTypeInsert> &
+    Partial<Pick<schema.soilSamplingTypeInsert, "b_sampling_date" | "a_depth_lower">>,
 ): Promise<void> {
   try {
     await checkPermission(fdm, "soil_analysis", "write", a_id, principal_id, "updateSoilAnalysis")
 
+    const { b_sampling_date, a_depth_lower, ...analysisData } = soilAnalysisData
+
+    if (a_depth_lower != null && Number.isNaN(a_depth_lower)) {
+      throw new Error("a_depth_lower must be a valid number")
+    }
+
     return await fdm.transaction(async (tx) => {
       const updated = new Date()
 
+      if (a_depth_lower != null) {
+        const [sampling] = await tx
+          .select({ a_depth_upper: schema.soilSampling.a_depth_upper })
+          .from(schema.soilSampling)
+          .where(eq(schema.soilSampling.a_id, a_id))
+          .limit(1)
+        if (sampling && a_depth_lower <= sampling.a_depth_upper) {
+          throw new Error("a_depth_lower must be greater than a_depth_upper")
+        }
+      }
+
       await tx
         .update(schema.soilAnalysis)
-        .set({ updated: updated, ...soilAnalysisData })
+        .set({ updated: updated, ...analysisData })
         .where(eq(schema.soilAnalysis.a_id, a_id))
 
       await tx
         .update(schema.soilSampling)
-        .set({ updated: updated })
+        .set({
+          updated: updated,
+          ...(b_sampling_date !== undefined ? { b_sampling_date } : {}),
+          ...(a_depth_lower !== undefined ? { a_depth_lower } : {}),
+        })
         .where(eq(schema.soilSampling.a_id, a_id))
     })
   } catch (err) {

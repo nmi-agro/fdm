@@ -243,6 +243,75 @@ describe("Soil Analysis Functions", () => {
     expect(updatedAnalysis[0].a_n_rt).toEqual(1000)
   })
 
+  it("should update sampling date, depth and clear a score", async () => {
+    test_a_id = await addSoilAnalysis(
+      fdm,
+      principal_id,
+      new Date("2025-02-01"),
+      "other",
+      b_id,
+      25,
+      new Date("2025-02-01"),
+      { a_ss_bcs: 2, a_rd_bcs: 1 },
+    )
+
+    const newSamplingDate = new Date("2025-03-15")
+    await updateSoilAnalysis(fdm, principal_id, test_a_id, {
+      a_date: newSamplingDate,
+      b_sampling_date: newSamplingDate,
+      a_depth_lower: 40,
+      a_ss_bcs: 0,
+      a_rd_bcs: null,
+    })
+
+    const [analysis] = await fdm
+      .select()
+      .from(schema.soilAnalysis)
+      .where(eq(schema.soilAnalysis.a_id, test_a_id))
+    const [sampling] = await fdm
+      .select()
+      .from(schema.soilSampling)
+      .where(eq(schema.soilSampling.a_id, test_a_id))
+
+    expect(analysis.a_date).toEqual(newSamplingDate)
+    expect(analysis.a_ss_bcs).toEqual(0)
+    expect(analysis.a_rd_bcs).toBeNull()
+    expect(sampling.b_sampling_date).toEqual(newSamplingDate)
+    expect(sampling.a_depth_lower).toEqual(40)
+  })
+
+  it("should reject an a_depth_lower that is not below a_depth_upper", async () => {
+    test_a_id = await addSoilAnalysis(
+      fdm,
+      principal_id,
+      new Date(),
+      "other",
+      b_id,
+      30,
+      new Date(),
+    )
+
+    await expect(
+      updateSoilAnalysis(fdm, principal_id, test_a_id, { a_depth_lower: 0 }),
+    ).rejects.toThrowError("Exception for updateSoilAnalysis")
+  })
+
+  it("should not allow updating a soil analysis without write permission", async () => {
+    test_a_id = await addSoilAnalysis(
+      fdm,
+      principal_id,
+      new Date(),
+      "other",
+      b_id,
+      30,
+      new Date(),
+    )
+
+    await expect(
+      updateSoilAnalysis(fdm, createId(), test_a_id, { b_sampling_date: new Date() }),
+    ).rejects.toThrowError("Principal does not have permission to perform this action")
+  })
+
   // Test removing existing soil data
   it("should remove an existing soil analysis", async () => {
     const a_date = new Date()
