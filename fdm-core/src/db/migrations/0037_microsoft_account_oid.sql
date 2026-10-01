@@ -9,6 +9,7 @@ DECLARE
   b64 text;
   new_oid text;
   migrated integer := 0;
+  skipped integer := 0;
 BEGIN
   FOR r IN
     SELECT id, account_id, id_token
@@ -18,6 +19,7 @@ BEGIN
     payload := NULL;
     IF r.id_token IS NULL OR r.id_token = '' THEN
       RAISE WARNING 'microsoft account % skipped: no id_token', r.id;
+      skipped := skipped + 1;
       CONTINUE;
     END IF;
 
@@ -27,12 +29,14 @@ BEGIN
       payload := convert_from(decode(b64, 'base64'), 'UTF8')::jsonb;
     EXCEPTION WHEN OTHERS THEN
       RAISE WARNING 'microsoft account % skipped: undecodable id_token', r.id;
+      skipped := skipped + 1;
       CONTINUE;
     END;
 
     new_oid := payload ->> 'oid';
     IF new_oid IS NULL OR new_oid = '' THEN
       RAISE WARNING 'microsoft account % skipped: no oid claim', r.id;
+      skipped := skipped + 1;
       CONTINUE;
     END IF;
 
@@ -42,6 +46,7 @@ BEGIN
 
     IF payload ->> 'sub' IS DISTINCT FROM r.account_id THEN
       RAISE WARNING 'microsoft account % skipped: sub does not match account_id', r.id;
+      skipped := skipped + 1;
       CONTINUE;
     END IF;
 
@@ -50,6 +55,7 @@ BEGIN
       WHERE provider_id = 'microsoft' AND account_id = new_oid AND id <> r.id
     ) THEN
       RAISE WARNING 'microsoft account % skipped: oid already in use', r.id;
+      skipped := skipped + 1;
       CONTINUE;
     END IF;
 
@@ -60,4 +66,7 @@ BEGIN
   END LOOP;
 
   RAISE NOTICE 'microsoft accounts migrated to oid: %', migrated;
+  IF skipped > 0 THEN
+    RAISE WARNING '% microsoft account(s) could not be migrated to oid and will not match on next sign-in; resolve them manually (see warnings above)', skipped;
+  END IF;
 END $$;
