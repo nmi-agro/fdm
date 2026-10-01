@@ -1,6 +1,6 @@
 # AGENTS.md / Copilot Instructions for `nmi-agro/fdm`
 
-Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=24`, `pnpm@11.25.0` enforced).
+Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=24`, `pnpm@12.8.1` enforced).
 
 ## 1. Landmines (confidently wrong assumptions)
 
