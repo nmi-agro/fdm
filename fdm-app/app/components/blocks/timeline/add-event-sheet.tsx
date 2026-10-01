@@ -128,7 +128,9 @@ export function AddEventSheet({
           )
           if (response.ok) {
             const data = await response.json()
-            setLoadedHarvestableAnalysis(data)
+            if (!abortController.signal.aborted) {
+              setLoadedHarvestableAnalysis(data)
+            }
           } else {
             console.error(`Harvestable analysis endpoint returned status ${response.status}.`)
           }
@@ -137,7 +139,9 @@ export function AddEventSheet({
             return
           }
           console.error(err)
-          setLoadedHarvestableAnalysis({})
+          if (!abortController.signal.aborted) {
+            setLoadedHarvestableAnalysis({})
+          }
           return
         })
       })
