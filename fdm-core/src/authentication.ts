@@ -73,6 +73,7 @@ export function createFdmAuth(
     database: drizzleAdapter(fdm, {
       provider: "pg",
       schema: authNSchema,
+      schemaName: "fdm-authn",
     }),
     user: {
       additionalFields: {
