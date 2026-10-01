@@ -31,9 +31,19 @@ import {
 import { TimelineFiltersPopover } from "~/components/blocks/timeline/timeline-filters"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import { Card, CardFooter, CardHeader } from "~/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
@@ -119,12 +129,13 @@ function EventCard({
   const fetcher = useFetcher({ key: TIMELINE_FETCHER_KEY })
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="flex flex-row items-start">
+      <CardHeader className="flex flex-row items-start gap-2">
         <EventTypeIcon event={event} />
-        <div className="min-w-0 flex-1 space-y-0.5">
+        <NavLink to={event.href} className="block min-w-0 flex-1 space-y-0.5 p-0">
           <div className="flex items-center gap-2">
             <Badge
               className="max-w-[60%] truncate text-xs"
+              style={{ textDecoration: "none" }}
               title={event.fieldName}
               variant="secondary"
             >
@@ -135,11 +146,13 @@ function EventCard({
             </span>
           </div>
           <p className="text-sm font-medium break-words">{event.label}</p>
-          {event.sublabel && (
-            <p className="text-muted-foreground text-sm break-words">{event.sublabel}</p>
-          )}
-        </div>
+        </NavLink>
       </CardHeader>
+      {event.sublabel && (
+        <CardContent className="text-muted-foreground text-sm break-words">
+          {event.sublabel}
+        </CardContent>
+      )}
       <CardFooter className="justify-end gap-2">
         <Button variant="outline" type="button" asChild>
           <NavLink to={event.href}>Bekijken</NavLink>
@@ -193,27 +206,42 @@ function EventCard({
               </Button>
             )}
             {event.type !== "soil_sampling" && (
-              <fetcher.Form method="POST">
-                {event.type === "cultivation_start" || event.type === "cultivation_end" ? (
-                  <>
-                    <input type="hidden" name="intent" value="remove_cultivation" />
-                    <input type="hidden" name="b_lu" value={event.b_lu} />
-                  </>
-                ) : event.type === "harvest" ? (
-                  <>
-                    <input type="hidden" name="intent" value="remove_harvest" />
-                    <input type="hidden" name="b_id_harvesting" value={event.b_id_harvesting} />
-                  </>
-                ) : (
-                  <>
-                    <input type="hidden" name="intent" value="remove_fertilizer" />
-                    <input type="hidden" name="p_app_id" value={event.p_app_id} />
-                  </>
-                )}
-                <Button variant="destructive" type="submit">
-                  Verwijderen
-                </Button>
-              </fetcher.Form>
+              <AlertDialog>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Dit kan niet ongedaan worden gemaakt.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                    <fetcher.Form method="POST">
+                      {event.type === "cultivation_start" || event.type === "cultivation_end" ? (
+                        <>
+                          <input type="hidden" name="intent" value="remove_cultivation" />
+                          <input type="hidden" name="b_lu" value={event.b_lu} />
+                        </>
+                      ) : event.type === "harvest" ? (
+                        <>
+                          <input type="hidden" name="intent" value="remove_harvest" />
+                          <input
+                            type="hidden"
+                            name="b_id_harvesting"
+                            value={event.b_id_harvesting}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <input type="hidden" name="intent" value="remove_fertilizer" />
+                          <input type="hidden" name="p_app_id" value={event.p_app_id} />
+                        </>
+                      )}
+                      <AlertDialogAction type="submit">Verwijderen</AlertDialogAction>
+                    </fetcher.Form>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </>
         )}
