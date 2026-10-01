@@ -11,6 +11,7 @@ import {
   getFertilizers,
   getHarvests,
   getParametersForHarvestCat,
+  HarvestParameters,
   removeCultivation,
   removeHarvest,
   updateCultivation,
@@ -22,7 +23,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useActionData, useLoaderData, useParams } from "react-router"
-import { dataWithError, dataWithSuccess } from "remix-toast"
+import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
 import z from "zod"
 import type { Range } from "@/app/components/kibo-ui/gantt"
 import type {
@@ -36,7 +37,10 @@ import type {
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { FormSchema as FertilizerApplicationFormSchema } from "~/components/blocks/fertilizer-applications/formschema"
+import {
+  FormSchema as FertilizerApplicationFormSchema,
+  FormSchemaModify as FertilizerApplicationFormSchemaModify,
+} from "~/components/blocks/fertilizer-applications/formschema"
 import { FormSchema as HarvestFormSchema } from "~/components/blocks/harvest/schema"
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
@@ -60,6 +64,7 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump } from "~/store/calendar"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
+import { getHarvestParameterLabel } from "../components/blocks/harvest/parameters"
 
 // The years the timeline can ever request must stay within the app's supported Calendar range
 // (see ~/lib/calendar's getCalendarSelection), so scrolling can never ask for a year that isn't a
@@ -201,8 +206,12 @@ const ActionSchema = z.discriminatedUnion("intent", [
     intent: z.literal("update_cultivation"),
   }),
   HarvestFormSchema.safeExtend({ intent: z.literal("single_harvest") }),
+  HarvestFormSchema.safeExtend({ intent: z.literal("update_single_harvest") }),
   FertilizerApplicationFormSchema.safeExtend({
     intent: z.literal("add_fertilizer"),
+  }),
+  FertilizerApplicationFormSchemaModify.safeExtend({
+    intent: z.literal("update_fertilizer"),
   }),
   z.object({
     intent: z.literal("update_fertilizer_date"),
@@ -244,6 +253,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
 
     const intentsWithoutBId: (typeof formValues.intent)[] = [
       "single_harvest",
+      "update_single_harvest",
       "update_fertilizer_date",
       "update_harvest_date",
       "remove_cultivation",
@@ -257,8 +267,15 @@ export async function action({ request, params }: Route.LoaderArgs) {
       return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
     }
 
+    if (formValues.intent === "update_single_harvest" && !formValues.b_id_harvesting) {
+      console.error(`Timeline route didn't submit b_id_harvesting. Intent was ${formValues.intent}`)
+      return dataWithError(null, "Er is iets fout gegaan met jouw invoer.")
+    }
+
     if (
-      (formValues.intent === "single_harvest" || formValues.intent === "update_cultivation") &&
+      (formValues.intent === "single_harvest" ||
+        formValues.intent === "update_single_harvest" ||
+        formValues.intent === "update_cultivation") &&
       !formValues.b_lu
     ) {
       console.error(`Timeline route didn't submit b_lu. Intent was ${formValues.intent}`)
@@ -287,7 +304,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
     }
 
     if (formValues.intent === "update_cultivation") {
-      const { b_lu_catalogue, b_id, b_lu, b_lu_start, b_lu_end } = formValues
+      const { b_lu_catalogue, b_lu, b_lu_start, b_lu_end } = formValues
       await updateCultivation(
         fdm,
         session.principal_id,
@@ -296,13 +313,6 @@ export async function action({ request, params }: Route.LoaderArgs) {
         b_lu_start,
         b_lu_end,
       )
-
-      captureEvent(session.principal_id, "cultivation_added", {
-        b_id_farm: params.b_id_farm,
-        b_id,
-        b_lu_catalogue,
-        calendar: String(params.calendar),
-      })
 
       return dataWithSuccess({ closeSheet: true }, { message: "Gewas is bijgewerkt." })
     }
@@ -339,6 +349,30 @@ export async function action({ request, params }: Route.LoaderArgs) {
       )
     }
 
+    if (formValues.intent === "update_fertilizer") {
+      const { b_id_farm } = params
+      if (!b_id_farm) {
+        throw new Error("Farm ID is missing")
+      }
+
+      await updateFertilizerApplication(
+        fdm,
+        session.principal_id,
+        formValues.p_app_id,
+        formValues.p_id,
+        formValues.p_app_amount_display,
+        formValues.p_app_method,
+        formValues.p_app_date,
+      )
+
+      return dataWithSuccess(
+        { closeSheet: true },
+        {
+          message: `Bemesting succesvol bijgewerkt.`,
+        },
+      )
+    }
+
     if (formValues.intent === "single_harvest") {
       const targetCultivationInstance = await getCultivation(
         fdm,
@@ -357,6 +391,30 @@ export async function action({ request, params }: Route.LoaderArgs) {
       const requiredHarvestParameters = getParametersForHarvestCat(
         targetCultivationInstance.b_lu_harvestcat,
       )
+
+      // Check if all required parameters are present
+      const missingParameters: HarvestParameters = []
+      for (const param of requiredHarvestParameters) {
+        if (
+          (formValues as Record<string, any>)[param] === undefined ||
+          (formValues as Record<string, any>)[param] === null
+        ) {
+          missingParameters.push(param)
+        }
+      }
+
+      const missingParameterLabels = missingParameters.map((param) => {
+        return getHarvestParameterLabel(param)
+      })
+
+      if (missingParameters.length > 0) {
+        return dataWithWarning(
+          {
+            warning: `Missing required harvest parameters: ${missingParameters.join(", ")}`,
+          },
+          `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(", ")}`,
+        )
+      }
 
       // Filter form values to include only required parameters for updateHarvest
       const harvestProperties: Record<string, number> = {}
@@ -401,6 +459,84 @@ export async function action({ request, params }: Route.LoaderArgs) {
         { closeSheet: true },
         {
           message: `${termCapitalizedSingular} succesvol toegevoegd aan het perceel.`,
+        },
+      )
+    }
+
+    if (formValues.intent === "update_single_harvest") {
+      const targetCultivationInstance = await getCultivation(
+        fdm,
+        session.principal_id,
+        formValues.b_lu ?? "",
+      )
+
+      const termCapitalizedSingular = getHarvestTerm(
+        targetCultivationInstance.b_lu_croprotation,
+        false,
+        targetCultivationInstance.b_lu_harvestable,
+        true,
+      )
+
+      if (!formValues.b_lu_harvest_date) {
+        const errors = [
+          {
+            path: "b_lu_harvest_date",
+            message: "Selecteer een oogstdatum",
+          },
+        ]
+
+        throw new Error(JSON.stringify(errors))
+      }
+
+      // Get required harvest parameters for the cultivation's harvest category
+      const requiredHarvestParameters = getParametersForHarvestCat(
+        targetCultivationInstance.b_lu_harvestcat,
+      )
+
+      // Check if all required parameters are present
+      const missingParameters: HarvestParameters = []
+      for (const param of requiredHarvestParameters) {
+        if (
+          (formValues as Record<string, any>)[param] === undefined ||
+          (formValues as Record<string, any>)[param] === null
+        ) {
+          missingParameters.push(param)
+        }
+      }
+
+      const missingParameterLabels = missingParameters.map((param) => {
+        return getHarvestParameterLabel(param)
+      })
+
+      if (missingParameters.length > 0) {
+        return dataWithWarning(
+          {
+            warning: `Missing required harvest parameters: ${missingParameters.join(", ")}`,
+          },
+          `Voor de volgende parameters ontbreekt een waarde: ${missingParameterLabels.join(", ")}`,
+        )
+      }
+
+      // Filter form values to include only required parameters for updateHarvest
+      const harvestProperties: Record<string, any> = {}
+      for (const param of requiredHarvestParameters) {
+        if ((formValues as Record<string, any>)[param] !== undefined) {
+          harvestProperties[param] = (formValues as Record<string, any>)[param]
+        }
+      }
+
+      await updateHarvest(
+        fdm,
+        session.principal_id,
+        formValues.b_id_harvesting ?? "",
+        formValues.b_lu_harvest_date,
+        harvestProperties,
+      )
+
+      return dataWithSuccess(
+        { closeSheet: true },
+        {
+          message: `${termCapitalizedSingular} succesvol bijgewerkt aan het perceel.`,
         },
       )
     }
@@ -606,6 +742,8 @@ export default function TimelinePage() {
               fields={loaderData.fields}
               filters={filters}
               onFiltersChange={setFilters}
+              canModify={loaderData.farmWritePermission}
+              onRequest={setSheetRequest}
             />
           </>
         ) : (

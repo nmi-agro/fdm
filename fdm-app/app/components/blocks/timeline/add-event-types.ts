@@ -9,7 +9,7 @@ export type AddEventType = "fertilizer" | "harvest" | "soil" | "cultivation-star
  */
 export type AddEventContext = {
   b_id: string
-  date: Date
+  date?: Date
   b_lu?: string
 }
 
@@ -21,3 +21,4 @@ export type AddEventSheetRequest =
   | { type: "cultivation-end"; context: AddEventContext }
   | { type: "cultivation-edit"; context: AddEventContext & { b_lu: string } }
   | { type: "fertilizer-edit"; context: AddEventContext & { p_app_id: string } }
+  | { type: "harvest-edit"; context: AddEventContext & { b_lu: string; b_id_harvesting: string } }

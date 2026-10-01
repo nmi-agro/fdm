@@ -55,6 +55,7 @@ export async function fetchTimelineFields(
           const parameters = fillableParameters
             .filter((param) => analysis?.[param] != null)
             .map((param) => ({
+              id: param,
               label: getHarvestParameterLabel(param),
               value: analysis?.[param] as number,
             }))
@@ -64,6 +65,10 @@ export async function fetchTimelineFields(
             b_lu_name: cultivation.b_lu_name,
             b_lu_harvest_date: harvest.b_lu_harvest_date,
             parameters,
+            harvestableAnalysis:
+              harvest.harvestable.harvestable_analyses.length > 0
+                ? harvest.harvestable.harvestable_analyses[0]
+                : null,
           }
         }),
       )

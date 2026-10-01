@@ -7,6 +7,7 @@ import { CultivationAddForm } from "~/components/blocks/cultivation/form-add"
 import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
 import {
   FormSchema as FertilizerApplicationFormSchema,
+  FormSchemaModify as FertilizerApplicationFormSchemaModify,
   type FormSchemaPartial as FertilizerApplicationFormSchemaPartial,
 } from "~/components/blocks/fertilizer-applications/formschema"
 import { HarvestForm } from "~/components/blocks/harvest/form"
@@ -30,6 +31,7 @@ import {
   SheetTitle,
 } from "~/components/ui/sheet"
 import type { AddEventSheetRequest } from "./add-event-types"
+import { getHarvestTerm } from "../harvest/utils"
 import { findActiveCultivationForDate, type TimelineField } from "./gantt-view"
 
 const SHEET_TITLES: Record<AddEventSheetRequest["type"], string> = {
@@ -39,6 +41,7 @@ const SHEET_TITLES: Record<AddEventSheetRequest["type"], string> = {
   fertilizer: "Bemesting toevoegen",
   "fertilizer-edit": "Bemesting bewerken",
   harvest: "Oogst registreren",
+  "harvest-edit": "Oogst bewerken",
 }
 
 /**
@@ -89,12 +92,20 @@ export function AddEventSheet({
     if (request.context.b_lu) {
       return field.cultivations.find((c) => c.b_lu === request.context.b_lu)
     }
+    if (!request.context.date) {
+      return undefined
+    }
     return findActiveCultivationForDate(
       field.cultivations,
       request.context.date,
       new Date(8640000000000000),
     )
   }, [request, field])
+
+  const harvest = useMemo(() => {
+    if (!request || request.type !== "harvest-edit") return undefined
+    return field?.harvests.find((h) => h.b_id_harvesting === request.context.b_id_harvesting)
+  }, [field, request])
 
   const [loadedHarvestableAnalysis, setLoadedHarvestableAnalysis] = useState<
     Partial<TimelineHarvestParametersResult>
@@ -164,8 +175,16 @@ export function AddEventSheet({
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>{request ? SHEET_TITLES[request.type] : ""}</SheetTitle>
+        <SheetHeader className="mb-4">
+          <SheetTitle>
+            {!request
+              ? ""
+              : request.type === "harvest-edit"
+                ? `${getHarvestTerm(cultivation?.b_lu_croprotation, false, cultivation?.b_lu_harvestable, true)} bewerken`
+                : request.type === "harvest"
+                  ? `${getHarvestTerm(cultivation?.b_lu_croprotation, false, cultivation?.b_lu_harvestable, true)} toevoegen`
+                  : SHEET_TITLES[request.type]}
+          </SheetTitle>
           <SheetDescription>
             {field ? `Perceel: ${field.b_name}` : "Kies eerst een perceel"}
           </SheetDescription>
@@ -175,7 +194,7 @@ export function AddEventSheet({
             <FertilizerApplicationForm
               intent="add_fertilizer"
               b_id={field.b_id}
-              action={"#"}
+              action="#"
               b_id_farm={b_id_farm}
               b_id_or_b_lu_catalogue={field.b_id}
               fertilizerApplication={{ p_app_date: request.context.date }}
@@ -248,7 +267,7 @@ export function AddEventSheet({
               defaultValues={{
                 b_lu_catalogue: cultivation ? cultivation.b_lu_catalogue : "",
                 b_lu_start:
-                  request.type === "cultivation-start"
+                  request.type === "cultivation-start" && request.context.date
                     ? request.context.date
                     : (cultivation?.b_lu_start ?? new Date()),
                 b_lu_end:
@@ -274,7 +293,8 @@ export function AddEventSheet({
           ) : null}
           {request && field && request.type === "fertilizer-edit" && fertilizerApplication ? (
             <FertilizerApplicationForm
-              action={`/farm/${b_id_farm}/${calendar}/field/${field.b_id}/fertilizer`}
+              intent="update_fertilizer"
+              action="#"
               b_id={field.b_id}
               b_id_farm={b_id_farm}
               b_id_or_b_lu_catalogue={field.b_id}
@@ -286,6 +306,32 @@ export function AddEventSheet({
               fieldsClassName="md:grid-cols-1"
               navigation={navigation as never}
               options={fertilizerOptions}
+              schema={
+                FertilizerApplicationFormSchemaModify as unknown as typeof FertilizerApplicationFormSchemaPartial
+              }
+            />
+          ) : null}
+          {request && cultivation && request.type === "harvest-edit" && harvest ? (
+            <HarvestForm
+              intent={"update_single_harvest"}
+              allowBatch={false}
+              b_lu={cultivation.b_lu}
+              b_id_harvesting={harvest.b_id_harvesting}
+              b_lu_cp={harvest.harvestableAnalysis?.b_lu_cp ?? undefined}
+              b_lu_croprotation={cultivation?.b_lu_croprotation ?? undefined}
+              b_lu_dm={harvest.harvestableAnalysis?.b_lu_dm ?? undefined}
+              b_lu_end={cultivation.b_lu_end}
+              b_lu_harvest_date={harvest.b_lu_harvest_date}
+              b_lu_harvestable={cultivation.b_lu_harvestable}
+              b_lu_moist={harvest.harvestableAnalysis?.b_lu_moist ?? undefined}
+              b_lu_n_harvestable={harvest.harvestableAnalysis?.b_lu_n_harvestable ?? undefined}
+              b_lu_start={cultivation.b_lu_start}
+              b_lu_tarra={harvest.harvestableAnalysis?.b_lu_tarra ?? undefined}
+              b_lu_uww={harvest.harvestableAnalysis?.b_lu_uww ?? undefined}
+              b_lu_yield={harvest.harvestableAnalysis?.b_lu_yield ?? undefined}
+              b_lu_yield_bruto={harvest.harvestableAnalysis?.b_lu_yield_bruto ?? undefined}
+              b_lu_yield_fresh={harvest.harvestableAnalysis?.b_lu_yield_fresh ?? undefined}
+              harvestParameters={harvest.parameters.map((x) => x.id)}
             />
           ) : null}
         </div>

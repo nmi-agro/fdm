@@ -2,7 +2,7 @@ import { format, isToday } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useNavigate } from "react-router"
+import { NavLink, useFetcher } from "react-router"
 import type {
   FertilizerTypeInfo,
   TimelineField,
@@ -33,13 +33,16 @@ import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent } from "~/components/ui/card"
+import { Card, CardFooter, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
+import { AddEventSheetRequest } from "./add-event-types"
 
 const INITIAL_GROUPS = 10
 const GROUPS_PER_LOAD = 10
+
+export const TIMELINE_FETCHER_KEY = "TIMELINE_FETCHER_KEY"
 
 const eventTypeLabel: Record<TimelineEventType, string> = {
   fertilizer: "Bemesting",
@@ -104,38 +107,117 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
   )
 }
 
-function EventCard({ event }: { event: TimelineEvent }) {
-  const navigate = useNavigate()
-
+function EventCard({
+  event,
+  canModify,
+  onRequest,
+}: {
+  event: TimelineEvent
+  canModify: boolean
+  onRequest: (request: AddEventSheetRequest) => void
+}) {
+  const fetcher = useFetcher({ key: TIMELINE_FETCHER_KEY })
   return (
     <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        <button
-          className="focus-visible:ring-ring/50 flex w-full items-start gap-3 p-3 text-left outline-none focus-visible:ring-[3px]"
-          onClick={() => void navigate(event.href)}
-          type="button"
-        >
-          <EventTypeIcon event={event} />
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="flex items-center gap-2">
-              <Badge
-                className="max-w-[60%] truncate text-xs"
-                title={event.fieldName}
-                variant="secondary"
-              >
-                {event.fieldName}
-              </Badge>
-              <span className="text-muted-foreground shrink-0 text-xs">
-                {eventTypeLabel[event.type]}
-              </span>
-            </div>
-            <p className="text-sm font-medium break-words">{event.label}</p>
-            {event.sublabel && (
-              <p className="text-muted-foreground text-sm break-words">{event.sublabel}</p>
-            )}
+      <CardHeader className="flex flex-row items-start">
+        <EventTypeIcon event={event} />
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <div className="flex items-center gap-2">
+            <Badge
+              className="max-w-[60%] truncate text-xs"
+              title={event.fieldName}
+              variant="secondary"
+            >
+              {event.fieldName}
+            </Badge>
+            <span className="text-muted-foreground shrink-0 text-xs">
+              {eventTypeLabel[event.type]}
+            </span>
           </div>
-        </button>
-      </CardContent>
+          <p className="text-sm font-medium break-words">{event.label}</p>
+          {event.sublabel && (
+            <p className="text-muted-foreground text-sm break-words">{event.sublabel}</p>
+          )}
+        </div>
+      </CardHeader>
+      <CardFooter className="justify-end gap-2">
+        <Button variant="outline" type="button" asChild>
+          <NavLink to={event.href}>Bekijken</NavLink>
+        </Button>
+        {canModify && (
+          <>
+            {event.type !== "soil_sampling" && (
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => {
+                  if (
+                    (event.type === "cultivation_start" || event.type === "cultivation_end") &&
+                    event.b_lu
+                  ) {
+                    onRequest({
+                      type: "cultivation-edit",
+                      context: {
+                        b_id: event.fieldId,
+                        b_lu: event.b_lu,
+                        date: undefined,
+                      },
+                    })
+                  }
+
+                  if (event.type === "fertilizer" && event.p_app_id) {
+                    onRequest({
+                      type: "fertilizer-edit",
+                      context: {
+                        b_id: event.fieldId,
+                        p_app_id: event.p_app_id,
+                        date: undefined,
+                      },
+                    })
+                  }
+
+                  if (event.type === "harvest" && event.b_lu && event.b_id_harvesting) {
+                    onRequest({
+                      type: "harvest-edit",
+                      context: {
+                        b_id: event.fieldId,
+                        b_lu: event.b_lu,
+                        b_id_harvesting: event.b_id_harvesting,
+                        date: undefined,
+                      },
+                    })
+                  }
+                }}
+              >
+                Bewerken
+              </Button>
+            )}
+            {event.type !== "soil_sampling" && (
+              <fetcher.Form method="POST">
+                {event.type === "cultivation_start" || event.type === "cultivation_end" ? (
+                  <>
+                    <input type="hidden" name="intent" value="remove_cultivation" />
+                    <input type="hidden" name="b_lu" value={event.b_lu} />
+                  </>
+                ) : event.type === "harvest" ? (
+                  <>
+                    <input type="hidden" name="intent" value="remove_harvest" />
+                    <input type="hidden" name="b_id_harvesting" value={event.b_id_harvesting} />
+                  </>
+                ) : (
+                  <>
+                    <input type="hidden" name="intent" value="remove_fertilizer" />
+                    <input type="hidden" name="p_app_id" value={event.p_app_id} />
+                  </>
+                )}
+                <Button variant="destructive" type="submit">
+                  Verwijderen
+                </Button>
+              </fetcher.Form>
+            )}
+          </>
+        )}
+      </CardFooter>
     </Card>
   )
 }
@@ -220,9 +302,13 @@ function ActiveCultivationBar({
 function DateGroupedFeed({
   groups,
   stickyOffset,
+  onRequest,
+  canModify,
 }: {
   groups: ReturnType<typeof groupEventsByDate>
   stickyOffset: number
+  onRequest: (request: AddEventSheetRequest) => void
+  canModify: boolean
 }) {
   return (
     <div className="space-y-4">
@@ -242,7 +328,12 @@ function DateGroupedFeed({
             </h3>
             <div className="space-y-2">
               {group.events.map((event) => (
-                <EventCard event={event} key={event.id} />
+                <EventCard
+                  event={event}
+                  key={event.id}
+                  onRequest={onRequest}
+                  canModify={canModify}
+                />
               ))}
             </div>
           </section>
@@ -257,11 +348,15 @@ function FieldGroupedView({
   expandedFields,
   onToggleField,
   fieldHeaderRefs,
+  canModify,
+  onRequest,
 }: {
   groups: ReturnType<typeof groupEventsByField>
   expandedFields: Set<string>
   onToggleField: (fieldId: string) => void
   fieldHeaderRefs: React.MutableRefObject<Map<string, HTMLDivElement | null>>
+  canModify: boolean
+  onRequest: (event: AddEventSheetRequest) => void
 }) {
   return (
     <div className="space-y-4">
@@ -344,7 +439,12 @@ function FieldGroupedView({
               ) : (
                 <div className="space-y-2">
                   {events.map((event) => (
-                    <EventCard event={event} key={event.id} />
+                    <EventCard
+                      event={event}
+                      key={event.id}
+                      canModify={canModify}
+                      onRequest={onRequest}
+                    />
                   ))}
                 </div>
               )}
@@ -363,6 +463,8 @@ export function TimelineMobileView({
   calendar,
   filters,
   onFiltersChange,
+  canModify,
+  onRequest,
 }: {
   fields: TimelineField[]
   fertilizerTypeById: Map<string, FertilizerTypeInfo>
@@ -370,6 +472,8 @@ export function TimelineMobileView({
   calendar: string
   filters: TimelineFilters
   onFiltersChange: (filters: TimelineFilters) => void
+  canModify: boolean
+  onRequest: (request: AddEventSheetRequest) => void
 }) {
   const [viewMode, setViewMode] = useState<"date" | "field">("date")
   const [monthYear, setMonthYear] = useState<string>("")
@@ -557,7 +661,12 @@ export function TimelineMobileView({
         </Empty>
       ) : viewMode === "date" ? (
         <>
-          <DateGroupedFeed groups={visibleDateGroups} stickyOffset={cultivationBarHeight} />
+          <DateGroupedFeed
+            groups={visibleDateGroups}
+            stickyOffset={cultivationBarHeight}
+            canModify={canModify}
+            onRequest={onRequest}
+          />
           {hasMore ? (
             <div aria-hidden className="h-8" ref={sentinelRef} />
           ) : (
@@ -573,6 +682,8 @@ export function TimelineMobileView({
             fieldHeaderRefs={fieldHeaderRefs}
             groups={visibleFieldGroups}
             onToggleField={toggleField}
+            canModify={canModify}
+            onRequest={onRequest}
           />
           {hasMore ? (
             <div aria-hidden className="h-8" ref={sentinelRef} />

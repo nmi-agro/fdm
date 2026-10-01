@@ -26,8 +26,11 @@ export type TimelineEvent = {
   label: string
   sublabel?: string
   href: string
+  p_app_id?: string
   p_type?: "manure" | "mineral" | "compost" | null
   p_type_rvo?: string | null
+  b_lu?: string
+  b_id_harvesting?: string
   cultivationType?: string | null
 }
 
@@ -89,6 +92,7 @@ function pushCultivationEvents(
         type: "cultivation_start",
         label: cultivation.b_lu_name ?? "Onbekend gewas",
         sublabel: "Gewas gestart",
+        b_lu: cultivation.b_lu,
       })
     }
 
@@ -100,6 +104,7 @@ function pushCultivationEvents(
         type: "cultivation_end",
         label: cultivation.b_lu_name ?? "Onbekend gewas",
         sublabel: "Gewas beëindigd",
+        b_lu: cultivation.b_lu,
       })
     }
   }
@@ -125,6 +130,7 @@ function pushFertilizerEvents(
       label: app.p_name_nl ?? "Bemesting",
       sublabel: formatAmount(app.p_app_amount_display, app.p_app_amount_unit) ?? undefined,
       href: fertilizerHref(b_id_farm, calendar, field.b_id),
+      p_app_id: app.p_app_id,
       p_type: fertilizerInfo?.p_type ?? null,
       p_type_rvo: fertilizerInfo?.p_type_rvo ?? null,
     })
@@ -155,6 +161,8 @@ function pushHarvestEvents(
       label: harvest.b_lu_name ? `Oogst ${harvest.b_lu_name}` : "Oogst",
       sublabel: parameterText || undefined,
       href: cultivationHref(b_id_farm, calendar, field.b_id),
+      b_lu: harvest.b_lu,
+      b_id_harvesting: harvest.b_id_harvesting,
     })
   }
 }

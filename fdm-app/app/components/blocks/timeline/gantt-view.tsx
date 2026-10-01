@@ -1,5 +1,6 @@
 import { DndContext, type DragEndEvent, MouseSensor, useDraggable, useSensor } from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
+import { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
 import { addDays, addMonths, format, getDaysInMonth } from "date-fns"
 import { nl } from "date-fns/locale"
 import { LandPlot, TestTube2, Wheat } from "lucide-react"
@@ -207,8 +208,9 @@ export type TimelineHarvest = {
   b_lu: string
   b_lu_name: string | null
   b_lu_harvest_date: Date | null
+  harvestableAnalysis: HarvestableAnalysis | null
   /** Pre-filtered/labeled by the server loader to only the parameters fillable for this crop's harvest category. */
-  parameters: { label: string; value: number }[]
+  parameters: { id: HarvestParameters[number]; label: string; value: number }[]
 }
 
 export type TimelineSoilAnalysis = {
@@ -714,6 +716,7 @@ function DraggableEventIcon({
 function EventOverlay({
   b_id,
   b_lu,
+  b_id_harvesting,
   cultivationEndAt,
   cultivationStartAt,
   editing,
@@ -722,6 +725,7 @@ function EventOverlay({
 }: {
   b_id: string
   b_lu: string
+  b_id_harvesting?: string
   cultivationEndAt: Date
   cultivationStartAt: Date
   editing: TimelineEditing
@@ -764,8 +768,14 @@ function EventOverlay({
         type: "fertilizer-edit",
         context: { b_id, b_lu, date: event.date, p_app_id: entityId },
       })
-    } else {
-      editing.onEditHarvest(b_id, b_lu, entityId)
+    }
+    if (event.kind === "harvest") {
+      if (b_id_harvesting) {
+        editing.onSheetRequest?.({
+          type: "harvest-edit",
+          context: { b_id, b_lu, b_id_harvesting },
+        })
+      }
     }
   }
 
@@ -876,7 +886,10 @@ function FeatureContent({
         type: "fertilizer-edit",
       })
     } else if (feature.kind === "harvest" && b_id && entityId) {
-      editing.onEditHarvest(b_id, b_lu ?? "", entityId)
+      editing.onSheetRequest?.({
+        context: { b_id, b_lu: b_lu ?? "", date: feature.startAt, b_id_harvesting: entityId },
+        type: "harvest-edit",
+      })
     }
   }
 
@@ -953,6 +966,7 @@ function FeatureContent({
             <EventOverlay
               b_id={b_id}
               b_lu={b_lu}
+              b_id_harvesting={event.entityId}
               cultivationEndAt={feature.endAt}
               cultivationStartAt={feature.startAt}
               editing={editing}
