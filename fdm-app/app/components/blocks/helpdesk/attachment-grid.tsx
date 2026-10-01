@@ -175,7 +175,7 @@ function AttachmentGridImage({
                   onDelete?.()
                 }}
                 className="invisible absolute top-0 right-0 size-6 translate-x-1/2 -translate-y-1/2 rounded-full group-hover:visible"
-                aria-label="Afbeelding verwijderen"
+                aria-label="Bijlage verwijderen"
               >
                 <X />
               </Button>
