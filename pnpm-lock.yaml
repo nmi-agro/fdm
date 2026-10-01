@@ -884,7 +884,7 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       lucide-react:
-        specifier: ^1.48.0
+        specifier: ^1.49.0
         version: 1.49.0(@types/react@19.3.0)(react@19.3.0)
       prism-react-renderer:
         specifier: ^2.4.1
