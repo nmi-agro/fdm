@@ -106,7 +106,7 @@ export function CultivationAddForm({
                     <span className="text-red-500">*</span>
                   </span>
                 }
-                disabled={false}
+                disabled={!!b_lu}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

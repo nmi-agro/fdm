@@ -290,7 +290,9 @@ export function AddEventSheet({
               options={cultivationOptions}
             />
           ) : null}
-          {request && field && request.type === "cultivation-edit" ? (
+          {request &&
+          field &&
+          (request.type === "cultivation-edit" || request.type === "cultivation-end") ? (
             <CultivationAddForm
               intent="update_cultivation"
               b_id={field.b_id}
@@ -298,7 +300,10 @@ export function AddEventSheet({
               defaultValues={{
                 b_lu_catalogue: cultivation?.b_lu_catalogue ?? "",
                 b_lu_start: cultivation?.b_lu_start ?? new Date(),
-                b_lu_end: cultivation?.b_lu_end ?? undefined,
+                b_lu_end:
+                  request.type === "cultivation-end" && request.context.date
+                    ? request.context.date
+                    : (cultivation?.b_lu_end ?? undefined),
               }}
               options={cultivationOptions}
             />

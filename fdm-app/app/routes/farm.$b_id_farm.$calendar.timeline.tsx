@@ -311,12 +311,12 @@ export async function action({ request, params }: Route.LoaderArgs) {
     }
 
     if (formValues.intent === "update_cultivation") {
-      const { b_lu_catalogue, b_lu, b_lu_start, b_lu_end } = formValues
+      const { b_lu, b_lu_start, b_lu_end } = formValues
       await updateCultivation(
         fdm,
         session.principal_id,
         b_lu ?? "",
-        b_lu_catalogue,
+        undefined,
         b_lu_start,
         b_lu_end,
       )
