@@ -3,7 +3,7 @@
  */
 import { data } from "react-router"
 import { z } from "zod"
-import { BCS_VISUAL_KEYS, type BcsVisualKey } from "~/lib/bcs"
+import { BCS_VISUAL_KEYS, type AnnotationCoords, type BcsVisualKey } from "~/lib/bcs"
 
 export const BCS_IMAGE_OBJECT_KEY_PREFIX = "soil_image/"
 
@@ -99,8 +99,9 @@ export function ensureValidDate(value: string, label: string) {
   return dateValue
 }
 
-/** Parses stored pin coordinates; falls back to the image center for unknown shapes. */
-export function parseAnnotationCoordinates(value: unknown): { x: number; y: number } {
+/** Parses stored annotation coordinates, keeping valid pin, circle, arrow and freehand shapes.
+ *  Falls back to a centered pin for invalid or unknown values. */
+export function parseAnnotationCoordinates(value: unknown): AnnotationCoords {
   if (typeof value === "string") {
     try {
       return parseAnnotationCoordinates(JSON.parse(value))
@@ -109,15 +110,27 @@ export function parseAnnotationCoordinates(value: unknown): { x: number; y: numb
     }
   }
 
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "x" in value &&
-    typeof value.x === "number" &&
-    "y" in value &&
-    typeof value.y === "number"
-  ) {
-    return { x: value.x, y: value.y }
+  if (typeof value === "object" && value !== null) {
+    const v = value as Record<string, unknown>
+    const isNum = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n)
+
+    if (Array.isArray(v.points)) {
+      const points = v.points
+      if (
+        points.every(
+          (p): p is { x: number; y: number } =>
+            typeof p === "object" && p !== null && isNum((p as any).x) && isNum((p as any).y),
+        )
+      ) {
+        return { points }
+      }
+    } else if (isNum(v.cx) && isNum(v.cy) && isNum(v.r)) {
+      return { cx: v.cx, cy: v.cy, r: v.r }
+    } else if (isNum(v.x1) && isNum(v.y1) && isNum(v.x2) && isNum(v.y2)) {
+      return { x1: v.x1, y1: v.y1, x2: v.x2, y2: v.y2 }
+    } else if (isNum(v.x) && isNum(v.y)) {
+      return { x: v.x, y: v.y }
+    }
   }
 
   return { x: 50, y: 50 }

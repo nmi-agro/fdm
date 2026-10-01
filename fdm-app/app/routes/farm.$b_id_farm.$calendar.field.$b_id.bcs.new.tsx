@@ -169,7 +169,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       }
 
       await addSoilImageAnnotation(fdm, session.principal_id, a_id_image, {
-        a_image_annotation_type: "pin",
+        a_image_annotation_type: annotation.type,
         a_image_annotation_coordinates: annotation.coordinates,
         a_image_annotation: annotation.text,
         a_image_annotation_bcs: annotation.bcsIndicator,

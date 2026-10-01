@@ -136,13 +136,16 @@ export async function updateSoilAnalysis(
     return await fdm.transaction(async (tx) => {
       const updated = new Date()
 
-      if (a_depth_lower != null) {
+      if (a_depth_lower !== undefined || b_sampling_date !== undefined) {
         const [sampling] = await tx
           .select({ a_depth_upper: schema.soilSampling.a_depth_upper })
           .from(schema.soilSampling)
           .where(eq(schema.soilSampling.a_id, a_id))
           .limit(1)
-        if (sampling && a_depth_lower <= sampling.a_depth_upper) {
+        if (!sampling) {
+          throw new Error("Soil sampling not found for soil analysis")
+        }
+        if (a_depth_lower != null && a_depth_lower <= sampling.a_depth_upper) {
           throw new Error("a_depth_lower must be greater than a_depth_upper")
         }
       }

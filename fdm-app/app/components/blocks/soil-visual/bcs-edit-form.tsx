@@ -355,7 +355,7 @@ export function BcsEditForm({
         </Card>
       </div>
 
-      <div className="space-y-4 lg:sticky lg:top-4">
+      <div className="space-y-4">
         {hasAnyVisualScore && previewFetcher.data ? (
           <BcsScoreCard
             scores={scores}

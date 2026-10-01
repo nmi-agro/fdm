@@ -281,15 +281,7 @@ describe("Soil Analysis Functions", () => {
   })
 
   it("should reject an a_depth_lower that is not below a_depth_upper", async () => {
-    test_a_id = await addSoilAnalysis(
-      fdm,
-      principal_id,
-      new Date(),
-      "other",
-      b_id,
-      30,
-      new Date(),
-    )
+    test_a_id = await addSoilAnalysis(fdm, principal_id, new Date(), "other", b_id, 30, new Date())
 
     await expect(
       updateSoilAnalysis(fdm, principal_id, test_a_id, { a_depth_lower: 0 }),
@@ -297,15 +289,7 @@ describe("Soil Analysis Functions", () => {
   })
 
   it("should not allow updating a soil analysis without write permission", async () => {
-    test_a_id = await addSoilAnalysis(
-      fdm,
-      principal_id,
-      new Date(),
-      "other",
-      b_id,
-      30,
-      new Date(),
-    )
+    test_a_id = await addSoilAnalysis(fdm, principal_id, new Date(), "other", b_id, 30, new Date())
 
     await expect(
       updateSoilAnalysis(fdm, createId(), test_a_id, { b_sampling_date: new Date() }),

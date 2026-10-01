@@ -492,7 +492,7 @@ export function ImageGallery({
                 <img
                   src={image.url}
                   alt={image.caption ?? "BCS foto"}
-                  className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+                  className="h-full w-full object-contain transition-transform group-hover:scale-[1.02]"
                   onLoad={(event) => {
                     const { naturalWidth, naturalHeight } = event.currentTarget
                     if (naturalHeight > naturalWidth * 1.05) {
