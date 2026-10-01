@@ -690,7 +690,7 @@ function DraggableEventIcon({
 
   return (
     <button
-      className="bg-background/90 ring-border/50 absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full p-0.5 shadow-sm ring-1 active:cursor-grabbing"
+      className="bg-background/90 ring-border/50 flex cursor-grab items-center justify-center rounded-full p-0.5 shadow-sm ring-1 active:cursor-grabbing"
       onClick={(domEvent) => {
         domEvent.stopPropagation()
         clickHandlers.onClick()
@@ -701,11 +701,8 @@ function DraggableEventIcon({
       }}
       ref={setNodeRef}
       style={{
-        left: `${event.percent}%`,
         opacity: isDragging ? 0.5 : 1,
-        transform: transform
-          ? `translate(calc(-50% + ${transform.x}px), calc(-50% + ${transform.y}px))`
-          : undefined,
+        transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
       }}
       type="button"
       {...attributes}
@@ -817,8 +814,10 @@ function EventOverlay({
           <TooltipTrigger asChild>
             <PopoverTrigger asChild>
               <span
+                className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
                 onMouseEnter={() => editing.setHoveredEntityId(entityId)}
                 onMouseLeave={() => editing.setHoveredEntityId(null)}
+                style={{ left: `${event.percent}%` }}
               >
                 <DraggableEventIcon event={event} onActivate={() => setOpen(true)} />
               </span>

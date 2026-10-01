@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
-import { AddEventSheetRequest } from "./add-event-types"
 
 const rangeLabels: Record<Range, string> = {
   daily: "Dagelijks",
