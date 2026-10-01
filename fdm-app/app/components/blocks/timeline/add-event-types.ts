@@ -1,5 +1,5 @@
 /** The four event types the timeline's quick-add flow can create. */
-export type AddEventType = "fertilizer" | "harvest" | "soil" | "cultivation-start"
+export type AddEventType = "fertilizer" | "harvest" | "soil" | "cultivation-add"
 
 /**
  * Context gathered from where the user triggered the quick-add flow (an empty-space click, a
@@ -17,7 +17,7 @@ export type AddEventContext = {
 export type AddEventSheetRequest =
   | { type: "fertilizer"; context: AddEventContext }
   | { type: "harvest"; context: AddEventContext }
-  | { type: "cultivation-start"; context: AddEventContext }
+  | { type: "cultivation-add"; context: AddEventContext }
   | { type: "cultivation-end"; context: AddEventContext }
   | { type: "cultivation-edit"; context: AddEventContext & { b_lu: string } }
   | { type: "fertilizer-edit"; context: AddEventContext & { p_app_id: string } }

@@ -37,7 +37,7 @@ import { findActiveCultivationForDate, type TimelineField } from "./gantt-view"
 const SHEET_TITLES: Record<AddEventSheetRequest["type"], string> = {
   "cultivation-edit": "Gewas bewerken",
   "cultivation-end": "Gewas beëindigen",
-  "cultivation-start": "Gewas starten",
+  "cultivation-add": "Gewas toevoegen",
   fertilizer: "Bemesting toevoegen",
   "fertilizer-edit": "Bemesting bewerken",
   harvest: "Oogst registreren",
@@ -277,23 +277,15 @@ export function AddEventSheet({
               </p>
             )
           ) : null}
-          {request &&
-          field &&
-          (request.type === "cultivation-start" || request.type === "cultivation-end") ? (
+          {request && field && request.type === "cultivation-add" ? (
             <CultivationAddForm
-              intent={cultivation ? "update_cultivation" : "add_cultivation"}
+              intent="add_cultivation"
               b_id={field.b_id}
-              b_lu={cultivation?.b_lu}
+              b_lu={undefined}
               defaultValues={{
-                b_lu_catalogue: cultivation ? cultivation.b_lu_catalogue : "",
-                b_lu_start:
-                  request.type === "cultivation-start" && request.context.date
-                    ? request.context.date
-                    : (cultivation?.b_lu_start ?? new Date()),
-                b_lu_end:
-                  request.type === "cultivation-end"
-                    ? request.context.date
-                    : (cultivation?.b_lu_end ?? undefined),
+                b_lu_catalogue: "",
+                b_lu_start: request.context.date ?? new Date(),
+                b_lu_end: undefined,
               }}
               options={cultivationOptions}
             />

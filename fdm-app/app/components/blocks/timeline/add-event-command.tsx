@@ -22,7 +22,7 @@ type EventTypeOption = {
 const EVENT_TYPE_OPTIONS: EventTypeOption[] = [
   { type: "fertilizer", label: "Bemesting toevoegen", icon: LandPlot },
   { type: "harvest", label: "Oogst registreren", icon: Wheat, requiresCultivation: true },
-  { type: "cultivation-start", label: "Gewas starten", icon: Sprout },
+  { type: "cultivation-add", label: "Gewas toevoegen", icon: Sprout },
 ]
 
 /**

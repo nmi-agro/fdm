@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { AddEventSheetRequest } from "./add-event-types"
 
 const rangeLabels: Record<Range, string> = {
   daily: "Dagelijks",
@@ -37,6 +38,7 @@ export function TimelineToolbar({
   onFiltersChange,
   onJumpToToday,
   onAddEvent,
+  canModify,
 }: {
   range: Range
   onRangeChange: (range: Range) => void
@@ -44,6 +46,7 @@ export function TimelineToolbar({
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
   onAddEvent: () => void
+  canModify: boolean
 }) {
   const activeFilterCount = Object.entries(filters).filter(
     ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
@@ -51,10 +54,12 @@ export function TimelineToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button onClick={onAddEvent}>
-        <Plus className="size-4" />
-        Toevoegen
-      </Button>
+      {canModify && (
+        <Button onClick={onAddEvent}>
+          <Plus className="size-4" />
+          Toevoegen
+        </Button>
+      )}
 
       <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>
         <SelectTrigger className="w-40">

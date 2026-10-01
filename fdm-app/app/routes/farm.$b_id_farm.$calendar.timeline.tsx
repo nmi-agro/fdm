@@ -42,6 +42,7 @@ import {
   FormSchema as FertilizerApplicationFormSchema,
   FormSchemaModify as FertilizerApplicationFormSchemaModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
+import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { FormSchema as HarvestFormSchema } from "~/components/blocks/harvest/schema"
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
@@ -65,7 +66,6 @@ import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump } from "~/store/calendar"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
-import { getHarvestParameterLabel } from "../components/blocks/harvest/parameters"
 
 // The years the timeline can ever request must stay within the app's supported Calendar range
 // (see ~/lib/calendar's getCalendarSelection), so scrolling can never ask for a year that isn't a
