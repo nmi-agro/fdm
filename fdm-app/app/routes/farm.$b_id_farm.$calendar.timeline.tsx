@@ -766,6 +766,7 @@ export default function TimelinePage() {
                   onJumpToToday={() => ganttRef.current?.scrollToToday()}
                   onRangeChange={setRange}
                   range={range}
+                  canModify={loaderData.farmWritePermission}
                 />
               }
             />

@@ -9,6 +9,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import type { TimelineField } from "~/components/blocks/timeline/gantt-view"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
+import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { fdm } from "~/lib/fdm.server"
 
 /**
@@ -65,6 +66,12 @@ export async function fetchTimelineFields(
             b_lu_name: cultivation.b_lu_name,
             b_lu_harvest_date: harvest.b_lu_harvest_date,
             parameters,
+            term: getHarvestTerm(
+              cultivation.b_lu_croprotation,
+              false,
+              cultivation.b_lu_harvestable,
+              true,
+            ),
             harvestableAnalysis:
               harvest.harvestable.harvestable_analyses.length > 0
                 ? harvest.harvestable.harvestable_analyses[0]

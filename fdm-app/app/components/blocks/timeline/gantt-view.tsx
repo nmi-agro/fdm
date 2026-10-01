@@ -18,6 +18,7 @@ import type {
   AddEventContext,
   AddEventSheetRequest,
 } from "~/components/blocks/timeline/add-event-types"
+import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
 import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
@@ -68,7 +69,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { endMonth, startMonth } from "~/lib/calendar"
-import { getFertilizerCategoryFromRvoCode } from "../fertilizer/utils"
 
 // The years the Gantt renders/scrolls through must never exceed what the app's "Calendar" year
 // picker actually supports (~/lib/calendar) — otherwise the timeline could show a year (e.g.
@@ -208,6 +208,7 @@ export type TimelineHarvest = {
   b_lu: string
   b_lu_name: string | null
   b_lu_harvest_date: Date | null
+  term: string
   harvestableAnalysis: HarvestableAnalysis | null
   /** Pre-filtered/labeled by the server loader to only the parameters fillable for this crop's harvest category. */
   parameters: { id: HarvestParameters[number]; label: string; value: number }[]
@@ -271,6 +272,7 @@ type AttachedEvent = {
 type TimelineFeature = GanttFeature & {
   kind: PointEventKind
   href?: string
+  label: string
   detail: string
   p_type?: "manure" | "mineral" | "compost" | null
   p_type_rvo?: string | null
@@ -443,7 +445,8 @@ function buildFieldFeatures(
         lane: field.b_id,
         kind: "cultivation",
         href: `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/cultivation`,
-        detail: `${name} — ${field.b_name}\n${formatNl(startAt)} – ${cultivation.b_lu_end ? formatNl(cultivation.b_lu_end) : "nu actief"}`,
+        label: name,
+        detail: `${field.b_name}\n${formatNl(startAt)} – ${cultivation.b_lu_end ? formatNl(cultivation.b_lu_end) : "nu actief"}`,
         events: [],
         b_id: field.b_id,
         b_lu: cultivation.b_lu,
@@ -513,7 +516,8 @@ function buildFieldFeatures(
           ? `${app.p_app_amount_display} ${app.p_app_amount_unit}`
           : null
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/fertilizer`
-      const detail = `Bemesting: ${name}${amountText ? ` — ${amountText}` : ""}\n${field.b_name} · ${formatNl(app.p_app_date)}`
+      const label = name
+      const detail = `${amountText ? `${amountText}\n` : ""}${field.b_name} · ${formatNl(app.p_app_date)}`
       attachOrPush(
         app.p_app_date,
         {
@@ -536,6 +540,7 @@ function buildFieldFeatures(
           lane: field.b_id,
           kind: "fertilizer",
           href,
+          label,
           detail,
           b_id: field.b_id,
           entityId: app.p_app_id,
@@ -550,10 +555,10 @@ function buildFieldFeatures(
   if (filters.showHarvests) {
     for (const harvest of field.harvests) {
       if (!harvest.b_lu_harvest_date) continue
-      const name = harvest.b_lu_name ? `Oogst ${harvest.b_lu_name}` : "Oogst"
+      const name = harvest.b_lu_name ? `${harvest.term} ${harvest.b_lu_name}` : harvest.term
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/cultivation`
       const parameterDetails = formatHarvestDetails(harvest)
-      const detail = `${name}\n${field.b_name} · ${formatNl(harvest.b_lu_harvest_date)}${
+      const detail = `${field.b_name} · ${formatNl(harvest.b_lu_harvest_date)}${
         parameterDetails ? `\n${parameterDetails}` : ""
       }`
       attachOrPush(
@@ -576,6 +581,7 @@ function buildFieldFeatures(
           lane: field.b_id,
           kind: "harvest",
           href,
+          label: name,
           detail,
           b_id: field.b_id,
           b_lu: harvest.b_lu,
@@ -591,7 +597,7 @@ function buildFieldFeatures(
       if (!analysis.b_sampling_date) continue
       const name = "Bodemanalyse"
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil`
-      const detail = `${name}${analysis.a_source ? ` — ${analysis.a_source}` : ""}\n${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
+      const detail = `${analysis.a_source ? `${analysis.a_source}\n` : ""}${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
       attachOrPush(
         analysis.b_sampling_date,
         {
@@ -611,6 +617,7 @@ function buildFieldFeatures(
           lane: field.b_id,
           kind: "soil",
           href,
+          label: name,
           detail,
           draggable: false,
           resizable: false,
@@ -819,8 +826,9 @@ function EventOverlay({
           </TooltipTrigger>
           <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
         </Tooltip>
-        <PopoverContent className="w-64 text-sm whitespace-pre-line">
-          {event.detail}
+        <PopoverContent className="w-64">
+          <div className="text-foreground text-sm">{event.label}</div>
+          <div className="text-muted-foreground text-xs whitespace-pre-line">{event.detail}</div>
           <EventActionsPopoverFooter editing={editing} entity={entity} onEdit={handleEdit} />
         </PopoverContent>
       </Popover>
@@ -950,8 +958,11 @@ function FeatureContent({
             </TooltipTrigger>
             <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
           </Tooltip>
-          <PopoverContent className="w-64 text-sm whitespace-pre-line">
-            {feature.detail}
+          <PopoverContent className="w-64">
+            <div className="text-foreground text-sm">{feature.label}</div>
+            <div className="text-muted-foreground text-xs whitespace-pre-line">
+              {feature.detail}
+            </div>
             {entity && (
               <EventActionsPopoverFooter editing={editing} entity={entity} onEdit={handleEdit} />
             )}
@@ -1084,8 +1095,9 @@ function FeatureContent({
         </TooltipTrigger>
         <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
       </Tooltip>
-      <PopoverContent className="w-64 text-sm whitespace-pre-line">
-        {feature.detail}
+      <PopoverContent className="w-64">
+        <div className="text-foreground text-sm">{feature.label}</div>
+        <div className="text-muted-foreground text-xs whitespace-pre-line">{feature.detail}</div>
         <EventActionsPopoverFooter editing={editing} entity={entity} onEdit={handleEdit} />
       </PopoverContent>
     </Popover>
