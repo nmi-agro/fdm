@@ -12,7 +12,7 @@ type Bbox = { minX: number; minY: number; maxX: number; maxY: number }
  */
 export async function* deserializeFgb(url: string, bbox: Bbox) {
   try {
-    yield* deserialize(url, bbox)
+    yield* deserialize(url, { rect: bbox })
   } catch (error) {
     if (error instanceof Error && error.message.includes(NOT_FGB_ERROR)) {
       console.warn(
@@ -21,7 +21,7 @@ export async function* deserializeFgb(url: string, bbox: Bbox) {
       )
 
       try {
-        yield* deserialize(url, bbox, undefined, true)
+        yield* deserialize(url, { rect: bbox, nocache: true })
       } catch (retryError) {
         throw new Error(
           `[atlas-fgb] Failed to load FlatGeobuf data from ${url} even after bypassing the browser cache.`,
