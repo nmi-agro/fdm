@@ -68,6 +68,20 @@ if (clientConfig.analytics.sentry) {
 
     replaysSessionSampleRate: sentryConfig.replay_sample_rate,
     replaysOnErrorSampleRate: sentryConfig.replay_sample_rate_on_error,
+
+    dataCollection: {
+      userInfo: true,
+      cookies: true,
+      httpHeaders: {
+        request: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+        response: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+      },
+      httpBodies: [],
+      urlQueryParams: { deny: ["forwarded", "-ip", "remote-", "via", "-user"] },
+      genAI: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      graphQL: { document: false, variables: false },
+    },
   })
 }
 

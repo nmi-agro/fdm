@@ -1,5 +1,5 @@
 import { reactRouter } from "@react-router/dev/vite"
-import { sentryReactRouter } from "@sentry/react-router"
+import { sentryReactRouter } from "@sentry/react-router/vite"
 import tailwindcss from "@tailwindcss/vite"
 import fs from "node:fs"
 import path from "node:path"
