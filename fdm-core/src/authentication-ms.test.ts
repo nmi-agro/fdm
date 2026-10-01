@@ -207,13 +207,21 @@ describe("createMicrosoftClientAssertion", () => {
 })
 
 // ---------------------------------------------------------------------------
-// createMicrosoftOAuthConfig
+// createMicrosoftSocialConfig
 // ---------------------------------------------------------------------------
 
-describe("createMicrosoftOAuthConfig", () => {
-  it("sets authorizationUrl and tokenUrl for the given tenantId", () => {
+describe("createMicrosoftSocialConfig", () => {
+  it("uses the given tenantId", () => {
     const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
     expect(cfg.tenantId).toBe("test-tenant")
+  })
+
+  it("provides a certificate based clientAssertion", async () => {
+    const { decodeJwt } = await import("jose")
+    const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+    expect(cfg.clientSecret).toBeUndefined()
+    const assertion = await (cfg.clientAssertion as any)({})
+    expect(decodeJwt(assertion).iss).toBe("test-client-id")
   })
 
   it("defaults tenantId to 'common'", () => {
@@ -285,6 +293,28 @@ describe("createMicrosoftOAuthConfig", () => {
       expect(result?.user.name).toBe("Jane Doe")
       expect(result?.user.emailVerified).toBe(true)
       expect(result?.user.image).toBeUndefined()
+    })
+
+    it("returns null when the oid claim is missing", async () => {
+      const idToken = await buildIdToken({ sub: "s", email: "a@example.com" })
+      global.fetch = fetchReturning(false)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+      const result = await cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)
+      expect(result).toBeNull()
+    })
+
+    it("includes mapped FDM user fields in the user", async () => {
+      const idToken = await buildIdToken({
+        oid: "user-1",
+        email: "john@example.com",
+        name: "John Doe",
+      })
+      global.fetch = fetchReturning(false)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+      const result = (await cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)) as any
+      expect(result.user.firstname).toBe("John")
+      expect(result.user.surname).toBe("Doe")
+      expect(result.user.username).toBe("john")
     })
 
     it("falls back to 'mail' claim when 'email' is absent", async () => {
