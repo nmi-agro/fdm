@@ -978,7 +978,7 @@ function FeatureContent({
       </div>
     )
 
-    if (!b_id || !b_lu) {
+    if (!editing.canModify || !b_id || !b_lu) {
       return bar
     }
 
@@ -1024,7 +1024,7 @@ function FeatureContent({
               </ContextMenuItem>
             </>
           )}
-          {editing.canModify && entity && (
+          {entity && (
             <>
               <ContextMenuSeparator />
               <ContextMenuItem
@@ -1364,7 +1364,7 @@ export const TimelineGanttView = forwardRef<
     canModify,
     hoveredEntityId,
     onEditHarvest,
-    onSheetRequest,
+    onSheetRequest: canModify ? onSheetRequest : undefined,
     requestDelete,
     setHoveredEntityId,
     submitCultivationMove,
@@ -1524,14 +1524,20 @@ export const TimelineGanttView = forwardRef<
             <GanttFeatureList>
               {fieldsWithFeatures.map(({ features, field }) => (
                 <GanttFeatureListGroup key={field.b_id} className="relative">
-                  {onRequestAddEvent ? (
+                  {onRequestAddEvent && editing.canModify ? (
                     <RowClickCatcher
                       onPick={(date) => onRequestAddEvent({ b_id: field.b_id, date })}
                     />
                   ) : null}
                   <GanttFeatureRow
                     features={features}
-                    onMove={canModify ? handleFeatureMove : undefined}
+                    onMove={
+                      editing.canModify
+                        ? handleFeatureMove
+                        : () => {
+                            remountPreservingScroll()
+                          }
+                    }
                   >
                     {(feature) => (
                       <FeatureContent
