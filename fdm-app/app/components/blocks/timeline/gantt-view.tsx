@@ -1456,9 +1456,9 @@ export const TimelineGanttView = forwardRef<
     const clampedEnd = endAt && endAt > openCultivationEndAt ? openCultivationEndAt : endAt
     const wasOpenEnded = cultivation.b_lu_end === null
     const originalStart = cultivation.b_lu_start ?? clampedStart
-    const deltaStartMs = clampedStart.getTime() - originalStart.getTime()
     const originalEnd = cultivation.b_lu_end ?? openCultivationEndAt
-    const deltaEndMs = (clampedEnd ?? openCultivationEndAt).getTime() - originalEnd.getTime()
+    const deltaStartMs = startAt.getTime() - originalStart.getTime()
+    const deltaEndMs = (endAt ?? TIMELINE_END_DATE).getTime() - originalEnd.getTime()
     const isWholeBarMove = Math.abs(deltaEndMs - deltaStartMs) < 24 * 60 * 60 * 1000
     const nextEnd = wasOpenEnded && isWholeBarMove ? null : clampedEnd
     submitCultivationMove(field.b_id, b_lu, clampedStart, nextEnd)
