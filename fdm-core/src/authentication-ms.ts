@@ -1,4 +1,4 @@
-import type { GenericOAuthConfig } from "better-auth/plugins"
+import type { MicrosoftEntraIDProfile, MicrosoftOptions } from "better-auth"
 import { decodeJwt, importPKCS8, SignJWT } from "jose"
 import { createHash, randomUUID } from "node:crypto"
 import fs from "node:fs"
@@ -165,7 +165,7 @@ export async function createMicrosoftClientAssertion(
 }
 
 /**
- * Helpers that `createMicrosoftOAuthConfig` needs from `fdm-core/authentication`.
+ * Helpers that `createMicrosoftSocialConfig` needs from `fdm-core/authentication`.
  * Passed as parameters to avoid a circular import between the two modules.
  */
 export interface MicrosoftOAuthHelpers {
@@ -178,85 +178,56 @@ export interface MicrosoftOAuthHelpers {
 }
 
 /**
- * Builds a `GenericOAuthConfig` for Microsoft Entra ID that authenticates
- * with a certificate credential (private_key_jwt) instead of a client secret.
+ * Builds the options for the built-in Better Auth Microsoft social provider.
+ * The provider authenticates to Microsoft Entra ID with a certificate credential
+ * (private_key_jwt) instead of a client secret, for both the authorization code
+ * exchange and token refreshes.
  *
- * All Microsoft-specific logic lives here: token exchange, profile photo fetch,
- * id_token decoding, and FDM user-field mapping.
+ * Accounts are identified by the stable `oid` claim of the id_token. The FDM
+ * user fields (first name, surname, username, display username) are mapped from
+ * the id_token claims.
  *
  * @param config Certificate configuration (client ID, tenant, private key, cert/thumbprint).
- * @param helpers FDM user-mapping helpers — passed to avoid a circular dependency.
+ * @param helpers FDM user-mapping helpers, passed to avoid a circular dependency.
  */
-export function createMicrosoftOAuthConfig(
+export function createMicrosoftSocialConfig(
   config: MicrosoftCertConfig,
   helpers: MicrosoftOAuthHelpers,
-): GenericOAuthConfig {
+): MicrosoftOptions {
   const { clientId, tenantId = "common" } = config
   const authority = AUTHORITY
-  const tokenEndpoint = `${authority}/${tenantId}/oauth2/v2.0/token`
+
+  const mapProfileToUser = async (profile: MicrosoftEntraIDProfile) => {
+    const email = profile.email as string
+    const name = profile.name as string
+    const { firstname, surname } = helpers.splitFullName(name)
+    return {
+      name,
+      email,
+      emailVerified: true,
+      firstname,
+      surname,
+      username: await helpers.createUsername(email),
+      displayUsername: helpers.createDisplayUsername(firstname, surname),
+    }
+  }
 
   return {
-    providerId: "microsoft",
-    authorizationUrl: `${authority}/${tenantId}/oauth2/v2.0/authorize`,
-    tokenUrl: tokenEndpoint,
-    clientId,
-    scopes: SCOPES,
-    pkce: true,
+    authority: authority,
+    clientId: clientId,
+    tenantId: tenantId,
+    scope: SCOPES,
     prompt: "select_account",
-
+    clientAssertion: () => createMicrosoftClientAssertion(config, authority),
     // ---------------------------------------------------------------
-    // Token exchange: code → tokens using a certificate client assertion
-    // ---------------------------------------------------------------
-    getToken: async ({ code, redirectURI, codeVerifier }) => {
-      const assertion = await createMicrosoftClientAssertion(config, authority)
-      const body = new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectURI,
-        client_id: clientId,
-        scope: SCOPES.join(" "),
-        client_assertion_type: "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-        client_assertion: assertion,
-      })
-      if (codeVerifier) body.set("code_verifier", codeVerifier)
-
-      const resp = await fetch(tokenEndpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          accept: "application/json",
-        },
-        body,
-      })
-      if (!resp.ok) {
-        const errorText = await resp.text()
-        throw new Error(`Microsoft token request failed (${resp.status}): ${errorText}`)
-      }
-      const data = (await resp.json()) as {
-        access_token: string
-        token_type: string
-        expires_in: number
-        refresh_token?: string
-        id_token?: string
-        scope?: string
-      }
-      return {
-        accessToken: data.access_token,
-        tokenType: data.token_type,
-        accessTokenExpiresAt: new Date(Date.now() + data.expires_in * 1000),
-        refreshToken: data.refresh_token,
-        idToken: data.id_token,
-        scopes: data.scope?.split(" "),
-        raw: data as unknown as Record<string, unknown>,
-      }
-    },
-
-    // ---------------------------------------------------------------
-    // User info: decode id_token + fetch profile photo from Graph
+    // User info: decode id_token + fetch profile photo from Graph.
+    // Better Auth does not call `mapProfileToUser` when `getUserInfo` is
+    // overridden, so the mapping is applied here.
     // ---------------------------------------------------------------
     getUserInfo: async (tokens) => {
       if (!tokens.idToken) return null
-      const claims = decodeJwt(tokens.idToken)
+      const claims = decodeJwt(tokens.idToken) as MicrosoftEntraIDProfile
+      if (typeof claims.oid !== "string" || claims.oid.trim().length === 0) return null
 
       // Profile photo from Graph (best-effort)
       let picture: string | undefined
@@ -290,31 +261,22 @@ export function createMicrosoftOAuthConfig(
           ? Boolean(claims.email_verified)
           : !!(email && (claims.verified_primary_email as string[] | undefined)?.includes(email))
 
+      const mapped = await mapProfileToUser({ ...claims, email, name })
       return {
-        id: claims.sub as string,
-        name,
-        email,
-        image: picture,
-        emailVerified,
+        user: {
+          ...mapped,
+          name,
+          email,
+          image: picture,
+          emailVerified: mapped.emailVerified ?? emailVerified,
+        },
+        data: claims,
       }
     },
 
     // ---------------------------------------------------------------
     // Map provider profile to FDM-specific user fields
     // ---------------------------------------------------------------
-    mapProfileToUser: async (profile) => {
-      const email = profile.email as string
-      const name = profile.name as string
-      const { firstname, surname } = helpers.splitFullName(name)
-      return {
-        name,
-        email,
-        emailVerified: true,
-        firstname,
-        surname,
-        username: await helpers.createUsername(email),
-        displayUsername: helpers.createDisplayUsername(firstname, surname),
-      }
-    },
+    mapProfileToUser,
   }
 }

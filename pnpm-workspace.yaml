@@ -10,12 +10,13 @@ packages:
   - fdm-helpdesk
 
 catalog:
-  "@better-auth/api-key": 1.6.27
-  jose: ^6.2.12
-  "@dotenvx/dotenvx": ^2.30.0
+  "@better-auth/api-key": 1.7.6
+  "@better-auth/core": 1.7.6
   "@types/node": ^26.6.3
+  "@dotenvx/dotenvx": ^2.30.0
+  jose: ^6.2.12
   "@vitest/coverage-v8": 4.1.11
-  better-auth: 1.6.27
+  better-auth: 1.7.6
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.3
   nanoid: ^6.0.1
@@ -32,8 +33,6 @@ blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - "@nmi-agro/*"
-overrides:
-  "@better-auth/core": 1.6.27
 allowBuilds:
   "@geomatico/maplibre-cog-protocol": true
   "@geomatico/maplibre-cog-protocol@https://codeload.github.com/SvenVw/maplibre-cog-protocol/tar.gz/fd6765830cd1453c3d20d290d6c40684153c5b7d": true
