@@ -59,6 +59,7 @@ interface ImageGalleryProps {
     bcsIndicator?: string,
   ) => void
   onRemoveAnnotation?: (imageId: string, annotationIndex: number) => void
+  onRemoveImage?: (imageId: string) => void
   editMode?: boolean
   defaultIndicator?: BcsVisualKey
 }
@@ -193,10 +194,13 @@ export function ImageGallery({
   images,
   onAddAnnotation,
   onRemoveAnnotation,
+  onRemoveImage,
   editMode = false,
   defaultIndicator,
 }: ImageGalleryProps) {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null)
+  const [portraitImageIds, setPortraitImageIds] = useState<Set<string>>(() => new Set())
+  const [removeImageId, setRemoveImageId] = useState<string | null>(null)
   const [activeTool, setActiveTool] = useState<AnnotationType>("pin")
   const [pendingAnnotation, setPendingAnnotation] = useState<PendingAnnotation | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -469,34 +473,89 @@ export function ImageGallery({
 
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
-        {images.map((image) => (
-          <button
-            key={image.id}
-            type="button"
-            className="group bg-card overflow-hidden rounded-xl border text-left"
-            onClick={() => setSelectedImageId(image.id)}
-          >
-            <div className="bg-muted relative aspect-video overflow-hidden">
-              <img
-                src={image.url}
-                alt={image.caption ?? "BCS foto"}
-                className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
-              />
+      <div className="grid grid-flow-dense auto-rows-[9rem] grid-cols-2 gap-3 sm:auto-rows-[10rem] md:grid-cols-3 xl:grid-cols-4">
+        {images.map((image) => {
+          const isPortrait = portraitImageIds.has(image.id)
+          return (
+            <div
+              key={image.id}
+              className={cn(
+                "group bg-muted relative overflow-hidden rounded-xl border",
+                isPortrait ? "row-span-2" : "row-span-1",
+              )}
+            >
+              <button
+                type="button"
+                className="absolute inset-0 text-left"
+                onClick={() => setSelectedImageId(image.id)}
+              >
+                <img
+                  src={image.url}
+                  alt={image.caption ?? "BCS foto"}
+                  className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+                  onLoad={(event) => {
+                    const { naturalWidth, naturalHeight } = event.currentTarget
+                    if (naturalHeight > naturalWidth * 1.05) {
+                      setPortraitImageIds((previous) => new Set(previous).add(image.id))
+                    }
+                  }}
+                />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6 text-sm text-white">
+                  <div className="line-clamp-1 font-medium">
+                    {image.caption || "Foto zonder bijschrift"}
+                  </div>
+                </div>
+              </button>
               {image.annotations.length > 0 ? (
-                <div className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
+                <div className="pointer-events-none absolute top-2 right-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
                   {image.annotations.length}
                 </div>
               ) : null}
+              {editMode && onRemoveImage ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 left-2 size-7"
+                  aria-label="Foto verwijderen"
+                  onClick={() => setRemoveImageId(image.id)}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              ) : null}
             </div>
-            <div className="p-3 text-sm">
-              <div className="line-clamp-2 font-medium">
-                {image.caption || "Foto zonder bijschrift"}
-              </div>
-            </div>
-          </button>
-        ))}
+          )
+        })}
       </div>
+
+      <AlertDialog
+        open={removeImageId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveImageId(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Foto verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              De foto en alle bijbehorende notities worden verwijderd zodra je de wijzigingen
+              opslaat.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (removeImageId && onRemoveImage) onRemoveImage(removeImageId)
+                setRemoveImageId(null)
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Verwijderen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Lightbox */}
       <Dialog

@@ -12,92 +12,25 @@ import {
 } from "@nmi-agro/fdm-core"
 import { type ActionFunctionArgs, data, type LoaderFunctionArgs, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
-import { z } from "zod"
 import { BcsWizard } from "~/components/blocks/soil-visual/bcs-wizard"
 import { deleteObject } from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
-import { BCS_VISUAL_KEYS, type BcsSavePayload, type BcsVisualKey } from "~/lib/bcs"
+import { BCS_VISUAL_KEYS, type BcsSavePayload } from "~/lib/bcs"
 import { deriveBcsScores } from "~/lib/bcs-derived.server"
+import {
+  BCS_IMAGE_OBJECT_KEY_PREFIX,
+  BcsSavePayloadSchema,
+  ensureValidDate,
+  getBcsPath,
+  getBcsRouteParams,
+  sanitizeScores,
+} from "~/lib/bcs-route.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-const BcsSavePayloadSchema = z.object({
-  a_date: z.string(),
-  b_sampling_date: z.string(),
-  a_depth_lower: z.union([z.number(), z.string(), z.null(), z.undefined()]).optional(),
-  scores: z.record(z.string(), z.any()).optional().default({}),
-  images: z
-    .array(
-      z.object({
-        tempId: z.string(),
-        objectKey: z.string(),
-        url: z.string(),
-        caption: z.string().optional(),
-      }),
-    )
-    .optional()
-    .default([]),
-  annotations: z
-    .array(
-      z.object({
-        tempId: z.string(),
-        tempImageId: z.string(),
-        type: z.enum(["pin", "circle", "arrow", "freehand"]),
-        coordinates: z.any(),
-        text: z.string().optional(),
-        bcsIndicator: z.string().optional(),
-      }),
-    )
-    .optional()
-    .default([]),
-})
-
 function getRouteParams(params: ActionFunctionArgs["params"]) {
-  const { b_id, b_id_farm, calendar } = params
-  if (!b_id_farm) {
-    throw data("Farm ID is required", {
-      status: 400,
-      statusText: "Farm ID is required",
-    })
-  }
-  if (!calendar) {
-    throw data("Calendar is required", {
-      status: 400,
-      statusText: "Calendar is required",
-    })
-  }
-  if (!b_id) {
-    throw data("Field ID is required", {
-      status: 400,
-      statusText: "Field ID is required",
-    })
-  }
+  const { b_id, b_id_farm, calendar } = getBcsRouteParams(params)
   return { b_id, b_id_farm, calendar }
-}
-
-function getBcsPath(params: ActionFunctionArgs["params"]) {
-  const { b_id, b_id_farm, calendar } = getRouteParams(params)
-  return `/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs`
-}
-
-function sanitizeScores(payload: BcsSavePayload) {
-  return Object.fromEntries(
-    BCS_VISUAL_KEYS.flatMap((key) => {
-      const score = payload.scores[key]
-      return score === 0 || score === 1 || score === 2 ? [[key, score]] : []
-    }),
-  ) as Partial<Record<BcsVisualKey, 0 | 1 | 2>>
-}
-
-function ensureValidDate(value: string, label: string) {
-  const dateValue = new Date(value)
-  if (Number.isNaN(dateValue.getTime())) {
-    throw data(`${label} is ongeldig`, {
-      status: 400,
-      statusText: `${label} is ongeldig`,
-    })
-  }
-  return dateValue
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -180,7 +113,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     })
   }
   const payload = parseResult.data as BcsSavePayload
-  const scores = sanitizeScores(payload)
+  const scores = sanitizeScores(payload.scores)
   if (!BCS_VISUAL_KEYS.some((key) => scores[key] != null)) {
     throw data("Geef minimaal één indicator voor BodemConditieScore op", {
       status: 400,
@@ -191,7 +124,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const a_date = ensureValidDate(payload.a_date, "Beoordelingsdatum")
   const b_sampling_date = ensureValidDate(payload.b_sampling_date, "Bemonsteringsdatum")
 
-  const objectKeyPrefix = "soil_image/"
+  const objectKeyPrefix = BCS_IMAGE_OBJECT_KEY_PREFIX
   if (payload.images.some((image) => !image.objectKey?.startsWith(objectKeyPrefix))) {
     throw data("Ongeldige afbeeldingreferentie", {
       status: 400,
