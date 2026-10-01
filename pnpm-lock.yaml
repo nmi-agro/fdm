@@ -361,7 +361,7 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0
       '@daypicker/react':
-        specifier: ^10.0.1
+        specifier: ^10.0.2
         version: 10.0.2(@types/react@19.3.0)(react@19.3.0)
       '@dnd-kit/core':
         specifier: ^6.3.1
@@ -412,7 +412,7 @@ importers:
         specifier: workspace:^
         version: link:../fdm-rvo
       '@posthog/ai':
-        specifier: ^8.13.2
+        specifier: ^8.13.3
         version: 8.13.3(@langchain/core@1.2.13(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(ws@8.21.3))(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(langchain@1.5.14(@langchain/core@1.2.13(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(ws@8.21.3))(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(ws@8.21.3))(posthog-node@5.54.1)
       '@radix-ui/react-context-menu':
         specifier: ^2.3.7
@@ -439,16 +439,16 @@ importers:
         specifier: ^8.4.0
         version: 8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@7.0.2)
       '@remix-run/file-storage':
-        specifier: ^0.13.7
+        specifier: ^0.13.8
         version: 0.13.8
       '@remix-run/form-data-parser':
-        specifier: ^0.17.6
+        specifier: ^0.17.7
         version: 0.17.7
       '@sentry/profiling-node':
-        specifier: ^10.73.0
+        specifier: ^10.75.3
         version: 10.75.3(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(supports-color@8.1.1)
       '@sentry/react-router':
-        specifier: ^10.73.0
+        specifier: ^10.75.3
         version: 10.75.3(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@react-router/node@8.4.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@7.0.2))(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)(webpack@5.111.1(@swc/core@1.16.13(@swc/helpers@0.5.23))(@swc/html@1.16.13)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.28))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.28)(sharp@0.35.5(@types/node@26.6.3))(svgo@3.3.5))
       '@tailwindcss/vite':
         specifier: ^4.3.3
@@ -520,10 +520,10 @@ importers:
         specifier: ^22.1.1
         version: 22.1.1(supports-color@8.1.1)
       flatgeobuf:
-        specifier: 4.4.0
-        version: 4.4.0
+        specifier: 4.5.0
+        version: 4.5.0
       framer-motion:
-        specifier: ^13.4.4
+        specifier: ^13.4.6
         version: 13.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       fuzzysort:
         specifier: ^4.0.2
@@ -541,8 +541,8 @@ importers:
         specifier: 'catalog:'
         version: 6.2.12
       jotai:
-        specifier: ^2.20.3
-        version: 2.20.3(@babel/core@7.29.7(supports-color@8.1.1))(@babel/template@7.29.7)(@types/react@19.3.0)(react@19.3.0)
+        specifier: ^3.0.1
+        version: 3.0.1(@types/react@19.3.0)(react@19.3.0)
       langchain:
         specifier: ^1.5.14
         version: 1.5.14(@langchain/core@1.2.13(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(ws@8.21.3))(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(ws@8.21.3)
@@ -550,7 +550,7 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       lucide-react:
-        specifier: ^1.48.0
+        specifier: ^1.49.0
         version: 1.49.0(@types/react@19.3.0)(react@19.3.0)
       maplibre-gl:
         specifier: ^6.11.2
@@ -568,7 +568,7 @@ importers:
         specifier: ^3.4.9
         version: 3.4.9
       posthog-js:
-        specifier: ^1.434.15
+        specifier: ^1.435.2
         version: 1.435.2(@types/react@19.3.0)(react@19.3.0)
       posthog-node:
         specifier: ^5.54.1
@@ -662,7 +662,7 @@ importers:
         specifier: ^1.8.1
         version: 1.8.1
       '@types/express':
-        specifier: ^5.0.5
+        specifier: ^5.0.6
         version: 5.0.6
       '@types/geojson':
         specifier: ^7946.0.16
@@ -1786,6 +1786,9 @@ packages:
 
   '@better-fetch/fetch@1.3.2':
     resolution: {integrity: sha512-Gs7n99b5tqUC6cQAPbV0uED3IraHB6xQbHLQ/C3l7ZFafHScOx9pQ+DYmP5blbLFShVWLqxNUlI9wi4xU/X+ow==}
+
+  '@bokuweb/zstd-wasm@0.0.27':
+    resolution: {integrity: sha512-GDm2uOTK3ESjnYmSeLQifJnBsRCWajKLvN32D2ZcQaaCIJI/Hse9s74f7APXjHit95S10UImsRGkTsbwHmrtmg==}
 
   '@borewit/text-codec@0.2.2':
     resolution: {integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==}
@@ -5033,8 +5036,8 @@ packages:
   '@remix-run/route-pattern@0.22.1':
     resolution: {integrity: sha512-czdGJWh09Lapvcqt7Vb09KlrU2PhRJ8xQaI+AItTuD9aDJ5MAgxnS38lnys6Ll+6RJEqPiaUqTwIQhVLwFvv+w==}
 
-  '@repeaterjs/repeater@3.0.6':
-    resolution: {integrity: sha512-Javneu5lsuhwNCryN+pXH93VPQ8g0dBX7wItHFgYiwQmzE1sVdg5tWHiOgHywzL2W21XQopa7IwIEnNbmeUJYA==}
+  '@repeaterjs/repeater@3.1.0':
+    resolution: {integrity: sha512-TaoVksZRSx2KWYYpyLQtMQXXeS98VsgZImzW65xmiVgbYhXLk+aEsmzPLirqVuE4/XuUapH2iMtxUzaBNDzdSQ==}
 
   '@restart/hooks@0.4.16':
     resolution: {integrity: sha512-f7aCv7c+nU/3mF7NWLtVVr0Ra80RqsO89hO72r+Y/nvQr5+q0UFGkocElTH6MJApvReVh6JHUFYn2cw1WdHF3w==}
@@ -8125,8 +8128,8 @@ packages:
   flatbuffers@25.9.23:
     resolution: {integrity: sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ==}
 
-  flatgeobuf@4.4.0:
-    resolution: {integrity: sha512-uUt1xxywP+q8K73MmyKtapF4++dMCzvoqH+ojBTsCtZBbnQEg5qy0Ujze61Rwmpmt6Ra526jpRFHtEkFun5YVw==}
+  flatgeobuf@4.5.0:
+    resolution: {integrity: sha512-prxx+zi2ae+K6FKxeXF/6RrtAUWlijUoLo6e7hveEfpP8GEXNfElTbIkHz6VI9golDpbbmHni79geC3XHKVuGQ==}
 
   follow-redirects@1.16.0:
     resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
@@ -8938,19 +8941,13 @@ packages:
   jose@6.2.12:
     resolution: {integrity: sha512-9NiFmJEex0sy2Dk58j2UGBSHgUs2ypF9eZSu4L6vjOX3Dp96Sw1F3uL+H+D1sx02jZZdzUT0HgvCy59CuvXcWw==}
 
-  jotai@2.20.3:
-    resolution: {integrity: sha512-N8L9FUbeGDP+0qNJw1FebOxt+5hk+jTOwUA2LlRE4C081jUcY6F1T/FSETp4DT2/INMtiSRZyNm2D+yZdzrSgA==}
-    engines: {node: '>=12.20.0'}
+  jotai@3.0.1:
+    resolution: {integrity: sha512-6tS7wY9otdiNp26Wqb/1ds3OuVJVoV+tJlN4hpLrYmfFf/t9bauVt+zKBNSpS5qSl5h6GieVQ+OknVraZX+udQ==}
+    engines: {node: '>=22.12.0'}
     peerDependencies:
-      '@babel/core': '>=7.0.0'
-      '@babel/template': '>=7.0.0'
-      '@types/react': '>=17.0.0'
-      react: '>=17.0.0'
+      '@types/react': '>=18.0.0'
+      react: '>=18.0.0'
     peerDependenciesMeta:
-      '@babel/core':
-        optional: true
-      '@babel/template':
-        optional: true
       '@types/react':
         optional: true
       react:
@@ -13570,6 +13567,8 @@ snapshots:
 
   '@better-fetch/fetch@1.3.2': {}
 
+  '@bokuweb/zstd-wasm@0.0.27': {}
+
   '@borewit/text-codec@0.2.2': {}
 
   '@cfworker/json-schema@4.1.1': {}
@@ -17363,7 +17362,7 @@ snapshots:
 
   '@remix-run/route-pattern@0.22.1': {}
 
-  '@repeaterjs/repeater@3.0.6': {}
+  '@repeaterjs/repeater@3.1.0': {}
 
   '@restart/hooks@0.4.16(react@19.3.0)':
     dependencies:
@@ -20536,9 +20535,10 @@ snapshots:
 
   flatbuffers@25.9.23: {}
 
-  flatgeobuf@4.4.0:
+  flatgeobuf@4.5.0:
     dependencies:
-      '@repeaterjs/repeater': 3.0.6
+      '@bokuweb/zstd-wasm': 0.0.27
+      '@repeaterjs/repeater': 3.1.0
       flatbuffers: 25.9.23
       slice-source: 0.4.1
     optionalDependencies:
@@ -21455,10 +21455,8 @@ snapshots:
 
   jose@6.2.12: {}
 
-  jotai@2.20.3(@babel/core@7.29.7(supports-color@8.1.1))(@babel/template@7.29.7)(@types/react@19.3.0)(react@19.3.0):
+  jotai@3.0.1(@types/react@19.3.0)(react@19.3.0):
     optionalDependencies:
-      '@babel/core': 7.29.7(supports-color@8.1.1)
-      '@babel/template': 7.29.7
       '@types/react': 19.3.0
       react: 19.3.0
 
