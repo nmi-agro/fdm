@@ -161,6 +161,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       value: fertilizer.p_id,
       label: fertilizer.p_name_nl ?? "",
       p_type: fertilizer.p_type,
+      p_type_rvo: fertilizer.p_type_rvo,
       applicationMethodOptions: (fertilizer.p_app_method_options ?? [])
         .map((opt) => applicationMethodOptions.find((x) => x.value === opt))
         .filter(

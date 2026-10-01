@@ -200,7 +200,7 @@ export type TimelineFertilizerApplication = {
 /** Fertilizer type/RVO-code lookup value, keyed by fertilizer `p_id` (see `fertilizerTypeById`). */
 export type FertilizerTypeInfo = {
   p_type: "manure" | "mineral" | "compost" | null
-  p_type_rvo?: string | null
+  p_type_rvo: string | null
 }
 
 export type TimelineHarvest = {
