@@ -3,8 +3,6 @@ import imageCompression from "browser-image-compression"
 import { LucideImage } from "lucide-react"
 import { useEffect, useRef, useState, useTransition } from "react"
 import { useFetcher } from "react-router"
-import { compressAvatar } from "@/app/lib/image-upload.client"
-import { cn } from "@/app/lib/utils"
 import { Dropzone } from "~/components/custom/dropzone"
 import {
   ImageCropperApp,
@@ -26,28 +24,16 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
+import { useIsMobile } from "~/hooks/use-mobile"
+import { compressAvatar } from "~/lib/image-upload.client"
+import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
+import { cn } from "~/lib/utils"
 
 const DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME = "file"
 
 export const MAX_SIZE_BYTES = 5 * 1024 * 1024
 
 export const MAX_DIMENSIONS = 500
-
-export const ALLOWED_MIME_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-])
-
-export const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/heic": "heic",
-  "image/heif": "heif",
-}
 
 type ProfilePictureManagerProps = {
   avatarFallback: ReactNode
@@ -61,6 +47,7 @@ type ProfilePictureManagerProps = {
 
 export function ProfilePictureInput({
   ref: propRef,
+  className,
   name,
   files,
   onFilesChange,
@@ -77,6 +64,7 @@ export function ProfilePictureInput({
   required,
 }: ProfilePictureManagerProps & {
   ref?: Ref<HTMLInputElement>
+  className?: string
   name?: string
   title?: string
   files: File[]
@@ -135,7 +123,7 @@ export function ProfilePictureInput({
         <Dropzone
           ref={propRef}
           name={name ?? DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME}
-          accept={Object.values(MIME_TO_EXT).map((ext) => `.${ext}`)}
+          accept={[...ALLOWED_IMAGE_MIME_TYPES].map((mime) => `.${getFileExtensionFromMime(mime)}`)}
           maxSize={maxFileSize}
           multiple={false}
           required={required}
@@ -177,20 +165,22 @@ export function ProfilePictureInput({
         </Dropzone>
       </div>
       {imageData && (
-        <ImageCropperApp
-          aspectRatio={aspectRatio}
-          appAspectRatio={appAspectRatio}
-          frameRelativeSize={frameRelativeSize}
-          imageData={imageData}
-          onClear={() => {
-            onFilesChange([])
-          }}
-          frameShape={frameShape}
-          framePosition={cropFramePosition}
-          cropBounds={cropBounds}
-          onFramePositionChange={setCropFramePosition}
-          onFrameRectangleChange={setCropFrameRectangle}
-        />
+        <div className="w-full" style={{ aspectRatio: `${appAspectRatio}/1` }}>
+          <ImageCropperApp
+            className={className}
+            aspectRatio={aspectRatio}
+            frameRelativeSize={frameRelativeSize}
+            imageData={imageData}
+            onClear={() => {
+              onFilesChange([])
+            }}
+            frameShape={frameShape}
+            framePosition={cropFramePosition}
+            cropBounds={cropBounds}
+            onFramePositionChange={setCropFramePosition}
+            onFrameRectangleChange={setCropFrameRectangle}
+          />
+        </div>
       )}
     </>
   )
@@ -204,10 +194,11 @@ export function ProfilePictureManager({
   frameShape,
   cropBounds,
 }: ProfilePictureManagerProps) {
+  const isMobile = useIsMobile()
   const uploadFetcher = useFetcher()
   const deleteFetcher = useFetcher()
   const maxFileSize = MAX_SIZE_BYTES
-  const appAspectRatio = 3 / 2
+  const appAspectRatio = isMobile ? 4 / 3 : 1
   const aspectRatio = 1
   const frameRelativeSize = 0.6
   const [files, setFiles] = useState<File[]>([])

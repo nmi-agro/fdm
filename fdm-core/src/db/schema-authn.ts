@@ -1,19 +1,9 @@
 import { relations } from "drizzle-orm"
-import {
-  bigint,
-  boolean,
-  index,
-  integer,
-  pgSchema,
-  text,
-  timestamp,
-  uniqueIndex,
-} from "drizzle-orm/pg-core"
+import { pgSchema, text, bigint, timestamp, boolean, integer, index } from "drizzle-orm/pg-core"
 
-export const fdmAuthNSchema = pgSchema("fdm-authn")
-export type fdmSchemaAuthNTypeSelect = typeof fdmAuthNSchema.table
+export const fdmauthnSchema = pgSchema("fdm-authn")
 
-export const user = fdmAuthNSchema.table("user", {
+export const user = fdmauthnSchema.table("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -32,7 +22,7 @@ export const user = fdmAuthNSchema.table("user", {
   farm_active: text("farm_active"),
 })
 
-export const session = fdmAuthNSchema.table(
+export const session = fdmauthnSchema.table(
   "session",
   {
     id: text("id").primaryKey(),
@@ -52,7 +42,7 @@ export const session = fdmAuthNSchema.table(
   (table) => [index("session_userId_idx").on(table.userId)],
 )
 
-export const account = fdmAuthNSchema.table(
+export const account = fdmauthnSchema.table(
   "account",
   {
     id: text("id").primaryKey(),
@@ -76,7 +66,7 @@ export const account = fdmAuthNSchema.table(
   (table) => [index("account_userId_idx").on(table.userId)],
 )
 
-export const verification = fdmAuthNSchema.table(
+export const verification = fdmauthnSchema.table(
   "verification",
   {
     id: text("id").primaryKey(),
@@ -92,7 +82,7 @@ export const verification = fdmAuthNSchema.table(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 )
 
-export const apikey = fdmAuthNSchema.table(
+export const apikey = fdmauthnSchema.table(
   "apikey",
   {
     id: text("id").primaryKey(),
@@ -125,20 +115,16 @@ export const apikey = fdmAuthNSchema.table(
   ],
 )
 
-export const organization = fdmAuthNSchema.table(
-  "organization",
-  {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    slug: text("slug").notNull().unique(),
-    logo: text("logo"),
-    createdAt: timestamp("created_at").notNull(),
-    metadata: text("metadata"),
-  },
-  (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)],
-)
+export const organization = fdmauthnSchema.table("organization", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  logo: text("logo"),
+  createdAt: timestamp("created_at").notNull(),
+  metadata: text("metadata"),
+})
 
-export const member = fdmAuthNSchema.table(
+export const member = fdmauthnSchema.table(
   "member",
   {
     id: text("id").primaryKey(),
@@ -157,7 +143,7 @@ export const member = fdmAuthNSchema.table(
   ],
 )
 
-export const invitation = fdmAuthNSchema.table(
+export const invitation = fdmauthnSchema.table(
   "invitation",
   {
     id: text("id").primaryKey(),
@@ -179,7 +165,7 @@ export const invitation = fdmAuthNSchema.table(
   ],
 )
 
-export const rateLimit = fdmAuthNSchema.table("rate_limit", {
+export const rateLimit = fdmauthnSchema.table("rate_limit", {
   id: text("id").primaryKey(),
   key: text("key").notNull().unique(),
   count: integer("count").notNull(),

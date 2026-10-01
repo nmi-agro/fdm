@@ -28,6 +28,8 @@ FDM includes integration with **Google** and **Microsoft** OAuth providers.
 
 Microsoft sign-in uses a **certificate credential** (`private_key_jwt`) rather than a client secret. Only the public certificate is uploaded to the Entra app registration; the private key stays on the server and is never transmitted. Each token request is authenticated by a short-lived signed JWT assertion.
 
+Sign-in uses the built-in Microsoft provider of Better Auth. Register this redirect URI (type Web) in the Entra app registration: `<BETTER_AUTH_URL>/api/auth/callback/microsoft`. Microsoft accounts are identified by the stable `oid` claim of the id_token.
+
 **Required environment variables:**
 
 | Variable             | Description                                                                                                                                                                                     |

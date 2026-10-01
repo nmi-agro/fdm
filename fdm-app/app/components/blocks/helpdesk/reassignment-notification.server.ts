@@ -1,8 +1,13 @@
 import { getPrincipals } from "@nmi-agro/fdm-core"
-import { getMessagesForTicket, TicketReassignment } from "@nmi-agro/fdm-helpdesk"
+import {
+  getAttachmentsForMessage,
+  getMessagesForTicket,
+  TicketReassignment,
+} from "@nmi-agro/fdm-helpdesk"
 import { sendHelpdeskNewMessageEmail } from "~/lib/email.server"
 import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { AttachmentGridItem } from "./attachment-grid"
 
 /**
  * Maximum number of emails to send per agent when they might get assigned multiple tickets at once.
@@ -49,6 +54,14 @@ export async function notifyAboutReassignments(
       const messages = await getMessagesForTicket(fdm, principal_id, assignment.ticket.ticket_id, {
         pageLimit: 1,
       })
+      let attachments: AttachmentGridItem[] = []
+      if (messages.length >= 1) {
+        try {
+          attachments = await getAttachmentsForMessage(fdm, principal_id, messages[0].message_id)
+        } catch (err) {
+          handleActionError(err)
+        }
+      }
 
       await sendHelpdeskNewMessageEmail(
         email,
@@ -59,6 +72,7 @@ export async function notifyAboutReassignments(
         assignment.ticket.ticket_id,
         messages.length > 0 ? messages[0].body : subject,
         messages.length > 0 ? messages[0].body : subject,
+        attachments,
       )
 
       sentCounts.set(assignment.agent_id, (sentCounts.get(assignment.agent_id) ?? 0) + 1)
