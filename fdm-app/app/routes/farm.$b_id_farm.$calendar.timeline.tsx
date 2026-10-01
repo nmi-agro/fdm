@@ -13,6 +13,7 @@ import {
   getParametersForHarvestCat,
   HarvestParameters,
   removeCultivation,
+  removeFertilizerApplication,
   removeHarvest,
   updateCultivation,
   updateFertilizerApplication,
@@ -231,6 +232,10 @@ const ActionSchema = z.discriminatedUnion("intent", [
     intent: z.literal("remove_harvest"),
     b_id_harvesting: z.string(),
   }),
+  z.object({
+    intent: z.literal("remove_fertilizer"),
+    p_app_id: z.string(),
+  }),
 ])
 export async function action({ request, params }: Route.LoaderArgs) {
   try {
@@ -258,6 +263,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
       "update_harvest_date",
       "remove_cultivation",
       "remove_harvest",
+      "remove_fertilizer",
     ]
     if (
       !intentsWithoutBId.includes(formValues.intent) &&
@@ -561,12 +567,9 @@ export async function action({ request, params }: Route.LoaderArgs) {
         formValues.p_app_date,
       )
 
-      return dataWithSuccess(
-        { closeSheet: false },
-        {
-          message: `Bemesting verplaatst naar ${format(formValues.p_app_date, "d MMMM", { locale: nl })}`,
-        },
-      )
+      return dataWithSuccess(null, {
+        message: `Bemesting verplaatst naar ${format(formValues.p_app_date, "d MMMM", { locale: nl })}`,
+      })
     }
 
     if (formValues.intent === "update_harvest_date") {
@@ -577,24 +580,27 @@ export async function action({ request, params }: Route.LoaderArgs) {
         formValues.b_lu_harvest_date,
       )
 
-      return dataWithSuccess(
-        { closeSheet: false },
-        {
-          message: `Oogst verplaatst naar ${format(formValues.b_lu_harvest_date, "d MMMM", { locale: nl })}`,
-        },
-      )
+      return dataWithSuccess(null, {
+        message: `Oogst verplaatst naar ${format(formValues.b_lu_harvest_date, "d MMMM", { locale: nl })}`,
+      })
     }
 
     if (formValues.intent === "remove_cultivation") {
       await removeCultivation(fdm, session.principal_id, formValues.b_lu)
 
-      return dataWithSuccess({ closeSheet: false }, { message: "Gewas is verwijderd." })
+      return dataWithSuccess({ closeSheet: true }, { message: "Gewas is verwijderd." })
     }
 
     if (formValues.intent === "remove_harvest") {
       await removeHarvest(fdm, session.principal_id, formValues.b_id_harvesting)
 
-      return dataWithSuccess({ closeSheet: false }, { message: "Oogst is verwijderd." })
+      return dataWithSuccess({ closeSheet: true }, { message: "Oogst is verwijderd." })
+    }
+
+    if (formValues.intent === "remove_fertilizer") {
+      await removeFertilizerApplication(fdm, session.principal_id, formValues.p_app_id)
+
+      return dataWithSuccess({ closeSheet: true }, { message: "Bemesting is verwijderd." })
     }
   } catch (err) {
     throw handleActionError(err)

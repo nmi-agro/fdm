@@ -62,6 +62,7 @@ type HarvestFormDialogProps = {
   editable?: boolean
   allowBatch?: boolean
   onBatchClick?: MouseEventHandler
+  onDelete?: () => void
 }
 
 const SchemaWithIntent = FormSchema.extend({
@@ -532,7 +533,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.onDelete || b_lu_harvest_date !== undefined
 
   return (
     <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -573,7 +574,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={handleDeleteHarvest}
+                  onClick={props.onDelete ?? handleDeleteHarvest}
                   disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
                   className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
                 >
@@ -629,7 +630,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.onDelete || b_lu_harvest_date !== undefined
 
   return (
     <div className="space-y-6">
@@ -657,7 +658,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
               <Button
                 type="button"
                 variant="destructive"
-                onClick={handleDeleteHarvest}
+                onClick={props.onDelete ?? handleDeleteHarvest}
                 disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
                 className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
               >

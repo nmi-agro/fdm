@@ -164,17 +164,33 @@ export function AddEventSheet({
       formData.set("intent", "remove_cultivation")
       formData.set("b_lu", request.context.b_lu)
       void deleteFetcher.submit(formData, { method: "POST" })
+    } else if (request.type === "harvest-edit") {
+      const formData = new FormData()
+      formData.set("intent", "remove_harvest")
+      formData.set("b_id_harvesting", request.context.b_id_harvesting)
+      void deleteFetcher.submit(formData, {
+        method: "POST",
+      })
     } else if (request.type === "fertilizer-edit") {
       const formData = new FormData()
+      formData.set("intent", "remove_fertilizer")
       formData.set("p_app_id", request.context.p_app_id)
       void deleteFetcher.submit(formData, {
-        action: `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/fertilizer`,
-        method: "DELETE",
+        method: "POST",
       })
     }
     setConfirmingDelete(false)
     onOpenChange(false)
   }
+
+  const lastActionData = useRef<unknown>(null)
+  useEffect(() => {
+    if (lastActionData.current === deleteFetcher.data) return
+    if ((deleteFetcher.data as any)?.closeSheet) {
+      onOpenChange(false)
+    }
+    lastActionData.current = deleteFetcher.data
+  })
 
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
@@ -336,6 +352,7 @@ export function AddEventSheet({
               b_lu_yield_bruto={harvest.harvestableAnalysis?.b_lu_yield_bruto ?? undefined}
               b_lu_yield_fresh={harvest.harvestableAnalysis?.b_lu_yield_fresh ?? undefined}
               harvestParameters={harvest.parameters.map((x) => x.id)}
+              onDelete={() => setConfirmingDelete(true)}
             />
           ) : null}
         </div>
