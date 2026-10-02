@@ -158,7 +158,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
 
       // Capture an event once the fields are successfully received from RVO
-      captureEvent(session.principal_id, "fields_received_rvo", {
+      captureEvent(session.principal_id, "fields_requested_rvo_successful", {
         b_id_farm,
         rvo_field_count: rvoFields.length,
         calendar: yearString,
