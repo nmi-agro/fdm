@@ -314,7 +314,7 @@ export function BcsWizard({
                 </div>
                 <PhotoUploadButton
                   onFiles={uploadFiles}
-                  disabled={isUploading}
+                  isUploading={isUploading}
                   size="lg"
                   label={isUploading ? "Uploaden..." : "Foto's kiezen"}
                 />
@@ -393,7 +393,7 @@ export function BcsWizard({
                 <div className="text-sm font-medium">Foto&apos;s en notities</div>
                 <PhotoUploadButton
                   onFiles={uploadFiles}
-                  disabled={isUploading}
+                  isUploading={isUploading}
                   size="sm"
                   label={isUploading ? "Uploaden..." : "Foto toevoegen"}
                 />

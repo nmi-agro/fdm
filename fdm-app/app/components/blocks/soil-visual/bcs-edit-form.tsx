@@ -337,7 +337,7 @@ export function BcsEditForm({
               </div>
               <PhotoUploadButton
                 onFiles={uploadFiles}
-                disabled={isUploading}
+                isUploading={isUploading}
                 size="sm"
                 label={isUploading ? "Uploaden..." : "Foto toevoegen"}
               />

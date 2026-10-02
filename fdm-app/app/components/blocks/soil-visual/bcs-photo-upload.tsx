@@ -7,10 +7,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import { Spinner } from "~/components/ui/spinner"
 
 interface PhotoUploadButtonProps {
   onFiles: (files: FileList) => void
   disabled?: boolean
+  isUploading?: boolean
   size?: "sm" | "lg"
   label?: string
 }
@@ -27,6 +29,7 @@ export function createTempId() {
 export function PhotoUploadButton({
   onFiles,
   disabled,
+  isUploading,
   size = "lg",
   label = "Foto's kiezen",
 }: PhotoUploadButtonProps) {
@@ -40,6 +43,8 @@ export function PhotoUploadButton({
     }
   }
 
+  const inputsDisabled = disabled || isUploading
+
   return (
     <>
       {/* Hidden inputs — shared by both mobile and desktop */}
@@ -49,7 +54,7 @@ export function PhotoUploadButton({
         accept="image/*"
         capture="environment"
         className="hidden"
-        disabled={disabled}
+        disabled={inputsDisabled}
         onChange={handleChange}
       />
       <input
@@ -58,7 +63,7 @@ export function PhotoUploadButton({
         accept="image/*"
         multiple
         className="hidden"
-        disabled={disabled}
+        disabled={inputsDisabled}
         onChange={handleChange}
       />
 
@@ -66,7 +71,8 @@ export function PhotoUploadButton({
       <div className="sm:hidden">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button type="button" size={size} disabled={disabled}>
+            <Button type="button" size={size} disabled={inputsDisabled}>
+              {isUploading && <Spinner />}
               <Camera className="size-4" />
               {label}
               <ChevronDown className="size-4" />
@@ -87,19 +93,15 @@ export function PhotoUploadButton({
 
       {/* Desktop: regular file-picker */}
       <div className="hidden sm:block">
-        <Button type="button" size={size} disabled={disabled} asChild>
-          <label className="cursor-pointer">
-            <Upload className="size-4" />
-            {disabled ? "Uploaden..." : label}
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              disabled={disabled}
-              onChange={handleChange}
-            />
-          </label>
+        <Button
+          type="button"
+          size={size}
+          disabled={inputsDisabled}
+          onClick={() => galleryRef.current?.click()}
+        >
+          <Upload className="size-4" />
+          {isUploading ? "Uploaden..." : label}
+          {isUploading && <Spinner />}
         </Button>
       </div>
     </>
