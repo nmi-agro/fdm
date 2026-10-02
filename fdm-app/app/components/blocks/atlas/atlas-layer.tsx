@@ -2,7 +2,6 @@ import { LucideMap } from "lucide-react"
 import { ControlPosition } from "maplibre-gl"
 import { useMemo } from "react"
 import { useMatches, useNavigate, useParams } from "react-router"
-import { getCalendarSelection } from "@/app/lib/calendar"
 import { DropdownMenuCheckedRadioItem } from "~/components/custom/dropdown-menu"
 import {
   DropdownMenu,
@@ -32,6 +31,10 @@ export type AtlasLayerConfig = {
   url: (params: Record<string, string | undefined>) => string | null
 }
 
+function getCalendarWithFallback(params: Record<string, string | undefined>) {
+  return params.calendar ?? useCalendarStore.getState().calendar
+}
+
 const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
   fields: {
     context: "farm",
@@ -39,7 +42,7 @@ const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
     nameNL: "Gewaspercelen",
     requiresFarm: false,
     url(params) {
-      const calendar = params.calendar ?? getCalendarSelection()[0]
+      const calendar = getCalendarWithFallback(params)
       return uri`/farm/${params.b_id_farm ?? FARM_NOT_SELECTED_ID}/${calendar}/atlas/fields`
     },
   },
@@ -49,7 +52,7 @@ const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
     nameNL: "Bodemkaart",
     requiresFarm: false,
     url(params) {
-      const calendar = params.calendar ?? getCalendarSelection()[0]
+      const calendar = getCalendarWithFallback(params)
       return uri`/farm/${params.b_id_farm ?? FARM_NOT_SELECTED_ID}/${calendar}/atlas/soil`
     },
   },
@@ -59,7 +62,7 @@ const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
     nameNL: "Hoogtekaart",
     requiresFarm: false,
     url(params) {
-      const calendar = params.calendar ?? getCalendarSelection()[0]
+      const calendar = getCalendarWithFallback(params)
       return uri`/farm/${params.b_id_farm ?? FARM_NOT_SELECTED_ID}/${calendar}/atlas/elevation`
     },
   },
@@ -69,7 +72,7 @@ const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
     nameNL: "Bodemanalyses",
     requiresFarm: true,
     url(params) {
-      const calendar = params.calendar ?? getCalendarSelection()[0]
+      const calendar = getCalendarWithFallback(params)
       return uri`/farm/${params.b_id_farm ?? FARM_NOT_SELECTED_ID}/${calendar}/atlas/soil-analysis`
     },
   },
@@ -79,7 +82,7 @@ const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
     nameNL: "Indicatoren",
     requiresFarm: true,
     url(params) {
-      const calendar = params.calendar ?? getCalendarSelection()[0]
+      const calendar = getCalendarWithFallback(params)
       return uri`/farm/${params.b_id_farm ?? FARM_NOT_SELECTED_ID}/${calendar}/atlas/indicators`
     },
   },
@@ -90,7 +93,7 @@ const mapLayerConfig: Record<MapLayer, AtlasLayerConfig> = {
     requiresFarm: false,
     url(params) {
       if (!params.slug) return null
-      const calendar = params.calendar ?? getCalendarSelection()[0]
+      const calendar = getCalendarWithFallback(params)
       return uri`/organization/${params.slug}/${calendar}/atlas/indicators`
     },
   },
@@ -135,7 +138,7 @@ export function useAvailableAtlasLayers(assumeFarm?: boolean): AvailableAtlasLay
   const storedCalendar = useCalendarStore((store) => store.calendar)
   const b_id_farm = params.b_id_farm
   const slug = params.slug
-  const calendar = params.calendar ?? storedCalendar ?? getCalendarSelection()[0]
+  const calendar = params.calendar ?? storedCalendar
 
   return useMemo(() => {
     const context = slug ? "organization" : "farm"
