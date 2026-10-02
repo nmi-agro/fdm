@@ -1,9 +1,16 @@
-import { DndContext, type DragEndEvent, MouseSensor, useDraggable, useSensor } from "@dnd-kit/core"
+import {
+  DndContext,
+  type DragEndEvent,
+  type DragMoveEvent,
+  MouseSensor,
+  useDraggable,
+  useSensor,
+} from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
 import { addDays, addMonths, format, getDaysInMonth } from "date-fns"
 import { nl } from "date-fns/locale"
-import { LandPlot, TestTube2, Wheat } from "lucide-react"
+import { LandPlot, Loader2, TestTube2, Wheat } from "lucide-react"
 import {
   forwardRef,
   useContext,
@@ -13,11 +20,16 @@ import {
   useRef,
   useState,
 } from "react"
-import { NavLink, useFetcher, useNavigate } from "react-router"
-import type {
-  AddEventContext,
-  AddEventSheetRequest,
-} from "~/components/blocks/timeline/add-event-types"
+import { createPortal } from "react-dom"
+import { useFetcher, useNavigate } from "react-router"
+import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
+import {
+  openMenuFromClick,
+  openMenuFromKeyboard,
+  TimelineContextMenu,
+  type TimelineMenuAction,
+  type TimelineMenuSections,
+} from "~/components/blocks/timeline/timeline-context-menu"
 import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
 import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -52,13 +64,6 @@ import {
 } from "~/components/ui/alert-dialog"
 import { Button } from "~/components/ui/button"
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "~/components/ui/context-menu"
-import {
   Empty,
   EmptyContent,
   EmptyDescription,
@@ -66,7 +71,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "~/components/ui/empty"
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { endMonth, startMonth } from "~/lib/calendar"
 
@@ -132,10 +136,14 @@ export function findActiveCultivationForDate(
  * Invisible, full-row click target rendered *behind* a field's `GanttFeatureRow` (i.e. before it
  * in DOM order — see the "positioned elements painted in DOM order" rule) so cultivation
  * bars/event icons, painted after, still win hit-testing over their own area, while the rest of
- * the row's empty space hits this instead. Shows a "+" cursor and, on click, resolves the date
- * under the cursor and reports it upward to open the add-event Command menu.
+ * the row's empty space hits this instead. On click, resolves the date under the cursor and opens
+ * a menu to add a cultivation, fertilizer application or soil analysis at that date.
  */
-function RowClickCatcher({ onPick }: { onPick: (date: Date) => void }) {
+function RowClickCatcher({
+  onSelect,
+}: {
+  onSelect: (type: "cultivation-add" | "fertilizer" | "soil", date: Date) => void
+}) {
   const gantt = useContext(GanttContext)
   const [scrollX] = useGanttScrollX()
   // `GanttFeatureListGroup`/`GanttFeatureRow` have no real box width of their own — every bar
@@ -167,23 +175,44 @@ function RowClickCatcher({ onPick }: { onPick: (date: Date) => void }) {
     }
   }, [gantt.ref, gantt.sidebarWidth])
 
+  const clickedDate = useRef<Date>(new Date())
+
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
     const x = event.clientX - (ganttRect?.left ?? 0) + scrollX - gantt.sidebarWidth
-    onPick(getDateFromOffsetX(x, gantt.range))
+    clickedDate.current = getDateFromOffsetX(x, gantt.range)
+    openMenuFromClick(event)
+  }
+
+  const sections: TimelineMenuSections = {
+    addActions: [
+      {
+        key: "cultivation-add",
+        label: "Gewas toevoegen",
+        onSelect: () => onSelect("cultivation-add", clickedDate.current),
+      },
+      {
+        key: "fertilizer",
+        label: "Bemesting toevoegen",
+        onSelect: () => onSelect("fertilizer", clickedDate.current),
+      },
+      {
+        key: "soil",
+        label: "Bodemanalyse toevoegen",
+        onSelect: () => onSelect("soil", clickedDate.current),
+      },
+    ],
   }
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: mirrors kibo-ui's own GanttColumn
-    <div
-      className="absolute inset-y-0 left-0 min-h-full cursor-copy"
-      onClick={handleClick}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        handleClick(e)
-      }}
-      style={{ width }}
-    />
+    <TimelineContextMenu sections={sections}>
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: mirrors kibo-ui's own GanttColumn */}
+      <div
+        className="absolute inset-y-0 left-0 min-h-full cursor-pointer"
+        onClick={handleClick}
+        style={{ width }}
+      />
+    </TimelineContextMenu>
   )
 }
 
@@ -277,8 +306,8 @@ type TimelineFeature = GanttFeature & {
   p_type?: "manure" | "mineral" | "compost" | null
   p_type_rvo?: string | null
   events?: AttachedEvent[]
-  /** Field/cultivation this feature belongs to — only set on `kind: "cultivation"` bars, used to
-   *  drive the right-click quick-add ContextMenu. */
+  /** Field/cultivation this feature belongs to. `b_id` is set on every editable feature, `b_lu`
+   *  and `b_lu_harvestable` on cultivation bars (they drive the add actions in their menu). */
   b_id?: string
   b_lu?: string
   b_lu_harvestable?: "none" | "once" | "multiple"
@@ -290,14 +319,16 @@ type EditableEntity =
   | { kind: "cultivation"; b_id: string; b_lu: string }
   | { kind: "fertilizer"; b_id: string; p_app_id: string }
   | { kind: "harvest"; b_id: string; b_lu: string; b_id_harvesting: string }
+  | { kind: "soil"; b_id: string; a_id: string }
 
-/** Bundles everything the drag/popover/delete affordances need, threaded down to
+/** Bundles everything the drag/menu/delete affordances need, threaded down to
  *  `FeatureContent`/`EventOverlay` (both plain, prop-driven components rendered by
  *  `GanttFeatureRow`, so they can't close over `TimelineGanttView`'s own state). */
 type TimelineEditing = {
   canModify: boolean
   onSheetRequest?: (request: AddEventSheetRequest) => void
   onEditHarvest: (b_id: string, b_lu: string, b_id_harvesting: string) => void
+  onEditSoil: (b_id: string, a_id: string) => void
   requestDelete: (entity: EditableEntity, label: string) => void
   hoveredEntityId: string | null
   setHoveredEntityId: (id: string | null) => void
@@ -314,64 +345,26 @@ type TimelineEditing = {
 function entityLabel(entity: EditableEntity): string {
   if (entity.kind === "cultivation") return "dit gewas"
   if (entity.kind === "fertilizer") return "deze bemesting"
+  if (entity.kind === "soil") return "deze bodemanalyse"
   return "deze oogst"
 }
 
-/** The Bewerken/Verwijderen actions shown in every event's click Popover — kept out of
- *  `EventOverlay`/`FeatureContent` themselves since both the attached-icon and orphan-pill and
- *  cultivation-bar cases need the exact same footer. */
-function EventActionsPopoverFooter({
-  editing,
-  entity,
-  onEdit,
-}: {
-  editing: TimelineEditing
-  entity: EditableEntity
-  onEdit?: () => void
-}) {
-  if (!editing.canModify) return null
-  return (
-    <div className="mt-2 flex justify-end gap-2">
-      {onEdit && (
-        <Button onClick={onEdit} size="sm" variant="outline">
-          Bewerken
-        </Button>
-      )}
-      <Button
-        onClick={() => editing.requestDelete(entity, entityLabel(entity))}
-        size="sm"
-        variant="destructive"
-      >
-        Verwijderen
-      </Button>
-    </div>
-  )
-}
-
-/**
- * Distinguishes a single click (open the summary/actions Popover) from a double click (skip the
- * Popover and go straight to the edit Sheet) on the same element, since browsers always fire a
- * "click" before "dblclick" — without this debounce, a double click would flash the Popover open
- * for an instant before the edit Sheet replaced it.
- */
-function useClickVsDoubleClick(onClick: () => void, onDoubleClick: () => void) {
-  const pendingClick = useRef<number>(undefined)
-  return {
-    onClick: () => {
-      if (pendingClick.current) window.clearTimeout(pendingClick.current)
-      pendingClick.current = window.setTimeout(() => {
-        pendingClick.current = undefined
-        onClick()
-      }, 220)
+/** The "Beheren" actions (Bewerken/Verwijderen) shared by every editable item's menu. */
+function buildManageActions(
+  editing: TimelineEditing,
+  entity: EditableEntity | null,
+  onEdit: () => void,
+): TimelineMenuAction[] {
+  if (!editing.canModify || !entity) return []
+  return [
+    { key: "edit", label: "Bewerken", onSelect: onEdit },
+    {
+      destructive: true,
+      key: "delete",
+      label: "Verwijderen",
+      onSelect: () => editing.requestDelete(entity, entityLabel(entity)),
     },
-    onDoubleClick: () => {
-      if (pendingClick.current) {
-        window.clearTimeout(pendingClick.current)
-        pendingClick.current = undefined
-      }
-      onDoubleClick()
-    },
-  }
+  ]
 }
 
 const cultivationStatus = (b_lu_croprotation: string | null): GanttStatus => ({
@@ -607,6 +600,7 @@ function buildFieldFeatures(
           detail,
           href,
           date: analysis.b_sampling_date,
+          entityId: analysis.a_id,
         },
         {
           id: `soil-${analysis.a_id}`,
@@ -619,6 +613,8 @@ function buildFieldFeatures(
           href,
           label: name,
           detail,
+          b_id: field.b_id,
+          entityId: analysis.a_id,
           draggable: false,
           resizable: false,
         },
@@ -674,30 +670,19 @@ function EventIcon({
 /**
  * Draggable inner icon for an attached fertilizer/harvest event. Split out from `EventOverlay` so
  * `useDraggable` (which must live inside a `DndContext`) only wraps the icon itself — the
- * surrounding `DndContext`/Popover/Tooltip stay in the parent.
+ * surrounding `DndContext`/menu/Tooltip stay in the parent.
  */
-function DraggableEventIcon({
-  event,
-  onActivate,
-}: {
-  event: AttachedEvent
-  onActivate: () => void
-}) {
+function DraggableEventIcon({ event }: { event: AttachedEvent }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `event-${event.id}`,
   })
-  const clickHandlers = useClickVsDoubleClick(onActivate, onActivate)
 
   return (
     <button
       className="bg-background/90 ring-border/50 flex cursor-grab items-center justify-center rounded-full p-0.5 shadow-sm ring-1 active:cursor-grabbing"
       onClick={(domEvent) => {
         domEvent.stopPropagation()
-        clickHandlers.onClick()
-      }}
-      onDoubleClick={(domEvent) => {
-        domEvent.stopPropagation()
-        clickHandlers.onDoubleClick()
+        openMenuFromClick(domEvent)
       }}
       ref={setNodeRef}
       style={{
@@ -714,13 +699,14 @@ function DraggableEventIcon({
 }
 
 /**
- * A fertilizer/harvest icon overlaid on top of the cultivation bar it belongs to (its date falls
- * within that cultivation's period).
+ * A fertilizer/harvest/soil icon overlaid on top of the cultivation bar it belongs to (its date
+ * falls within that cultivation's period). Clicking opens its context menu; fertilizer and
+ * harvest icons can also be dragged to another date.
  */
 function EventOverlay({
   b_id,
   b_lu,
-  b_id_harvesting,
+  b_lu_harvestable,
   cultivationEndAt,
   cultivationStartAt,
   editing,
@@ -729,7 +715,7 @@ function EventOverlay({
 }: {
   b_id: string
   b_lu: string
-  b_id_harvesting?: string
+  b_lu_harvestable?: "none" | "once" | "multiple"
   cultivationEndAt: Date
   cultivationStartAt: Date
   editing: TimelineEditing
@@ -738,109 +724,149 @@ function EventOverlay({
 }) {
   const gantt = useContext(GanttContext)
   const [scrollX] = useGanttScrollX()
-  const [open, setOpen] = useState(false)
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 4 } })
-
-  if (event.kind === "soil" || !editing.canModify || !event.entityId) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <NavLink
-            className="bg-background/90 ring-border/50 absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
-            onClick={(event_) => event_.stopPropagation()}
-            style={{ left: `${event.percent}%` }}
-            to={event.href}
-          >
-            <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
-          </NavLink>
-        </TooltipTrigger>
-        <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
-      </Tooltip>
-    )
-  }
+  const [dragPreview, setDragPreview] = useState<{ date: Date; x: number; y: number } | null>(null)
 
   const entityId = event.entityId
-  const entity: EditableEntity =
-    event.kind === "fertilizer"
+  const entity: EditableEntity | null = !entityId
+    ? null
+    : event.kind === "fertilizer"
       ? { b_id, kind: "fertilizer", p_app_id: entityId }
-      : { kind: "harvest", b_id, b_id_harvesting: entityId, b_lu }
+      : event.kind === "harvest"
+        ? { b_id, b_id_harvesting: entityId, b_lu, kind: "harvest" }
+        : { a_id: entityId, b_id, kind: "soil" }
 
   const handleEdit = () => {
-    setOpen(false)
+    if (!entityId) return
     if (event.kind === "fertilizer") {
       editing.onSheetRequest?.({
         type: "fertilizer-edit",
         context: { b_id, b_lu, date: event.date, p_app_id: entityId },
       })
-    }
-    if (event.kind === "harvest") {
-      if (b_id_harvesting) {
-        editing.onSheetRequest?.({
-          type: "harvest-edit",
-          context: { b_id, b_lu, b_id_harvesting },
-        })
-      }
+    } else if (event.kind === "harvest") {
+      editing.onSheetRequest?.({
+        type: "harvest-edit",
+        context: { b_id, b_lu, b_id_harvesting: entityId },
+      })
+    } else {
+      editing.onEditSoil(b_id, entityId)
     }
   }
 
-  const handleDragEnd = (dragEvent: DragEndEvent) => {
+  const sections: TimelineMenuSections = {
+    detail: event.detail,
+    detailsHref: event.href,
+    manageActions: buildManageActions(editing, entity, handleEdit),
+    title: event.label,
+  }
+
+  const isDraggable = editing.canModify && event.kind !== "soil" && !!entityId
+  // A harvest of a once-harvestable crop ends the cultivation, so it may also move past the
+  // cultivation's current end date.
+  const latestDate =
+    event.kind === "harvest" && b_lu_harvestable === "once" ? TIMELINE_END_DATE : cultivationEndAt
+
+  const getDragDate = (rect: { left: number; width: number } | null | undefined) => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
-    const translated = dragEvent.active.rect.current.translated
-    if (!ganttRect || !translated) return
-    const centerX = translated.left + translated.width / 2
+    if (!ganttRect || !rect) return null
+    const centerX = rect.left + rect.width / 2
     const x = centerX - ganttRect.left + scrollX - gantt.sidebarWidth
     const rawDate = getDateFromOffsetX(x, range)
-    const clamped =
-      rawDate < cultivationStartAt
-        ? cultivationStartAt
-        : rawDate > cultivationEndAt
-          ? cultivationEndAt
-          : rawDate
+    return rawDate < cultivationStartAt
+      ? cultivationStartAt
+      : rawDate > latestDate
+        ? latestDate
+        : rawDate
+  }
+
+  const handleDragMove = (dragEvent: DragMoveEvent) => {
+    const translated = dragEvent.active.rect.current.translated
+    const date = getDragDate(translated)
+    if (!translated || !date) return
+    setDragPreview({ date, x: translated.left + translated.width / 2, y: translated.top })
+  }
+
+  const handleDragEnd = (dragEvent: DragEndEvent) => {
+    setDragPreview(null)
+    const date = getDragDate(dragEvent.active.rect.current.translated)
+    if (!date || !entityId) return
     if (event.kind === "fertilizer") {
-      editing.submitFertilizerDate(entityId, clamped)
+      editing.submitFertilizerDate(entityId, date)
     } else {
-      editing.submitHarvestDate(entityId, clamped)
+      editing.submitHarvestDate(entityId, date)
     }
+  }
+
+  const triggerProps = {
+    className: "absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2",
+    onMouseEnter: () => entityId && event.kind !== "soil" && editing.setHoveredEntityId(entityId),
+    onMouseLeave: () => editing.setHoveredEntityId(null),
+    style: { left: `${event.percent}%` },
+  }
+
+  if (!isDraggable) {
+    return (
+      <TimelineContextMenu sections={sections}>
+        <span {...triggerProps}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
+                onClick={(event_) => {
+                  event_.stopPropagation()
+                  openMenuFromClick(event_)
+                }}
+                type="button"
+              >
+                <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
+          </Tooltip>
+        </span>
+      </TimelineContextMenu>
+    )
   }
 
   return (
     <DndContext
       modifiers={[restrictToHorizontalAxis]}
+      onDragCancel={() => setDragPreview(null)}
       onDragEnd={handleDragEnd}
+      onDragMove={handleDragMove}
       sensors={[mouseSensor]}
     >
-      <Popover onOpenChange={setOpen} open={open}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
-              <span
-                className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
-                onMouseEnter={() => editing.setHoveredEntityId(entityId)}
-                onMouseLeave={() => editing.setHoveredEntityId(null)}
-                style={{ left: `${event.percent}%` }}
-              >
-                <DraggableEventIcon event={event} onActivate={() => setOpen(true)} />
+      <TimelineContextMenu sections={sections}>
+        <span {...triggerProps}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex">
+                <DraggableEventIcon event={event} />
               </span>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
-        </Tooltip>
-        <PopoverContent className="w-64">
-          <div className="text-foreground text-sm">{event.label}</div>
-          <div className="text-muted-foreground text-xs whitespace-pre-line">{event.detail}</div>
-          <EventActionsPopoverFooter editing={editing} entity={entity} onEdit={handleEdit} />
-        </PopoverContent>
-      </Popover>
+            </TooltipTrigger>
+            <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
+          </Tooltip>
+        </span>
+      </TimelineContextMenu>
+      {dragPreview &&
+        createPortal(
+          <div
+            className="bg-popover text-popover-foreground pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md border px-2 py-1 text-xs shadow-md"
+            style={{ left: dragPreview.x, top: dragPreview.y - 4 }}
+          >
+            {formatNl(dragPreview.date)}
+          </div>,
+          document.body,
+        )}
     </DndContext>
   )
 }
 
 /**
  * A rounded rectangle to display on the Gantt chart. It may contain the cultivation name, or an icon for fertilizer
- * applications and harvests. Right clicking a cultivation feature will bring a context menu, and onSheetRequest
- * will be called with information collected according to whether the user has chosen Add Harvest, Add Fertilizer,
- * or End Cultivation. Clicking a feature opens a summary Popover (Bewerken/Verwijderen when editable); double
- * clicking skips the Popover and opens the edit Sheet (or, for harvests, navigates straight to its own page).
+ * applications and harvests. Clicking a feature opens a context menu with its details, the actions to add a
+ * fertilizer application, a harvest or an end date (cultivations only), and to edit or delete it. onSheetRequest
+ * is called with the information collected for the chosen action.
  */
 function FeatureContent({
   editing,
@@ -853,9 +879,8 @@ function FeatureContent({
 }) {
   const gantt = useContext(GanttContext)
   const [scrollX] = useGanttScrollX()
-  const rightClickDateRef = useRef<Date>(feature.startAt)
-  const rightClickHarvestDateRef = useRef<Date>(feature.startAt)
-  const [popoverOpen, setPopoverOpen] = useState(false)
+  const clickDateRef = useRef<Date>(feature.startAt)
+  const clickHarvestDateRef = useRef<Date>(feature.startAt)
 
   // The earliest overlaid event (if any) bounds how much horizontal room the crop-name label
   // can safely claim before it would run under that icon.
@@ -878,10 +903,11 @@ function FeatureContent({
         ? { b_id, kind: "fertilizer", p_app_id: entityId }
         : feature.kind === "harvest" && entityId && b_id
           ? { b_id, b_id_harvesting: entityId, b_lu: b_lu ?? "", kind: "harvest" }
-          : null
+          : feature.kind === "soil" && entityId && b_id
+            ? { a_id: entityId, b_id, kind: "soil" }
+            : null
 
   const handleEdit = () => {
-    setPopoverOpen(false)
     if (feature.kind === "cultivation" && b_id && b_lu) {
       editing.onSheetRequest?.({
         context: { b_id, b_lu, date: feature.startAt },
@@ -897,16 +923,28 @@ function FeatureContent({
         context: { b_id, b_lu: b_lu ?? "", date: feature.startAt, b_id_harvesting: entityId },
         type: "harvest-edit",
       })
+    } else if (feature.kind === "soil" && b_id && entityId) {
+      editing.onEditSoil(b_id, entityId)
     }
   }
 
-  const clickHandlers = useClickVsDoubleClick(() => setPopoverOpen(true), handleEdit)
+  const baseSections: TimelineMenuSections = {
+    detail: feature.detail,
+    detailsHref: feature.href,
+    manageActions: buildManageActions(editing, entity, handleEdit),
+    title: feature.label,
+  }
 
   if (feature.kind === "cultivation") {
     const canHarvest = feature.b_lu_harvestable !== "none"
     const allowHarvestPastEnd = feature.b_lu_harvestable === "once"
 
-    const handleContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    const captureClickDate = (event: React.MouseEvent<HTMLDivElement>) => {
+      if (event.detail === 0) {
+        clickDateRef.current = feature.startAt
+        clickHarvestDateRef.current = feature.startAt
+        return
+      }
       const ganttRect = gantt.ref?.current?.getBoundingClientRect()
       const x = event.clientX - (ganttRect?.left ?? 0) + scrollX - gantt.sidebarWidth
       const date = getDateFromOffsetX(x, range)
@@ -916,8 +954,8 @@ function FeatureContent({
           : feature.endAt && date > feature.endAt
             ? feature.endAt
             : date
-      rightClickDateRef.current = clamped
-      rightClickHarvestDateRef.current = allowHarvestPastEnd
+      clickDateRef.current = clamped
+      clickHarvestDateRef.current = allowHarvestPastEnd
         ? date < feature.startAt
           ? feature.startAt
           : date > TIMELINE_END_DATE
@@ -926,57 +964,80 @@ function FeatureContent({
         : clamped
     }
 
+    const addActions: TimelineMenuAction[] =
+      editing.onSheetRequest && b_id && b_lu
+        ? [
+            {
+              key: "fertilizer",
+              label: "Bemesting toevoegen",
+              onSelect: () =>
+                editing.onSheetRequest?.({
+                  context: { b_id, date: clickDateRef.current, b_lu },
+                  type: "fertilizer",
+                }),
+            },
+            ...(canHarvest
+              ? [
+                  {
+                    key: "harvest",
+                    label: "Oogst registreren",
+                    onSelect: () =>
+                      editing.onSheetRequest?.({
+                        context: { b_id, date: clickHarvestDateRef.current, b_lu },
+                        type: "harvest",
+                      }),
+                  },
+                ]
+              : []),
+            {
+              key: "cultivation-end",
+              label: "Gewas beëindigen",
+              onSelect: () =>
+                editing.onSheetRequest?.({
+                  context: { b_id, date: clickDateRef.current, b_lu },
+                  type: "cultivation-end",
+                }),
+            },
+          ]
+        : []
+
     const bar = (
       <div className="relative h-full min-w-0 flex-1">
-        <Popover onOpenChange={setPopoverOpen} open={popoverOpen}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <PopoverTrigger asChild>
-                <div
-                  className="absolute inset-0 flex cursor-pointer items-start"
-                  onClick={clickHandlers.onClick}
-                  onDoubleClick={clickHandlers.onDoubleClick}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") setPopoverOpen(true)
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <p
-                    className="truncate px-1.5 pt-0.5 text-xs"
-                    style={
-                      firstEventPercent !== null
-                        ? { maxWidth: `max(0px, calc(${firstEventPercent}% - 14px))` }
-                        : undefined
-                    }
-                  >
-                    {feature.name}
-                  </p>
-                </div>
-              </PopoverTrigger>
-            </TooltipTrigger>
-            <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
-          </Tooltip>
-          <PopoverContent className="w-64">
-            <div className="text-foreground text-sm">{feature.label}</div>
-            <div className="text-muted-foreground text-xs whitespace-pre-line">
-              {feature.detail}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className="absolute inset-0 flex cursor-pointer items-start"
+              onClick={(event) => {
+                captureClickDate(event)
+                openMenuFromClick(event)
+              }}
+              onKeyDown={openMenuFromKeyboard}
+              role="button"
+              tabIndex={0}
+            >
+              <p
+                className="truncate px-1.5 pt-0.5 text-xs"
+                style={
+                  firstEventPercent !== null
+                    ? { maxWidth: `max(0px, calc(${firstEventPercent}% - 14px))` }
+                    : undefined
+                }
+              >
+                {feature.name}
+              </p>
             </div>
-            {entity && (
-              <EventActionsPopoverFooter editing={editing} entity={entity} onEdit={handleEdit} />
-            )}
-          </PopoverContent>
-        </Popover>
-        {/* Rendered as siblings (not nested inside the label's Popover trigger above) so
-            hovering/clicking an event icon only opens its own tooltip/popover, not the
-            cultivation bar's. */}
+          </TooltipTrigger>
+          <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
+        </Tooltip>
+        {/* Rendered as siblings (not nested inside the label above) so hovering/clicking an
+            event icon only opens its own tooltip/menu, not the cultivation bar's. */}
         {b_id &&
           b_lu &&
           feature.events?.map((event) => (
             <EventOverlay
               b_id={b_id}
               b_lu={b_lu}
-              b_id_harvesting={event.entityId}
+              b_lu_harvestable={feature.b_lu_harvestable}
               cultivationEndAt={feature.endAt}
               cultivationStartAt={feature.startAt}
               editing={editing}
@@ -988,100 +1049,26 @@ function FeatureContent({
       </div>
     )
 
-    if (!editing.canModify || !b_id || !b_lu) {
-      return bar
-    }
-
     return (
-      <ContextMenu>
-        <ContextMenuTrigger asChild onContextMenu={handleContextMenu}>
-          {bar}
-        </ContextMenuTrigger>
-        <ContextMenuContent>
-          {editing.onSheetRequest && (
-            <>
-              <ContextMenuItem
-                onClick={() =>
-                  editing.onSheetRequest?.({
-                    context: { b_id, date: rightClickDateRef.current, b_lu },
-                    type: "fertilizer",
-                  })
-                }
-              >
-                Bemesting toevoegen
-              </ContextMenuItem>
-              {canHarvest && (
-                <ContextMenuItem
-                  onClick={() =>
-                    editing.onSheetRequest?.({
-                      context: { b_id, date: rightClickHarvestDateRef.current, b_lu },
-                      type: "harvest",
-                    })
-                  }
-                >
-                  Oogst registreren
-                </ContextMenuItem>
-              )}
-              <ContextMenuItem
-                onClick={() =>
-                  editing.onSheetRequest?.({
-                    context: { b_id, date: rightClickDateRef.current, b_lu },
-                    type: "cultivation-end",
-                  })
-                }
-              >
-                Gewas beëindigen
-              </ContextMenuItem>
-            </>
-          )}
-          {entity && (
-            <>
-              <ContextMenuSeparator />
-              <ContextMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => editing.requestDelete(entity, entityLabel(entity))}
-              >
-                Verwijderen
-              </ContextMenuItem>
-            </>
-          )}
-        </ContextMenuContent>
-      </ContextMenu>
+      <TimelineContextMenu sections={{ ...baseSections, addActions }}>{bar}</TimelineContextMenu>
     )
   }
 
-  // Orphan fertilizer/harvest point pill (no covering cultivation).
-  if (feature.kind === "soil" || !editing.canModify || !entity) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <NavLink
-            className="flex h-full min-w-0 flex-1 items-center justify-center"
-            to={feature.href ?? "#"}
-          >
-            <EventIcon
-              kind={feature.kind}
-              p_type={feature.p_type}
-              p_type_rvo={feature.p_type_rvo}
-            />
-          </NavLink>
-        </TooltipTrigger>
-        <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
-      </Tooltip>
-    )
-  }
-
+  // Single-day pill for a fertilizer, harvest or soil analysis that isn't covered by a cultivation.
   return (
-    <Popover onOpenChange={setPopoverOpen} open={popoverOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
+    <TimelineContextMenu sections={baseSections}>
+      <div
+        className="flex h-full min-w-0 flex-1 items-center justify-center"
+        onMouseEnter={() =>
+          entityId && feature.kind !== "soil" && editing.setHoveredEntityId(entityId)
+        }
+        onMouseLeave={() => editing.setHoveredEntityId(null)}
+      >
+        <Tooltip>
+          <TooltipTrigger asChild>
             <button
-              className="flex h-full min-w-0 flex-1 items-center justify-center"
-              onClick={clickHandlers.onClick}
-              onDoubleClick={clickHandlers.onDoubleClick}
-              onMouseEnter={() => entityId && editing.setHoveredEntityId(entityId)}
-              onMouseLeave={() => editing.setHoveredEntityId(null)}
+              className="flex cursor-pointer items-center justify-center"
+              onClick={openMenuFromClick}
               type="button"
             >
               <EventIcon
@@ -1090,16 +1077,11 @@ function FeatureContent({
                 p_type_rvo={feature.p_type_rvo}
               />
             </button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
-      </Tooltip>
-      <PopoverContent className="w-64">
-        <div className="text-foreground text-sm">{feature.label}</div>
-        <div className="text-muted-foreground text-xs whitespace-pre-line">{feature.detail}</div>
-        <EventActionsPopoverFooter editing={editing} entity={entity} onEdit={handleEdit} />
-      </PopoverContent>
-    </Popover>
+          </TooltipTrigger>
+          <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
+        </Tooltip>
+      </div>
+    </TimelineContextMenu>
   )
 }
 
@@ -1173,8 +1155,9 @@ export const TimelineGanttView = forwardRef<
     calendarYear: number
     range: Range
     canModify: boolean
-    onRequestAddEvent?: (context: AddEventContext) => void
     onSheetRequest?: (request: AddEventSheetRequest) => void
+    /** Called with a function that reverts the last saved move, or `null` when there is none. */
+    onUndoChange?: (undo: (() => void) | null) => void
   }
 >(function TimelineGanttView(
   {
@@ -1187,8 +1170,8 @@ export const TimelineGanttView = forwardRef<
     calendarYear,
     range,
     canModify,
-    onRequestAddEvent,
     onSheetRequest,
+    onUndoChange,
   },
   ref,
 ) {
@@ -1268,6 +1251,39 @@ export const TimelineGanttView = forwardRef<
   } | null>(null)
   const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null)
 
+  // Form data that reverts the last drag/resize; it is handed to the page once the change is saved.
+  const pendingUndoRef = useRef<FormData | null>(null)
+  const handledFetcherData = useRef<unknown>(null)
+  const isUndoingRef = useRef(false)
+
+  const submitMove = (formData: FormData, undoFormData: FormData) => {
+    pendingUndoRef.current = undoFormData
+    onUndoChange?.(null)
+    void fetcher.submit(formData, { method: "POST" })
+  }
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data || handledFetcherData.current === fetcher.data) {
+      return
+    }
+    handledFetcherData.current = fetcher.data
+    const undoFormData = pendingUndoRef.current
+    pendingUndoRef.current = null
+    if (isUndoingRef.current) {
+      isUndoingRef.current = false
+      return
+    }
+    const result = fetcher.data as { moved?: boolean; closeSheet?: boolean }
+    if (!undoFormData || !(result.moved || result.closeSheet)) return
+    onUndoChange?.(() => {
+      onUndoChange(null)
+      isUndoingRef.current = true
+      void fetcher.submit(undoFormData, { method: "POST" })
+    })
+  }, [fetcher.state, fetcher.data, fetcher, onUndoChange])
+
+  const isSaving = fetcher.state !== "idle"
+
   const submitCultivationMove = (
     b_id: string,
     b_lu: string,
@@ -1276,36 +1292,58 @@ export const TimelineGanttView = forwardRef<
   ) => {
     const cultivation = fields.flatMap((field) => field.cultivations).find((c) => c.b_lu === b_lu)
     if (!cultivation) return
-    const formData = new FormData()
-    formData.set("intent", "update_cultivation")
-    formData.set("b_id", b_id)
-    formData.set("b_lu", b_lu)
-    formData.set("b_lu_catalogue", cultivation.b_lu_catalogue)
-    formData.set("b_lu_start", b_lu_start.toISOString())
-    if (b_lu_end) formData.set("b_lu_end", b_lu_end.toISOString())
-    void fetcher.submit(formData, { method: "POST" })
+    const build = (start: Date | null, end: Date | null) => {
+      const formData = new FormData()
+      formData.set("intent", "update_cultivation")
+      formData.set("b_id", b_id)
+      formData.set("b_lu", b_lu)
+      formData.set("b_lu_catalogue", cultivation.b_lu_catalogue)
+      if (start) formData.set("b_lu_start", start.toISOString())
+      if (end) formData.set("b_lu_end", end.toISOString())
+      return formData
+    }
+    submitMove(
+      build(b_lu_start, b_lu_end),
+      build(cultivation.b_lu_start, cultivation.b_lu_end),
+    )
   }
 
   const submitFertilizerDate = (p_app_id: string, p_app_date: Date) => {
-    const formData = new FormData()
-    formData.set("intent", "update_fertilizer_date")
-    formData.set("p_app_id", p_app_id)
-    formData.set("p_app_date", p_app_date.toISOString())
-    void fetcher.submit(formData, { method: "POST" })
+    const original = fields
+      .flatMap((field) => field.fertilizerApplications)
+      .find((f) => f.p_app_id === p_app_id)
+    const build = (date: Date) => {
+      const formData = new FormData()
+      formData.set("intent", "update_fertilizer_date")
+      formData.set("p_app_id", p_app_id)
+      formData.set("p_app_date", date.toISOString())
+      return formData
+    }
+    submitMove(build(p_app_date), build(original?.p_app_date ?? p_app_date))
   }
 
   const submitHarvestDate = (b_id_harvesting: string, b_lu_harvest_date: Date) => {
-    const formData = new FormData()
-    formData.set("intent", "update_harvest_date")
-    formData.set("b_id_harvesting", b_id_harvesting)
-    formData.set("b_lu_harvest_date", b_lu_harvest_date.toISOString())
-    void fetcher.submit(formData, { method: "POST" })
+    const original = fields
+      .flatMap((field) => field.harvests)
+      .find((h) => h.b_id_harvesting === b_id_harvesting)
+    const build = (date: Date) => {
+      const formData = new FormData()
+      formData.set("intent", "update_harvest_date")
+      formData.set("b_id_harvesting", b_id_harvesting)
+      formData.set("b_lu_harvest_date", date.toISOString())
+      return formData
+    }
+    submitMove(build(b_lu_harvest_date), build(original?.b_lu_harvest_date ?? b_lu_harvest_date))
   }
 
   const onEditHarvest = (b_id: string, b_lu: string, b_id_harvesting: string) => {
     void navigate(
       `/farm/${b_id_farm}/${calendar}/field/${b_id}/cultivation/${b_lu}/harvest/${b_id_harvesting}`,
     )
+  }
+
+  const onEditSoil = (b_id: string, a_id: string) => {
+    void navigate(`/farm/${b_id_farm}/${calendar}/field/${b_id}/soil/analysis/${a_id}`)
   }
 
   const requestDelete = (entity: EditableEntity, label: string) =>
@@ -1323,6 +1361,11 @@ export const TimelineGanttView = forwardRef<
       const formData = new FormData()
       formData.set("intent", "remove_harvest")
       formData.set("b_id_harvesting", entity.b_id_harvesting)
+      void fetcher.submit(formData, { method: "POST" })
+    } else if (entity.kind === "soil") {
+      const formData = new FormData()
+      formData.set("intent", "remove_soil_analysis")
+      formData.set("a_id", entity.a_id)
       void fetcher.submit(formData, { method: "POST" })
     } else {
       const formData = new FormData()
@@ -1375,6 +1418,7 @@ export const TimelineGanttView = forwardRef<
     canModify,
     hoveredEntityId,
     onEditHarvest,
+    onEditSoil,
     onSheetRequest: canModify ? onSheetRequest : undefined,
     requestDelete,
     setHoveredEntityId,
@@ -1496,7 +1540,19 @@ export const TimelineGanttView = forwardRef<
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div ref={containerRef}>
+      <div className="relative" ref={containerRef}>
+        {isSaving && (
+          <div
+            aria-busy="true"
+            aria-live="polite"
+            className="bg-background/70 absolute inset-0 z-50 flex cursor-wait items-center justify-center rounded-lg backdrop-grayscale"
+          >
+            <div className="bg-popover text-popover-foreground flex items-center gap-3 rounded-lg border px-5 py-3 text-sm font-medium shadow-lg">
+              <Loader2 className="size-5 animate-spin" />
+              Opslaan...
+            </div>
+          </div>
+        )}
         <GanttProvider
           key={ganttChartId}
           className="h-[calc(100vh-16rem)] rounded-lg border"
@@ -1535,9 +1591,17 @@ export const TimelineGanttView = forwardRef<
             <GanttFeatureList>
               {fieldsWithFeatures.map(({ features, field }) => (
                 <GanttFeatureListGroup key={field.b_id} className="relative">
-                  {onRequestAddEvent && editing.canModify ? (
+                  {editing.canModify ? (
                     <RowClickCatcher
-                      onPick={(date) => onRequestAddEvent({ b_id: field.b_id, date })}
+                      onSelect={(type, date) => {
+                        if (type === "soil") {
+                          void navigate(
+                            `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil/analysis/new`,
+                          )
+                        } else {
+                          onSheetRequest?.({ context: { b_id: field.b_id, date }, type })
+                        }
+                      }}
                     />
                   ) : null}
                   <GanttFeatureRow

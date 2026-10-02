@@ -11,10 +11,12 @@ import {
   getFertilizers,
   getHarvests,
   getParametersForHarvestCat,
+  getSoilAnalysis,
   HarvestParameters,
   removeCultivation,
   removeFertilizerApplication,
   removeHarvest,
+  removeSoilAnalysis,
   updateCultivation,
   updateFertilizerApplication,
   updateHarvest,
@@ -22,15 +24,12 @@ import {
 import { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { data, type MetaFunction, useActionData, useLoaderData, useParams } from "react-router"
 import { dataWithError, dataWithSuccess, dataWithWarning } from "remix-toast"
 import z from "zod"
 import type { Range } from "@/app/components/kibo-ui/gantt"
-import type {
-  AddEventContext,
-  AddEventSheetRequest,
-} from "~/components/blocks/timeline/add-event-types"
+import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
 import type {
   TimelineFilters,
   TimelineGanttViewHandle,
@@ -47,7 +46,6 @@ import { FormSchema as HarvestFormSchema } from "~/components/blocks/harvest/sch
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { AddEventCommand } from "~/components/blocks/timeline/add-event-command"
 import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
 import { TimelineMobileView } from "~/components/blocks/timeline/mobile-view"
@@ -62,6 +60,8 @@ import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { deleteObject } from "~/integrations/gcs.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump } from "~/store/calendar"
@@ -237,6 +237,10 @@ const ActionSchema = z.discriminatedUnion("intent", [
     intent: z.literal("remove_fertilizer"),
     p_app_id: z.string(),
   }),
+  z.object({
+    intent: z.literal("remove_soil_analysis"),
+    a_id: z.string(),
+  }),
 ])
 export async function action({ request, params }: Route.LoaderArgs) {
   try {
@@ -265,6 +269,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
       "remove_cultivation",
       "remove_harvest",
       "remove_fertilizer",
+      "remove_soil_analysis",
     ]
     if (
       !intentsWithoutBId.includes(formValues.intent) &&
@@ -568,9 +573,12 @@ export async function action({ request, params }: Route.LoaderArgs) {
         formValues.p_app_date,
       )
 
-      return dataWithSuccess(null, {
-        message: `Bemesting verplaatst naar ${format(formValues.p_app_date, "d MMMM", { locale: nl })}`,
-      })
+      return dataWithSuccess(
+        { moved: true },
+        {
+          message: `Bemesting verplaatst naar ${format(formValues.p_app_date, "d MMMM", { locale: nl })}`,
+        },
+      )
     }
 
     if (formValues.intent === "update_harvest_date") {
@@ -581,9 +589,25 @@ export async function action({ request, params }: Route.LoaderArgs) {
         formValues.b_lu_harvest_date,
       )
 
-      return dataWithSuccess(null, {
-        message: `Oogst verplaatst naar ${format(formValues.b_lu_harvest_date, "d MMMM", { locale: nl })}`,
-      })
+      return dataWithSuccess(
+        { moved: true },
+        {
+          message: `Oogst verplaatst naar ${format(formValues.b_lu_harvest_date, "d MMMM", { locale: nl })}`,
+        },
+      )
+    }
+
+    if (formValues.intent === "remove_soil_analysis") {
+      const soilAnalysis = await getSoilAnalysis(fdm, session.principal_id, formValues.a_id)
+      if (isBcsAnalysis(soilAnalysis)) {
+        return dataWithError(null, "Een BodemConditieScore analyse kan niet worden verwijderd.")
+      }
+      await removeSoilAnalysis(fdm, session.principal_id, formValues.a_id)
+      if (soilAnalysis?.a_file_path) {
+        await deleteObject(soilAnalysis.a_file_path)
+      }
+
+      return dataWithSuccess(null, { message: "Bodemanalyse is verwijderd." })
     }
 
     if (formValues.intent === "remove_cultivation") {
@@ -661,22 +685,9 @@ export default function TimelinePage() {
     showFutureEvents: false,
   })
 
-  // Quick-add state: an empty-space row click or the toolbar button opens the Command menu
-  // (`commandContext` prefilled for the former, `undefined` for the latter); picking an event
-  // type there — or a cultivation bar's right-click menu directly — opens the Sheet.
-  const [commandOpen, setCommandOpen] = useState(false)
-  const [commandContext, setCommandContext] = useState<AddEventContext>()
   const [sheetRequest, setSheetRequest] = useState<AddEventSheetRequest>()
-
-  const handleRequestAddEvent = (context: AddEventContext) => {
-    setCommandContext(context)
-    setCommandOpen(true)
-  }
-
-  const handleToolbarAddEvent = () => {
-    setCommandContext(undefined)
-    setCommandOpen(true)
-  }
+  const [undo, setUndo] = useState<{ run: () => void } | null>(null)
+  const handleUndoChange = useCallback((run: (() => void) | null) => setUndo(run ? { run } : null), [])
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
@@ -761,12 +772,11 @@ export default function TimelinePage() {
               rightNode={
                 <TimelineToolbar
                   filters={filters}
-                  onAddEvent={handleToolbarAddEvent}
                   onFiltersChange={setFilters}
                   onJumpToToday={() => ganttRef.current?.scrollToToday()}
+                  onUndo={undo?.run}
                   onRangeChange={setRange}
                   range={range}
-                  canModify={loaderData.farmWritePermission}
                 />
               }
             />
@@ -780,8 +790,8 @@ export default function TimelinePage() {
                 fields={loaderData.fields}
                 filters={filters}
                 onFiltersChange={setFilters}
-                onRequestAddEvent={handleRequestAddEvent}
                 onSheetRequest={setSheetRequest}
+                onUndoChange={handleUndoChange}
                 range={range}
                 ref={ganttRef}
               />
@@ -789,13 +799,6 @@ export default function TimelinePage() {
           </>
         )}
       </main>
-      <AddEventCommand
-        context={commandContext}
-        fields={loaderData.fields}
-        onOpenChange={setCommandOpen}
-        onSelect={setSheetRequest}
-        open={commandOpen}
-      />
       <AddEventSheet
         b_id_farm={loaderData.b_id_farm}
         calendar={loaderData.calendar}

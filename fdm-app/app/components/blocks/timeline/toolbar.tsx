@@ -1,4 +1,4 @@
-import { Eye, Locate, Plus } from "lucide-react"
+import { Eye, Locate, Undo2 } from "lucide-react"
 import type { TimelineFilters } from "~/components/blocks/timeline/gantt-view"
 import type { Range } from "~/components/kibo-ui/gantt"
 import { Badge } from "~/components/ui/badge"
@@ -36,16 +36,15 @@ export function TimelineToolbar({
   filters,
   onFiltersChange,
   onJumpToToday,
-  onAddEvent,
-  canModify,
+  onUndo,
 }: {
   range: Range
   onRangeChange: (range: Range) => void
   filters: TimelineFilters
   onFiltersChange: (filters: TimelineFilters) => void
   onJumpToToday: () => void
-  onAddEvent: () => void
-  canModify: boolean
+  /** Reverts the last saved change; the button is only shown when this is set. */
+  onUndo?: (() => void) | null
 }) {
   const activeFilterCount = Object.entries(filters).filter(
     ([key, value]) => value !== defaultFilters[key as keyof TimelineFilters],
@@ -53,13 +52,12 @@ export function TimelineToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {canModify && (
-        <Button onClick={onAddEvent}>
-          <Plus className="size-4" />
-          Toevoegen
+      {onUndo && (
+        <Button onClick={onUndo} variant="secondary">
+          <Undo2 className="size-4" />
+          Ongedaan maken
         </Button>
       )}
-
       <Select onValueChange={(value) => onRangeChange(value as Range)} value={range}>
         <SelectTrigger className="w-40">
           <SelectValue />

@@ -2,12 +2,18 @@ import { format, isToday } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { NavLink, useFetcher } from "react-router"
+import { useFetcher, useNavigate, useParams } from "react-router"
 import type {
   FertilizerTypeInfo,
   TimelineField,
   TimelineFilters,
 } from "~/components/blocks/timeline/gantt-view"
+import {
+  openMenuFromClick,
+  openMenuFromKeyboard,
+  TimelineContextMenu,
+  type TimelineMenuAction,
+} from "~/components/blocks/timeline/timeline-context-menu"
 import {
   getFertilizerCategoryFromRvoCode,
   isRenureRvoCode,
@@ -40,11 +46,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader } from "~/components/ui/card"
+import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
@@ -128,131 +133,164 @@ function EventCard({
   onRequest: (request: AddEventSheetRequest) => void
 }) {
   const fetcher = useFetcher({ key: TIMELINE_FETCHER_KEY })
+  const navigate = useNavigate()
+  const { b_id_farm, calendar } = useParams()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+
+  const isCultivation = event.type === "cultivation_start" || event.type === "cultivation_end"
+
+  const handleEdit = () => {
+    if (isCultivation && event.b_lu) {
+      onRequest({
+        type: "cultivation-edit",
+        context: { b_id: event.fieldId, b_lu: event.b_lu, date: undefined },
+      })
+    } else if (event.type === "fertilizer" && event.p_app_id) {
+      onRequest({
+        type: "fertilizer-edit",
+        context: { b_id: event.fieldId, p_app_id: event.p_app_id, date: undefined },
+      })
+    } else if (event.type === "harvest" && event.b_lu && event.b_id_harvesting) {
+      onRequest({
+        type: "harvest-edit",
+        context: {
+          b_id: event.fieldId,
+          b_lu: event.b_lu,
+          b_id_harvesting: event.b_id_harvesting,
+          date: undefined,
+        },
+      })
+    } else if (event.type === "soil_sampling" && event.a_id) {
+      void navigate(
+        `/farm/${b_id_farm}/${calendar}/field/${event.fieldId}/soil/analysis/${event.a_id}`,
+      )
+    }
+  }
+
+  const handleConfirmDelete = () => {
+    const formData = new FormData()
+    if (isCultivation) {
+      formData.set("intent", "remove_cultivation")
+      formData.set("b_lu", event.b_lu ?? "")
+    } else if (event.type === "harvest") {
+      formData.set("intent", "remove_harvest")
+      formData.set("b_id_harvesting", event.b_id_harvesting ?? "")
+    } else if (event.type === "soil_sampling") {
+      formData.set("intent", "remove_soil_analysis")
+      formData.set("a_id", event.a_id ?? "")
+    } else {
+      formData.set("intent", "remove_fertilizer")
+      formData.set("p_app_id", event.p_app_id ?? "")
+    }
+    void fetcher.submit(formData, { method: "POST" })
+    setConfirmingDelete(false)
+  }
+
+  const canEdit =
+    (isCultivation && !!event.b_lu) ||
+    (event.type === "fertilizer" && !!event.p_app_id) ||
+    (event.type === "harvest" && !!event.b_lu && !!event.b_id_harvesting) ||
+    (event.type === "soil_sampling" && !!event.a_id)
+
+  const b_lu = event.b_lu
+  const addActions: TimelineMenuAction[] =
+    canModify && isCultivation && b_lu
+      ? [
+          {
+            key: "fertilizer",
+            label: "Bemesting toevoegen",
+            onSelect: () =>
+              onRequest({
+                type: "fertilizer",
+                context: { b_id: event.fieldId, b_lu, date: new Date() },
+              }),
+          },
+          ...(event.b_lu_harvestable && event.b_lu_harvestable !== "none"
+            ? [
+                {
+                  key: "harvest",
+                  label: "Oogst registreren",
+                  onSelect: () =>
+                    onRequest({
+                      type: "harvest",
+                      context: { b_id: event.fieldId, b_lu, date: new Date() },
+                    }),
+                },
+              ]
+            : []),
+        ]
+      : []
+
+  const manageActions: TimelineMenuAction[] =
+    canModify && canEdit
+      ? [
+          { key: "edit", label: "Bewerken", onSelect: handleEdit },
+          {
+            destructive: true,
+            key: "delete",
+            label: "Verwijderen",
+            onSelect: () => setConfirmingDelete(true),
+          },
+        ]
+      : []
+
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex flex-row items-start gap-2">
-        <EventTypeIcon event={event} />
-        <NavLink to={event.href} className="block min-w-0 flex-1 space-y-0.5 p-0">
-          <div className="flex items-center gap-2">
-            <Badge
-              className="max-w-[60%] truncate text-xs"
-              style={{ textDecoration: "none" }}
-              title={event.fieldName}
-              variant="secondary"
-            >
-              {event.fieldName}
-            </Badge>
-            <span className="text-muted-foreground shrink-0 text-xs">
-              {eventTypeLabel[event.type]}
-            </span>
-          </div>
-          <p className="text-sm font-medium break-words">{event.label}</p>
-        </NavLink>
-      </CardHeader>
-      {event.sublabel && (
-        <CardContent className="text-muted-foreground text-sm break-words">
-          {event.sublabel}
-        </CardContent>
-      )}
-      <CardFooter className="justify-end gap-2">
-        <Button variant="outline" type="button" asChild>
-          <NavLink to={event.href}>Bekijken</NavLink>
-        </Button>
-        {canModify && (
-          <>
-            {event.type !== "soil_sampling" && (
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => {
-                  if (
-                    (event.type === "cultivation_start" || event.type === "cultivation_end") &&
-                    event.b_lu
-                  ) {
-                    onRequest({
-                      type: "cultivation-edit",
-                      context: {
-                        b_id: event.fieldId,
-                        b_lu: event.b_lu,
-                        date: undefined,
-                      },
-                    })
-                  }
-
-                  if (event.type === "fertilizer" && event.p_app_id) {
-                    onRequest({
-                      type: "fertilizer-edit",
-                      context: {
-                        b_id: event.fieldId,
-                        p_app_id: event.p_app_id,
-                        date: undefined,
-                      },
-                    })
-                  }
-
-                  if (event.type === "harvest" && event.b_lu && event.b_id_harvesting) {
-                    onRequest({
-                      type: "harvest-edit",
-                      context: {
-                        b_id: event.fieldId,
-                        b_lu: event.b_lu,
-                        b_id_harvesting: event.b_id_harvesting,
-                        date: undefined,
-                      },
-                    })
-                  }
-                }}
-              >
-                Bewerken
-              </Button>
-            )}
-            {event.type !== "soil_sampling" && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" type="button">
-                    Verwijderen
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Dit kan niet ongedaan worden gemaakt.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                    <fetcher.Form method="POST">
-                      {event.type === "cultivation_start" || event.type === "cultivation_end" ? (
-                        <>
-                          <input type="hidden" name="intent" value="remove_cultivation" />
-                          <input type="hidden" name="b_lu" value={event.b_lu} />
-                        </>
-                      ) : event.type === "harvest" ? (
-                        <>
-                          <input type="hidden" name="intent" value="remove_harvest" />
-                          <input
-                            type="hidden"
-                            name="b_id_harvesting"
-                            value={event.b_id_harvesting}
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <input type="hidden" name="intent" value="remove_fertilizer" />
-                          <input type="hidden" name="p_app_id" value={event.p_app_id} />
-                        </>
-                      )}
-                      <AlertDialogAction type="submit">Verwijderen</AlertDialogAction>
-                    </fetcher.Form>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </>
-        )}
-      </CardFooter>
-    </Card>
+    <>
+      <TimelineContextMenu
+        sections={{
+          addActions,
+          detail: event.sublabel,
+          detailsHref: event.href,
+          manageActions,
+          title: event.label,
+        }}
+      >
+        <Card
+          className="cursor-pointer overflow-hidden"
+          onClick={openMenuFromClick}
+          onKeyDown={openMenuFromKeyboard}
+          role="button"
+          tabIndex={0}
+        >
+          <CardHeader className="flex flex-row items-start gap-2">
+            <EventTypeIcon event={event} />
+            <div className="block min-w-0 flex-1 space-y-0.5 p-0">
+              <div className="flex items-center gap-2">
+                <Badge
+                  className="max-w-[60%] truncate text-xs"
+                  style={{ textDecoration: "none" }}
+                  title={event.fieldName}
+                  variant="secondary"
+                >
+                  {event.fieldName}
+                </Badge>
+                <span className="text-muted-foreground shrink-0 text-xs">
+                  {eventTypeLabel[event.type]}
+                </span>
+              </div>
+              <p className="text-sm font-medium break-words">{event.label}</p>
+            </div>
+          </CardHeader>
+          {event.sublabel && (
+            <CardContent className="text-muted-foreground text-sm break-words">
+              {event.sublabel}
+            </CardContent>
+          )}
+        </Card>
+      </TimelineContextMenu>
+      <AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+            <AlertDialogDescription>Dit kan niet ongedaan worden gemaakt.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 

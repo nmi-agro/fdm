@@ -31,6 +31,8 @@ export type TimelineEvent = {
   p_type_rvo?: string | null
   b_lu?: string
   b_id_harvesting?: string
+  a_id?: string
+  b_lu_harvestable?: "none" | "once" | "multiple"
   cultivationType?: string | null
 }
 
@@ -93,6 +95,7 @@ function pushCultivationEvents(
         label: cultivation.b_lu_name ?? "Onbekend gewas",
         sublabel: "Gewas gestart",
         b_lu: cultivation.b_lu,
+        b_lu_harvestable: cultivation.b_lu_harvestable,
       })
     }
 
@@ -181,6 +184,7 @@ function pushSoilEvents(
       id: `soil-${analysis.a_id}`,
       date: analysis.b_sampling_date,
       type: "soil_sampling",
+      a_id: analysis.a_id,
       fieldId: field.b_id,
       fieldName: field.b_name,
       fieldBufferstrip: field.b_bufferstrip,
