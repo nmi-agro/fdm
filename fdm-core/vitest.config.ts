@@ -5,6 +5,7 @@ export default defineConfig({
     globalSetup: "./src/global-setup.ts",
     setupFiles: ["./src/setup-tests.ts"],
     retry: process.env.CI ? 2 : 0,
+    maxWorkers: process.env.CI ? 2 : undefined,
     isolate: false,
     coverage: {
       provider: "v8",
