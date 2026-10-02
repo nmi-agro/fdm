@@ -167,14 +167,22 @@ export default function AppIndex() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const lastRedirectedCalendarVal = useRef(loaderData.calendar)
+  const pendingCalendarVal = useRef<string | null>(null)
   // Set the selected calendar year to what is sent from the server
   useEffect(() => {
     if (searchParams.get("calendar") === loaderData.calendar) {
+      pendingCalendarVal.current = loaderData.calendar
       setCalendar(loaderData.calendar)
     }
   }, [loaderData.calendar, searchParams, setCalendar])
 
   useEffect(() => {
+    if (pendingCalendarVal.current !== null) {
+      if (calendar !== pendingCalendarVal.current) {
+        return
+      }
+      pendingCalendarVal.current = null
+    }
     if (
       calendar &&
       calendar !== lastRedirectedCalendarVal.current &&
