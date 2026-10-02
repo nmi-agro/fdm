@@ -31,6 +31,7 @@ import { nl } from "date-fns/locale"
 import { atom, useAtom } from "jotai"
 import throttle from "lodash.throttle"
 import { PlusIcon, TrashIcon } from "lucide-react"
+import { createPortal } from "react-dom"
 import {
   createContext,
   memo,
@@ -72,6 +73,8 @@ export type GanttFeature = {
   lane?: string // Optional: features with the same lane will share a row
   /** Optional background color (e.g. an rgba string) applied to the feature's card. */
   color?: string
+  resizable?: boolean
+  draggable?: boolean
 }
 
 export type GanttSubRowPositioned<T> = T & { subRow: number }
@@ -850,7 +853,20 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
     },
   })
 
+  const [isItemDragging, setIsItemDragging] = useState(false)
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
+
+  // Follow the pointer while the whole item is dragged, so the new date can be shown next to it.
+  useEffect(() => {
+    if (!isItemDragging) return
+    const onPointerMove = (event: PointerEvent) =>
+      setPointer({ x: event.clientX, y: event.clientY })
+    window.addEventListener("pointermove", onPointerMove)
+    return () => window.removeEventListener("pointermove", onPointerMove)
+  }, [isItemDragging])
+
   const handleItemDragStart = useCallback(() => {
+    setIsItemDragging(true)
     setPreviousMouseX(mousePosition.x)
     setPreviousStartAt(startAt)
     setPreviousEndAt(endAt)
@@ -870,10 +886,16 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
     setEndAt(newEndDate)
   }, [gantt, mousePosition.x, previousMouseX, previousStartAt, previousEndAt])
 
-  const onDragEnd = useCallback(
-    () => onMove?.(feature.id, startAt, endAt),
-    [onMove, feature.id, startAt, endAt],
-  )
+  const onDragEnd = useCallback(() => {
+    setIsItemDragging(false)
+    setPointer(null)
+    onMove?.(feature.id, startAt, endAt)
+  }, [onMove, feature.id, startAt, endAt])
+
+  const dragLabel =
+    endAt && !isSameDay(startAt, endAt)
+      ? `${format(startAt, "d MMM yyyy", { locale: nl })} – ${format(endAt, "d MMM yyyy", { locale: nl })}`
+      : format(startAt, "d MMM yyyy", { locale: nl })
 
   const handleLeftDragMove = useCallback(() => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
@@ -904,7 +926,7 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
           left: Math.round(offset),
         }}
       >
-        {onMove && (
+        {onMove && feature.resizable !== false && (
           <DndContext
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}
@@ -916,16 +938,31 @@ export const GanttFeatureItem: FC<GanttFeatureItemProps> = ({
         )}
         <DndContext
           modifiers={[restrictToHorizontalAxis]}
+          onDragCancel={() => {
+            setIsItemDragging(false)
+            setPointer(null)
+          }}
           onDragEnd={onDragEnd}
           onDragMove={handleItemDragMove}
           onDragStart={handleItemDragStart}
-          sensors={[mouseSensor]}
+          sensors={feature.draggable === false ? [] : [mouseSensor]}
         >
           <GanttFeatureItemCard color={feature.color} id={feature.id}>
             {children ?? <p className="flex-1 truncate text-xs">{feature.name}</p>}
           </GanttFeatureItemCard>
         </DndContext>
-        {onMove && (
+        {isItemDragging &&
+          pointer &&
+          createPortal(
+            <div
+              className="bg-popover text-popover-foreground pointer-events-none fixed z-50 -translate-x-1/2 rounded-md border px-2 py-1 text-xs shadow-md"
+              style={{ left: pointer.x, top: pointer.y - 36 }}
+            >
+              {dragLabel}
+            </div>,
+            document.body,
+          )}
+        {onMove && feature.resizable !== false && (
           <DndContext
             modifiers={[restrictToHorizontalAxis]}
             onDragEnd={onDragEnd}

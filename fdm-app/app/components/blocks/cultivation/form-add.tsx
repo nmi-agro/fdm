@@ -53,17 +53,24 @@ export function CultivationAddFormDialog({
   )
 }
 
-function CultivationAddForm({
+export function CultivationAddForm({
   options,
   defaultValues,
   onSuccess,
   editable = true,
-}: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void }) {
+  action,
+  intent,
+  b_id,
+  b_lu,
+}: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void; action?: string }) {
   const isSuggested = !!defaultValues
   const form = useRemixForm<z.infer<typeof CultivationAddFormSchema>>({
     mode: "onTouched",
     resolver: zodResolver(CultivationAddFormSchema) as never,
     defaultValues: {
+      intent: intent,
+      b_id: b_id,
+      b_lu: b_lu,
       b_lu_catalogue: defaultValues?.b_lu_catalogue ?? "",
       b_lu_start: defaultValues?.b_lu_start ?? new Date(),
       b_lu_end: defaultValues?.b_lu_end ?? undefined,
@@ -83,8 +90,10 @@ function CultivationAddForm({
 
   return (
     <RemixFormProvider {...form}>
-      <Form id="formCultivation" onSubmit={form.handleSubmit} method="post">
+      <Form id="formCultivation" onSubmit={form.handleSubmit} method="post" action={action}>
         <fieldset disabled={!editable || form.formState.isSubmitting}>
+          {typeof intent === "string" && <input type="hidden" name="intent" value={intent} />}
+          {typeof b_id === "string" && <input type="hidden" name="b_id" value={b_id} />}
           <div className="grid gap-4">
             <div className="col-span-1">
               <Combobox
@@ -97,7 +106,7 @@ function CultivationAddForm({
                     <span className="text-red-500">*</span>
                   </span>
                 }
-                disabled={false}
+                disabled={!!b_lu}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
