@@ -3,6 +3,7 @@ import type {
   RvoImportReviewItem,
   UserChoiceMap,
 } from "@nmi-agro/fdm-rvo/types"
+import type { ZodError } from "zod"
 import {
   addFarmVerification,
   addSoilAnalysis,
@@ -123,10 +124,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
       } catch (fetchError) {
         // Capture an event when there is an error with fetching.
+        let status_code: string | undefined = undefined
+        let reason: unknown | undefined = undefined
+        if ((fetchError as ZodError)?.name === "ZodError") {
+          reason = { ZodError: (fetchError as ZodError)?.issues }
+        } else if (fetchError instanceof Error) {
+          reason = fetchError.message
+          const matches = fetchError.message.match(/^Request failed: (\d{3})\s/)
+          if (matches && matches.length >= 2) {
+            status_code = matches[1]
+          }
+        }
         captureEvent(session.principal_id, "fields_received_rvo_failed", {
           b_id_farm,
           calendar: yearString,
-          reason: fetchError instanceof Error ? fetchError.message : undefined,
+          reason,
+          status_code,
         })
         if (isRvoPermissionDeniedError(fetchError)) {
           // RVO completed the request but denied access for this KvK number: this is a
