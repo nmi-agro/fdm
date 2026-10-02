@@ -65,9 +65,7 @@ export function Message({
           )}
         </div>
       </div>
-      {senderType === "agent" && (
-        <div className="text-muted-foreground text-xs">Medewerker</div>
-      )}
+      {senderType === "agent" && <div className="text-muted-foreground text-xs">Medewerker</div>}
       <div className="mt-4">{children}</div>
     </Card>
   )

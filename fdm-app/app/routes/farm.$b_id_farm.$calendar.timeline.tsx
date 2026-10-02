@@ -54,14 +54,14 @@ import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { deleteObject } from "~/integrations/gcs.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
+import { isBcsAnalysis } from "~/lib/bcs"
 import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { deleteObject } from "~/integrations/gcs.server"
-import { isBcsAnalysis } from "~/lib/bcs"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump } from "~/store/calendar"
@@ -330,7 +330,7 @@ export async function action({ request, params }: Route.LoaderArgs) {
     }
 
     if (formValues.intent === "add_fertilizer") {
-      const { b_id_farm, calendar = "all" } = params
+      const { b_id_farm, calendar } = params
       if (!b_id_farm) {
         throw new Error("Farm ID is missing")
       }
@@ -687,7 +687,10 @@ export default function TimelinePage() {
 
   const [sheetRequest, setSheetRequest] = useState<AddEventSheetRequest>()
   const [undo, setUndo] = useState<{ run: () => void } | null>(null)
-  const handleUndoChange = useCallback((run: (() => void) | null) => setUndo(run ? { run } : null), [])
+  const handleUndoChange = useCallback(
+    (run: (() => void) | null) => setUndo(run ? { run } : null),
+    [],
+  )
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??

@@ -1,5 +1,4 @@
 import { Row, Table } from "@tanstack/react-table"
-import { MouseEvent } from "react"
 import { useRotationSelectionStore } from "~/store/rotation-selection"
 import { FieldRow, MemoizedFieldRow, MemoizedRotationExtended } from "./columns"
 import { rotationTableFeatures } from "./table-features"
@@ -38,22 +37,9 @@ export function buildRowSelection(
 export function handleRowSelection(
   row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>,
   table: Table<typeof rotationTableFeatures, MemoizedRotationExtended>,
-  event: MouseEvent<{ checked: boolean }>,
+  event?: { shiftKey?: boolean },
 ) {
   if (!table.options.meta) return
-
-  // Ignore clicks on interactive elements inside the row
-  const isInteractive = (target: EventTarget | null): boolean => {
-    if (!(target instanceof Element)) return false
-    return !!target.closest(
-      'a,button,input,label,select,textarea,[role="button"],[role="link"],[role="checkbox"],[data-prevent-row-click="true"]',
-    )
-  }
-
-  if (isInteractive(event.target)) {
-    // If a link was clicked, let the default navigation happen
-    return
-  }
 
   const mode = !row.getIsSelected()
 
@@ -72,7 +58,7 @@ export function handleRowSelection(
 
   // If there was a last row selected and the shift key is pressed
   const lastSelectedRowIndex = table.options.meta?.lastSelectedRowIndex.current
-  if (event.shiftKey && lastSelectedRowIndex) {
+  if (event?.shiftKey && lastSelectedRowIndex) {
     const flatRows = table.getSortedRowModel().flatRows
     let firstRowIndex = flatRows.findIndex((r) => r.id === lastSelectedRowIndex)
     let lastRowIndex = flatRows.findIndex((r) => r.id === row.id)

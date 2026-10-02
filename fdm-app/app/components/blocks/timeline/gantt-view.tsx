@@ -23,6 +23,8 @@ import {
 import { createPortal } from "react-dom"
 import { useFetcher, useNavigate } from "react-router"
 import type { AddEventSheetRequest } from "~/components/blocks/timeline/add-event-types"
+import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
+import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import {
   openMenuFromClick,
   openMenuFromKeyboard,
@@ -30,8 +32,6 @@ import {
   type TimelineMenuAction,
   type TimelineMenuSections,
 } from "~/components/blocks/timeline/timeline-context-menu"
-import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
-import { EVENT_TYPE_COLOR } from "~/components/blocks/timeline/timeline-colors"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
 import {
@@ -1302,10 +1302,7 @@ export const TimelineGanttView = forwardRef<
       if (end) formData.set("b_lu_end", end.toISOString())
       return formData
     }
-    submitMove(
-      build(b_lu_start, b_lu_end),
-      build(cultivation.b_lu_start, cultivation.b_lu_end),
-    )
+    submitMove(build(b_lu_start, b_lu_end), build(cultivation.b_lu_start, cultivation.b_lu_end))
   }
 
   const submitFertilizerDate = (p_app_id: string, p_app_date: Date) => {

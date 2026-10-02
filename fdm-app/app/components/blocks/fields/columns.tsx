@@ -73,13 +73,7 @@ export function buildColumns(
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
-          onClick={(event) =>
-            row.getToggleSelectedHandler()({
-              ...event,
-              target: { ...event.currentTarget, checked: !row.getIsSelected() },
-              currentTarget: { ...event.currentTarget, checked: !row.getIsSelected() },
-            })
-          }
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label="Select row"
         />
       ),

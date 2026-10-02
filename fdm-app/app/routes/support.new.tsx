@@ -156,7 +156,7 @@ export async function action({ request }: Route.ActionArgs) {
           )
         }
       } catch (err) {
-        handleActionError(err)
+        void handleActionError(err)
       }
     }
 

@@ -137,7 +137,7 @@ export function AttachmentViewerDialogContent({
       }
     }
 
-    fetchFile()
+    void fetchFile()
 
     return () => {
       abortController.abort()

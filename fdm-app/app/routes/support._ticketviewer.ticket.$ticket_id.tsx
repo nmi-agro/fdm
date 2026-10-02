@@ -458,7 +458,7 @@ export async function action({ params, request }: Args) {
         try {
           attachedFiles = await attachFiles(fdm, session.principal_id, message_id, filesToAttach)
         } catch (err) {
-          handleActionError(err)
+          void handleActionError(err)
         }
       }
 

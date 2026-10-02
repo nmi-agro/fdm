@@ -125,7 +125,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       } catch (fetchError) {
         // Capture an event when there is an error with fetching.
         let status_code: string | undefined = undefined
-        let reason: unknown | undefined = undefined
+        let reason: unknown = undefined
         if ((fetchError as ZodError)?.name === "ZodError") {
           reason = { ZodError: (fetchError as ZodError)?.issues }
         } else if (fetchError instanceof Error) {

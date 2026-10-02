@@ -68,15 +68,15 @@ export async function attachFiles(
           try {
             await removeAttachment(fdm, principal_id, attachment_id)
           } catch (revertError) {
-            handleActionError(revertError)
+            void handleActionError(revertError)
           }
-          handleActionError(uploadError)
+          void handleActionError(uploadError)
           return null
         },
       )
       uploadPromises.push(uploadPromise)
     } catch (createError) {
-      handleActionError(new Error("Failed to create an attachment", { cause: createError }))
+      void handleActionError(new Error("Failed to create an attachment", { cause: createError }))
     }
   }
 

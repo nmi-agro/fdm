@@ -31,7 +31,6 @@ import { nl } from "date-fns/locale"
 import { atom, useAtom } from "jotai"
 import throttle from "lodash.throttle"
 import { PlusIcon, TrashIcon } from "lucide-react"
-import { createPortal } from "react-dom"
 import {
   createContext,
   memo,
@@ -43,6 +42,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { createPortal } from "react-dom"
 import { Card } from "~/components/ui/card"
 import {
   ContextMenu,
