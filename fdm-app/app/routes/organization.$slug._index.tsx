@@ -6,7 +6,9 @@ import {
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
 import { Square, Users } from "lucide-react"
-import { data, NavLink, useLoaderData } from "react-router"
+import { useRef } from "react"
+import { useEffect } from "react"
+import { data, NavLink, redirect, useLoaderData, useSearchParams } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { cn } from "@/app/lib/utils"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
@@ -29,7 +31,7 @@ import {
 import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
-import { getCalendarSelection } from "~/lib/calendar"
+import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -52,9 +54,26 @@ export const meta: Route.MetaFunction = () => {
   ]
 }
 
-export async function loader({ params, request }: Route.LoaderArgs) {
+export async function loader({ params, request, url }: Route.LoaderArgs) {
   try {
     const session = await getSession(request)
+
+    // Redirect in case a corrected calendar selection is needed.
+    let activeYear = new Date().getFullYear().toString()
+    const calendarParam = url.searchParams.get("calendar")
+    if (calendarParam) {
+      const year = Number(calendarParam)
+      if (isSupportedYear(year)) {
+        activeYear = calendarParam
+      } else {
+        const searchParams = new URLSearchParams(url.searchParams)
+        searchParams.set("calendar", activeYear)
+        return redirect(`/organization/${params.slug}?${searchParams.toString()}`)
+      }
+    }
+    const calendar = activeYear
+    const timeframe = getTimeframe({ calendar: activeYear })
+
     const organizations = await auth.api.listOrganizations({
       headers: request.headers,
     })
@@ -100,14 +119,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, organization.id)
 
-    // Get latest available year
-    const calendar = getCalendarSelection()[0] ?? "all"
-
     const farmsExtended: (FarmWithRoles & {
       b_area_farm: number | null
     })[] = await Promise.all(
       farms.map(async (farm) => {
-        const fields = await getFields(fdm, session.principal_id, farm.b_id_farm)
+        const fields = await getFields(fdm, session.principal_id, farm.b_id_farm, timeframe)
 
         const farmArea = fields.reduce((acc, field) => acc + (field.b_area ?? 0), 0)
 
@@ -148,8 +164,28 @@ export default function AppIndex() {
   const loaderData = useLoaderData<typeof loader>()
   const calendar = useCalendarStore((store) => store.calendar)
   const setCalendar = useCalendarStore((store) => store.setCalendar)
-  const years = getCalendarSelection()
+  const [searchParams, setSearchParams] = useSearchParams()
 
+  const lastRedirectedCalendarVal = useRef(loaderData.calendar)
+  // Set the selected calendar year to what is sent from the server
+  useEffect(() => {
+    if (searchParams.get("calendar") === loaderData.calendar) {
+      setCalendar(loaderData.calendar)
+    }
+  }, [loaderData.calendar, searchParams, setCalendar])
+
+  useEffect(() => {
+    if (
+      calendar &&
+      calendar !== lastRedirectedCalendarVal.current &&
+      loaderData.calendar !== calendar
+    ) {
+      setSearchParams({ ...Object.fromEntries(searchParams.entries()), calendar: calendar })
+      lastRedirectedCalendarVal.current = calendar
+    }
+  }, [loaderData.calendar, searchParams, setSearchParams, calendar, setCalendar])
+
+  const years = getCalendarSelection()
   const description = loaderData.organization.metadata.data?.description
   return (
     <SidebarInset>
