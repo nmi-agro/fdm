@@ -1,8 +1,4 @@
-import {
-  getCultivationCatalogue,
-  getFertilizersCatalogue,
-  getMeasuresCatalogue,
-} from "@nmi-agro/fdm-data"
+import { getCultivationCatalogue, getFertilizersCatalogue } from "@nmi-agro/fdm-data"
 import { and, eq, isNotNull } from "drizzle-orm"
 import { beforeEach, describe, expect, inject, it, vi } from "vitest"
 import type { FdmType } from "./fdm.types"
@@ -26,14 +22,6 @@ import {
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
-
-vi.mock("@nmi-agro/fdm-data", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@nmi-agro/fdm-data")>()
-  return {
-    ...original,
-    getMeasuresCatalogue: vi.fn().mockResolvedValue([]),
-  }
-})
 
 describe("Catalogues", () => {
   let fdm: FdmType
@@ -741,30 +729,53 @@ describe("Measures Catalogue Sync", () => {
     expect(rowsAfter[0].updated).toEqual(rowsBefore[0].updated)
   })
 
-  it("syncCatalogues without nmiApiKey should not call getMeasuresCatalogue", async () => {
-    vi.mocked(getMeasuresCatalogue).mockClear()
-
-    await syncCatalogues(fdm) // no nmiApiKey
-
-    expect(vi.mocked(getMeasuresCatalogue)).not.toHaveBeenCalled()
+  // Stub `fetch` instead of mocking `@nmi-agro/fdm-data`: with `isolate: false`,
+  // `./catalogues` may already be loaded by another test file with the real module.
+  it("syncCatalogues without nmiApiKey should not fetch the measures catalogue", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      await syncCatalogues(fdm) // no nmiApiKey
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it("syncCatalogues with nmiApiKey should sync measures catalogue", async () => {
-    vi.mocked(getMeasuresCatalogue).mockResolvedValue([
-      {
-        m_id: "bln_SYNC1",
-        m_source: "bln",
-        m_name: "Test Sync Measure",
-        m_description: null,
-        m_summary: null,
-        m_source_url: null,
-        m_conflicts: null,
-      },
-    ])
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            measures: [
+              {
+                m_id: "SYNC1",
+                m_name: "Test Sync Measure",
+                m_summary: null,
+                m_description: null,
+                m_source_url: null,
+                m_conflicts: null,
+                m_applicability: [],
+              },
+            ],
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      await syncCatalogues(fdm, { nmiApiKey: "test-key" })
+    } finally {
+      vi.unstubAllGlobals()
+    }
 
-    await syncCatalogues(fdm, { nmiApiKey: "test-key" })
-
-    expect(vi.mocked(getMeasuresCatalogue)).toHaveBeenCalledWith("bln", "test-key")
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.nmi-agro.nl/maatwerk/bln3/measures",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: expect.stringContaining("test-key") }),
+      }),
+    )
     const rows = await fdm
       .select({ m_id: schema.measuresCatalogue.m_id })
       .from(schema.measuresCatalogue)
