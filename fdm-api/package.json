@@ -38,7 +38,7 @@
     "@hono/zod-openapi": "^1.6.3",
     "@nmi-agro/fdm-calculator": "workspace:*",
     "@nmi-agro/fdm-core": "workspace:*",
-    "@scalar/hono-api-reference": "^0.12.7",
+    "@scalar/hono-api-reference": "^0.12.8",
     "@sentry/node": "^11.1.0",
     "@sentry/profiling-node": "^11.1.0",
     "drizzle-orm": "catalog:",
@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@dotenvx/dotenvx": "catalog:",
-    "@scalar/openapi-parser": "^0.29.8",
+    "@scalar/openapi-parser": "^0.29.9",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "tsdown": "catalog:",
