@@ -2,6 +2,9 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
 import { getBln3Score, requestBln3Score } from "./index"
 
+// Default NmiApiClient timeout (60s) plus margin for the retry back-off
+const ATTEMPT_STEP_MS = 62_000
+
 const mockBln3ScoreResponse: Bln3ScoreResponse = {
   request_id: "test-uuid",
   success: true,
@@ -213,9 +216,9 @@ describe("requestBln3Score", () => {
       )
 
       try {
-        await vi.advanceTimersByTimeAsync(32_000)
-        await vi.advanceTimersByTimeAsync(32_000)
-        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
       } finally {
         await assertion
       }

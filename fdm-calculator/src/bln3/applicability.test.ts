@@ -6,6 +6,9 @@ import type {
 } from "./types"
 import { getBln3MeasureApplicability, requestBln3MeasureApplicability } from "./applicability"
 
+// Default NmiApiClient timeout (60s) plus margin for the retry back-off
+const ATTEMPT_STEP_MS = 62_000
+
 const mockApplicabilityResponse: Bln3MeasureApplicabilityResponse = {
   request_id: "test-uuid",
   success: true,
@@ -268,9 +271,9 @@ describe("requestBln3MeasureApplicability", () => {
       )
 
       try {
-        await vi.advanceTimersByTimeAsync(32_000)
-        await vi.advanceTimersByTimeAsync(32_000)
-        await vi.advanceTimersByTimeAsync(32_000)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
+        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
       } finally {
         await assertion
       }

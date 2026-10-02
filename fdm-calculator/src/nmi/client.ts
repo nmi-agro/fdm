@@ -60,11 +60,11 @@ export class NmiApiClient {
    * @param options Initialization options.
    */
   constructor(options?: {
-    /** Maximum number of concurrent requests to initialize the internal semaphore for. Default: 10 */
+    /** Maximum number of concurrent requests to initialize the internal semaphore for. Default: 25 */
     maxConcurrency?: number
     /** Maximum number of retries per request. Default: 3 */
     maxRetries?: number
-    /** Timeout for each trial for a request in ms. Default: 30000ms */
+    /** Timeout for each trial for a request in ms. Default: 60000ms */
     timeout?: number
   }) {
     const maxConcurrency = tryAsPositive(
