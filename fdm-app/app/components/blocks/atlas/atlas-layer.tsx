@@ -10,6 +10,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import { useCalendarStore } from "~/store/calendar"
 import { AtlasControlGroup, AtlasControls } from "./atlas-controls"
 
 const mapLayers = [
@@ -131,9 +132,10 @@ export type AvailableAtlasLayerInfo = {
 }
 export function useAvailableAtlasLayers(assumeFarm?: boolean): AvailableAtlasLayerInfo[] {
   const params = useParams()
+  const storedCalendar = useCalendarStore((store) => store.calendar)
   const b_id_farm = params.b_id_farm
   const slug = params.slug
-  const calendar = params.calendar
+  const calendar = params.calendar ?? storedCalendar ?? getCalendarSelection()[0]
 
   return useMemo(() => {
     const context = slug ? "organization" : "farm"
