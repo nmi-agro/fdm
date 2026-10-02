@@ -1,4 +1,4 @@
-import { MapPin, Pencil, Trash2 } from "lucide-react"
+import { Eye, MapPin, Pencil, Trash2 } from "lucide-react"
 import { type MouseEvent, type PointerEvent, useCallback, useMemo, useRef, useState } from "react"
 import {
   AlertDialog,
@@ -500,6 +500,16 @@ export function ImageGallery({
                     }
                   }}
                 />
+                <div
+                  className="pointer-events-none invisible absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity group-hover:visible group-hover:opacity-100"
+                  aria-hidden="true"
+                >
+                  {editMode ? (
+                    <Pencil className="size-6 text-white drop-shadow" />
+                  ) : (
+                    <Eye className="size-6 text-white drop-shadow" />
+                  )}
+                </div>
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6 text-sm text-white">
                   <div className="line-clamp-1 font-medium">
                     {image.caption || "Foto zonder bijschrift"}
