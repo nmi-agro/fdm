@@ -154,7 +154,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           } catch (error) {
             const fieldName =
               fields.find((f) => f.b_id === field.b_id)?.b_name || `Perceel ${field.b_id}`
-            const msg = String(error).replace("NormNotApplicableError: ", "").replace("Error: ", "")
+            let msg = String(error).replace("NormNotApplicableError: ", "").replace("Error: ", "")
+            if (msg.toLowerCase().includes("missing soil analysis data")) {
+              msg = "Voeg een bodemanalyse toe om de fosfaatgebruiksnorm te berekenen."
+            }
             if (error instanceof NormNotApplicableError) {
               fieldWarningMessages.push(`${fieldName}: ${msg}`)
               return {

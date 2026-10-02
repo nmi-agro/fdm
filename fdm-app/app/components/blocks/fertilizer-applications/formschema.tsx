@@ -1,6 +1,8 @@
 import { z } from "zod"
 
 const fields = {
+  intent: z.string().optional(),
+  b_id: z.string().optional(),
   p_app_amount_display: z.preprocess(
     (val) => (typeof val === "string" && val !== "" ? Number(val) : val),
     z

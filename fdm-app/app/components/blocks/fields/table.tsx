@@ -1,19 +1,7 @@
-import {
-  type ColumnDef,
-  type ColumnFiltersState,
-  type FilterFn,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  type Row,
-  type SortingState,
-  useReactTable,
-  type VisibilityState,
-} from "@tanstack/react-table"
+import { FlexRender, type Row, RowSelectionState, useTable } from "@tanstack/react-table"
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { NavLink, useParams } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useFieldSelectionStore } from "@/app/store/field-selection"
@@ -36,34 +24,32 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
-import type { FieldExtended } from "./columns"
+import type { buildColumns, FieldExtended } from "./columns"
 import { FieldFilterToggle } from "../../custom/field-filter-toggle"
+import { fieldsTableFeatures } from "./table-features"
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
+interface DataTableProps<TData extends FieldExtended> {
+  columns: ReturnType<typeof buildColumns>
   data: TData[]
   canAddItem: boolean
 }
 
-export function DataTable<TData extends FieldExtended, TValue>({
+export function DataTable<TData extends FieldExtended>({
   columns,
   data,
   canAddItem,
-}: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+}: DataTableProps<TData>) {
   const isMobile = useIsMobile()
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(
     isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
   )
   const fieldIds = useFieldSelectionStore((state) => state.fieldIds)
   const setFieldIds = useFieldSelectionStore((state) => state.setFieldIds)
   const syncFarm = useFieldSelectionStore((state) => state.syncFarm)
-  const lastSelectedRowIndex = useRef<number | null>(null)
   const fieldFilter = useFieldFilterStore()
 
   const rowSelection = useMemo(
-    () => Object.fromEntries(fieldIds.map((id) => [id, true])),
+    () => Object.fromEntries(fieldIds.map((id) => [id, true])) as RowSelectionState,
     [fieldIds],
   )
 
@@ -82,7 +68,10 @@ export function DataTable<TData extends FieldExtended, TValue>({
     setColumnVisibility(isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {})
   }, [isMobile])
 
-  const handleRowClick = (row: Row<TData>, event: React.MouseEvent<HTMLTableRowElement>) => {
+  const handleRowClick = (
+    row: Row<typeof fieldsTableFeatures, FieldExtended>,
+    event: React.MouseEvent<HTMLTableRowElement>,
+  ) => {
     // Ignore clicks on interactive elements inside the row
     const isInteractive = (target: EventTarget | null): boolean => {
       if (!(target instanceof Element)) return false
@@ -96,23 +85,12 @@ export function DataTable<TData extends FieldExtended, TValue>({
       return
     }
 
-    if (event.shiftKey && lastSelectedRowIndex.current !== null) {
-      const currentIndex = row.index
-      const start = Math.min(currentIndex, lastSelectedRowIndex.current)
-      const end = Math.max(currentIndex, lastSelectedRowIndex.current)
+    document.getSelection()?.removeAllRanges()
 
-      const rowsToSelect = table
-        .getRowModel()
-        .rows.slice(start, end + 1)
-        .map((r) => r.original.b_id) // Use b_id directly
-
-      const newFieldIds = new Set(fieldIds)
-      rowsToSelect.forEach((id) => newFieldIds.add(id))
-      setFieldIds(Array.from(newFieldIds))
-    } else {
-      row.toggleSelected()
-    }
-    lastSelectedRowIndex.current = row.index
+    row.getToggleSelectedHandler()({
+      ...event,
+      target: { checked: !row.getIsSelected() },
+    })
   }
 
   const memoizedData = useMemo(() => {
@@ -122,21 +100,11 @@ export function DataTable<TData extends FieldExtended, TValue>({
     }))
   }, [data])
 
-  const fuzzyFilter: FilterFn<TData> = (row, _columnId, { searchTerms }) => {
-    if (searchTerms === "") return true
-    const result = fuzzysort.go(searchTerms, [(row.original as any).searchTarget])
-    return result.length > 0
-  }
-
-  const table = useReactTable({
+  const table = useTable({
     data: memoizedData,
+    features: fieldsTableFeatures,
     columns,
     getRowId: (row) => row.b_id,
-    getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onGlobalFilterChange: (fn) => {
       const result = typeof fn === "function" ? fn(fieldFilter) : fn
@@ -150,18 +118,21 @@ export function DataTable<TData extends FieldExtended, TValue>({
       const selection = typeof fn === "function" ? fn(rowSelection) : fn
       setFieldIds(Object.keys(selection).filter((k) => selection[k]))
     },
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: (row, _columnId, { searchTerms }) => {
+      if (searchTerms === "") return true
+      const result = fuzzysort.go(searchTerms, [(row.original as any).searchTarget])
+      return result.length > 0
+    },
     state: {
-      sorting,
-      columnFilters,
       columnVisibility,
       globalFilter: fieldFilter,
-      rowSelection,
+      rowSelection: rowSelection,
     },
   })
 
   const selectedFields = useMemo(() => {
     return table.getFilteredSelectedRowModel().rows.map((row) => row.original)
+    // oxlint-disable-next-line react-hooks/exhaustive-deps We know that selected rows depend on the row selection.
   }, [table, rowSelection])
 
   const selectedFieldIds = selectedFields.map((field) => field.b_id)
@@ -275,9 +246,7 @@ export function DataTable<TData extends FieldExtended, TValue>({
                         "bg-background sticky right-0": header.column.id === "actions",
                       })}
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
+                      <FlexRender header={header} />
                     </TableHead>
                   )
                 })}
@@ -300,7 +269,7 @@ export function DataTable<TData extends FieldExtended, TValue>({
                         "bg-background sticky right-0": cell.column.id === "actions",
                       })}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <FlexRender cell={cell} />
                     </TableCell>
                   ))}
                 </TableRow>

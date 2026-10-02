@@ -68,7 +68,12 @@ The preferred way to run the `fdm-app` locally is using Docker. This ensures a c
    docker compose up -d
    ```
 
-   This command starts the application in detached mode (`-d`), meaning it will run in the background. This will start both the `fdm-app` and the `postgres` service. You can then access the application by browsing to `http://localhost:5173`
+   This command starts the application in detached mode (`-d`), meaning it will run in the background. This will start both `fdm-app` (on `http://localhost:5173`), `fdm-api` (on `http://localhost:8080`), and the `postgres` service with PostGIS.
+
+   To sign in locally without configuring email or OAuth providers:
+   - Navigate to `http://localhost:5173/signin`.
+   - Enter your email address (e.g. `dev@example.com`) and click **Aanmelden met e-mail**.
+   - Check the `fdm-app` container logs (`docker compose logs -f fdm-app`) to view the generated login OTP code and verification link.
 
 4. **Run migrations and sync catalogues**
    The first time the app starts, the migrations will be run. This will only happen once. If the database gets reset, the migrations will be ran again.

@@ -10,8 +10,10 @@ import {
   getFarms,
 } from "@nmi-agro/fdm-core"
 import { renderToStream } from "@react-pdf/renderer"
+import { AlertCircle } from "lucide-react"
 import { MetaFunction, Outlet, useLoaderData } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
+import { dataWithError } from "remix-toast"
 import z from "zod"
 import { columns } from "@/app/components/blocks/bemestingsplan/columns"
 import { NewBemestingsplanForm } from "@/app/components/blocks/bemestingsplan/new-form"
@@ -20,9 +22,15 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { BemestingsplanPDF } from "~/components/blocks/pdf/bemestingsplan/BemestingsplanPDF"
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Empty, EmptyContent, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
-import { buildObjectKey, deleteObject, uploadObject } from "~/integrations/gcs.server"
+import {
+  buildObjectKey,
+  deleteObject,
+  isGcsConfigured,
+  uploadObject,
+} from "~/integrations/gcs.server"
 import { getSession } from "~/lib/auth.server"
 import {
   collectBemestingsplanInputFromDatabase,
@@ -112,6 +120,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       b_name_farm: farm.b_name_farm,
       b_id_farm: farm.b_id_farm,
       farmOptions: farmOptions,
+      isGcsConfigured: isGcsConfigured(),
     }
   } catch (err) {
     throw handleLoaderError(err)
@@ -137,6 +146,13 @@ export async function action({ params, request }: Route.ActionArgs) {
     const formValues = await extractFormValuesFromRequest(request, ActionSchema)
 
     if (formValues.intent === "establish_plan") {
+      if (!isGcsConfigured()) {
+        return dataWithError(
+          null,
+          "Het opslaan van een bemestingsplan is niet beschikbaar omdat Google Cloud Storage niet is geconfigureerd (GCS_BUCKET_NAME ontbreekt).",
+        )
+      }
+
       const dataCollectionDate = new Date()
       const collectedData = await collectBemestingsplanInputFromDatabase(
         fdm,
@@ -185,9 +201,18 @@ export async function action({ params, request }: Route.ActionArgs) {
     }
 
     if (formValues.intent === "delete_plan") {
+      if (!isGcsConfigured()) {
+        return dataWithError(
+          null,
+          "Het verwijderen van een bemestingsplan is niet beschikbaar omdat Google Cloud Storage niet is geconfigureerd (GCS_BUCKET_NAME ontbreekt).",
+        )
+      }
+
       const plan = await getFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
       await removeFertilizerPlan(fdm, session.principal_id, formValues.p_id_plan)
-      await deleteObject(plan.p_plan_file_path)
+      if (plan.p_plan_file_path) {
+        await deleteObject(plan.p_plan_file_path)
+      }
 
       return redirectWithSuccess(
         `/farm/${b_id_farm}/bemestingsplan`,
@@ -200,8 +225,14 @@ export async function action({ params, request }: Route.ActionArgs) {
 }
 
 export default function FertilizerPlanTable() {
-  const { fertilizerPlans, b_name_farm, b_id_farm, farmWritePermission, farmOptions } =
-    useLoaderData<typeof loader>()
+  const {
+    fertilizerPlans,
+    b_name_farm,
+    b_id_farm,
+    farmWritePermission,
+    farmOptions,
+    isGcsConfigured,
+  } = useLoaderData<typeof loader>()
 
   return (
     <>
@@ -221,7 +252,17 @@ export default function FertilizerPlanTable() {
           title="Bemestingsplan"
           description="Overzicht van de gegenereerde bemestingsplannen voor dit bedrijf."
         />
-        <div className="p-6">
+        <div className="space-y-6 p-6">
+          {!isGcsConfigured && (
+            <Alert variant="default" className="border-amber-200 bg-amber-50 text-amber-800">
+              <AlertCircle className="h-4 w-4 text-amber-800!" />
+              <AlertTitle>Opslag van bemestingsplannen niet beschikbaar</AlertTitle>
+              <AlertDescription>
+                Het genereren en opslaan van PDF-bemestingsplannen vereist Google Cloud Storage
+                (GCS_BUCKET_NAME ontbreekt).
+              </AlertDescription>
+            </Alert>
+          )}
           {fertilizerPlans.length === 0 ? (
             <Empty>
               <EmptyHeader>
@@ -232,7 +273,7 @@ export default function FertilizerPlanTable() {
                   Hieronder kunt u een nieuw bemestingsplan genereren per teeltjaar.
                 </EmptyContent>
               </EmptyHeader>
-              {farmWritePermission && (
+              {farmWritePermission && isGcsConfigured && (
                 <EmptyContent className="mt-2 flex justify-center">
                   <NewBemestingsplanForm />
                 </EmptyContent>
@@ -244,7 +285,7 @@ export default function FertilizerPlanTable() {
               columns={columns}
               b_name_farm={b_name_farm}
               b_id_farm={b_id_farm}
-              canModify={farmWritePermission}
+              canModify={farmWritePermission && isGcsConfigured}
             />
           )}
         </div>

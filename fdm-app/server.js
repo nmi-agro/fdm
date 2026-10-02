@@ -1,5 +1,4 @@
 import "./instrument.server.mjs"
-
 import { createRequestHandler } from "@react-router/express"
 import compression from "compression"
 import express from "express"
@@ -24,8 +23,8 @@ app.set("trust proxy", true)
 // present on an incoming request would be attacker-controlled. Strip it
 // before it can influence hostname resolution or downstream `Origin` checks.
 app.use((req, _res, next) => {
-    delete req.headers["x-forwarded-host"]
-    next()
+  delete req.headers["x-forwarded-host"]
+  next()
 })
 
 // Don't advertise the framework.
@@ -38,22 +37,22 @@ app.use(morgan("tiny"))
 // cache forever; everything else under build/client (e.g. favicon, robots.txt)
 // gets a short cache lifetime so updates roll out promptly.
 app.use(
-    "/assets",
-    express.static("build/client/assets", {
-        immutable: true,
-        maxAge: "1y",
-    }),
+  "/assets",
+  express.static("build/client/assets", {
+    immutable: true,
+    maxAge: "1y",
+  }),
 )
 app.use(express.static("build/client", { maxAge: "1h" }))
 
 app.all(
-    "/{*splat}",
-    createRequestHandler({
-        build: () => import(BUILD_PATH),
-        mode: process.env.NODE_ENV,
-    }),
+  "/{*splat}",
+  createRequestHandler({
+    build: () => import(BUILD_PATH),
+    mode: process.env.NODE_ENV,
+  }),
 )
 
 app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`)
+  console.log(`Server listening on port ${PORT}`)
 })

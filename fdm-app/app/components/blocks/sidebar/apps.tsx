@@ -21,7 +21,6 @@ import {
   SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { getCalendarSelection } from "~/lib/calendar"
 
 export function SidebarApps({
   farms = [],
@@ -36,7 +35,6 @@ export function SidebarApps({
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const params = useParams()
-  const calendar = params.calendar ?? getCalendarSelection()[0]
 
   const isCreateFarmWizard =
     location.pathname.includes("farm/create") ||
@@ -170,7 +168,7 @@ export function SidebarApps({
                                         info.config.url({
                                           ...params,
                                           b_id_farm,
-                                          calendar,
+                                          calendar: selectedCalendar,
                                         }) as string,
                                     )
                                   }

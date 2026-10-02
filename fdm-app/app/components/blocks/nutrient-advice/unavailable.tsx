@@ -25,6 +25,9 @@ export function NutrientAdviceUnavailable({
   cultivationTo,
 }: NutrientAdviceUnavailableProps) {
   const missingCultivation = message.includes("cultivations") || message.includes("hoofdteelt")
+  const notConfigured =
+    message.toLowerCase().includes("nmi api key") ||
+    message.toLowerCase().includes("niet geconfigureerd")
 
   return (
     <Card>
@@ -36,7 +39,9 @@ export function NutrientAdviceUnavailable({
         <CardDescription>
           {missingCultivation
             ? "Er is voor dit jaar geen gewas geregistreerd op dit perceel, dus kan er geen advies worden berekend."
-            : "Het advies kon niet worden opgehaald. Dit kan komen door een tijdelijk probleem met de adviesdienst, of doordat er nog gegevens ontbreken (zoals een bodemanalyse)."}
+            : notConfigured
+              ? "Bemestingsadvies via de NMI API is in deze omgeving niet geconfigureerd (NMI_API_KEY ontbreekt)."
+              : "Het advies kon niet worden opgehaald. Dit kan komen door een tijdelijk probleem met de adviesdienst, of doordat er nog gegevens ontbreken (zoals een bodemanalyse)."}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap items-center gap-3">
@@ -44,7 +49,7 @@ export function NutrientAdviceUnavailable({
           <Button asChild size="sm">
             <NavLink to={cultivationTo}>Gewas registreren</NavLink>
           </Button>
-        ) : (
+        ) : notConfigured ? null : (
           <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
             <RotateCw className="mr-1.5 h-3.5 w-3.5" />
             Opnieuw proberen

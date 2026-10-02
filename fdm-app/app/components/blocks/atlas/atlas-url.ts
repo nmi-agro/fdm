@@ -1,8 +1,12 @@
 import { clientConfig } from "@/app/lib/config"
 
 export function getAvailableFieldsUrl(calendar: string): string {
-  // Get URL of FDM public datasets
-  const datasetsUrl = clientConfig.datasets_url
+  // Get URL of FDM public datasets, ensuring clean formatting and fallback
+  const rawDatasetsUrl = clientConfig.datasets_url
+  const datasetsUrl =
+    rawDatasetsUrl && rawDatasetsUrl !== "undefined"
+      ? rawDatasetsUrl.replace(/\/+$/, "")
+      : "https://storage.googleapis.com/fdm-public-data"
 
   //  Set year according to available at FDM public datasets
   const parsedYear = Number.parseInt(calendar, 10)

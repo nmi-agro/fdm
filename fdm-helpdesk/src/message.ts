@@ -4,7 +4,7 @@ import type { FdmHelpdeskType } from "./fdm-helpdesk.types"
 import type { MessageFilters } from "./filter.types"
 import { checkHelpdeskPermission, getHelpdeskPermission } from "./authorization"
 import * as schema from "./db/schema-helpdesk"
-import { handleError } from "./error"
+import { handleError, PERMISSION_ERROR_MESSAGE } from "./error"
 import { getMessageWhereClause } from "./filter"
 import { createId } from "./id"
 import { getPageOffsetAndLimit } from "./pagination"
@@ -39,11 +39,12 @@ const messageColumns = {
  * @param principal_id The principal identifier(s); must have read permission for the helpdesk.
  * @returns a permission grant object if the principal has permission, otherwise null.
  */
-async function getCanReadInternalMessages(fdm: FdmHelpdeskType, principal_id: HelpdeskPrincipalId) {
+export async function getCanReadInternalMessages(
+  fdm: FdmHelpdeskType,
+  principal_id: HelpdeskPrincipalId,
+) {
   return await getHelpdeskPermission(fdm, "helpdesk", "read", "", principal_id)
 }
-
-const PERMISSION_ERROR_MESSAGE = "Principal does not have permission to perform this action"
 
 /**
  * Retrieves a single message by ID.

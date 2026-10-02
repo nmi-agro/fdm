@@ -5,6 +5,7 @@ import { nl } from "date-fns/locale"
 import { Download, FileText, Trash2 } from "lucide-react"
 import { Suspense, use } from "react"
 import { NavLink, useFetcher } from "react-router"
+import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -19,7 +20,7 @@ import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
-import { DataTableColumnHeader } from "./column-header"
+import { bemestingsplanTableFeatures } from "./table-features"
 import { getBemestingsplanDownloadName } from "./util"
 
 export type FertilizerPlanStatus = "fresh" | "expired" | "unknown"
@@ -207,7 +208,7 @@ export const columns = [
       )
     },
   },
-] as const satisfies ColumnDef<BemestingsplanRowData>[]
+] as const satisfies ColumnDef<typeof bemestingsplanTableFeatures, BemestingsplanRowData>[]
 
 function StatusDisplay({
   year,

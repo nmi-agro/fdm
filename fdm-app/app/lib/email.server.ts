@@ -13,9 +13,26 @@ import { HelpdeskNewMessageEmail } from "~/components/blocks/email/helpdesk-new-
 import { InvitationEmail } from "~/components/blocks/email/invitation"
 import { MagicLinkEmail } from "~/components/blocks/email/magic-link"
 import { WelcomeEmail } from "~/components/blocks/email/welcome"
+import { AttachmentGridItem } from "~/components/blocks/helpdesk/attachment-grid"
 import { serverConfig } from "~/lib/config.server"
 
-const client = new postmark.ServerClient(String(process.env.POSTMARK_API_KEY))
+function hasPostmarkApiKey(): boolean {
+  const key = process.env.POSTMARK_API_KEY?.trim()
+  return Boolean(key && key !== "YOUR_POSTMARK_API_KEY" && key !== "dummy")
+}
+
+function isLocalEmailLoggingEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") return false
+  return ["1", "true", "on"].includes(process.env.ENABLE_LOCAL_EMAIL_LOGGING?.toLowerCase() ?? "")
+}
+
+let _client: postmark.ServerClient | null = null
+function getPostmarkClient(): postmark.ServerClient {
+  if (!_client) {
+    _client = new postmark.ServerClient(String(process.env.POSTMARK_API_KEY ?? ""))
+  }
+  return _client
+}
 
 interface Email {
   From: string
@@ -304,6 +321,7 @@ export async function renderHelpdeskNewMessageEmail(
   ticketId: string,
   messageId: string,
   messageBody: string,
+  attachmentLinks: AttachmentGridItem[] = [],
 ): Promise<Email> {
   const ticketUrl = `${serverConfig.url}/support/ticket/${ticketId}`
 
@@ -326,6 +344,7 @@ export async function renderHelpdeskNewMessageEmail(
       appName: serverConfig.name,
       appBaseUrl: serverConfig.url,
       emailSenderName: helpdeskSenderName,
+      attachments: attachmentLinks,
     }),
     { pretty: true },
   )
@@ -359,7 +378,23 @@ export async function renderHelpdeskNewMessageEmail(
 }
 
 export async function sendEmail(email: Email): Promise<void> {
-  await client.sendEmail(email)
+  if (!hasPostmarkApiKey()) {
+    if (isLocalEmailLoggingEnabled()) {
+      console.log("\n==================== [LOCAL DEV EMAIL] ====================")
+      console.log(`To:      ${email.To}`)
+      console.log(`Subject: ${email.Subject}`)
+      console.log(`Tag:     ${email.Tag}`)
+      if (email.ReplyTo) console.log(`ReplyTo: ${email.ReplyTo}`)
+      console.log("-----------------------------------------------------------")
+      console.log("[Dev Notice] Email simulated in console (ENABLE_LOCAL_EMAIL_LOGGING=true).")
+      console.log("===========================================================\n")
+      return
+    }
+    throw new Error(
+      "POSTMARK_API_KEY is not configured. Set ENABLE_LOCAL_EMAIL_LOGGING=true in non-production to simulate emails in console.",
+    )
+  }
+  await getPostmarkClient().sendEmail(email)
 }
 
 export function isInactiveRecipientError(e: any) {
@@ -373,6 +408,14 @@ export async function sendMagicLinkEmailToUser(
   code: string,
 ): Promise<void> {
   const email = await renderMagicLinkEmail(emailAddress, magicLinkUrl, code)
+  if (!hasPostmarkApiKey() && isLocalEmailLoggingEnabled()) {
+    console.log("\n==================== [LOCAL DEV MAGIC LINK] ====================")
+    console.log(`Recipient:       ${emailAddress}`)
+    console.log(`Login OTP Code:  ${code}`)
+    console.log(`Verification URL: ${magicLinkUrl}`)
+    console.log("================================================================\n")
+    return
+  }
   await sendEmail(email)
 }
 
@@ -394,8 +437,18 @@ export async function sendHelpdeskNewMessageEmail(
   ticketId: string,
   messageId: string,
   messageBody: string,
+  attachments: AttachmentGridItem[] = [],
 ): Promise<void> {
   try {
+    const attachmentLinks = await Promise.all(
+      attachments.map(async (attachment) => ({
+        ...attachment,
+        file_path: new URL(
+          `/api/helpdesk/download/${attachment.attachment_id}`,
+          serverConfig.url,
+        ).toString(),
+      })),
+    )
     const email = await renderHelpdeskNewMessageEmail(
       recipientEmail,
       recipientName,
@@ -405,6 +458,7 @@ export async function sendHelpdeskNewMessageEmail(
       ticketId,
       messageId,
       messageBody,
+      attachmentLinks,
     )
     await sendEmail(email)
   } catch (error) {

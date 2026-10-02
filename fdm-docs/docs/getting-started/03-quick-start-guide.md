@@ -101,12 +101,13 @@ Here is how you can sow a crop on a `field`:
 
 ```typescript
 import { addCultivation } from "@nmi-agro/fdm-core"
-import { cultivationsCatalogue } from "@nmi-agro/fdm-data"
+import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 
 // To sow a crop on a field:
-const cropName = "Wheat" // Example crop
+const cropName = "Wintertarwe" // Example crop name in BRP catalogue
 const sowingDate = new Date() // Current date as sowing date
 
+const cultivationsCatalogue = await getCultivationCatalogue("brp")
 const crop = cultivationsCatalogue.find((c) => c.b_lu_name === cropName)
 
 if (!crop) {

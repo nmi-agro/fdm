@@ -660,16 +660,22 @@ export function SidebarFarm({
   )
 }
 
-export function SidebarLabs() {
+export function SidebarLabs({
+  farms = [],
+}: {
+  farms?: { b_id_farm: string; b_name_farm: string | null }[]
+}) {
   const farmId = useFarmStore((state) => state.farmId)
   const selectedCalendar = useCalendarStore((state) => state.calendar)
   const location = useLocation()
+  const navigate = useNavigate()
+  const [isFarmPickerOpen, setIsFarmPickerOpen] = useState(false)
   const isGerritEnabled = useFeatureFlagEnabled("gerrit") ?? true
   const isMineralizationEnabled = useFeatureFlagEnabled("mineralization") ?? true
 
   const isFarmSelected = farmId && farmId !== "undefined"
   const isCreateFarmWizard = location.pathname.includes("farm/create")
-  if (!isFarmSelected) return null
+  if (!isFarmSelected && !isGerritEnabled) return null
 
   return (
     <TooltipProvider>
@@ -677,7 +683,7 @@ export function SidebarLabs() {
         <SidebarGroupLabel>Labs</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {isMineralizationEnabled && (
+            {isFarmSelected && isMineralizationEnabled && (
               <SidebarMenuItem>
                 {!isCreateFarmWizard ? (
                   <SidebarMenuButton
@@ -714,17 +720,38 @@ export function SidebarLabs() {
             )}
             {isGerritEnabled && (
               <SidebarMenuItem>
-                {!isCreateFarmWizard ? (
+                {!isFarmSelected && !isCreateFarmWizard ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <SidebarMenuButton
+                        className="text-muted-foreground"
+                        onClick={() => setIsFarmPickerOpen(true)}
+                      >
+                        <Bot />
+                        <span>Gerrit</span>
+                        <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                          AI
+                        </Badge>
+                      </SidebarMenuButton>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      Selecteer een bedrijf om Gerrit te gebruiken
+                    </TooltipContent>
+                  </Tooltip>
+                ) : !isCreateFarmWizard ? (
                   <SidebarMenuButton
                     asChild
                     isActive={location.pathname.includes(
                       `/farm/${farmId}/${selectedCalendar}/gerrit`,
                     )}
-                    tooltip="Gerrit's Bemestingsplan"
+                    tooltip="Gerrit (AI-bemestingsplanner)"
                   >
                     <NavLink to={`/farm/${farmId}/${selectedCalendar}/gerrit`}>
                       <Bot />
                       <span>Gerrit</span>
+                      <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                        AI
+                      </Badge>
                     </NavLink>
                   </SidebarMenuButton>
                 ) : (
@@ -737,6 +764,9 @@ export function SidebarLabs() {
                         <span className="flex items-center gap-2">
                           <Bot />
                           <span>Gerrit</span>
+                          <Badge variant="secondary" className="ml-auto h-4 px-1 py-0 text-[10px]">
+                            AI
+                          </Badge>
                         </span>
                       </SidebarMenuButton>
                     </TooltipTrigger>
@@ -750,6 +780,16 @@ export function SidebarLabs() {
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
+      <FarmPickerDialog
+        open={isFarmPickerOpen}
+        onOpenChange={setIsFarmPickerOpen}
+        farms={farms}
+        featureLabel="Gerrit"
+        onSelectFarm={(b_id_farm) => {
+          setIsFarmPickerOpen(false)
+          void navigate(`/farm/${b_id_farm}/${selectedCalendar}/gerrit`)
+        }}
+      />
     </TooltipProvider>
   )
 }

@@ -1,10 +1,11 @@
-import type { ColumnDef } from "@tanstack/react-table"
+import { sortFn_basic, type ColumnDef } from "@tanstack/react-table"
 import { ArrowUpRightFromSquare } from "lucide-react"
 import { Link } from "react-router"
-import { DataTableColumnHeader } from "~/components/blocks/fields/column-header"
+import { DataTableColumnHeader } from "@/app/components/blocks/data-table/column-header"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Checkbox } from "~/components/ui/checkbox"
+import { fieldSummaryTableFeatures } from "./field-summary-table-features"
 
 export type FieldSummaryRow = {
   b_id: string
@@ -24,17 +25,23 @@ export type FieldSummaryRow = {
   href: string
 }
 
-export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
+export function getFieldSummaryColumns(): ColumnDef<
+  typeof fieldSummaryTableFeatures,
+  FieldSummaryRow
+>[] {
   return [
     {
       id: "select",
       header: ({ table }) => (
         <Checkbox
           checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
+            table.getIsAllRowsSelected()
+              ? true
+              : table.getIsSomeRowsSelected()
+                ? "indeterminate"
+                : false
           }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          onCheckedChange={(value) => table.toggleAllRowsSelected(!!value)}
           aria-label="Selecteer alles"
         />
       ),
@@ -70,7 +77,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
     {
       accessorKey: "mainCultivation",
       enableSorting: true,
-      sortingFn: (a, b) => {
+      sortFn: (a, b) => {
         const nameA =
           a.original.mainCultivations && a.original.mainCultivations.length > 0
             ? (a.original.mainCultivations[0].b_lu_name ?? "")
@@ -113,7 +120,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
     {
       accessorKey: "b_area",
       enableSorting: true,
-      sortingFn: "basic",
+      sortFn: sortFn_basic,
       header: ({ column }) => <DataTableColumnHeader column={column} title="Oppervlakte" />,
       cell: ({ row }) => {
         const area = row.original.b_area
@@ -129,7 +136,7 @@ export function getFieldSummaryColumns(): ColumnDef<FieldSummaryRow>[] {
       id: "measureCount",
       accessorFn: (row) => row.measures.length,
       enableSorting: true,
-      sortingFn: "basic",
+      sortFn: sortFn_basic,
       header: ({ column }) => <DataTableColumnHeader column={column} title="Maatregelen" />,
       cell: ({ row }) => {
         const measures = row.original.measures

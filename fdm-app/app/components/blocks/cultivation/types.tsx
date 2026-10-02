@@ -20,6 +20,9 @@ export interface CultivationDefaultValues {
 }
 
 export interface CultivationsFormProps {
+  intent?: string
+  b_id?: string
+  b_lu?: string
   options: CultivationOption[]
   /** When set, pre-fills the form and auto-opens the dialog (used for accepted suggestions). */
   defaultValues?: CultivationDefaultValues

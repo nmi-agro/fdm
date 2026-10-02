@@ -21,7 +21,7 @@ import { Spinner } from "~/components/ui/spinner"
 
 type UploadStatus = "idle" | "uploading" | "success" | "error"
 
-export function SoilAnalysisUploadForm() {
+export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}) {
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle")
   const [uploadProgress, setUploadProgress] = useState(0)
 
@@ -86,7 +86,7 @@ export function SoilAnalysisUploadForm() {
         <CardContent className="space-y-6">
           <RemixFormProvider {...form}>
             <Form id="soilAnalysisUploadForm" method="post" encType="multipart/form-data">
-              <fieldset disabled={isSubmitting}>
+              <fieldset disabled={isSubmitting || disabled}>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 gap-4">
                     <FormField
@@ -102,6 +102,7 @@ export function SoilAnalysisUploadForm() {
                             accept=".pdf"
                             maxSize={fileSizeLimit}
                             required
+                            disabled={disabled}
                             className={cn(
                               "h-32",
                               uploadStatus === "success" && "border-green-500 bg-green-50",
@@ -161,7 +162,7 @@ export function SoilAnalysisUploadForm() {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isSubmitting || uploadStatus === "success"}
+                      disabled={isSubmitting || disabled || uploadStatus === "success"}
                     >
                       {isSubmitting ? (
                         <div className="flex items-center space-x-2">

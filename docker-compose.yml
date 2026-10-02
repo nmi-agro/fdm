@@ -6,33 +6,71 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - NODE_ENV=production
-      - FDM_SESSION_SECRET=YOUR_FDM_SESSION_SECRET # Replace with a strong, randomly generated secret
+      # General Configuration
+      - PORT=5173
+      - NODE_ENV=${NODE_ENV:-development}
+      - PUBLIC_FDM_NAME=${PUBLIC_FDM_NAME:-FDM}
+      - PUBLIC_FDM_URL=${PUBLIC_FDM_URL:-http://localhost:5173}
+      - PUBLIC_FDM_API_URL=${PUBLIC_FDM_API_URL:-http://fdm-api:8080}
+      - PUBLIC_FDM_DATASETS_URL=${PUBLIC_FDM_DATASETS_URL:-https://storage.googleapis.com/fdm-public-data}
+      - FDM_SESSION_SECRET=${FDM_SESSION_SECRET:-dev-session-secret-change-in-production-min-32-chars}
+
+      # Database Configuration
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=fdm-app
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=YOUR_POSTGRES_PASSWORD # Replace with your actual PostgreSQL password
-      - PUBLIC_MAP_PROVIDER=osm # Options: "maptiler" | "osm"
-      - PUBLIC_MAPTILER_API_KEY=YOUR_MAPTILER_API_KEY # Replace with your actual MapTiler API key if using "maptiler"
-      - NMI_API_KEY= # Optional, but required for soil estimates, nutrient advice, soil analysis extraction, and BLN3 measures catalogue sync
-      - BETTER_AUTH_SECRET=YOUR_BETTER_AUTH_SECRET # Replace with your Better Auth secret
-      - BETTER_AUTH_URL=YOUR_DOMAIN # Replace with your domain
-      - GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID # Replace with your Google Client ID
-      - GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET # Replace with your Google Client Secret
-      - MS_CLIENT_ID=YOUR_MS_CLIENT_ID # Replace with your Microsoft Client ID
-      - MS_CLIENT_SECRET=YOUR_MS_CLIENT_SECRET # Replace with your Microsoft Client Secret
-      - AVAILABLE_FIELDS_URL=YOUR_STORAGE_ULR # Replace with the url of the storage location
-      - FDM_APP_URL=YOUR_DOMAIN # Replace with your domain
-      - PUBLIC_FDM_API_URL=http://fdm-api:8080 # Internal service URL; change to your public API domain in production
-      - PUBLIC_SENTRY_ORG=YOUR_SENTRY_ORG # Replace with your Sentry organization
-      - PUBLIC_SENTRY_PROJECT=YOUR_SENTRY_PROJECT # Replace with your Sentry project
-      - PUBLIC_SENTRY_DSN=YOUR_SENTRY_DSN # Replace with your Sentry DSN
-      - SENTRY_AUTH_TOKEN=YOUR_SENTRY_AUTH_TOKEN # Replace with your Sentry authentication token
-      - PUBLIC_SENTRY_TRACE_SAMPLE_RATE=1
-      - PUBLIC_SENTRY_REPLAY_SAMPLE_RATE=0
-      - PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR=1
-      - PUBLIC_SENTRY_PROFILE_SAMPLE_RATE=1
+      - POSTGRES_PASSWORD=postgres
+
+      # Authentication (Better Auth)
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-better-auth-secret-change-in-production-min-32-chars}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:5173}
+      # Social OAuth (Optional)
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - MS_CLIENT_ID=${MS_CLIENT_ID:-}
+      - MS_PRIVATE_KEY=${MS_PRIVATE_KEY:-}
+      - MS_CERTIFICATE=${MS_CERTIFICATE:-}
+      - MS_TENANT_ID=${MS_TENANT_ID:-common}
+
+      # Map Provider (Defaults to osm, requires no API key)
+      - PUBLIC_MAP_PROVIDER=${PUBLIC_MAP_PROVIDER:-osm}
+      - PUBLIC_MAPTILER_API_KEY=${PUBLIC_MAPTILER_API_KEY:-}
+
+      # Mail Configuration (Optional - in dev, logs to console when ENABLE_LOCAL_EMAIL_LOGGING is true)
+      - POSTMARK_API_KEY=${POSTMARK_API_KEY:-}
+      - POSTMARK_SENDER_ADDRESS=${POSTMARK_SENDER_ADDRESS:-}
+      - POSTMARK_SENDER_NAME=${POSTMARK_SENDER_NAME:-}
+      - ENABLE_LOCAL_EMAIL_LOGGING=${ENABLE_LOCAL_EMAIL_LOGGING:-true}
+
+      # NMI Services (Optional)
+      - NMI_API_KEY=${NMI_API_KEY:-}
+
+      # Google Cloud Storage (Optional)
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME:-}
+      - GCS_SERVICE_ACCOUNT_KEY=${GCS_SERVICE_ACCOUNT_KEY:-}
+      - GCS_SERVICE_ACCOUNT_EMAIL=${GCS_SERVICE_ACCOUNT_EMAIL:-}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-}
+
+      # AI Services & Helpdesk (Optional)
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ENABLE_TICKET_TRIAGE=${ENABLE_TICKET_TRIAGE:-}
+
+      # Sentry Error Tracking (Optional)
+      - PUBLIC_SENTRY_ORG=${PUBLIC_SENTRY_ORG:-}
+      - PUBLIC_SENTRY_PROJECT=${PUBLIC_SENTRY_PROJECT:-}
+      - PUBLIC_SENTRY_DSN=${PUBLIC_SENTRY_DSN:-}
+      - SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN:-}
+      - PUBLIC_SENTRY_TRACE_SAMPLE_RATE=${PUBLIC_SENTRY_TRACE_SAMPLE_RATE:-1.0}
+      - PUBLIC_SENTRY_REPLAY_SAMPLE_RATE=${PUBLIC_SENTRY_REPLAY_SAMPLE_RATE:-0.1}
+      - PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR=${PUBLIC_SENTRY_REPLAY_SAMPLE_RATE_ON_ERROR:-1.0}
+      - PUBLIC_SENTRY_PROFILE_SAMPLE_RATE=${PUBLIC_SENTRY_PROFILE_SAMPLE_RATE:-1.0}
+
+      # PostHog Analytics (Optional)
+      - PUBLIC_POSTHOG_KEY=${PUBLIC_POSTHOG_KEY:-}
+      - PUBLIC_POSTHOG_HOST=${PUBLIC_POSTHOG_HOST:-}
+      - POSTHOG_PROJECT_ID=${POSTHOG_PROJECT_ID:-}
+      - POSTHOG_PERSONAL_API_KEY=${POSTHOG_PERSONAL_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,19 +84,20 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV:-development}
       - PORT=8080
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=fdm-app
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=YOUR_POSTGRES_PASSWORD # Replace with your actual PostgreSQL password
-      - BETTER_AUTH_SECRET=YOUR_BETTER_AUTH_SECRET # Must match fdm-app's BETTER_AUTH_SECRET
-      - BETTER_AUTH_URL=YOUR_API_DOMAIN # Replace with your API domain (e.g. https://api.yourdomain.com)
-      - PUBLIC_FDM_NAME=FDM # Replace with your application name
-      - PUBLIC_FDM_URL=YOUR_API_DOMAIN # Replace with your API domain
-      - FDM_API_ALLOWED_ORIGINS=YOUR_DOMAIN # Replace with your app domain (e.g. https://yourdomain.com)
-      - NMI_API_KEY= # Optional, required for calculation endpoints
+      - POSTGRES_PASSWORD=postgres
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-better-auth-secret-change-in-production-min-32-chars}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL_API:-http://localhost:8080}
+      - PUBLIC_FDM_NAME=${PUBLIC_FDM_NAME:-FDM}
+      - PUBLIC_FDM_URL=${PUBLIC_FDM_URL_API:-http://localhost:8080}
+      - FDM_API_ALLOWED_ORIGINS=${FDM_API_ALLOWED_ORIGINS:-http://localhost:5173}
+      - NMI_API_KEY=${NMI_API_KEY:-}
+      - PUBLIC_SENTRY_DSN=${PUBLIC_SENTRY_DSN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,7 +119,7 @@ services:
     environment:
       - POSTGRES_DB=fdm-app
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=YOUR_POSTGRES_PASSWORD # Replace with your actual PostgreSQL password
+      - POSTGRES_PASSWORD=postgres
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data

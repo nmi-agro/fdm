@@ -32,13 +32,12 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
    ```
 
    Edit the `.env` file and provide values for the necessary variables. Key configuration areas include:
-   - **General:** Application name (`VITE_FDM_NAME`), environment (`NODE_ENV`).
+   - **General:** Application name (`PUBLIC_FDM_NAME`), environment (`NODE_ENV`).
    - **Session:** A strong secret key (`FDM_SESSION_SECRET`).
    - **Database:** Connection details for your PostgreSQL database.
-   - **Authentication:** Secrets and URLs for `better-auth` and optionally OAuth providers (Google, Microsoft).
-   - **Map:** Map provider configuration (`PUBLIC_MAP_PROVIDER`) and API key if using MapTiler (`PUBLIC_MAPTILER_API_KEY`).
-   - **Data URLs:** Paths to external data files (`AVAILABLE_FIELDS_URL`).
-   - **Analytics (Optional):** Configuration for Sentry and/or PostHog. These services are disabled by default. To enable them, provide the relevant keys/DSNs as described in `.env.example`.
+   - **Authentication:** Secrets and URLs for `better-auth`. In local development (`NODE_ENV !== "production"`), magic link OTP codes and login links are automatically logged to the terminal console when `POSTMARK_API_KEY` is empty.
+   - **Map:** Map provider configuration (`PUBLIC_MAP_PROVIDER=osm` by default, requires no API keys) and API key if using MapTiler (`PUBLIC_MAPTILER_API_KEY`).
+   - **External Services (Optional):** Sentry, PostHog, NMI API, GCS, and Gemini are optional for local development and disabled by default.
 
    Refer to the comments within the `.env.example` file for detailed explanations of each variable and whether it's required. **Never commit your `.env` file to version control.**
 

@@ -84,4 +84,4 @@ Add the `dependencies` label to the PR if you have permission to do so.
 
 ## Branch name
 
-You have been assigned to the pre-created branch `agent/dependencies/{{BRANCH_DATE}}`; commit your changes there and open the pull request from it (do not create a different branch).
+Create and switch to the branch `copilot/dependencies/{{BRANCH_DATE}}` (branched from `development`), commit your changes there, and open the pull request from it against `development`. Do not use any other branch name or default auto-generated name.

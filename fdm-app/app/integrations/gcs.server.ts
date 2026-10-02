@@ -44,6 +44,10 @@ function getStorage(): Storage {
   return _storage
 }
 
+export function isGcsConfigured(): boolean {
+  return Boolean(process.env.GCS_BUCKET_NAME?.trim())
+}
+
 function getBucketName(): string {
   const bucket = process.env.GCS_BUCKET_NAME
   if (!bucket) {
