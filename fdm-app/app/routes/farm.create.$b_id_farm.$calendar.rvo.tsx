@@ -135,7 +135,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             status_code = matches[1]
           }
         }
-        captureEvent(session.principal_id, "fields_received_rvo_failed", {
+        captureEvent(session.principal_id, "fields_requested_rvo_failed", {
           b_id_farm,
           calendar: yearString,
           reason,
