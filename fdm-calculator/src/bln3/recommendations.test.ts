@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Bln3Score } from "./types"
-import { Bln3UnavailableError } from "./errors"
+import { IndicatorsUnavailableError } from "./errors"
 import { buildMeasureOptions, type MeasureCatalogueEntry } from "./recommendations"
 import { aggregateFarmScores } from "./scoring"
 
@@ -121,7 +121,7 @@ describe("buildMeasureOptions", () => {
         },
         score,
       }),
-    ).toThrow(Bln3UnavailableError)
+    ).toThrow(IndicatorsUnavailableError)
   })
 })
 

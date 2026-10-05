@@ -9,12 +9,12 @@ export type FieldScoreWithArea = {
   b_id: string
   /** Field area in hectares. Fields without a positive area carry no weight. */
   b_area: number | null
-  /** BLN3 score of the field */
+  /** indicator score of the field */
   score: Bln3Score
 }
 
 /**
- * Area-weighted farm-level scores on the normalized BLN3 scale (0..1).
+ * Area-weighted farm-level scores on the normalized indicator scale (0..1).
  */
 export type FarmScores = {
   indicators: { indicator_id: string; score: number }[]
@@ -58,9 +58,9 @@ function weightedMean(entries: { value: number; area: number }[]): number | null
 }
 
 /**
- * Extracts one aggregation score (0..1) from a BLN3 score.
+ * Extracts one aggregation score (0..1) from a indicator score.
  *
- * @param score - BLN3 score of a field.
+ * @param score - indicator score of a field.
  * @param aggId - Aggregation identifier, e.g. `S_BLN`.
  * @returns The score, or `null` when the aggregation is absent or not a number.
  */
@@ -111,7 +111,7 @@ export function computeAreaWeightedAggregation(
  *
  * Callers must pass only eligible fields (not buffer strips or nature fields).
  *
- * @param fields - Eligible fields with their BLN3 scores and areas.
+ * @param fields - Eligible fields with their indicator scores and areas.
  * @returns Area-weighted indicator and aggregation scores, sorted by identifier.
  */
 export function aggregateFarmScores(fields: FieldScoreWithArea[]): FarmScores {

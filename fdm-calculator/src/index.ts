@@ -104,7 +104,7 @@ export type {
   Bln3ScoreCollectedInputs,
   Bln3ScoreInputs,
 } from "./bln3/types"
-export { Bln3UnavailableError } from "./bln3/errors"
+export { IndicatorsUnavailableError } from "./bln3/errors"
 export * from "./bln3/postprocessing"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"

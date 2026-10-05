@@ -5,16 +5,16 @@ import type {
   Bln3MeasureApplicabilityStatus,
   Bln3Score,
 } from "./types"
-import { Bln3UnavailableError } from "./errors"
+import { IndicatorsUnavailableError } from "./errors"
 import { getScoreTier, scoreToDisplay } from "./scoring"
 
 /** Maximum number of options that receive a recommendation. */
 export const MAX_RECOMMENDED_MEASURES = 5
 
 /**
- * Impact of a measure on one indicator, on the normalized BLN3 scale (higher is better).
+ * Impact of a measure on one indicator, on the normalized indicator scale (higher is better).
  */
-export type Bln3IndicatorImpact = {
+export type IndicatorImpact = {
   indicator_id: string
   measure_impact: number
 }
@@ -60,7 +60,7 @@ export type MeasureRecommendation = {
   /** Sum of the positive impacts over the weak (non-green) indicators */
   aggregate_impact: number
   /** Positive impacts on the weak indicators used for ranking */
-  indicator_impacts: Bln3IndicatorImpact[]
+  indicator_impacts: IndicatorImpact[]
 }
 
 /**
@@ -77,13 +77,13 @@ export type MeasureOption = Omit<MeasureCatalogueEntry, "m_stage_applicability" 
   /** Hint whether the option can be adopted; core validation on create stays authoritative */
   selectable: boolean
   /** Positive predicted impacts over all indicators reported by the advice */
-  predicted_impacts: Bln3IndicatorImpact[]
+  predicted_impacts: IndicatorImpact[]
   /** Set for at most the top {@link MAX_RECOMMENDED_MEASURES} recommended options, otherwise `null` */
   recommendation: MeasureRecommendation | null
 }
 
 /**
- * Applicability of a measure as returned by the BLN3 applicability check.
+ * Applicability of a measure as returned by the applicability check.
  */
 export type MeasureApplicabilityInfo = {
   applicability: Bln3MeasureApplicabilityStatus
@@ -98,7 +98,7 @@ export type MeasureApplicabilityInfo = {
 export type FieldTopOpportunity = {
   m_id: string
   /** Weak indicators this measure would help, with their impact */
-  indicatorImpacts: Bln3IndicatorImpact[]
+  indicatorImpacts: IndicatorImpact[]
   /** Sum of `measure_impact` over the weak indicators */
   aggregateImpact: number
 }
@@ -114,7 +114,7 @@ export type FieldTopOpportunity = {
  *
  * @param params - Inputs.
  * @param params.advice - Measure advice for the field.
- * @param params.score - Current BLN3 score of the field.
+ * @param params.score - Current indicator score of the field.
  * @param params.applicability - Applicability per measure ID.
  * @param params.activeMeasureIds - Catalogue IDs of measures already adopted.
  * @returns Opportunities sorted by descending aggregate impact.
@@ -168,7 +168,7 @@ export function getTopOpportunitiesForField({
  * Validates measure advice returned by the (experimental) NMI endpoint.
  *
  * @param advice - Advice to validate.
- * @throws {Bln3UnavailableError} When the structure or any impact value is malformed.
+ * @throws {IndicatorsUnavailableError} When the structure or any impact value is malformed.
  */
 export function assertValidMeasureAdvice(advice: Bln3MeasureAdviceResult): void {
   const valid =
@@ -189,7 +189,7 @@ export function assertValidMeasureAdvice(advice: Bln3MeasureAdviceResult): void 
         ),
     )
   if (!valid) {
-    throw new Bln3UnavailableError("BLN3 measure advice is unavailable")
+    throw new IndicatorsUnavailableError("measure advice is unavailable")
   }
 }
 
@@ -203,8 +203,8 @@ export function assertValidMeasureAdvice(advice: Bln3MeasureAdviceResult): void 
  */
 export function buildPredictedImpacts(
   advice: Bln3MeasureAdviceResult,
-): Map<string, Bln3IndicatorImpact[]> {
-  const result = new Map<string, Bln3IndicatorImpact[]>()
+): Map<string, IndicatorImpact[]> {
+  const result = new Map<string, IndicatorImpact[]>()
   for (const entry of advice.indicator_advice) {
     for (const m of entry.measures) {
       if (!(m.measure_impact > 0)) continue
@@ -236,9 +236,9 @@ export function buildPredictedImpacts(
  * @param params.activeMeasures - Measures adopted on the field in the selected year.
  * @param params.applicability - Fresh applicability result for the field and year.
  * @param params.advice - Measure advice for the field and year.
- * @param params.score - Current BLN3 score of the field.
+ * @param params.score - Current indicator score of the field.
  * @returns Options ordered by recommendation rank, then by source and name.
- * @throws {Bln3UnavailableError} When the advice is malformed.
+ * @throws {IndicatorsUnavailableError} When the advice is malformed.
  */
 export function buildMeasureOptions(params: {
   catalogue: MeasureCatalogueEntry[]

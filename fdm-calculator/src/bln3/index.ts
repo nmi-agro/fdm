@@ -8,7 +8,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import type { Bln3Score } from "./types"
 import { getBln3MeasureAdvice, getBln3MeasureApplicability, getBln3Score } from "./api"
-import { Bln3UnavailableError } from "./errors"
+import { IndicatorsUnavailableError } from "./errors"
 import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
 import { buildMeasureOptions, type MeasureOption } from "./recommendations"
 import { aggregateFarmScores, type FarmScores } from "./scoring"
@@ -41,28 +41,28 @@ export function getYearTimeframe(year: number): Timeframe {
 
 function requireKey(nmiApiKey: string | undefined): string {
   if (!nmiApiKey) {
-    throw new Bln3UnavailableError("BLN3 calculations are not available on this server")
+    throw new IndicatorsUnavailableError("Indicator calculations are not available on this server")
   }
   return nmiApiKey
 }
 
 /**
- * Result of a BLN3 score request for one field.
+ * Result of a indicator score request for one field.
  */
 export type FieldIndicators = {
   b_id: string
   year: number
-  /** `true` for buffer strips and nature fields, which have no BLN3 score */
+  /** `true` for buffer strips and nature fields, which have no indicator score */
   is_excluded: boolean
   /** Score of the field; `null` only when the field is excluded */
   score: Bln3Score | null
 }
 
 /**
- * Retrieves the BLN3 indicator and aggregation scores of a field for a calendar year.
+ * Retrieves the indicator and aggregation scores of a field for a calendar year.
  *
  * Soil analyses and adopted measures are limited to the year; the cultivation history
- * required by BLN3 is not.
+ * required for the indicators is not.
  *
  * @param fdm - The FDM instance.
  * @param principal_id - Principal on whose behalf access is checked.
@@ -70,7 +70,7 @@ export type FieldIndicators = {
  * @param year - Four-digit calendar year.
  * @param nmiApiKey - NMI API key resolved server-side.
  * @returns The score, or `is_excluded: true` without score for excluded fields.
- * @throws {Bln3UnavailableError} When the score cannot be produced.
+ * @throws {IndicatorsUnavailableError} When the score cannot be produced.
  */
 export async function getFieldIndicators(
   fdm: FdmType,
@@ -88,16 +88,16 @@ export async function getFieldIndicators(
   try {
     score = await getBln3Score(fdm, { ...inputs, nmiApiKey: key })
   } catch (cause) {
-    throw new Bln3UnavailableError("BLN3 score is unavailable", { cause })
+    throw new IndicatorsUnavailableError("indicator score is unavailable", { cause })
   }
   if (!score) {
-    throw new Bln3UnavailableError("BLN3 score is unavailable")
+    throw new IndicatorsUnavailableError("indicator score is unavailable")
   }
   return { b_id, year, is_excluded: false, score }
 }
 
 /**
- * Result of BLN3 scoring for all eligible fields of a farm.
+ * Result of indicator scoring for all eligible fields of a farm.
  */
 export type FarmIndicators = {
   b_id_farm: string
@@ -107,7 +107,7 @@ export type FarmIndicators = {
 }
 
 /**
- * Retrieves BLN3 scores for all eligible fields of a farm and the area-weighted farm scores.
+ * Retrieves indicator scores for all eligible fields of a farm and the area-weighted farm scores.
  *
  * Buffer strips and nature fields are left out of the fields and the weighting. If any
  * eligible field cannot be scored, the whole request fails instead of returning partial
@@ -119,7 +119,7 @@ export type FarmIndicators = {
  * @param year - Four-digit calendar year.
  * @param nmiApiKey - NMI API key resolved server-side.
  * @returns Per-field scores and farm-level aggregates; empty when no field is eligible.
- * @throws {Bln3UnavailableError} When an eligible field cannot be scored.
+ * @throws {IndicatorsUnavailableError} When an eligible field cannot be scored.
  */
 export async function getFarmIndicators(
   fdm: FdmType,
@@ -173,7 +173,7 @@ export type FieldMeasureOptions = {
  * @param year - Four-digit calendar year.
  * @param nmiApiKey - NMI API key resolved server-side.
  * @returns The options, or an empty list with `is_excluded: true` for excluded fields.
- * @throws {Bln3UnavailableError} When score, applicability or advice is unavailable.
+ * @throws {IndicatorsUnavailableError} When score, applicability or advice is unavailable.
  */
 export async function getFieldMeasureOptions(
   fdm: FdmType,
@@ -205,7 +205,7 @@ export async function getFieldMeasureOptions(
 
   const { score } = await getFieldIndicators(fdm, principal_id, b_id, year, key)
   if (!score) {
-    throw new Bln3UnavailableError("BLN3 score is unavailable")
+    throw new IndicatorsUnavailableError("indicator score is unavailable")
   }
 
   let applicability: Awaited<ReturnType<typeof getBln3MeasureApplicability>>
@@ -216,12 +216,12 @@ export async function getFieldMeasureOptions(
       getBln3MeasureAdvice(fdm, { ...inputs, nmiApiKey: key }),
     ])
   } catch (cause) {
-    throw new Bln3UnavailableError("BLN3 measure applicability or advice is unavailable", {
+    throw new IndicatorsUnavailableError("measure applicability or advice is unavailable", {
       cause,
     })
   }
   if (!advice) {
-    throw new Bln3UnavailableError("BLN3 measure advice is unavailable")
+    throw new IndicatorsUnavailableError("measure advice is unavailable")
   }
 
   const data = buildMeasureOptions({
