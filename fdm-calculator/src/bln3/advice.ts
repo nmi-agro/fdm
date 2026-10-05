@@ -5,6 +5,7 @@ import type {
   Bln3MeasureAdviceResult,
 } from "./types"
 import pkg from "../package"
+import { pickBln3Payload } from "./payload"
 
 /**
  * Requests BLN3 measure advice from the NMI API for a single field.
@@ -57,7 +58,7 @@ export async function requestBln3MeasureAdvice(
         Authorization: `Bearer ${nmiApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(fieldData),
+      body: JSON.stringify(pickBln3Payload("advice", fieldData)),
       signal: controller.signal,
     })
 
