@@ -1,5 +1,11 @@
 # @nmi-agro/fdm-rvo
 
+## 0.6.0
+
+### Minor Changes
+
+- [#821](https://github.com/nmi-agro/fdm/pull/821) [`13aa9d6`](https://github.com/nmi-agro/fdm/commit/13aa9d63dea0ebbffba2613379b372d9b963894d) Thanks [@SvenVw](https://github.com/SvenVw)! - Upgrade `@nmi-agro/rvo-connector` to `^2.3.0` and add an optional `logXml` parameter to `createRvoClient` (`none`, `request`, `response` or `both`; default `none`) to log the SOAP XML exchanged with RVO. Logged XML can contain farm data, so only enable it temporarily for debugging.
+
 ## 0.5.0
 
 ### Minor Changes

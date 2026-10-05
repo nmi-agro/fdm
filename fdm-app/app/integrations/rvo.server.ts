@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid"
 import { createCookie } from "react-router"
 import { serverConfig } from "~/lib/config.server"
-import { createRvoClient } from "~/lib/rvo.server"
+import { createRvoClient, type RvoLogXml } from "~/lib/rvo.server"
 
 const sessionSecret = serverConfig.auth.fdm_session_secret
 if (!sessionSecret?.trim() || sessionSecret === "undefined") {
@@ -119,7 +119,8 @@ export async function parseRvoState(request: Request, stateFromUrl: string) {
 }
 
 export function getRvoCredentials(): RvoCredentials | undefined {
-  const { clientId, redirectUri, clientName, pkioPrivateKey } = serverConfig.integrations.rvo
+  const { clientId, redirectUri, clientName, pkioPrivateKey, logXml } =
+    serverConfig.integrations.rvo
   const isValid = (v: string) => !!v?.trim() && v !== "undefined"
   const rvoConfigured =
     isValid(clientId) && isValid(redirectUri) && isValid(clientName) && isValid(pkioPrivateKey)
@@ -132,6 +133,7 @@ export function getRvoCredentials(): RvoCredentials | undefined {
     redirectUri,
     clientName,
     pkioPrivateKey,
+    logXml,
   }
 }
 
@@ -140,6 +142,7 @@ type RvoCredentials = {
   redirectUri: string
   clientName: string
   pkioPrivateKey: string
+  logXml: RvoLogXml
 }
 
 /**
@@ -152,5 +155,6 @@ export function createConfiguredRvoClient(credentials: RvoCredentials) {
     credentials.redirectUri,
     credentials.pkioPrivateKey,
     process.env.NODE_ENV === "production" ? "production" : "acceptance",
+    credentials.logXml,
   )
 }
