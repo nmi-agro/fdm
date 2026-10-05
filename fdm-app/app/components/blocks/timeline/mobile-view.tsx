@@ -167,7 +167,7 @@ function EventCard({
         },
       })
     } else if (event.type === "soil_sampling_bcs" && event.a_id) {
-      void navigate(`/farm/${b_id_farm}/${calendar}/field/${event.fieldId}/bcs/${event.a_id}`)
+      void navigate(`/farm/${b_id_farm}/${calendar}/field/${event.fieldId}/bcs/${event.a_id}/edit`)
     } else if (event.type === "soil_sampling" && event.a_id) {
       void navigate(
         `/farm/${b_id_farm}/${calendar}/field/${event.fieldId}/soil/analysis/${event.a_id}`,

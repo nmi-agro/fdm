@@ -615,7 +615,7 @@ function buildFieldFeatures(
           analysis.b_sampling_date,
           {
             id: `soil-${analysis.a_id}`,
-            kind: "soil",
+            kind: "soil_bcs",
             label: name,
             detail,
             href,
@@ -1143,7 +1143,11 @@ function FeatureContent({
         <Tooltip>
           <TooltipTrigger asChild>
             {/* Class "gantt-bar-hide-shadow" is needed to trigger the CSS rule defined in TimelineGanttView. */}
-            <button className="gantt-bar-hide-shadow bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1">
+            <button
+              className="gantt-bar-hide-shadow bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1"
+              onClick={openMenuFromClick}
+              type="button"
+            >
               <EventIcon
                 kind={feature.kind}
                 p_type={feature.p_type}
