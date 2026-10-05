@@ -203,7 +203,7 @@ const fieldMeasureOptionsRoute = createRoute({
   method: "get",
   path: "/fields/{b_id}/measures/catalogue",
   tags: ["Measures"],
-  summary: "List measure options for a field",
+  summary: "Get measure options and recommendations for a field",
   description:
     "Lists field-level catalogue measures with descriptions, applicability, active and conflicting status, predicted impacts and recommendations for a calendar year. These are catalogue candidates, not adopted measures; use `m_id` of a selectable option with `POST /fields/{b_id}/measures`. Predicted impacts are advice for this field and year, not stored properties. Counts against the `nmi` rate limit.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
