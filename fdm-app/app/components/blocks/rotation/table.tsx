@@ -476,6 +476,8 @@ export function DataTable<TData extends RotationExtended>({
                       return
                     }
 
+                    document.getSelection()?.removeAllRanges()
+
                     clearActiveForm()
 
                     handleRowSelection(row, table, event)
