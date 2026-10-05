@@ -93,11 +93,20 @@ export async function getIndicatorsForField({
   }
 
   const nmiApiKey = getNmiApiKey()
-  const score = await getBln3Score(fdm, {
-    ...inputs,
-    nmiApiKey,
-  })
-  return { score, inputs, isExcluded: false }
+  if (!nmiApiKey) {
+    return { score: null, inputs, isExcluded: false }
+  }
+
+  try {
+    const score = await getBln3Score(fdm, {
+      ...inputs,
+      nmiApiKey,
+    })
+    return { score, inputs, isExcluded: false }
+  } catch (err) {
+    console.error(`Failed to fetch BLN3 score for field ${b_id}:`, err)
+    return { score: null, inputs, isExcluded: false }
+  }
 }
 
 /**
@@ -218,19 +227,28 @@ export async function getMeasureApplicabilityForField({
   }
 
   const nmiApiKey = getNmiApiKey()
-  const result = await getBln3MeasureApplicability(fdm, {
-    ...inputs,
-    nmiApiKey,
-  })
-
-  const map: Record<string, MeasureApplicabilityInfo> = {}
-  for (const item of result.applicability) {
-    map[item.m_id] = {
-      applicability: item.applicability,
-      message: item.message,
-    }
+  if (!nmiApiKey) {
+    return {}
   }
-  return map
+
+  try {
+    const result = await getBln3MeasureApplicability(fdm, {
+      ...inputs,
+      nmiApiKey,
+    })
+
+    const map: Record<string, MeasureApplicabilityInfo> = {}
+    for (const item of result.applicability) {
+      map[item.m_id] = {
+        applicability: item.applicability,
+        message: item.message,
+      }
+    }
+    return map
+  } catch (err) {
+    console.error(`Failed to fetch BLN3 measure applicability for field ${b_id}:`, err)
+    return {}
+  }
 }
 
 async function mapInBatches<T, R>(

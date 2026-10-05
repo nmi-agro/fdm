@@ -2,7 +2,7 @@ import { format, isToday } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useNavigate } from "react-router"
+import { useFetcher, useNavigate, useParams } from "react-router"
 import type {
   FertilizerTypeInfo,
   TimelineField,
@@ -16,6 +16,12 @@ import {
   EVENT_TYPE_COLOR,
   getFertilizerKindColor,
 } from "~/components/blocks/timeline/timeline-colors"
+import {
+  openMenuFromClick,
+  openMenuFromKeyboard,
+  TimelineContextMenu,
+  type TimelineMenuAction,
+} from "~/components/blocks/timeline/timeline-context-menu"
 import {
   filterEventsByType,
   flattenEvents,
@@ -31,15 +37,28 @@ import {
 import { TimelineFiltersPopover } from "~/components/blocks/timeline/timeline-filters"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { FertilizerIcon } from "~/components/custom/fertilizer-icon"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent } from "~/components/ui/card"
+import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
+import { AddEventSheetRequest } from "./add-event-types"
 
 const INITIAL_GROUPS = 10
 const GROUPS_PER_LOAD = 10
+
+export const TIMELINE_FETCHER_KEY = "TIMELINE_FETCHER_KEY"
 
 const eventTypeLabel: Record<TimelineEventType, string> = {
   fertilizer: "Bemesting",
@@ -104,39 +123,174 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
   )
 }
 
-function EventCard({ event }: { event: TimelineEvent }) {
+function EventCard({
+  event,
+  canModify,
+  onRequest,
+}: {
+  event: TimelineEvent
+  canModify: boolean
+  onRequest: (request: AddEventSheetRequest) => void
+}) {
+  const fetcher = useFetcher({ key: TIMELINE_FETCHER_KEY })
   const navigate = useNavigate()
+  const { b_id_farm, calendar } = useParams()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+
+  const isCultivation = event.type === "cultivation_start" || event.type === "cultivation_end"
+
+  const handleEdit = () => {
+    if (isCultivation && event.b_lu) {
+      onRequest({
+        type: "cultivation-edit",
+        context: { b_id: event.fieldId, b_lu: event.b_lu, date: undefined },
+      })
+    } else if (event.type === "fertilizer" && event.p_app_id) {
+      onRequest({
+        type: "fertilizer-edit",
+        context: { b_id: event.fieldId, p_app_id: event.p_app_id, date: undefined },
+      })
+    } else if (event.type === "harvest" && event.b_lu && event.b_id_harvesting) {
+      onRequest({
+        type: "harvest-edit",
+        context: {
+          b_id: event.fieldId,
+          b_lu: event.b_lu,
+          b_id_harvesting: event.b_id_harvesting,
+          date: undefined,
+        },
+      })
+    } else if (event.type === "soil_sampling" && event.a_id) {
+      void navigate(
+        `/farm/${b_id_farm}/${calendar}/field/${event.fieldId}/soil/analysis/${event.a_id}`,
+      )
+    }
+  }
+
+  const handleConfirmDelete = () => {
+    const formData = new FormData()
+    if (isCultivation) {
+      formData.set("intent", "remove_cultivation")
+      formData.set("b_lu", event.b_lu ?? "")
+    } else if (event.type === "harvest") {
+      formData.set("intent", "remove_harvest")
+      formData.set("b_id_harvesting", event.b_id_harvesting ?? "")
+    } else if (event.type === "soil_sampling") {
+      formData.set("intent", "remove_soil_analysis")
+      formData.set("a_id", event.a_id ?? "")
+    } else {
+      formData.set("intent", "remove_fertilizer")
+      formData.set("p_app_id", event.p_app_id ?? "")
+    }
+    void fetcher.submit(formData, { method: "POST" })
+    setConfirmingDelete(false)
+  }
+
+  const canEdit =
+    (isCultivation && !!event.b_lu) ||
+    (event.type === "fertilizer" && !!event.p_app_id) ||
+    (event.type === "harvest" && !!event.b_lu && !!event.b_id_harvesting) ||
+    (event.type === "soil_sampling" && !!event.a_id)
+
+  const b_lu = event.b_lu
+  const addActions: TimelineMenuAction[] =
+    canModify && isCultivation && b_lu
+      ? [
+          {
+            key: "fertilizer",
+            label: "Bemesting toevoegen",
+            onSelect: () =>
+              onRequest({
+                type: "fertilizer",
+                context: { b_id: event.fieldId, b_lu, date: new Date() },
+              }),
+          },
+          ...(event.b_lu_harvestable && event.b_lu_harvestable !== "none"
+            ? [
+                {
+                  key: "harvest",
+                  label: "Oogst registreren",
+                  onSelect: () =>
+                    onRequest({
+                      type: "harvest",
+                      context: { b_id: event.fieldId, b_lu, date: new Date() },
+                    }),
+                },
+              ]
+            : []),
+        ]
+      : []
+
+  const manageActions: TimelineMenuAction[] =
+    canModify && canEdit
+      ? [
+          { key: "edit", label: "Bewerken", onSelect: handleEdit },
+          {
+            destructive: true,
+            key: "delete",
+            label: "Verwijderen",
+            onSelect: () => setConfirmingDelete(true),
+          },
+        ]
+      : []
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-0">
-        <button
-          className="focus-visible:ring-ring/50 flex w-full items-start gap-3 p-3 text-left outline-none focus-visible:ring-[3px]"
-          onClick={() => void navigate(event.href)}
-          type="button"
+    <>
+      <TimelineContextMenu
+        sections={{
+          addActions,
+          detail: event.sublabel,
+          detailsHref: event.href,
+          manageActions,
+          title: event.label,
+        }}
+      >
+        <Card
+          className="cursor-pointer overflow-hidden"
+          onClick={openMenuFromClick}
+          onKeyDown={openMenuFromKeyboard}
+          role="button"
+          tabIndex={0}
         >
-          <EventTypeIcon event={event} />
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="flex items-center gap-2">
-              <Badge
-                className="max-w-[60%] truncate text-xs"
-                title={event.fieldName}
-                variant="secondary"
-              >
-                {event.fieldName}
-              </Badge>
-              <span className="text-muted-foreground shrink-0 text-xs">
-                {eventTypeLabel[event.type]}
-              </span>
+          <CardHeader className="flex flex-row items-start gap-2">
+            <EventTypeIcon event={event} />
+            <div className="block min-w-0 flex-1 space-y-0.5 p-0">
+              <div className="flex items-center gap-2">
+                <Badge
+                  className="max-w-[60%] truncate text-xs"
+                  style={{ textDecoration: "none" }}
+                  title={event.fieldName}
+                  variant="secondary"
+                >
+                  {event.fieldName}
+                </Badge>
+                <span className="text-muted-foreground shrink-0 text-xs">
+                  {eventTypeLabel[event.type]}
+                </span>
+              </div>
+              <p className="text-sm font-medium break-words">{event.label}</p>
             </div>
-            <p className="text-sm font-medium break-words">{event.label}</p>
-            {event.sublabel && (
-              <p className="text-muted-foreground text-sm break-words">{event.sublabel}</p>
-            )}
-          </div>
-        </button>
-      </CardContent>
-    </Card>
+          </CardHeader>
+          {event.sublabel && (
+            <CardContent className="text-muted-foreground text-sm break-words">
+              {event.sublabel}
+            </CardContent>
+          )}
+        </Card>
+      </TimelineContextMenu>
+      <AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+            <AlertDialogDescription>Dit kan niet ongedaan worden gemaakt.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Verwijderen</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 
@@ -220,9 +374,13 @@ function ActiveCultivationBar({
 function DateGroupedFeed({
   groups,
   stickyOffset,
+  onRequest,
+  canModify,
 }: {
   groups: ReturnType<typeof groupEventsByDate>
   stickyOffset: number
+  onRequest: (request: AddEventSheetRequest) => void
+  canModify: boolean
 }) {
   return (
     <div className="space-y-4">
@@ -242,7 +400,12 @@ function DateGroupedFeed({
             </h3>
             <div className="space-y-2">
               {group.events.map((event) => (
-                <EventCard event={event} key={event.id} />
+                <EventCard
+                  event={event}
+                  key={event.id}
+                  onRequest={onRequest}
+                  canModify={canModify}
+                />
               ))}
             </div>
           </section>
@@ -257,11 +420,15 @@ function FieldGroupedView({
   expandedFields,
   onToggleField,
   fieldHeaderRefs,
+  canModify,
+  onRequest,
 }: {
   groups: ReturnType<typeof groupEventsByField>
   expandedFields: Set<string>
   onToggleField: (fieldId: string) => void
   fieldHeaderRefs: React.MutableRefObject<Map<string, HTMLDivElement | null>>
+  canModify: boolean
+  onRequest: (event: AddEventSheetRequest) => void
 }) {
   return (
     <div className="space-y-4">
@@ -344,7 +511,12 @@ function FieldGroupedView({
               ) : (
                 <div className="space-y-2">
                   {events.map((event) => (
-                    <EventCard event={event} key={event.id} />
+                    <EventCard
+                      event={event}
+                      key={event.id}
+                      canModify={canModify}
+                      onRequest={onRequest}
+                    />
                   ))}
                 </div>
               )}
@@ -363,6 +535,8 @@ export function TimelineMobileView({
   calendar,
   filters,
   onFiltersChange,
+  canModify,
+  onRequest,
 }: {
   fields: TimelineField[]
   fertilizerTypeById: Map<string, FertilizerTypeInfo>
@@ -370,6 +544,8 @@ export function TimelineMobileView({
   calendar: string
   filters: TimelineFilters
   onFiltersChange: (filters: TimelineFilters) => void
+  canModify: boolean
+  onRequest: (request: AddEventSheetRequest) => void
 }) {
   const [viewMode, setViewMode] = useState<"date" | "field">("date")
   const [monthYear, setMonthYear] = useState<string>("")
@@ -557,7 +733,12 @@ export function TimelineMobileView({
         </Empty>
       ) : viewMode === "date" ? (
         <>
-          <DateGroupedFeed groups={visibleDateGroups} stickyOffset={cultivationBarHeight} />
+          <DateGroupedFeed
+            groups={visibleDateGroups}
+            stickyOffset={cultivationBarHeight}
+            canModify={canModify}
+            onRequest={onRequest}
+          />
           {hasMore ? (
             <div aria-hidden className="h-8" ref={sentinelRef} />
           ) : (
@@ -573,6 +754,8 @@ export function TimelineMobileView({
             fieldHeaderRefs={fieldHeaderRefs}
             groups={visibleFieldGroups}
             onToggleField={toggleField}
+            canModify={canModify}
+            onRequest={onRequest}
           />
           {hasMore ? (
             <div aria-hidden className="h-8" ref={sentinelRef} />

@@ -137,7 +137,7 @@ describe("processRvoImport", () => {
       expect.anything(),
       expect.any(Date),
       "nl_01",
-      undefined,
+      null,
       undefined, // b_bufferstrip (no mestData in test)
     )
     // No cultivation change implies no cultivation update call unless localCultivation differs or is missing

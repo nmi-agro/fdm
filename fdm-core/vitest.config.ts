@@ -3,7 +3,10 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   test: {
     globalSetup: "./src/global-setup.ts",
-    maxWorkers: 2,
+    setupFiles: ["./src/setup-tests.ts"],
+    retry: process.env.CI ? 2 : 0,
+    maxWorkers: process.env.CI ? 2 : undefined,
+    isolate: false,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
@@ -12,6 +15,7 @@ export default defineConfig({
         "**/dist/**",
         "**/turbo**",
         "**/global-setup.ts",
+        "**/setup-tests.ts",
         "**.d.ts",
         "*.config.ts",
         "*.config.js",

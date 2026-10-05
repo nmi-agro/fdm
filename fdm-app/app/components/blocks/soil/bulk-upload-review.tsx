@@ -1,24 +1,6 @@
 import type { SoilParameterDescription } from "@nmi-agro/fdm-core"
-import {
-  type ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  type RowData,
-  useReactTable,
-} from "@tanstack/react-table"
-
-declare module "@tanstack/react-table" {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface TableMeta<TData extends RowData> {
-    matches?: Record<string, string>
-    dates?: Record<string, string>
-    handleFieldChange?: (id: string, fieldId: string) => void
-    handleDateChange?: (id: string, date: string) => void
-    fieldOptions?: React.ReactNode
-  }
-}
-
 import type React from "react"
+import { type ColumnDef, FlexRender, tableFeatures, useTable } from "@tanstack/react-table"
 import * as chrono from "chrono-node"
 import { format, isValid, parseISO } from "date-fns"
 import { nl } from "date-fns/locale/nl"
@@ -269,6 +251,8 @@ const StatusCell = memo(
   },
 )
 
+const bulkSoilAnalysisTableFeatures = tableFeatures({})
+
 export function BulkSoilAnalysisReview({
   analyses,
   fields,
@@ -353,7 +337,7 @@ export function BulkSoilAnalysisReview({
     )
   }, [soilParameterDescription])
 
-  const columns: ColumnDef<ProcessedAnalysis>[] = useMemo(
+  const columns: ColumnDef<typeof bulkSoilAnalysisTableFeatures, ProcessedAnalysis>[] = useMemo(
     () => [
       {
         accessorKey: "filename",
@@ -460,10 +444,10 @@ export function BulkSoilAnalysisReview({
     [sourceLabelMap],
   )
 
-  const table = useReactTable({
+  const table = useTable({
     data: analyses,
+    features: bulkSoilAnalysisTableFeatures,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meta: {
       matches,
@@ -492,9 +476,7 @@ export function BulkSoilAnalysisReview({
                   <TableRow key={headerGroup.id}>
                     {headerGroup.headers.map((header) => (
                       <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
+                        <FlexRender header={header} />
                       </TableHead>
                     ))}
                   </TableRow>
@@ -503,10 +485,10 @@ export function BulkSoilAnalysisReview({
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                      {row.getVisibleCells().map((cell) => (
+                    <TableRow key={row.id}>
+                      {row.getAllCells().map((cell) => (
                         <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          <FlexRender cell={cell} />
                         </TableCell>
                       ))}
                     </TableRow>

@@ -3,6 +3,7 @@ import type {
   RvoImportReviewItem,
   UserChoiceMap,
 } from "@nmi-agro/fdm-rvo/types"
+import type { ZodError } from "zod"
 import {
   addFarmVerification,
   addSoilAnalysis,
@@ -46,6 +47,7 @@ import {
   getRvoCredentials,
   rvoTokenCookie,
 } from "~/integrations/rvo.server"
+import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -111,10 +113,34 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       const rvoClient = createConfiguredRvoClient(rvoCredentials)
       rvoClient.setAccessToken(rvoAccessToken)
 
+      // Capture an event when the fields are about to be requested from RVO
+      captureEvent(session.principal_id, "fields_requested_rvo", {
+        b_id_farm,
+        calendar: yearString,
+      })
+
       let rvoFields: Awaited<ReturnType<typeof fetchRvoFields>>
       try {
         rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
       } catch (fetchError) {
+        // Capture an event when there is an error with fetching.
+        let status_code: string | undefined = undefined
+        let reason: unknown = undefined
+        if ((fetchError as ZodError)?.name === "ZodError") {
+          reason = { ZodError: (fetchError as ZodError)?.issues }
+        } else if (fetchError instanceof Error) {
+          reason = fetchError.message
+          const matches = fetchError.message.match(/^Request failed: (\d{3})\s/)
+          if (matches && matches.length >= 2) {
+            status_code = matches[1]
+          }
+        }
+        captureEvent(session.principal_id, "fields_requested_rvo_failed", {
+          b_id_farm,
+          calendar: yearString,
+          reason,
+          status_code,
+        })
         if (isRvoPermissionDeniedError(fetchError)) {
           // RVO completed the request but denied access for this KvK number: this is a
           // definitive negative result, not a system fault, so it's worth recording.
@@ -130,6 +156,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
         throw fetchError
       }
+
+      // Capture an event once the fields are successfully received from RVO
+      captureEvent(session.principal_id, "fields_requested_rvo_successful", {
+        b_id_farm,
+        rvo_field_count: rvoFields.length,
+        calendar: yearString,
+      })
 
       // A successful response verifies the farm regardless of how many fields RVO returns —
       // zero fields is a valid state for a farm that has not yet registered any percelen.
@@ -508,6 +541,12 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
           )
         }
       }
+
+      captureEvent(session.principal_id, "fields_imported_rvo", {
+        b_id_farm,
+        field_count: addedFields.length,
+        calendar: yearString,
+      })
 
       return redirect(`/farm/create/${b_id_farm}/${yearString}/fields`)
     } catch (e: any) {

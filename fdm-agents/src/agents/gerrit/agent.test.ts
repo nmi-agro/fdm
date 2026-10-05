@@ -22,10 +22,12 @@ vi.mock("../../tools/fertilizer-planner", () => ({
 describe("Gerrit Agent", () => {
   it("should have the correct name and description", () => {
     expect(GERRIT_NAME).toBe("Gerrit")
-    expect(GERRIT_DESCRIPTION).toContain("agronoom-expert")
+    expect(GERRIT_DESCRIPTION).toContain("AI-agronoom")
   })
 
   it("should have instruction containing critical constraints", () => {
+    expect(GERRIT_INSTRUCTION).toContain("AI-assistent")
+    expect(GERRIT_INSTRUCTION).toContain("agronoom-expert")
     expect(GERRIT_INSTRUCTION).toContain("WETTELIJKE NORMEN")
     expect(GERRIT_INSTRUCTION).toContain("BUFFERSTROKEN")
     expect(GERRIT_INSTRUCTION).toContain("BOUWPLANNIVEAU")

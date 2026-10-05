@@ -451,14 +451,22 @@ export default function FarmDashboardIndex() {
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false)
 
   const lastRedirectedCalendarVal = useRef(loaderData.activeYear)
+  const pendingCalendarVal = useRef<string | null>(null)
   // Set the selected calendar year to what is sent from the server
   useEffect(() => {
     if (searchParams.get("calendar") === loaderData.activeYear) {
+      pendingCalendarVal.current = loaderData.activeYear
       setCalendar(loaderData.activeYear)
     }
   }, [loaderData.activeYear, searchParams, setCalendar])
 
   useEffect(() => {
+    if (pendingCalendarVal.current !== null) {
+      if (calendar !== pendingCalendarVal.current) {
+        return
+      }
+      pendingCalendarVal.current = null
+    }
     if (
       calendar &&
       calendar !== lastRedirectedCalendarVal.current &&

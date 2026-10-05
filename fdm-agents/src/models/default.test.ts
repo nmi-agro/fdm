@@ -23,7 +23,7 @@ describe("Default Model", () => {
     expect(mockChatGoogleGenerativeAI).toHaveBeenCalledWith(
       expect.objectContaining({
         apiKey: "fake-api-key",
-        model: "gemini-3.6-flash",
+        model: "gemini-3.7-flash",
         maxOutputTokens: 65536,
         thinkingConfig: { includeThoughts: true },
       }),

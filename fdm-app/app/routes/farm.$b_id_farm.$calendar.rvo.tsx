@@ -1,3 +1,4 @@
+import type { ZodError } from "zod"
 import {
   addFarmVerification,
   addSoilAnalysis,
@@ -126,10 +127,33 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       const rvoClient = createConfiguredRvoClient(rvoCredentials)
       rvoClient.setAccessToken(rvoAccessToken)
 
+      // Capture an event when the fields are about to be requested from RVO
+      captureEvent(session.principal_id, "fields_requested_rvo", {
+        b_id_farm,
+        calendar: yearString,
+      })
+
       let rvoFields: Awaited<ReturnType<typeof fetchRvoFields>>
       try {
         rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
       } catch (fetchError) {
+        let status_code: string | undefined = undefined
+        let reason: unknown = undefined
+        if ((fetchError as ZodError)?.name === "ZodError") {
+          reason = { ZodError: (fetchError as ZodError)?.issues }
+        } else if (fetchError instanceof Error) {
+          reason = fetchError.message
+          const matches = fetchError.message.match(/^Request failed: (\d{3})\s/)
+          if (matches && matches.length >= 2) {
+            status_code = matches[1]
+          }
+        }
+        captureEvent(session.principal_id, "fields_requested_rvo_failed", {
+          b_id_farm,
+          calendar: yearString,
+          reason,
+          status_code,
+        })
         if (isRvoPermissionDeniedError(fetchError)) {
           // RVO completed the request but denied access for this KvK number: this is a
           // definitive negative result, not a system fault, so it's worth recording.
@@ -145,6 +169,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         }
         throw fetchError
       }
+
+      // Capture an event once the fields are successfully received from RVO
+      captureEvent(session.principal_id, "fields_requested_rvo_successful", {
+        b_id_farm,
+        rvo_field_count: rvoFields.length,
+        calendar: yearString,
+      })
 
       // A successful response verifies the farm regardless of how many fields RVO returns —
       // zero fields is a valid state for a farm that has not yet registered any percelen.

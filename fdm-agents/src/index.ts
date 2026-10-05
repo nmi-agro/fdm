@@ -188,7 +188,10 @@ export function buildFertilizerPlanPrompt(
     ? `- Renure-producten overwegen: ${validatedStrategies.includeRenure ? "JA (mag Renure-producten gebruiken (RVO mestcodes 130-134); deze tellen niet mee voor de 170 kg dierlijke-mestnorm, maar wel voor de werkzame-stikstofnorm en fosfaatnorm, met een eigen maximum van 80 kg N/ha bovenop de dierlijke-mestnorm)" : "NEE (gebruik GEEN producten met RVO mestcode 130-134 in dit plan)"}\n`
     : ""
 
-  return `Stel een bemestingsplan op voor bedrijf "${farmData.b_name_farm ? sanitizeFieldValue(farmData.b_name_farm) : farmData.b_id_farm}" voor het jaar "${calendar}".
+  const farmName = farmData.b_name_farm
+    ? sanitizeFieldValue(farmData.b_name_farm)
+    : farmData.b_id_farm
+  return `Stel een bemestingsplan op voor bedrijf "${farmName}" (b_id_farm: "${farmData.b_id_farm}") voor het jaar "${calendar}".
 ${fieldsBlock}
 TE HANDHAVEN STRATEGIEËN:
 - Biologische teelt: ${validatedStrategies.isOrganic ? "JA (Geen minerale meststoffen toegestaan)" : "NEE"}

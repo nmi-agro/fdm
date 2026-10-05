@@ -1,3 +1,4 @@
+import { MicrosoftEntraIDProfile } from "better-auth"
 import { importPKCS8, SignJWT } from "jose"
 /**
  * Unit tests for authentication-ms.ts
@@ -16,7 +17,7 @@ import { join } from "node:path"
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   createMicrosoftClientAssertion,
-  createMicrosoftOAuthConfig,
+  createMicrosoftSocialConfig,
   type MicrosoftCertConfig,
   type MicrosoftOAuthHelpers,
 } from "./authentication-ms"
@@ -206,36 +207,34 @@ describe("createMicrosoftClientAssertion", () => {
 })
 
 // ---------------------------------------------------------------------------
-// createMicrosoftOAuthConfig
+// createMicrosoftSocialConfig
 // ---------------------------------------------------------------------------
 
-describe("createMicrosoftOAuthConfig", () => {
-  it("returns a GenericOAuthConfig with providerId 'microsoft'", () => {
-    const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-    expect(cfg.providerId).toBe("microsoft")
+describe("createMicrosoftSocialConfig", () => {
+  it("uses the given tenantId", () => {
+    const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+    expect(cfg.tenantId).toBe("test-tenant")
   })
 
-  it("sets authorizationUrl and tokenUrl for the given tenantId", () => {
-    const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-    expect(cfg.authorizationUrl).toContain("/test-tenant/")
-    expect(cfg.tokenUrl).toContain("/test-tenant/")
+  it("provides a certificate based clientAssertion", async () => {
+    const { decodeJwt } = await import("jose")
+    const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+    expect(cfg.clientSecret).toBeUndefined()
+    const assertion = await (cfg.clientAssertion as any)({})
+    expect(decodeJwt(assertion).iss).toBe("test-client-id")
   })
 
   it("defaults tenantId to 'common'", () => {
-    const cfg = createMicrosoftOAuthConfig({ ...baseConfig(), tenantId: undefined }, mockHelpers)
-    expect(cfg.authorizationUrl).toContain("/common/")
+    const cfg = createMicrosoftSocialConfig({ ...baseConfig(), tenantId: undefined }, mockHelpers)
+    expect(cfg.tenantId).toBe("common")
   })
 
   it("requests the expected scopes including User.Read", () => {
-    const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
-    expect(cfg.scopes).toContain("openid")
-    expect(cfg.scopes).toContain("email")
-    expect(cfg.scopes).toContain("User.Read")
-    expect(cfg.scopes).toContain("offline_access")
-  })
-
-  it("enables PKCE", () => {
-    expect(createMicrosoftOAuthConfig(baseConfig(), mockHelpers).pkce).toBe(true)
+    const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+    expect(cfg.scope).toContain("openid")
+    expect(cfg.scope).toContain("email")
+    expect(cfg.scope).toContain("User.Read")
+    expect(cfg.scope).toContain("offline_access")
   })
 
   // -----------------------------------------------------------------------
@@ -269,7 +268,7 @@ describe("createMicrosoftOAuthConfig", () => {
     })
 
     it("returns null when idToken is missing", async () => {
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       const result = await cfg.getUserInfo?.({
         accessToken: "tok",
       } as any)
@@ -278,73 +277,95 @@ describe("createMicrosoftOAuthConfig", () => {
 
     it("extracts id, email, name, emailVerified from idToken", async () => {
       const idToken = await buildIdToken({
-        sub: "user-123",
+        oid: "user-123",
         email: "jane@example.com",
         name: "Jane Doe",
         email_verified: true,
       })
       global.fetch = fetchReturning(false)
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       const result = await cfg.getUserInfo?.({
         idToken,
         accessToken: "tok",
       } as any)
-      expect(result?.id).toBe("user-123")
-      expect(result?.email).toBe("jane@example.com")
-      expect(result?.name).toBe("Jane Doe")
-      expect(result?.emailVerified).toBe(true)
-      expect(result?.image).toBeUndefined()
+      expect((result?.data as { oid?: string })?.oid).toBe("user-123")
+      expect(result?.user.email).toBe("jane@example.com")
+      expect(result?.user.name).toBe("Jane Doe")
+      expect(result?.user.emailVerified).toBe(true)
+      expect(result?.user.image).toBeUndefined()
+    })
+
+    it("returns null when the oid claim is missing", async () => {
+      const idToken = await buildIdToken({ sub: "s", email: "a@example.com" })
+      global.fetch = fetchReturning(false)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+      const result = await cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)
+      expect(result).toBeNull()
+    })
+
+    it("includes mapped FDM user fields in the user", async () => {
+      const idToken = await buildIdToken({
+        oid: "user-1",
+        email: "john@example.com",
+        name: "John Doe",
+      })
+      global.fetch = fetchReturning(false)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
+      const result = (await cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)) as any
+      expect(result.user.firstname).toBe("John")
+      expect(result.user.surname).toBe("Doe")
+      expect(result.user.username).toBe("john")
     })
 
     it("falls back to 'mail' claim when 'email' is absent", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         mail: "mail@example.com",
         name: "Mail User",
       })
       global.fetch = fetchReturning(false)
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       const result = await cfg.getUserInfo?.({
         idToken,
         accessToken: "tok",
       } as any)
-      expect(result?.email).toBe("mail@example.com")
+      expect(result?.user.email).toBe("mail@example.com")
     })
 
     it("derives name from email when name claim is absent", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         email: "noname@example.com",
       })
       global.fetch = fetchReturning(false)
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       const result = await cfg.getUserInfo?.({
         idToken,
         accessToken: "tok",
       } as any)
-      expect(result?.name).toBe("noname")
+      expect(result?.user.name).toBe("noname")
     })
 
     it("attaches base64 profile photo when Graph returns ok", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         email: "photo@example.com",
         name: "Photo User",
       })
       const imgBytes = Buffer.from("img-bytes")
       global.fetch = fetchReturning(true, imgBytes.buffer)
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       const result = await cfg.getUserInfo?.({
         idToken,
         accessToken: "tok",
       } as any)
-      expect(result?.image).toMatch(/^data:image\/jpeg;base64,/)
+      expect(result?.user.image).toMatch(/^data:image\/jpeg;base64,/)
     })
 
     it("throws microsoft_no_email when no email/mail in idToken", async () => {
-      const idToken = await buildIdToken({ sub: "s", name: "No Email" })
+      const idToken = await buildIdToken({ oid: "s", name: "No Email" })
       global.fetch = fetchReturning(false)
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       await expect(cfg.getUserInfo?.({ idToken, accessToken: "tok" } as any)).rejects.toThrow(
         "microsoft_no_email",
       )
@@ -352,18 +373,18 @@ describe("createMicrosoftOAuthConfig", () => {
 
     it("does not throw when Graph photo fetch fails", async () => {
       const idToken = await buildIdToken({
-        sub: "s",
+        oid: "s",
         email: "e@example.com",
         name: "Err User",
       })
       global.fetch = vi.fn().mockRejectedValue(new Error("network"))
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       const result = await cfg.getUserInfo?.({
         idToken,
         accessToken: "tok",
       } as any)
-      expect(result?.email).toBe("e@example.com")
-      expect(result?.image).toBeUndefined()
+      expect(result?.user.email).toBe("e@example.com")
+      expect(result?.user.image).toBeUndefined()
     })
   })
 
@@ -373,11 +394,15 @@ describe("createMicrosoftOAuthConfig", () => {
 
   describe("mapProfileToUser", () => {
     it("maps email and name to FDM user fields", async () => {
-      const cfg = createMicrosoftOAuthConfig(baseConfig(), mockHelpers)
+      const cfg = createMicrosoftSocialConfig(baseConfig(), mockHelpers)
       const result = (await cfg.mapProfileToUser?.({
         email: "john@example.com",
         name: "John Doe",
-      })) as Record<string, unknown>
+        emailVerified: true,
+      } as Partial<MicrosoftEntraIDProfile> as unknown as MicrosoftEntraIDProfile)) as Record<
+        string,
+        unknown
+      >
       expect(result.email).toBe("john@example.com")
       expect(result.firstname).toBe("John")
       expect(result.surname).toBe("Doe")

@@ -3,9 +3,12 @@ import { ArrowUpRightFromSquare } from "lucide-react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
-import type { RotationExtended } from "./columns"
+import type { MemoizedRotationExtended } from "./columns"
+import { rotationTableFeatures } from "./table-features"
 
-export function NameCell({ row }: CellContext<RotationExtended, unknown>) {
+export function NameCell({
+  row,
+}: CellContext<typeof rotationTableFeatures, MemoizedRotationExtended, string>) {
   const original = row.original
   const params = useParams()
   const location = useLocation()

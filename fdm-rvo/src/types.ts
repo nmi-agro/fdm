@@ -113,7 +113,7 @@ export const RvoFieldSchema = z.object({
     /** Start date of the crop field registration (ISO 8601 string) */
     BeginDate: z.string(),
     /** End date of the crop field registration (ISO 8601 string), optional */
-    EndDate: z.string().optional(),
+    EndDate: z.string().nullable().optional(),
     /** Country code (e.g., "NL") */
     Country: z.string(),
     /** Code representing the type of crop grown */

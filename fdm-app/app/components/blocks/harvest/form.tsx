@@ -36,10 +36,13 @@ function toDate(value: Date | string) {
 }
 
 type HarvestFormDialogProps = {
+  intent?: string
+  b_id_harvesting?: string
   b_lu_croprotation?: string
   harvestParameters: HarvestParameters
   exampleHarvestableAnalysis?: Partial<HarvestableAnalysis>
   example_b_lu_harvest_date?: Date | null
+  b_lu?: string
   b_lu_harvest_date: Date | string | null | undefined // Changed to allow Date or string
   b_date_harvest_default?: string | null // MM-dd format from cultivation catalogue
   b_lu_yield: number | undefined
@@ -56,18 +59,25 @@ type HarvestFormDialogProps = {
   b_lu_end: Date | undefined | null
   action?: string
   handleConfirmation?: (data: HarvestFormValues) => Promise<boolean>
+  isHarvestUpdate?: boolean
   editable?: boolean
   allowBatch?: boolean
   onBatchClick?: MouseEventHandler
+  onDelete?: () => void
 }
 
 const SchemaWithIntent = FormSchema.extend({
-  intent: z.literal("single_harvest"),
+  intent: z.string(),
 })
 
 type HarvestFormValues = z.infer<typeof SchemaWithIntent>
 
+const DEFAULT_INTENT = "single_harvest"
+
 function useHarvestRemixForm({
+  intent = DEFAULT_INTENT,
+  b_id_harvesting,
+  b_lu,
   harvestParameters,
   b_lu_harvest_date,
   b_date_harvest_default,
@@ -156,7 +166,9 @@ function useHarvestRemixForm({
       return validation as any
     }) as Resolver<HarvestFormValues>,
     defaultValues: {
-      intent: "single_harvest",
+      intent: intent,
+      b_id_harvesting: b_id_harvesting,
+      b_lu: b_lu,
       b_lu_harvest_date: defaultHarvestDate,
       b_lu_yield: harvestParameters.includes("b_lu_yield") ? b_lu_yield : undefined,
       b_lu_yield_fresh: harvestParameters.includes("b_lu_yield_fresh")
@@ -203,6 +215,9 @@ function useHarvestRemixForm({
 function HarvestFields({
   form,
   className,
+  intent = DEFAULT_INTENT,
+  b_id_harvesting,
+  b_lu,
   b_lu_croprotation,
   b_lu_harvestable,
   harvestParameters,
@@ -218,7 +233,11 @@ function HarvestFields({
     : undefined
   return (
     <FieldGroup className={cn("gap-5", className)}>
-      <input type="hidden" name="intent" value="single_harvest" />
+      <input type="hidden" name="intent" value={intent} />
+      {typeof b_id_harvesting === "string" && (
+        <input type="hidden" name="b_id_harvesting" value={b_id_harvesting} />
+      )}
+      <input type="hidden" name="b_lu" value={b_lu} />
       <Controller
         name="b_lu_harvest_date"
         control={form.control}
@@ -515,7 +534,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.isHarvestUpdate ?? b_lu_harvest_date !== undefined
 
   return (
     <Dialog open={true} onOpenChange={() => navigate("..")}>
@@ -556,7 +575,7 @@ export function HarvestFormDialog(props: HarvestFormDialogProps) {
                 <Button
                   type="button"
                   variant="destructive"
-                  onClick={handleDeleteHarvest}
+                  onClick={props.onDelete ?? handleDeleteHarvest}
                   disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
                   className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
                 >
@@ -612,7 +631,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
   }
 
   // Check if this is a new harvest or is has already values
-  const isHarvestUpdate = b_lu_harvest_date !== undefined
+  const isHarvestUpdate = props.isHarvestUpdate ?? b_lu_harvest_date !== undefined
 
   return (
     <div className="space-y-6">
@@ -640,7 +659,7 @@ export function HarvestForm(props: HarvestFormDialogProps) {
               <Button
                 type="button"
                 variant="destructive"
-                onClick={handleDeleteHarvest}
+                onClick={props.onDelete ?? handleDeleteHarvest}
                 disabled={form.formState.isSubmitting || fetcher.state !== "idle"}
                 className={cn("mr-auto", !editable || !isHarvestUpdate ? "invisible" : "")}
               >

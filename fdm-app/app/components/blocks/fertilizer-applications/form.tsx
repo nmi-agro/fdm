@@ -9,6 +9,7 @@ import { useEffect, useId } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
+import { cn } from "@/app/lib/utils"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { getApplicationAmountUnitLabel } from "~/components/blocks/fertilizer-applications/utils"
 import { Combobox } from "~/components/custom/combobox"
@@ -46,6 +47,8 @@ import {
  * - The placeholders will be set according to the exampleFertilizerApplication prop value. If it is missing, the default placeholders are used for all form fields.
  */
 export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
+  intent,
+  b_id,
   options,
   action,
   navigation,
@@ -54,7 +57,10 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   fertilizerApplication,
   exampleFertilizerApplication,
   schema,
+  fieldsClassName,
 }: {
+  intent?: string
+  b_id?: string
   options: FertilizerOption[]
   action: string
   navigation: Navigation
@@ -63,6 +69,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   fertilizerApplication?: Partial<FieldFertilizerFormValues> | null | undefined
   exampleFertilizerApplication?: Partial<FieldFertilizerFormValues> | null | undefined
   schema?: T
+  fieldsClassName?: string
 }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -74,6 +81,8 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
       schema ?? (fertilizerApplication ? FormSchemaModify : FormSchema),
     ) as never,
     defaultValues: {
+      intent: intent,
+      b_id: b_id,
       p_app_id: fertilizerApplication?.p_app_ids
         ? fertilizerApplication.p_app_ids.join(",")
         : fertilizerApplication?.p_app_id,
@@ -90,6 +99,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
       method: fertilizerApplication ? "PUT" : "POST",
     },
   })
+
   const p_id = form.watch("p_id")
   const selectedFertilizer = options.find((option) => option.value === p_id)
   const isSubmitting = navigation.state !== "idle"
@@ -186,7 +196,12 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     <RemixFormProvider {...form}>
       <Form id={formId} action={action} onSubmit={form.handleSubmit} method="post">
         <fieldset disabled={isSubmitting}>
-          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-4 md:grid-cols-2">
+          <div
+            className={cn(
+              "grid grid-cols-1 items-start gap-x-8 gap-y-4 md:grid-cols-2",
+              fieldsClassName,
+            )}
+          >
             <div className="flex min-w-0 flex-row align-top">
               <div className="min-w-0 flex-1">
                 <Combobox
@@ -219,6 +234,8 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 </Tooltip>
               </div>
             </div>
+            {typeof intent === "string" && <input type="hidden" name="intent" value={intent} />}
+            {typeof b_id === "string" && <input type="hidden" name="b_id" value={b_id} />}
             <Controller
               name="p_app_method"
               render={({ field, fieldState }) => (

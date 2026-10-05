@@ -79,7 +79,7 @@ export function QuestionsForm({ questions, onSubmit, onSkip }: QuestionsFormProp
     <Card className="shadow-sm">
       <CardHeader className="border-b">
         <CardTitle className="text-base font-semibold">
-          Gerrit heeft een paar gerichte vragen
+          Gerrit (AI) heeft een paar gerichte vragen
         </CardTitle>
         <CardDescription>
           Beantwoord de vragen die voor jou van toepassing zijn. Je kunt de vragen ook overslaan.

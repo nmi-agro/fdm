@@ -4,6 +4,8 @@ import { z } from "zod"
 
 export const FormSchema = z
   .object({
+    b_lu: z.string().optional(),
+    b_id_harvesting: z.string().optional(),
     b_lu_harvest_date: z
       .string({
         error: (issue) =>

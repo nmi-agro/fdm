@@ -2,9 +2,13 @@ import type { CellContext } from "@tanstack/react-table"
 import { useFetcher } from "react-router"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Spinner } from "~/components/ui/spinner"
-import type { CropRow, FieldRow, RotationExtended } from "./columns"
+import type { CropRow, FieldRow, MemoizedRotationExtended } from "./columns"
+import { rotationTableFeatures } from "./table-features"
 
-export function CropResidueCheckbox({ cell, row }: CellContext<RotationExtended, unknown>) {
+export function CropResidueCheckbox({
+  cell,
+  row,
+}: CellContext<typeof rotationTableFeatures, MemoizedRotationExtended, unknown>) {
   const fetcher = useFetcher()
 
   const fields =

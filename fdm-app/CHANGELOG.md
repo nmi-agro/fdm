@@ -1,5 +1,44 @@
 # Changelog fdm-app
 
+## 0.37.0
+
+### Minor Changes
+
+- [#808](https://github.com/nmi-agro/fdm/pull/808) [`311df04`](https://github.com/nmi-agro/fdm/commit/311df045e7b70a7bc490db32615f29f9e6b58dc8) Thanks [@SvenVw](https://github.com/SvenVw)! - Existing BodemConditieScore assessments can now be edited: users with write access see a "Bewerken" button on the detail page to change the date, scores, photos and notes. Photos can also be removed. Soil photo thumbnails now adapt to portrait and landscape orientation so vertical photos are no longer cropped to a thin strip.
+
+- [#811](https://github.com/nmi-agro/fdm/pull/811) [`68be8b6`](https://github.com/nmi-agro/fdm/commit/68be8b6dff69543ffa57110c92c61fd71df44e0b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Organization dashboard now displays the summary information only for the selected calendar year.
+
+- [#811](https://github.com/nmi-agro/fdm/pull/811) [`0a54797`](https://github.com/nmi-agro/fdm/commit/0a54797c52fe288e322c32ebede3ab2d0134f91b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Farm dashboard preserves an explicit calendar query year while synchronizing the calendar store, then resume redirects for calendar changes.
+
+- [#814](https://github.com/nmi-agro/fdm/pull/814) [`71926bd`](https://github.com/nmi-agro/fdm/commit/71926bd7b58a18b7ca81905b10ddd1260b81269b) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added PostHog events before and after field fetches from the RVO (EDICrop) service. Also made sure a PostHog event is captured when the user confirms the import of the fields.
+
+- [#796](https://github.com/nmi-agro/fdm/pull/796) [`b5526e6`](https://github.com/nmi-agro/fdm/commit/b5526e6076a8493555925a8ae5dca3c28a737453) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Made shift-click range selection work when clicking the selection checkboxes in the fields, rotation, and measures field summary tables.
+
+- [#801](https://github.com/nmi-agro/fdm/pull/801) [`c719b86`](https://github.com/nmi-agro/fdm/commit/c719b86443891c45405acd746b8250be7a95b2b2) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added message attachment functionality in the helpdesk. Users can add attachments while they create a ticket or write a new message. Ticket assignees and senders also see any attachments in the new message email notifications. Accepted attachment types include XML and SVG files, detected via their content rather than their file extension. Agents are exempt from the regular 5-attachment limit.
+
+- [#806](https://github.com/nmi-agro/fdm/pull/806) [`5c3b7f9`](https://github.com/nmi-agro/fdm/commit/5c3b7f9238e97a2d65d281cb6b22d5b58e6c4e83) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Added inline editing to the timeline. Left click a cultivation, fertilizer application, harvest or soil analysis, or an empty spot on a field row, to open a context menu with sections for details (with a link to the item's page), adding and managing. On a cultivation you can add a fertilizer application, register a harvest or end the cultivation; on empty space you can add a cultivation, fertilizer application or soil analysis; editing opens a pre-filled form in a side sheet and deleting asks for confirmation (soil analyses can be deleted too, except BodemConditieScore analyses). Hovering a fertilizer/harvest marker and pressing Delete also removes it. On mobile, tapping an event card opens the same menu.
+
+  In the Gantt view, drag a cultivation bar's edges to adjust its start/end date, drag the whole bar to move it, or drag a fertilizer/harvest marker to change its date. The new date is shown while dragging, harvests of single-harvest crops can be dragged past the cultivation end, and each drop is saved immediately. While saving, the timeline is greyed out with an "Opslaan..." indicator, and afterwards an "Ongedaan maken" button next to the toolbar buttons reverts the move. Canceling an edit sheet reloads the chart from the latest data.
+
+- [#789](https://github.com/nmi-agro/fdm/pull/789) [`94bcf36`](https://github.com/nmi-agro/fdm/commit/94bcf369beba8f3e59d4b802f7a29c0589c8a7b0) Thanks [@SvenVw](https://github.com/SvenVw)! - - Upgrade default model for Gerrit to Gemini 3.7 Flash
+  - Implement EU AI Act (Art. 50) and GPAI Code of Practice AI transparency disclosures across agent system prompts, UI badges, disclaimers, and documentation
+  - Clarify Gerrit as an AI-agronomist and decision-support system with reasoner-verifier safeguards
+  - Fix fertilizer catalogue ID resolution and farm context handling in Gerrit planner
+
+### Patch Changes
+
+- [#802](https://github.com/nmi-agro/fdm/pull/802) [`b16f7a6`](https://github.com/nmi-agro/fdm/commit/b16f7a67730a52ede562ba27a575aaa6dfc706a2) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Microsoft sign-in now uses the Better Auth social flow. The redirect URI in the Entra app registration must be changed to `<BETTER_AUTH_URL>/api/auth/callback/microsoft`.
+
+- [#795](https://github.com/nmi-agro/fdm/pull/795) [`df7458f`](https://github.com/nmi-agro/fdm/commit/df7458f852d12191a8e58c59ab30abfa750282c3) Thanks [@posthog-eu](https://github.com/apps/posthog-eu)! - Fix a recurring React hydration error on the bedrijven overview page (`/farm`). The time-based greeting in the page title was computed while rendering, both on the server and again in the browser, so the two renders disagreed whenever their clocks or timezones did. The greeting is now resolved once in the loader and in a fixed timezone (`Europe/Amsterdam`), which also keeps it correct when the server runs in another timezone.
+
+- [#811](https://github.com/nmi-agro/fdm/pull/811) [`4fe6af1`](https://github.com/nmi-agro/fdm/commit/4fe6af156ce8d0bcb85daa7708476d6fe8252062) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed sidebar atlas tabs not navigating to the atlas for the correct selected calendar year.
+- Updated dependencies [[`54fe321`](https://github.com/nmi-agro/fdm/commit/54fe321c5e2299684311d2ae07f1a1da86831c3a), [`c719b86`](https://github.com/nmi-agro/fdm/commit/c719b86443891c45405acd746b8250be7a95b2b2), [`ac78820`](https://github.com/nmi-agro/fdm/commit/ac7882026875aad8147b7a03ad094a36fa02fe52), [`94bcf36`](https://github.com/nmi-agro/fdm/commit/94bcf369beba8f3e59d4b802f7a29c0589c8a7b0), [`4eb2599`](https://github.com/nmi-agro/fdm/commit/4eb25999b4eaab2fed1079eb9c59dee7d2e82b7a)]:
+  - @nmi-agro/fdm-rvo@0.5.0
+  - @nmi-agro/fdm-helpdesk@0.3.0
+  - @nmi-agro/fdm-core@0.38.0
+  - @nmi-agro/fdm-agents@0.6.0
+  - @nmi-agro/fdm-calculator@0.19.1
+
 ## 0.36.3
 
 ### Patch Changes

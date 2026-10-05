@@ -1,11 +1,11 @@
-import { Download, Eye } from "lucide-react"
+import { Eye } from "lucide-react"
 import { ComponentProps, useEffect, useState } from "react"
-import { toast } from "sonner"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { Button } from "~/components/ui/button"
-import { DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
+import { DialogContent } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
 import { cn } from "~/lib/utils"
+import { FileViewerDialogHeader, FileViewerFallbackPanel } from "./file-viewer-parts"
 
 /**
  * Dialog content that shows a PDF inline via an iframe, so users can view
@@ -55,15 +55,12 @@ export function PdfViewerDialogContent({
 
   return (
     <DialogContent className="flex h-[85vh] max-h-160 w-full max-w-4xl flex-col sm:max-h-[85vh]">
-      <DialogHeader className="flex-row items-center justify-between space-y-0 pr-8">
-        <DialogTitle className="truncate">{title}</DialogTitle>
-        <Button variant="ghost" size="sm" asChild onClick={() => toast("PDF wordt gedownload")}>
-          <a href={downloadUrl} download={filename} rel="noopener noreferrer">
-            <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-            Downloaden
-          </a>
-        </Button>
-      </DialogHeader>
+      <FileViewerDialogHeader
+        title={title}
+        downloadUrl={downloadUrl}
+        filename={filename}
+        downloadingMessage="PDF wordt gedownload"
+      />
       <div className="relative h-full min-h-0 w-full flex-1">
         {(status === "loading" || status === "loaded") && (
           <iframe
@@ -84,17 +81,12 @@ export function PdfViewerDialogContent({
           </div>
         )}
         {status === "error" && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-md border text-center">
-            <p className="text-muted-foreground text-sm">
-              Het PDF-bestand kon niet worden geladen.
-            </p>
-            <Button variant="outline" size="sm" asChild>
-              <a href={downloadUrl} download={filename} rel="noopener noreferrer">
-                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                PDF downloaden in plaats daarvan
-              </a>
-            </Button>
-          </div>
+          <FileViewerFallbackPanel
+            message="Het PDF-bestand kon niet worden geladen."
+            downloadUrl={downloadUrl}
+            filename={filename}
+            downloadLabel="PDF downloaden in plaats daarvan"
+          />
         )}
       </div>
     </DialogContent>
