@@ -1624,11 +1624,11 @@ export const TimelineGanttView = forwardRef<
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="relative" ref={containerRef}>
+      <div className="timeline-gantt-view relative" ref={containerRef}>
         <style
           dangerouslySetInnerHTML={{
             __html: `
-          div:has(> div > div > button.gantt-bar-hide-shadow) {
+          .timeline-gantt-view div:has(> div > div > button.gantt-bar-hide-shadow) {
             box-shadow: none;
             border: none;
           }
