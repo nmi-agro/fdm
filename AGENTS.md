@@ -1,4 +1,4 @@
-# AGENTS.md / Copilot Instructions for `nmi-agro/fdm`
+# AGENTS.md — Agent Instructions for `nmi-agro/fdm`
 
 Farm Data Model (FDM) is an ESM-only pnpm + Turborepo monorepo (Node `>=24`, `pnpm@12.8.1` enforced).
 
@@ -40,11 +40,11 @@ cd fdm-core && pnpm exec dotenvx run -- vitest run src/farm.test.ts -t "test nam
 pnpm changeset                                 # Generate changeset for PR (target: development)
 ```
 
-## 4. Deep Domain Skills (`.github/skills/`)
+## 4. Deep Domain Skills (`.claude/skills/`)
 
 For in-depth domain rules, load the dedicated skill:
 
 - **`fdm-schema`**: Asset–Action rules, table/column naming, migration workflow, anti-patterns.
 - **`fdm-app-conventions`**: UI loaders/actions, server/client boundaries, Zustand stores, error boundaries.
 - **`fdm-api`**: Hono + `@hono/zod-openapi` endpoints, injectable services, RFC 9457 errors.
-- **`impeccable`**: Frontend UX, design tokens, responsive layouts, accessibility.
+- **`impeccable`** (Claude Code plugin, installed separately): Frontend UX, design tokens, responsive layouts, accessibility.
