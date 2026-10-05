@@ -33,7 +33,11 @@ RVO_CLIENT_ID=<Your RVO Client ID>
 RVO_CLIENT_NAME=<Your RVO Client Name>
 RVO_REDIRECT_URI=<Your registered redirect URI with RVO>
 RVO_PKIO_PRIVATE_KEY=<Your PKIO Private Key for RVO Client Assertion>
+# Optional: log the SOAP XML exchanged with RVO (none | request | response | both). Defaults to none.
+RVO_LOG_XML=none
 ```
+
+`RVO_LOG_XML` is passed as the optional `logXml` argument of `createRvoClient` and is meant for debugging RVO issues. The logged XML can contain farm data and identifiers, so keep it `none` by default, only enable it temporarily, and never commit or share logs containing real data.
 
 #### 2. Authentication Flow
 

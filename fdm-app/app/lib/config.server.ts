@@ -1,5 +1,20 @@
 import type { ServerConfig } from "~/types/config.d"
 
+const RVO_LOG_XML_VALUES = ["none", "request", "response", "both"] as const
+
+/**
+ * Parses and validates `RVO_LOG_XML`. Defaults to "none" when unset or empty;
+ * throws at startup for unsupported values so misconfigurations surface immediately.
+ */
+function parseRvoLogXml(value: string | undefined): (typeof RVO_LOG_XML_VALUES)[number] {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized) return "none"
+  if ((RVO_LOG_XML_VALUES as readonly string[]).includes(normalized)) {
+    return normalized as (typeof RVO_LOG_XML_VALUES)[number]
+  }
+  throw new Error(`Invalid RVO_LOG_XML "${value}". Use one of: ${RVO_LOG_XML_VALUES.join(", ")}.`)
+}
+
 // ---------------------------------------------------------------------------
 // Microsoft cert config — validated at startup so misconfigurations surface
 // immediately rather than during the first sign-in attempt.
@@ -87,6 +102,7 @@ export const serverConfig: ServerConfig = {
       redirectUri: String(process.env.RVO_REDIRECT_URI),
       clientName: String(process.env.RVO_CLIENT_NAME),
       pkioPrivateKey: String(process.env.RVO_PKIO_PRIVATE_KEY),
+      logXml: parseRvoLogXml(process.env.RVO_LOG_XML),
     },
     ...(process.env.GEMINI_API_KEY
       ? {
