@@ -16,6 +16,7 @@ import { registerFertilizerRoutes } from "./routes/fertilizers"
 import { registerFieldRoutes } from "./routes/fields"
 import { registerGrazingIntentionRoutes } from "./routes/grazing-intentions"
 import { registerHarvestRoutes } from "./routes/harvests"
+import { registerIndicatorRoutes } from "./routes/indicators"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
@@ -92,6 +93,7 @@ export function buildApp(
   registerFertilizerRoutes(app, fdm, services)
   registerFertilizerApplicationRoutes(app, fdm, services)
   registerMeasureRoutes(app, fdm, services)
+  registerIndicatorRoutes(app, fdm, services)
   registerOrganicCertificationRoutes(app, fdm, services)
   registerDerogationRoutes(app, fdm, services)
   registerGrazingIntentionRoutes(app, fdm, services)
@@ -129,7 +131,8 @@ export function buildApp(
 | **Fertilizers** | Custom fertilizers and catalogue look-ups |
 | **Fertilizer applications** | Record, update, and delete applications per field |
 | **Soil analyses** | Upload and query lab results |
-| **Measures** | Record agronomic measures (e.g. tillage, cover crops) |
+| **Measures** | Record agronomic measures (e.g. tillage, cover crops) and list the measure options of a field with applicability, predicted impacts and recommendations (\`GET /fields/{b_id}/measures/catalogue?year=\`) |
+| **Indicators** | Indicator and aggregation scores per field (\`GET /fields/{b_id}/indicators?year=\`) and area-weighted per farm (\`GET /farms/{b_id_farm}/indicators?year=\`) |
 | **Organic certifications** | Register and verify certification periods |
 | **Derogations** | Manage regulatory derogations |
 | **Grazing intentions** | Set and query yearly grazing plans |
@@ -180,6 +183,10 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
         description: "Manage fertilizer applications on fields",
       },
       { name: "Measures", description: "Manage measures on fields" },
+      {
+        name: "Indicators",
+        description: "Indicator and aggregation scores for fields and farms",
+      },
       {
         name: "Organic Certifications",
         description: "Manage farm organic certifications",

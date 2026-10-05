@@ -12,6 +12,9 @@ import {
   collectInputForOrganicMatterBalance,
   createFunctionsForNorms,
   getDoseForField,
+  getFarmIndicators,
+  getFieldIndicators,
+  getFieldMeasureOptions,
   // getDyna,
   // getNSupply,
   getNitrogenBalanceField,
@@ -148,6 +151,12 @@ export interface FdmApiServices {
   addMeasure: typeof addMeasure
   updateMeasure: typeof updateMeasure
   removeMeasure: typeof removeMeasure
+  // indicators and measure options
+  getFieldIndicators: typeof getFieldIndicators
+  getFarmIndicators: typeof getFarmIndicators
+  getFieldMeasureOptions: typeof getFieldMeasureOptions
+  /** Resolves the server-side NMI API key; `undefined` when not configured. */
+  getNmiApiKey: () => string | undefined
   // Organic certifications
   listOrganicCertifications: typeof listOrganicCertifications
   addOrganicCertification: typeof addOrganicCertification
@@ -232,6 +241,10 @@ const defaultServices: FdmApiServices = {
   addMeasure,
   updateMeasure,
   removeMeasure,
+  getFieldIndicators,
+  getFarmIndicators,
+  getFieldMeasureOptions,
+  getNmiApiKey: () => process.env.NMI_API_KEY || undefined,
   listOrganicCertifications,
   addOrganicCertification,
   getOrganicCertification,
