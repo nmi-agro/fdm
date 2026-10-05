@@ -1,5 +1,13 @@
 # Changelog fdm-core
 
+## 0.38.0
+
+### Minor Changes
+
+- [#808](https://github.com/nmi-agro/fdm/pull/808) [`ac78820`](https://github.com/nmi-agro/fdm/commit/ac7882026875aad8147b7a03ad094a36fa02fe52) Thanks [@SvenVw](https://github.com/SvenVw)! - `updateSoilAnalysis` can now also update the sampling date (`b_sampling_date`) and lower sampling depth (`a_depth_lower`) of the related soil sampling. Pass `null` for a nullable field, such as a BodemConditieScore indicator, to clear its value.
+
+- [#802](https://github.com/nmi-agro/fdm/pull/802) [`4eb2599`](https://github.com/nmi-agro/fdm/commit/4eb25999b4eaab2fed1079eb9c59dee7d2e82b7a) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Upgrade better-auth to 1.7 and switch Microsoft sign-in from the generic OAuth plugin to the built-in Microsoft provider, keeping certificate based authentication and tenant support. Microsoft accounts are now identified by the `oid` claim, and a migration backfills the `account_id` of existing Microsoft accounts from their stored id_token.
+
 ## 0.37.0
 
 ### Minor Changes
