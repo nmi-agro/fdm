@@ -180,13 +180,7 @@ export const columns = columnHelper.columns([
           checked={row.getIsSelected() ? true : row.getIsSomeSelected() ? "indeterminate" : false}
           // Do not use row.getToggleSelectedHandler() here since it doesn't have the exact child-parent selection behavior we want.
           // It selects all children of the last crop row, while we want to only select until the last clicked field row.
-          onClick={(event) =>
-            handleRowSelection(row, table, {
-              ...event,
-              target: { ...event.currentTarget, checked: !row.getIsSelected() } as EventTarget,
-              currentTarget: { ...event.currentTarget, checked: !row.getIsSelected() },
-            })
-          }
+          onClick={(event) => handleRowSelection(row, table, event)}
           aria-label="Selecteer deze rij"
         />
       </div>

@@ -20,7 +20,7 @@ export function AttachmentDropzone({
     const files = value ?? []
     const filesSet = new Set(files ?? [])
 
-    for (const oldFile of [...objectUrls.current.keys()]) {
+    for (const oldFile of objectUrls.current.keys()) {
       if (!filesSet.has(oldFile)) {
         URL.revokeObjectURL(objectUrls.current.get(oldFile) as string)
         objectUrls.current.delete(oldFile)

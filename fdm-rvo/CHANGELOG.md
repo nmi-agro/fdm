@@ -1,5 +1,16 @@
 # @nmi-agro/fdm-rvo
 
+## 0.5.0
+
+### Minor Changes
+
+- [#803](https://github.com/nmi-agro/fdm/pull/803) [`54fe321`](https://github.com/nmi-agro/fdm/commit/54fe321c5e2299684311d2ae07f1a1da86831c3a) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Fixed the case when a Shapefile does not have an ending date for a field, yet it defines a start date. Before this change, if a matched FDM field had an end date that is before the Shapefile start date, for example, this would cause `updateField` thus the whole import to fail.
+
+### Patch Changes
+
+- Updated dependencies [[`ac78820`](https://github.com/nmi-agro/fdm/commit/ac7882026875aad8147b7a03ad094a36fa02fe52), [`4eb2599`](https://github.com/nmi-agro/fdm/commit/4eb25999b4eaab2fed1079eb9c59dee7d2e82b7a)]:
+  - @nmi-agro/fdm-core@0.38.0
+
 ## 0.4.0
 
 ### Minor Changes

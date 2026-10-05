@@ -61,7 +61,7 @@ describe("runMigration", () => {
 
     it("backfills account_id with oid and skips problem rows", async () => {
       await runMigration(client, migrationsFolderPath)
-      const sqlText = readFileSync("src/db/migrations/0037_microsoft_account_oid.sql", "utf8")
+      const sqlText = readFileSync("src/db/migrations/0037_v0-38-0-2.sql", "utf8")
       const rows = [
         { id: "ms-test-ok", sub: "sub-ok", token: unsignedJwt({ sub: "sub-ok", oid: "oid-ok" }) },
         {

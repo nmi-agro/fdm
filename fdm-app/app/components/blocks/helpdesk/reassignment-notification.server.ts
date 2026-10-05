@@ -59,7 +59,7 @@ export async function notifyAboutReassignments(
         try {
           attachments = await getAttachmentsForMessage(fdm, principal_id, messages[0].message_id)
         } catch (err) {
-          handleActionError(err)
+          void handleActionError(err)
         }
       }
 

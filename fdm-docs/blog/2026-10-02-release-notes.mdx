@@ -1,0 +1,127 @@
+---
+slug: release-september-2026
+title: September 2026 Release
+authors: [svenverweij]
+tags: [release, fdm-app, fdm-core, fdm-agents, fdm-rvo, fdm-helpdesk]
+date: 2026-10-02
+---
+
+The September 2026 release extends the timeline with inline editing, so cultivations, fertilizer applications, harvests and soil analyses can be added, changed, moved and deleted from the timeline itself. It also adds attachments to the helpdesk, allows existing BodemConditieScore assessments to be edited, and makes the selected calendar year behave more consistently across the dashboards and the atlas. Under the hood, Microsoft sign-in has moved to the Better Auth social flow, which requires a configuration change for installations that use it. Gerrit now carries AI transparency disclosures, and the release includes a set of dependency migrations, among them TanStack Table 9 and Sentry 11.
+
+{/* truncate */}
+
+### Tijdlijn: Inline Editing
+
+Until now the timeline was mainly a place to look at what happened on a field. Changing something meant leaving the timeline and navigating to the page of the field or the item. This release makes the timeline editable.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Inline editing: a left click on a cultivation, fertilizer application, harvest or soil analysis, or on an empty spot in a field row, opens a context menu with sections for details (with a link to the page of the item), adding and managing. On a cultivation you can add a fertilizer application, register a harvest or end the cultivation; on empty space you can add a cultivation, fertilizer application or soil analysis. Editing opens a pre-filled form in a side sheet. Deleting asks for confirmation, and soil analyses can be deleted from the timeline as well, except BodemConditieScore analyses. Hovering over a fertilizer or harvest marker and pressing Delete also removes it.
+- Dragging in the Gantt view: the edges of a cultivation bar can be dragged to adjust the start or end date, the whole bar can be dragged to move it, and fertilizer and harvest markers can be dragged to change their date. The new date is shown while dragging, harvests of single-harvest crops can be dragged past the end of the cultivation, and each drop is saved immediately. While saving, the timeline is greyed out with an "Opslaan..." indicator, and afterwards an "Ongedaan maken" button next to the toolbar buttons reverts the move. Canceling an edit sheet reloads the chart from the latest data.
+- On mobile, tapping an event card opens the same menu.
+- The changes made in the timeline are processed by server-side actions in the timeline route. Related fixes: the start and end dates of cultivations are updated correctly on the Gantt chart, cultivations are no longer closed when a bar is dragged to the right, popovers stay aligned to their markers, and the cultivation events have been renamed to be less confusing.
+
+### BodemConditieScore
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Existing BodemConditieScore assessments can now be edited. Users with write access see a "Bewerken" button on the detail page to change the date, scores, photos and notes. Photos can also be removed.
+- Soil photo thumbnails adapt to portrait and landscape orientation, so vertical photos are no longer cropped to a thin strip. The gallery now indicates that actions are available on the images, and the loading state of the photo upload buttons has been fixed.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- `updateSoilAnalysis` can now also update the sampling date (`b_sampling_date`) and the lower sampling depth (`a_depth_lower`) of the related soil sampling. Passing `null` for a nullable field, such as a BodemConditieScore indicator, clears its value.
+
+### Helpdesk Attachments
+
+Tickets and messages in the helpdesk can now carry attachments, for example a screenshot or an exported file that shows the problem.
+
+**FDM Helpdesk (`@nmi-agro/fdm-helpdesk`)**
+
+- `fdm-helpdesk` can track attachments added to any message. Users can add and remove attachments on their own messages, for which they need write access to the message. Attachments can be viewed across the helpdesk as long as the message they belong to can be viewed. The package does not deal with the storage of attachment data or with email notifications.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Users can add attachments while creating a ticket or writing a new message, through a drop zone and a file preview. Files are uploaded as far as possible instead of reverting the whole submission, and empty files are skipped immediately.
+- Accepted file types include XML and SVG files, which are detected on their content rather than on their file extension. Agents are exempt from the regular limit of 5 attachments.
+- The email notification for a new message shows the attachments, including their file size, to ticket assignees and senders. The triage agent also receives the attachments of a ticket as context.
+- Fixes: the object keys of attachments use the requested format, the correct file path is stored in the database, downloading attachments no longer uses a cache, and image previews are only shown when their width and height can be read. The image cropper used for previews now uses `getScreenCTM` and `DOMPoint` for the coordinate transformation, and `konva` and `react-konva` have been removed as dependencies.
+
+### Selected Calendar Year
+
+The calendar year selected in the application should be the year that is used on every page. A few places did not follow it yet.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The organization dashboard shows the summary information only for the selected calendar year.
+- The farm dashboard preserves an explicit calendar year in the query string while the calendar store is synchronized, and only then resumes the redirects for calendar changes.
+- The tabs of the sidebar atlas navigate to the atlas for the selected calendar year.
+
+### Microsoft Sign-In
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- Better Auth has been upgraded to version 1.7. Microsoft sign-in has moved from the generic OAuth plugin to the built-in Microsoft provider, keeping certificate based authentication and tenant support. Microsoft accounts are now identified by the `oid` claim, and a migration fills the `account_id` of existing Microsoft accounts from their stored `id_token`. Accounts for which this is not possible are skipped with a warning.
+- `@better-auth/core` has been added as a direct dependency, so that consumers of the package can resolve the types used in its public declarations.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Microsoft sign-in now uses the Better Auth social flow. **Action required for installations that use Microsoft sign-in:** the redirect URI in the Entra app registration must be changed to `<BETTER_AUTH_URL>/api/auth/callback/microsoft`.
+- The Better Auth schema is now configured through the schema name option of Better Auth instead of a custom implementation.
+
+### RVO Import
+
+**FDM RVO (`@nmi-agro/fdm-rvo`)**
+
+- Fixed the case in which a Shapefile defines a start date for a field but no end date. If a matched FDM field had an end date before the start date in the Shapefile, `updateField` failed and with it the whole import. An empty `EINDDAT` is now converted to `null` instead of `undefined`, and `processRvoImport` follows the same logic.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- PostHog events are captured before and after fields are fetched from the RVO (EDICrop) service, and when the user confirms the import of the fields. The events are named `fields_requested_rvo_successful` and `fields_requested_rvo_failed`.
+
+### Gerrit (Labs) and AI Transparency
+
+Gerrit remains a research preview. This release makes explicit what kind of system it is.
+
+**FDM Agents (`@nmi-agro/fdm-agents`)** and **FDM Application (`@nmi-agro/fdm-app`)**
+
+- The default model for Gerrit is upgraded from Gemini 3.6 Flash to Gemini 3.7 Flash.
+- The transparency requirements of Article 50 of the EU AI Act and the GPAI Code of Practice are reflected in the system prompts of the agents, in badges and disclaimers in the interface, and in the documentation. Gerrit is described as an AI agronomist and decision-support system, with reasoner-verifier safeguards.
+- Fixed the resolution of fertilizer catalogue IDs and the handling of the farm context in the Gerrit planner.
+
+### Tables and Selection
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Range selection with shift-click now also works on the selection checkboxes in the field, rotation and measures field summary tables. The selection follows the sorted order of the rows.
+- The variety and field count columns of the rotation table now sort properly, as does the area column.
+- When a farm has fields but no cultivations, a more specific message explains this instead of a generic empty state.
+- The nutrient advice table uses column groups.
+- The tables have been migrated to TanStack Table 9. The rotation table now uses the new functions of `fdm-core` and the `FlexRender` component.
+
+### Smaller Improvements and Under the Hood
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Fixed a recurring React hydration error on the overview of farms (`/farm`). The time-based greeting in the title was computed during rendering on the server and again in the browser, which gave a different result whenever the clocks or timezones differed. The greeting is now resolved once in the loader, in the fixed timezone `Europe/Amsterdam`.
+- The event for a submitted magic link is captured again.
+- Dependencies were migrated to new major versions: TanStack Table 8 to 9, Sentry 10 to 11 and jotai 2 to 3, besides regular updates of patch and minor versions. `konva` and `react-konva` were removed.
+
+**Tooling**
+
+- The repository now uses pnpm 12 and the test suites use vitest 5. The tests in CI were made more stable by using a shared database pool and a limited number of workers.
+
+### Hotfixes since August 2026
+
+Three patch releases of `fdm-app` were published between the August 2026 and September 2026 releases. They contained the following fixes.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Fixed all POST actions, including logout, returning `400 Bad Request` in production. `fdm-app` runs behind a TLS-terminating reverse proxy without Express `trust proxy`, so the server always saw requests as plain `http://`. Since `react-router` 8.3.1 compares the full request origin in its single-fetch CSRF check, the `https://` origin of the browser did not match. `@react-router/serve` has been replaced by a small custom Express server that enables `trust proxy` and removes any incoming `X-Forwarded-Host` header. Error handling was also hardened: `getThrownStatus` recognises the error shape of Better Auth, and `/logout` uses the `signOut` endpoint of Better Auth with a manual cookie expiry as fallback.
+- The info popup on the fields atlas sometimes did not render properly on touch screens.
+- The options for cut weight (snedezwaarte) in the grassland nutrient advice per cut are sorted from light to heavy.
+- The gewaspercelen atlas no longer throws errors when no farm is selected, and its tooltip works in that case.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), [fdm-agents](https://github.com/nmi-agro/fdm/blob/main/fdm-agents/CHANGELOG.md), [fdm-rvo](https://github.com/nmi-agro/fdm/blob/main/fdm-rvo/CHANGELOG.md), and [fdm-helpdesk](https://github.com/nmi-agro/fdm/blob/main/fdm-helpdesk/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.

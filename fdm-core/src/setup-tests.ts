@@ -29,6 +29,10 @@ afterAll(async () => {
   const open = [...pools.values()]
   pools.clear()
   await Promise.all(
-    open.map((fdm) => (fdm as unknown as { $client: { end: (o?: object) => Promise<void> } }).$client.end({ timeout: 5 })),
+    open.map((fdm) =>
+      (fdm as unknown as { $client: { end: (o?: object) => Promise<void> } }).$client.end({
+        timeout: 5,
+      }),
+    ),
   )
 })

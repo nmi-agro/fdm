@@ -24,7 +24,11 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
-import { ALLOWED_ATTACHMENT_EXTENSIONS, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS } from "~/lib/upload-utils"
+import {
+  ALLOWED_ATTACHMENT_EXTENSIONS,
+  MAX_ATTACHMENT_SIZE,
+  MAX_ATTACHMENTS,
+} from "~/lib/upload-utils"
 import type { HelpdeskUser } from "./types"
 import { AttachmentDropzone } from "./attachment-dropzone"
 import { Message } from "./message"
@@ -65,7 +69,7 @@ export function MessageComposer({
     submitHandlers: {
       onValid() {
         if (!formRef.current) return
-        fetcher.submit(new FormData(formRef.current), {
+        void fetcher.submit(new FormData(formRef.current), {
           method: "POST",
           encType: "multipart/form-data",
         })

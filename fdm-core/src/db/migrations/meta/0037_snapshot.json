@@ -39,14 +39,10 @@
         "cultivation_catalogue_selecting_b_id_farm_farms_b_id_farm_fk": {
           "name": "cultivation_catalogue_selecting_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "cultivation_catalogue_selecting",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -54,10 +50,7 @@
       "compositePrimaryKeys": {
         "cultivation_catalogue_selecting_b_id_farm_b_lu_source_pk": {
           "name": "cultivation_catalogue_selecting_b_id_farm_b_lu_source_pk",
-          "columns": [
-            "b_id_farm",
-            "b_lu_source"
-          ]
+          "columns": ["b_id_farm", "b_lu_source"]
         }
       },
       "uniqueConstraints": {},
@@ -106,14 +99,10 @@
         "cultivation_ending_b_lu_cultivations_b_lu_fk": {
           "name": "cultivation_ending_b_lu_cultivations_b_lu_fk",
           "tableFrom": "cultivation_ending",
-          "columnsFrom": [
-            "b_lu"
-          ],
+          "columnsFrom": ["b_lu"],
           "tableTo": "cultivations",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_lu"
-          ],
+          "columnsTo": ["b_lu"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -171,28 +160,20 @@
         "cultivation_harvesting_b_id_harvestable_harvestables_b_id_harvestable_fk": {
           "name": "cultivation_harvesting_b_id_harvestable_harvestables_b_id_harvestable_fk",
           "tableFrom": "cultivation_harvesting",
-          "columnsFrom": [
-            "b_id_harvestable"
-          ],
+          "columnsFrom": ["b_id_harvestable"],
           "tableTo": "harvestables",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_harvestable"
-          ],
+          "columnsTo": ["b_id_harvestable"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "cultivation_harvesting_b_lu_cultivations_b_lu_fk": {
           "name": "cultivation_harvesting_b_lu_cultivations_b_lu_fk",
           "tableFrom": "cultivation_harvesting",
-          "columnsFrom": [
-            "b_lu"
-          ],
+          "columnsFrom": ["b_lu"],
           "tableTo": "cultivations",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_lu"
-          ],
+          "columnsTo": ["b_lu"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -256,28 +237,20 @@
         "cultivation_starting_b_id_fields_b_id_fk": {
           "name": "cultivation_starting_b_id_fields_b_id_fk",
           "tableFrom": "cultivation_starting",
-          "columnsFrom": [
-            "b_id"
-          ],
+          "columnsFrom": ["b_id"],
           "tableTo": "fields",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id"
-          ],
+          "columnsTo": ["b_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "cultivation_starting_b_lu_cultivations_b_lu_fk": {
           "name": "cultivation_starting_b_lu_cultivations_b_lu_fk",
           "tableFrom": "cultivation_starting",
-          "columnsFrom": [
-            "b_lu"
-          ],
+          "columnsFrom": ["b_lu"],
           "tableTo": "cultivations",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_lu"
-          ],
+          "columnsTo": ["b_lu"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -285,10 +258,7 @@
       "compositePrimaryKeys": {
         "cultivation_starting_b_id_b_lu_pk": {
           "name": "cultivation_starting_b_id_b_lu_pk",
-          "columns": [
-            "b_id",
-            "b_lu"
-          ]
+          "columns": ["b_id", "b_lu"]
         }
       },
       "uniqueConstraints": {},
@@ -353,14 +323,10 @@
         "cultivations_b_lu_catalogue_cultivations_catalogue_b_lu_catalogue_fk": {
           "name": "cultivations_b_lu_catalogue_cultivations_catalogue_b_lu_catalogue_fk",
           "tableFrom": "cultivations",
-          "columnsFrom": [
-            "b_lu_catalogue"
-          ],
+          "columnsFrom": ["b_lu_catalogue"],
           "tableTo": "cultivations_catalogue",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_lu_catalogue"
-          ],
+          "columnsTo": ["b_lu_catalogue"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -608,28 +574,20 @@
         "derogation_applying_b_id_farm_farms_b_id_farm_fk": {
           "name": "derogation_applying_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "derogation_applying",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "derogation_applying_b_id_derogation_derogations_b_id_derogation_fk": {
           "name": "derogation_applying_b_id_derogation_derogations_b_id_derogation_fk",
           "tableFrom": "derogation_applying",
-          "columnsFrom": [
-            "b_id_derogation"
-          ],
+          "columnsFrom": ["b_id_derogation"],
           "tableTo": "derogations",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_derogation"
-          ],
+          "columnsTo": ["b_id_derogation"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -637,10 +595,7 @@
       "compositePrimaryKeys": {
         "derogation_applying_pk": {
           "name": "derogation_applying_pk",
-          "columns": [
-            "b_id_farm",
-            "b_id_derogation"
-          ]
+          "columns": ["b_id_farm", "b_id_derogation"]
         }
       },
       "uniqueConstraints": {},
@@ -805,28 +760,20 @@
         "fertilizer_acquiring_b_id_farm_farms_b_id_farm_fk": {
           "name": "fertilizer_acquiring_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "fertilizer_acquiring",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "fertilizer_acquiring_p_id_fertilizers_p_id_fk": {
           "name": "fertilizer_acquiring_p_id_fertilizers_p_id_fk",
           "tableFrom": "fertilizer_acquiring",
-          "columnsFrom": [
-            "p_id"
-          ],
+          "columnsFrom": ["p_id"],
           "tableTo": "fertilizers",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "p_id"
-          ],
+          "columnsTo": ["p_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -913,28 +860,20 @@
         "fertilizer_applying_b_id_fields_b_id_fk": {
           "name": "fertilizer_applying_b_id_fields_b_id_fk",
           "tableFrom": "fertilizer_applying",
-          "columnsFrom": [
-            "b_id"
-          ],
+          "columnsFrom": ["b_id"],
           "tableTo": "fields",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id"
-          ],
+          "columnsTo": ["b_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "fertilizer_applying_p_id_fertilizers_p_id_fk": {
           "name": "fertilizer_applying_p_id_fertilizers_p_id_fk",
           "tableFrom": "fertilizer_applying",
-          "columnsFrom": [
-            "p_id"
-          ],
+          "columnsFrom": ["p_id"],
           "tableTo": "fertilizers",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "p_id"
-          ],
+          "columnsTo": ["p_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -980,14 +919,10 @@
         "fertilizer_catalogue_enabling_b_id_farm_farms_b_id_farm_fk": {
           "name": "fertilizer_catalogue_enabling_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "fertilizer_catalogue_enabling",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -995,10 +930,7 @@
       "compositePrimaryKeys": {
         "fertilizer_catalogue_enabling_b_id_farm_p_source_pk": {
           "name": "fertilizer_catalogue_enabling_b_id_farm_p_source_pk",
-          "columns": [
-            "b_id_farm",
-            "p_source"
-          ]
+          "columns": ["b_id_farm", "p_source"]
         }
       },
       "uniqueConstraints": {},
@@ -1047,28 +979,20 @@
         "fertilizer_picking_p_id_fertilizers_p_id_fk": {
           "name": "fertilizer_picking_p_id_fertilizers_p_id_fk",
           "tableFrom": "fertilizer_picking",
-          "columnsFrom": [
-            "p_id"
-          ],
+          "columnsFrom": ["p_id"],
           "tableTo": "fertilizers",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "p_id"
-          ],
+          "columnsTo": ["p_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "fertilizer_picking_p_id_catalogue_fertilizers_catalogue_p_id_catalogue_fk": {
           "name": "fertilizer_picking_p_id_catalogue_fertilizers_catalogue_p_id_catalogue_fk",
           "tableFrom": "fertilizer_picking",
-          "columnsFrom": [
-            "p_id_catalogue"
-          ],
+          "columnsFrom": ["p_id_catalogue"],
           "tableTo": "fertilizers_catalogue",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "p_id_catalogue"
-          ],
+          "columnsTo": ["p_id_catalogue"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -1143,28 +1067,20 @@
         "fertilizer_plan_establishing_b_id_farm_farms_b_id_farm_fk": {
           "name": "fertilizer_plan_establishing_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "fertilizer_plan_establishing",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "fertilizer_plan_establishing_p_id_plan_fertilizer_plans_p_id_plan_fk": {
           "name": "fertilizer_plan_establishing_p_id_plan_fertilizer_plans_p_id_plan_fk",
           "tableFrom": "fertilizer_plan_establishing",
-          "columnsFrom": [
-            "p_id_plan"
-          ],
+          "columnsFrom": ["p_id_plan"],
           "tableTo": "fertilizer_plans",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "p_id_plan"
-          ],
+          "columnsTo": ["p_id_plan"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -1172,10 +1088,7 @@
       "compositePrimaryKeys": {
         "fertilizer_plan_establishing_b_id_farm_p_id_plan_pk": {
           "name": "fertilizer_plan_establishing_b_id_farm_p_id_plan_pk",
-          "columns": [
-            "b_id_farm",
-            "p_id_plan"
-          ]
+          "columns": ["b_id_farm", "p_id_plan"]
         }
       },
       "uniqueConstraints": {},
@@ -1722,28 +1635,20 @@
         "field_acquiring_b_id_fields_b_id_fk": {
           "name": "field_acquiring_b_id_fields_b_id_fk",
           "tableFrom": "field_acquiring",
-          "columnsFrom": [
-            "b_id"
-          ],
+          "columnsFrom": ["b_id"],
           "tableTo": "fields",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id"
-          ],
+          "columnsTo": ["b_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "field_acquiring_b_id_farm_farms_b_id_farm_fk": {
           "name": "field_acquiring_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "field_acquiring",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -1751,10 +1656,7 @@
       "compositePrimaryKeys": {
         "field_acquiring_b_id_b_id_farm_pk": {
           "name": "field_acquiring_b_id_b_id_farm_pk",
-          "columns": [
-            "b_id",
-            "b_id_farm"
-          ]
+          "columns": ["b_id", "b_id_farm"]
         }
       },
       "uniqueConstraints": {},
@@ -1797,14 +1699,10 @@
         "field_discarding_b_id_fields_b_id_fk": {
           "name": "field_discarding_b_id_fields_b_id_fk",
           "tableFrom": "field_discarding",
-          "columnsFrom": [
-            "b_id"
-          ],
+          "columnsFrom": ["b_id"],
           "tableTo": "fields",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id"
-          ],
+          "columnsTo": ["b_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -2076,28 +1974,20 @@
         "harvestable_sampling_b_id_harvestable_harvestables_b_id_harvestable_fk": {
           "name": "harvestable_sampling_b_id_harvestable_harvestables_b_id_harvestable_fk",
           "tableFrom": "harvestable_sampling",
-          "columnsFrom": [
-            "b_id_harvestable"
-          ],
+          "columnsFrom": ["b_id_harvestable"],
           "tableTo": "harvestables",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_harvestable"
-          ],
+          "columnsTo": ["b_id_harvestable"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "harvestable_sampling_b_id_harvestable_analysis_harvestable_analyses_b_id_harvestable_analysis_fk": {
           "name": "harvestable_sampling_b_id_harvestable_analysis_harvestable_analyses_b_id_harvestable_analysis_fk",
           "tableFrom": "harvestable_sampling",
-          "columnsFrom": [
-            "b_id_harvestable_analysis"
-          ],
+          "columnsFrom": ["b_id_harvestable_analysis"],
           "tableTo": "harvestable_analyses",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_harvestable_analysis"
-          ],
+          "columnsTo": ["b_id_harvestable_analysis"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -2105,10 +1995,7 @@
       "compositePrimaryKeys": {
         "harvestable_sampling_pk": {
           "name": "harvestable_sampling_pk",
-          "columns": [
-            "b_id_harvestable",
-            "b_id_harvestable_analysis"
-          ]
+          "columns": ["b_id_harvestable", "b_id_harvestable_analysis"]
         }
       },
       "uniqueConstraints": {},
@@ -2205,14 +2092,10 @@
         "intending_grazing_b_id_farm_farms_b_id_farm_fk": {
           "name": "intending_grazing_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "intending_grazing",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -2220,10 +2103,7 @@
       "compositePrimaryKeys": {
         "intending_grazing_b_id_farm_b_grazing_intention_year_pk": {
           "name": "intending_grazing_b_id_farm_b_grazing_intention_year_pk",
-          "columns": [
-            "b_id_farm",
-            "b_grazing_intention_year"
-          ]
+          "columns": ["b_id_farm", "b_grazing_intention_year"]
         }
       },
       "uniqueConstraints": {},
@@ -2278,28 +2158,20 @@
         "measure_adopting_b_id_fields_b_id_fk": {
           "name": "measure_adopting_b_id_fields_b_id_fk",
           "tableFrom": "measure_adopting",
-          "columnsFrom": [
-            "b_id"
-          ],
+          "columnsFrom": ["b_id"],
           "tableTo": "fields",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id"
-          ],
+          "columnsTo": ["b_id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "measure_adopting_b_id_measure_measures_b_id_measure_fk": {
           "name": "measure_adopting_b_id_measure_measures_b_id_measure_fk",
           "tableFrom": "measure_adopting",
-          "columnsFrom": [
-            "b_id_measure"
-          ],
+          "columnsFrom": ["b_id_measure"],
           "tableTo": "measures",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_measure"
-          ],
+          "columnsTo": ["b_id_measure"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -2307,10 +2179,7 @@
       "compositePrimaryKeys": {
         "measure_adopting_b_id_b_id_measure_pk": {
           "name": "measure_adopting_b_id_b_id_measure_pk",
-          "columns": [
-            "b_id",
-            "b_id_measure"
-          ]
+          "columns": ["b_id", "b_id_measure"]
         }
       },
       "uniqueConstraints": {},
@@ -2353,14 +2222,10 @@
         "measure_catalogue_enabling_b_id_farm_farms_b_id_farm_fk": {
           "name": "measure_catalogue_enabling_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "measure_catalogue_enabling",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -2368,10 +2233,7 @@
       "compositePrimaryKeys": {
         "measure_catalogue_enabling_b_id_farm_m_source_pk": {
           "name": "measure_catalogue_enabling_b_id_farm_m_source_pk",
-          "columns": [
-            "b_id_farm",
-            "m_source"
-          ]
+          "columns": ["b_id_farm", "m_source"]
         }
       },
       "uniqueConstraints": {},
@@ -2430,14 +2292,10 @@
         "measures_m_id_measures_catalogue_m_id_fk": {
           "name": "measures_m_id_measures_catalogue_m_id_fk",
           "tableFrom": "measures",
-          "columnsFrom": [
-            "m_id"
-          ],
+          "columnsFrom": ["m_id"],
           "tableTo": "measures_catalogue",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "m_id"
-          ],
+          "columnsTo": ["m_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -2667,28 +2525,20 @@
         "organic_certifications_holding_b_id_farm_farms_b_id_farm_fk": {
           "name": "organic_certifications_holding_b_id_farm_farms_b_id_farm_fk",
           "tableFrom": "organic_certifications_holding",
-          "columnsFrom": [
-            "b_id_farm"
-          ],
+          "columnsFrom": ["b_id_farm"],
           "tableTo": "farms",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_farm"
-          ],
+          "columnsTo": ["b_id_farm"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "organic_certifications_holding_b_id_organic_organic_certifications_b_id_organic_fk": {
           "name": "organic_certifications_holding_b_id_organic_organic_certifications_b_id_organic_fk",
           "tableFrom": "organic_certifications_holding",
-          "columnsFrom": [
-            "b_id_organic"
-          ],
+          "columnsFrom": ["b_id_organic"],
           "tableTo": "organic_certifications",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_organic"
-          ],
+          "columnsTo": ["b_id_organic"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -2696,10 +2546,7 @@
       "compositePrimaryKeys": {
         "organic_certifications_holding_b_id_farm_b_id_organic_pk": {
           "name": "organic_certifications_holding_b_id_farm_b_id_organic_pk",
-          "columns": [
-            "b_id_farm",
-            "b_id_organic"
-          ]
+          "columns": ["b_id_farm", "b_id_organic"]
         }
       },
       "uniqueConstraints": {},
@@ -3114,14 +2961,10 @@
         "soil_image_b_id_sampling_soil_sampling_b_id_sampling_fk": {
           "name": "soil_image_b_id_sampling_soil_sampling_b_id_sampling_fk",
           "tableFrom": "soil_image",
-          "columnsFrom": [
-            "b_id_sampling"
-          ],
+          "columnsFrom": ["b_id_sampling"],
           "tableTo": "soil_sampling",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id_sampling"
-          ],
+          "columnsTo": ["b_id_sampling"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -3216,14 +3059,10 @@
         "soil_image_annotating_a_id_image_soil_image_a_id_image_fk": {
           "name": "soil_image_annotating_a_id_image_soil_image_a_id_image_fk",
           "tableFrom": "soil_image_annotating",
-          "columnsFrom": [
-            "a_id_image"
-          ],
+          "columnsFrom": ["a_id_image"],
           "tableTo": "soil_image",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "a_id_image"
-          ],
+          "columnsTo": ["a_id_image"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -3300,28 +3139,20 @@
         "soil_sampling_b_id_fields_b_id_fk": {
           "name": "soil_sampling_b_id_fields_b_id_fk",
           "tableFrom": "soil_sampling",
-          "columnsFrom": [
-            "b_id"
-          ],
+          "columnsFrom": ["b_id"],
           "tableTo": "fields",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "b_id"
-          ],
+          "columnsTo": ["b_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         },
         "soil_sampling_a_id_soil_analysis_a_id_fk": {
           "name": "soil_sampling_a_id_soil_analysis_a_id_fk",
           "tableFrom": "soil_sampling",
-          "columnsFrom": [
-            "a_id"
-          ],
+          "columnsFrom": ["a_id"],
           "tableTo": "soil_analysis",
           "schemaTo": "fdm",
-          "columnsTo": [
-            "a_id"
-          ],
+          "columnsTo": ["a_id"],
           "onUpdate": "no action",
           "onDelete": "no action"
         }
@@ -3437,14 +3268,10 @@
         "account_user_id_user_id_fk": {
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "user",
           "schemaTo": "fdm-authn",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -3743,28 +3570,20 @@
         "invitation_organization_id_organization_id_fk": {
           "name": "invitation_organization_id_organization_id_fk",
           "tableFrom": "invitation",
-          "columnsFrom": [
-            "organization_id"
-          ],
+          "columnsFrom": ["organization_id"],
           "tableTo": "organization",
           "schemaTo": "fdm-authn",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "invitation_inviter_id_user_id_fk": {
           "name": "invitation_inviter_id_user_id_fk",
           "tableFrom": "invitation",
-          "columnsFrom": [
-            "inviter_id"
-          ],
+          "columnsFrom": ["inviter_id"],
           "tableTo": "user",
           "schemaTo": "fdm-authn",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -3847,28 +3666,20 @@
         "member_organization_id_organization_id_fk": {
           "name": "member_organization_id_organization_id_fk",
           "tableFrom": "member",
-          "columnsFrom": [
-            "organization_id"
-          ],
+          "columnsFrom": ["organization_id"],
           "tableTo": "organization",
           "schemaTo": "fdm-authn",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "member_user_id_user_id_fk": {
           "name": "member_user_id_user_id_fk",
           "tableFrom": "member",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "user",
           "schemaTo": "fdm-authn",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -3926,9 +3737,7 @@
       "uniqueConstraints": {
         "organization_slug_unique": {
           "name": "organization_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "nullsNotDistinct": false
         }
       },
@@ -3971,9 +3780,7 @@
       "uniqueConstraints": {
         "rate_limit_key_unique": {
           "name": "rate_limit_key_unique",
-          "columns": [
-            "key"
-          ],
+          "columns": ["key"],
           "nullsNotDistinct": false
         }
       },
@@ -4062,14 +3869,10 @@
         "session_user_id_user_id_fk": {
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "user",
           "schemaTo": "fdm-authn",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         }
@@ -4078,9 +3881,7 @@
       "uniqueConstraints": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "nullsNotDistinct": false
         }
       },
@@ -4181,16 +3982,12 @@
       "uniqueConstraints": {
         "user_email_unique": {
           "name": "user_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "nullsNotDistinct": false
         },
         "user_username_unique": {
           "name": "user_username_unique",
-          "columns": [
-            "username"
-          ],
+          "columns": ["username"],
           "nullsNotDistinct": false
         }
       },
@@ -4920,12 +4717,7 @@
     "fdm.a_image_annotation_type": {
       "name": "a_image_annotation_type",
       "schema": "fdm",
-      "values": [
-        "pin",
-        "circle",
-        "arrow",
-        "freehand"
-      ]
+      "values": ["pin", "circle", "arrow", "freehand"]
     },
     "fdm.p_app_method": {
       "name": "p_app_method",
@@ -4998,24 +4790,12 @@
     "fdm.b_lu_harvestcat": {
       "name": "b_lu_harvestcat",
       "schema": "fdm",
-      "values": [
-        "HC010",
-        "HC020",
-        "HC031",
-        "HC040",
-        "HC041",
-        "HC042",
-        "HC050"
-      ]
+      "values": ["HC010", "HC020", "HC031", "HC040", "HC041", "HC042", "HC050"]
     },
     "fdm.b_lu_harvestable": {
       "name": "b_lu_harvestable",
       "schema": "fdm",
-      "values": [
-        "none",
-        "once",
-        "multiple"
-      ]
+      "values": ["none", "once", "multiple"]
     },
     "fdm.b_lu_croprotation": {
       "name": "b_lu_croprotation",
@@ -5069,20 +4849,12 @@
     "fdm.m_stage_applicability": {
       "name": "m_stage_applicability",
       "schema": "fdm",
-      "values": [
-        "farm",
-        "field"
-      ]
+      "values": ["farm", "field"]
     },
     "fdm.p_app_amount_unit": {
       "name": "p_app_amount_unit",
       "schema": "fdm",
-      "values": [
-        "kg/ha",
-        "l/ha",
-        "m3/ha",
-        "ton/ha"
-      ]
+      "values": ["kg/ha", "l/ha", "m3/ha", "ton/ha"]
     },
     "fdm.p_type_rvo": {
       "name": "p_type_rvo",
@@ -5156,14 +4928,7 @@
     "fdm.a_image_type": {
       "name": "a_image_type",
       "schema": "fdm",
-      "values": [
-        "profile",
-        "surface",
-        "roots",
-        "earthworms",
-        "structure",
-        "other"
-      ]
+      "values": ["profile", "surface", "roots", "earthworms", "structure", "other"]
     }
   },
   "schemas": {

@@ -207,7 +207,7 @@ function FarmShell({
             fieldWritePermission={fieldWritePermission}
           />
           <SidebarApps farms={loaderData.farmOptions} />
-          <SidebarLabs />
+          <SidebarLabs farms={loaderData.farmOptions} />
         </SidebarContent>
         <SidebarSupport
           name={loaderData.userName}

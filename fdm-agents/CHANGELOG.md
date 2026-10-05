@@ -1,5 +1,20 @@
 # @nmi-agro/fdm-agents
 
+## 0.6.0
+
+### Minor Changes
+
+- [#789](https://github.com/nmi-agro/fdm/pull/789) [`94bcf36`](https://github.com/nmi-agro/fdm/commit/94bcf369beba8f3e59d4b802f7a29c0589c8a7b0) Thanks [@SvenVw](https://github.com/SvenVw)! - - Upgrade default model for Gerrit to Gemini 3.7 Flash
+  - Implement EU AI Act (Art. 50) and GPAI Code of Practice AI transparency disclosures across agent system prompts, UI badges, disclaimers, and documentation
+  - Clarify Gerrit as an AI-agronomist and decision-support system with reasoner-verifier safeguards
+  - Fix fertilizer catalogue ID resolution and farm context handling in Gerrit planner
+
+### Patch Changes
+
+- Updated dependencies [[`ac78820`](https://github.com/nmi-agro/fdm/commit/ac7882026875aad8147b7a03ad094a36fa02fe52), [`4eb2599`](https://github.com/nmi-agro/fdm/commit/4eb25999b4eaab2fed1079eb9c59dee7d2e82b7a)]:
+  - @nmi-agro/fdm-core@0.38.0
+  - @nmi-agro/fdm-calculator@0.19.1
+
 ## 0.5.2
 
 ### Patch Changes

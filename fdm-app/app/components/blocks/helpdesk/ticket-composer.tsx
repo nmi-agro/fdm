@@ -16,7 +16,11 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Textarea } from "~/components/ui/textarea"
-import { ALLOWED_ATTACHMENT_EXTENSIONS, MAX_ATTACHMENT_SIZE, MAX_ATTACHMENTS } from "~/lib/upload-utils"
+import {
+  ALLOWED_ATTACHMENT_EXTENSIONS,
+  MAX_ATTACHMENT_SIZE,
+  MAX_ATTACHMENTS,
+} from "~/lib/upload-utils"
 import { AttachmentDropzone } from "./attachment-dropzone"
 import { TicketSchema } from "./ticket-schema"
 
@@ -40,7 +44,7 @@ export function TicketComposer({
     submitHandlers: {
       onValid() {
         if (!formRef.current) return
-        submit(new FormData(formRef.current), {
+        void submit(new FormData(formRef.current), {
           method: "POST",
           encType: "multipart/form-data",
         })

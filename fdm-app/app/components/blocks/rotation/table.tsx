@@ -478,14 +478,7 @@ export function DataTable<TData extends RotationExtended>({
 
                     clearActiveForm()
 
-                    handleRowSelection(row, table, {
-                      ...event,
-                      target: {
-                        ...event.currentTarget,
-                        checked: !row.getIsSelected(),
-                      } as EventTarget,
-                      currentTarget: { ...event.currentTarget, checked: row.getIsSelected() },
-                    })
+                    handleRowSelection(row, table, event)
                   }}
                   className={cn(
                     "data-[state=selected]:bg-muted data-[state=indeterminate]:bg-muted/50",
