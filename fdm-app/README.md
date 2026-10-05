@@ -37,7 +37,8 @@ The `fdm-app` is a React application providing a user-friendly interface for vis
    - **Database:** Connection details for your PostgreSQL database.
    - **Authentication:** Secrets and URLs for `better-auth`. In local development (`NODE_ENV !== "production"`), magic link OTP codes and login links are automatically logged to the terminal console when `POSTMARK_API_KEY` is empty.
    - **Map:** Map provider configuration (`PUBLIC_MAP_PROVIDER=osm` by default, requires no API keys) and API key if using MapTiler (`PUBLIC_MAPTILER_API_KEY`).
-   - **External Services (Optional):** Sentry, PostHog, NMI API, GCS, and Gemini are optional for local development and disabled by default.
+   - **External Services (Optional):** Sentry, PostHog, NMI API, GCS, Gemini, and RVO are optional for local development and disabled by default.
+   - **RVO logging (Optional):** `RVO_LOG_XML` logs the SOAP XML exchanged with RVO. Supported values are `none` (default), `request`, `response` and `both`. The logged XML can contain farm data and identifiers, so only enable it temporarily for debugging.
 
    Refer to the comments within the `.env.example` file for detailed explanations of each variable and whether it's required. **Never commit your `.env` file to version control.**
 
