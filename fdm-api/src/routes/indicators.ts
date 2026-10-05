@@ -150,7 +150,10 @@ const FieldMeasureOptionsSchema = z
   })
   .openapi("FieldMeasureOptions")
 
-const bln3ErrorResponses = {
+/** Badge shown in the API reference next to recently added operations. Remove it once the endpoints are no longer new. */
+const NEW_BADGE = { name: "New", color: "#16a34a" }
+
+const indicatorErrorResponses = {
   ...commonErrorResponses,
   400: {
     description: "Bad request — `year` is missing or not a four-digit calendar year.",
@@ -167,6 +170,7 @@ const fieldIndicatorsRoute = createRoute({
   method: "get",
   path: "/fields/{b_id}/indicators",
   tags: ["Indicators"],
+  "x-badges": [NEW_BADGE],
   summary: "Get indicator scores of a field",
   description:
     "Returns the indicator and aggregation scores of a field for a calendar year. Buffer strips and nature fields return `is_excluded: true` with empty arrays. Counts against the `nmi` rate limit.",
@@ -177,7 +181,7 @@ const fieldIndicatorsRoute = createRoute({
       description: "indicator scores of the field.",
       content: { "application/json": { schema: FieldIndicatorsSchema } },
     },
-    ...bln3ErrorResponses,
+    ...indicatorErrorResponses,
   },
 })
 
@@ -185,6 +189,7 @@ const farmIndicatorsRoute = createRoute({
   method: "get",
   path: "/farms/{b_id_farm}/indicators",
   tags: ["Indicators"],
+  "x-badges": [NEW_BADGE],
   summary: "Get indicator scores of a farm",
   description:
     "Returns indicator scores of all eligible fields of a farm and the area-weighted farm scores for a calendar year. Fields that cannot be scored fail the whole request with 503. A farm without eligible fields returns empty `fields` and empty farm aggregates. Counts against the `nmi` rate limit.",
@@ -195,7 +200,7 @@ const farmIndicatorsRoute = createRoute({
       description: "indicator scores of the farm.",
       content: { "application/json": { schema: FarmIndicatorsSchema } },
     },
-    ...bln3ErrorResponses,
+    ...indicatorErrorResponses,
   },
 })
 
@@ -203,6 +208,7 @@ const fieldMeasureOptionsRoute = createRoute({
   method: "get",
   path: "/fields/{b_id}/measures/catalogue",
   tags: ["Measures"],
+  "x-badges": [NEW_BADGE],
   summary: "Get measure options and recommendations for a field",
   description:
     "Lists field-level catalogue measures with descriptions, applicability, active and conflicting status, predicted impacts and recommendations for a calendar year. These are catalogue candidates, not adopted measures; use `m_id` of a selectable option with `POST /fields/{b_id}/measures`. Predicted impacts are advice for this field and year, not stored properties. Counts against the `nmi` rate limit.",
@@ -213,7 +219,7 @@ const fieldMeasureOptionsRoute = createRoute({
       description: "Measure options of the field.",
       content: { "application/json": { schema: FieldMeasureOptionsSchema } },
     },
-    ...bln3ErrorResponses,
+    ...indicatorErrorResponses,
   },
 })
 

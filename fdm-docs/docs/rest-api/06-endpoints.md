@@ -152,7 +152,7 @@ Calculation endpoint schemas are documented once the response format is stable. 
 
 ## Indicators and measure options
 
-Read-only endpoints for indicator scores and the measure options of a field. All require a four-digit `year` query parameter (e.g. `?year=2026`); soil analyses and adopted measures are limited to 1 January through 31 December of that year, while the cultivation history needed for the indicators is kept. They use the NMI API and have their own rate limit of **10 requests per minute per key** (`nmi` bucket).
+Read-only endpoints for indicator scores and the measure options of a field. All require a four-digit `year` query parameter (e.g. `?year=2026`); soil analyses and adopted measures are limited to 1 January through 31 December of that year, while the cultivation history needed for the indicators is kept. They use the NMI API and have their own rate limit of **10 requests per minute per key** (`nmi` bucket). These endpoints are new; they carry a **New** badge in the API reference, and recent API changes are listed on the **Changelog** page there.
 
 | Method | Path                                    | Description                                                            |
 | ------ | --------------------------------------- | ---------------------------------------------------------------------- |

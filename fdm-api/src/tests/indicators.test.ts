@@ -279,3 +279,20 @@ describe("GET /fields/{b_id}/measures/catalogue", () => {
     expect(getMeasures).toHaveBeenCalled()
   })
 })
+
+describe("OpenAPI document", () => {
+  it("marks the new operations with a badge and documents the changelog", async () => {
+    const res = await makeApp().request("/openapi.json")
+    expect(res.status).toBe(200)
+    const doc = await res.json()
+    for (const [path] of [
+      ["/fields/{b_id}/indicators"],
+      ["/farms/{b_id_farm}/indicators"],
+      ["/fields/{b_id}/measures/catalogue"],
+    ]) {
+      expect(doc.paths[path].get["x-badges"]).toEqual([{ name: "New", color: "#16a34a" }])
+    }
+    const changelog = doc.tags.find((tag: { name: string }) => tag.name === "Changelog")
+    expect(changelog?.description).toContain("/fields/{b_id}/indicators")
+  })
+})
