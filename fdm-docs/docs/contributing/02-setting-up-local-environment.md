@@ -161,4 +161,5 @@ All third-party services are optional for local development. If omitted, the app
 - **NMI API (`NMI_API_KEY`)**: Used for live Dutch nutrient advice, soil estimates (atlas), and BLN3 scoring. Core nitrogen and organic matter balances and fertilization norms run purely locally.
 - **Google Cloud Storage (`GCS_BUCKET_NAME`)**: Used for user profile photos, visual soil assessment images, and soil analysis PDFs.
 - **Google Gemini (`GEMINI_API_KEY`)**: Used for the Gerrit fertilizer planning agent and automated helpdesk ticket triage.
+- **RVO (`RVO_CLIENT_ID`, `RVO_CLIENT_NAME`, `RVO_PKIO_PRIVATE_KEY`, `RVO_REDIRECT_URI`)**: Enables importing fields from RVO. Leave empty to disable the integration. Set `RVO_LOG_XML` to `request`, `response` or `both` to log the SOAP XML sent to and received from RVO for debugging (default: `none`). The logged XML can contain farm data and identifiers, so only enable it temporarily and never share or commit these logs.
 - **PostHog & Sentry**: Product analytics and error monitoring fail-open / disabled when unconfigured.
