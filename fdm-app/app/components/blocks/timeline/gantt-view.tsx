@@ -892,7 +892,11 @@ function EventOverlay({
                 <EventIcon kind={event.kind} p_type={event.p_type} p_type_rvo={event.p_type_rvo} />
               </button>
             </TooltipTrigger>
-            <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
+            <TooltipContent className="whitespace-pre-line">
+              {event.label}
+              {"\n"}
+              {event.detail}
+            </TooltipContent>
           </Tooltip>
         </span>
       </TimelineContextMenu>
@@ -915,7 +919,11 @@ function EventOverlay({
                 <DraggableEventIcon event={event} />
               </span>
             </TooltipTrigger>
-            <TooltipContent className="whitespace-pre-line">{event.detail}</TooltipContent>
+            <TooltipContent className="whitespace-pre-line">
+              {event.label}
+              {"\n"}
+              {event.detail}
+            </TooltipContent>
           </Tooltip>
         </span>
       </TimelineContextMenu>
@@ -1102,7 +1110,11 @@ function FeatureContent({
               </p>
             </div>
           </TooltipTrigger>
-          <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
+          <TooltipContent className="whitespace-pre-line">
+            {feature.label}
+            {"\n"}
+            {feature.detail}
+          </TooltipContent>
         </Tooltip>
         {/* Rendered as siblings (not nested inside the label above) so hovering/clicking an
             event icon only opens its own tooltip/menu, not the cultivation bar's. */}
@@ -1157,7 +1169,11 @@ function FeatureContent({
               />
             </button>
           </TooltipTrigger>
-          <TooltipContent className="whitespace-pre-line">{feature.detail}</TooltipContent>
+          <TooltipContent className="whitespace-pre-line">
+            {feature.label}
+            {"\n"}
+            {feature.detail}
+          </TooltipContent>
         </Tooltip>
       </div>
     </TimelineContextMenu>
