@@ -26,6 +26,8 @@ export type Bln3Measure = {
  * Input parameters for the BLN3 score calculation, assembled from the FDM
  * database. Only `a_lat` and `a_lon` are required by the NMI API; all other
  * fields are optional and improve calculation quality when provided.
+ * Only the fields in `BLN3_SCORE_FIELDS` (`payload.ts`) are sent to the API;
+ * fields marked `@internal` are used locally only.
  */
 export type Bln3ScoreCollectedInputs = {
   // ── Location (required) ──────────────────────────────────────────────────
@@ -43,13 +45,13 @@ export type Bln3ScoreCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
-  /** Buffer strip flag */
+  /** Buffer strip flag. @internal Exclusion check only; not sent to the NMI API. */
   b_bufferstrip?: boolean
-  /** Crop rotation category of the target year's main cultivation */
+  /** Crop rotation category of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API (FDM vocabulary differs). */
   b_lu_croprotation?: string
-  /** Catalogue code of the target year's main cultivation */
+  /** Catalogue code of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API. */
   b_lu_catalogue?: string
-  /** Flag indicating field is excluded from BLN3 calculations */
+  /** Flag indicating field is excluded from BLN3 calculations. @internal Not sent to the NMI API. */
   isExcluded?: boolean
 
   // ── Soil analysis ────────────────────────────────────────────────────────
@@ -200,6 +202,8 @@ export type Bln3MeasureApplicabilityItem = {
 /**
  * Input parameters collected for `requestBln3MeasureApplicability`.
  * `a_lat`, `a_lon`, and `b_year` are required; all other fields are optional.
+ * Only the fields in `BLN3_MEASURE_FIELDS` (`payload.ts`) are sent to the API;
+ * fields marked `@internal` are used locally only.
  * Note: `measures` is intentionally NOT sent.
  */
 export type Bln3MeasureApplicabilityCollectedInputs = {
@@ -220,13 +224,13 @@ export type Bln3MeasureApplicabilityCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
-  /** Buffer strip flag */
+  /** Buffer strip flag. @internal Exclusion check only; not sent to the NMI API. */
   b_bufferstrip?: boolean
-  /** Crop rotation category of the target year's main cultivation */
+  /** Crop rotation category of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API (FDM vocabulary differs). */
   b_lu_croprotation?: string
-  /** Catalogue code of the target year's main cultivation */
+  /** Catalogue code of the target year's main cultivation. @internal Exclusion check only; not sent to the NMI API. */
   b_lu_catalogue?: string
-  /** Flag indicating field is excluded from BLN3 calculations */
+  /** Flag indicating field is excluded from BLN3 calculations. @internal Not sent to the NMI API. */
   isExcluded?: boolean
 
   // Groundwater / soil potential estimates (optional)
