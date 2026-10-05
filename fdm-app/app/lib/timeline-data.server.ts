@@ -11,6 +11,7 @@ import type { TimelineField } from "~/components/blocks/timeline/gantt-view"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { fdm } from "~/lib/fdm.server"
+import { isBcsAnalysis } from "./bcs"
 
 /**
  * Fetches and shapes one timeframe's worth of timeline data for a farm. Shared by the timeline
@@ -97,7 +98,10 @@ export async function fetchTimelineFields(
         })),
         fertilizerApplications: fertilizerApplicationsByField.get(field.b_id) ?? [],
         harvests,
-        soilAnalyses: soilAnalysesByField.get(field.b_id) ?? [],
+        soilAnalyses: (soilAnalysesByField.get(field.b_id) ?? []).map((a) => ({
+          ...a,
+          type: isBcsAnalysis(a) ? ("soil_sampling_bcs" as const) : ("soil_sampling" as const),
+        })),
       }
     })
     .sort((a, b) => a.b_name.localeCompare(b.b_name, "nl"))

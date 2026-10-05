@@ -1,6 +1,6 @@
 import { format, isToday } from "date-fns"
 import { nl } from "date-fns/locale"
-import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react"
+import { ChevronRight, CircleStop, Shovel, Sprout, TestTube2, Wheat } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useFetcher, useNavigate, useParams } from "react-router"
 import type {
@@ -64,6 +64,8 @@ const eventTypeLabel: Record<TimelineEventType, string> = {
   fertilizer: "Bemesting",
   harvest: "Oogst",
   soil_sampling: "Bodemanalyse",
+  // The detail-label "BodemConditieScore analyse" is self-explanatory
+  soil_sampling_bcs: "",
   cultivation_start: "Gewas gestart",
   cultivation_end: "Gewas beëindigd",
 }
@@ -87,6 +89,8 @@ function eventColor(event: TimelineEvent): string {
       return EVENT_TYPE_COLOR.harvest
     case "soil_sampling":
       return EVENT_TYPE_COLOR.soil_sampling
+    case "soil_sampling_bcs":
+      return EVENT_TYPE_COLOR.soil_sampling_bcs
     case "cultivation_start":
     case "cultivation_end":
       return getCultivationColor(event.cultivationType ?? undefined)
@@ -104,6 +108,8 @@ function EventTypeIcon({ event }: { event: TimelineEvent }) {
     icon = <FertilizerIcon p_type={getFertilizerCategoryFromRvoCode(event.p_type_rvo)} />
   } else if (event.type === "harvest") {
     icon = <Wheat className="size-4 fill-current" />
+  } else if (event.type === "soil_sampling_bcs") {
+    icon = <Shovel className="size-5 fill-current" />
   } else if (event.type === "soil_sampling") {
     icon = <TestTube2 className="size-4 fill-current" />
   } else if (event.type === "cultivation_start") {
@@ -160,6 +166,8 @@ function EventCard({
           date: undefined,
         },
       })
+    } else if (event.type === "soil_sampling_bcs" && event.a_id) {
+      void navigate(`/farm/${b_id_farm}/${calendar}/field/${event.fieldId}/bcs/${event.a_id}`)
     } else if (event.type === "soil_sampling" && event.a_id) {
       void navigate(
         `/farm/${b_id_farm}/${calendar}/field/${event.fieldId}/soil/analysis/${event.a_id}`,
@@ -175,6 +183,9 @@ function EventCard({
     } else if (event.type === "harvest") {
       formData.set("intent", "remove_harvest")
       formData.set("b_id_harvesting", event.b_id_harvesting ?? "")
+    } else if (event.type === "soil_sampling_bcs") {
+      formData.set("intent", "remove_soil_analysis")
+      formData.set("a_id", event.a_id ?? "")
     } else if (event.type === "soil_sampling") {
       formData.set("intent", "remove_soil_analysis")
       formData.set("a_id", event.a_id ?? "")
@@ -190,6 +201,7 @@ function EventCard({
     (isCultivation && !!event.b_lu) ||
     (event.type === "fertilizer" && !!event.p_app_id) ||
     (event.type === "harvest" && !!event.b_lu && !!event.b_id_harvesting) ||
+    (event.type === "soil_sampling_bcs" && !!event.a_id) ||
     (event.type === "soil_sampling" && !!event.a_id)
 
   const b_lu = event.b_lu

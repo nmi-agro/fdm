@@ -10,7 +10,7 @@ import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
 import { addDays, addMonths, format, getDaysInMonth } from "date-fns"
 import { nl } from "date-fns/locale"
-import { LandPlot, Loader2, TestTube2, Wheat } from "lucide-react"
+import { LandPlot, Loader2, Shovel, TestTube2, Wheat } from "lucide-react"
 import {
   forwardRef,
   useContext,
@@ -73,6 +73,7 @@ import {
 } from "~/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
 import { endMonth, startMonth } from "~/lib/calendar"
+import { TimelineEventType } from "./timeline-events"
 
 // The years the Gantt renders/scrolls through must never exceed what the app's "Calendar" year
 // picker actually supports (~/lib/calendar) — otherwise the timeline could show a year (e.g.
@@ -142,7 +143,7 @@ export function findActiveCultivationForDate(
 function RowClickCatcher({
   onSelect,
 }: {
-  onSelect: (type: "cultivation-add" | "fertilizer" | "soil", date: Date) => void
+  onSelect: (type: "cultivation-add" | "fertilizer" | "soil" | "soil-bcs", date: Date) => void
 }) {
   const gantt = useContext(GanttContext)
   const [scrollX] = useGanttScrollX()
@@ -201,6 +202,11 @@ function RowClickCatcher({
         label: "Bodemanalyse toevoegen",
         onSelect: () => onSelect("soil", clickedDate.current),
       },
+      {
+        key: "soil-bcs",
+        label: "BodemConditieScore toevoegen",
+        onSelect: () => onSelect("soil-bcs", clickedDate.current),
+      },
     ],
   }
 
@@ -244,6 +250,7 @@ export type TimelineHarvest = {
 }
 
 export type TimelineSoilAnalysis = {
+  type: TimelineEventType
   a_id: string
   b_id_sampling: string
   b_sampling_date: Date | null
@@ -282,12 +289,12 @@ export type TimelineFilters = {
   showFutureEvents: boolean
 }
 
-type PointEventKind = "cultivation" | "fertilizer" | "harvest" | "soil"
+type PointEventKind = "cultivation" | "fertilizer" | "harvest" | "soil" | "soil_bcs"
 
 /** A fertilizer/harvest/soil event overlaid on top of the cultivation bar it falls within. */
 type AttachedEvent = {
   id: string
-  kind: "fertilizer" | "harvest" | "soil"
+  kind: "fertilizer" | "harvest" | "soil" | "soil_bcs"
   percent: number
   label: string
   detail: string
@@ -320,6 +327,7 @@ type EditableEntity =
   | { kind: "fertilizer"; b_id: string; p_app_id: string }
   | { kind: "harvest"; b_id: string; b_lu: string; b_id_harvesting: string }
   | { kind: "soil"; b_id: string; a_id: string }
+  | { kind: "soil_bcs"; b_id: string; a_id: string }
 
 /** Bundles everything the drag/menu/delete affordances need, threaded down to
  *  `FeatureContent`/`EventOverlay` (both plain, prop-driven components rendered by
@@ -329,6 +337,7 @@ type TimelineEditing = {
   onSheetRequest?: (request: AddEventSheetRequest) => void
   onEditHarvest: (b_id: string, b_lu: string, b_id_harvesting: string) => void
   onEditSoil: (b_id: string, a_id: string) => void
+  onEditBcs: (b_id: string, a_id: string) => void
   requestDelete: (entity: EditableEntity, label: string) => void
   hoveredEntityId: string | null
   setHoveredEntityId: (id: string | null) => void
@@ -346,6 +355,7 @@ function entityLabel(entity: EditableEntity): string {
   if (entity.kind === "cultivation") return "dit gewas"
   if (entity.kind === "fertilizer") return "deze bemesting"
   if (entity.kind === "soil") return "deze bodemanalyse"
+  if (entity.kind === "soil_bcs") return "deze bodemanalyse"
   return "deze oogst"
 }
 
@@ -383,6 +393,11 @@ const soilStatus: GanttStatus = {
   id: "soil",
   name: "Bodemanalyse",
   color: EVENT_TYPE_COLOR.soil_sampling,
+}
+const bcsStatus: GanttStatus = {
+  id: "soil-bcs",
+  name: "BodemConditieScore analyse",
+  color: EVENT_TYPE_COLOR.soil_sampling_bcs,
 }
 
 const formatNl = (date: Date) => format(date, "d MMM yyyy", { locale: nl })
@@ -588,6 +603,44 @@ function buildFieldFeatures(
   if (filters.showSoilSamplings) {
     for (const analysis of field.soilAnalyses) {
       if (!analysis.b_sampling_date) continue
+
+      if (analysis.type === "soil_sampling_bcs") {
+        const name = "BodemConditieScore analyse"
+        const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/bcs`
+        // We assume computed BCSs are already set in the analysis parameters in the loader.
+        const detail = `${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
+        attachOrPush(
+          analysis.b_sampling_date,
+          {
+            id: `soil-${analysis.a_id}`,
+            kind: "soil",
+            label: name,
+            detail,
+            href,
+            date: analysis.b_sampling_date,
+            entityId: analysis.a_id,
+          },
+          {
+            id: `soil-${analysis.a_id}`,
+            name,
+            startAt: analysis.b_sampling_date,
+            endAt: analysis.b_sampling_date,
+            status: bcsStatus,
+            lane: field.b_id,
+            kind: "soil_bcs",
+            href,
+            label: name,
+            detail,
+            b_id: field.b_id,
+            entityId: analysis.a_id,
+            draggable: false,
+            resizable: false,
+          },
+        )
+
+        continue
+      }
+
       const name = "Bodemanalyse"
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil`
       const detail = `${analysis.a_source ? `${analysis.a_source}\n` : ""}${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
@@ -664,6 +717,10 @@ function EventIcon({
     return <FertilizerIcon p_type={getFertilizerCategoryFromRvoCode(p_type_rvo)} />
   if (kind === "harvest")
     return <Wheat className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.harvest }} />
+  if (kind === "soil_bcs")
+    return (
+      <Shovel className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.soil_sampling_bcs }} />
+    )
   return <TestTube2 className="size-3 shrink-0" style={{ color: EVENT_TYPE_COLOR.soil_sampling }} />
 }
 
@@ -734,7 +791,9 @@ function EventOverlay({
       ? { b_id, kind: "fertilizer", p_app_id: entityId }
       : event.kind === "harvest"
         ? { b_id, b_id_harvesting: entityId, b_lu, kind: "harvest" }
-        : { a_id: entityId, b_id, kind: "soil" }
+        : event.kind === "soil_bcs"
+          ? { a_id: entityId, b_id, kind: "soil_bcs" }
+          : { a_id: entityId, b_id, kind: "soil" }
 
   const handleEdit = () => {
     if (!entityId) return
@@ -748,6 +807,8 @@ function EventOverlay({
         type: "harvest-edit",
         context: { b_id, b_lu, b_id_harvesting: entityId },
       })
+    } else if (event.kind === "soil_bcs") {
+      editing.onEditBcs(b_id, entityId)
     } else {
       editing.onEditSoil(b_id, entityId)
     }
@@ -799,7 +860,11 @@ function EventOverlay({
 
   const triggerProps = {
     className: "absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2",
-    onMouseEnter: () => entityId && event.kind !== "soil" && editing.setHoveredEntityId(entityId),
+    onMouseEnter: () =>
+      entityId &&
+      event.kind !== "soil" &&
+      event.kind !== "soil_bcs" &&
+      editing.setHoveredEntityId(entityId),
     onMouseLeave: () => editing.setHoveredEntityId(null),
     style: { left: `${event.percent}%` },
   }
@@ -903,9 +968,11 @@ function FeatureContent({
         ? { b_id, kind: "fertilizer", p_app_id: entityId }
         : feature.kind === "harvest" && entityId && b_id
           ? { b_id, b_id_harvesting: entityId, b_lu: b_lu ?? "", kind: "harvest" }
-          : feature.kind === "soil" && entityId && b_id
-            ? { a_id: entityId, b_id, kind: "soil" }
-            : null
+          : feature.kind === "soil_bcs" && entityId && b_id
+            ? { a_id: entityId, b_id, kind: "soil_bcs" }
+            : feature.kind === "soil" && entityId && b_id
+              ? { a_id: entityId, b_id, kind: "soil" }
+              : null
 
   const handleEdit = () => {
     if (feature.kind === "cultivation" && b_id && b_lu) {
@@ -923,6 +990,8 @@ function FeatureContent({
         context: { b_id, b_lu: b_lu ?? "", date: feature.startAt, b_id_harvesting: entityId },
         type: "harvest-edit",
       })
+    } else if (feature.kind === "soil_bcs" && b_id && entityId) {
+      editing.onEditBcs(b_id, entityId)
     } else if (feature.kind === "soil" && b_id && entityId) {
       editing.onEditSoil(b_id, entityId)
     }
@@ -1060,7 +1129,10 @@ function FeatureContent({
       <div
         className="flex h-full min-w-0 flex-1 items-center justify-center"
         onMouseEnter={() =>
-          entityId && feature.kind !== "soil" && editing.setHoveredEntityId(entityId)
+          entityId &&
+          feature.kind !== "soil" &&
+          feature.kind !== "soil_bcs" &&
+          editing.setHoveredEntityId(entityId)
         }
         onMouseLeave={() => editing.setHoveredEntityId(null)}
       >
@@ -1343,6 +1415,10 @@ export const TimelineGanttView = forwardRef<
     void navigate(`/farm/${b_id_farm}/${calendar}/field/${b_id}/soil/analysis/${a_id}`)
   }
 
+  const onEditBcs = (b_id: string, a_id: string) => {
+    void navigate(`/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs/${a_id}/edit`)
+  }
+
   const requestDelete = (entity: EditableEntity, label: string) =>
     setPendingDelete({ entity, label })
 
@@ -1358,6 +1434,11 @@ export const TimelineGanttView = forwardRef<
       const formData = new FormData()
       formData.set("intent", "remove_harvest")
       formData.set("b_id_harvesting", entity.b_id_harvesting)
+      void fetcher.submit(formData, { method: "POST" })
+    } else if (entity.kind === "soil_bcs") {
+      const formData = new FormData()
+      formData.set("intent", "remove_soil_analysis")
+      formData.set("a_id", entity.a_id)
       void fetcher.submit(formData, { method: "POST" })
     } else if (entity.kind === "soil") {
       const formData = new FormData()
@@ -1415,6 +1496,7 @@ export const TimelineGanttView = forwardRef<
     canModify,
     hoveredEntityId,
     onEditHarvest,
+    onEditBcs,
     onEditSoil,
     onSheetRequest: canModify ? onSheetRequest : undefined,
     requestDelete,
@@ -1594,6 +1676,10 @@ export const TimelineGanttView = forwardRef<
                         if (type === "soil") {
                           void navigate(
                             `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil/analysis/new`,
+                          )
+                        } else if (type === "soil-bcs") {
+                          void navigate(
+                            `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/bcs/new`,
                           )
                         } else {
                           onSheetRequest?.({ context: { b_id: field.b_id, date }, type })
