@@ -255,6 +255,7 @@ export type TimelineSoilAnalysis = {
   b_id_sampling: string
   b_sampling_date: Date | null
   a_source: string | null
+  a_source_name: string | null
 }
 
 export type TimelineCultivation = {
@@ -646,7 +647,7 @@ function buildFieldFeatures(
 
       const name = "Bodemanalyse"
       const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil`
-      const detail = `${analysis.a_source ? `${analysis.a_source}\n` : ""}${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
+      const detail = `${analysis.a_source ? `${analysis.a_source_name}\n` : ""}${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
       attachOrPush(
         analysis.b_sampling_date,
         {

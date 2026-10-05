@@ -209,7 +209,7 @@ function pushSoilEvents(
       fieldId: field.b_id,
       fieldName: field.b_name,
       fieldBufferstrip: field.b_bufferstrip,
-      label: analysis.a_source ?? "Bodemanalyse",
+      label: analysis.a_source_name ?? "Bodemanalyse",
       href: soilHref(b_id_farm, calendar, field.b_id),
     })
   }

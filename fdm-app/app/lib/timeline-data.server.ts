@@ -5,6 +5,7 @@ import {
   getHarvestsForFarm,
   getParametersForHarvestCat,
   getSoilAnalysesForFarm,
+  getSoilParametersDescription,
   Timeframe,
 } from "@nmi-agro/fdm-core"
 import type { TimelineField } from "~/components/blocks/timeline/gantt-view"
@@ -38,6 +39,11 @@ export async function fetchTimelineFields(
     getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe),
   ])
+
+  const soilParametersDescription = getSoilParametersDescription()
+  const soilAnalysisSourceParamDesc = soilParametersDescription.find(
+    (p) => p.parameter === "a_source",
+  )
 
   return fields
     .map((field) => {
@@ -101,6 +107,9 @@ export async function fetchTimelineFields(
         soilAnalyses: (soilAnalysesByField.get(field.b_id) ?? []).map((a) => ({
           ...a,
           type: isBcsAnalysis(a) ? ("soil_sampling_bcs" as const) : ("soil_sampling" as const),
+          a_source_name:
+            soilAnalysisSourceParamDesc?.options?.find((opt) => opt.value === a.a_source)?.label ??
+            "Overig",
         })),
       }
     })
