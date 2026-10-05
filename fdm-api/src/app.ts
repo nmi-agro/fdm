@@ -1,6 +1,6 @@
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import { OpenAPIHono } from "@hono/zod-openapi"
-import { apiReference } from "@scalar/hono-api-reference"
+import { Scalar } from "@scalar/hono-api-reference"
 import { cors } from "hono/cors"
 import type { FdmApiConfig, FdmApiServices } from "./index"
 import type { ApiEnv } from "./types"
@@ -207,7 +207,7 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
   // Scalar UI
   app.get(
     "/docs",
-    apiReference({
+    Scalar({
       pageTitle: `${appName} REST API`,
       url: `${pathPrefix}/openapi.json`,
       theme: "saturn",
