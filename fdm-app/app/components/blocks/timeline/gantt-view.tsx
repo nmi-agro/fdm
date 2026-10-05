@@ -825,7 +825,8 @@ function EventOverlay({
     title: event.label,
   }
 
-  const isDraggable = editing.canModify && event.kind !== "soil" && !!entityId
+  const isDraggable =
+    editing.canModify && event.kind !== "soil_bcs" && event.kind !== "soil" && !!entityId
   // A harvest of a once-harvestable crop ends the cultivation, so it may also move past the
   // cultivation's current end date.
   const latestDate =
