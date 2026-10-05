@@ -1,4 +1,8 @@
 import type { Bln3Score } from "@nmi-agro/fdm-calculator"
+import {
+  computeAreaWeightedAggregation,
+  getFieldAggregationScore,
+} from "@nmi-agro/fdm-calculator"
 
 export const AGG_IDS: AggregationId[] = [
   "S_BLN",
@@ -250,17 +254,8 @@ export function getAggregationIdsForIndicator(indicatorId: string): AggregationI
   return list
 }
 
-/**
- * Extract a single aggregation score (0-1 scale) safely from a Bln3Score object.
- */
-export function getFieldAggregationScore(
-  score: Bln3Score | null | undefined,
-  aggId: AggregationId,
-): number | null {
-  if (!score?.aggregations) return null
-  const found = score.aggregations.find((a) => a.aggregation_id === aggId)
-  return found && typeof found.score === "number" && !Number.isNaN(found.score) ? found.score : null
-}
+// Shared with the REST API through fdm-calculator.
+export { computeAreaWeightedAggregation, getFieldAggregationScore }
 
 export type FieldScoreInput = {
   b_id: string
@@ -270,41 +265,4 @@ export type FieldScoreInput = {
 export type FieldAreaInput = {
   b_id: string
   b_area: number | null
-}
-
-/**
- * Calculates the area-weighted average score of a specific aggregation across fields.
- * Excludes fields that are missing an area or a score for this aggregation.
- *
- * @returns Average score on a 0-1 scale, or null if no valid fields exist.
- */
-export function computeAreaWeightedAggregation(
-  fieldScores: FieldScoreInput[],
-  fields: FieldAreaInput[],
-  aggId: AggregationId,
-): number | null {
-  const areaByBid = new Map<string, number>()
-  for (const f of fields) {
-    if (f.b_area !== null && f.b_area > 0) {
-      areaByBid.set(f.b_id, f.b_area)
-    }
-  }
-
-  let totalWeightedScore = 0
-  let totalArea = 0
-
-  for (const fs of fieldScores) {
-    if (!fs.score) continue
-    const score01 = getFieldAggregationScore(fs.score, aggId)
-    if (score01 === null) continue
-
-    const area = areaByBid.get(fs.b_id)
-    if (area === undefined) continue // Skip if field has no area
-
-    totalWeightedScore += score01 * area
-    totalArea += area
-  }
-
-  if (totalArea === 0) return null
-  return totalWeightedScore / totalArea
 }
