@@ -554,6 +554,7 @@ function buildFieldFeatures(
           entityId: app.p_app_id,
           p_type,
           p_type_rvo,
+          color: "transparent",
           resizable: false,
         },
       )
@@ -593,6 +594,7 @@ function buildFieldFeatures(
           detail,
           b_id: field.b_id,
           b_lu: harvest.b_lu,
+          color: "transparent",
           entityId: harvest.b_id_harvesting,
           resizable: false,
         },
@@ -633,6 +635,7 @@ function buildFieldFeatures(
             detail,
             b_id: field.b_id,
             entityId: analysis.a_id,
+            color: "transparent",
             draggable: false,
             resizable: false,
           },
@@ -668,6 +671,7 @@ function buildFieldFeatures(
           detail,
           b_id: field.b_id,
           entityId: analysis.a_id,
+          color: "transparent",
           draggable: false,
           resizable: false,
         },
@@ -1138,11 +1142,8 @@ function FeatureContent({
       >
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              className="flex cursor-pointer items-center justify-center"
-              onClick={openMenuFromClick}
-              type="button"
-            >
+            {/* Class "gantt-bar-hide-shadow" is needed to trigger the CSS rule defined in TimelineGanttView. */}
+            <button className="gantt-bar-hide-shadow bg-background/90 ring-border/50 flex cursor-pointer items-center justify-center rounded-full p-0.5 shadow-sm ring-1">
               <EventIcon
                 kind={feature.kind}
                 p_type={feature.p_type}
@@ -1620,6 +1621,16 @@ export const TimelineGanttView = forwardRef<
   return (
     <TooltipProvider delayDuration={150}>
       <div className="relative" ref={containerRef}>
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+          div:has(> div > div > button.gantt-bar-hide-shadow) {
+            box-shadow: none;
+            border: none;
+          }
+`,
+          }}
+        />
         {isSaving && (
           <div
             aria-busy="true"
