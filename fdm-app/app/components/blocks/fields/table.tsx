@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react"
 import { NavLink, useParams } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useFieldSelectionStore } from "@/app/store/field-selection"
+import { dataTableRowCN } from "~/components/blocks/data-table/row"
+import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -25,7 +27,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
 import type { buildColumns, FieldExtended } from "./columns"
-import { FieldFilterToggle } from "../../custom/field-filter-toggle"
 import { fieldsTableFeatures } from "./table-features"
 
 interface DataTableProps<TData extends FieldExtended> {
@@ -242,8 +243,8 @@ export function DataTable<TData extends FieldExtended>({
                     <TableHead
                       key={header.id}
                       className={cn({
-                        "bg-background sticky left-0": header.column.id === "select",
-                        "bg-background sticky right-0": header.column.id === "actions",
+                        "sticky left-0": header.column.id === "select",
+                        "sticky right-0": header.column.id === "actions",
                       })}
                     >
                       <FlexRender header={header} />
@@ -258,15 +259,15 @@ export function DataTable<TData extends FieldExtended>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
                   onClick={(event) => handleRowClick(row, event)}
+                  className={dataTableRowCN(row)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
                       className={cn({
-                        "bg-background sticky left-0": cell.column.id === "select",
-                        "bg-background sticky right-0": cell.column.id === "actions",
+                        "sticky left-0": cell.column.id === "select",
+                        "sticky right-0": cell.column.id === "actions",
                       })}
                     >
                       <FlexRender cell={cell} />

@@ -2,7 +2,6 @@
 import {
   ColumnVisibilityState,
   FlexRender,
-  type Row,
   type RowSelectionState,
   useTable,
 } from "@tanstack/react-table"
@@ -14,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { toast as notify } from "sonner"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
+import { dataTableRowCN } from "~/components/blocks/data-table/row"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
@@ -284,22 +284,6 @@ export function DataTable<TData extends RotationExtended>({
     })
   }
 
-  function isFirstFieldRowForACrop(
-    flatRows: Row<typeof rotationTableFeatures, MemoizedRotationExtended>[],
-    i: number,
-  ) {
-    if (flatRows[i].original.type !== "field") return false
-    return i === 0 || flatRows[i - 1].original.type === "crop"
-  }
-
-  function isLastFieldRowForACrop(
-    flatRows: Row<typeof rotationTableFeatures, MemoizedRotationExtended>[],
-    i: number,
-  ) {
-    if (flatRows[i].original.type !== "field") return false
-    return i + 1 === flatRows.length || flatRows[i + 1].original.type === "crop"
-  }
-
   const rows = table.getRowModel().rows
   useEffect(() => {
     if (!rows.some((row) => row.id === lastSelectedRowIndex.current)) {
@@ -459,9 +443,10 @@ export function DataTable<TData extends RotationExtended>({
           </TableHeader>
           <TableBody>
             {rows.length > 0 ? (
-              rows.map((row, i, flatRows) => (
+              rows.map((row) => (
                 <TableRow
                   key={row.id}
+                  className={dataTableRowCN(row, row.original.type === "field")}
                   onClick={(event) => {
                     // Ignore clicks on interactive elements inside the row
                     const isInteractive = (target: EventTarget | null): boolean => {
@@ -482,21 +467,6 @@ export function DataTable<TData extends RotationExtended>({
 
                     handleRowSelection(row, table, event)
                   }}
-                  className={cn(
-                    "data-[state=selected]:bg-muted data-[state=indeterminate]:bg-muted/50",
-                    row.getIsSelected()
-                      ? "bg-green-100 hover:bg-green-300/50"
-                      : row.original.type === "crop" && row.getIsSomeSelected()
-                        ? "bg-green-50 hover:bg-green-300/25"
-                        : row.original.type === "field" && "bg-muted/50 hover:bg-muted",
-                    row.original.type === "field" &&
-                      (row.getParentRow()?.subRows.length === 1
-                        ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
-                        : isFirstFieldRowForACrop(flatRows, i)
-                          ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
-                          : isLastFieldRowForACrop(flatRows, i) &&
-                            "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
-                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
