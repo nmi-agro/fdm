@@ -125,7 +125,6 @@ export function buildApp(
 | Domain | Operations |
 |--------|-----------|
 | **Farms** | Create, read, update, delete |
-| **Farm groups** | Organize the farms of an organization into groups |
 | **Fields** | Create with GeoJSON geometry, read, update, delete |
 | **Cultivations** | Manage crop plans per field |
 | **Harvests** | Track yield per cultivation |
@@ -136,6 +135,7 @@ export function buildApp(
 | **Organic certifications** | Register and verify certification periods |
 | **Derogations** | Manage regulatory derogations |
 | **Grazing intentions** | Set and query yearly grazing plans |
+| **Farm groups** | Organize the farms of an organization into groups |
 | **Calculations** | Nitrogen balance, organic-matter balance, fertilization norms, NPK dose |
 
 ## Authentication
@@ -165,10 +165,6 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
     tags: [
       { name: "Farms", description: "Manage farms" },
-      {
-        name: "Farm Groups",
-        description: "Manage groups of farms within an organization",
-      },
       { name: "Fields", description: "Manage fields within farms" },
       {
         name: "Cultivations",
@@ -199,6 +195,10 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
       {
         name: "Soil Analyses",
         description: "Manage soil analyses on fields",
+      },
+      {
+        name: "Farm Groups",
+        description: "Manage groups of farms within an organization",
       },
       { name: "Calculations", description: "Run agronomic calculations" },
     ],
