@@ -205,8 +205,8 @@ export default function App() {
   const lastAnalyticsCapturedOrg = useRef<typeof organization>(null)
   useEffect(() => {
     if (clientConfig.analytics.posthog && organization) {
-      posthog.group("organization", organization, {
-        name: organization,
+      posthog.group("organization", organization.slug, {
+        name: organization.name,
       })
     }
     lastAnalyticsCapturedOrg.current = organization
