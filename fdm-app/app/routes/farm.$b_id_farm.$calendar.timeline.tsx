@@ -232,6 +232,7 @@ const ActionSchema = z.discriminatedUnion("intent", [
     intent: z.literal("update_soil_analysis_date"),
     a_id: z.string(),
     b_sampling_date: dateField,
+    a_date: dateField,
   }),
   z.object({
     intent: z.literal("remove_cultivation"),
@@ -599,10 +600,8 @@ export async function action({ request, params }: Route.LoaderArgs) {
 
     if (formValues.intent === "update_soil_analysis_date") {
       await updateSoilAnalysis(fdm, session.principal_id, formValues.a_id, {
-        // b_sampling_date is preferred since it is considered a soil parameter while
-        // a_date is not. See getSoilParametersDescription in fdm-core.
         b_sampling_date: formValues.b_sampling_date,
-        a_date: formValues.b_sampling_date,
+        a_date: formValues.a_date,
       })
 
       return dataWithSuccess(

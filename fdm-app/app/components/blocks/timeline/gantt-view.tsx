@@ -256,6 +256,7 @@ export type TimelineSoilAnalysis = {
   b_sampling_date: Date | null
   a_source: string | null
   a_source_name: string | null
+  a_date: Date | null
 }
 
 export type TimelineCultivation = {
@@ -610,7 +611,7 @@ function buildFieldFeatures(
 
       if (analysis.type === "soil_sampling_bcs") {
         const name = "BodemConditieScore analyse"
-        const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/bcs`
+        const href = `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/bcs/${analysis.a_id}`
         // We assume computed BCSs are already set in the analysis parameters in the loader.
         const detail = `${field.b_name} · ${formatNl(analysis.b_sampling_date)}`
         attachOrPush(
@@ -1418,14 +1419,21 @@ export const TimelineGanttView = forwardRef<
     const original = fields
       .flatMap((field) => field.soilAnalyses)
       .find((analysis) => analysis.a_id === a_id)
-    const build = (date: Date) => {
+    const build = (b_sampling_date: Date | null, a_date: Date | null) => {
       const formData = new FormData()
       formData.set("intent", "update_soil_analysis_date")
       formData.set("a_id", a_id)
-      formData.set("b_sampling_date", date.toISOString())
+      formData.set("b_sampling_date", b_sampling_date ? b_sampling_date.toISOString() : "null")
+      formData.set("a_date", a_date ? a_date.toISOString() : "null")
       return formData
     }
-    submitMove(build(b_sampling_date), build(original?.b_sampling_date ?? b_sampling_date))
+    submitMove(
+      build(b_sampling_date, b_sampling_date),
+      build(
+        original?.b_sampling_date !== undefined ? original.b_sampling_date : b_sampling_date,
+        original?.a_date !== undefined ? original.a_date : b_sampling_date,
+      ),
+    )
   }
 
   const submitHarvestDate = (b_id_harvesting: string, b_lu_harvest_date: Date) => {
