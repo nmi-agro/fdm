@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, isNull } from "drizzle-orm"
-import type { FarmGroup } from "./farm-group.types"
+import type { FarmGroup, FarmGroupMembership } from "./farm-group.types"
 import type { FdmType } from "./fdm.types"
 import {
   checkPermission,
@@ -50,6 +50,15 @@ function normalizeGroupName(b_name_group: string): string {
 }
 
 /**
+ * Throws when the date is not a valid date.
+ */
+function assertValidDate(date: Date, description: string): void {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    throw new Error(`${description} is not a valid date`)
+  }
+}
+
+/**
  * Throws when another group in the organization already uses the name.
  */
 async function assertGroupNameAvailable(
@@ -74,62 +83,110 @@ async function assertGroupNameAvailable(
   }
 }
 
+type Period = { b_group_joined: Date; b_group_leaved: Date | null }
+
 /**
- * Derives the current members of the given groups from the joining and leaving events.
+ * Derives the periods in which farms are part of the given groups from the joining and leaving events.
  *
- * A farm is a member of a group when its latest joining is later than its latest leaving
- * (or when it never left).
+ * Every joining starts a period. The period ends at the first leaving that is later than the
+ * joining and not later than the next joining of the same farm; without such a leaving the
+ * period has no end date. The dates are the dates that users have chosen: from when and until
+ * when the farm is part of the group.
  *
- * @returns A map of group id to the set of ids of the farms that are currently a member.
+ * @returns A map of group id to a map of farm id to the periods of that farm, ordered by start date.
  */
-async function getActiveMembers(
+async function getPeriods(
   fdm: FdmType,
   b_id_groups: string[],
-): Promise<Map<string, Set<string>>> {
-  const members = new Map<string, Set<string>>()
+): Promise<Map<string, Map<string, Period[]>>> {
+  const result = new Map<string, Map<string, Period[]>>()
   for (const id of b_id_groups) {
-    members.set(id, new Set())
+    result.set(id, new Map())
   }
   if (b_id_groups.length === 0) {
-    return members
+    return result
   }
 
   const joinings = await fdm
     .select({
       b_id_group: schema.farmGroupJoining.b_id_group,
       b_id_farm: schema.farmGroupJoining.b_id_farm,
-      b_start: schema.farmGroupJoining.b_start,
+      b_group_joined: schema.farmGroupJoining.b_group_joined,
     })
     .from(schema.farmGroupJoining)
     .where(inArray(schema.farmGroupJoining.b_id_group, b_id_groups))
+    .orderBy(asc(schema.farmGroupJoining.b_group_joined))
   const leavings = await fdm
     .select({
       b_id_group: schema.farmGroupLeaving.b_id_group,
       b_id_farm: schema.farmGroupLeaving.b_id_farm,
-      b_end: schema.farmGroupLeaving.b_end,
+      b_group_leaved: schema.farmGroupLeaving.b_group_leaved,
     })
     .from(schema.farmGroupLeaving)
     .where(inArray(schema.farmGroupLeaving.b_id_group, b_id_groups))
+    .orderBy(asc(schema.farmGroupLeaving.b_group_leaved))
 
-  const latestStart = new Map<string, number>()
+  const joinedByKey = new Map<string, Date[]>()
   for (const j of joinings) {
     const key = `${j.b_id_group}|${j.b_id_farm}`
-    latestStart.set(key, Math.max(latestStart.get(key) ?? 0, j.b_start.getTime()))
+    joinedByKey.set(key, [...(joinedByKey.get(key) ?? []), j.b_group_joined])
   }
-  const latestEnd = new Map<string, number>()
+  const leavedByKey = new Map<string, Date[]>()
   for (const l of leavings) {
     const key = `${l.b_id_group}|${l.b_id_farm}`
-    latestEnd.set(key, Math.max(latestEnd.get(key) ?? 0, l.b_end.getTime()))
+    leavedByKey.set(key, [...(leavedByKey.get(key) ?? []), l.b_group_leaved])
   }
 
-  for (const [key, start] of latestStart) {
-    const end = latestEnd.get(key)
-    if (end === undefined || start > end) {
-      const [b_id_group, b_id_farm] = key.split("|")
-      members.get(b_id_group)?.add(b_id_farm)
+  for (const [key, joined] of joinedByKey) {
+    const [b_id_group, b_id_farm] = key.split("|")
+    const leaved = leavedByKey.get(key) ?? []
+    const periods: Period[] = joined.map((start, index) => {
+      const next = joined[index + 1]
+      const end = leaved.find(
+        (date) => date > start && (next === undefined || date.getTime() <= next.getTime()),
+      )
+      return { b_group_joined: start, b_group_leaved: end ?? null }
+    })
+    result.get(b_id_group)?.set(b_id_farm, periods)
+  }
+  return result
+}
+
+/**
+ * Checks whether a farm is part of the group at a moment in time.
+ */
+function isMemberAt(periods: Period[] | undefined, at: Date): boolean {
+  return (periods ?? []).some(
+    (period) =>
+      period.b_group_joined.getTime() <= at.getTime() &&
+      (period.b_group_leaved === null || period.b_group_leaved.getTime() > at.getTime()),
+  )
+}
+
+/**
+ * Lists the periods of all farms in a group and the farms that are part of it now.
+ */
+function summarizeMembers(farms: Map<string, Period[]> | undefined): {
+  b_id_farms: string[]
+  memberships: FarmGroupMembership[]
+} {
+  const now = new Date()
+  const b_id_farms: string[] = []
+  const memberships: FarmGroupMembership[] = []
+  for (const [b_id_farm, periods] of farms ?? []) {
+    if (isMemberAt(periods, now)) {
+      b_id_farms.push(b_id_farm)
+    }
+    for (const period of periods) {
+      memberships.push({ b_id_farm, ...period })
     }
   }
-  return members
+  memberships.sort(
+    (a, b) =>
+      a.b_group_joined.getTime() - b.b_group_joined.getTime() ||
+      a.b_id_farm.localeCompare(b.b_id_farm),
+  )
+  return { b_id_farms: b_id_farms.sort(), memberships }
 }
 
 /**
@@ -180,12 +237,12 @@ export async function createFarmGroup(
 }
 
 /**
- * Retrieves a farm group, including the farms that currently belong to it.
+ * Retrieves a farm group, including the farms that are part of it now and all membership periods.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal requesting the group.
  * @param b_id_group - The identifier of the group.
- * @returns The group with its current member farms.
+ * @returns The group with `b_id_farms` (the farms that are part of the group at this moment) and `memberships` (every period in which a farm is or was part of the group).
  *
  * @throws {Error} If the principal lacks read permission or the group does not exist.
  *
@@ -207,20 +264,20 @@ export async function getFarmGroup(
     if (groups.length === 0) {
       throw new Error("Farm group not found")
     }
-    const members = await getActiveMembers(fdm, [b_id_group])
-    return { ...groups[0], b_id_farms: [...(members.get(b_id_group) ?? [])].sort() }
+    const periods = await getPeriods(fdm, [b_id_group])
+    return { ...groups[0], ...summarizeMembers(periods.get(b_id_group)) }
   } catch (err) {
     throw handleError(err, "Exception for getFarmGroup", { b_id_group })
   }
 }
 
 /**
- * Lists the farm groups of an organization with their current member farms, ordered by name.
+ * Lists the farm groups of an organization with their members, ordered by name.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal requesting the groups. Must be a member of the organization.
  * @param b_id_organization - The identifier of the organization.
- * @returns The groups of the organization; an empty array when there are none.
+ * @returns The groups of the organization; an empty array when there are none. See {@link getFarmGroup} for `b_id_farms` and `memberships`.
  *
  * @throws {Error} If the principal is not a member of the organization.
  *
@@ -239,13 +296,13 @@ export async function listFarmGroups(
       .from(schema.farmGroups)
       .where(eq(schema.farmGroups.b_id_organization, b_id_organization))
       .orderBy(asc(schema.farmGroups.b_name_group))
-    const members = await getActiveMembers(
+    const periods = await getPeriods(
       fdm,
       groups.map((g: schema.farmGroupsTypeSelect) => g.b_id_group),
     )
     return groups.map((g: schema.farmGroupsTypeSelect) => ({
       ...g,
-      b_id_farms: [...(members.get(g.b_id_group) ?? [])].sort(),
+      ...summarizeMembers(periods.get(g.b_id_group)),
     }))
   } catch (err) {
     throw handleError(err, "Exception for listFarmGroups", { b_id_organization })
@@ -338,7 +395,12 @@ export async function removeFarmGroup(
 }
 
 /**
- * Adds a farm to a group by recording a joining event. Does nothing if the farm already is a member.
+ * Adds a farm to a group from a date, by recording a joining event.
+ *
+ * The date is the date from which the farm is part of the group, as chosen by the user. It is
+ * not the moment this function is called, so it can lie in the past or in the future. Without a
+ * date the farm is part of the group from now. Does nothing if the farm already is part of the
+ * group on that date.
  *
  * The farm must belong to the organization of the group, meaning the organization holds a role on it.
  *
@@ -346,8 +408,9 @@ export async function removeFarmGroup(
  * @param principal_id - The identifier of the principal adding the farm. Needs write permission on the group and read permission on the farm.
  * @param b_id_group - The identifier of the group.
  * @param b_id_farm - The identifier of the farm.
+ * @param b_group_joined - Optional. The date from which the farm is part of the group. Defaults to now.
  *
- * @throws {Error} If the principal lacks permission or the farm does not belong to the organization of the group.
+ * @throws {Error} If the principal lacks permission, the date is invalid, the farm does not belong to the organization of the group, or the farm already is part of the group from a later date.
  *
  * @alpha
  */
@@ -356,11 +419,15 @@ export async function addFarmToGroup(
   principal_id: string,
   b_id_group: schema.farmGroupsTypeSelect["b_id_group"],
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  b_group_joined?: schema.farmGroupJoiningTypeInsert["b_group_joined"],
 ): Promise<void> {
   try {
     await fdm.transaction(async (tx: FdmType) => {
       await checkPermission(tx, "farm_group", "write", b_id_group, principal_id, "addFarmToGroup")
       await checkPermission(tx, "farm", "read", b_id_farm, principal_id, "addFarmToGroup")
+      if (b_group_joined !== undefined) {
+        assertValidDate(b_group_joined, "The date from which the farm is part of the group")
+      }
 
       const groups = await tx
         .select({ b_id_organization: schema.farmGroups.b_id_organization })
@@ -386,45 +453,50 @@ export async function addFarmToGroup(
         throw new Error("Farm does not belong to the organization of the group")
       }
 
-      const members = await getActiveMembers(tx, [b_id_group])
-      if (members.get(b_id_group)?.has(b_id_farm)) {
+      const periods = (await getPeriods(tx, [b_id_group])).get(b_id_group)?.get(b_id_farm) ?? []
+
+      // Without a date the farm is part of the group from now, but never before it last left
+      const latestLeaved = Math.max(
+        0,
+        ...periods.map((period) => period.b_group_leaved?.getTime() ?? 0),
+      )
+      const joined = b_group_joined ?? new Date(Math.max(Date.now(), latestLeaved))
+
+      if (isMemberAt(periods, joined)) {
         return
       }
+      if (periods.some((period) => period.b_group_joined.getTime() > joined.getTime())) {
+        throw new Error("Farm already is part of the group from a later date")
+      }
 
-      // The start must be later than a previous leaving, otherwise the membership would not be active again
-      const previousLeaving = await tx
-        .select({ b_end: schema.farmGroupLeaving.b_end })
-        .from(schema.farmGroupLeaving)
-        .where(
-          and(
-            eq(schema.farmGroupLeaving.b_id_group, b_id_group),
-            eq(schema.farmGroupLeaving.b_id_farm, b_id_farm),
-          ),
-        )
-      const latestEnd = Math.max(
-        0,
-        ...previousLeaving.map((l: { b_end: Date }) => l.b_end.getTime()),
-      )
-      const b_start = new Date(Math.max(Date.now(), latestEnd + 1))
-
-      await tx.insert(schema.farmGroupJoining).values({ b_id_group, b_id_farm, b_start })
+      await tx
+        .insert(schema.farmGroupJoining)
+        .values({ b_id_group, b_id_farm, b_group_joined: joined })
     })
   } catch (err) {
-    throw handleError(err, "Exception for addFarmToGroup", { b_id_group, b_id_farm })
+    throw handleError(err, "Exception for addFarmToGroup", {
+      b_id_group,
+      b_id_farm,
+      b_group_joined: b_group_joined?.toString(),
+    })
   }
 }
 
 /**
- * Removes a farm from a group by recording a leaving event. Does nothing if the farm is not a member.
+ * Ends the membership of a farm in a group on a date, by recording a leaving event.
  *
- * No rows are deleted, so the history of the membership stays available.
+ * The date is the date until which the farm is part of the group, as chosen by the user. It is
+ * not the moment this function is called, so it can lie in the past or in the future. Without a
+ * date the farm leaves the group now. No rows are deleted, so the history stays available.
+ * Does nothing if the farm is not part of the group on that date.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal removing the farm. Needs write permission on the group.
  * @param b_id_group - The identifier of the group.
  * @param b_id_farm - The identifier of the farm.
+ * @param b_group_leaved - Optional. The date until which the farm is part of the group. Defaults to now.
  *
- * @throws {Error} If the principal lacks write permission on the group.
+ * @throws {Error} If the principal lacks write permission, the date is invalid or not after the date from which the farm is part of the group, or the membership already has an end date.
  *
  * @alpha
  */
@@ -433,6 +505,7 @@ export async function removeFarmFromGroup(
   principal_id: string,
   b_id_group: schema.farmGroupsTypeSelect["b_id_group"],
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  b_group_leaved?: schema.farmGroupLeavingTypeInsert["b_group_leaved"],
 ): Promise<void> {
   try {
     await fdm.transaction(async (tx: FdmType) => {
@@ -444,31 +517,45 @@ export async function removeFarmFromGroup(
         principal_id,
         "removeFarmFromGroup",
       )
-
-      const members = await getActiveMembers(tx, [b_id_group])
-      if (!members.get(b_id_group)?.has(b_id_farm)) {
-        return
+      if (b_group_leaved !== undefined) {
+        assertValidDate(b_group_leaved, "The date until which the farm is part of the group")
       }
 
-      // The end must not be before the latest joining, otherwise the membership would stay active
-      const previousJoining = await tx
-        .select({ b_start: schema.farmGroupJoining.b_start })
-        .from(schema.farmGroupJoining)
-        .where(
-          and(
-            eq(schema.farmGroupJoining.b_id_group, b_id_group),
-            eq(schema.farmGroupJoining.b_id_farm, b_id_farm),
-          ),
-        )
-      const latestStart = Math.max(
-        0,
-        ...previousJoining.map((j: { b_start: Date }) => j.b_start.getTime()),
-      )
-      const b_end = new Date(Math.max(Date.now(), latestStart))
+      const periods = (await getPeriods(tx, [b_id_group])).get(b_id_group)?.get(b_id_farm) ?? []
 
-      await tx.insert(schema.farmGroupLeaving).values({ b_id_group, b_id_farm, b_end })
+      // Without a date the farm leaves now, but never before it last joined
+      const latestJoined = Math.max(0, ...periods.map((p) => p.b_group_joined.getTime()))
+      let leaved = b_group_leaved ?? new Date(Math.max(Date.now(), latestJoined))
+      const period = periods.find(
+        (p) =>
+          p.b_group_joined.getTime() <= leaved.getTime() &&
+          (p.b_group_leaved === null || p.b_group_leaved.getTime() > leaved.getTime()),
+      )
+      if (!period) {
+        return
+      }
+      if (period.b_group_joined.getTime() === leaved.getTime()) {
+        if (b_group_leaved !== undefined) {
+          throw new Error(
+            "The end date must be after the date from which the farm is part of the group",
+          )
+        }
+        // Without a date, a farm that joined in this very moment leaves a moment later
+        leaved = new Date(leaved.getTime() + 1)
+      }
+      if (period.b_group_leaved !== null) {
+        throw new Error("The membership already has an end date")
+      }
+
+      await tx
+        .insert(schema.farmGroupLeaving)
+        .values({ b_id_group, b_id_farm, b_group_leaved: leaved })
     })
   } catch (err) {
-    throw handleError(err, "Exception for removeFarmFromGroup", { b_id_group, b_id_farm })
+    throw handleError(err, "Exception for removeFarmFromGroup", {
+      b_id_group,
+      b_id_farm,
+      b_group_leaved: b_group_leaved?.toString(),
+    })
   }
 }

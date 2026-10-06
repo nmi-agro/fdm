@@ -15,6 +15,8 @@ import { ApiError } from "../error"
 import { rateLimitMiddleware } from "../rate-limit"
 import {
   commonErrorResponses,
+  DateStringSchema,
+  serializeDate,
   PaginationQuerySchema,
   paginatedResponse,
   paginatedSchema,
@@ -43,6 +45,16 @@ export interface FarmGroupServices {
   removeFarmFromGroup: typeof removeFarmFromGroup
 }
 
+const FarmGroupMembershipSchema = z
+  .object({
+    b_id_farm: z.string(),
+    b_group_joined: DateStringSchema.describe("Date from which the farm is part of the group."),
+    b_group_leaved: DateStringSchema.nullable().describe(
+      "Date until which the farm is part of the group, or null when there is no end date.",
+    ),
+  })
+  .openapi("FarmGroupMembership")
+
 const FarmGroupSchema = z
   .object({
     b_id_group: z.string(),
@@ -50,7 +62,10 @@ const FarmGroupSchema = z
     b_name_group: z.string(),
     b_id_farms: z
       .array(z.string())
-      .describe("Identifiers of the farms that are currently a member."),
+      .describe("Identifiers of the farms that are part of the group today."),
+    memberships: z
+      .array(FarmGroupMembershipSchema)
+      .describe("Every period in which a farm is or was part of the group."),
   })
   .openapi("FarmGroup")
 
@@ -75,8 +90,20 @@ const UpdateFarmGroupBodySchema = z
 const AddFarmToGroupBodySchema = z
   .object({
     b_id_farm: z.string().min(1).describe("Identifier of the farm to add to the group."),
+    b_group_joined: DateStringSchema.optional().describe(
+      "Date from which the farm is part of the group (YYYY-MM-DD). This is the date the user chooses, not the date this request is made. Defaults to today.",
+    ),
+    b_group_leaved: DateStringSchema.optional().describe(
+      "Date until which the farm is part of the group (YYYY-MM-DD). Omit when the farm is part of the group without an end date.",
+    ),
   })
   .openapi("AddFarmToFarmGroup")
+
+const RemoveFarmFromGroupQuerySchema = z.object({
+  b_group_leaved: DateStringSchema.optional().describe(
+    "Date until which the farm is part of the group (YYYY-MM-DD). This is the date the user chooses, not the date this request is made. Defaults to today.",
+  ),
+})
 
 const listFarmGroupsRoute = createRoute({
   method: "get",
@@ -184,7 +211,7 @@ const addFarmToGroupRoute = createRoute({
   tags: ["Farm Groups"],
   summary: "Add a farm to a group",
   description:
-    "Records a farm joining the group. The farm must belong to the organization of the group. Adding a farm that already is a member has no effect.",
+    "Records that a farm is part of the group from a date, and optionally until a date. The dates are chosen by the caller and can lie in the past or the future. The farm must belong to the organization of the group. Adding a farm that already is part of the group on that date has no effect.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({ b_id_group: z.string() }),
@@ -208,9 +235,12 @@ const removeFarmFromGroupRoute = createRoute({
   tags: ["Farm Groups"],
   summary: "Remove a farm from a group",
   description:
-    "Records a farm leaving the group. The membership history is kept. Removing a farm that is not a member has no effect.",
+    "Records the date until which a farm is part of the group (default: today). The membership history is kept. Removing a farm that is not part of the group on that date has no effect.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: z.object({ b_id_group: z.string(), b_id_farm: z.string() }) },
+  request: {
+    params: z.object({ b_id_group: z.string(), b_id_farm: z.string() }),
+    query: RemoveFarmFromGroupQuerySchema,
+  },
   responses: {
     204: { description: "Farm removed from the group." },
     ...commonErrorResponses,
@@ -222,12 +252,18 @@ function serialiseFarmGroup(group: {
   b_id_organization: string
   b_name_group: string
   b_id_farms: string[]
+  memberships: { b_id_farm: string; b_group_joined: Date; b_group_leaved: Date | null }[]
 }) {
   return {
     b_id_group: group.b_id_group,
     b_id_organization: group.b_id_organization,
     b_name_group: group.b_name_group,
     b_id_farms: [...group.b_id_farms],
+    memberships: group.memberships.map((membership) => ({
+      b_id_farm: membership.b_id_farm,
+      b_group_joined: serializeDate(membership.b_group_joined) as string,
+      b_group_leaved: serializeDate(membership.b_group_leaved),
+    })),
   }
 }
 
@@ -249,6 +285,12 @@ function translateFarmGroupError(err: unknown): never {
       "unprocessable-entity",
       "The farm does not belong to the organization of the group.",
     )
+  }
+  if (cause.includes("not a valid date") || cause.includes("must be after")) {
+    throw new ApiError(400, "validation-failed", cause)
+  }
+  if (cause.includes("already has an end date") || cause.includes("from a later date")) {
+    throw new ApiError(409, "conflict", cause)
   }
   if (cause.includes("Farm group not found")) {
     throw new ApiError(404, "not-found", "Farm group not found.")
@@ -372,8 +414,26 @@ export function registerFarmGroupRoutes(
     const { b_id_group } = c.req.valid("param") as { b_id_group: string }
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof AddFarmToGroupBodySchema>
+    if (body.b_group_joined && body.b_group_leaved && body.b_group_leaved <= body.b_group_joined) {
+      throw new ApiError(400, "validation-failed", "b_group_leaved must be after b_group_joined.")
+    }
     try {
-      await services.addFarmToGroup(fdm, principal.effectivePrincipalId, b_id_group, body.b_id_farm)
+      await services.addFarmToGroup(
+        fdm,
+        principal.effectivePrincipalId,
+        b_id_group,
+        body.b_id_farm,
+        body.b_group_joined ? new Date(body.b_group_joined) : undefined,
+      )
+      if (body.b_group_leaved) {
+        await services.removeFarmFromGroup(
+          fdm,
+          principal.effectivePrincipalId,
+          b_id_group,
+          body.b_id_farm,
+          new Date(body.b_group_leaved),
+        )
+      }
     } catch (err) {
       translateFarmGroupError(err)
     }
@@ -391,7 +451,19 @@ export function registerFarmGroupRoutes(
       b_id_group: string
       b_id_farm: string
     }
-    await services.removeFarmFromGroup(fdm, principal.effectivePrincipalId, b_id_group, b_id_farm)
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const query = c.req.valid("query") as z.infer<typeof RemoveFarmFromGroupQuerySchema>
+    try {
+      await services.removeFarmFromGroup(
+        fdm,
+        principal.effectivePrincipalId,
+        b_id_group,
+        b_id_farm,
+        query.b_group_leaved ? new Date(query.b_group_leaved) : undefined,
+      )
+    } catch (err) {
+      translateFarmGroupError(err)
+    }
     return c.newResponse(null, 204)
   }
 

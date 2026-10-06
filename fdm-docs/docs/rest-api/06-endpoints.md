@@ -71,17 +71,17 @@ X-API-Key: fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 ## Farm groups
 
-Farm groups are named, organization-scoped groupings of farms. The API key owner must be a member of the organization. Group membership is recorded as events: adding a farm records a joining and removing a farm records a leaving; no membership rows are deleted.
+Farm groups are named, organization-scoped groupings of farms. The API key owner must be a member of the organization. Group membership is recorded as events: adding a farm records the date from which it is part of the group (`b_group_joined`, default today) and optionally the date until which (`b_group_leaved`). Removing a farm records the date until which it is part of the group (query parameter `b_group_leaved`, default today). These are the dates of the period itself, not the moment of the request, so they can lie in the past or the future. Dates use the format `YYYY-MM-DD`. No membership rows are deleted.
 
-| Method   | Path                                               | Description                                       | `fdm-core` mapping    |
-| -------- | -------------------------------------------------- | ------------------------------------------------- | --------------------- |
-| `GET`    | `/api/organizations/{organization_id}/farm-groups` | List the farm groups of an organization           | `listFarmGroups`      |
-| `POST`   | `/api/organizations/{organization_id}/farm-groups` | Create a farm group                               | `createFarmGroup`     |
-| `GET`    | `/api/farm-groups/{b_id_group}`                    | Get a group including its current member farm ids | `getFarmGroup`        |
-| `PATCH`  | `/api/farm-groups/{b_id_group}`                    | Rename a group                                    | `renameFarmGroup`     |
-| `DELETE` | `/api/farm-groups/{b_id_group}`                    | Delete a group and its membership history         | `removeFarmGroup`     |
-| `POST`   | `/api/farm-groups/{b_id_group}/farms`              | Add a farm to a group (body: `b_id_farm`)         | `addFarmToGroup`      |
-| `DELETE` | `/api/farm-groups/{b_id_group}/farms/{b_id_farm}`  | Remove a farm from a group                        | `removeFarmFromGroup` |
+| Method   | Path                                               | Description                                                                            | `fdm-core` mapping    |
+| -------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- | --------------------- |
+| `GET`    | `/api/organizations/{organization_id}/farm-groups` | List the farm groups of an organization                                                | `listFarmGroups`      |
+| `POST`   | `/api/organizations/{organization_id}/farm-groups` | Create a farm group                                                                    | `createFarmGroup`     |
+| `GET`    | `/api/farm-groups/{b_id_group}`                    | Get a group including its current member farm ids                                      | `getFarmGroup`        |
+| `PATCH`  | `/api/farm-groups/{b_id_group}`                    | Rename a group                                                                         | `renameFarmGroup`     |
+| `DELETE` | `/api/farm-groups/{b_id_group}`                    | Delete a group and its membership history                                              | `removeFarmGroup`     |
+| `POST`   | `/api/farm-groups/{b_id_group}/farms`              | Add a farm to a group (body: `b_id_farm`, optional `b_group_joined`, `b_group_leaved`) | `addFarmToGroup`      |
+| `DELETE` | `/api/farm-groups/{b_id_group}/farms/{b_id_farm}`  | End the membership of a farm (optional `b_group_leaved`)                               | `removeFarmFromGroup` |
 
 `GET /api/farms` also accepts a `b_id_group` query parameter to list only the farms of a group.
 

@@ -143,8 +143,9 @@ export const farmGroups = fdmSchema.table(
 export type farmGroupsTypeSelect = typeof farmGroups.$inferSelect
 export type farmGroupsTypeInsert = typeof farmGroups.$inferInsert
 
-// A farm joining a group. The start is part of the key so that a farm can
-// rejoin a group after it has left.
+// A farm joining a group, with the date from which the farm is part of the group.
+// This date is chosen by the user and is not the moment the record was made. It is
+// part of the key so that a farm can rejoin a group after it has left.
 export const farmGroupJoining = fdmSchema.table(
   "farm_group_joining",
   {
@@ -154,18 +155,19 @@ export const farmGroupJoining = fdmSchema.table(
     b_id_farm: text()
       .notNull()
       .references(() => farms.b_id_farm),
-    b_start: timestamp({ withTimezone: true }).notNull(),
+    b_group_joined: timestamp({ withTimezone: true }).notNull(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.b_id_group, table.b_id_farm, table.b_start] })],
+  (table) => [primaryKey({ columns: [table.b_id_group, table.b_id_farm, table.b_group_joined] })],
 )
 
 export type farmGroupJoiningTypeSelect = typeof farmGroupJoining.$inferSelect
 export type farmGroupJoiningTypeInsert = typeof farmGroupJoining.$inferInsert
 
-// A farm leaving a group. Ending a membership records this event; the
-// joining row is never deleted.
+// A farm leaving a group, with the date until which the farm is part of the group.
+// This date is chosen by the user and is not the moment the record was made. Ending a
+// membership records this event; the joining row is never deleted.
 export const farmGroupLeaving = fdmSchema.table(
   "farm_group_leaving",
   {
@@ -175,11 +177,11 @@ export const farmGroupLeaving = fdmSchema.table(
     b_id_farm: text()
       .notNull()
       .references(() => farms.b_id_farm),
-    b_end: timestamp({ withTimezone: true }).notNull(),
+    b_group_leaved: timestamp({ withTimezone: true }).notNull(),
     created: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated: timestamp({ withTimezone: true }),
   },
-  (table) => [primaryKey({ columns: [table.b_id_group, table.b_id_farm, table.b_end] })],
+  (table) => [primaryKey({ columns: [table.b_id_group, table.b_id_farm, table.b_group_leaved] })],
 )
 
 export type farmGroupLeavingTypeSelect = typeof farmGroupLeaving.$inferSelect

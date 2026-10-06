@@ -1,19 +1,19 @@
 CREATE TABLE "fdm"."farm_group_joining" (
 	"b_id_group" text NOT NULL,
 	"b_id_farm" text NOT NULL,
-	"b_start" timestamp with time zone NOT NULL,
+	"b_group_joined" timestamp with time zone NOT NULL,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone,
-	CONSTRAINT "farm_group_joining_b_id_group_b_id_farm_b_start_pk" PRIMARY KEY("b_id_group","b_id_farm","b_start")
+	CONSTRAINT "farm_group_joining_b_id_group_b_id_farm_b_group_joined_pk" PRIMARY KEY("b_id_group","b_id_farm","b_group_joined")
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."farm_group_leaving" (
 	"b_id_group" text NOT NULL,
 	"b_id_farm" text NOT NULL,
-	"b_end" timestamp with time zone NOT NULL,
+	"b_group_leaved" timestamp with time zone NOT NULL,
 	"created" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated" timestamp with time zone,
-	CONSTRAINT "farm_group_leaving_b_id_group_b_id_farm_b_end_pk" PRIMARY KEY("b_id_group","b_id_farm","b_end")
+	CONSTRAINT "farm_group_leaving_b_id_group_b_id_farm_b_group_leaved_pk" PRIMARY KEY("b_id_group","b_id_farm","b_group_leaved")
 );
 --> statement-breakpoint
 CREATE TABLE "fdm"."farm_groups" (

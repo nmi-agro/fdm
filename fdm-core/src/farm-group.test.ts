@@ -241,6 +241,116 @@ describe("Farm group functions", () => {
     })
   })
 
+  describe("membership dates", () => {
+    const day = 24 * 60 * 60 * 1000
+
+    it("should use the dates chosen by the user, not the moment of recording", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Dated group")
+      const from = new Date("2020-03-01T00:00:00Z")
+      const until = new Date("2021-03-01T00:00:00Z")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, from)
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, until)
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      // The period lies in the past, so the farm is not part of the group now
+      expect(group.b_id_farms).toEqual([])
+      expect(group.memberships).toEqual([
+        { b_id_farm: b_id_farm_a, b_group_joined: from, b_group_leaved: until },
+      ])
+    })
+
+    it("should treat a start date in the future as not yet part of the group", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Future group")
+      const from = new Date(Date.now() + 30 * day)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, from)
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.b_id_farms).toEqual([])
+      expect(group.memberships[0].b_group_joined).toEqual(from)
+      expect(group.memberships[0].b_group_leaved).toBeNull()
+    })
+
+    it("should keep the farm in the group until an end date in the future", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Ending group")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, new Date(Date.now() - 30 * day))
+      const until = new Date(Date.now() + 30 * day)
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, until)
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.b_id_farms).toEqual([b_id_farm_a])
+      expect(group.memberships[0].b_group_leaved).toEqual(until)
+    })
+
+    it("should support several periods of the same farm", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Periods group")
+      const t = (iso: string) => new Date(iso)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_b, t("2019-01-01T00:00:00Z"))
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_b, t("2019-06-01T00:00:00Z"))
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_b, t("2020-01-01T00:00:00Z"))
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.memberships).toEqual([
+        {
+          b_id_farm: b_id_farm_b,
+          b_group_joined: t("2019-01-01T00:00:00Z"),
+          b_group_leaved: t("2019-06-01T00:00:00Z"),
+        },
+        { b_id_farm: b_id_farm_b, b_group_joined: t("2020-01-01T00:00:00Z"), b_group_leaved: null },
+      ])
+      expect(group.b_id_farms).toEqual([b_id_farm_b])
+    })
+
+    it("should reject an end date that is not after the start date", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Order group")
+      const from = new Date("2020-03-01T00:00:00Z")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, from)
+      await expectCause(
+        removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, from),
+        "must be after",
+      )
+    })
+
+    it("should reject a second end date and an earlier start date", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Conflict group")
+      await addFarmToGroup(
+        fdm,
+        member_id,
+        b_id_group,
+        b_id_farm_a,
+        new Date("2020-03-01T00:00:00Z"),
+      )
+      await removeFarmFromGroup(
+        fdm,
+        member_id,
+        b_id_group,
+        b_id_farm_a,
+        new Date("2025-01-01T00:00:00Z"),
+      )
+      await expectCause(
+        removeFarmFromGroup(
+          fdm,
+          member_id,
+          b_id_group,
+          b_id_farm_a,
+          new Date("2024-01-01T00:00:00Z"),
+        ),
+        "already has an end date",
+      )
+      await expectCause(
+        addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, new Date("2019-01-01T00:00:00Z")),
+        "later date",
+      )
+    })
+
+    it("should reject invalid dates", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Invalid group")
+      await expectCause(
+        addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, new Date("nope")),
+        "not a valid date",
+      )
+    })
+  })
+
   describe("removal", () => {
     it("should remove a group with its membership events", async () => {
       const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Doomed group")

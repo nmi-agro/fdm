@@ -42,6 +42,14 @@ const group = {
   b_id_organization: "org-1",
   b_name_group: "Project A",
   b_id_farms: ["farm-1", "farm-2"],
+  memberships: [
+    { b_id_farm: "farm-1", b_group_joined: new Date("2020-01-01T00:00:00Z"), b_group_leaved: null },
+    {
+      b_id_farm: "farm-2",
+      b_group_joined: new Date("2021-02-03T00:00:00Z"),
+      b_group_leaved: new Date("2030-12-31T00:00:00Z"),
+    },
+  ],
   created: new Date(),
   updated: null,
 }
@@ -70,6 +78,10 @@ describe("GET /organizations/{organization_id}/farm-groups", () => {
       b_id_organization: "org-1",
       b_name_group: "Project A",
       b_id_farms: ["farm-1", "farm-2"],
+      memberships: [
+        { b_id_farm: "farm-1", b_group_joined: "2020-01-01", b_group_leaved: null },
+        { b_id_farm: "farm-2", b_group_joined: "2021-02-03", b_group_leaved: "2030-12-31" },
+      ],
     })
     expect(listFarmGroups).toHaveBeenCalledWith(mockFdm, "user-1", "org-1")
   })
@@ -230,7 +242,75 @@ describe("farm group membership", () => {
       { method: "POST", headers: jsonHeaders, body: JSON.stringify({ b_id_farm: "farm-1" }) },
     )
     expect(res.status).toBe(201)
-    expect(addFarmToGroup).toHaveBeenCalledWith(mockFdm, "user-1", "group-1", "farm-1")
+    expect(addFarmToGroup).toHaveBeenCalledWith(mockFdm, "user-1", "group-1", "farm-1", undefined)
+  })
+
+  it("POST records the dates chosen by the caller", async () => {
+    const addFarmToGroup = vi.fn().mockResolvedValue(undefined)
+    const removeFarmFromGroup = vi.fn().mockResolvedValue(undefined)
+    const getFarmGroup = vi.fn().mockResolvedValue(group)
+    const res = await makeApp({ addFarmToGroup, removeFarmFromGroup, getFarmGroup }).request(
+      "/farm-groups/group-1/farms",
+      {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          b_id_farm: "farm-1",
+          b_group_joined: "2020-03-01",
+          b_group_leaved: "2021-03-01",
+        }),
+      },
+    )
+    expect(res.status).toBe(201)
+    expect(addFarmToGroup).toHaveBeenCalledWith(
+      mockFdm,
+      "user-1",
+      "group-1",
+      "farm-1",
+      new Date("2020-03-01"),
+    )
+    expect(removeFarmFromGroup).toHaveBeenCalledWith(
+      mockFdm,
+      "user-1",
+      "group-1",
+      "farm-1",
+      new Date("2021-03-01"),
+    )
+  })
+
+  it("POST returns 400 when the end date is not after the start date", async () => {
+    const res = await makeApp().request("/farm-groups/group-1/farms", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        b_id_farm: "farm-1",
+        b_group_joined: "2021-03-01",
+        b_group_leaved: "2021-03-01",
+      }),
+    })
+    expect(res.status).toBe(400)
+    expect((await res.json()).type).toContain("validation-failed")
+  })
+
+  it("POST returns 400 for a date that is not YYYY-MM-DD", async () => {
+    const res = await makeApp().request("/farm-groups/group-1/farms", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_id_farm: "farm-1", b_group_joined: "01-03-2020" }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("POST returns 409 when the farm already is part of the group from a later date", async () => {
+    const addFarmToGroup = vi
+      .fn()
+      .mockRejectedValue(coreError("Farm already is part of the group from a later date"))
+    const res = await makeApp({ addFarmToGroup }).request("/farm-groups/group-1/farms", {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify({ b_id_farm: "farm-1", b_group_joined: "2010-01-01" }),
+    })
+    expect(res.status).toBe(409)
   })
 
   it("POST returns 422 for a farm outside the organization", async () => {
@@ -254,6 +334,33 @@ describe("farm group membership", () => {
     expect(res.status).toBe(400)
   })
 
+  it("DELETE passes the end date chosen by the caller", async () => {
+    const removeFarmFromGroup = vi.fn().mockResolvedValue(undefined)
+    const res = await makeApp({ removeFarmFromGroup }).request(
+      "/farm-groups/group-1/farms/farm-1?b_group_leaved=2021-03-01",
+      { method: "DELETE", headers },
+    )
+    expect(res.status).toBe(204)
+    expect(removeFarmFromGroup).toHaveBeenCalledWith(
+      mockFdm,
+      "user-1",
+      "group-1",
+      "farm-1",
+      new Date("2021-03-01"),
+    )
+  })
+
+  it("DELETE returns 409 when the membership already has an end date", async () => {
+    const removeFarmFromGroup = vi
+      .fn()
+      .mockRejectedValue(coreError("The membership already has an end date"))
+    const res = await makeApp({ removeFarmFromGroup }).request(
+      "/farm-groups/group-1/farms/farm-1",
+      { method: "DELETE", headers },
+    )
+    expect(res.status).toBe(409)
+  })
+
   it("DELETE records a leaving and returns 204", async () => {
     const removeFarmFromGroup = vi.fn().mockResolvedValue(undefined)
     const res = await makeApp({ removeFarmFromGroup }).request(
@@ -261,7 +368,13 @@ describe("farm group membership", () => {
       { method: "DELETE", headers },
     )
     expect(res.status).toBe(204)
-    expect(removeFarmFromGroup).toHaveBeenCalledWith(mockFdm, "user-1", "group-1", "farm-1")
+    expect(removeFarmFromGroup).toHaveBeenCalledWith(
+      mockFdm,
+      "user-1",
+      "group-1",
+      "farm-1",
+      undefined,
+    )
   })
 })
 

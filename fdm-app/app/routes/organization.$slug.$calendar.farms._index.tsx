@@ -23,6 +23,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getFarmGroupErrorMessage, parseDateInput } from "~/lib/farm-groups"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/organization.$slug.$calendar.farms._index"
 
@@ -189,6 +190,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     return {
       data: allFarms,
       organization,
+      today: new Date().toISOString().slice(0, 10),
       groups: groups.map((group) => ({
         b_id_group: group.b_id_group,
         b_name_group: group.b_name_group,
@@ -202,7 +204,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 /**
  * Assigns the selected farms to groups of the organization (intent `assign_groups`).
  *
- * Every `add_group` receives all `b_id_farm` as member, every `remove_group` loses them.
+ * Every `add_group` gets all `b_id_farm` as part of the group from `b_group_joined` (and until
+ * `b_group_leaved` when given). Every `remove_group` ends their membership on `b_group_leaved`
+ * (default: today). These are the dates of the period itself, not the moment of the change.
  */
 export async function action({ request, params }: Route.ActionArgs) {
   try {
@@ -223,6 +227,14 @@ export async function action({ request, params }: Route.ActionArgs) {
     const farmIds = formData.getAll("b_id_farm").map(String)
     const addGroupIds = formData.getAll("add_group").map(String)
     const removeGroupIds = formData.getAll("remove_group").map(String)
+    const b_group_joined = parseDateInput(formData.get("b_group_joined"))
+    const b_group_leaved = parseDateInput(formData.get("b_group_leaved"))
+    if (b_group_joined && b_group_leaved && b_group_leaved <= b_group_joined) {
+      return dataWithError(null, {
+        message:
+          "De datum tot wanneer de bedrijven deel uitmaken van de groep moet na de startdatum liggen.",
+      })
+    }
     if (farmIds.length === 0) {
       return dataWithError(null, { message: "Selecteer eerst een of meer bedrijven." })
     }
@@ -240,15 +252,46 @@ export async function action({ request, params }: Route.ActionArgs) {
       throw data("Ongeldige groep of bedrijf", { status: 400 })
     }
 
+    // Continue after a failure, so that one farm with a conflicting period does not block the rest
+    const failures: string[] = []
+    async function apply(change: () => Promise<void>) {
+      try {
+        await change()
+      } catch (error) {
+        const message = getFarmGroupErrorMessage(error)
+        if (!message) {
+          throw error
+        }
+        failures.push(message)
+      }
+    }
     for (const b_id_group of addGroupIds) {
       for (const b_id_farm of farmIds) {
-        await addFarmToGroup(fdm, session.principal_id, b_id_group, b_id_farm)
+        await apply(async () => {
+          await addFarmToGroup(fdm, session.principal_id, b_id_group, b_id_farm, b_group_joined)
+          if (b_group_leaved) {
+            await removeFarmFromGroup(
+              fdm,
+              session.principal_id,
+              b_id_group,
+              b_id_farm,
+              b_group_leaved,
+            )
+          }
+        })
       }
     }
     for (const b_id_group of removeGroupIds) {
       for (const b_id_farm of farmIds) {
-        await removeFarmFromGroup(fdm, session.principal_id, b_id_group, b_id_farm)
+        await apply(() =>
+          removeFarmFromGroup(fdm, session.principal_id, b_id_group, b_id_farm, b_group_leaved),
+        )
       }
+    }
+    if (failures.length > 0) {
+      return dataWithError(null, {
+        message: `${failures.length} wijziging(en) zijn niet gelukt: ${failures[0]}`,
+      })
     }
     return dataWithSuccess(null, { message: "De groepen zijn bijgewerkt." })
   } catch (error) {
@@ -257,7 +300,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function OrganizationFarmsPage() {
-  const { data, organization, groups } = useLoaderData<typeof loader>()
+  const { data, organization, groups, today } = useLoaderData<typeof loader>()
   return (
     <main>
       <FarmTitle
@@ -281,6 +324,7 @@ export default function OrganizationFarmsPage() {
               data={data}
               groups={groups}
               organizationSlug={organization.slug}
+              today={today}
             />
           </div>
         ) : (

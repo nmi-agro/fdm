@@ -90,7 +90,7 @@ export {
   removeFarmGroup,
   renameFarmGroup,
 } from "./farm-group"
-export type { FarmGroup } from "./farm-group.types"
+export type { FarmGroup, FarmGroupMembership } from "./farm-group.types"
 export {
   addFarm,
   cancelInvitationForFarm,

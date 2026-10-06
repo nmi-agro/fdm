@@ -114,27 +114,27 @@ This schema holds the primary data related to farm operations.
 
 #### **`farmGroupJoining`**
 
-**Purpose**: Records a farm joining a group. The current members of a group are derived from the joining and leaving events and are never stored.
+**Purpose**: Records the date from which a farm is part of a group. The date is chosen by the user and is not the moment the record was made; it can lie in the past or the future. The farms that are part of a group are derived from the joining and leaving events and are never stored.
 
-| Column         | Type                       | Constraints                                                   | Description                                              |
-| -------------- | -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
-| **b_id_group** | `text`                     | Primary Key, Foreign Key (references `farmGroups.b_id_group`) | Identifier of the group.                                 |
-| **b_id_farm**  | `text`                     | Primary Key, Foreign Key (references `farms.b_id_farm`)       | Identifier of the farm.                                  |
-| **b_start**    | `timestamp with time zone` | Primary Key, Not Null                                         | Timestamp when the farm joined the group.                |
-| **created**    | `timestamp with time zone` | Not Null                                                      | Timestamp when this record was created (default: now()). |
-| **updated**    | `timestamp with time zone` |                                                               | Timestamp when this record was last updated.             |
+| Column             | Type                       | Constraints                                                   | Description                                              |
+| ------------------ | -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| **b_id_group**     | `text`                     | Primary Key, Foreign Key (references `farmGroups.b_id_group`) | Identifier of the group.                                 |
+| **b_id_farm**      | `text`                     | Primary Key, Foreign Key (references `farms.b_id_farm`)       | Identifier of the farm.                                  |
+| **b_group_joined** | `timestamp with time zone` | Primary Key, Not Null                                         | Date from which the farm is part of the group.           |
+| **created**        | `timestamp with time zone` | Not Null                                                      | Timestamp when this record was created (default: now()). |
+| **updated**        | `timestamp with time zone` |                                                               | Timestamp when this record was last updated.             |
 
 #### **`farmGroupLeaving`**
 
-**Purpose**: Records a farm leaving a group. A farm is a member of a group when its latest joining is later than its latest leaving, or when it never left. Because the timestamp is part of the key, a farm can rejoin a group after leaving.
+**Purpose**: Records the date until which a farm is part of a group. The date is chosen by the user and is not the moment the record was made. A period starts at a joining and ends at the first later leaving, or has no end date. Because the date is part of the key, a farm can be part of a group in several periods.
 
-| Column         | Type                       | Constraints                                                   | Description                                              |
-| -------------- | -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
-| **b_id_group** | `text`                     | Primary Key, Foreign Key (references `farmGroups.b_id_group`) | Identifier of the group.                                 |
-| **b_id_farm**  | `text`                     | Primary Key, Foreign Key (references `farms.b_id_farm`)       | Identifier of the farm.                                  |
-| **b_end**      | `timestamp with time zone` | Primary Key, Not Null                                         | Timestamp when the farm left the group.                  |
-| **created**    | `timestamp with time zone` | Not Null                                                      | Timestamp when this record was created (default: now()). |
-| **updated**    | `timestamp with time zone` |                                                               | Timestamp when this record was last updated.             |
+| Column             | Type                       | Constraints                                                   | Description                                              |
+| ------------------ | -------------------------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| **b_id_group**     | `text`                     | Primary Key, Foreign Key (references `farmGroups.b_id_group`) | Identifier of the group.                                 |
+| **b_id_farm**      | `text`                     | Primary Key, Foreign Key (references `farms.b_id_farm`)       | Identifier of the farm.                                  |
+| **b_group_leaved** | `timestamp with time zone` | Primary Key, Not Null                                         | Date until which the farm is part of the group.          |
+| **created**        | `timestamp with time zone` | Not Null                                                      | Timestamp when this record was created (default: now()). |
+| **updated**        | `timestamp with time zone` |                                                               | Timestamp when this record was last updated.             |
 
 ---
 
