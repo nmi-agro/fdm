@@ -65,7 +65,6 @@ export default function SignIn() {
   const formRef = useRef<HTMLFormElement>(null)
   const [isAutoSubmitting, setIsAutoSubmitting] = useState(false)
   const resendFetcher = useFetcher<typeof action>()
-  const [cooldown, setCooldown] = useState(0)
   const loaderData = useLoaderData<typeof loader>()
   const email = loaderData.email
   const { capture } = useAnalytics()
@@ -78,23 +77,70 @@ export default function SignIn() {
   // so the auto-submit never overrides an intentional change.
   const pendingCodeRef = useRef<string | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const resendCooldownIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
+  const resendCooldownInitializeRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  /**
+   * Cleans up any previously-started resend cooldown countdown.
+   */
+  function cleanupPrevResendCooldown() {
+    if (typeof resendCooldownIntervalRef.current !== "undefined") {
+      clearInterval(resendCooldownIntervalRef.current)
+    }
+
+    if (typeof resendCooldownInitializeRef.current !== "undefined") {
+      clearTimeout(resendCooldownInitializeRef.current)
+    }
+  }
+
+  /**
+   * Resets the resend button cooldown for the new number of seconds.
+   * @param seconds number of seconds before the resend button gets activated again.
+   */
+  function startResendCooldown(seconds: number) {
+    cleanupPrevResendCooldown()
+
+    // Interval that decrements the cooldown counter every second.
+    const interval = setInterval(() => {
+      setResendCooldown((current) => {
+        const nextValue = current - 1
+        if (nextValue <= 0) {
+          clearInterval(interval)
+          if (resendCooldownIntervalRef.current === interval) {
+            resendCooldownIntervalRef.current = undefined
+          }
+          return 0
+        }
+
+        return nextValue
+      })
+    }, 1000)
+
+    // Keep a reference to the interval to be able to clear it externally.
+    resendCooldownIntervalRef.current = interval
+
+    // Set the initial state asynchronously so we don't get lint warnings.
+    resendCooldownInitializeRef.current = setTimeout(() => {
+      if (resendCooldownIntervalRef.current === interval) setResendCooldown(seconds)
+    })
+  }
+
+  // Clean-up when the component unmounts
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
+
+      cleanupPrevResendCooldown()
     }
   }, [])
 
   useEffect(() => {
-    if (cooldown <= 0) return
-    const interval = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
-    return () => clearInterval(interval)
-  }, [cooldown])
-
-  useEffect(() => {
     if (resendFetcher.state === "idle" && resendFetcher.data && "success" in resendFetcher.data) {
-      setCooldown(RESEND_COOLDOWN_SECONDS)
+      startResendCooldown(RESEND_COOLDOWN_SECONDS)
       capture("signin_code_resend_succeeded")
     }
     if (resendFetcher.state === "idle" && resendFetcher.data && "error" in resendFetcher.data) {
@@ -202,10 +248,10 @@ export default function SignIn() {
                 variant="link"
                 size="sm"
                 className="text-muted-foreground h-auto p-0 text-xs"
-                disabled={resendFetcher.state !== "idle" || cooldown > 0}
+                disabled={resendFetcher.state !== "idle" || resendCooldown > 0}
               >
-                {cooldown > 0
-                  ? `Nieuwe code opnieuw versturen (${cooldown}s)`
+                {resendCooldown > 0
+                  ? `Nieuwe code opnieuw versturen (${resendCooldown}s)`
                   : resendFetcher.state !== "idle"
                     ? "Code versturen..."
                     : "Geen code ontvangen? Opnieuw versturen"}
