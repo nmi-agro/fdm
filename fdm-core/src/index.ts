@@ -89,6 +89,7 @@ export {
   removeFarmFromGroup,
   removeFarmGroup,
   renameFarmGroup,
+  updateFarmGroupMembership,
 } from "./farm-group"
 export type { FarmGroup, FarmGroupMembership } from "./farm-group.types"
 export {

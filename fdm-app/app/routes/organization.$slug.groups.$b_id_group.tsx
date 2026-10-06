@@ -5,6 +5,7 @@ import {
   removeFarmFromGroup,
   removeFarmGroup,
   renameFarmGroup,
+  updateFarmGroupMembership,
 } from "@nmi-agro/fdm-core"
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
@@ -45,6 +46,7 @@ import {
   formatPeriodDate,
   getDefaultJoinDate,
   getFarmGroupErrorMessage,
+  getPeriodError,
   getPeriodStatus,
   type GroupMembership,
   parseDateInput,
@@ -111,7 +113,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 const FormSchema = z.object({
-  intent: z.enum(["rename_group", "delete_group", "add_farm", "end_membership"]),
+  intent: z.enum(["rename_group", "delete_group", "add_farm", "update_membership"]),
   b_id_farm: z.string().optional(),
   b_name_group: z.string().trim().min(1, { error: "Geef de groep een naam" }).optional(),
 })
@@ -161,8 +163,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       if (intent === "add_farm") {
         if (b_group_joined && b_group_leaved && b_group_leaved <= b_group_joined) {
           return dataWithError(null, {
-            message:
-              "De datum tot wanneer het bedrijf deel uitmaakt van de groep moet na de startdatum liggen.",
+            message: "De einddatum moet na de startdatum liggen.",
           })
         }
         await addFarmToGroup(fdm, session.principal_id, group.b_id_group, b_id_farm, b_group_joined)
@@ -177,20 +178,24 @@ export async function action({ request, params }: Route.ActionArgs) {
         }
         return dataWithSuccess(null, { message: "De periode van het bedrijf is opgeslagen." })
       }
-      if (intent === "end_membership") {
-        if (!b_group_leaved) {
-          return dataWithError(null, {
-            message: "Vul de datum in tot wanneer het bedrijf bij de groep hoort.",
-          })
+      if (intent === "update_membership") {
+        const b_group_joined_current = parseDateInput(formData.get("b_group_joined_current"))
+        if (!b_group_joined_current || !b_group_joined) {
+          return dataWithError(null, { message: "Vul een geldige startdatum in." })
         }
-        await removeFarmFromGroup(
+        if (b_group_leaved && b_group_leaved <= b_group_joined) {
+          return dataWithError(null, { message: "De einddatum moet na de startdatum liggen." })
+        }
+        // An empty end date removes the end date of the period
+        await updateFarmGroupMembership(
           fdm,
           session.principal_id,
           group.b_id_group,
           b_id_farm,
-          b_group_leaved,
+          b_group_joined_current,
+          { b_group_joined, b_group_leaved: b_group_leaved ?? null },
         )
-        return dataWithSuccess(null, { message: "De einddatum is opgeslagen." })
+        return dataWithSuccess(null, { message: "De periode is bijgewerkt." })
       }
     } catch (error) {
       const message = getFarmGroupErrorMessage(error)
@@ -310,7 +315,10 @@ function MembershipRow({
   const fetcher = useFetcher<typeof action>()
   const isSubmitting = fetcher.state !== "idle"
   const status = getPeriodStatus(membership, today)
-  const [leaved, setLeaved] = useState("")
+  const [editing, setEditing] = useState(false)
+  const [joined, setJoined] = useState(membership.b_group_joined)
+  const [leaved, setLeaved] = useState(membership.b_group_leaved ?? "")
+  const error = getPeriodError(joined, leaved)
 
   return (
     <li className="space-y-2 px-3 py-2">
@@ -319,6 +327,11 @@ function MembershipRow({
           {membership.b_name_farm ?? "Onbekend"}
         </span>
         <Badge variant={statusVariant[status.key]}>{status.label}</Badge>
+        {!editing && (
+          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+            Wijzigen
+          </Button>
+        )}
       </div>
       <p className="text-muted-foreground text-sm">
         Maakt deel uit van de groep vanaf {formatPeriodDate(membership.b_group_joined)}
@@ -327,29 +340,53 @@ function MembershipRow({
           : ", zonder einddatum"}
         .
       </p>
-      {!membership.b_group_leaved && (
-        <fetcher.Form method="post" className="flex flex-wrap items-end gap-2">
+      {editing && (
+        <fetcher.Form method="post" className="space-y-3 pt-1" onSubmit={() => setEditing(false)}>
           <input type="hidden" name="b_id_group" value={groupId} />
           <input type="hidden" name="b_id_farm" value={membership.b_id_farm} />
-          <div className="w-60">
+          <input type="hidden" name="b_group_joined_current" value={membership.b_group_joined} />
+          <div className="grid gap-3 sm:grid-cols-2">
             <PeriodDateField
-              label="Maakt deel uit van de groep tot"
+              label="Maakt deel uit van de groep vanaf"
+              name="b_group_joined"
+              value={joined}
+              onChange={setJoined}
+              required
+            />
+            <PeriodDateField
+              label="Tot (laat leeg als er geen einddatum is)"
               name="b_group_leaved"
               value={leaved}
               onChange={setLeaved}
-              required
             />
           </div>
-          <Button
-            type="submit"
-            name="intent"
-            value="end_membership"
-            variant="outline"
-            disabled={isSubmitting || !leaved}
-          >
-            <Spinner className={cn(!isSubmitting && "hidden")} />
-            Einddatum opslaan
-          </Button>
+          {error && (
+            <p role="alert" className="text-destructive text-sm">
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              name="intent"
+              value="update_membership"
+              disabled={isSubmitting || !joined || Boolean(error)}
+            >
+              <Spinner className={cn(!isSubmitting && "hidden")} />
+              Opslaan
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setJoined(membership.b_group_joined)
+                setLeaved(membership.b_group_leaved ?? "")
+                setEditing(false)
+              }}
+            >
+              Annuleren
+            </Button>
+          </div>
         </fetcher.Form>
       )}
     </li>
@@ -391,6 +428,7 @@ function AddFarmForm({
   const [joined, setJoined] = useState(defaultJoined)
   const [leaved, setLeaved] = useState("")
   const [farm, setFarm] = useState("")
+  const error = getPeriodError(joined, leaved)
 
   return (
     <Card>
@@ -439,11 +477,16 @@ function AddFarmForm({
               value={leaved}
               onChange={setLeaved}
             />
+            {error && (
+              <p role="alert" className="text-destructive text-sm">
+                {error}
+              </p>
+            )}
             <Button
               type="submit"
               name="intent"
               value="add_farm"
-              disabled={isSubmitting || !farm || !joined}
+              disabled={isSubmitting || !farm || !joined || Boolean(error)}
             >
               <Spinner className={cn(!isSubmitting && "hidden")} />
               Toevoegen

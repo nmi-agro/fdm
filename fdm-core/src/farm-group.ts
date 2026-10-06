@@ -488,7 +488,8 @@ export async function addFarmToGroup(
  * The date is the date until which the farm is part of the group, as chosen by the user. It is
  * not the moment this function is called, so it can lie in the past or in the future. Without a
  * date the farm leaves the group now. No rows are deleted, so the history stays available.
- * Does nothing if the farm is not part of the group on that date.
+ * Does nothing if the farm is not part of the group on that date, unless the date lies on or before
+ * the start of the open period of the farm; that is rejected.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal removing the farm. Needs write permission on the group.
@@ -532,6 +533,18 @@ export async function removeFarmFromGroup(
           (p.b_group_leaved === null || p.b_group_leaved.getTime() > leaved.getTime()),
       )
       if (!period) {
+        // An end date on or before the start of an open period is a mistake, not a no-op
+        if (
+          b_group_leaved !== undefined &&
+          periods.some(
+            (p) =>
+              p.b_group_leaved === null && p.b_group_joined.getTime() >= b_group_leaved.getTime(),
+          )
+        ) {
+          throw new Error(
+            "The end date must be after the date from which the farm is part of the group",
+          )
+        }
         return
       }
       if (period.b_group_joined.getTime() === leaved.getTime()) {
@@ -556,6 +569,128 @@ export async function removeFarmFromGroup(
       b_id_group,
       b_id_farm,
       b_group_leaved: b_group_leaved?.toString(),
+    })
+  }
+}
+
+/**
+ * Changes the dates of an existing period in which a farm is part of a group.
+ *
+ * The period is identified by its current start date. The start date can be moved, the end date
+ * can be set, moved or removed (`null`). The dates are the dates that users have chosen, not the
+ * moment of the change. The new period may not overlap another period of the same farm in the
+ * group.
+ *
+ * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
+ * @param principal_id - The identifier of the principal changing the period. Needs write permission on the group.
+ * @param b_id_group - The identifier of the group.
+ * @param b_id_farm - The identifier of the farm.
+ * @param b_group_joined - The current start date of the period, which identifies it.
+ * @param changes - The new dates. Omit a date to keep it. Use `null` for `b_group_leaved` to remove the end date.
+ *
+ * @throws {Error} If the principal lacks write permission, a date is invalid, the period does not exist, the end date is not after the start date, or the period would overlap another period of the farm.
+ *
+ * @alpha
+ */
+export async function updateFarmGroupMembership(
+  fdm: FdmType,
+  principal_id: string,
+  b_id_group: schema.farmGroupsTypeSelect["b_id_group"],
+  b_id_farm: schema.farmsTypeSelect["b_id_farm"],
+  b_group_joined: schema.farmGroupJoiningTypeSelect["b_group_joined"],
+  changes: {
+    b_group_joined?: schema.farmGroupJoiningTypeInsert["b_group_joined"]
+    b_group_leaved?: schema.farmGroupLeavingTypeInsert["b_group_leaved"] | null
+  },
+): Promise<void> {
+  try {
+    await fdm.transaction(async (tx: FdmType) => {
+      await checkPermission(
+        tx,
+        "farm_group",
+        "write",
+        b_id_group,
+        principal_id,
+        "updateFarmGroupMembership",
+      )
+      assertValidDate(b_group_joined, "The current start date of the period")
+      if (changes.b_group_joined !== undefined) {
+        assertValidDate(changes.b_group_joined, "The date from which the farm is part of the group")
+      }
+      if (changes.b_group_leaved) {
+        assertValidDate(
+          changes.b_group_leaved,
+          "The date until which the farm is part of the group",
+        )
+      }
+
+      const periods = (await getPeriods(tx, [b_id_group])).get(b_id_group)?.get(b_id_farm) ?? []
+      const current = periods.find((p) => p.b_group_joined.getTime() === b_group_joined.getTime())
+      if (!current) {
+        throw new Error("Farm group membership not found")
+      }
+
+      const newJoined = changes.b_group_joined ?? current.b_group_joined
+      const newLeaved =
+        changes.b_group_leaved === undefined ? current.b_group_leaved : changes.b_group_leaved
+      if (newLeaved && newLeaved.getTime() <= newJoined.getTime()) {
+        throw new Error(
+          "The end date must be after the date from which the farm is part of the group",
+        )
+      }
+      const unchanged =
+        newJoined.getTime() === current.b_group_joined.getTime() &&
+        (newLeaved?.getTime() ?? null) === (current.b_group_leaved?.getTime() ?? null)
+      if (unchanged) {
+        return
+      }
+
+      // A farm is part of a group once at a time, so periods may touch but not overlap
+      const overlaps = periods.some(
+        (p) =>
+          p !== current &&
+          newJoined.getTime() < (p.b_group_leaved?.getTime() ?? Number.POSITIVE_INFINITY) &&
+          p.b_group_joined.getTime() < (newLeaved?.getTime() ?? Number.POSITIVE_INFINITY),
+      )
+      if (overlaps) {
+        throw new Error("The period overlaps another period of the farm in the group")
+      }
+
+      // The period consists of events, so replace them
+      await tx
+        .delete(schema.farmGroupJoining)
+        .where(
+          and(
+            eq(schema.farmGroupJoining.b_id_group, b_id_group),
+            eq(schema.farmGroupJoining.b_id_farm, b_id_farm),
+            eq(schema.farmGroupJoining.b_group_joined, current.b_group_joined),
+          ),
+        )
+      if (current.b_group_leaved) {
+        await tx
+          .delete(schema.farmGroupLeaving)
+          .where(
+            and(
+              eq(schema.farmGroupLeaving.b_id_group, b_id_group),
+              eq(schema.farmGroupLeaving.b_id_farm, b_id_farm),
+              eq(schema.farmGroupLeaving.b_group_leaved, current.b_group_leaved),
+            ),
+          )
+      }
+      await tx
+        .insert(schema.farmGroupJoining)
+        .values({ b_id_group, b_id_farm, b_group_joined: newJoined })
+      if (newLeaved) {
+        await tx
+          .insert(schema.farmGroupLeaving)
+          .values({ b_id_group, b_id_farm, b_group_leaved: newLeaved })
+      }
+    })
+  } catch (err) {
+    throw handleError(err, "Exception for updateFarmGroupMembership", {
+      b_id_group,
+      b_id_farm,
+      b_group_joined: b_group_joined?.toString(),
     })
   }
 }

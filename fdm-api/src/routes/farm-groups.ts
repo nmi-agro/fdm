@@ -6,6 +6,7 @@ import type {
   getFarmGroup,
   listFarmGroups,
   removeFarmFromGroup,
+  updateFarmGroupMembership,
   removeFarmGroup,
   renameFarmGroup,
 } from "@nmi-agro/fdm-core"
@@ -43,6 +44,7 @@ export interface FarmGroupServices {
   addFarmToGroup: typeof addFarmToGroup
   /** Records a farm leaving a group. */
   removeFarmFromGroup: typeof removeFarmFromGroup
+  updateFarmGroupMembership: typeof updateFarmGroupMembership
 }
 
 const FarmGroupMembershipSchema = z
@@ -104,6 +106,22 @@ const RemoveFarmFromGroupQuerySchema = z.object({
     "Date until which the farm is part of the group (YYYY-MM-DD). This is the date the user chooses, not the date this request is made. Defaults to today.",
   ),
 })
+
+const UpdateGroupMembershipBodySchema = z
+  .object({
+    b_group_joined: DateStringSchema.describe(
+      "Current start date of the period (YYYY-MM-DD). It identifies the period to change.",
+    ),
+    new_b_group_joined: DateStringSchema.optional().describe(
+      "New date from which the farm is part of the group. Omit to keep the start date.",
+    ),
+    new_b_group_leaved: DateStringSchema.nullable()
+      .optional()
+      .describe(
+        "New date until which the farm is part of the group. Use null to remove the end date. Omit to keep the end date.",
+      ),
+  })
+  .openapi("UpdateFarmGroupMembership")
 
 const listFarmGroupsRoute = createRoute({
   method: "get",
@@ -247,6 +265,30 @@ const removeFarmFromGroupRoute = createRoute({
   },
 })
 
+const updateGroupMembershipRoute = createRoute({
+  method: "patch",
+  path: "/farm-groups/{b_id_group}/farms/{b_id_farm}",
+  tags: ["Farm Groups"],
+  summary: "Change the dates of a membership period",
+  description:
+    "Changes the start and/or end date of an existing period in which a farm is part of the group. The period is identified by its current start date. The dates are chosen by the caller, not the moment of the request. A period may not overlap another period of the same farm in the group.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  request: {
+    params: z.object({ b_id_group: z.string(), b_id_farm: z.string() }),
+    body: {
+      content: { "application/json": { schema: UpdateGroupMembershipBodySchema } },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      description: "The farm group with its updated periods.",
+      content: { "application/json": { schema: FarmGroupSchema } },
+    },
+    ...writeErrorResponses,
+  },
+})
+
 function serialiseFarmGroup(group: {
   b_id_group: string
   b_id_organization: string
@@ -289,7 +331,14 @@ function translateFarmGroupError(err: unknown): never {
   if (cause.includes("not a valid date") || cause.includes("must be after")) {
     throw new ApiError(400, "validation-failed", cause)
   }
-  if (cause.includes("already has an end date") || cause.includes("from a later date")) {
+  if (cause.includes("Farm group membership not found")) {
+    throw new ApiError(404, "not-found", "No period of this farm starts on that date.")
+  }
+  if (
+    cause.includes("already has an end date") ||
+    cause.includes("from a later date") ||
+    cause.includes("overlaps")
+  ) {
     throw new ApiError(409, "conflict", cause)
   }
   if (cause.includes("Farm group not found")) {
@@ -467,6 +516,44 @@ export function registerFarmGroupRoutes(
     return c.newResponse(null, 204)
   }
 
+  const updateGroupMembershipHandler: RouteHandler<typeof updateGroupMembershipRoute> = async (
+    c,
+  ) => {
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const { b_id_group, b_id_farm } = c.req.valid("param") as {
+      b_id_group: string
+      b_id_farm: string
+    }
+    // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
+    const body = c.req.valid("json") as z.infer<typeof UpdateGroupMembershipBodySchema>
+    try {
+      await services.updateFarmGroupMembership(
+        fdm,
+        principal.effectivePrincipalId,
+        b_id_group,
+        b_id_farm,
+        new Date(body.b_group_joined),
+        {
+          b_group_joined: body.new_b_group_joined ? new Date(body.new_b_group_joined) : undefined,
+          b_group_leaved:
+            body.new_b_group_leaved === null
+              ? null
+              : body.new_b_group_leaved
+                ? new Date(body.new_b_group_leaved)
+                : undefined,
+        },
+      )
+    } catch (err) {
+      translateFarmGroupError(err)
+    }
+    const group = await services.getFarmGroup(fdm, principal.effectivePrincipalId, b_id_group)
+    if (!group?.b_id_group) {
+      throw new ApiError(404, "not-found", `Farm group '${b_id_group}' not found.`)
+    }
+    return c.json(serialiseFarmGroup(group), 200)
+  }
+
   app.openapi(listFarmGroupsRoute, listFarmGroupsHandler)
   app.openapi(createFarmGroupRoute, createFarmGroupHandler)
   app.openapi(getFarmGroupRoute, getFarmGroupHandler)
@@ -474,4 +561,5 @@ export function registerFarmGroupRoutes(
   app.openapi(deleteFarmGroupRoute, deleteFarmGroupHandler)
   app.openapi(addFarmToGroupRoute, addFarmToGroupHandler)
   app.openapi(removeFarmFromGroupRoute, removeFarmFromGroupHandler)
+  app.openapi(updateGroupMembershipRoute, updateGroupMembershipHandler)
 }

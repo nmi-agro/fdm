@@ -15,6 +15,7 @@ import {
   removeFarmFromGroup,
   removeFarmGroup,
   renameFarmGroup,
+  updateFarmGroupMembership,
 } from "./farm-group"
 import { createFdmServer } from "./fdm-server"
 import { createId } from "./id"
@@ -339,6 +340,91 @@ describe("Farm group functions", () => {
       await expectCause(
         addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, new Date("2019-01-01T00:00:00Z")),
         "later date",
+      )
+    })
+
+    it("should reject an end date before the start of the open period", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Before group")
+      await addFarmToGroup(
+        fdm,
+        member_id,
+        b_id_group,
+        b_id_farm_a,
+        new Date("2020-03-01T00:00:00Z"),
+      )
+      await expectCause(
+        removeFarmFromGroup(
+          fdm,
+          member_id,
+          b_id_group,
+          b_id_farm_a,
+          new Date("2019-01-01T00:00:00Z"),
+        ),
+        "must be after",
+      )
+    })
+
+    it("should update the dates of an existing period", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Update group")
+      const t = (iso: string) => new Date(iso)
+      const update = (joined: string, changes: Parameters<typeof updateFarmGroupMembership>[5]) =>
+        updateFarmGroupMembership(fdm, member_id, b_id_group, b_id_farm_a, t(joined), changes)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2020-03-01T00:00:00Z"))
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2021-03-01T00:00:00Z"))
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2022-01-01T00:00:00Z"))
+
+      // Move the start and the end
+      await update("2020-03-01T00:00:00Z", {
+        b_group_joined: t("2020-01-01T00:00:00Z"),
+        b_group_leaved: t("2021-06-01T00:00:00Z"),
+      })
+      // Set an end date on the open period, then remove it again
+      await update("2022-01-01T00:00:00Z", { b_group_leaved: t("2023-01-01T00:00:00Z") })
+      await update("2022-01-01T00:00:00Z", { b_group_leaved: null })
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.memberships).toEqual([
+        {
+          b_id_farm: b_id_farm_a,
+          b_group_joined: t("2020-01-01T00:00:00Z"),
+          b_group_leaved: t("2021-06-01T00:00:00Z"),
+        },
+        { b_id_farm: b_id_farm_a, b_group_joined: t("2022-01-01T00:00:00Z"), b_group_leaved: null },
+      ])
+    })
+
+    it("should reject an invalid update", async () => {
+      const b_id_group = await createFarmGroup(
+        fdm,
+        member_id,
+        b_id_organization,
+        "Update bad group",
+      )
+      const t = (iso: string) => new Date(iso)
+      const update = (
+        principal: string,
+        joined: string,
+        changes: Parameters<typeof updateFarmGroupMembership>[5],
+      ) => updateFarmGroupMembership(fdm, principal, b_id_group, b_id_farm_a, t(joined), changes)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2020-01-01T00:00:00Z"))
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2021-01-01T00:00:00Z"))
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2022-01-01T00:00:00Z"))
+
+      await expectCause(
+        update(member_id, "2022-01-01T00:00:00Z", { b_group_leaved: t("2021-12-01T00:00:00Z") }),
+        "must be after",
+      )
+      await expectCause(
+        update(member_id, "2022-01-01T00:00:00Z", { b_group_joined: t("2020-06-01T00:00:00Z") }),
+        "overlaps",
+      )
+      await expectCause(
+        update(member_id, "2018-01-01T00:00:00Z", { b_group_leaved: t("2019-01-01T00:00:00Z") }),
+        "not found",
+      )
+      await expectCause(
+        update(outsider_id, "2022-01-01T00:00:00Z", { b_group_leaved: t("2023-01-01T00:00:00Z") }),
+        DENIED,
       )
     })
 

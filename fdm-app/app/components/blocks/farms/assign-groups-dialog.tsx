@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
+import { getPeriodError } from "~/lib/farm-groups"
 import type { FarmExtended } from "./columns"
 
 type GroupOption = { b_id_group: string; b_name_group: string }
@@ -64,6 +65,7 @@ export function AssignGroupsDialog({
   const [state, setState] = useState<Record<string, GroupState>>({})
   const [joined, setJoined] = useState(defaultJoined)
   const [leaved, setLeaved] = useState("")
+  const periodError = getPeriodError(joined, leaved)
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
@@ -161,6 +163,11 @@ export function AssignGroupsDialog({
                 onChange={setLeaved}
               />
             </div>
+            {periodError && (
+              <p role="alert" className="text-destructive text-sm">
+                {periodError}
+              </p>
+            )}
             <p className="text-muted-foreground text-xs">
               Dit zijn de datums van de periode zelf, niet het moment waarop u de wijziging invoert.
               Bij een groep die u uitvinkt, is dit de datum tot wanneer het bedrijf nog deel
@@ -172,7 +179,11 @@ export function AssignGroupsDialog({
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>
             Annuleren
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={groups.length === 0 || !joined}>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={groups.length === 0 || !joined || Boolean(periodError)}
+          >
             Opslaan
           </Button>
         </DialogFooter>

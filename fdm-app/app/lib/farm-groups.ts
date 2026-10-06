@@ -70,6 +70,12 @@ export function getFarmGroupErrorMessage(error: unknown): string | undefined {
   if (cause.includes("from a later date")) {
     return "Het bedrijf maakt vanaf een latere datum al deel uit van deze groep."
   }
+  if (cause.includes("overlaps")) {
+    return "Deze periode overlapt een andere periode van het bedrijf in deze groep."
+  }
+  if (cause.includes("membership not found")) {
+    return "Deze periode bestaat niet meer. Ververs de pagina."
+  }
   if (cause.includes("does not belong to the organization")) {
     return "Dit bedrijf hoort niet bij de organisatie van de groep."
   }
@@ -146,4 +152,18 @@ export function summarizeMemberships(memberships: GroupMembership[], today: stri
     endedCount: ended,
     activeNames: [...active.values()].map((name) => name ?? "Onbekend"),
   }
+}
+
+/**
+ * Validates the dates of a period in a farm group.
+ *
+ * @param joined - The date from which the farm is part of the group (YYYY-MM-DD), or empty.
+ * @param leaved - The date until which the farm is part of the group (YYYY-MM-DD), or empty.
+ * @returns A Dutch error message when the end date is not after the start date, otherwise undefined.
+ */
+export function getPeriodError(joined: string, leaved: string): string | undefined {
+  if (joined && leaved && leaved <= joined) {
+    return "De einddatum moet na de startdatum liggen."
+  }
+  return undefined
 }
