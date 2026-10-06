@@ -3,7 +3,6 @@ import {
   declineInvitation,
   getFarms,
   getFields,
-  listFarmGroups,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
 import { Square, UserGroup, Users } from "lucide-react"
@@ -35,6 +34,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getOrganizationFarmGroups } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
@@ -119,7 +119,11 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
 
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, organization.id)
-    const farmGroups = await listFarmGroups(fdm, session.principal_id, organization.id)
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      farms.map((farm) => farm.b_id_farm),
+    )
 
     const farmsExtended: (FarmWithRoles & {
       b_area_farm: number | null

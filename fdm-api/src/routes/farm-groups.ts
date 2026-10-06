@@ -226,7 +226,7 @@ const addFarmToGroupRoute = createRoute({
   tags: ["Farm Groups"],
   summary: "Add a farm to a group",
   description:
-    "Records that a farm is part of the group from a date, and optionally until a date. The dates are chosen by the caller and can lie in the past or the future. The farm must belong to the organization of the group. Adding a farm that already is part of the group on that date has no effect.",
+    "Records that a farm is part of the group from a date, and optionally until a date. The dates are chosen by the caller and can lie in the past or the future. The farm must belong to the organization of the group. The start and end date are stored together, so either the whole period is recorded or nothing is. Adding a farm that already is part of the group on the start date has no effect, unless an end date is given; that is rejected with a conflict.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({ b_id_group: z.string() }),
@@ -250,7 +250,7 @@ const removeFarmFromGroupRoute = createRoute({
   tags: ["Farm Groups"],
   summary: "Remove a farm from a group",
   description:
-    "Records the date until which a farm is part of the group (default: today). The membership history is kept. Removing a farm that is not part of the group on that date has no effect.",
+    "Records the date until which a farm is part of the group (default: today). The membership history is kept. Removing a farm that is not part of the group on that date has no effect. Without a date, a membership that starts in the future is rejected with a conflict.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({ b_id_group: z.string(), b_id_farm: z.string() }),
@@ -340,6 +340,8 @@ function translateFarmGroupError(err: unknown): never {
   if (
     cause.includes("already has an end date") ||
     cause.includes("from a later date") ||
+    cause.includes("already is part of the group on that date") ||
+    cause.includes("has not started yet") ||
     cause.includes("overlaps")
   ) {
     throw new ApiError(409, "conflict", cause)
@@ -476,16 +478,8 @@ export function registerFarmGroupRoutes(
         b_id_group,
         body.b_id_farm,
         body.b_group_joined ? new Date(body.b_group_joined) : undefined,
+        body.b_group_leaved ? new Date(body.b_group_leaved) : undefined,
       )
-      if (body.b_group_leaved) {
-        await services.removeFarmFromGroup(
-          fdm,
-          principal.effectivePrincipalId,
-          b_id_group,
-          body.b_id_farm,
-          new Date(body.b_group_leaved),
-        )
-      }
     } catch (err) {
       translateFarmGroupError(err)
     }

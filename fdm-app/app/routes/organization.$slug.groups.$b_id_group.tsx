@@ -2,7 +2,6 @@ import {
   addFarmToGroup,
   getFarms,
   listFarmGroups,
-  removeFarmFromGroup,
   removeFarmGroup,
   renameFarmGroup,
   updateFarmGroupMembership,
@@ -166,16 +165,15 @@ export async function action({ request, params }: Route.ActionArgs) {
             message: "De einddatum moet na de startdatum liggen.",
           })
         }
-        await addFarmToGroup(fdm, session.principal_id, group.b_id_group, b_id_farm, b_group_joined)
-        if (b_group_leaved) {
-          await removeFarmFromGroup(
-            fdm,
-            session.principal_id,
-            group.b_id_group,
-            b_id_farm,
-            b_group_leaved,
-          )
-        }
+        // Both dates are stored in one step, so a period is never left half saved
+        await addFarmToGroup(
+          fdm,
+          session.principal_id,
+          group.b_id_group,
+          b_id_farm,
+          b_group_joined,
+          b_group_leaved,
+        )
         return dataWithSuccess(null, { message: "De periode van het bedrijf is opgeslagen." })
       }
       if (intent === "update_membership") {

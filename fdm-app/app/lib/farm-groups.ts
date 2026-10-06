@@ -29,7 +29,11 @@ export function parseDateInput(value: FormDataEntryValue | null | undefined): Da
     return undefined
   }
   const date = new Date(`${value}T00:00:00Z`)
-  return Number.isNaN(date.getTime()) ? undefined : date
+  // Reject dates that JavaScript moves to another day, such as 2025-02-31
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) {
+    return undefined
+  }
+  return date
 }
 
 /**
@@ -69,6 +73,12 @@ export function getFarmGroupErrorMessage(error: unknown): string | undefined {
   }
   if (cause.includes("from a later date")) {
     return "Het bedrijf maakt vanaf een latere datum al deel uit van deze groep."
+  }
+  if (cause.includes("already is part of the group on that date")) {
+    return "Het bedrijf maakt op de startdatum al deel uit van deze groep."
+  }
+  if (cause.includes("has not started yet")) {
+    return "Het lidmaatschap is nog niet begonnen. Geef een einddatum op of wijzig de periode."
   }
   if (cause.includes("overlaps")) {
     return "Deze periode overlapt een andere periode van het bedrijf in deze groep."

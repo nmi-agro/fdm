@@ -59,6 +59,14 @@ function assertValidDate(date: Date, description: string): void {
 }
 
 /**
+ * Returns midnight (UTC) at the start of the day of a date. Dates of farm group periods are
+ * calendar dates, so defaults that are based on "now" use the start of the day.
+ */
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+}
+
+/**
  * Throws when another group in the organization already uses the name.
  */
 async function assertGroupNameAvailable(
@@ -399,8 +407,11 @@ export async function removeFarmGroup(
  *
  * The date is the date from which the farm is part of the group, as chosen by the user. It is
  * not the moment this function is called, so it can lie in the past or in the future. Without a
- * date the farm is part of the group from now. Does nothing if the farm already is part of the
- * group on that date.
+ * date the farm is part of the group from the start of today (UTC). Does nothing if the farm
+ * already is part of the group on that date.
+ *
+ * Optionally the date until which the farm is part of the group can be given. Both dates are then
+ * recorded in one transaction, so either the whole period is stored or nothing is.
  *
  * The farm must belong to the organization of the group, meaning the organization holds a role on it.
  *
@@ -408,9 +419,10 @@ export async function removeFarmGroup(
  * @param principal_id - The identifier of the principal adding the farm. Needs write permission on the group and read permission on the farm.
  * @param b_id_group - The identifier of the group.
  * @param b_id_farm - The identifier of the farm.
- * @param b_group_joined - Optional. The date from which the farm is part of the group. Defaults to now.
+ * @param b_group_joined - Optional. The date from which the farm is part of the group. Defaults to the start of today (UTC).
+ * @param b_group_leaved - Optional. The date until which the farm is part of the group. Must be after the date from which the farm is part of the group.
  *
- * @throws {Error} If the principal lacks permission, the date is invalid, the farm does not belong to the organization of the group, or the farm already is part of the group from a later date.
+ * @throws {Error} If the principal lacks permission, a date is invalid, the end date is not after the start date, the farm does not belong to the organization of the group, the farm already is part of the group from a later date, or an end date is given while the farm already is part of the group on the start date.
  *
  * @alpha
  */
@@ -420,6 +432,7 @@ export async function addFarmToGroup(
   b_id_group: schema.farmGroupsTypeSelect["b_id_group"],
   b_id_farm: schema.farmsTypeSelect["b_id_farm"],
   b_group_joined?: schema.farmGroupJoiningTypeInsert["b_group_joined"],
+  b_group_leaved?: schema.farmGroupLeavingTypeInsert["b_group_leaved"],
 ): Promise<void> {
   try {
     await fdm.transaction(async (tx: FdmType) => {
@@ -427,6 +440,9 @@ export async function addFarmToGroup(
       await checkPermission(tx, "farm", "read", b_id_farm, principal_id, "addFarmToGroup")
       if (b_group_joined !== undefined) {
         assertValidDate(b_group_joined, "The date from which the farm is part of the group")
+      }
+      if (b_group_leaved !== undefined) {
+        assertValidDate(b_group_leaved, "The date until which the farm is part of the group")
       }
 
       const groups = await tx
@@ -455,14 +471,23 @@ export async function addFarmToGroup(
 
       const periods = (await getPeriods(tx, [b_id_group])).get(b_id_group)?.get(b_id_farm) ?? []
 
-      // Without a date the farm is part of the group from now, but never before it last left
+      // Without a date the farm is part of the group from today, but never before it last left
       const latestLeaved = Math.max(
         0,
         ...periods.map((period) => period.b_group_leaved?.getTime() ?? 0),
       )
-      const joined = b_group_joined ?? new Date(Math.max(Date.now(), latestLeaved))
+      const joined =
+        b_group_joined ?? new Date(Math.max(startOfUtcDay(new Date()).getTime(), latestLeaved))
 
+      if (b_group_leaved !== undefined && b_group_leaved.getTime() <= joined.getTime()) {
+        throw new Error(
+          "The end date must be after the date from which the farm is part of the group",
+        )
+      }
       if (isMemberAt(periods, joined)) {
+        if (b_group_leaved !== undefined) {
+          throw new Error("The farm already is part of the group on that date")
+        }
         return
       }
       if (periods.some((period) => period.b_group_joined.getTime() > joined.getTime())) {
@@ -472,12 +497,16 @@ export async function addFarmToGroup(
       await tx
         .insert(schema.farmGroupJoining)
         .values({ b_id_group, b_id_farm, b_group_joined: joined })
+      if (b_group_leaved !== undefined) {
+        await tx.insert(schema.farmGroupLeaving).values({ b_id_group, b_id_farm, b_group_leaved })
+      }
     })
   } catch (err) {
     throw handleError(err, "Exception for addFarmToGroup", {
       b_id_group,
       b_id_farm,
       b_group_joined: b_group_joined?.toString(),
+      b_group_leaved: b_group_leaved?.toString(),
     })
   }
 }
@@ -487,17 +516,18 @@ export async function addFarmToGroup(
  *
  * The date is the date until which the farm is part of the group, as chosen by the user. It is
  * not the moment this function is called, so it can lie in the past or in the future. Without a
- * date the farm leaves the group now. No rows are deleted, so the history stays available.
- * Does nothing if the farm is not part of the group on that date, unless the date lies on or before
- * the start of the open period of the farm; that is rejected.
+ * date the farm leaves the group at the start of today (UTC). No rows are deleted, so the history
+ * stays available. Does nothing if the farm is not part of the group on that date, unless the date
+ * lies on or before the start of the open period of the farm; that is rejected. Without a date, a
+ * membership that starts in the future is rejected as well, because it has not started yet.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal removing the farm. Needs write permission on the group.
  * @param b_id_group - The identifier of the group.
  * @param b_id_farm - The identifier of the farm.
- * @param b_group_leaved - Optional. The date until which the farm is part of the group. Defaults to now.
+ * @param b_group_leaved - Optional. The date until which the farm is part of the group. Defaults to the start of today (UTC).
  *
- * @throws {Error} If the principal lacks write permission, the date is invalid or not after the date from which the farm is part of the group, or the membership already has an end date.
+ * @throws {Error} If the principal lacks write permission, the date is invalid or not after the date from which the farm is part of the group, the membership already has an end date, or no date is given for a membership that starts in the future.
  *
  * @alpha
  */
@@ -524,9 +554,10 @@ export async function removeFarmFromGroup(
 
       const periods = (await getPeriods(tx, [b_id_group])).get(b_id_group)?.get(b_id_farm) ?? []
 
-      // Without a date the farm leaves now, but never before it last joined
+      // Without a date the farm leaves today, but never before it last joined
       const latestJoined = Math.max(0, ...periods.map((p) => p.b_group_joined.getTime()))
-      let leaved = b_group_leaved ?? new Date(Math.max(Date.now(), latestJoined))
+      let leaved =
+        b_group_leaved ?? new Date(Math.max(startOfUtcDay(new Date()).getTime(), latestJoined))
       const period = periods.find(
         (p) =>
           p.b_group_joined.getTime() <= leaved.getTime() &&
@@ -547,13 +578,23 @@ export async function removeFarmFromGroup(
         }
         return
       }
+      // Without a date there is nothing to do for a membership that already ended
+      if (b_group_leaved === undefined && period.b_group_leaved !== null) {
+        return
+      }
       if (period.b_group_joined.getTime() === leaved.getTime()) {
         if (b_group_leaved !== undefined) {
           throw new Error(
             "The end date must be after the date from which the farm is part of the group",
           )
         }
-        // Without a date, a farm that joined in this very moment leaves a moment later
+        // A membership that starts in the future has not started yet, so there is nothing to end
+        if (period.b_group_joined.getTime() > Date.now()) {
+          throw new Error(
+            "The membership has not started yet; give an end date or change the period",
+          )
+        }
+        // Without a date, a farm that joined today leaves a moment later
         leaved = new Date(leaved.getTime() + 1)
       }
       if (period.b_group_leaved !== null) {

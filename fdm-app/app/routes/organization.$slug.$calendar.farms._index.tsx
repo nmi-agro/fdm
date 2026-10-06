@@ -268,16 +268,14 @@ export async function action({ request, params }: Route.ActionArgs) {
     for (const b_id_group of addGroupIds) {
       for (const b_id_farm of farmIds) {
         await apply(async () => {
-          await addFarmToGroup(fdm, session.principal_id, b_id_group, b_id_farm, b_group_joined)
-          if (b_group_leaved) {
-            await removeFarmFromGroup(
-              fdm,
-              session.principal_id,
-              b_id_group,
-              b_id_farm,
-              b_group_leaved,
-            )
-          }
+          await addFarmToGroup(
+            fdm,
+            session.principal_id,
+            b_id_group,
+            b_id_farm,
+            b_group_joined,
+            b_group_leaved,
+          )
         })
       }
     }
