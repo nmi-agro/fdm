@@ -10,6 +10,7 @@ import { createPathExistenceGuard, requestGuard } from "./guards"
 import { registerCalculationRoutes } from "./routes/calculations"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
+import { registerFarmGroupRoutes } from "./routes/farm-groups"
 import { registerFarmRoutes } from "./routes/farms"
 import { registerFertilizerApplicationRoutes } from "./routes/fertilizer-applications"
 import { registerFertilizerRoutes } from "./routes/fertilizers"
@@ -85,6 +86,7 @@ export function buildApp(
   app.get("/", (c) => c.redirect(`${pathPrefix}/docs`, 302))
 
   registerFarmRoutes(app, fdm, services)
+  registerFarmGroupRoutes(app, fdm, services)
   registerFieldRoutes(app, fdm, services)
   registerCalculationRoutes(app, fdm, services)
   registerCultivationRoutes(app, fdm, services)
@@ -123,6 +125,7 @@ export function buildApp(
 | Domain | Operations |
 |--------|-----------|
 | **Farms** | Create, read, update, delete |
+| **Farm groups** | Organize the farms of an organization into groups |
 | **Fields** | Create with GeoJSON geometry, read, update, delete |
 | **Cultivations** | Manage crop plans per field |
 | **Harvests** | Track yield per cultivation |
@@ -162,6 +165,10 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
     tags: [
       { name: "Farms", description: "Manage farms" },
+      {
+        name: "Farm Groups",
+        description: "Manage groups of farms within an organization",
+      },
       { name: "Fields", description: "Manage fields within farms" },
       {
         name: "Cultivations",

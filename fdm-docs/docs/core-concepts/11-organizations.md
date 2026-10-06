@@ -12,6 +12,10 @@ The organization-related tables are part of the `fdm-authn` schema, which is bas
 - **`member`**: This table links users to organizations. Each row represents a user's membership in an organization and includes their `userId`, `organizationId`, and `role` within that organization (e.g., 'admin', 'member').
 - **`invitation`**: This table is used to manage invitations for users to join an organization.
 
+## Farm Groups
+
+Organizations can organize their farms into **farm groups**, stored in the `fdm` schema (`farm_groups`, `farm_group_joining` and `farm_group_leaving`). A farm can belong to multiple groups. Groups are organizational metadata: they do not grant access to farms, access remains controlled per farm. The organization holds the `owner` role on the `farm_group` resource, so all members of the organization can use the groups.
+
 ## Multi-Farm Access and Management
 
 Organizations enable a powerful mechanism for managing access to farms for groups of users. Instead of granting roles to individual users for each farm, an owner of a farm can grant a role (e.g., `advisor` or `researcher`) directly to an `Organization`.

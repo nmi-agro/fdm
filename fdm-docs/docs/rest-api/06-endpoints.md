@@ -69,6 +69,24 @@ X-API-Key: fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 ---
 
+## Farm groups
+
+Farm groups are named, organization-scoped groupings of farms. The API key owner must be a member of the organization. Group membership is recorded as events: adding a farm records a joining and removing a farm records a leaving; no membership rows are deleted.
+
+| Method   | Path                                               | Description                                       | `fdm-core` mapping    |
+| -------- | -------------------------------------------------- | ------------------------------------------------- | --------------------- |
+| `GET`    | `/api/organizations/{organization_id}/farm-groups` | List the farm groups of an organization           | `listFarmGroups`      |
+| `POST`   | `/api/organizations/{organization_id}/farm-groups` | Create a farm group                               | `createFarmGroup`     |
+| `GET`    | `/api/farm-groups/{b_id_group}`                    | Get a group including its current member farm ids | `getFarmGroup`        |
+| `PATCH`  | `/api/farm-groups/{b_id_group}`                    | Rename a group                                    | `renameFarmGroup`     |
+| `DELETE` | `/api/farm-groups/{b_id_group}`                    | Delete a group and its membership history         | `removeFarmGroup`     |
+| `POST`   | `/api/farm-groups/{b_id_group}/farms`              | Add a farm to a group (body: `b_id_farm`)         | `addFarmToGroup`      |
+| `DELETE` | `/api/farm-groups/{b_id_group}/farms/{b_id_farm}`  | Remove a farm from a group                        | `removeFarmFromGroup` |
+
+`GET /api/farms` also accepts a `b_id_group` query parameter to list only the farms of a group.
+
+---
+
 ## Fields
 
 | Method   | Path                            | Description                  | `fdm-core` mapping |
