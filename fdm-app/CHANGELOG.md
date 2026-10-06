@@ -1,5 +1,13 @@
 # Changelog fdm-app
 
+## 0.37.1
+
+### Patch Changes
+
+- [#821](https://github.com/nmi-agro/fdm/pull/821) [`13aa9d6`](https://github.com/nmi-agro/fdm/commit/13aa9d63dea0ebbffba2613379b372d9b963894d) Thanks [@SvenVw](https://github.com/SvenVw)! - Add the `RVO_LOG_XML` environment variable (`none`, `request`, `response` or `both`; default `none`) to log the SOAP XML exchanged with RVO. The value is validated at startup. Logged XML can contain farm data, so only enable it temporarily for debugging.
+- Updated dependencies [[`13aa9d6`](https://github.com/nmi-agro/fdm/commit/13aa9d63dea0ebbffba2613379b372d9b963894d)]:
+  - @nmi-agro/fdm-rvo@0.6.0
+
 ## 0.37.0
 
 ### Minor Changes

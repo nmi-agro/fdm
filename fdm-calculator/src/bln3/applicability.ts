@@ -6,6 +6,7 @@ import type {
 } from "./types"
 import { bln3Client } from "../nmi/client"
 import pkg from "../package"
+import { pickBln3Payload } from "./payload"
 
 /**
  * Requests BLN3 measure applicability from the NMI API for a single field.
@@ -47,7 +48,7 @@ export async function requestBln3MeasureApplicability(
           Authorization: `Bearer ${nmiApiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(fieldData),
+        body: JSON.stringify(pickBln3Payload("applicability", fieldData)),
       },
     )
 

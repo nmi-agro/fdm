@@ -49,6 +49,7 @@ export interface ServerConfig {
       redirectUri: string
       clientName: string
       pkioPrivateKey: string
+      logXml: "none" | "request" | "response" | "both"
     }
     gemini?: {
       api_key: string
