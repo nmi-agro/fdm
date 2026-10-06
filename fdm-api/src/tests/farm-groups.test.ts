@@ -408,14 +408,13 @@ describe("PATCH /farm-groups/{b_id_group}/farms/{b_id_farm}", () => {
     const updateFarmGroupMembership = vi.fn().mockResolvedValue(undefined)
     const getFarmGroup = vi.fn().mockResolvedValue(group)
     const res = await makeApp({ updateFarmGroupMembership, getFarmGroup }).request(
-      "/farm-groups/group-1/farms/farm-1",
+      "/farm-groups/group-1/farms/farm-1/2020-01-01",
       {
         method: "PATCH",
         headers: jsonHeaders,
         body: JSON.stringify({
-          b_group_joined: "2020-01-01",
-          new_b_group_joined: "2019-06-01",
-          new_b_group_leaved: null,
+          b_group_joined: "2019-06-01",
+          b_group_leaved: null,
         }),
       },
     )
@@ -435,11 +434,11 @@ describe("PATCH /farm-groups/{b_id_group}/farms/{b_id_farm}", () => {
       .fn()
       .mockRejectedValue(coreError("The period overlaps another period of the farm in the group"))
     const res = await makeApp({ updateFarmGroupMembership }).request(
-      "/farm-groups/group-1/farms/farm-1",
+      "/farm-groups/group-1/farms/farm-1/2020-01-01",
       {
         method: "PATCH",
         headers: jsonHeaders,
-        body: JSON.stringify({ b_group_joined: "2020-01-01", new_b_group_leaved: "2030-01-01" }),
+        body: JSON.stringify({ b_group_leaved: "2030-01-01" }),
       },
     )
     expect(res.status).toBe(409)
@@ -450,27 +449,27 @@ describe("PATCH /farm-groups/{b_id_group}/farms/{b_id_farm}", () => {
       .fn()
       .mockRejectedValue(coreError("Farm group membership not found"))
     const res = await makeApp({ updateFarmGroupMembership }).request(
-      "/farm-groups/group-1/farms/farm-1",
+      "/farm-groups/group-1/farms/farm-1/2020-01-01",
       {
         method: "PATCH",
         headers: jsonHeaders,
-        body: JSON.stringify({ b_group_joined: "2020-01-01", new_b_group_leaved: "2030-01-01" }),
+        body: JSON.stringify({ b_group_leaved: "2030-01-01" }),
       },
     )
     expect(res.status).toBe(404)
   })
 
-  it("returns 400 for a missing start date and 401 without a key", async () => {
-    const bad = await makeApp().request("/farm-groups/group-1/farms/farm-1", {
+  it("returns 400 for an invalid join date in the path and 401 without a key", async () => {
+    const bad = await makeApp().request("/farm-groups/group-1/farms/farm-1/not-a-date", {
       method: "PATCH",
       headers: jsonHeaders,
-      body: JSON.stringify({}),
+      body: JSON.stringify({ b_group_leaved: "2030-01-01" }),
     })
     expect(bad.status).toBe(400)
-    const noKey = await makeApp().request("/farm-groups/group-1/farms/farm-1", {
+    const noKey = await makeApp().request("/farm-groups/group-1/farms/farm-1/2020-01-01", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ b_group_joined: "2020-01-01" }),
+      body: JSON.stringify({ b_group_leaved: "2030-01-01" }),
     })
     expect(noKey.status).toBe(401)
   })

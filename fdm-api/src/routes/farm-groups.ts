@@ -109,16 +109,13 @@ const RemoveFarmFromGroupQuerySchema = z.object({
 
 const UpdateGroupMembershipBodySchema = z
   .object({
-    b_group_joined: DateStringSchema.describe(
-      "Current start date of the period (YYYY-MM-DD). It identifies the period to change.",
+    b_group_joined: DateStringSchema.optional().describe(
+      "Updates the date from which the farm is part of the group (YYYY-MM-DD). Omit to keep the current join date.",
     ),
-    new_b_group_joined: DateStringSchema.optional().describe(
-      "New date from which the farm is part of the group. Omit to keep the start date.",
-    ),
-    new_b_group_leaved: DateStringSchema.nullable()
+    b_group_leaved: DateStringSchema.nullable()
       .optional()
       .describe(
-        "New date until which the farm is part of the group. Use null to remove the end date. Omit to keep the end date.",
+        "Updates the date until which the farm is part of the group (YYYY-MM-DD). Use null to remove the end date. Omit to keep the current end date.",
       ),
   })
   .openapi("UpdateFarmGroupMembership")
@@ -267,14 +264,20 @@ const removeFarmFromGroupRoute = createRoute({
 
 const updateGroupMembershipRoute = createRoute({
   method: "patch",
-  path: "/farm-groups/{b_id_group}/farms/{b_id_farm}",
+  path: "/farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}",
   tags: ["Farm Groups"],
   summary: "Change the dates of a membership period",
   description:
-    "Changes the start and/or end date of an existing period in which a farm is part of the group. The period is identified by its current start date. The dates are chosen by the caller, not the moment of the request. A period may not overlap another period of the same farm in the group.",
+    "Changes the join date and/or the end date of an existing period in which a farm is part of the group. The period is identified by the b_group_joined in the path, which is its current join date. A b_group_joined in the body updates the join date to that new date; a b_group_leaved in the body updates the end date (null removes it). The dates are chosen by the caller, not the moment of the request. A period may not overlap another period of the same farm in the group.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
-    params: z.object({ b_id_group: z.string(), b_id_farm: z.string() }),
+    params: z.object({
+      b_id_group: z.string(),
+      b_id_farm: z.string(),
+      b_group_joined: DateStringSchema.describe(
+        "Current join date of the period (YYYY-MM-DD). It identifies the period to change.",
+      ),
+    }),
     body: {
       content: { "application/json": { schema: UpdateGroupMembershipBodySchema } },
       required: true,
@@ -521,9 +524,10 @@ export function registerFarmGroupRoutes(
   ) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { b_id_group, b_id_farm } = c.req.valid("param") as {
+    const { b_id_group, b_id_farm, b_group_joined } = c.req.valid("param") as {
       b_id_group: string
       b_id_farm: string
+      b_group_joined: string
     }
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof UpdateGroupMembershipBodySchema>
@@ -533,14 +537,14 @@ export function registerFarmGroupRoutes(
         principal.effectivePrincipalId,
         b_id_group,
         b_id_farm,
-        new Date(body.b_group_joined),
+        new Date(b_group_joined),
         {
-          b_group_joined: body.new_b_group_joined ? new Date(body.new_b_group_joined) : undefined,
+          b_group_joined: body.b_group_joined ? new Date(body.b_group_joined) : undefined,
           b_group_leaved:
-            body.new_b_group_leaved === null
+            body.b_group_leaved === null
               ? null
-              : body.new_b_group_leaved
-                ? new Date(body.new_b_group_leaved)
+              : body.b_group_leaved
+                ? new Date(body.b_group_leaved)
                 : undefined,
         },
       )
