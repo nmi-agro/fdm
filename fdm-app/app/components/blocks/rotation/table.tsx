@@ -91,6 +91,38 @@ export function DataTable<TData extends RotationExtended>({
   )
   const location = useLocation()
 
+  const tableScrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Whether the sticky table cells on the left and right may be in a stuck state.
+  const [stuck, setStuck] = useState({ left: false, right: false })
+
+  // Add scroll and resize listeners to the scroll container of the table which will
+  // adjust the styles of sticky cells.
+  useEffect(() => {
+    const table = tableScrollContainerRef.current?.querySelector("table")
+    const scroller = table?.parentElement
+    if (!table || !scroller) return
+
+    const update = () => {
+      const left = scroller.scrollLeft > 0
+      const right = Math.ceil(scroller.scrollLeft + scroller.clientWidth) < scroller.scrollWidth
+      setStuck((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+    }
+
+    update()
+    scroller.addEventListener("scroll", update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(scroller)
+    observer.observe(table)
+    return () => {
+      scroller.removeEventListener("scroll", update)
+      observer.disconnect()
+    }
+  }, [])
+
+  const isCellStuck = (columnId: string) =>
+    (columnId === "select" && stuck.left) || (columnId === "actions" && stuck.right)
+
   const selection = useRotationSelectionStore((state) => state.selection)
   const setSelection = useRotationSelectionStore((state) => state.setSelection)
   const syncFarm = useRotationSelectionStore((state) => state.syncFarm)
@@ -419,7 +451,10 @@ export function DataTable<TData extends RotationExtended>({
           </TooltipProvider>
         </div>
       </div>
-      <div className="relative grow overflow-x-auto rounded-md border">
+      <div
+        ref={tableScrollContainerRef}
+        className="relative grow overflow-x-auto rounded-md border"
+      >
         <Table>
           <TableHeader className="bg-background sticky top-0 z-5">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -428,9 +463,12 @@ export function DataTable<TData extends RotationExtended>({
                   return (
                     <TableHead
                       key={header.id}
-                      className={cn("box-border", {
-                        "sticky left-0": header.column.id === "select",
-                        "sticky right-0": header.column.id === "actions",
+                      data-stuck={isCellStuck(header.column.id) ? "" : undefined}
+                      className={cn("box-border transition-colors", {
+                        "data-stuck:bg-background sticky left-0 z-10":
+                          header.column.id === "select",
+                        "data-stuck:bg-background sticky right-0 z-10":
+                          header.column.id === "actions",
                         "min-w-35": header.column.id === "name",
                       })}
                     >
@@ -471,9 +509,11 @@ export function DataTable<TData extends RotationExtended>({
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
+                      data-stuck={isCellStuck(cell.column.id) ? "" : undefined}
                       className={cn({
-                        "sticky left-0": cell.column.id === "select",
-                        "sticky right-0": cell.column.id === "actions",
+                        "data-stuck:bg-background sticky left-0 z-10": cell.column.id === "select",
+                        "data-stuck:bg-background sticky right-0 z-10":
+                          cell.column.id === "actions",
                       })}
                     >
                       <FlexRender cell={cell} />
