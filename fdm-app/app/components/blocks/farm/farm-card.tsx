@@ -13,6 +13,7 @@ export interface FarmWithRoles {
   userRoles: Role[]
   organizationRoles?: Role[]
   organization?: {
+    id?: string
     slug: string
     name: string
   }

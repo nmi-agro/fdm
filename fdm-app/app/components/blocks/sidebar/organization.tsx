@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Cog,
   House,
+  Layers,
   LayoutGrid,
   Users,
 } from "lucide-react"
@@ -74,6 +75,7 @@ export function SidebarOrganization({
       if (subPath.includes("members")) activeTab = "members"
       if (subPath.includes("farms")) activeTab = "farms"
       if (subPath.includes("measures")) activeTab = "measures"
+      if (subPath.includes("groups")) activeTab = "groups"
     }
   }
 
@@ -217,6 +219,33 @@ export function SidebarOrganization({
                 </TooltipTrigger>
                 <TooltipContent side="right">
                   Selecteer een organisatie om de bedrijven te beheren
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            {organization ? (
+              <SidebarMenuButton asChild isActive={activeTab === "groups"}>
+                <NavLink to={`/organization/${organization.slug}/groups`}>
+                  <Layers />
+                  <span>Groepen</span>
+                </NavLink>
+              </SidebarMenuButton>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarMenuButton
+                    asChild
+                    className="cursor-not-allowed opacity-50 hover:bg-transparent"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Layers />
+                      <span>Groepen</span>
+                    </span>
+                  </SidebarMenuButton>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  Selecteer een organisatie om de groepen te beheren
                 </TooltipContent>
               </Tooltip>
             )}

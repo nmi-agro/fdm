@@ -14,11 +14,13 @@ import {
   getAggregationInfo,
   getFieldAggregationScore,
 } from "~/lib/aggregations"
-import { auth } from "~/lib/auth.server"
+import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
+import { auth, getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getOrganizationFarmGroups, parseFarmIdsParam, selectFarms } from "~/lib/farm-selection.server"
 import { INDICATORS } from "~/lib/indicators"
 import type { Route } from "./+types/organization.$slug.$calendar.atlas.indicators"
 import { computeFieldAvgScore } from "./farm.$b_id_farm.$calendar.atlas.indicators"
@@ -70,7 +72,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       })
     }
 
-    const farms = await getFarms(fdm, organization.id)
+    const allFarms = await getFarms(fdm, organization.id)
+    const farms = selectFarms(allFarms, parseFarmIdsParam(new URL(request.url)))
+    const session = await getSession(request)
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      allFarms.map((farm) => farm.b_id_farm),
+    )
 
     // Sequential score promises: farm i+1 starts only after farm i finishes
     const farmScoreStreams: Array<Promise<FarmFlattenedScores>> = []
@@ -190,6 +199,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       calendar: calendar,
       fieldsGeoJSON: fieldsGeoJson,
       farmScoreStreams: farmScoreStreams,
+      farmGroups: farmGroups,
       mapStyle: mapStyle,
     }
   } catch (error) {
@@ -199,7 +209,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function OrgAtlasIndicatorsMap() {
-  const { organization, calendar, fieldsGeoJSON, mapStyle, farmScoreStreams } =
+  const { organization, calendar, fieldsGeoJSON, mapStyle, farmScoreStreams, farmGroups } =
     useLoaderData<typeof loader>()
   const tablePath = `/organization/${organization.slug}/${calendar}/indicators`
   const [selectedProperty, setSelectedProperty] = useState("S_BLN")
@@ -274,6 +284,10 @@ export default function OrgAtlasIndicatorsMap() {
 
   return (
     <div style={{ height: "calc(100vh - var(--app-header-height))" }} className="relative">
+      <div className="absolute top-4 right-4 z-10">
+        <GroupPicker groups={farmGroups} />
+      </div>
+
       {/* Floating indicator selector + info banner */}
       <ScoreSelect
         selectedProperty={selectedProperty}

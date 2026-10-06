@@ -27,6 +27,7 @@ import {
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons" // Can be reused
+import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { NoFarmsMessage } from "~/components/blocks/organization/no-farms-message"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
@@ -35,6 +36,8 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import type { OrganizationFarmGroup } from "~/lib/farm-groups"
+import { getOrganizationFarmGroups, parseFarmIdsParam } from "~/lib/farm-selection.server"
 import { FarmSelectDialog } from "../components/blocks/balance/farm-select-dialog"
 
 type Farm = Awaited<ReturnType<typeof getFarms>>[number]
@@ -61,6 +64,7 @@ type LoaderData =
   | {
       organization: Organization
       noFarms: false
+      farmGroups: OrganizationFarmGroup[]
       asyncData: Promise<AsyncData>
     }
 
@@ -90,16 +94,7 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
 
     const url = new URL(request.url)
 
-    let searchParamFarmIds: string[] | undefined
-    if (url.searchParams.has("farmIds")) {
-      searchParamFarmIds = url.searchParams.get("farmIds")?.split(",").filter(Boolean)
-      if (!searchParamFarmIds || searchParamFarmIds.length === 0) {
-        throw data("invalid: farmIds", {
-          status: 400,
-          statusText: "invalid: farmIds",
-        })
-      }
-    }
+    const searchParamFarmIds = parseFarmIdsParam(url)
 
     // Get timeframe from calendar store
     const timeframe = getTimeframe(params)
@@ -281,11 +276,18 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
       }
     }
 
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      farms.map((farm) => farm.b_id_farm),
+    )
+
     const asyncData = getAsyncData(organization.id)
 
     return {
       organization: organization,
       noFarms: false,
+      farmGroups: farmGroups,
       asyncData: asyncData,
     }
   } catch (error) {
@@ -491,6 +493,7 @@ function OrganizationFarmBalanceOrganicMatterOverview(loaderData: LoaderData) {
           <CardHeader>
             <CardTitle className="flex flex-row items-center gap-2 space-y-0 pb-2">
               <p className="grow">Bedrijven</p>
+              <GroupPicker groups={loaderData.farmGroups} />
               <FarmSelectDialog
                 farms={asyncData.farms}
                 defaultSelectedFarmIds={asyncData.farmIds}

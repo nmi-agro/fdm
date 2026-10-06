@@ -2,6 +2,7 @@ import {
   acceptInvitation,
   declineInvitation,
   getFarms,
+  listFarmGroups,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
 import { ArrowRight, Check, Layers, LifeBuoy, MapIcon, Mountain, Plus } from "lucide-react"
@@ -14,6 +15,7 @@ import {
   useLoaderData,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import { GroupedFarmCards } from "~/components/blocks/farm-groups/grouped-farm-cards"
 import { FarmCard, type FarmWithRoles } from "~/components/blocks/farm/farm-card"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { PendingInvitationCard } from "~/components/blocks/farm/pending-invitation"
@@ -34,7 +36,7 @@ import { Separator } from "~/components/ui/separator"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
-import { handleLoaderError } from "~/lib/error"
+import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getTimeBasedGreeting } from "~/lib/greetings"
@@ -118,6 +120,26 @@ export async function loader({ request }: LoaderFunctionArgs) {
       headers: request.headers,
     })
 
+    // Get the farm groups of the organizations. A failure should not block the farm overview.
+    const farmGroups = (
+      await Promise.all(
+        organizations.map(async (organization) => {
+          try {
+            const groups = await listFarmGroups(fdm, session.principal_id, organization.id)
+            return groups.map((group) => ({
+              b_id_group: group.b_id_group,
+              b_name_group: group.b_name_group,
+              b_id_organization: organization.id,
+              b_id_farms: group.b_id_farms,
+            }))
+          } catch (error) {
+            reportError(error)
+            return []
+          }
+        }),
+      )
+    ).flat()
+
     // Return user information from loader
     return {
       farms: farms.map((farm) => {
@@ -165,6 +187,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }),
       farmOptions: farmOptions,
       organizations: organizations,
+      farmGroups: farmGroups,
       username: session.userName,
       greeting: getTimeBasedGreeting(),
       pendingInvitations: pendingInvitations,
@@ -491,11 +514,16 @@ export default function AppIndex() {
                   description={"Selecteer een bedrijf van uw organisaties voor beheer en analyses."}
                 />
 
-                <div className="grid gap-6 px-4 pb-6 md:px-8 md:pb-8 lg:grid-cols-2 xl:grid-cols-3">
-                  {organizationFarms.map((farm) => (
-                    <FarmCard key={farm.b_id_farm} farm={farm} />
-                  ))}
-                </div>
+                <GroupedFarmCards
+                  farms={organizationFarms}
+                  groups={loaderData.farmGroups}
+                  organizationNames={Object.fromEntries(
+                    loaderData.organizations.map((organization) => [
+                      organization.id,
+                      organization.name,
+                    ]),
+                  )}
+                />
               </>
             )}
 
