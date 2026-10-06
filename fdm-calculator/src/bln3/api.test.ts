@@ -152,6 +152,35 @@ describe("BLN3 score", () => {
       )
     })
 
+    it("should not send local-only fields to the NMI API", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBln3ScoreResponse,
+      } as Response)
+
+      await requestBln3Score({
+        ...baseInputs,
+        b_lu_croprotation: "catchcrop",
+        b_lu_catalogue: "nl_233",
+        b_bufferstrip: false,
+        isExcluded: false,
+        cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
+      } as Bln3ScoreInputs)
+
+      const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string)
+      expect(body).toMatchObject({ a_lat: 51.613, a_lon: 5.2 })
+      expect(body.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2025 }])
+      for (const field of [
+        "nmiApiKey",
+        "isExcluded",
+        "b_bufferstrip",
+        "b_lu_croprotation",
+        "b_lu_catalogue",
+      ]) {
+        expect(body).not.toHaveProperty(field)
+      }
+    })
+
     it("should return mapped Bln3Score with indicators (plural)", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
@@ -475,6 +504,35 @@ describe("BLN3 measure applicability", () => {
       )
     })
 
+    it("should not send local-only fields to the NMI API", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockApplicabilityResponse,
+      } as Response)
+
+      await requestBln3MeasureApplicability({
+        ...baseInputs,
+        b_lu_croprotation: "catchcrop",
+        b_lu_catalogue: "nl_233",
+        b_bufferstrip: false,
+        isExcluded: false,
+        cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
+      } as Bln3MeasureApplicabilityInputs)
+
+      const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string)
+      expect(body).toMatchObject({ a_lat: 51.613, a_lon: 5.2 })
+      expect(body.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2025 }])
+      for (const field of [
+        "nmiApiKey",
+        "isExcluded",
+        "b_bufferstrip",
+        "b_lu_croprotation",
+        "b_lu_catalogue",
+      ]) {
+        expect(body).not.toHaveProperty(field)
+      }
+    })
+
     it("should prefix measure IDs with 'bln_' in response", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
@@ -721,6 +779,35 @@ describe("BLN3 measure advice", () => {
       }
       await expect(requestBln3MeasureAdvice(inputs)).rejects.toThrow("NMI API key not provided")
       expect(fetch).not.toHaveBeenCalled()
+    })
+
+    it("should not send local-only fields to the NMI API", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockAdviceResponse,
+      } as Response)
+
+      await requestBln3MeasureAdvice({
+        ...baseInputs,
+        b_lu_croprotation: "catchcrop",
+        b_lu_catalogue: "nl_233",
+        b_bufferstrip: false,
+        isExcluded: false,
+        cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
+      } as Bln3MeasureAdviceInputs)
+
+      const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string)
+      expect(body).toMatchObject({ a_lat: 51.613, a_lon: 5.2 })
+      expect(body.cultivations).toEqual([{ b_lu_brp: 266, b_lu_year: 2025 }])
+      for (const field of [
+        "nmiApiKey",
+        "isExcluded",
+        "b_bufferstrip",
+        "b_lu_croprotation",
+        "b_lu_catalogue",
+      ]) {
+        expect(body).not.toHaveProperty(field)
+      }
     })
 
     it("should call NMI API with correct URL, headers, and body", async () => {
