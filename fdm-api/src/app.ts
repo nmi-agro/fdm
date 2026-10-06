@@ -1,7 +1,8 @@
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import { OpenAPIHono } from "@hono/zod-openapi"
-import { apiReference } from "@scalar/hono-api-reference"
+import { Scalar } from "@scalar/hono-api-reference"
 import { cors } from "hono/cors"
+import { readFileSync } from "node:fs"
 import type { FdmApiConfig, FdmApiServices } from "./index"
 import type { ApiEnv } from "./types"
 import { createApiKeyAuth } from "./auth"
@@ -16,9 +17,24 @@ import { registerFertilizerRoutes } from "./routes/fertilizers"
 import { registerFieldRoutes } from "./routes/fields"
 import { registerGrazingIntentionRoutes } from "./routes/grazing-intentions"
 import { registerHarvestRoutes } from "./routes/harvests"
+import { registerIndicatorRoutes } from "./routes/indicators"
 import { registerMeasureRoutes } from "./routes/measures"
 import { registerOrganicCertificationRoutes } from "./routes/organic-certifications"
 import { registerSoilAnalysisRoutes } from "./routes/soil-analyses"
+
+/**
+ * Reads the API changelog (markdown) that is shown as a separate page in the API reference.
+ *
+ * The file sits next to this module in `src` and is copied to `dist` during the build.
+ * A missing file must never break the documentation, so it falls back to an empty text.
+ */
+function readChangelog(): string {
+  try {
+    return readFileSync(new URL("./changelog.md", import.meta.url), "utf8")
+  } catch {
+    return ""
+  }
+}
 
 /**
  * Builds the OpenAPI-enabled Hono application that serves the FDM API.
@@ -92,6 +108,7 @@ export function buildApp(
   registerFertilizerRoutes(app, fdm, services)
   registerFertilizerApplicationRoutes(app, fdm, services)
   registerMeasureRoutes(app, fdm, services)
+  registerIndicatorRoutes(app, fdm, services)
   registerOrganicCertificationRoutes(app, fdm, services)
   registerDerogationRoutes(app, fdm, services)
   registerGrazingIntentionRoutes(app, fdm, services)
@@ -129,11 +146,16 @@ export function buildApp(
 | **Fertilizers** | Custom fertilizers and catalogue look-ups |
 | **Fertilizer applications** | Record, update, and delete applications per field |
 | **Soil analyses** | Upload and query lab results |
-| **Measures** | Record agronomic measures (e.g. tillage, cover crops) |
+| **Measures** | Record agronomic measures and list the measure options of a field with applicability, predicted impacts and recommendations |
+| **Indicators** | Indicator and aggregation scores per field and area-weighted per farm |
 | **Organic certifications** | Register and verify certification periods |
 | **Derogations** | Manage regulatory derogations |
 | **Grazing intentions** | Set and query yearly grazing plans |
 | **Calculations** | Nitrogen balance, organic-matter balance, fertilization norms, NPK dose |
+
+## Changelog
+
+Recent additions are listed under **Changelog** in the navigation.
 
 ## Authentication
 
@@ -161,6 +183,8 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
     },
     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
     tags: [
+      // First in the list, so the sidebar shows it directly below the introduction.
+      { name: "Changelog", description: readChangelog() },
       { name: "Farms", description: "Manage farms" },
       { name: "Fields", description: "Manage fields within farms" },
       {
@@ -179,7 +203,16 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
         name: "Fertilizer Applications",
         description: "Manage fertilizer applications on fields",
       },
-      { name: "Measures", description: "Manage measures on fields" },
+      {
+        name: "Measures",
+        description:
+          "Manage measures on fields. `GET /fields/{b_id}/measures/catalogue` lists the measure options of a field with applicability, predicted impacts and recommendations.",
+      },
+      {
+        name: "Indicators",
+        description:
+          "Indicator and aggregation scores for fields and farms. These endpoints are new and require the `year` query parameter.",
+      },
       {
         name: "Organic Certifications",
         description: "Manage farm organic certifications",
@@ -200,7 +233,7 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
   // Scalar UI
   app.get(
     "/docs",
-    apiReference({
+    Scalar({
       pageTitle: `${appName} REST API`,
       url: `${pathPrefix}/openapi.json`,
       theme: "saturn",

@@ -150,6 +150,26 @@ Calculation endpoint schemas are documented once the response format is stable. 
 
 ---
 
+## Indicators and measure options
+
+Read-only endpoints for indicator scores and the measure options of a field. All require a four-digit `year` query parameter (e.g. `?year=2026`); soil analyses and adopted measures are limited to 1 January through 31 December of that year, while the cultivation history needed for the indicators is kept. They use the NMI API and have their own rate limit of **10 requests per minute per key** (`nmi` bucket). These endpoints are new; they carry a **New** badge in the API reference, and recent API changes are listed on the **Changelog** page there.
+
+| Method | Path                                    | Description                                                            |
+| ------ | --------------------------------------- | ---------------------------------------------------------------------- |
+| `GET`  | `/api/fields/{b_id}/indicators`         | Indicator and aggregation scores of a field                            |
+| `GET`  | `/api/farms/{b_id_farm}/indicators`     | Scores of all eligible fields and area-weighted farm scores            |
+| `GET`  | `/api/fields/{b_id}/measures/catalogue` | Field-level catalogue measures with applicability, impacts and ranking |
+
+Scores are on the normalized indicator scale (0..1, higher is better).
+
+- **Excluded fields:** buffer strips and nature fields return `200` with `is_excluded: true` and empty `indicators`/`aggregations` (or `data: []`). A farm leaves them out of `fields` and weighting; a farm without eligible fields returns empty `fields` and empty farm aggregates.
+- **Farm weighting:** each indicator and aggregation is weighted by the positive area of the eligible fields that have a score for it. Metrics without contributing fields are omitted. If any eligible field cannot be scored, the whole request fails with `503`.
+- **Measure options:** `/measures/catalogue` lists catalogue candidates, not adopted measures. Farm-only entries and sources not enabled for the farm are left out; inapplicable, active, conflicting and non-recommended field-level entries stay visible. `applicability.status` is `applicable`, `not yet applicable`, `inapplicable` or `unknown` (no result; never treated as applicable). `selectable` is a hint; creating the measure with `POST /fields/{b_id}/measures` is validated again.
+- **Predicted impacts:** `predicted_impacts` holds the positive impacts over all indicators, also for options that are not recommended. `recommendation` is `null` unless the option is among the top five applicable, not-yet-adopted, non-conflicting options; `indicator_impacts` then holds the impacts on the weak (non-green) indicators used for ranking, and `aggregate_impact` their sum. Predicted impacts are advice for this field and year, not stored on the measure. The upstream advice service is experimental.
+- **Errors:** `400` for a missing or invalid `year`, `401`, `403`, `404`, `429`, and `503` when scores, applicability or advice are unavailable or the server has no NMI configuration. Responses never contain upstream error details, credentials or coordinates.
+
+---
+
 ## OpenAPI documentation
 
 | Path                | Description                                         |

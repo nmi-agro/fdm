@@ -14,7 +14,19 @@ export const RATE_LIMITS = {
   general: 120,
   write: 30,
   calc: 10,
+  nmi: 10,
 } as const
+
+/**
+ * Matches the paths that trigger requests to the NMI API. These are counted in the
+ * `nmi` bucket only, so the `general` and `write` middleware of the parent resources
+ * (`/farms/*`, `/fields/*`) must not count them a second time.
+ */
+const NMI_PATH_PATTERNS: RegExp[] = [
+  /\/fields\/[^/]+\/indicators\/?$/,
+  /\/farms\/[^/]+\/indicators\/?$/,
+  /\/fields\/[^/]+\/measures\/catalogue\/?$/,
+]
 
 /**
  * Enumerates the supported rate-limit buckets understood by the middleware.
@@ -37,6 +49,10 @@ export function rateLimitMiddleware(fdm: FdmType, bucket: RateBucket): Middlewar
   const limit = RATE_LIMITS[bucket]
 
   return async (c, next) => {
+    if (bucket !== "nmi" && NMI_PATH_PATTERNS.some((pattern) => pattern.test(c.req.path))) {
+      return next()
+    }
+
     // Guard against double-counting: if this bucket already ran for this request, skip the increment.
     let seen = c.get("rateLimitBucketsSeen")
     if (!seen) {

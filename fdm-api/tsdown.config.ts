@@ -9,5 +9,6 @@ export default defineConfig({
   target: "node24",
   clean: true,
   outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
+  copy: [{ from: "src/changelog.md", to: "dist" }],
   deps: { neverBundle: ["@nmi-agro/fdm-core"] },
 })

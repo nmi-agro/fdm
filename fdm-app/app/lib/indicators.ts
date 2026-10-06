@@ -16,7 +16,17 @@ export type IndicatorInfo = {
   unit?: string | null
 }
 
-export type ScoreTier = "green" | "yellow" | "red"
+import {
+  EXCLUDED_BLN3_BRP_CODES,
+  getScoreTier,
+  isExcludedFromBln3,
+  type ScoreTier,
+  scoreToDisplay,
+} from "@nmi-agro/fdm-calculator"
+
+// Score and exclusion rules are shared with the REST API through fdm-calculator.
+export { EXCLUDED_BLN3_BRP_CODES, getScoreTier, isExcludedFromBln3, scoreToDisplay }
+export type { ScoreTier }
 
 /**
  * A measure as returned by the React Router loader after JSON serialization.
@@ -281,21 +291,6 @@ export const ECOSYSTEEMDIENSTEN: Ecosysteemdienst[] = [
   "Nutriëntenkringloop",
 ]
 
-/** Convert 0–1 API score to 0–100 display value. */
-export function scoreToDisplay(score01: number | null | undefined): number {
-  if (typeof score01 !== "number" || !Number.isFinite(score01)) {
-    return 0
-  }
-  return Math.round(score01 * 100)
-}
-
-/** Returns a colour tier for a 0–100 display score. */
-export function getScoreTier(score100: number): ScoreTier {
-  if (score100 >= 70) return "green"
-  if (score100 >= 40) return "yellow"
-  return "red"
-}
-
 /** Returns a hex fill colour for a 0–100 display score (used by MapLibre). */
 export function getScoreColor(score100: number): string {
   const tier = getScoreTier(score100)
@@ -360,27 +355,6 @@ export function getIndicatorsByEcosysteemdienst(
 }
 
 // ── BLN3 Exclusions ────────────────────────────────────────────────────────
-
-/** BRP catalogue codes for non-agricultural plots (ditches, inspection paths) excluded from BLN3 */
-export const EXCLUDED_BLN3_BRP_CODES = ["nl_343", "nl_6801"]
-
-/**
- * Determines whether a field / cultivation is excluded from BLN3 calculations and soil measures.
- */
-export function isExcludedFromBln3({
-  b_bufferstrip,
-  b_lu_croprotation,
-  b_lu_catalogue,
-}: {
-  b_bufferstrip?: boolean | null
-  b_lu_croprotation?: string | null
-  b_lu_catalogue?: string | null
-}): boolean {
-  if (b_bufferstrip === true) return true
-  if (b_lu_croprotation === "nature") return true
-  if (b_lu_catalogue && EXCLUDED_BLN3_BRP_CODES.includes(b_lu_catalogue)) return true
-  return false
-}
 
 /**
  * Returns a user-facing explanation in Dutch of why BLN and measures are unavailable for a field.

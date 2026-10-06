@@ -43,13 +43,13 @@ export type Bln3ScoreCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
-  /** Buffer strip flag */
+  /** Buffer strip flag. Used locally to decide on exclusion; not sent to the NMI API. */
   b_bufferstrip?: boolean
-  /** Crop rotation category of the target year's main cultivation */
+  /** Crop rotation category of the target year's main cultivation. Used locally to decide on exclusion; not sent to the NMI API. */
   b_lu_croprotation?: string
-  /** Catalogue code of the target year's main cultivation */
+  /** Catalogue code of the target year's main cultivation. Used locally to decide on exclusion; not sent to the NMI API. */
   b_lu_catalogue?: string
-  /** Flag indicating field is excluded from BLN3 calculations */
+  /** Flag indicating field is excluded from BLN3 calculations. Used locally; not sent to the NMI API. */
   isExcluded?: boolean
 
   // ── Soil analysis ────────────────────────────────────────────────────────
@@ -220,13 +220,13 @@ export type Bln3MeasureApplicabilityCollectedInputs = {
   b_soiltype_agr?: SoilTypes
   /** Groundwater class */
   b_gwl_class?: GwlClasses
-  /** Buffer strip flag */
+  /** Buffer strip flag. Used locally to decide on exclusion; not sent to the NMI API. */
   b_bufferstrip?: boolean
-  /** Crop rotation category of the target year's main cultivation */
+  /** Crop rotation category of the target year's main cultivation. Used locally to decide on exclusion; not sent to the NMI API. */
   b_lu_croprotation?: string
-  /** Catalogue code of the target year's main cultivation */
+  /** Catalogue code of the target year's main cultivation. Used locally to decide on exclusion; not sent to the NMI API. */
   b_lu_catalogue?: string
-  /** Flag indicating field is excluded from BLN3 calculations */
+  /** Flag indicating field is excluded from BLN3 calculations. Used locally; not sent to the NMI API. */
   isExcluded?: boolean
 
   // Groundwater / soil potential estimates (optional)

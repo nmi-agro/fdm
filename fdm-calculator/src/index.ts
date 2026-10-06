@@ -74,7 +74,11 @@ export {
 } from "./bcs/index"
 export type { CalcPhDeltaParams, SoiltypeAgr } from "./bcs/ph-delta"
 export { calcPhDelta } from "./bcs/ph-delta"
+export type { FarmIndicators, FieldIndicators, FieldMeasureOptions } from "./bln3"
 export {
+  getFarmIndicators,
+  getFieldIndicators,
+  getFieldMeasureOptions,
   collectInputForBln3MeasureApplicability,
   collectInputForBln3Score,
   getBln3MeasureAdvice,
@@ -100,6 +104,8 @@ export type {
   Bln3ScoreCollectedInputs,
   Bln3ScoreInputs,
 } from "./bln3/types"
+export { IndicatorsUnavailableError } from "./bln3/errors"
+export * from "./bln3/postprocessing"
 export { calculateDose } from "./doses/calculate-dose"
 export type { Dose } from "./doses/d"
 export { getDoseForField } from "./doses/get-dose-field"

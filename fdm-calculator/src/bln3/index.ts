@@ -1,98 +1,240 @@
-import { withCalculationCache } from "@nmi-agro/fdm-core"
-import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
-import { bln3Client } from "../nmi/client"
-import pkg from "../package"
+import type { FdmType, PrincipalId, Timeframe } from "@nmi-agro/fdm-core"
+import {
+  getEnabledMeasureCatalogues,
+  getField,
+  getFields,
+  getMeasures,
+  getMeasuresFromCatalogue,
+} from "@nmi-agro/fdm-core"
+import type { Bln3Score } from "./types"
+import { getBln3MeasureAdvice, getBln3MeasureApplicability, getBln3Score } from "./api"
+import { IndicatorsUnavailableError } from "./errors"
+import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
+import { buildMeasureOptions, type MeasureOption } from "./recommendations"
+import { aggregateFarmScores, type FarmScores } from "./scoring"
 
 export { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
-export { getBln3MeasureApplicability, requestBln3MeasureApplicability } from "./applicability"
-export { getBln3MeasureAdvice, requestBln3MeasureAdvice } from "./advice"
+export {
+  getBln3MeasureAdvice,
+  getBln3MeasureApplicability,
+  getBln3Score,
+  requestBln3MeasureAdvice,
+  requestBln3MeasureApplicability,
+  requestBln3Score,
+} from "./api"
+
+/** Number of fields scored concurrently when scoring a whole farm. */
+const FARM_BATCH_SIZE = 5
 
 /**
- * Requests a BLN3 score from the NMI API for a single field.
+ * Builds the inclusive 1 January to 31 December timeframe of a calendar year.
  *
- * Calls `POST /maatwerk/bln3/score/field` with the provided field data and
- * returns per-indicator status, target, index, impact, and score values.
- * If the field is excluded (buffer strip or nature crop rotation), returns
- * `null` immediately without calling the API.
- *
- * @param inputs - Field data and NMI API key. Only `a_lat`, `a_lon`, and
- *   `nmiApiKey` are required; all other fields improve calculation quality.
- * @returns A promise resolving to a `Bln3Score` with `indicators` and
- *   optional `aggregations`, or `null` if excluded.
- * @throws If the NMI API key is not provided or the API request fails.
+ * @param year - Four-digit calendar year.
+ * @returns The timeframe covering the full year.
  */
-export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Score | null> {
-  if (
-    inputs.isExcluded ||
-    inputs.b_bufferstrip === true ||
-    inputs.b_lu_croprotation === "nature" ||
-    inputs.b_lu_catalogue === "nl_343" ||
-    inputs.b_lu_catalogue === "nl_6801"
-  ) {
-    return null
+export function getYearTimeframe(year: number): Timeframe {
+  return {
+    start: new Date(Date.UTC(year, 0, 1)),
+    end: new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999)),
   }
+}
 
-  const { nmiApiKey, ...fieldData } = inputs
-
+function requireKey(nmiApiKey: string | undefined): string {
   if (!nmiApiKey) {
-    throw new Error("NMI API key not provided")
+    throw new IndicatorsUnavailableError("Indicator calculations are not available on this server")
+  }
+  return nmiApiKey
+}
+
+/**
+ * Result of a indicator score request for one field.
+ */
+export type FieldIndicators = {
+  b_id: string
+  year: number
+  /** `true` for buffer strips and nature fields, which have no indicator score */
+  is_excluded: boolean
+  /** Score of the field; `null` only when the field is excluded */
+  score: Bln3Score | null
+}
+
+/**
+ * Retrieves the indicator and aggregation scores of a field for a calendar year.
+ *
+ * Soil analyses and adopted measures are limited to the year; the cultivation history
+ * required for the indicators is not.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal on whose behalf access is checked.
+ * @param b_id - Field identifier.
+ * @param year - Four-digit calendar year.
+ * @param nmiApiKey - NMI API key resolved server-side.
+ * @returns The score, or `is_excluded: true` without score for excluded fields.
+ * @throws {IndicatorsUnavailableError} When the score cannot be produced.
+ */
+export async function getFieldIndicators(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: string,
+  year: number,
+  nmiApiKey: string | undefined,
+): Promise<FieldIndicators> {
+  const inputs = await collectInputForBln3Score(fdm, principal_id, b_id, getYearTimeframe(year))
+  if (inputs.isExcluded) {
+    return { b_id, year, is_excluded: true, score: null }
+  }
+  const key = requireKey(nmiApiKey)
+  let score: Bln3Score | null
+  try {
+    score = await getBln3Score(fdm, { ...inputs, nmiApiKey: key })
+  } catch (cause) {
+    throw new IndicatorsUnavailableError("indicator score is unavailable", { cause })
+  }
+  if (!score) {
+    throw new IndicatorsUnavailableError("indicator score is unavailable")
+  }
+  return { b_id, year, is_excluded: false, score }
+}
+
+/**
+ * Result of indicator scoring for all eligible fields of a farm.
+ */
+export type FarmIndicators = {
+  b_id_farm: string
+  year: number
+  fields: { b_id: string; b_area: number | null; score: Bln3Score }[]
+  farm: FarmScores
+}
+
+/**
+ * Retrieves indicator scores for all eligible fields of a farm and the area-weighted farm scores.
+ *
+ * Buffer strips and nature fields are left out of the fields and the weighting. If any
+ * eligible field cannot be scored, the whole request fails instead of returning partial
+ * aggregates.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal on whose behalf access is checked.
+ * @param b_id_farm - Farm identifier.
+ * @param year - Four-digit calendar year.
+ * @param nmiApiKey - NMI API key resolved server-side.
+ * @returns Per-field scores and farm-level aggregates; empty when no field is eligible.
+ * @throws {IndicatorsUnavailableError} When an eligible field cannot be scored.
+ */
+export async function getFarmIndicators(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id_farm: string,
+  year: number,
+  nmiApiKey: string | undefined,
+): Promise<FarmIndicators> {
+  const fields = await getFields(fdm, principal_id, b_id_farm, getYearTimeframe(year))
+
+  const scored: FarmIndicators["fields"] = []
+  for (let i = 0; i < fields.length; i += FARM_BATCH_SIZE) {
+    const batch = fields.slice(i, i + FARM_BATCH_SIZE)
+    const results = await Promise.all(
+      batch.map(async (field) => ({
+        field,
+        result: await getFieldIndicators(fdm, principal_id, field.b_id, year, nmiApiKey),
+      })),
+    )
+    for (const { field, result } of results) {
+      if (result.is_excluded || !result.score) continue
+      scored.push({ b_id: field.b_id, b_area: field.b_area, score: result.score })
+    }
   }
 
-  try {
-    const response = await bln3Client.request("https://api.nmi-agro.nl/maatwerk/bln3/score/field", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${nmiApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(fieldData),
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "")
-      throw new Error(
-        `BLN3 score request failed with status ${response.status}: ${response.statusText} - ${errorText}`,
-      )
-    }
-
-    const result: Bln3ScoreResponse = await response.json()
-    if (!result.success) {
-      throw new Error(
-        `BLN3 score API returned failure (status ${result.status}): ${result.message ?? "Unknown error"}`,
-      )
-    }
-
-    if (!result.data || !Array.isArray(result.data.indicator)) {
-      throw new Error(
-        "BLN3 score API returned a malformed payload (missing data or indicator array)",
-      )
-    }
-
-    // Map the API's "indicator" (singular) to "indicators" (plural) for ergonomics
-    return {
-      indicators: result.data.indicator,
-      aggregations: result.data.aggregations,
-    }
-  } catch (err) {
-    if (err instanceof Error && err.name === "TimeoutError") {
-      throw new Error("BLN3 score request timed out. The NMI API did not respond in time.")
-    }
-    throw err
+  return {
+    b_id_farm,
+    year,
+    fields: scored,
+    farm: aggregateFarmScores(scored),
   }
 }
 
 /**
- * Cached version of `requestBln3Score`.
- *
- * Uses `withCalculationCache` to store and retrieve results from the
- * `fdm-calculator.calculation_cache` table. The cache key is a SHA-256 hash
- * of the function name, calculator version, and sanitized inputs (API key
- * redacted). Bumping `calculatorVersion` in `package.ts` invalidates all
- * existing cache entries.
+ * Result of the measure options of a field.
  */
-export const getBln3Score = withCalculationCache(
-  requestBln3Score,
-  "requestBln3Score",
-  pkg.calculatorVersion,
-  ["nmiApiKey"],
-)
+export type FieldMeasureOptions = {
+  b_id: string
+  year: number
+  is_excluded: boolean
+  data: MeasureOption[]
+}
+
+/**
+ * Retrieves the field-level measure catalogue with applicability, active and conflicting
+ * status, predicted impacts and recommendations for a calendar year.
+ *
+ * @param fdm - The FDM instance.
+ * @param principal_id - Principal on whose behalf access is checked.
+ * @param b_id - Field identifier.
+ * @param year - Four-digit calendar year.
+ * @param nmiApiKey - NMI API key resolved server-side.
+ * @returns The options, or an empty list with `is_excluded: true` for excluded fields.
+ * @throws {IndicatorsUnavailableError} When score, applicability or advice is unavailable.
+ */
+export async function getFieldMeasureOptions(
+  fdm: FdmType,
+  principal_id: PrincipalId,
+  b_id: string,
+  year: number,
+  nmiApiKey: string | undefined,
+): Promise<FieldMeasureOptions> {
+  const timeframe = getYearTimeframe(year)
+  const field = await getField(fdm, principal_id, b_id)
+
+  const inputs = await collectInputForBln3MeasureApplicability(
+    fdm,
+    principal_id,
+    b_id,
+    year,
+    timeframe,
+  )
+  if (inputs.isExcluded) {
+    return { b_id, year, is_excluded: true, data: [] }
+  }
+  const key = requireKey(nmiApiKey)
+
+  const [catalogue, enabledSources, measures] = await Promise.all([
+    getMeasuresFromCatalogue(fdm),
+    getEnabledMeasureCatalogues(fdm, principal_id, field.b_id_farm),
+    getMeasures(fdm, principal_id, b_id, timeframe),
+  ])
+
+  const { score } = await getFieldIndicators(fdm, principal_id, b_id, year, key)
+  if (!score) {
+    throw new IndicatorsUnavailableError("indicator score is unavailable")
+  }
+
+  let applicability: Awaited<ReturnType<typeof getBln3MeasureApplicability>>
+  let advice: Awaited<ReturnType<typeof getBln3MeasureAdvice>>
+  try {
+    ;[applicability, advice] = await Promise.all([
+      getBln3MeasureApplicability(fdm, { ...inputs, nmiApiKey: key }),
+      getBln3MeasureAdvice(fdm, { ...inputs, nmiApiKey: key }),
+    ])
+  } catch (cause) {
+    throw new IndicatorsUnavailableError("measure applicability or advice is unavailable", {
+      cause,
+    })
+  }
+  if (!advice) {
+    throw new IndicatorsUnavailableError("measure advice is unavailable")
+  }
+
+  const data = buildMeasureOptions({
+    catalogue,
+    enabledSources,
+    activeMeasures: measures.map((m) => ({
+      b_id_measure: m.b_id_measure,
+      m_id: m.m_id,
+      m_conflicts: m.m_conflicts,
+    })),
+    applicability,
+    advice,
+    score,
+  })
+  return { b_id, year, is_excluded: false, data }
+}
