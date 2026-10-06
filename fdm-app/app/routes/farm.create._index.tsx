@@ -164,23 +164,24 @@ export default function AddFarmPage() {
 
   const selectedYear = form.watch("year")
   const organicCertified = form.watch("organic_certification")
+  const organicIssued = form.watch("organic_issued")
   const isDerogationPossible = Number(selectedYear) < 2026
-
+  const formSetValue = form.setValue
   // Set default organic issued date when certification is checked
   useEffect(() => {
-    if (organicCertified && !form.getValues("organic_issued")) {
-      form.setValue("organic_issued", new Date(Number(selectedYear), 0, 1))
+    if (organicCertified && !organicIssued) {
+      formSetValue("organic_issued", new Date(Number(selectedYear), 0, 1))
     } else if (!organicCertified) {
-      form.setValue("organic_issued", undefined)
+      formSetValue("organic_issued", undefined)
     }
-  }, [organicCertified, selectedYear])
+  }, [organicCertified, organicIssued, selectedYear, formSetValue])
 
   // Reset derogation when year >= 2026
   useEffect(() => {
     if (Number(selectedYear) >= 2026) {
-      form.setValue("has_derogation", false)
+      formSetValue("has_derogation", false)
     }
-  }, [selectedYear])
+  }, [selectedYear, formSetValue])
 
   return (
     <SidebarInset>

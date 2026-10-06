@@ -7,6 +7,7 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import posthog from "posthog-js"
 import { useEffect } from "react"
+import { useRef } from "react"
 import { Outlet, redirect, useLoaderData } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"
@@ -201,13 +202,15 @@ export default function App() {
   }, [loaderData.user])
 
   // Register organization group so org-level dashboards aggregate events
+  const lastAnalyticsCapturedOrg = useRef<typeof organization>(null)
   useEffect(() => {
     if (clientConfig.analytics.posthog && organization) {
-      posthog.group("organization", organization.slug, {
-        name: organization.name,
+      posthog.group("organization", organization, {
+        name: organization,
       })
     }
-  }, [loaderData.selectedOrganizationSlug, organization?.name])
+    lastAnalyticsCapturedOrg.current = organization
+  }, [loaderData.selectedOrganizationSlug, organization])
 
   return (
     <OrganizationShell loaderData={loaderData}>

@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
 import { useState, useEffect } from "react"
+import { useRef } from "react"
 import { NavLink, useLocation, useSearchParams, useNavigate, useFetcher } from "react-router"
 import type { FieldOption } from "~/lib/hoofdteelt.server"
 import { getCalendarSelection } from "@/app/lib/calendar"
@@ -141,10 +142,12 @@ export function SidebarFarm({
   }
 
   // Auto-expand whenever a field is active
+  const prevActiveFieldId = useRef(activeFieldId)
   useEffect(() => {
-    if (activeFieldId) {
+    if (activeFieldId && prevActiveFieldId.current !== activeFieldId) {
       setIsPerceelOpen(true)
     }
+    prevActiveFieldId.current = activeFieldId
   }, [activeFieldId])
 
   const getActiveSegment = () => {
