@@ -104,8 +104,9 @@ export function DataTable<TData extends RotationExtended>({
     if (!table || !scroller) return
 
     const update = () => {
-      const left = scroller.scrollLeft > 0
-      const right = Math.ceil(scroller.scrollLeft + scroller.clientWidth) < scroller.scrollWidth
+      const left = scroller.scrollLeft > 15
+      const right =
+        Math.ceil(scroller.scrollLeft + scroller.clientWidth) < scroller.scrollWidth - 15
       setStuck((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
     }
 

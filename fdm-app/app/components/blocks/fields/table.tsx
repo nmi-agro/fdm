@@ -174,10 +174,8 @@ export function DataTable<TData extends FieldExtended>({
     }
   }, [])
 
-  const isCellStuck = (columnId: string) => {
-    console.log(columnId)
-    return (columnId === "select" && stuck.left) || (columnId === "actions" && stuck.right)
-  }
+  const isCellStuck = (columnId: string) =>
+    (columnId === "select" && stuck.left) || (columnId === "actions" && stuck.right)
 
   return (
     <div className="flex h-full w-full flex-col">
