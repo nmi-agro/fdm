@@ -1,4 +1,4 @@
-import { ArrowRight, Building, House } from "lucide-react"
+import { ArrowRight, Building, House, UserGroup } from "lucide-react"
 import { NavLink } from "react-router"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
@@ -12,6 +12,8 @@ export interface FarmWithRoles {
   b_businessid_farm: string | null
   userRoles: Role[]
   organizationRoles?: Role[]
+  /** Farm groups the farm is part of, shown as badges when present. */
+  groups?: { b_id_group: string; b_name_group: string }[]
   organization?: {
     id?: string
     slug: string
@@ -58,6 +60,15 @@ export function FarmCard({ farm }: { farm: FarmWithRoles }) {
                     ),
                   )}
                 </div>
+                {farm.groups && farm.groups.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {farm.groups.map((group) => (
+                      <Badge key={group.b_id_group} variant="outline" className="gap-1 text-xs">
+                        <UserGroup className="h-3 w-3" /> {group.b_name_group}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>

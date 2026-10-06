@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { NavLink, useFetcher } from "react-router"
+import { PeriodDateField } from "~/components/blocks/farm-groups/period-date-field"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import {
@@ -11,8 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
-import { Input } from "~/components/ui/input"
-import { Label } from "~/components/ui/label"
 import type { FarmExtended } from "./columns"
 
 type GroupOption = { b_id_group: string; b_name_group: string }
@@ -42,7 +41,7 @@ function getInitialState(group: GroupOption, farms: FarmExtended[]): GroupState 
  *
  * @param props.groups - The groups of the organization.
  * @param props.farms - The selected farms (no field rows).
- * @param props.today - Today as `YYYY-MM-DD`, the default for the start date.
+ * @param props.defaultJoined - The default start date as `YYYY-MM-DD`: 1 January of the selected year.
  * @param props.organizationSlug - Slug used to link to the group management page.
  * @param props.onAssigned - Called after the changes were submitted.
  * @returns A React node.
@@ -51,24 +50,24 @@ export function AssignGroupsDialog({
   groups,
   farms,
   organizationSlug,
-  today,
+  defaultJoined,
   onAssigned,
 }: {
   groups: GroupOption[]
   farms: FarmExtended[]
   organizationSlug: string
-  today: string
+  defaultJoined: string
   onAssigned: () => void
 }) {
   const fetcher = useFetcher()
   const [open, setOpen] = useState(false)
   const [state, setState] = useState<Record<string, GroupState>>({})
-  const [joined, setJoined] = useState(today)
+  const [joined, setJoined] = useState(defaultJoined)
   const [leaved, setLeaved] = useState("")
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) {
-      setJoined(today)
+      setJoined(defaultJoined)
       setLeaved("")
       setState(
         Object.fromEntries(
@@ -155,28 +154,12 @@ export function AssignGroupsDialog({
               Periode waarin de bedrijven deel uitmaken van de groep
             </legend>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="assign-joined" className="text-xs">
-                  Vanaf
-                </Label>
-                <Input
-                  id="assign-joined"
-                  type="date"
-                  value={joined}
-                  onChange={(event) => setJoined(event.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="assign-leaved" className="text-xs">
-                  Tot (leeg = geen einddatum)
-                </Label>
-                <Input
-                  id="assign-leaved"
-                  type="date"
-                  value={leaved}
-                  onChange={(event) => setLeaved(event.target.value)}
-                />
-              </div>
+              <PeriodDateField label="Vanaf" value={joined} onChange={setJoined} required />
+              <PeriodDateField
+                label="Tot (leeg = geen einddatum)"
+                value={leaved}
+                onChange={setLeaved}
+              />
             </div>
             <p className="text-muted-foreground text-xs">
               Dit zijn de datums van de periode zelf, niet het moment waarop u de wijziging invoert.

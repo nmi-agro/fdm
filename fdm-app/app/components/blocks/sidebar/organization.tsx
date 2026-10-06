@@ -7,8 +7,8 @@ import {
   ClipboardList,
   Cog,
   House,
-  Layers,
   LayoutGrid,
+  UserGroup,
   Users,
 } from "lucide-react"
 import { useState } from "react"
@@ -227,7 +227,7 @@ export function SidebarOrganization({
             {organization ? (
               <SidebarMenuButton asChild isActive={activeTab === "groups"}>
                 <NavLink to={`/organization/${organization.slug}/groups`}>
-                  <Layers />
+                  <UserGroup />
                   <span>Groepen</span>
                 </NavLink>
               </SidebarMenuButton>
@@ -239,7 +239,7 @@ export function SidebarOrganization({
                     className="cursor-not-allowed opacity-50 hover:bg-transparent"
                   >
                     <span className="flex items-center gap-2">
-                      <Layers />
+                      <UserGroup />
                       <span>Groepen</span>
                     </span>
                   </SidebarMenuButton>

@@ -23,7 +23,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { getFarmGroupErrorMessage, parseDateInput } from "~/lib/farm-groups"
+import { getDefaultJoinDate, getFarmGroupErrorMessage, parseDateInput } from "~/lib/farm-groups"
 import { fdm } from "~/lib/fdm.server"
 import type { Route } from "./+types/organization.$slug.$calendar.farms._index"
 
@@ -190,7 +190,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     return {
       data: allFarms,
       organization,
-      today: new Date().toISOString().slice(0, 10),
+      defaultJoined: getDefaultJoinDate(params.calendar),
       groups: groups.map((group) => ({
         b_id_group: group.b_id_group,
         b_name_group: group.b_name_group,
@@ -300,7 +300,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function OrganizationFarmsPage() {
-  const { data, organization, groups, today } = useLoaderData<typeof loader>()
+  const { data, organization, groups, defaultJoined } = useLoaderData<typeof loader>()
   return (
     <main>
       <FarmTitle
@@ -324,7 +324,7 @@ export default function OrganizationFarmsPage() {
               data={data}
               groups={groups}
               organizationSlug={organization.slug}
-              today={today}
+              defaultJoined={defaultJoined}
             />
           </div>
         ) : (

@@ -284,16 +284,14 @@ export default function OrgAtlasIndicatorsMap() {
 
   return (
     <div style={{ height: "calc(100vh - var(--app-header-height))" }} className="relative">
-      <div className="absolute top-4 right-4 z-10">
-        <GroupPicker groups={farmGroups} />
-      </div>
-
       {/* Floating indicator selector + info banner */}
       <ScoreSelect
         selectedProperty={selectedProperty}
         setSelectedProperty={setSelectedProperty}
         detailPath={tablePath}
-      />
+      >
+        <GroupPicker groups={farmGroups} className="h-8 w-full text-xs" />
+      </ScoreSelect>
 
       <div className="absolute right-4 bottom-12 z-10 flex flex-col items-end gap-2">
         {numDone < numTotal && (

@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { hasSameIds, type OrganizationFarmGroup } from "~/lib/farm-groups"
+import { cn } from "~/lib/utils"
 
 const ALL_FARMS = "__all"
 
@@ -19,9 +20,16 @@ const ALL_FARMS = "__all"
  * Renders nothing when the organization has no groups.
  *
  * @param props.groups - The farm groups of the organization.
+ * @param props.className - Optional classes for the select trigger (default width `w-48`).
  * @returns A React node, or `null` when there are no groups.
  */
-export function GroupPicker({ groups }: { groups: OrganizationFarmGroup[] }) {
+export function GroupPicker({
+  groups,
+  className,
+}: {
+  groups: OrganizationFarmGroup[]
+  className?: string
+}) {
   const [searchParams, setSearchParams] = useSearchParams()
 
   if (groups.length === 0) {
@@ -50,7 +58,7 @@ export function GroupPicker({ groups }: { groups: OrganizationFarmGroup[] }) {
         })
       }}
     >
-      <SelectTrigger className="w-48" aria-label="Kies een groep">
+      <SelectTrigger className={cn("w-48", className)} aria-label="Kies een groep">
         <SelectValue placeholder="Kies een groep" />
       </SelectTrigger>
       <SelectContent>

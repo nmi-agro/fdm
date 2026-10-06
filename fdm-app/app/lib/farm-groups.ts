@@ -75,3 +75,75 @@ export function getFarmGroupErrorMessage(error: unknown): string | undefined {
   }
   return undefined
 }
+
+/**
+ * Returns the default start of a period in a farm group: 1 January of the selected calendar year.
+ *
+ * @param calendar - The selected calendar, a year such as `"2025"` or `"all"`.
+ * @returns The date as `YYYY-MM-DD`. For anything but a year, 1 January of the current year.
+ */
+export function getDefaultJoinDate(calendar: string | undefined | null): string {
+  const year = calendar && /^\d{4}$/.test(calendar) ? calendar : String(new Date().getFullYear())
+  return `${year}-01-01`
+}
+
+/**
+ * A period in which a farm is part of a group, with dates as `YYYY-MM-DD`.
+ */
+export type GroupMembership = {
+  b_id_farm: string
+  b_name_farm: string | null
+  b_group_joined: string
+  b_group_leaved: string | null
+}
+
+/**
+ * Describes a period relative to today: planned (starts later), ended (the end date has passed)
+ * or active.
+ *
+ * @param membership - The period.
+ * @param today - Today as `YYYY-MM-DD`.
+ * @returns The status key and its Dutch label.
+ */
+export function getPeriodStatus(
+  membership: GroupMembership,
+  today: string,
+): { key: "planned" | "ended" | "active"; label: string } {
+  if (membership.b_group_joined > today) {
+    return { key: "planned", label: "Gepland" }
+  }
+  if (membership.b_group_leaved && membership.b_group_leaved <= today) {
+    return { key: "ended", label: "Beëindigd" }
+  }
+  return { key: "active", label: "Actief" }
+}
+
+/**
+ * Counts the farms and periods of a group for an overview.
+ *
+ * @param memberships - All periods of the group.
+ * @param today - Today as `YYYY-MM-DD`.
+ * @returns The number of farms that are part of the group today, the number of planned and ended
+ *   periods, and the names of the farms that are part of the group today.
+ */
+export function summarizeMemberships(memberships: GroupMembership[], today: string) {
+  const active = new Map<string, string | null>()
+  let planned = 0
+  let ended = 0
+  for (const membership of memberships) {
+    const status = getPeriodStatus(membership, today).key
+    if (status === "active") {
+      active.set(membership.b_id_farm, membership.b_name_farm)
+    } else if (status === "planned") {
+      planned += 1
+    } else {
+      ended += 1
+    }
+  }
+  return {
+    activeCount: active.size,
+    plannedCount: planned,
+    endedCount: ended,
+    activeNames: [...active.values()].map((name) => name ?? "Onbekend"),
+  }
+}

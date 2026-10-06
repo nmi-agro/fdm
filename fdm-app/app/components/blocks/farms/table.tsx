@@ -37,8 +37,8 @@ interface DataTableProps<TData extends RowData> {
   groups?: { b_id_group: string; b_name_group: string }[]
   /** Slug of the organization, used to link to the group management page. */
   organizationSlug?: string
-  /** Today as `YYYY-MM-DD`, the default start date when assigning farms to groups. */
-  today?: string
+  /** Default start date (`YYYY-MM-DD`) when assigning farms to groups: 1 January of the selected year. */
+  defaultJoined?: string
 }
 
 function withSearchTarget<TData extends FarmExtended>(
@@ -56,7 +56,7 @@ export function DataTable<TData extends FarmExtended>({
   data,
   groups = [],
   organizationSlug = "",
-  today = "",
+  defaultJoined = "",
 }: DataTableProps<TData>) {
   const hasGroups = groups.length > 0
   // Without groups the table is exactly as before: no selection and no group column
@@ -133,7 +133,7 @@ export function DataTable<TData extends FarmExtended>({
               groups={groups}
               farms={selectedFarms}
               organizationSlug={organizationSlug}
-              today={today}
+              defaultJoined={defaultJoined}
               onAssigned={() => setRowSelection({})}
             />
           )}
