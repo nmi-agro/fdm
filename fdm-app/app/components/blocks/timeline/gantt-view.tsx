@@ -349,6 +349,7 @@ type TimelineEditing = {
     b_lu_end: Date | null,
   ) => void
   submitFertilizerDate: (p_app_id: string, p_app_date: Date) => void
+  submitSoilAnalysisDate: (a_id: string, b_sampling_date: Date) => void
   submitHarvestDate: (b_id_harvesting: string, b_lu_harvest_date: Date) => void
 }
 
@@ -637,7 +638,6 @@ function buildFieldFeatures(
             b_id: field.b_id,
             entityId: analysis.a_id,
             color: "transparent",
-            draggable: false,
             resizable: false,
           },
         )
@@ -673,7 +673,6 @@ function buildFieldFeatures(
           b_id: field.b_id,
           entityId: analysis.a_id,
           color: "transparent",
-          draggable: false,
           resizable: false,
         },
       )
@@ -826,8 +825,7 @@ function EventOverlay({
     title: event.label,
   }
 
-  const isDraggable =
-    editing.canModify && event.kind !== "soil_bcs" && event.kind !== "soil" && !!entityId
+  const isDraggable = editing.canModify && !!entityId
   // A harvest of a once-harvestable crop ends the cultivation, so it may also move past the
   // cultivation's current end date.
   const latestDate =
@@ -859,6 +857,8 @@ function EventOverlay({
     if (!date || !entityId) return
     if (event.kind === "fertilizer") {
       editing.submitFertilizerDate(entityId, date)
+    } else if (event.kind === "soil" || event.kind === "soil_bcs") {
+      editing.submitSoilAnalysisDate(entityId, date)
     } else {
       editing.submitHarvestDate(entityId, date)
     }
@@ -878,7 +878,7 @@ function EventOverlay({
   if (!isDraggable) {
     return (
       <TimelineContextMenu sections={sections}>
-        <span {...triggerProps}>
+        <span {...triggerProps} onMouseDown={(event_) => event_.stopPropagation()}>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -1414,6 +1414,20 @@ export const TimelineGanttView = forwardRef<
     submitMove(build(p_app_date), build(original?.p_app_date ?? p_app_date))
   }
 
+  const submitSoilAnalysisDate = (a_id: string, b_sampling_date: Date) => {
+    const original = fields
+      .flatMap((field) => field.soilAnalyses)
+      .find((analysis) => analysis.a_id === a_id)
+    const build = (date: Date) => {
+      const formData = new FormData()
+      formData.set("intent", "update_soil_analysis_date")
+      formData.set("a_id", a_id)
+      formData.set("b_sampling_date", date.toISOString())
+      return formData
+    }
+    submitMove(build(b_sampling_date), build(original?.b_sampling_date ?? b_sampling_date))
+  }
+
   const submitHarvestDate = (b_id_harvesting: string, b_lu_harvest_date: Date) => {
     const original = fields
       .flatMap((field) => field.harvests)
@@ -1527,6 +1541,7 @@ export const TimelineGanttView = forwardRef<
     submitCultivationMove,
     submitFertilizerDate,
     submitHarvestDate,
+    submitSoilAnalysisDate,
   }
 
   const visibleFields = fields
@@ -1599,6 +1614,8 @@ export const TimelineGanttView = forwardRef<
       submitFertilizerDate(id.slice("fertilizer-".length), startAt)
     } else if (id.startsWith("harvest-")) {
       submitHarvestDate(id.slice("harvest-".length), startAt)
+    } else if (id.startsWith("soil-")) {
+      submitSoilAnalysisDate(id.slice("soil-".length), startAt)
     }
   }
 
