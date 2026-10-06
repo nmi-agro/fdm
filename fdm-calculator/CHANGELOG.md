@@ -1,5 +1,11 @@
 # fdm-calculator
 
+## 0.19.2
+
+### Patch Changes
+
+- [#828](https://github.com/nmi-agro/fdm/pull/828) [`7608c10`](https://github.com/nmi-agro/fdm/commit/7608c10a111481871140399a35f5e7f39bd4ecdf) Thanks [@SvenVw](https://github.com/SvenVw)! - Send only the documented request parameters to the NMI BLN3 endpoints (`score/field`, `measure/applicability` and `measure/advice`). Internal fields such as `b_bufferstrip`, `b_lu_croprotation`, `b_lu_catalogue` and `isExcluded` are still used for the exclusion check but are no longer part of the request body, which fixes HTTP 400 responses caused by FDM crop rotation values (e.g. `maize`).
+
 ## 0.19.1
 
 ### Patch Changes
