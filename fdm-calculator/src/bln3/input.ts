@@ -207,7 +207,6 @@ export async function collectInputForBln3Score(
  * @param b_id - The field ID for which to collect inputs.
  * @param b_year - The calendar year for the applicability check.
  * @param timeframe - Optional timeframe applied to soil analyses.
- * @param nmiApiKey - Optional NMI API key to fetch soil parameter estimates (b_gwl_ghg, b_gwl_glg, b_som_potential).
  * @returns A promise resolving to collected BLN3 measure applicability inputs.
  */
 export async function collectInputForBln3MeasureApplicability(

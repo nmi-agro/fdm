@@ -2,6 +2,7 @@ import { withCalculationCache } from "@nmi-agro/fdm-core"
 import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
 import { bln3Client } from "../nmi/client"
 import pkg from "../package"
+import { pickBln3Payload } from "./payload"
 
 export { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
 export { getBln3MeasureApplicability, requestBln3MeasureApplicability } from "./applicability"
@@ -45,7 +46,7 @@ export async function requestBln3Score(inputs: Bln3ScoreInputs): Promise<Bln3Sco
         Authorization: `Bearer ${nmiApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(fieldData),
+      body: JSON.stringify(pickBln3Payload("score", fieldData)),
     })
 
     if (!response.ok) {
