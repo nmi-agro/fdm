@@ -82,6 +82,16 @@ export {
   removeDerogation,
 } from "./derogation"
 export {
+  addFarmToGroup,
+  createFarmGroup,
+  getFarmGroup,
+  listFarmGroups,
+  removeFarmFromGroup,
+  removeFarmGroup,
+  renameFarmGroup,
+} from "./farm-group"
+export type { FarmGroup } from "./farm-group.types"
+export {
   addFarm,
   cancelInvitationForFarm,
   getFarm,

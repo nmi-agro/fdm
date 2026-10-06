@@ -267,6 +267,13 @@
       "when": 1790845921986,
       "tag": "0037_v0-38-0-2",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791279865682,
+      "tag": "0038_amusing_earthquake",
+      "breakpoints": true
     }
   ]
 }
