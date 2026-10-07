@@ -55,6 +55,11 @@ export interface ServerConfig {
       api_key: string
       model?: string
     }
+    /** KvK Handelsregister (Zoeken API). Absent when `KVK_API_KEY` is not set. */
+    kvk?: {
+      api_key: string
+      base_url: string
+    }
   }
   analytics: {
     sentry?: {
