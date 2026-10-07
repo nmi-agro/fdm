@@ -53,6 +53,7 @@ import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { AddEventSheetRequest } from "./add-event-types"
 
 const INITIAL_GROUPS = 10
@@ -576,7 +577,11 @@ export function TimelineMobileView({
     return () => observer.disconnect()
   }, [])
 
-  const today = useMemo(() => new Date(), [])
+  const [today, setToday] = useState<Date | undefined>(undefined)
+  const setTodayLater = useLaterOnce(setToday)
+  useEffect(() => {
+    setTodayLater(new Date())
+  }, [setTodayLater])
 
   const visibleFields = useMemo(
     () =>
@@ -586,9 +591,10 @@ export function TimelineMobileView({
     [fields, filters.showBufferStrips],
   )
 
+  const setExpandedFieldsLater = useLaterOnce(setExpandedFields)
   useEffect(() => {
-    setExpandedFields(new Set(visibleFields.map((field) => field.b_id)))
-  }, [visibleFields])
+    setExpandedFieldsLater(new Set(visibleFields.map((field) => field.b_id)))
+  }, [visibleFields, setExpandedFieldsLater])
 
   const events = useMemo(() => {
     const all = flattenEvents(visibleFields, fertilizerTypeById, b_id_farm, calendar)

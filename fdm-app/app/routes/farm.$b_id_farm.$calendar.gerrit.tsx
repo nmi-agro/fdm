@@ -279,7 +279,7 @@ export default function GerritApp() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     capture("gerrit_opened", { b_id_farm: farm.b_id_farm, calendar })
-  }, [])
+  }, [capture, farm.b_id_farm, calendar])
 
   const headerAction = {
     to: `/farm/${farm.b_id_farm}`,

@@ -53,6 +53,7 @@ import { TimelineToolbar } from "~/components/blocks/timeline/toolbar"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { deleteObject } from "~/integrations/gcs.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -64,7 +65,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
-import { useCalendarJump } from "~/store/calendar"
+import { useCalendarJump, useCalendarStore } from "~/store/calendar"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.timeline"
 
 // The years the timeline can ever request must stay within the app's supported Calendar range
@@ -636,10 +637,16 @@ export default function TimelinePage() {
   const loaderData = useLoaderData<typeof loader>()
   const { calendar } = useParams()
   const isMobile = useIsMobile()
-  const [isLandscape, setIsLandscape] = useState(false)
   const { capture } = useAnalytics()
   const actionData = useActionData()
   const lastActionData = useRef<unknown>(undefined)
+  const storedCalendar = useCalendarStore((store) => store.calendar)
+
+  const [isLandscape, setIsLandscape] = useState<boolean>(() =>
+    typeof window === "undefined" || !window.matchMedia
+      ? true
+      : window.matchMedia("(max-width: 1024px) and (orientation: landscape").matches,
+  )
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) {
@@ -650,7 +657,6 @@ export default function TimelinePage() {
       setIsLandscape(e.matches)
     }
     mql.addEventListener("change", onChange)
-    setIsLandscape(mql.matches)
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
@@ -670,7 +676,7 @@ export default function TimelinePage() {
       })
     })
     return () => window.cancelAnimationFrame(id)
-  }, [])
+  }, [capture, loaderData.b_id_farm, calendar])
 
   const ganttRef = useRef<TimelineGanttViewHandle>(null)
   const registerJumpToYear = useCalendarJump((state) => state.registerJumpToYear)
@@ -696,10 +702,10 @@ export default function TimelinePage() {
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
     ""
 
-  const calendarYear = useMemo(() => {
-    const parsed = Number(calendar)
-    return Number.isNaN(parsed) ? new Date().getFullYear() : parsed
-  }, [calendar])
+  const parsedCalendarParam = Number(calendar)
+  const calendarYear = Number.isNaN(parsedCalendarParam)
+    ? Number(storedCalendar)
+    : parsedCalendarParam
 
   const fertilizerTypeById = useMemo(
     () => new Map(loaderData.fertilizerOptions.map((f) => [f.value, f])),
@@ -724,17 +730,18 @@ export default function TimelinePage() {
   }, [registerJumpToYear])
 
   // Close the sheet if the action succeeds.
+  const setSheetRequestLater = useLaterOnce(setSheetRequest)
   useEffect(() => {
     if (lastActionData.current === actionData) {
       return
     }
 
     if ((actionData as any)?.closeSheet) {
-      setSheetRequest(undefined)
+      setSheetRequestLater(undefined)
     }
 
     lastActionData.current = actionData
-  }, [actionData])
+  }, [actionData, setSheetRequestLater])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}`,

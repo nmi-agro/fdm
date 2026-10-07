@@ -3,11 +3,14 @@ import * as React from "react"
 const XL_BREAKPOINT = 1280
 
 export function useIsXl() {
-  const [isXl, setIsXl] = React.useState<boolean | undefined>(true)
+  const [isXl, setIsXl] = React.useState<boolean>(() =>
+    typeof window === "undefined" || !window.matchMedia
+      ? true
+      : window.matchMedia(`(min-width: ${XL_BREAKPOINT}px)`).matches,
+  )
 
   React.useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) {
-      setIsXl(true)
       return
     }
     const mql = window.matchMedia(`(min-width: ${XL_BREAKPOINT}px)`)
@@ -15,9 +18,8 @@ export function useIsXl() {
       setIsXl(e.matches)
     }
     mql.addEventListener("change", onChange)
-    setIsXl(mql.matches)
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  return !!isXl
+  return isXl
 }

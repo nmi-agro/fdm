@@ -20,6 +20,7 @@ import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { Sheet, SheetClose, SheetPortal } from "~/components/ui/sheet"
 import { useIsXl } from "~/hooks/use-is-xl"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import type { HelpdeskUser } from "./types"
 import { useCurrentHelpdeskPage } from "./navigation"
 import { TicketSearch } from "./search"
@@ -94,6 +95,7 @@ function TicketList({
   const navigateWithFilters = useMemo(
     () =>
       throttle(
+        // oxlint-disable-next-line react/refs This gets called only on user input.
         () => {
           setSearchParams((searchParams) => {
             searchParams.set("filters", JSON.stringify(searchParamsToNavigateTo.current.filters))
@@ -262,9 +264,10 @@ export function TicketViewer({
     setContainer(node)
   }, [])
 
+  const setSidebarOpenLater = useLaterOnce(setSidebarOpen)
   useEffect(() => {
-    setSidebarOpen(!params.ticket_id)
-  }, [params.ticket_id])
+    setSidebarOpenLater(!params.ticket_id)
+  }, [params.ticket_id, setSidebarOpenLater])
 
   const ticketListProps = {
     tickets,

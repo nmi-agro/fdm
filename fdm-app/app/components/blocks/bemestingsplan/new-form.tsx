@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { getCalendarSelection } from "~/lib/calendar"
 import { cn } from "~/lib/utils"
 
@@ -18,13 +19,14 @@ export function NewBemestingsplanForm({ className }: { className?: string }) {
   const fetcher = useFetcher()
   const isSubmitting = fetcher.state !== "idle"
   const calendar = useCalendarStore((store) => store.calendar)
-  const [year, setYear] = useState<string>(calendar ?? String(new Date().getFullYear()))
+  const [year, setYear] = useState<string>(calendar)
 
+  const setYearLater = useLaterOnce(setYear)
   useEffect(() => {
     if (calendar) {
-      setYear(calendar)
+      setYearLater(calendar)
     }
-  }, [calendar])
+  }, [calendar, setYearLater])
 
   return (
     <fetcher.Form method="post">

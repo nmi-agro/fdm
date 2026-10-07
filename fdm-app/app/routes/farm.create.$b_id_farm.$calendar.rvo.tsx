@@ -40,6 +40,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import {
   createConfiguredRvoClient,
@@ -255,6 +256,7 @@ export default function RvoImportCreatePage() {
 
   const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
 
+  const setUserChoicesLater = useLaterOnce(setUserChoices)
   useEffect(() => {
     // Initialize user choices with defaults
     const initialChoices: UserChoiceMap = {}
@@ -273,8 +275,8 @@ export default function RvoImportCreatePage() {
       }
       initialChoices[id] = defaultAction
     })
-    setUserChoices(initialChoices)
-  }, [rvoImportReviewData])
+    setUserChoicesLater(initialChoices)
+  }, [rvoImportReviewData, setUserChoicesLater])
 
   // Warn the user before refreshing or leaving when data is present
   useEffect(() => {

@@ -10,6 +10,7 @@ import { Label } from "~/components/ui/label"
 import { Spinner } from "~/components/ui/spinner"
 import { Switch } from "~/components/ui/switch"
 import { Textarea } from "~/components/ui/textarea"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { cn } from "~/lib/utils"
 import { type GerritFormValues, STRATEGY_LABELS } from "./schema"
 
@@ -90,9 +91,10 @@ export function StrategyForm({
     | undefined
 
   // Auto-open picker when there's a validation error on fertilizers
+  const setFertOpenLater = useLaterOnce(setFertOpen)
   useEffect(() => {
-    if (fertError) setFertOpen(true)
-  }, [fertError])
+    if (fertError) setFertOpenLater(true)
+  }, [fertError, setFertOpenLater])
 
   const includeRenure = form.watch("includeRenure")
 

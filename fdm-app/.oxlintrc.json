@@ -1,5 +1,6 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   "extends": ["../.oxlintrc.json"],
-  "plugins": ["react"]
+  "plugins": ["react"],
+  "ignorePatterns": ["app/components/**", "!app/components/blocks/**", "!app/components/custom/**"]
 }
