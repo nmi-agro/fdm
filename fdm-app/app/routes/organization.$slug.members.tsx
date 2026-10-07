@@ -1,7 +1,7 @@
 import type { Invitation, Member, Organization, OrganizationRole } from "better-auth/plugins"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { data, useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { z } from "zod"
@@ -19,6 +19,7 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError, renderInvitationEmail, sendEmail } from "~/lib/email.server"
@@ -239,9 +240,11 @@ const MemberAction = ({
     )
   }
 
+  const setRoleLater = useLaterOnce(setRole)
+
   useEffect(() => {
-    setRole(member.role)
-  }, [member.role])
+    setRoleLater(member.role)
+  }, [setRoleLater, member.role])
 
   return (
     <fetcher.Form method="post" className="flex items-center space-x-4">
@@ -317,9 +320,33 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
 const InvitationForm = ({ organizationId }: { organizationId: Organization["id"] }) => {
   const fetcher = useFetcher()
   const [email, setEmail] = useState("")
+
+  const lastHandledFetcherState = useRef<{ data: unknown; state: unknown }>({
+    data: undefined,
+    state: undefined,
+  })
+
+  const formClearTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.ok) setEmail("")
+    if (
+      lastHandledFetcherState.current.data !== fetcher.data ||
+      lastHandledFetcherState.current.state !== fetcher.state
+    ) {
+      if (fetcher.state === "idle" && fetcher.data?.ok) {
+        if (typeof formClearTimeout.current !== "undefined") {
+          clearTimeout(formClearTimeout.current)
+        }
+        formClearTimeout.current = setTimeout(() => setEmail(""))
+      }
+      lastHandledFetcherState.current = { data: fetcher.data, state: fetcher.state }
+    }
   }, [fetcher.state, fetcher.data])
+
+  useEffect(() => () => {
+    if (typeof formClearTimeout.current !== "undefined") {
+      clearTimeout(formClearTimeout.current)
+    }
+  })
 
   return (
     <fetcher.Form method="post" className="flex space-x-2">

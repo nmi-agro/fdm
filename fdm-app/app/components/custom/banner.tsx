@@ -26,13 +26,12 @@ export function resetCookieConsent(): ConsentType {
 }
 
 export function Banner() {
-  const [consentGiven, setConsentGiven] = useState<"yes" | "no" | "undecided">("undecided")
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    setConsentGiven(cookieConsentGiven())
-    setIsVisible(cookieConsentGiven() === "undecided")
-  }, [])
+  const [consentGiven, setConsentGiven] = useState<"yes" | "no" | "undecided">(
+    typeof window !== "undefined" ? cookieConsentGiven() : "undecided",
+  )
+  const [isVisible, setIsVisible] = useState(
+    typeof window !== "undefined" ? cookieConsentGiven() === "undecided" : true,
+  )
 
   useEffect(() => {
     // Set PostHog persistence based on consent, if PostHog is configured

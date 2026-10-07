@@ -24,6 +24,7 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { OrganizationInfoSchema } from "./schema"
 
 const FormSchema = OrganizationInfoSchema.extend({ intent: z.literal("update_organization_info") })
@@ -85,26 +86,29 @@ export function OrganizationSettingsForm({
   }
 
   // Reset the form when the organization changes
+  const formReset = form.reset
+  const setProfilePictureFilesLater = useLaterOnce(setProfilePictureFiles)
   useEffect(() => {
-    form.reset({
+    formReset({
       intent: "update_organization_info" as const,
       name: organization?.name,
       slug: organization?.slug,
       description: organization?.metadata?.data?.description,
     })
-    setProfilePictureFiles([])
-  }, [form.reset, !!organization, organization?.slug])
+    setProfilePictureFilesLater([])
+  }, [formReset, organization, setProfilePictureFilesLater])
 
   // Update slug when name changes
   const organizationName = form.getValues("name")
 
+  const { getValues, setValue } = form
   useEffect(() => {
     if (!organizationName) return
     const newSlug = convertToSlug(organizationName)
-    if (form.getValues("slug") !== newSlug) {
-      form.setValue("slug", newSlug)
+    if (getValues("slug") !== newSlug) {
+      setValue("slug", newSlug)
     }
-  }, [organizationName, form.getValues, form.setValue])
+  }, [organizationName, getValues, setValue])
 
   const isSubmitting = isProcessingForm || fetcher.state !== "idle"
   const disabled = !canModify || isSubmitting

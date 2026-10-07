@@ -27,6 +27,7 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import type { AbsenceCalendarItem } from "./absence-calendar"
 import { getAgentColor } from "./absence-colors"
 import { AbsenceReasonOptions, ScheduleAbsenceSchema, UpdateAbsenceSchema } from "./absence-schema"
@@ -93,10 +94,11 @@ export function AbsenceDialog({
 
   // Reset the form whenever the dialog is (re)opened for a different absence/range.
   // biome-ignore-start lint/correctness/useExhaustiveDependencies: intentionally only depends on identity of open target
+  const formReset = form.reset
   useEffect(() => {
     if (!open) return
     if (isCreating) {
-      form.reset({
+      formReset({
         intent: "create_absence",
         agent_id: principal_id,
         start_date: toDateInputValue(defaultRange?.start),
@@ -105,7 +107,7 @@ export function AbsenceDialog({
         note: "",
       })
     } else if (absence) {
-      form.reset({
+      formReset({
         intent: "update_absence",
         absence_id: absence.absence_id,
         start_date: toDateInputValue(absence.start_date),
@@ -115,7 +117,7 @@ export function AbsenceDialog({
       })
     }
     // biome-ignore-end lint/correctness/useExhaustiveDependencies
-  }, [open, absence?.absence_id, defaultRange?.start, defaultRange?.end])
+  }, [formReset, isCreating, principal_id, absence, open, defaultRange?.start, defaultRange?.end])
 
   // Close the dialog once the submission succeeds.
   useEffect(() => {
@@ -125,12 +127,13 @@ export function AbsenceDialog({
   }, [form.formState.isSubmitSuccessful, onOpenChange])
 
   // Close the dialog once a delete request succeeds.
+  const setIsDeletingLater = useLaterOnce(setIsDeleting)
   useEffect(() => {
     if (isDeleting && fetcher.state === "idle") {
-      setIsDeleting(false)
+      setIsDeletingLater(false)
       onOpenChange(false)
     }
-  }, [isDeleting, fetcher.state, onOpenChange])
+  }, [isDeleting, fetcher.state, onOpenChange, setIsDeletingLater])
 
   function handleDelete() {
     if (!absence) return

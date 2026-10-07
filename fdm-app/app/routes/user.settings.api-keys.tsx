@@ -28,6 +28,7 @@ import {
 } from "~/components/ui/dialog"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { authClient } from "~/lib/auth-client"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -102,9 +103,10 @@ export default function UserSettingsApiKeys() {
     }
   }, [])
 
+  const loadKeysLater = useLaterOnce(loadKeys)
   useEffect(() => {
-    void loadKeys()
-  }, [loadKeys])
+    void loadKeysLater()
+  }, [loadKeysLater])
 
   async function handleCreate() {
     if (!newKeyName.trim()) return

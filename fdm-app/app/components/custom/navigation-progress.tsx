@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { Loader2 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useLocation, useMatches, useNavigation } from "react-router"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { clientConfig } from "~/lib/config"
 import { normalizePage } from "~/lib/url-utils"
 
@@ -28,6 +29,7 @@ export function NavigationProgress() {
   const startPathnameRef = useRef<string | null>(null)
 
   // Show after 500ms — emit a count metric when it appears
+  const setShowLater = useLaterOnce(setShow)
   useEffect(() => {
     if (state !== "idle" && !hideProgress) {
       if (startTimeRef.current === null) {
@@ -56,10 +58,10 @@ export function NavigationProgress() {
         })
       }
     }
-    setShow(false)
+    setShowLater(false)
     startTimeRef.current = null
     startPathnameRef.current = null
-  }, [state, show, hideProgress, pathname])
+  }, [state, show, hideProgress, pathname, setShowLater])
 
   return (
     <AnimatePresence>

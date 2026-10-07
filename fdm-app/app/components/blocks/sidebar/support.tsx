@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useLaterOnce } from "~/hooks/use-later-once"
 
 export function SidebarSupport({
   name,
@@ -42,11 +43,12 @@ export function SidebarSupport({
   const [feedback, setFeedback] = useState<ReturnType<typeof Sentry.getFeedback> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  const setFeedbackOnce = useLaterOnce(setFeedback)
   useEffect(() => {
     try {
       const feedbackInstance = Sentry.getFeedback()
       if (feedbackInstance) {
-        setFeedback(feedbackInstance)
+        setFeedbackOnce(feedbackInstance)
       } else {
         console.warn("Sentry.getFeedback() returned null or undefined.")
       }
@@ -55,7 +57,7 @@ export function SidebarSupport({
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [setFeedbackOnce])
 
   if (isLoading) {
     return null

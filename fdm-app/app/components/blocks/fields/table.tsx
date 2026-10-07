@@ -57,12 +57,13 @@ export function DataTable<TData extends FieldExtended>({
   const b_id_farm = params.b_id_farm
   const calendar = params.calendar
 
+  const fieldFilterSyncFarm = fieldFilter.syncFarm
   useEffect(() => {
     if (b_id_farm) {
       syncFarm(b_id_farm)
-      fieldFilter.syncFarm(b_id_farm)
+      fieldFilterSyncFarm(b_id_farm)
     }
-  }, [b_id_farm, syncFarm, fieldFilter.syncFarm])
+  }, [b_id_farm, syncFarm, fieldFilterSyncFarm])
 
   useEffect(() => {
     setColumnVisibility(isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {})

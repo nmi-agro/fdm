@@ -51,6 +51,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useLaterOnce } from "~/hooks/use-later-once"
 import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import {
   createConfiguredRvoClient,
@@ -278,6 +279,7 @@ export default function RvoImportReviewPage() {
 
   const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
 
+  const setUserChoicesLater = useLaterOnce(setUserChoices)
   useEffect(() => {
     const initialChoices: UserChoiceMap = {}
     rvoImportReviewData.forEach((item) => {
@@ -303,8 +305,8 @@ export default function RvoImportReviewPage() {
       }
       initialChoices[id] = defaultAction
     })
-    setUserChoices(initialChoices)
-  }, [rvoImportReviewData])
+    setUserChoicesLater(initialChoices)
+  }, [rvoImportReviewData, setUserChoicesLater])
 
   // Warn the user before refreshing or leaving when data is present
   useEffect(() => {
