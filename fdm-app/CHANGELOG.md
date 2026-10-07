@@ -1,5 +1,11 @@
 # Changelog fdm-app
 
+## 0.37.2
+
+### Patch Changes
+
+- [#835](https://github.com/nmi-agro/fdm/pull/835) [`175f367`](https://github.com/nmi-agro/fdm/commit/175f36705e0a13aad2ca61d220a580b844b50c46) Thanks [@SvenVw](https://github.com/SvenVw)! - Stop reporting React Router's internal 404 and 405 responses (unmatched routes and unsupported methods, typically from bots and scanners) to Sentry. These are now logged as a single debug line with status, method and path instead of a multi-line error with stack trace.
+
 ## 0.37.1
 
 ### Patch Changes
