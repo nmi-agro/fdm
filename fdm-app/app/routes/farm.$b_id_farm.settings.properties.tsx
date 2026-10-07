@@ -161,7 +161,9 @@ export default function FarmSettingsPropertiesBlock() {
     if (result.status !== "found") return
     const options = { shouldDirty: true, shouldValidate: true }
     form.setValue("b_name_farm", result.name, options)
-    form.setValue("b_address_farm", result.address ?? "", options)
+    if (result.address) {
+      form.setValue("b_address_farm", result.address, options)
+    }
     if (result.postalcode) {
       form.setValue("b_postalcode_farm", result.postalcode, options)
     }

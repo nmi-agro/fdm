@@ -121,6 +121,9 @@ interface ZoekenResponse {
 
 const MAX_CACHE_ENTRIES = 1000
 
+/** KvK error code for a search without results. */
+const KVK_NOT_FOUND_CODE = "IPD5200"
+
 const RESULT_TYPE_PRIORITY: string[] = ["hoofdvestiging", "rechtspersoon", "nevenvestiging"]
 
 /**
@@ -242,7 +245,13 @@ export function createKvkClient(options: KvkClientOptions): KvkClient {
     }
 
     if (response.status === 404) {
-      return remember({ status: "not_found", kvkNumber: kvk })
+      // KvK answers "no registration found" with error code IPD5200. Any other 404
+      // (e.g. a wrong base URL) is a configuration or upstream problem and is not cached.
+      const errorBody = (await response.json().catch(() => undefined)) as ZoekenResponse | undefined
+      if (errorBody?.fout?.some((fout) => fout.code === KVK_NOT_FOUND_CODE)) {
+        return remember({ status: "not_found", kvkNumber: kvk })
+      }
+      return { status: "error", kvkNumber: kvk, reason: "upstream" }
     }
     if (response.status === 401 || response.status === 403) {
       return { status: "error", kvkNumber: kvk, reason: "unauthorized" }

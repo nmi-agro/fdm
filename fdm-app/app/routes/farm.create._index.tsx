@@ -192,20 +192,54 @@ export default function AddFarmPage() {
     },
   })
 
+  // Values filled in from the last successful KvK lookup, to clear them when the KvK number changes
+  const [prefill, setPrefill] = useState<{
+    kvkNumber: string
+    values: Partial<Record<"b_name_farm" | "b_address_farm" | "b_postalcode_farm", string>>
+  }>()
+
+  // Clears the fields that still hold values from a lookup of another KvK number.
+  // Fields the user has edited since the lookup are kept.
+  const clearStalePrefill = (currentKvkNumber: string | undefined) => {
+    if (!prefill || prefill.kvkNumber === currentKvkNumber) return
+    for (const [name, value] of Object.entries(prefill.values) as [
+      keyof typeof prefill.values,
+      string,
+    ][]) {
+      if (form.getValues(name) === value) {
+        form.setValue(name, "", { shouldDirty: true })
+      }
+    }
+    setPrefill(undefined)
+  }
+
   const kvkLookup = useKvkLookup((result) => {
+    if (result.status !== "disabled") clearStalePrefill(result.kvkNumber)
     if (result.status === "found") {
       const options = { shouldDirty: true, shouldValidate: true }
-      form.setValue("b_name_farm", result.name, options)
-      form.setValue("b_address_farm", result.address ?? "", options)
-      if (result.postalcode) {
-        form.setValue("b_postalcode_farm", result.postalcode, options)
+      const values = {
+        b_name_farm: result.name,
+        b_address_farm: result.address ?? "",
+        ...(result.postalcode ? { b_postalcode_farm: result.postalcode } : {}),
       }
+      for (const [name, value] of Object.entries(values) as [keyof typeof values, string][]) {
+        form.setValue(name, value, options)
+      }
+      setPrefill({ kvkNumber: result.kvkNumber, values })
     }
     // Also continue when nothing was found, so the user can fill in the details manually
     setStep("details")
   })
 
   const kvkNumber = form.watch("b_businessid_farm")
+
+  // Only show the lookup outcome when it belongs to the current KvK number
+  const kvkLookupResult =
+    kvkLookup.result &&
+    kvkLookup.result.status !== "disabled" &&
+    kvkLookup.result.kvkNumber !== kvkNumber?.trim()
+      ? undefined
+      : kvkLookup.result
 
   const lookupKvk = () => {
     if (kvkNumber) kvkLookup.lookup(kvkNumber)
@@ -217,6 +251,7 @@ export default function AddFarmPage() {
       form.setValue("b_businessid_farm", "")
       form.clearErrors("b_businessid_farm")
     }
+    clearStalePrefill(isValidKvkNumber(kvkNumber) ? kvkNumber?.trim() : "")
     setStep("details")
   }
 
@@ -337,7 +372,7 @@ export default function AddFarmPage() {
                                 Wijzigen
                               </Button>
                             </div>
-                            <KvkLookupStatus result={kvkLookup.result} />
+                            <KvkLookupStatus result={kvkLookupResult} />
                           </div>
                         )}
 
