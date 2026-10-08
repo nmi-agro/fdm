@@ -12,14 +12,17 @@ import {
   getHarvests,
   getParametersForHarvestCat,
   getSoilAnalysis,
+  getSoilImages,
   HarvestParameters,
   removeCultivation,
   removeFertilizerApplication,
   removeHarvest,
   removeSoilAnalysis,
+  removeSoilImage,
   updateCultivation,
   updateFertilizerApplication,
   updateHarvest,
+  updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
 import { ApplicationMethods } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
@@ -226,6 +229,11 @@ const ActionSchema = z.discriminatedUnion("intent", [
     b_lu_harvest_date: dateField,
   }),
   z.object({
+    intent: z.literal("update_soil_analysis_date"),
+    a_id: z.string(),
+    b_sampling_date: dateField,
+  }),
+  z.object({
     intent: z.literal("remove_cultivation"),
     b_lu: z.string(),
   }),
@@ -261,18 +269,10 @@ export async function action({ request, params }: Route.LoaderArgs) {
       throw err
     }
 
-    const intentsWithoutBId: (typeof formValues.intent)[] = [
-      "single_harvest",
-      "update_single_harvest",
-      "update_fertilizer_date",
-      "update_harvest_date",
-      "remove_cultivation",
-      "remove_harvest",
-      "remove_fertilizer",
-      "remove_soil_analysis",
-    ]
+    const intentsWithBId: (typeof formValues.intent)[] = ["add_cultivation", "add_fertilizer"]
+
     if (
-      !intentsWithoutBId.includes(formValues.intent) &&
+      intentsWithBId.includes(formValues.intent) &&
       (!("b_id" in formValues) || !formValues.b_id)
     ) {
       console.error(`Timeline route didn't submit b_id. Intent was ${formValues.intent}`)
@@ -597,10 +597,30 @@ export async function action({ request, params }: Route.LoaderArgs) {
       )
     }
 
+    if (formValues.intent === "update_soil_analysis_date") {
+      await updateSoilAnalysis(fdm, session.principal_id, formValues.a_id, {
+        b_sampling_date: formValues.b_sampling_date,
+      })
+
+      return dataWithSuccess(
+        { moved: true },
+        {
+          message: `Bodemanalyse verplaatst naar ${format(formValues.b_sampling_date, "d MMMM", { locale: nl })}`,
+        },
+      )
+    }
+
     if (formValues.intent === "remove_soil_analysis") {
       const soilAnalysis = await getSoilAnalysis(fdm, session.principal_id, formValues.a_id)
       if (isBcsAnalysis(soilAnalysis)) {
-        return dataWithError(null, "Een BodemConditieScore analyse kan niet worden verwijderd.")
+        const images = await getSoilImages(fdm, session.principal_id, soilAnalysis.b_id_sampling)
+
+        // Storage objects are deleted only after the permission check and DB transaction succeed
+        await Promise.all(
+          images.map((image) =>
+            removeSoilImage(fdm, session.principal_id, image.a_id_image, deleteObject),
+          ),
+        )
       }
       await removeSoilAnalysis(fdm, session.principal_id, formValues.a_id)
       if (soilAnalysis?.a_file_path) {
