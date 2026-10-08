@@ -8,11 +8,24 @@ if (process.env.PUBLIC_SENTRY_DSN) {
     tracesSampleRate: Number(process.env.PUBLIC_SENTRY_TRACE_SAMPLE_RATE ?? 1),
     profileSessionSampleRate: Number(process.env.PUBLIC_SENTRY_PROFILE_SAMPLE_RATE ?? 1),
     profileLifecycle: "trace",
-    ignoreErrors: [
-      /BodyStreamBuffer was aborted/,
-      // Ignore expected 405 Method Not Allowed errors caused by bots/crawlers making OPTIONS requests
-      /Invalid request method "OPTIONS"/,
-    ],
+    ignoreErrors: [/BodyStreamBuffer was aborted/],
+    // Drop React Router's internal 404/405 responses (unmatched routes or unsupported methods).
+    // These come from bots/scanners and are already logged as a debug line in `handleError`.
+    // Mirrors `isInternalRouterNoise` in `app/lib/error.ts`.
+    beforeSend(event, hint) {
+      const error = hint.originalException
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "internal" in error &&
+        error.internal === true &&
+        "status" in error &&
+        (error.status === 404 || error.status === 405)
+      ) {
+        return null
+      }
+      return event
+    },
     environment: process.env.NODE_ENV ?? "development",
     release: process.env.npm_package_version,
     dataCollection: {
