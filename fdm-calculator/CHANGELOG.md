@@ -1,5 +1,11 @@
 # fdm-calculator
 
+## 0.19.3
+
+### Patch Changes
+
+- [#844](https://github.com/nmi-agro/fdm/pull/844) [`8cc7fb3`](https://github.com/nmi-agro/fdm/commit/8cc7fb3e92dc47d79d3f768de4e148c9f5346c59) Thanks [@SvenVw](https://github.com/SvenVw)! - Switch to the new BLN3 aggregation codes returned by the NMI API (for example `S_WAT_BLN` → `S_WAT`, `S_PROD_BLN` → `S_PROD_T`, `S_GW_QUANT_BLN` → `S_WAT_GWQUANT`). The aggregation tree, atlas map selector, field overview cards and indicators page now match on the new codes. A stored map score that is no longer valid falls back to `S_BLN`. The calculator version bump invalidates cached BLN3 results that still hold the old codes.
+
 ## 0.19.2
 
 ### Patch Changes
