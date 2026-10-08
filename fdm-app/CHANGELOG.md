@@ -1,5 +1,21 @@
 # Changelog fdm-app
 
+## 0.38.0
+
+### Minor Changes
+
+- [#831](https://github.com/nmi-agro/fdm/pull/831) [`0ff6213`](https://github.com/nmi-agro/fdm/commit/0ff6213fff255cc5facca238c8c2b4f999a7446c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Now the fields table also shows the selected rows in green.
+
+- [#823](https://github.com/nmi-agro/fdm/pull/823) [`ddcd887`](https://github.com/nmi-agro/fdm/commit/ddcd887f4f9a25e545f0de354bb7a5d11af45341) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - BodemConditieScore analyses on the timeline now have a distinct icon, say "BodemConditieScore" in their popup, and link to the correct analysis view and edit pages.
+
+### Patch Changes
+
+- [#824](https://github.com/nmi-agro/fdm/pull/824) [`605a77c`](https://github.com/nmi-agro/fdm/commit/605a77c410bd33d921a5a398f94e4a04b013df9c) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Users can no longer select text (accidentally) on the rotation table by shift-clicking.
+
+- [#822](https://github.com/nmi-agro/fdm/pull/822) [`3911253`](https://github.com/nmi-agro/fdm/commit/3911253dc4657e5ffdc2032ae138168c4d486897) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - BRP cultivation suggestions on the field dashboard and field table are now correctly shown to the user in the next route when the user tries to add them.
+
+- [#823](https://github.com/nmi-agro/fdm/pull/823) [`ddcd887`](https://github.com/nmi-agro/fdm/commit/ddcd887f4f9a25e545f0de354bb7a5d11af45341) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Standalone fertilizer and soil analysis markers on the timeline now have a rounded shape.
+
 ## 0.37.2
 
 ### Patch Changes
