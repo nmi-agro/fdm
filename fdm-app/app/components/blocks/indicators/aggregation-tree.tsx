@@ -66,8 +66,8 @@ export function AggregationTree({
   // Keep track of expanded state for branches and leaves
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     S_BLN: true,
-    S_WAT_BLN: true,
-    S_PROD_BLN: true,
+    S_WAT: true,
+    S_PROD_T: true,
     S_BBWP: false,
   })
 

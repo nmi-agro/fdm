@@ -245,26 +245,26 @@ export function ScoreSelect({
                 <SelectLabel className="text-muted-foreground text-xs">Hoofdthema's</SelectLabel>
                 <SelectItem value="S_BLN">BLN</SelectItem>
                 <SelectItem value="S_BBWP">BedrijfsBodemWaterPlan (BBWP)</SelectItem>
-                <SelectItem value="S_WAT_BLN">Water</SelectItem>
-                <SelectItem value="S_NUT_BLN">Nutriëntenkringloop</SelectItem>
-                <SelectItem value="S_CLIM_BLN">Klimaat</SelectItem>
-                <SelectItem value="S_PROD_BLN">Productie (OBI)</SelectItem>
+                <SelectItem value="S_WAT">Water</SelectItem>
+                <SelectItem value="S_NUT">Nutriëntenkringloop</SelectItem>
+                <SelectItem value="S_CLIM">Klimaat</SelectItem>
+                <SelectItem value="S_PROD_T">Productie (OBI)</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>
                 <SelectLabel className="text-muted-foreground text-xs">Waterthema's</SelectLabel>
-                <SelectItem value="S_GW_QUANT_BLN">Grondwaterkwantiteit</SelectItem>
-                <SelectItem value="S_GW_QUAL_BLN">Grondwaterkwaliteit</SelectItem>
-                <SelectItem value="S_SW_QUAL_BLN">Oppervlaktewaterkwaliteit</SelectItem>
+                <SelectItem value="S_WAT_GWQUANT">Grondwaterkwantiteit</SelectItem>
+                <SelectItem value="S_WAT_GWQUAL">Grondwaterkwaliteit</SelectItem>
+                <SelectItem value="S_WAT_SWQUAL">Oppervlaktewaterkwaliteit</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>
                 <SelectLabel className="text-muted-foreground text-xs">
                   Productiethema's
                 </SelectLabel>
-                <SelectItem value="S_PROD_BIOL_BLN">Biologische bodemkwaliteit</SelectItem>
-                <SelectItem value="S_PROD_CHEM_BLN">Chemische bodemkwaliteit</SelectItem>
-                <SelectItem value="S_PROD_PHYS_BLN">Fysische bodemkwaliteit</SelectItem>
+                <SelectItem value="S_PROD_B">Biologische bodemkwaliteit</SelectItem>
+                <SelectItem value="S_PROD_C">Chemische bodemkwaliteit</SelectItem>
+                <SelectItem value="S_PROD_P">Fysische bodemkwaliteit</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>
