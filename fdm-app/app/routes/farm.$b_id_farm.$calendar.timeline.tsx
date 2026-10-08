@@ -615,12 +615,11 @@ export async function action({ request, params }: Route.LoaderArgs) {
       if (isBcsAnalysis(soilAnalysis)) {
         const images = await getSoilImages(fdm, session.principal_id, soilAnalysis.b_id_sampling)
 
-        // Delete from storage first, so a failure keeps the image reference for a retry
+        // Storage objects are deleted only after the permission check and DB transaction succeed
         await Promise.all(
-          images.map(async (image) => {
-            await deleteObject(image.a_image_path)
-            await removeSoilImage(fdm, session.principal_id, image.a_id_image)
-          }),
+          images.map((image) =>
+            removeSoilImage(fdm, session.principal_id, image.a_id_image, deleteObject),
+          ),
         )
       }
       await removeSoilAnalysis(fdm, session.principal_id, formValues.a_id)
