@@ -175,7 +175,7 @@ function RowClickCatcher({
     }
   }, [gantt.ref, gantt.sidebarWidth])
 
-  const clickedDate = useRef<Date>(new Date())
+  const clickedDate = useRef<Date>(undefined)
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
@@ -189,24 +189,23 @@ function RowClickCatcher({
       {
         key: "cultivation-add",
         label: "Gewas toevoegen",
-        onSelect: () => onSelect("cultivation-add", clickedDate.current),
+        onSelect: () => clickedDate.current && onSelect("cultivation-add", clickedDate.current),
       },
       {
         key: "fertilizer",
         label: "Bemesting toevoegen",
-        onSelect: () => onSelect("fertilizer", clickedDate.current),
+        onSelect: () => clickedDate.current && onSelect("fertilizer", clickedDate.current),
       },
       {
         key: "soil",
         label: "Bodemanalyse toevoegen",
-        onSelect: () => onSelect("soil", clickedDate.current),
+        onSelect: () => clickedDate.current && onSelect("soil", clickedDate.current),
       },
     ],
   }
 
   return (
     <TimelineContextMenu sections={sections}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: mirrors kibo-ui's own GanttColumn */}
       <div
         className="absolute inset-y-0 left-0 min-h-full cursor-pointer"
         onClick={handleClick}
@@ -1252,12 +1251,12 @@ export const TimelineGanttView = forwardRef<
   const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null)
 
   // Form data that reverts the last drag/resize; it is handed to the page once the change is saved.
-  const pendingUndoRef = useRef<FormData | null>(null)
+  const [pendingUndo, setPendingUndo] = useState<FormData | null>(null)
   const handledFetcherData = useRef<unknown>(null)
   const isUndoingRef = useRef(false)
 
   const submitMove = (formData: FormData, undoFormData: FormData) => {
-    pendingUndoRef.current = undoFormData
+    setPendingUndo(undoFormData)
     onUndoChange?.(null)
     void fetcher.submit(formData, { method: "POST" })
   }
@@ -1267,8 +1266,8 @@ export const TimelineGanttView = forwardRef<
       return
     }
     handledFetcherData.current = fetcher.data
-    const undoFormData = pendingUndoRef.current
-    pendingUndoRef.current = null
+    const undoFormData = pendingUndo
+    setPendingUndo(null)
     if (isUndoingRef.current) {
       isUndoingRef.current = false
       return
@@ -1280,7 +1279,7 @@ export const TimelineGanttView = forwardRef<
       isUndoingRef.current = true
       void fetcher.submit(undoFormData, { method: "POST" })
     })
-  }, [fetcher.state, fetcher.data, fetcher, onUndoChange])
+  }, [fetcher.state, fetcher.data, fetcher, onUndoChange, pendingUndo])
 
   const isSaving = fetcher.state !== "idle"
 

@@ -1,4 +1,4 @@
-import { PointerEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { PointerEventHandler, useCallback, useEffect, useMemo, useRef } from "react"
 import { Slider } from "~/components/ui/slider"
 import { cn } from "~/lib/utils"
 export interface Rectangle {
@@ -243,7 +243,6 @@ export function ImageCropperApp({
   const appAspectRatio = aspectRatio
 
   const svgRef = useRef<SVGSVGElement>(null)
-  const [maxScale, setMaxScale] = useState(1)
   const framePositionRef = useRef(framePosition)
 
   // x and y are relative to the center of the image, in image pixel units.
@@ -258,23 +257,26 @@ export function ImageCropperApp({
     lastY: 0,
   })
 
-  // Reset crop rectangle
+  const maxScale =
+    cropBounds === "outer"
+      ? fitRectangleOut(
+          { x: 0, y: 0, width: imageData.imageWidth, height: imageData.imageHeight },
+          aspectRatio,
+        ).width /
+        fitRectangleIn(
+          { x: 0, y: 0, width: imageData.imageWidth, height: imageData.imageHeight },
+          aspectRatio,
+        ).width
+      : 1
+
+  // Reset crop rectangle whenever the image or crop shape changes.
   useEffect(() => {
-    let nextMaxScale = 1
-
-    if (cropBounds === "outer") {
-      const imageRect = { x: 0, y: 0, width: imageData.imageWidth, height: imageData.imageHeight }
-      nextMaxScale =
-        fitRectangleOut(imageRect, aspectRatio).width / fitRectangleIn(imageRect, aspectRatio).width
-    }
-
-    setMaxScale(nextMaxScale)
-    const newFramePosition = { x: 0, y: 0, scale: nextMaxScale }
+    const newFramePosition = { x: 0, y: 0, scale: maxScale }
     onFramePositionChange(newFramePosition)
     framePositionRef.current = newFramePosition
-    onFrameRectangleChange?.(getResultFrameRect(imageData, aspectRatio, 0, 0, nextMaxScale))
+    onFrameRectangleChange?.(getResultFrameRect(imageData, aspectRatio, 0, 0, maxScale))
     dragState.current.dragging = false
-  }, [imageData, aspectRatio, cropBounds, onFramePositionChange, onFrameRectangleChange])
+  }, [imageData, aspectRatio, maxScale, onFramePositionChange, onFrameRectangleChange])
 
   // all other rectangles are fit onto this
   const appRect = {

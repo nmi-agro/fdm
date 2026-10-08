@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
+import { useToday } from "~/hooks/use-today"
 import { getCurrentDoy } from "./mineralization-chart"
 
 interface FieldListProps {
@@ -19,7 +20,8 @@ interface FieldListProps {
 
 export function FieldList({ results, b_id_farm, calendar }: FieldListProps) {
   const sorted = [...results].sort((a, b) => b.totalAnnualN - a.totalAnnualN)
-  const currentDoy = getCurrentDoy()
+  const today = useToday()
+  const currentDoy = today ? getCurrentDoy(today) : 0
 
   return (
     <Table>

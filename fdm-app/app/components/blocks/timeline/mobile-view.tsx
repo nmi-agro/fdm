@@ -1,7 +1,7 @@
 import { format, isToday } from "date-fns"
 import { nl } from "date-fns/locale"
 import { ChevronRight, CircleStop, Sprout, TestTube2, Wheat } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { useFetcher, useNavigate, useParams } from "react-router"
 import type {
   FertilizerTypeInfo,
@@ -53,12 +53,28 @@ import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty"
 import { ToggleGroup, ToggleGroupItem } from "~/components/ui/toggle-group"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { AddEventSheetRequest } from "./add-event-types"
 
 const INITIAL_GROUPS = 10
 const GROUPS_PER_LOAD = 10
 
 export const TIMELINE_FETCHER_KEY = "TIMELINE_FETCHER_KEY"
+
+// Client-only "today", read via useSyncExternalStore to avoid an SSR/hydration mismatch
+// without re-rendering on every render (pattern F, day granularity is all filtering needs).
+const noopSubscribe = () => () => {}
+function getTodayKeySnapshot(): string {
+  return format(new Date(), "yyyy-MM-dd")
+}
+function getTodayKeyServerSnapshot(): string | undefined {
+  return undefined
+}
+function parseTodayKey(key: string | undefined): Date | undefined {
+  if (!key) return undefined
+  const [year, month, day] = key.split("-").map(Number)
+  return new Date(year, month - 1, day)
+}
 
 const eventTypeLabel: Record<TimelineEventType, string> = {
   fertilizer: "Bemesting",
@@ -550,9 +566,6 @@ export function TimelineMobileView({
   const [viewMode, setViewMode] = useState<"date" | "field">("date")
   const [monthYear, setMonthYear] = useState<string>("")
   const [visibleGroupCount, setVisibleGroupCount] = useState(INITIAL_GROUPS)
-  const [expandedFields, setExpandedFields] = useState<Set<string>>(
-    () => new Set(fields.map((field) => field.b_id)),
-  )
   const [cultivationBarHeight, setCultivationBarHeight] = useState(0)
 
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -576,7 +589,12 @@ export function TimelineMobileView({
     return () => observer.disconnect()
   }, [])
 
-  const today = useMemo(() => new Date(), [])
+  const todayKey = useSyncExternalStore(
+    noopSubscribe,
+    getTodayKeySnapshot,
+    getTodayKeyServerSnapshot,
+  )
+  const today = useMemo(() => parseTodayKey(todayKey), [todayKey])
 
   const visibleFields = useMemo(
     () =>
@@ -586,9 +604,11 @@ export function TimelineMobileView({
     [fields, filters.showBufferStrips],
   )
 
-  useEffect(() => {
-    setExpandedFields(new Set(visibleFields.map((field) => field.b_id)))
-  }, [visibleFields])
+  // Expand all visible fields by default; re-expand them whenever the filter changes the set.
+  const [expandedFields, setExpandedFields] = useKeyedState(
+    visibleFields,
+    (vf) => new Set(vf.map((field) => field.b_id)),
+  )
 
   const events = useMemo(() => {
     const all = flattenEvents(visibleFields, fertilizerTypeById, b_id_farm, calendar)

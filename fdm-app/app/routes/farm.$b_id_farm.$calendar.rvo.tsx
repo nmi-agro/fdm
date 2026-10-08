@@ -14,12 +14,10 @@ import {
 import {
   type ImportReviewAction,
   type RvoImportReviewItem,
-  RvoImportReviewStatus,
   type UserChoiceMap,
 } from "@nmi-agro/fdm-rvo/types"
-import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { AlertTriangle, Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo } from "react"
 import {
   data,
   Form,
@@ -51,6 +49,7 @@ import {
   DialogTrigger,
 } from "~/components/ui/dialog"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import {
   createConfiguredRvoClient,
@@ -63,6 +62,7 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { defaultChoices } from "~/lib/rvo-import"
 import {
   compareFields,
   fetchRvoFields,
@@ -276,35 +276,14 @@ export default function RvoImportReviewPage() {
   const isApplying =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "apply_changes"
 
-  const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
-
-  useEffect(() => {
-    const initialChoices: UserChoiceMap = {}
-    rvoImportReviewData.forEach((item) => {
-      const id = getItemId(item)
-      let defaultAction: ImportReviewAction
-
-      switch (item.status) {
-        case RvoImportReviewStatus.NEW_REMOTE:
-          defaultAction = "ADD_REMOTE"
-          break
-        case RvoImportReviewStatus.NEW_LOCAL:
-          defaultAction = "REMOVE_LOCAL"
-          break
-        case RvoImportReviewStatus.EXPIRED_LOCAL:
-          defaultAction = "CLOSE_LOCAL"
-          break
-        case RvoImportReviewStatus.CONFLICT:
-          defaultAction = "UPDATE_FROM_REMOTE"
-          break
-        case RvoImportReviewStatus.MATCH:
-          defaultAction = "NO_ACTION"
-          break
-      }
-      initialChoices[id] = defaultAction
-    })
-    setUserChoices(initialChoices)
-  }, [rvoImportReviewData])
+  // The defaults for the current review data, plus whatever the user has overridden. New review
+  // data (e.g. from a fresh import) starts without overrides.
+  const defaults = useMemo(() => defaultChoices(rvoImportReviewData), [rvoImportReviewData])
+  const [overrides, setOverrides] = useKeyedState<ReviewItem[], UserChoiceMap>(
+    rvoImportReviewData,
+    () => ({}),
+  )
+  const userChoices = { ...defaults, ...overrides }
 
   // Warn the user before refreshing or leaving when data is present
   useEffect(() => {
@@ -321,7 +300,7 @@ export default function RvoImportReviewPage() {
   }, [rvoImportReviewData])
 
   const handleChoiceChange = (id: string, action: ImportReviewAction) => {
-    setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
+    setOverrides((prev) => ({ ...prev, [id]: action }))
   }
 
   const currentFarmName = farms.find((farm) => farm.b_id_farm === b_id_farm)?.b_name_farm ?? ""

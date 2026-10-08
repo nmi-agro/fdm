@@ -10,6 +10,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "~/components/ui/chart"
+import { useToday } from "~/hooks/use-today"
 
 const MONTH_DOYS = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 const MONTH_LABELS = [
@@ -41,8 +42,7 @@ function doyToDate(doy: number, year: number): string {
   return date.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })
 }
 
-export function getCurrentDoy(): number {
-  const now = new Date()
+export function getCurrentDoy(now: Date): number {
   const start = new Date(now.getFullYear(), 0, 0)
   return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
@@ -51,7 +51,7 @@ export function getCurrentDoy(): number {
 
 interface FarmMineralizationChartProps {
   data: NSupplyDataPoint[]
-  year?: number
+  year: number
 }
 
 const farmChartConfig = {
@@ -61,12 +61,10 @@ const farmChartConfig = {
   },
 } satisfies ChartConfig
 
-export function FarmMineralizationChart({
-  data,
-  year = new Date().getFullYear(),
-}: FarmMineralizationChartProps) {
-  const currentDoy = getCurrentDoy()
-  const isCurrentYear = year === new Date().getFullYear()
+export function FarmMineralizationChart({ data, year }: FarmMineralizationChartProps) {
+  const today = useToday()
+  const currentDoy = today ? getCurrentDoy(today) : 0
+  const isCurrentYear = today !== undefined && year === today.getFullYear()
 
   return (
     <ChartContainer config={farmChartConfig} className="h-[300px] w-full">
@@ -150,7 +148,7 @@ interface FieldDataSeries {
 
 interface FieldMineralizationChartProps {
   series: FieldDataSeries[]
-  year?: number
+  year: number
 }
 
 // Distinct colors + dash patterns so methods are always distinguishable
@@ -197,12 +195,10 @@ function mergeSeriesData(series: FieldDataSeries[]): Record<string, number | str
   return Array.from(map.values()).sort((a, b) => (a.doy as number) - (b.doy as number))
 }
 
-export function FieldMineralizationChart({
-  series,
-  year = new Date().getFullYear(),
-}: FieldMineralizationChartProps) {
-  const currentDoy = getCurrentDoy()
-  const isCurrentYear = year === new Date().getFullYear()
+export function FieldMineralizationChart({ series, year }: FieldMineralizationChartProps) {
+  const today = useToday()
+  const currentDoy = today ? getCurrentDoy(today) : 0
+  const isCurrentYear = today !== undefined && year === today.getFullYear()
   const mergedData = mergeSeriesData(series)
   const activeSeries = series.filter((s) => !s.error)
 

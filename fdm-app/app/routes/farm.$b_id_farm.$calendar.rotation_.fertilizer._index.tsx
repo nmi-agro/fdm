@@ -10,7 +10,7 @@ import {
   getFields,
 } from "@nmi-agro/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -63,6 +63,7 @@ import { Label } from "~/components/ui/label"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
@@ -257,13 +258,10 @@ export default function FarmRotationFertilizerAddIndex() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
-    loaderData.selectedFields.map((field) => field.b_id!),
+  const [selectedFieldIds, setSelectedFieldIds] = useKeyedState(
+    loaderData.selectedFields,
+    (fields) => fields.map((field) => field.b_id!),
   )
-
-  useEffect(() => {
-    setSelectedFieldIds(loaderData.selectedFields.map((field) => field.b_id!))
-  }, [loaderData.selectedFields])
 
   const isSubmitting = navigation.state !== "idle" && Boolean(navigation.formData)
 

@@ -132,7 +132,7 @@ export default function FieldBcsOverviewRoute() {
 
   useEffect(() => {
     capture("bcs_viewed", { b_id_farm: params.b_id_farm, b_id: params.b_id })
-  }, [])
+  }, [capture, params.b_id_farm, params.b_id])
 
   return (
     <div className="space-y-6">

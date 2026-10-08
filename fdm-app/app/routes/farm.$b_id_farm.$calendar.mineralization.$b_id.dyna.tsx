@@ -25,6 +25,7 @@ import { DynaFallback } from "~/components/blocks/mineralization/skeletons"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
+import { useToday } from "~/hooks/use-today"
 import { type DynaResult, getDynaForField } from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
 import { getTimeframe } from "~/lib/calendar"
@@ -325,10 +326,14 @@ function DynaContent({
   )
 
   // KPI values — use year-filtered data
-  const isCurrentYear = year === new Date().getFullYear()
+  const today = useToday()
+  const isCurrentYear = today !== undefined && year === today.getFullYear()
   const lastPoint = yearData[yearData.length - 1]
-  const today = new Date().toLocaleDateString("en-CA")
-  const todayPoint = isCurrentYear ? yearData.find((d) => d.b_date_calculation >= today) : undefined
+  const todayStr = today?.toLocaleDateString("en-CA")
+  const todayPoint =
+    isCurrentYear && todayStr !== undefined
+      ? yearData.find((d) => d.b_date_calculation >= todayStr)
+      : undefined
 
   const totalLeaching = lastPoint?.b_no3_leach ?? 0
   const currentNAvailability = todayPoint?.b_nw ?? lastPoint?.b_nw ?? 0

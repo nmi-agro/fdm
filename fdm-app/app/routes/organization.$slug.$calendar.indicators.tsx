@@ -14,6 +14,7 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import {
   type Bln3Score,
   type FieldBln3Score,
@@ -191,11 +192,14 @@ export default function IndicatorsFarmIndex() {
   const [withMeasures, setWithMeasures] = useState(true)
   const [fieldSearch, setFieldSearch] = useState("")
   const [isPending, startTransition] = useTransition()
-  const [fieldScores, setFieldScores] = useState<FieldBln3Score[]>([])
+  // Reset for each new batch of streams (keyed), instead of resetting synchronously below.
+  const [fieldScores, setFieldScores] = useKeyedState(
+    farmScoreStreams,
+    () => [] as FieldBln3Score[],
+  )
 
   useEffect(() => {
     let active = true
-    setFieldScores([])
     for (const stream of farmScoreStreams) {
       stream.then(
         (scores) => {
@@ -214,18 +218,17 @@ export default function IndicatorsFarmIndex() {
     return () => {
       active = false
     }
-  }, [farmScoreStreams])
+  }, [farmScoreStreams, setFieldScores])
 
-  // Debounce the pending indicator to avoid flickering on fast transitions
-  const [showPending, setShowPending] = useState(false)
+  // Debounce the pending indicator to avoid flickering on fast transitions. Keyed on isPending so
+  // it resets for each new pending episode without a synchronous setState in the effect.
+  const [pendingDelayElapsed, setPendingDelayElapsed] = useKeyedState(isPending, () => false)
   useEffect(() => {
-    if (!isPending) {
-      setShowPending(false)
-      return
-    }
-    const id = setTimeout(() => setShowPending(true), 150)
+    if (!isPending) return
+    const id = setTimeout(() => setPendingDelayElapsed(true), 150)
     return () => clearTimeout(id)
-  }, [isPending])
+  }, [isPending, setPendingDelayElapsed])
+  const showPending = isPending && pendingDelayElapsed
 
   const showIndex = !withMeasures
 

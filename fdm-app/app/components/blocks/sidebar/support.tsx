@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react-router"
 import { LifeBuoy, Send } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useSyncExternalStore } from "react"
 import { NavLink, useParams } from "react-router"
 import { toast } from "sonner"
 import { clientConfig } from "@/app/lib/config"
@@ -14,6 +14,21 @@ import {
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+
+const noop = () => () => {}
+
+function getFeedbackSnapshot() {
+  try {
+    return Sentry.getFeedback() ?? null
+  } catch (error) {
+    console.error("Failed to initialize Sentry feedback:", error)
+    return null
+  }
+}
+
+function getFeedbackServerSnapshot() {
+  return null
+}
 
 export function SidebarSupport({
   name,
@@ -39,27 +54,7 @@ export function SidebarSupport({
     }
   }, [name, email])
 
-  const [feedback, setFeedback] = useState<ReturnType<typeof Sentry.getFeedback> | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    try {
-      const feedbackInstance = Sentry.getFeedback()
-      if (feedbackInstance) {
-        setFeedback(feedbackInstance)
-      } else {
-        console.warn("Sentry.getFeedback() returned null or undefined.")
-      }
-    } catch (error) {
-      console.error("Failed to initialize Sentry feedback:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  if (isLoading) {
-    return null
-  }
+  const feedback = useSyncExternalStore(noop, getFeedbackSnapshot, getFeedbackServerSnapshot)
 
   const openFeedbackForm = async () => {
     if (!feedback || typeof feedback.createForm !== "function") {

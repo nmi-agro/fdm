@@ -16,7 +16,7 @@ import { simplify } from "@turf/simplify"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Pencil, Plus, Trash2 } from "lucide-react"
-import { lazy, Suspense, useEffect, useState } from "react"
+import { lazy, Suspense, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
@@ -434,18 +434,53 @@ function MeasureEditDialog({
   onClose: () => void
   action?: string
 }) {
+  return (
+    <Dialog open={measure !== null} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
+        </DialogHeader>
+        {measure && (
+          // Remount on measure/mode change instead of resetting in an effect.
+          <MeasureEditForm
+            key={`${measure.b_id_measure}-${closeMode}`}
+            measure={measure}
+            closeMode={closeMode}
+            onClose={onClose}
+            action={action}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function MeasureEditForm({
+  measure,
+  closeMode,
+  onClose,
+  action,
+}: {
+  measure: EditingMeasure
+  closeMode: boolean
+  onClose: () => void
+  action: string
+}) {
   const fetcher = useFetcher()
-  const [doorlopend, setDoorlopend] = useState(true)
+  const [doorlopend, setDoorlopend] = useState(closeMode ? false : !measure.m_end)
 
   const form = useRemixForm<MeasureDateFormValues>({
     fetcher,
     resolver: zodResolver(MeasureDateSchema),
-    defaultValues: { m_start: "", m_end: null },
+    defaultValues: {
+      m_start: toIso(measure.m_start),
+      m_end: measure.m_end ? toIso(measure.m_end) : null,
+    },
     submitHandlers: {
       onValid: (data) => {
         const fd = new FormData()
         fd.append("intent", "update")
-        fd.append("b_id_measure", measure?.b_id_measure ?? "")
+        fd.append("b_id_measure", measure.b_id_measure)
         fd.append("m_start", data.m_start)
         if (data.m_end) fd.append("m_end", data.m_end)
         else fd.append("m_end", "")
@@ -458,120 +493,100 @@ function MeasureEditDialog({
     },
   })
 
-  // Reset form when measure or mode changes
-  const { reset } = form
-  useEffect(() => {
-    if (!measure) return
-    reset({
-      m_start: toIso(measure.m_start),
-      m_end: measure.m_end ? toIso(measure.m_end) : null,
-    })
-    setDoorlopend(closeMode ? false : !measure.m_end)
-  }, [measure, closeMode, reset])
-
   return (
-    <Dialog open={measure !== null} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
-        </DialogHeader>
-        {measure && (
-          <form onSubmit={form.handleSubmit}>
-            <FieldGroup className="py-2">
-              <p className="text-sm font-medium">{measure.m_name}</p>
+    <form onSubmit={form.handleSubmit}>
+      <FieldGroup className="py-2">
+        <p className="text-sm font-medium">{measure.m_name}</p>
 
-              {!closeMode && (
-                <Controller
-                  control={form.control}
-                  name="m_start"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Startdatum"
-                      field={{
-                        ...field,
-                        value: field.value,
-                      }}
-                      fieldState={fieldState}
-                      required
-                    />
-                  )}
-                />
-              )}
-
-              {closeMode ? (
-                <Controller
-                  control={form.control}
-                  name="m_end"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Einddatum"
-                      field={{
-                        ...field,
-                        value: field.value,
-                      }}
-                      fieldState={fieldState}
-                      required
-                    />
-                  )}
-                />
-              ) : (
-                <Field>
-                  <FieldLabel>Einddatum</FieldLabel>
-                  <RadioGroup
-                    value={doorlopend ? "doorlopend" : "einddatum"}
-                    onValueChange={(v) => {
-                      const isDoorlopend = v === "doorlopend"
-                      setDoorlopend(isDoorlopend)
-                      if (isDoorlopend) form.setValue("m_end", null)
-                      else form.setValue("m_end", "")
-                    }}
-                    className="space-y-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="doorlopend" id="field-edit-doorlopend" />
-                      <Label htmlFor="field-edit-doorlopend" className="cursor-pointer font-normal">
-                        Doorlopend
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="einddatum" id="field-edit-einddatum" />
-                      <Label htmlFor="field-edit-einddatum" className="cursor-pointer font-normal">
-                        Vaste einddatum
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                  {!doorlopend && (
-                    <Controller
-                      control={form.control}
-                      name="m_end"
-                      render={({ field, fieldState }) => (
-                        <DatePicker
-                          label=""
-                          field={{
-                            ...field,
-                            value: field.value,
-                          }}
-                          fieldState={fieldState}
-                        />
-                      )}
-                    />
-                  )}
-                </Field>
-              )}
-
-              <div className="flex justify-end gap-2 pt-1">
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Annuleren
-                </Button>
-                <Button type="submit" disabled={fetcher.state !== "idle"}>
-                  {fetcher.state !== "idle" ? "Opslaan…" : closeMode ? "Afsluiten" : "Opslaan"}
-                </Button>
-              </div>
-            </FieldGroup>
-          </form>
+        {!closeMode && (
+          <Controller
+            control={form.control}
+            name="m_start"
+            render={({ field, fieldState }) => (
+              <DatePicker
+                label="Startdatum"
+                field={{
+                  ...field,
+                  value: field.value,
+                }}
+                fieldState={fieldState}
+                required
+              />
+            )}
+          />
         )}
-      </DialogContent>
-    </Dialog>
+
+        {closeMode ? (
+          <Controller
+            control={form.control}
+            name="m_end"
+            render={({ field, fieldState }) => (
+              <DatePicker
+                label="Einddatum"
+                field={{
+                  ...field,
+                  value: field.value,
+                }}
+                fieldState={fieldState}
+                required
+              />
+            )}
+          />
+        ) : (
+          <Field>
+            <FieldLabel>Einddatum</FieldLabel>
+            <RadioGroup
+              value={doorlopend ? "doorlopend" : "einddatum"}
+              onValueChange={(v) => {
+                const isDoorlopend = v === "doorlopend"
+                setDoorlopend(isDoorlopend)
+                if (isDoorlopend) form.setValue("m_end", null)
+                else form.setValue("m_end", "")
+              }}
+              className="space-y-1"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="doorlopend" id="field-edit-doorlopend" />
+                <Label htmlFor="field-edit-doorlopend" className="cursor-pointer font-normal">
+                  Doorlopend
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="einddatum" id="field-edit-einddatum" />
+                <Label htmlFor="field-edit-einddatum" className="cursor-pointer font-normal">
+                  Vaste einddatum
+                </Label>
+              </div>
+            </RadioGroup>
+            {!doorlopend && (
+              <Controller
+                control={form.control}
+                name="m_end"
+                render={({ field, fieldState }) => (
+                  <DatePicker
+                    label=""
+                    field={{
+                      ...field,
+                      value: field.value,
+                    }}
+                    fieldState={fieldState}
+                  />
+                )}
+              />
+            )}
+          </Field>
+        )}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Annuleren
+          </Button>
+          <Button type="submit" disabled={fetcher.state !== "idle"}>
+            {fetcher.state !== "idle" ? "Opslaan…" : closeMode ? "Afsluiten" : "Opslaan"}
+          </Button>
+        </div>
+      </FieldGroup>
+    </form>
   )
 }
 
@@ -618,14 +633,10 @@ export default function MeasuresFieldDetail() {
   // refresh — and removed when the dialog closes.
   const openMeasure = searchParams.get("openMeasure")
   const indicator = searchParams.get("indicator") ?? undefined
-
-  useEffect(() => {
-    if (!openMeasure) return
-    setInitialMeasureId(openMeasure)
-    setFocusIndicatorId(indicator)
-    setDialogOpen(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openMeasure, indicator])
+  // The URL is the source of truth for a deep-linked measure: no effect needed to open it.
+  const measureDialogOpen = dialogOpen || !!openMeasure
+  const measureDialogMeasureId = openMeasure ?? initialMeasureId
+  const measureDialogIndicatorId = openMeasure ? indicator : focusIndicatorId
 
   return (
     <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">
@@ -849,7 +860,7 @@ export default function MeasuresFieldDetail() {
 
       {/* Add Measure dialog */}
       <AddMeasureDialog
-        open={dialogOpen}
+        open={measureDialogOpen}
         onOpenChange={(next) => {
           setDialogOpen(next)
           if (!next) {
@@ -875,8 +886,8 @@ export default function MeasuresFieldDetail() {
         applicabilityMap={applicabilityMap ?? undefined}
         topOpportunities={topOpportunities}
         measureImpacts={measureImpacts}
-        focusIndicatorId={focusIndicatorId}
-        initialMeasureId={initialMeasureId}
+        focusIndicatorId={measureDialogIndicatorId}
+        initialMeasureId={measureDialogMeasureId}
       />
 
       {/* Edit Measure dialog */}
