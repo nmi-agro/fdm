@@ -763,10 +763,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         const attentionCount = attentionItems.length
 
         const aggregations = [
-          { id: "S_WAT_BLN", label: "Water" },
-          { id: "S_NUT_BLN", label: "Nutriëntenkringloop" },
-          { id: "S_CLIM_BLN", label: "Klimaat" },
-          { id: "S_PROD_BLN", label: "Productie" },
+          { id: "S_WAT", label: "Water" },
+          { id: "S_NUT", label: "Nutriëntenkringloop" },
+          { id: "S_CLIM", label: "Klimaat" },
+          { id: "S_PROD_T", label: "Productie" },
         ].map(({ id, label }) => {
           const score01 = getFieldAggregationScore(
             result.score,

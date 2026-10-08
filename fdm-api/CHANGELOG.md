@@ -1,5 +1,12 @@
 # @nmi-agro/fdm-api
 
+## 0.2.8
+
+### Patch Changes
+
+- Updated dependencies [[`8cc7fb3`](https://github.com/nmi-agro/fdm/commit/8cc7fb3e92dc47d79d3f768de4e148c9f5346c59)]:
+  - @nmi-agro/fdm-calculator@0.19.3
+
 ## 0.2.7
 
 ### Patch Changes

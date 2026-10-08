@@ -3,31 +3,31 @@ import type { Bln3Score } from "@nmi-agro/fdm-calculator"
 export const AGG_IDS: AggregationId[] = [
   "S_BLN",
   "S_BBWP",
-  "S_WAT_BLN",
-  "S_NUT_BLN",
-  "S_CLIM_BLN",
-  "S_PROD_BLN",
-  "S_GW_QUANT_BLN",
-  "S_GW_QUAL_BLN",
-  "S_SW_QUAL_BLN",
-  "S_PROD_BIOL_BLN",
-  "S_PROD_CHEM_BLN",
-  "S_PROD_PHYS_BLN",
+  "S_WAT",
+  "S_NUT",
+  "S_CLIM",
+  "S_PROD_T",
+  "S_WAT_GWQUANT",
+  "S_WAT_GWQUAL",
+  "S_WAT_SWQUAL",
+  "S_PROD_B",
+  "S_PROD_C",
+  "S_PROD_P",
 ]
 
 export type AggregationId =
   | "S_BLN"
   | "S_BBWP"
-  | "S_WAT_BLN"
-  | "S_NUT_BLN"
-  | "S_CLIM_BLN"
-  | "S_PROD_BLN"
-  | "S_GW_QUANT_BLN"
-  | "S_GW_QUAL_BLN"
-  | "S_SW_QUAL_BLN"
-  | "S_PROD_BIOL_BLN"
-  | "S_PROD_CHEM_BLN"
-  | "S_PROD_PHYS_BLN"
+  | "S_WAT"
+  | "S_NUT"
+  | "S_CLIM"
+  | "S_PROD_T"
+  | "S_WAT_GWQUANT"
+  | "S_WAT_GWQUAL"
+  | "S_WAT_SWQUAL"
+  | "S_PROD_B"
+  | "S_PROD_C"
+  | "S_PROD_P"
 
 export type AggregationInfo = {
   id: AggregationId
@@ -53,83 +53,83 @@ export const AGGREGATIONS: Record<AggregationId, AggregationInfo> = {
     parent: null,
     color: "#2563eb", // Blue-600
   },
-  S_WAT_BLN: {
-    id: "S_WAT_BLN",
+  S_WAT: {
+    id: "S_WAT",
     name: "Water",
     description:
       "Beoordeling van de bodemfuncties gerelateerd aan waterberging, grondwateraanvulling en waterkwaliteit.",
     parent: "S_BLN",
     color: "#3b82f6", // Blue-500
   },
-  S_NUT_BLN: {
-    id: "S_NUT_BLN",
+  S_NUT: {
+    id: "S_NUT",
     name: "Nutriëntenkringloop",
     description:
       "De efficiëntie waarmee de bodem nutriënten (stikstof, fosfaat, kalium) vasthoudt en beschikbaar stelt aan het gewas.",
     parent: "S_BLN",
     color: "#8b5cf6", // Violet-500
   },
-  S_CLIM_BLN: {
-    id: "S_CLIM_BLN",
+  S_CLIM: {
+    id: "S_CLIM",
     name: "Klimaat",
     description: "De bijdrage van de bodem aan koolstofvastlegging en klimaatmitigatie.",
     parent: "S_BLN",
     color: "#78716c", // Stone-500
   },
-  S_PROD_BLN: {
-    id: "S_PROD_BLN",
+  S_PROD_T: {
+    id: "S_PROD_T",
     name: "Productie (OBI)",
     description:
       "De Open Bodem Index (OBI) score die de biologische, chemische en fysische geschiktheid van de bodem voor gewasproductie samenvat.",
     parent: "S_BLN",
     color: "#f97316", // Orange-500
   },
-  S_GW_QUANT_BLN: {
-    id: "S_GW_QUANT_BLN",
+  S_WAT_GWQUANT: {
+    id: "S_WAT_GWQUANT",
     name: "Grondwaterkwantiteit",
     description:
       "Het vermogen van de bodem om regenwater te infiltreren en vast te houden ter aanvulling van het grondwater en bescherming tegen droogte.",
-    parent: "S_WAT_BLN",
+    parent: "S_WAT",
     color: "#60a5fa", // Blue-400
   },
-  S_GW_QUAL_BLN: {
-    id: "S_GW_QUAL_BLN",
+  S_WAT_GWQUAL: {
+    id: "S_WAT_GWQUAL",
     name: "Grondwaterkwaliteit",
     description:
       "De weerstand van de bodem tegen uitspoeling van stikstof en gewasbeschermingsmiddelen naar het grondwater.",
-    parent: "S_WAT_BLN",
+    parent: "S_WAT",
     color: "#2563eb", // Blue-600
   },
-  S_SW_QUAL_BLN: {
-    id: "S_SW_QUAL_BLN",
+  S_WAT_SWQUAL: {
+    id: "S_WAT_SWQUAL",
     name: "Oppervlaktewaterkwaliteit",
     description:
       "De weerstand van de bodem tegen oppervlakkige afspoeling van nutriënten (stikstof, fosfaat) naar het oppervlaktewater.",
-    parent: "S_WAT_BLN",
+    parent: "S_WAT",
     color: "#1d4ed8", // Blue-700
   },
-  S_PROD_BIOL_BLN: {
-    id: "S_PROD_BIOL_BLN",
+  S_PROD_B: {
+    id: "S_PROD_B",
     name: "Biologische bodemkwaliteit",
     description:
       "De biologische gezondheid van de bodem, bepaald door het bodemleven en ziektewerend vermogen.",
-    parent: "S_PROD_BLN",
+    parent: "S_PROD_T",
     color: "#22c55e", // Green-500
   },
-  S_PROD_CHEM_BLN: {
-    id: "S_PROD_CHEM_BLN",
+  S_PROD_C: {
+    id: "S_PROD_C",
     name: "Chemische bodemkwaliteit",
     description:
       "De chemische bodemvruchtbaarheid, bepaald door de zuurgraad en de beschikbaarheid van hoofd- en spoorelementen.",
-    parent: "S_PROD_BLN",
+    parent: "S_PROD_T",
     color: "#eab308", // Yellow-500
   },
-  S_PROD_PHYS_BLN: {
-    id: "S_PROD_PHYS_BLN",
+  S_PROD_P: {
+    id: "S_PROD_P",
     name: "Fysische bodemkwaliteit",
     description:
       "De fysische bodemstructuur, bepaald door de aggregaatstabiliteit, bewerkbaarheid, bewortelbaarheid en weerstand tegen verdichting of verslemping.",
-    parent: "S_PROD_BLN",
+    parent: "S_PROD_T",
     color: "#ea580c", // Orange-600
   },
 }
@@ -141,56 +141,40 @@ export const AGGREGATIONS: Record<AggregationId, AggregationInfo> = {
 export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
   // Top-levels (non-leaves) do not have their own indicators directly; they inherit from their leaf children.
   S_BLN: [],
-  S_WAT_BLN: [],
-  S_PROD_BLN: [],
+  S_WAT: [],
+  S_PROD_T: [],
 
   // S_BBWP acts as both a top-level aggregation and maps directly to its indicators
   S_BBWP: ["GW_GWR", "GW_NLEA", "GW_WHC", "P_DS", "P_WS", "NUT_N", "NUT_P", "SW_NLEA", "SW_PLEA"],
 
   // Leaves under Water
-  S_GW_QUANT_BLN: ["GW_GWR", "GW_WHC"],
-  S_GW_QUAL_BLN: ["GW_NLEA", "GW_PEST"],
-  S_SW_QUAL_BLN: ["SW_NLEA", "SW_PLEA"],
+  S_WAT_GWQUANT: ["GW_GWR", "GW_WHC"],
+  S_WAT_GWQUAL: ["GW_NLEA", "GW_PEST"],
+  S_WAT_SWQUAL: ["SW_NLEA", "SW_PLEA"],
 
   // Nutrient Cycle (direct leaf in S_BLN)
-  S_NUT_BLN: ["NUT_K", "NUT_N", "NUT_P"],
+  S_NUT: ["NUT_K", "NUT_N", "NUT_P"],
 
   // Climate (direct leaf in S_BLN)
-  S_CLIM_BLN: ["CR_CSEQ"],
+  S_CLIM: ["CR_CSEQ"],
 
   // Leaves under OBI/Productivity
-  S_PROD_BIOL_BLN: ["B_DI", "B_SF"],
-  S_PROD_CHEM_BLN: ["C_K", "C_MG", "C_N", "C_P", "C_PH", "C_S"],
-  S_PROD_PHYS_BLN: [
-    "P_AS",
-    "P_CO",
-    "P_CR",
-    "P_DS",
-    "P_DU",
-    "P_RO",
-    "P_SE",
-    "P_PAW",
-    "P_WO",
-    "P_WS",
-  ],
+  S_PROD_B: ["B_DI", "B_SF"],
+  S_PROD_C: ["C_K", "C_MG", "C_N", "C_P", "C_PH", "C_S"],
+  S_PROD_P: ["P_AS", "P_CO", "P_CR", "P_DS", "P_DU", "P_RO", "P_SE", "P_PAW", "P_WO", "P_WS"],
 }
 
-export const TOP_LEVEL_AGGREGATION_IDS: AggregationId[] = [
-  "S_WAT_BLN",
-  "S_NUT_BLN",
-  "S_CLIM_BLN",
-  "S_PROD_BLN",
-]
+export const TOP_LEVEL_AGGREGATION_IDS: AggregationId[] = ["S_WAT", "S_NUT", "S_CLIM", "S_PROD_T"]
 
 export const LEAF_AGGREGATION_IDS: AggregationId[] = [
-  "S_GW_QUANT_BLN",
-  "S_GW_QUAL_BLN",
-  "S_SW_QUAL_BLN",
-  "S_NUT_BLN",
-  "S_CLIM_BLN",
-  "S_PROD_BIOL_BLN",
-  "S_PROD_CHEM_BLN",
-  "S_PROD_PHYS_BLN",
+  "S_WAT_GWQUANT",
+  "S_WAT_GWQUAL",
+  "S_WAT_SWQUAL",
+  "S_NUT",
+  "S_CLIM",
+  "S_PROD_B",
+  "S_PROD_C",
+  "S_PROD_P",
   "S_BBWP",
 ]
 

@@ -79,26 +79,26 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
       { value: "avg", label: "Gemiddelde (alle indicatoren)" },
       { value: "S_BLN", label: "BLN Bodemkwaliteit" },
       { value: "S_BBWP", label: "BedrijfsBodemWaterPlan (BBWP)" },
-      { value: "S_WAT_BLN", label: "Water" },
-      { value: "S_NUT_BLN", label: "Nutriëntenkringloop" },
-      { value: "S_CLIM_BLN", label: "Klimaat" },
-      { value: "S_PROD_BLN", label: "Productie (OBI)" },
+      { value: "S_WAT", label: "Water" },
+      { value: "S_NUT", label: "Nutriëntenkringloop" },
+      { value: "S_CLIM", label: "Klimaat" },
+      { value: "S_PROD_T", label: "Productie (OBI)" },
     ],
   },
   {
     group: "Water Subaggregaties",
     options: [
-      { value: "S_GW_QUANT_BLN", label: "Grondwaterkwantiteit" },
-      { value: "S_GW_QUAL_BLN", label: "Grondwaterkwaliteit" },
-      { value: "S_SW_QUAL_BLN", label: "Oppervlaktewaterkwaliteit" },
+      { value: "S_WAT_GWQUANT", label: "Grondwaterkwantiteit" },
+      { value: "S_WAT_GWQUAL", label: "Grondwaterkwaliteit" },
+      { value: "S_WAT_SWQUAL", label: "Oppervlaktewaterkwaliteit" },
     ],
   },
   {
     group: "Productie Subaggregaties",
     options: [
-      { value: "S_PROD_BIOL_BLN", label: "Biologische Bodemkwaliteit" },
-      { value: "S_PROD_CHEM_BLN", label: "Chemische Bodemkwaliteit" },
-      { value: "S_PROD_PHYS_BLN", label: "Fysische Bodemkwaliteit" },
+      { value: "S_PROD_B", label: "Biologische Bodemkwaliteit" },
+      { value: "S_PROD_C", label: "Chemische Bodemkwaliteit" },
+      { value: "S_PROD_P", label: "Fysische Bodemkwaliteit" },
     ],
   },
   {
@@ -132,6 +132,10 @@ function findScoreLabel(value: string): string {
     if (opt) return opt.label
   }
   return value
+}
+
+function isKnownScoreKey(value: string): boolean {
+  return MAP_SCORE_OPTION_GROUPS.some((group) => group.options.some((o) => o.value === value))
 }
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
@@ -487,7 +491,9 @@ function readSessionMeasures(): boolean {
 function readSessionMapScore(): string {
   if (typeof window === "undefined") return "S_BLN"
   try {
-    return sessionStorage.getItem(SESSION_KEY_MAP_SCORE) ?? "S_BLN"
+    // Fall back to S_BLN when the stored key is unknown, e.g. a retired aggregation code
+    const stored = sessionStorage.getItem(SESSION_KEY_MAP_SCORE)
+    return stored !== null && isKnownScoreKey(stored) ? stored : "S_BLN"
   } catch {
     return "S_BLN"
   }

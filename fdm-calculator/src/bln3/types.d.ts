@@ -149,7 +149,7 @@ export type Bln3IndicatorResult = {
  * Returned by the NMI API in the response data.
  */
 export type Bln3AggregationResult = {
-  /** Aggregation identifier (e.g. "S_BLN", "S_PROD_BIOL_BLN") */
+  /** Aggregation identifier (e.g. "S_BLN", "S_PROD_B") */
   aggregation_id: string
   /** Aggregated score */
   score: number
