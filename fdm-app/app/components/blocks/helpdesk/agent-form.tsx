@@ -65,9 +65,10 @@ export function useAgentForm({
     fetcher: fetcher,
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset(getFormDefaults(agent))
-  }, [form.reset, agent])
+    formReset(getFormDefaults(agent))
+  }, [formReset, agent])
 
   return form
 }

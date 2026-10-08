@@ -63,13 +63,15 @@ export const InvitationForm = ({ principals }: InvitationFormProps) => {
   })
 
   // Reset form and autocomplete input when submission completes
+  const formGetValues = form.getValues
+  const formReset = form.reset
   useEffect(() => {
     if (wasSubmitting.current && navigation.state === "idle") {
       setSelectedValue("")
-      form.reset({ role: form.getValues("role"), intent: "invite_user" })
+      formReset({ role: formGetValues("role"), intent: "invite_user" })
     }
     wasSubmitting.current = navigation.state !== "idle"
-  }, [navigation.state, form.getValues, form.reset])
+  }, [navigation.state, formReset, formGetValues])
 
   // Define icon map for AutoComplete
   const iconMap = { user: User, organization: Users }

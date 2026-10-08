@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { EmailBlock } from "@nmi-agro/fdm-helpdesk"
 import fuzzysort from "fuzzysort"
 import { MailX, User, Users } from "lucide-react"
-import { useEffect, useId, useMemo, useState } from "react"
+import { useId, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import { Form, useFetcher, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -141,13 +141,6 @@ export function AddBlockedEmailForm() {
     },
   })
 
-  // Close the form when submission succeeds
-  useEffect(() => {
-    if (form.formState.isSubmitted && form.formState.isSubmitSuccessful) {
-      setOpen(false)
-    }
-  }, [form.formState.isSubmitted, form.formState.isSubmitSuccessful])
-
   // Define icon map for AutoComplete
   const iconMap = { user: User, organization: Users }
 
@@ -166,7 +159,17 @@ export function AddBlockedEmailForm() {
       </DialogTrigger>
       <DialogContent>
         <RemixFormProvider {...form}>
-          <Form method="post" className="space-y-6" onSubmit={form.handleSubmit}>
+          <Form
+            method="post"
+            className="space-y-6"
+            onSubmit={async (e) => {
+              await form.handleSubmit(e)
+              // Close the dialog when submission succeeds
+              if (form.formState.isSubmitSuccessful) {
+                setOpen(false)
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Nieuw geblokkeerd e-mailadres toevoegen</DialogTitle>
             </DialogHeader>

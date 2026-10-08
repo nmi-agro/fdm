@@ -1,7 +1,7 @@
 import type { Cultivation } from "@nmi-agro/fdm-core"
 import type { FieldValues, Resolver, UseFormReturn } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Form, useFetcher, useLocation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { DatePicker } from "~/components/custom/date-picker"
@@ -37,13 +37,15 @@ export function CultivationDetailsCard({
   editable?: boolean
 }) {
   const fetcher = useFetcher()
+  // Computed once, not on every render: used only as the default when there's no start date yet.
+  const [today] = useState(() => new Date())
   const form = useRemixForm<CultivationDetailsFormSchemaType>({
     resolver: zodResolver(
       CultivationDetailsFormSchema,
     ) as Resolver<CultivationDetailsFormSchemaType>,
     mode: "onTouched",
     defaultValues: {
-      b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+      b_lu_start: toDate(cultivation.b_lu_start) ?? today,
       b_lu_end: toDate(cultivation.b_lu_end) ?? null,
       m_cropresidue:
         cultivation.b_lu_croprotation === "cereal"
@@ -58,7 +60,7 @@ export function CultivationDetailsCard({
 
   useEffect(() => {
     form.reset({
-      b_lu_start: toDate(cultivation.b_lu_start) ?? new Date(),
+      b_lu_start: toDate(cultivation.b_lu_start) ?? today,
       b_lu_end: toDate(cultivation.b_lu_end) ?? null,
       m_cropresidue:
         cultivation.b_lu_croprotation === "cereal"
@@ -66,7 +68,7 @@ export function CultivationDetailsCard({
           : undefined,
       b_lu_variety: cultivation.b_lu_variety ?? undefined,
     })
-  }, [cultivation, form.reset])
+  }, [cultivation, form, today])
 
   const handleDeleteCultivation = () => {
     return fetcher.submit(null, { method: "delete" })

@@ -1,5 +1,6 @@
 import { Cookie } from "lucide-react"
 import { Button } from "~/components/ui/button"
+import { useCookieConsentStore } from "~/store/cookie-consent"
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -12,11 +13,7 @@ export function AuthLayout({
   backgroundImage = "https://images.unsplash.com/photo-1662127245625-a72f1ad7e6ca?q=80&w=1974&auto=format&fit=crop",
   showCookieSettings = false,
 }: AuthLayoutProps) {
-  const openCookieSettings = () => {
-    if (window?.openCookieSettings) {
-      window.openCookieSettings()
-    }
-  }
+  const openCookieSettings = useCookieConsentStore((state) => state.openCookieSettings)
 
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2">

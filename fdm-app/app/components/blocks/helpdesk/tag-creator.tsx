@@ -121,14 +121,15 @@ export function TagCreator({
   }, [form.formState.isSubmitSuccessful, setDialogOpen])
 
   // Rrset the form if the list of available tags changes (so usually when a new tag is created)
+  const formReset = form.reset
   useEffect(() => {
     const currentColors = new Set(availableTags.map((tag) => tag.color))
     const unusedColor = SWATCH.find((color) => !currentColors.has(color.value))
-    form.reset({
+    formReset({
       intent: intent,
       color: unusedColor?.value,
     })
-  }, [intent, availableTags, form.reset])
+  }, [formReset, intent, availableTags])
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

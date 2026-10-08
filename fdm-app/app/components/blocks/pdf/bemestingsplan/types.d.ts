@@ -1,6 +1,8 @@
 import type { AppAmountUnit } from "@nmi-agro/fdm-core"
 
 export interface BemestingsplanData {
+  /** ISO timestamp of when this PDF's data was computed, shown as the "generated on" date. */
+  generatedAt: string
   config: {
     name: string
     logo?: string

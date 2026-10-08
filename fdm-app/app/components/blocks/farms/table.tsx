@@ -1,7 +1,7 @@
 import { FlexRender, RowData, type SortingState, useTable } from "@tanstack/react-table"
 import fuzzysort from "fuzzysort"
 import { ChevronDown } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
 import type { columns as ColumnsT, FarmExtended } from "./columns"
@@ -42,13 +43,10 @@ export function DataTable<TData extends FarmExtended>({ columns, data }: DataTab
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
   const isMobile = useIsMobile()
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(
-    isMobile ? { owner: false, b_area: false } : {},
+  const [columnVisibility, setColumnVisibility] = useKeyedState<boolean, Record<string, boolean>>(
+    isMobile,
+    (mobile): Record<string, boolean> => (mobile ? { owner: false, b_area: false } : {}),
   )
-
-  useEffect(() => {
-    setColumnVisibility(isMobile ? { owner: false, b_area: false } : {})
-  }, [isMobile])
 
   const memoizedData = useMemo(() => {
     return data.map((data) => withSearchTarget(data))

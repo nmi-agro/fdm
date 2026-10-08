@@ -24,7 +24,7 @@ license: MIT
 
 ## Stack
 
-React Router **v8** in framework mode, Vite, Tailwind v4, shadcn/ui (new-york, slate, CSS variables), radix-ui, Zustand, next-themes, lucide-react, recharts, maplibre-gl. Server-side data comes from `@nmi-agro/fdm-core` and `@nmi-agro/fdm-calculator`.
+React Router **v8** in framework mode, Vite with the Oxc React Compiler (see "Client-side state and the React Compiler" below), Tailwind v4, shadcn/ui (new-york, slate, CSS variables), radix-ui, Zustand, next-themes, lucide-react, recharts, maplibre-gl. Server-side data comes from `@nmi-agro/fdm-core` and `@nmi-agro/fdm-calculator`.
 
 The package imports the **built `dist`** of the workspace libraries. After changing `fdm-core` or `fdm-calculator`, run `pnpm turbo build` or the app will not see the change.
 
@@ -120,6 +120,24 @@ Server state belongs in loaders; it is not copied into a store. Zustand stores i
 
 Stores that must survive a reload wrap `persist` with a storage helper from `~/store/storage`: `ssrSafeSessionJSONStorage` for per-session state or `ssrSafeJSONStorage` for state that should outlive the tab. Using `sessionStorage` or `localStorage` directly breaks server rendering.
 
+## Client-side state and the React Compiler
+
+`fdm-app` compiles with the Oxc React Compiler: a Vite plugin in `vite.config.ts` runs it ahead of `reactRouter()`'s own JSX/Fast Refresh transform, and `fdm-app/.oxlintrc.json` sets the compiler-relevant `react/*` rules to `"error"`, so a pattern the compiler can't handle fails CI before it ever reaches the compiler. The rule that trips people up most: **never call `setState` during render, and never set state synchronously inside an effect** — including an effect that only reacts to a prop, a fetcher, or `navigation` finishing. A suppression comment makes the compiler skip the *whole* component, not just the flagged line (removing one during past cleanup reliably surfaced other, previously-hidden findings in the same component), so don't reach for one to get past this.
+
+**Recognize and avoid these two anti-patterns** — both dodge the lint rule without fixing the underlying issue, and both have shown up (and been removed) in this codebase: comparing the current value against a ref holding the "previous" one to decide whether to `setState`, and deferring a `setState` with a bare `setTimeout` so the effect no longer looks synchronous.
+
+Instead, pick the right tool for the shape of the problem, roughly in this order:
+
+- **Keep state where it's used.** If a piece of state only affects part of a component, extract that part into its own component and let the state live there, rather than lifting it and threading props back down. If a parent genuinely needs to drive it, move the state up to the parent instead of syncing a copy down with an effect.
+- **Derive it during render** instead of mirroring a prop or computed value into state.
+- **Reset by remounting** — `key={id}` on the child — when the thing that needs to reset is a clean, self-contained subtree. Prefer this over `useKeyedState` whenever it fits; it's the simpler, more idiomatic tool.
+- **Keyed override** — `useKeyedState(key, initial)` from `~/hooks/use-keyed-state` — when remounting isn't practical (the state is interleaved with handlers, refs, or sibling state that must survive the reset) but the value still needs to snap back to a default whenever some key changes (a ticket id, a calendar year, a fetcher result). The returned value is tagged with the key it was set under and falls back to `initial(key)` once that key changes — no effect, no ref comparison. This is the correct tool for that shape of problem, not a fallback to avoid.
+- **Event-driven.** Do the work — including closing a dialog — directly in the handler or the `await`ed submit callback that caused the change, not in an effect watching `fetcher.data` or `navigation.state` afterward.
+- **External or client-only value** — `useSyncExternalStore`, with an explicit server snapshot — for anything that can differ between server and client: `window.matchMedia`, `localStorage`, "today", a third-party SDK instance. Never read these from a lazy `useState(() => …)` initializer: that initializer also runs on the client's first render, before hydration, so it reads the *real* client value while the server rendered a different (or missing) one — a hydration mismatch. This exact bug has recurred in this codebase (`use-mobile.tsx`, `use-is-xl.tsx`, the timeline's landscape check, the cookie-consent banner) — `useSyncExternalStore` is the fix every time, not a lazy initializer with a `typeof window` guard.
+- **Lift it into a Zustand store** when the state must genuinely cross component boundaries or survive a reload (see above). A store's own `set()` calls — including from `persist`'s `onRehydrateStorage` — aren't subject to the "no setState in an effect" rule, since they aren't component state.
+
+Where a component genuinely cannot be compiled (a third-party hook that returns a mutable object, for example), opt out explicitly with `"use no memo"` at the top of the component and say why, rather than suppressing an individual lint rule.
+
 ## Verification
 
 There is no test suite. The available checks are:
@@ -153,5 +171,7 @@ Every change to `fdm-app` needs a changeset (`pnpm changeset`). Not being publis
 | Hand-editing a shadcn primitive for one screen | Compose around it, or add a variant |
 | Copying loader data into a Zustand store | Read it from `useLoaderData` |
 | `localStorage` directly in a persisted store | `ssrSafeJSONStorage` / `ssrSafeSessionJSONStorage` |
+| Ref-compare against a "previous value", or a `setTimeout`-deferred `setState`, to dodge a compiler lint error | Pick the matching pattern from "Client-side state and the React Compiler" |
+| A lazy `useState(() => window…)` initializer for a client-only value | `useSyncExternalStore` with an explicit server snapshot |
 | English UI strings | Dutch |
 | Editing `fdm-core` and testing here without rebuilding | `pnpm turbo build` first — this app consumes `dist` |

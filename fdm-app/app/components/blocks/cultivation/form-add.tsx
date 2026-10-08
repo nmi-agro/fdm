@@ -64,6 +64,8 @@ export function CultivationAddForm({
   b_lu,
 }: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void; action?: string }) {
   const isSuggested = !!defaultValues
+  // Computed once, not on every render: used only as the default when there's no start date yet.
+  const [today] = useState(() => new Date())
   const form = useRemixForm<z.infer<typeof CultivationAddFormSchema>>({
     mode: "onTouched",
     resolver: zodResolver(CultivationAddFormSchema) as never,
@@ -72,7 +74,7 @@ export function CultivationAddForm({
       b_id: b_id,
       b_lu: b_lu,
       b_lu_catalogue: defaultValues?.b_lu_catalogue ?? "",
-      b_lu_start: defaultValues?.b_lu_start ?? new Date(),
+      b_lu_start: defaultValues?.b_lu_start ?? today,
       b_lu_end: defaultValues?.b_lu_end ?? undefined,
     },
   })

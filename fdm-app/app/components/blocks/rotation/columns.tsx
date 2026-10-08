@@ -131,6 +131,54 @@ function getHarvestDates(row: Row<typeof rotationTableFeatures, MemoizedRotation
     .sort((a, b) => a.getTime() - b.getTime())
 }
 
+/**
+ * Renders the "Percelen" cell: a dropdown listing the fields under a crop row, sorted by name.
+ * A real component (not a plain cell callback) so it can use `useMemo`.
+ */
+function FieldsDisplayCell({
+  row,
+}: {
+  row: Row<typeof rotationTableFeatures, MemoizedRotationExtended>
+}) {
+  const cultivation = row.original
+
+  const fieldsDisplay = useMemo(() => {
+    if (cultivation.type === "field") return null
+    const fieldsSorted = (row.subRows ?? [])
+      .map((row) => row.original as FieldRow)
+      .sort((a, b) => a.b_name.localeCompare(b.b_name))
+    return (
+      cultivation.type === "crop" && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost">
+              <p className="text-muted-foreground">
+                {fieldsSorted.length === 1 ? "1 perceel" : `${fieldsSorted.length} percelen`}
+              </p>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <ScrollArea className={fieldsSorted.length >= 8 ? "h-72 w-48 overflow-y-auto" : "w-48"}>
+              <div className="grid grid-cols-1 gap-2">
+                {fieldsSorted.map((field) => (
+                  <NavLink
+                    to={`../${cultivation.calendar}/field/${field.b_id}`}
+                    key={`${field.b_id}`}
+                  >
+                    <DropdownMenuItem>{field.b_name}</DropdownMenuItem>
+                  </NavLink>
+                ))}
+              </div>
+            </ScrollArea>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    )
+  }, [cultivation.type, cultivation.calendar, row.subRows])
+
+  return fieldsDisplay
+}
+
 const columnHelper = createColumnHelper<typeof rotationTableFeatures, MemoizedRotationExtended>()
 export const columns = columnHelper.columns([
   columnHelper.display({
@@ -368,47 +416,7 @@ export const columns = columnHelper.columns([
     header: ({ column }) => {
       return <DataTableColumnHeader column={column} title="Percelen" />
     },
-    cell: ({ row }) => {
-      const cultivation = row.original
-
-      const fieldsDisplay = useMemo(() => {
-        if (cultivation.type === "field") return null
-        const fieldsSorted = (row.subRows ?? [])
-          .map((row) => row.original as FieldRow)
-          .sort((a, b) => a.b_name.localeCompare(b.b_name))
-        return (
-          cultivation.type === "crop" && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost">
-                  <p className="text-muted-foreground">
-                    {fieldsSorted.length === 1 ? "1 perceel" : `${fieldsSorted.length} percelen`}
-                  </p>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <ScrollArea
-                  className={fieldsSorted.length >= 8 ? "h-72 w-48 overflow-y-auto" : "w-48"}
-                >
-                  <div className="grid grid-cols-1 gap-2">
-                    {fieldsSorted.map((field) => (
-                      <NavLink
-                        to={`../${cultivation.calendar}/field/${field.b_id}`}
-                        key={`${field.b_id}`}
-                      >
-                        <DropdownMenuItem>{field.b_name}</DropdownMenuItem>
-                      </NavLink>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )
-        )
-      }, [cultivation.type, cultivation.calendar, row.subRows])
-
-      return fieldsDisplay
-    },
+    cell: ({ row }) => <FieldsDisplayCell row={row} />,
   }),
   // This column needs an accessor function to indicate that it is sortable. TanStack Table seems
   // to make false assumptions if we simply give "b_area". We also need a sortFn to make sure we
