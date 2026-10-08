@@ -13,6 +13,7 @@ export type TimelineEventType =
   | "fertilizer"
   | "harvest"
   | "soil_sampling"
+  | "soil_sampling_bcs"
   | "cultivation_start"
   | "cultivation_end"
 
@@ -68,6 +69,10 @@ function fertilizerHref(b_id_farm: string, calendar: string, fieldId: string): s
 
 function soilHref(b_id_farm: string, calendar: string, fieldId: string): string {
   return `/farm/${b_id_farm}/${calendar}/field/${fieldId}/soil`
+}
+
+function bcsHref(b_id_farm: string, calendar: string, fieldId: string): string {
+  return `/farm/${b_id_farm}/${calendar}/field/${fieldId}/bcs`
 }
 
 function pushCultivationEvents(
@@ -180,6 +185,22 @@ function pushSoilEvents(
   for (const analysis of analyses) {
     if (!analysis.b_sampling_date) continue
 
+    if (analysis.type === "soil_sampling_bcs") {
+      // BodemConditieScore analysis, should show a different icon
+      events.push({
+        id: `soil-${analysis.a_id}`,
+        date: analysis.b_sampling_date,
+        type: "soil_sampling_bcs",
+        a_id: analysis.a_id,
+        fieldId: field.b_id,
+        fieldName: field.b_name,
+        fieldBufferstrip: field.b_bufferstrip,
+        label: "BodemConditieScore analyse",
+        href: bcsHref(b_id_farm, calendar, field.b_id),
+      })
+      continue
+    }
+
     events.push({
       id: `soil-${analysis.a_id}`,
       date: analysis.b_sampling_date,
@@ -188,7 +209,7 @@ function pushSoilEvents(
       fieldId: field.b_id,
       fieldName: field.b_name,
       fieldBufferstrip: field.b_bufferstrip,
-      label: analysis.a_source ?? "Bodemmanalyse",
+      label: analysis.a_source_name ?? "Bodemanalyse",
       href: soilHref(b_id_farm, calendar, field.b_id),
     })
   }
@@ -242,6 +263,7 @@ export function filterEventsByType(
       case "harvest":
         return filters.showHarvests
       case "soil_sampling":
+      case "soil_sampling_bcs":
         return filters.showSoilSamplings
       default:
         return true
