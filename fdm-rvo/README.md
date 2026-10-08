@@ -143,10 +143,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const rvoClient = getRvoClient()
   const year = "2024"
-  const kvkNumber = "12345678"
 
-  // Fetch RVO fields (server-side)
-  const rvoFields = await fetchRvoFields(rvoClient, year, kvkNumber)
+  // Fetch RVO fields (server-side).
+  // A farmer who logs in with the eHerkenning of their own company omits the KvK number:
+  // RVO derives the farm from the authenticated identity.
+  const rvoFields = await fetchRvoFields(rvoClient, year)
+
+  // An advisor with a machtiging at RVO for another farm passes that farm's KvK number,
+  // which is sent as `ThirdPartyFarmID`:
+  // const rvoFields = await fetchRvoFields(rvoClient, year, "12345678")
 
   // Fetch local fields (server-side)
   const localFields = await db.query.fields.findMany({/* ... */})
