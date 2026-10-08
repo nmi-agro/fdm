@@ -15,32 +15,46 @@ const MEST_IOU_THRESHOLD = 0.95
  *
  * This function retrieves the fields in GeoJSON format and validates them against the `RvoFieldSchema`.
  *
+ * Whose fields are returned depends on `kvkNumber`:
+ *
+ * - **Own farm**: when a farmer logs in with the eHerkenning of their own company, omit
+ *   `kvkNumber`. RVO derives the farm from the authenticated identity. Sending the farm's own
+ *   KvK number in this case makes RVO reject the request with `EDI009` (Toegang geweigerd).
+ * - **Machtiging**: when an advisor or intermediary logs in with the eHerkenning of their own
+ *   organisation and holds a machtiging at RVO for another farm, pass that farm's KvK number.
+ *   It is sent to RVO as `ThirdPartyFarmID`.
+ *
  * @param rvoClient - An authenticated instance of `RvoClient` (must have a valid access token).
  * @param year - The calendar year for which to retrieve the fields (e.g., 2024).
- * @param kvkNumber - The Chamber of Commerce (KvK) number of the farm/organization. This acts as the identifier for the data request.
+ * @param kvkNumber - Optional. The KvK number of the farm to request data for on behalf of
+ *   (machtiging). Omit it when requesting the fields of the authenticated company itself.
  * @returns A promise that resolves to an array of validated `RvoField` objects.
  * @throws Will throw a ZodError if the response from RVO does not match the expected schema.
- * @throws Will throw an error if the API request fails.
+ * @throws Will throw an error if the API request fails. SOAP faults, such as `EDI009`, are
+ *   thrown as `RvoSoapFaultError`; see {@link isRvoPermissionDeniedError}.
  */
 export async function fetchRvoFields(
   rvoClient: RvoClient,
   year: string,
-  kvkNumber: string,
+  kvkNumber?: string,
 ): Promise<RvoField[]> {
+  // Only send ThirdPartyFarmID when requesting data on behalf of another farm
+  const farmIdOption = kvkNumber ? { farmId: kvkNumber } : {}
+
   // Request fields and mest fields from RVO API concurrently
   // We request the full calendar year period
   const [fieldsRaw, mestFieldsRaw] = await Promise.all([
     rvoClient.opvragenBedrijfspercelen({
       periodBeginDate: `${year}-01-01`,
       periodEndDate: `${year}-12-31`,
-      farmId: kvkNumber,
+      ...farmIdOption,
       outputFormat: "geojson",
     }),
     rvoClient
       .opvragenRegelingspercelenMest({
         periodBeginDate: `${year}-01-01`,
         periodEndDate: `${year}-12-31`,
-        farmId: kvkNumber,
+        ...farmIdOption,
         outputFormat: "geojson",
       })
       .catch((err) => {
