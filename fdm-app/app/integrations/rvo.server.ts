@@ -1,7 +1,40 @@
 import { nanoid } from "nanoid"
 import { createCookie } from "react-router"
+import { z } from "zod"
 import { serverConfig } from "~/lib/config.server"
 import { createRvoClient, type RvoLogXml } from "~/lib/rvo.server"
+
+/**
+ * Whose RVO data the user requests.
+ *
+ * - `own_farm`: the user logs in with the eHerkenning of the farm itself. The KvK number is not
+ *   sent to RVO; RVO derives the farm from the authenticated identity.
+ * - `machtiging`: the user logs in with the eHerkenning of their own organisation and holds a
+ *   machtiging at RVO for the farm. The farm's KvK number is sent as `ThirdPartyFarmID`.
+ */
+export const RvoRequestModeSchema = z.enum(["own_farm", "machtiging"])
+export type RvoRequestMode = z.infer<typeof RvoRequestModeSchema>
+
+/** Mode used when an older state or token cookie does not contain a mode. */
+const DEFAULT_RVO_REQUEST_MODE: RvoRequestMode = "machtiging"
+
+function parseRvoRequestMode(value: unknown): RvoRequestMode {
+  const result = RvoRequestModeSchema.safeParse(value)
+  return result.success ? result.data : DEFAULT_RVO_REQUEST_MODE
+}
+
+/**
+ * Returns the message shown when RVO denies access to the requested farm data (`EDI009`).
+ * The likely cause differs per request mode.
+ */
+export function getRvoPermissionDeniedMessage(mode: RvoRequestMode): string {
+  if (mode === "own_farm") {
+    return "RVO heeft de toegang geweigerd. Controleer of u bent ingelogd met de eHerkenning van dit bedrijf. Vraagt u gegevens op namens een ander bedrijf? Kies dan 'Een ander bedrijf (machtiging)'."
+  }
+  // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+  // return "U heeft met deze eHerkenning geen machtiging voor dit KvK-nummer bij RVO. Dit bedrijf kon daarom niet worden geverifieerd."
+  return "U heeft met deze eHerkenning geen machtiging voor dit KvK-nummer bij RVO."
+}
 
 const sessionSecret = serverConfig.auth.fdm_session_secret
 if (!sessionSecret?.trim() || sessionSecret === "undefined") {
@@ -21,8 +54,9 @@ export const rvoStateCookie = createCookie("rvo_state", {
 })
 
 /**
- * Short-lived cookie that carries the RVO access token from the callback route
- * to the originating RVO page. Expires in 60 seconds to minimise exposure.
+ * Short-lived cookie that carries the RVO access token and the request mode from the callback
+ * route to the originating RVO page. Expires in 60 seconds to minimise exposure.
+ * Use {@link serializeRvoToken} and {@link parseRvoToken} to read and write it.
  */
 export const rvoTokenCookie = createCookie("rvo_token", {
   path: "/",
@@ -34,10 +68,42 @@ export const rvoTokenCookie = createCookie("rvo_token", {
 })
 
 /**
+ * Serializes the RVO access token and the request mode into the signed `rvo_token` cookie.
+ * @returns The `Set-Cookie` header value.
+ */
+export async function serializeRvoToken(accessToken: string, mode: RvoRequestMode) {
+  return await rvoTokenCookie.serialize({ accessToken, mode })
+}
+
+/**
+ * Reads the RVO access token and the request mode from the signed `rvo_token` cookie.
+ * A cookie that only contains the access token is read with the `machtiging` mode.
+ * @returns The access token and mode, or `null` when the cookie is missing or empty.
+ */
+export async function parseRvoToken(
+  cookieHeader: string | null,
+): Promise<{ accessToken: string; mode: RvoRequestMode } | null> {
+  const value: unknown = await rvoTokenCookie.parse(cookieHeader)
+  if (typeof value === "string") {
+    return value ? { accessToken: value, mode: DEFAULT_RVO_REQUEST_MODE } : null
+  }
+  if (value && typeof value === "object" && "accessToken" in value) {
+    const { accessToken, mode } = value as { accessToken: unknown; mode?: unknown }
+    if (typeof accessToken === "string" && accessToken) {
+      return { accessToken, mode: parseRvoRequestMode(mode) }
+    }
+  }
+  return null
+}
+
+/**
  * Generates a signed OAuth state with a random nonce.
+ * @param farmId The farm the RVO data is requested for.
+ * @param returnUrl The page to return to after the callback.
+ * @param mode Whose RVO data the user requests; carried through the OAuth round trip.
  * @returns { state, cookieHeader } The base64 state string and the serialized cookie header.
  */
-export async function createRvoState(farmId: string, returnUrl: string) {
+export async function createRvoState(farmId: string, returnUrl: string, mode: RvoRequestMode) {
   // Store path-only to avoid fragile origin comparisons and prevent open redirects.
   // isOfOrigin returns true for root-relative paths, so no origin check needed.
   // request.url is always an absolute URL, so new URL() is safe here.
@@ -48,6 +114,7 @@ export async function createRvoState(farmId: string, returnUrl: string) {
     JSON.stringify({
       farmId,
       returnUrl: safeReturnUrl,
+      mode,
       nonce,
     }),
   ).toString("base64")
@@ -110,9 +177,10 @@ export async function parseRvoState(request: Request, stateFromUrl: string) {
     const decodedState = JSON.parse(Buffer.from(stateFromUrl, "base64").toString("utf-8")) as {
       farmId: string
       returnUrl: string
+      mode?: unknown
       nonce: string
     }
-    return decodedState
+    return { ...decodedState, mode: parseRvoRequestMode(decodedState.mode) }
   } catch {
     throw new Response("Ongeldig state formaat", { status: 400 })
   }

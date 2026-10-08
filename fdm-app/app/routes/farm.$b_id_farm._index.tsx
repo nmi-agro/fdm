@@ -11,8 +11,9 @@ import { format } from "date-fns"
 import {
   AlertTriangle,
   ArrowRightLeft,
-  BadgeAlert,
-  BadgeCheck,
+  // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+  // BadgeAlert,
+  // BadgeCheck,
   BookOpenText,
   ChevronDown,
   ChevronUp,
@@ -50,7 +51,8 @@ import { dataWithSuccess } from "remix-toast"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { FarmVerificationInfo } from "~/components/blocks/farm/farm-verification-info"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { Badge } from "~/components/ui/badge"
@@ -82,7 +84,8 @@ import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calen
 import { clientConfig } from "~/lib/config"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { cn } from "~/lib/utils"
@@ -228,7 +231,8 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       new URL(request.url).pathname,
       false,
     )
-    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
+    // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+    // const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     const rvoCredentials = getRvoCredentials()
     const isRvoConfigured = rvoCredentials !== undefined
@@ -246,7 +250,8 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       farmOptions: farmOptions,
       roles: roles,
       farmWritePermission,
-      farmVerification,
+      // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+      // farmVerification,
       isRvoConfigured,
     }
   } catch (error) {
@@ -718,7 +723,9 @@ export default function FarmDashboardIndex() {
                         to={`${calendar}/rvo`}
                         icon={<CloudDownload className="text-primary h-5 w-5" />}
                         title="Ophalen bij RVO"
-                        description="Importeer percelen vanuit RVO. Dit verifieert het bedrijf als het KvK-nummer overeenkomt."
+                        // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+                        // description="Importeer percelen vanuit RVO. Dit verifieert het bedrijf als het KvK-nummer overeenkomt."
+                        description="Importeer percelen vanuit RVO."
                         disabledDescription="U heeft geen schrijfrechten om percelen te importeren."
                         disabled={!loaderData.farmWritePermission}
                       />
@@ -771,6 +778,7 @@ export default function FarmDashboardIndex() {
                         </p>
                       </div>
                     </div>
+                    {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
                     <div
                       className={cn(
                         "rounded-xl border p-3.5",
@@ -800,6 +808,7 @@ export default function FarmDashboardIndex() {
                         </div>
                       </div>
                     </div>
+                    */}
                     {loaderData.fieldsMissingCultivation > 0 && (
                       <div className="space-y-3 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3.5 transition-all dark:border-amber-500/20 dark:bg-amber-500/10">
                         <div className="flex items-start gap-2.5">

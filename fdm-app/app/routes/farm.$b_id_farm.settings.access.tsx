@@ -19,7 +19,10 @@ import {
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import isEmail from "validator/lib/isEmail"
-import { AccessInfoCard } from "~/components/blocks/access/access-info-card"
+import {
+  AccessInfoCard,
+  type AccessVerificationProvider,
+} from "~/components/blocks/access/access-info-card"
 import { AccessManagementCard } from "~/components/blocks/access/access-management-card"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -30,7 +33,8 @@ import {
   sendEmail,
 } from "~/lib/email.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
-import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
@@ -74,7 +78,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Check if user has share permission
     const hasSharePermission = await isAllowedToShareFarm(fdm, session.principal_id, b_id_farm)
-    const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
+    // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+    // const farmVerification = await getFarmVerificationStatus(fdm, session.principal_id, b_id_farm)
 
     // Return user information from loader
     return {
@@ -82,7 +87,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmName: farm.b_name_farm,
       principals: principals,
       hasSharePermission: hasSharePermission,
-      verificationProviders: farmVerification.providers,
+      // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+      // verificationProviders: farmVerification.providers,
+      verificationProviders: [] as AccessVerificationProvider[],
     }
   } catch (error) {
     throw handleLoaderError(error)
