@@ -2,7 +2,6 @@
 import {
   ColumnVisibilityState,
   FlexRender,
-  type Row,
   type RowSelectionState,
   useTable,
 } from "@tanstack/react-table"
@@ -14,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { toast as notify } from "sonner"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
+import { dataTableRowCN } from "~/components/blocks/data-table/row"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
@@ -90,6 +90,39 @@ export function DataTable<TData extends RotationExtended>({
     isMobile ? { a_som_loi: false, b_soiltype_agr: false, b_area: false } : {},
   )
   const location = useLocation()
+
+  const tableScrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Whether the sticky table cells on the left and right may be in a stuck state.
+  const [stuck, setStuck] = useState({ left: false, right: false })
+
+  // Add scroll and resize listeners to the scroll container of the table which will
+  // adjust the styles of sticky cells.
+  useEffect(() => {
+    const table = tableScrollContainerRef.current?.querySelector("table")
+    const scroller = table?.parentElement
+    if (!table || !scroller) return
+
+    const update = () => {
+      const left = scroller.scrollLeft > 15
+      const right =
+        Math.ceil(scroller.scrollLeft + scroller.clientWidth) < scroller.scrollWidth - 15
+      setStuck((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+    }
+
+    update()
+    scroller.addEventListener("scroll", update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(scroller)
+    observer.observe(table)
+    return () => {
+      scroller.removeEventListener("scroll", update)
+      observer.disconnect()
+    }
+  }, [])
+
+  const isCellStuck = (columnId: string) =>
+    (columnId === "select" && stuck.left) || (columnId === "actions" && stuck.right)
 
   const selection = useRotationSelectionStore((state) => state.selection)
   const setSelection = useRotationSelectionStore((state) => state.setSelection)
@@ -284,22 +317,6 @@ export function DataTable<TData extends RotationExtended>({
     })
   }
 
-  function isFirstFieldRowForACrop(
-    flatRows: Row<typeof rotationTableFeatures, MemoizedRotationExtended>[],
-    i: number,
-  ) {
-    if (flatRows[i].original.type !== "field") return false
-    return i === 0 || flatRows[i - 1].original.type === "crop"
-  }
-
-  function isLastFieldRowForACrop(
-    flatRows: Row<typeof rotationTableFeatures, MemoizedRotationExtended>[],
-    i: number,
-  ) {
-    if (flatRows[i].original.type !== "field") return false
-    return i + 1 === flatRows.length || flatRows[i + 1].original.type === "crop"
-  }
-
   const rows = table.getRowModel().rows
   useEffect(() => {
     if (!rows.some((row) => row.id === lastSelectedRowIndex.current)) {
@@ -435,7 +452,10 @@ export function DataTable<TData extends RotationExtended>({
           </TooltipProvider>
         </div>
       </div>
-      <div className="relative grow overflow-x-auto rounded-md border">
+      <div
+        ref={tableScrollContainerRef}
+        className="relative grow overflow-x-auto rounded-md border"
+      >
         <Table>
           <TableHeader className="bg-background sticky top-0 z-5">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -444,9 +464,12 @@ export function DataTable<TData extends RotationExtended>({
                   return (
                     <TableHead
                       key={header.id}
-                      className={cn("box-border", {
-                        "sticky left-0": header.column.id === "select",
-                        "sticky right-0": header.column.id === "actions",
+                      data-stuck={isCellStuck(header.column.id) ? "" : undefined}
+                      className={cn("box-border transition-colors", {
+                        "data-stuck:bg-background sticky left-0 z-10":
+                          header.column.id === "select",
+                        "data-stuck:bg-background sticky right-0 z-10":
+                          header.column.id === "actions",
                         "min-w-35": header.column.id === "name",
                       })}
                     >
@@ -459,9 +482,10 @@ export function DataTable<TData extends RotationExtended>({
           </TableHeader>
           <TableBody>
             {rows.length > 0 ? (
-              rows.map((row, i, flatRows) => (
+              rows.map((row) => (
                 <TableRow
                   key={row.id}
+                  className={dataTableRowCN(row, row.original.type === "field")}
                   onClick={(event) => {
                     // Ignore clicks on interactive elements inside the row
                     const isInteractive = (target: EventTarget | null): boolean => {
@@ -482,28 +506,15 @@ export function DataTable<TData extends RotationExtended>({
 
                     handleRowSelection(row, table, event)
                   }}
-                  className={cn(
-                    "data-[state=selected]:bg-muted data-[state=indeterminate]:bg-muted/50",
-                    row.getIsSelected()
-                      ? "bg-green-100 hover:bg-green-300/50"
-                      : row.original.type === "crop" && row.getIsSomeSelected()
-                        ? "bg-green-50 hover:bg-green-300/25"
-                        : row.original.type === "field" && "bg-muted/50 hover:bg-muted",
-                    row.original.type === "field" &&
-                      (row.getParentRow()?.subRows.length === 1
-                        ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
-                        : isFirstFieldRowForACrop(flatRows, i)
-                          ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
-                          : isLastFieldRowForACrop(flatRows, i) &&
-                            "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
-                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
+                      data-stuck={isCellStuck(cell.column.id) ? "" : undefined}
                       className={cn({
-                        "sticky left-0": cell.column.id === "select",
-                        "sticky right-0": cell.column.id === "actions",
+                        "data-stuck:bg-background sticky left-0 z-10": cell.column.id === "select",
+                        "data-stuck:bg-background sticky right-0 z-10":
+                          cell.column.id === "actions",
                       })}
                     >
                       <FlexRender cell={cell} />

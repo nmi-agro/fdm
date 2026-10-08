@@ -2,9 +2,12 @@ import { FlexRender, type Row, RowSelectionState, useTable } from "@tanstack/rea
 import fuzzysort from "fuzzysort"
 import { ChevronDown, Plus } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { useRef } from "react"
 import { NavLink, useParams } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useFieldSelectionStore } from "@/app/store/field-selection"
+import { dataTableRowCN } from "~/components/blocks/data-table/row"
+import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -25,7 +28,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/comp
 import { useIsMobile } from "~/hooks/use-mobile"
 import { cn } from "~/lib/utils"
 import type { buildColumns, FieldExtended } from "./columns"
-import { FieldFilterToggle } from "../../custom/field-filter-toggle"
 import { fieldsTableFeatures } from "./table-features"
 
 interface DataTableProps<TData extends FieldExtended> {
@@ -142,6 +144,39 @@ export function DataTable<TData extends FieldExtended>({
     ? "Selecteer één of meerdere percelen om bemesting toe te voegen"
     : "Bemesting toevoegen aan geselecteerde percelen"
 
+  const tableScrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Whether the sticky table cells on the left and right may be in a stuck state.
+  const [stuck, setStuck] = useState({ left: false, right: false })
+
+  // Add scroll and resize listeners to the scroll container of the table which will
+  // adjust the styles of sticky cells.
+  useEffect(() => {
+    const table = tableScrollContainerRef.current?.querySelector("table")
+    const scroller = table?.parentElement
+    console.log(scroller, table)
+    if (!table || !scroller) return
+
+    const update = () => {
+      const left = scroller.scrollLeft > 0
+      const right = Math.ceil(scroller.scrollLeft + scroller.clientWidth) < scroller.scrollWidth
+      setStuck((prev) => (prev.left === left && prev.right === right ? prev : { left, right }))
+    }
+
+    update()
+    scroller.addEventListener("scroll", update, { passive: true })
+    const observer = new ResizeObserver(update)
+    observer.observe(scroller)
+    observer.observe(table)
+    return () => {
+      scroller.removeEventListener("scroll", update)
+      observer.disconnect()
+    }
+  }, [])
+
+  const isCellStuck = (columnId: string) =>
+    (columnId === "select" && stuck.left) || (columnId === "actions" && stuck.right)
+
   return (
     <div className="flex h-full w-full flex-col">
       <div className="bg-background sticky top-0 z-10 flex flex-col items-center gap-2 py-4 sm:flex-row">
@@ -232,7 +267,10 @@ export function DataTable<TData extends FieldExtended>({
           </TooltipProvider>
         </div>
       </div>
-      <div className="relative grow overflow-x-auto rounded-md border">
+      <div
+        ref={tableScrollContainerRef}
+        className="relative grow overflow-x-auto rounded-md border"
+      >
         <Table>
           <TableHeader className="bg-background sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -241,9 +279,12 @@ export function DataTable<TData extends FieldExtended>({
                   return (
                     <TableHead
                       key={header.id}
-                      className={cn({
-                        "bg-background sticky left-0": header.column.id === "select",
-                        "bg-background sticky right-0": header.column.id === "actions",
+                      data-stuck={isCellStuck(header.column.id) ? "" : undefined}
+                      className={cn("transition-colors", {
+                        "data-stuck:bg-background sticky left-0 z-10":
+                          header.column.id === "select",
+                        "data-stuck:bg-background sticky right-0 z-10":
+                          header.column.id === "actions",
                       })}
                     >
                       <FlexRender header={header} />
@@ -258,15 +299,17 @@ export function DataTable<TData extends FieldExtended>({
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
                   onClick={(event) => handleRowClick(row, event)}
+                  className={dataTableRowCN(row)}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
+                      data-stuck={isCellStuck(cell.column.id) ? "" : undefined}
                       className={cn({
-                        "bg-background sticky left-0": cell.column.id === "select",
-                        "bg-background sticky right-0": cell.column.id === "actions",
+                        "data-stuck:bg-background sticky left-0 z-10": cell.column.id === "select",
+                        "data-stuck:bg-background sticky right-0 z-10":
+                          cell.column.id === "actions",
                       })}
                     >
                       <FlexRender cell={cell} />
