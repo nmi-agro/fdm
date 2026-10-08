@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { NavLink, useLocation, useParams } from "react-router"
 import { toast as notify } from "sonner"
 import { useActiveTableFormStore } from "@/app/store/active-table-form"
-import { dataTableRowCN } from "~/components/blocks/data-table/row"
+import { dataTableRowCN, dataTableStickyCellCN } from "~/components/blocks/data-table/row"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
@@ -500,7 +500,8 @@ export function DataTable<TData extends RotationExtended>({
                       return
                     }
 
-                    document.getSelection()?.removeAllRanges()
+                    // Shift-click selects a range of rows; drop the text selection the browser makes
+                    if (event.shiftKey) document.getSelection()?.removeAllRanges()
 
                     clearActiveForm()
 
@@ -512,8 +513,9 @@ export function DataTable<TData extends RotationExtended>({
                       key={cell.id}
                       data-stuck={isCellStuck(cell.column.id) ? "" : undefined}
                       className={cn({
-                        "data-stuck:bg-background sticky left-0 z-10": cell.column.id === "select",
-                        "data-stuck:bg-background sticky right-0 z-10":
+                        [`${dataTableStickyCellCN(row)} sticky left-0 z-10`]:
+                          cell.column.id === "select",
+                        [`${dataTableStickyCellCN(row)} sticky right-0 z-10`]:
                           cell.column.id === "actions",
                       })}
                     >

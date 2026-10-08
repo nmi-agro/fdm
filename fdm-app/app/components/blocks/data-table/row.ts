@@ -43,3 +43,19 @@ export function dataTableRowCN<TFeatures extends TableFeatures, TData extends Ro
               parentSubRows.length - 1 && "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
   )
 }
+
+/**
+ * Gets the TailwindCSS class names for the opaque background of a sticky cell while it is stuck
+ * (marked with the `data-stuck` attribute), so the cell keeps the selection color of its row.
+ *
+ * @param row row from a Tanstack Table that contains the sticky cell. It can be a selectable row.
+ * @returns a string containing the TailwindCSS classes.
+ */
+export function dataTableStickyCellCN<TFeatures extends TableFeatures, TData extends RowData>(
+  row: Row<TFeatures, TData>,
+) {
+  const assumedRow = row as unknown as AssumedRow<TData>
+  if (assumedRow.getIsSelected?.()) return "data-stuck:bg-green-100"
+  if (assumedRow.getIsSomeSelected?.()) return "data-stuck:bg-green-50"
+  return "data-stuck:bg-background"
+}

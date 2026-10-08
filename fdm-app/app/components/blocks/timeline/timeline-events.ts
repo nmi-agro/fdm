@@ -71,8 +71,8 @@ function soilHref(b_id_farm: string, calendar: string, fieldId: string): string 
   return `/farm/${b_id_farm}/${calendar}/field/${fieldId}/soil`
 }
 
-function bcsHref(b_id_farm: string, calendar: string, fieldId: string): string {
-  return `/farm/${b_id_farm}/${calendar}/field/${fieldId}/bcs`
+function bcsHref(b_id_farm: string, calendar: string, fieldId: string, a_id: string): string {
+  return `/farm/${b_id_farm}/${calendar}/field/${fieldId}/bcs/${a_id}`
 }
 
 function pushCultivationEvents(
@@ -196,7 +196,7 @@ function pushSoilEvents(
         fieldName: field.b_name,
         fieldBufferstrip: field.b_bufferstrip,
         label: "BodemConditieScore analyse",
-        href: bcsHref(b_id_farm, calendar, field.b_id),
+        href: bcsHref(b_id_farm, calendar, field.b_id, analysis.a_id),
       })
       continue
     }

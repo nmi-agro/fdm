@@ -232,7 +232,6 @@ const ActionSchema = z.discriminatedUnion("intent", [
     intent: z.literal("update_soil_analysis_date"),
     a_id: z.string(),
     b_sampling_date: dateField,
-    a_date: dateField,
   }),
   z.object({
     intent: z.literal("remove_cultivation"),
@@ -601,7 +600,6 @@ export async function action({ request, params }: Route.LoaderArgs) {
     if (formValues.intent === "update_soil_analysis_date") {
       await updateSoilAnalysis(fdm, session.principal_id, formValues.a_id, {
         b_sampling_date: formValues.b_sampling_date,
-        a_date: formValues.a_date,
       })
 
       return dataWithSuccess(
@@ -617,10 +615,12 @@ export async function action({ request, params }: Route.LoaderArgs) {
       if (isBcsAnalysis(soilAnalysis)) {
         const images = await getSoilImages(fdm, session.principal_id, soilAnalysis.b_id_sampling)
 
+        // Delete from storage first, so a failure keeps the image reference for a retry
         await Promise.all(
-          images.map((image) =>
-            removeSoilImage(fdm, session.principal_id, image.a_id_image, deleteObject),
-          ),
+          images.map(async (image) => {
+            await deleteObject(image.a_image_path)
+            await removeSoilImage(fdm, session.principal_id, image.a_id_image)
+          }),
         )
       }
       await removeSoilAnalysis(fdm, session.principal_id, formValues.a_id)

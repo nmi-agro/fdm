@@ -6,7 +6,7 @@ import { useRef } from "react"
 import { NavLink, useParams } from "react-router"
 import { useFieldFilterStore } from "@/app/store/field-filter"
 import { useFieldSelectionStore } from "@/app/store/field-selection"
-import { dataTableRowCN } from "~/components/blocks/data-table/row"
+import { dataTableRowCN, dataTableStickyCellCN } from "~/components/blocks/data-table/row"
 import { FieldFilterToggle } from "~/components/custom/field-filter-toggle"
 import { Button } from "~/components/ui/button"
 import {
@@ -307,8 +307,9 @@ export function DataTable<TData extends FieldExtended>({
                       key={cell.id}
                       data-stuck={isCellStuck(cell.column.id) ? "" : undefined}
                       className={cn({
-                        "data-stuck:bg-background sticky left-0 z-10": cell.column.id === "select",
-                        "data-stuck:bg-background sticky right-0 z-10":
+                        [`${dataTableStickyCellCN(row)} sticky left-0 z-10`]:
+                          cell.column.id === "select",
+                        [`${dataTableStickyCellCN(row)} sticky right-0 z-10`]:
                           cell.column.id === "actions",
                       })}
                     >

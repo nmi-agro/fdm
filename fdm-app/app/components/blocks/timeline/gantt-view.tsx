@@ -1419,21 +1419,14 @@ export const TimelineGanttView = forwardRef<
     const original = fields
       .flatMap((field) => field.soilAnalyses)
       .find((analysis) => analysis.a_id === a_id)
-    const build = (b_sampling_date: Date | null, a_date: Date | null) => {
+    const build = (date: Date) => {
       const formData = new FormData()
       formData.set("intent", "update_soil_analysis_date")
       formData.set("a_id", a_id)
-      formData.set("b_sampling_date", b_sampling_date ? b_sampling_date.toISOString() : "null")
-      formData.set("a_date", a_date ? a_date.toISOString() : "null")
+      formData.set("b_sampling_date", date.toISOString())
       return formData
     }
-    submitMove(
-      build(b_sampling_date, b_sampling_date),
-      build(
-        original?.b_sampling_date !== undefined ? original.b_sampling_date : b_sampling_date,
-        original?.a_date !== undefined ? original.a_date : b_sampling_date,
-      ),
-    )
+    submitMove(build(b_sampling_date), build(original?.b_sampling_date ?? b_sampling_date))
   }
 
   const submitHarvestDate = (b_id_harvesting: string, b_lu_harvest_date: Date) => {
