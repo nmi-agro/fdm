@@ -45,6 +45,9 @@ import {
   createConfiguredRvoClient,
   createRvoState,
   getRvoCredentials,
+  getRvoPermissionDeniedMessage,
+  parseRvoToken,
+  RvoRequestModeSchema,
   rvoTokenCookie,
 } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -55,6 +58,7 @@ import {
   compareFields,
   fetchRvoFields,
   generateAuthUrl,
+  getRvoErrorDetails,
   isRvoPermissionDeniedError,
   processRvoImport,
 } from "~/lib/rvo.server"
@@ -80,7 +84,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const session = await getSession(request)
   const url = new URL(request.url)
-  const rvoAccessToken = await rvoTokenCookie.parse(request.headers.get("Cookie"))
+  const rvoToken = await parseRvoToken(request.headers.get("Cookie"))
 
   let rvoImportReviewData: ReviewItem[] = []
   let error: string | null = null
@@ -98,7 +102,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   // rvo_token cookie is set by /callback/rvo after a successful token exchange
-  if (rvoAccessToken) {
+  if (rvoToken) {
+    const { accessToken: rvoAccessToken, mode: rvoMode } = rvoToken
     try {
       if (!isRvoConfigured) {
         throw new Response("RVO client is not configured.", {
@@ -117,42 +122,45 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       captureEvent(session.principal_id, "fields_requested_rvo", {
         b_id_farm,
         calendar: yearString,
+        rvo_mode: rvoMode,
       })
 
       let rvoFields: Awaited<ReturnType<typeof fetchRvoFields>>
       try {
-        rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
+        // Only send the KvK number (as ThirdPartyFarmID) when requesting data on behalf of
+        // another farm. For the own farm, RVO derives the farm from the eHerkenning identity.
+        rvoFields = await fetchRvoFields(
+          rvoClient,
+          yearString,
+          rvoMode === "machtiging" ? farm.b_businessid_farm : undefined,
+        )
       } catch (fetchError) {
         // Capture an event when there is an error with fetching.
-        let status_code: string | undefined = undefined
-        let reason: unknown = undefined
-        if ((fetchError as ZodError)?.name === "ZodError") {
-          reason = { ZodError: (fetchError as ZodError)?.issues }
-        } else if (fetchError instanceof Error) {
-          reason = fetchError.message
-          const matches = fetchError.message.match(/^Request failed: (\d{3})\s/)
-          if (matches && matches.length >= 2) {
-            status_code = matches[1]
-          }
-        }
+        const { status_code, edi_code, message } = getRvoErrorDetails(fetchError)
+        const reason: unknown =
+          (fetchError as ZodError)?.name === "ZodError"
+            ? { ZodError: (fetchError as ZodError)?.issues }
+            : message
         captureEvent(session.principal_id, "fields_requested_rvo_failed", {
           b_id_farm,
           calendar: yearString,
+          rvo_mode: rvoMode,
           reason,
           status_code,
+          edi_code,
         })
         if (isRvoPermissionDeniedError(fetchError)) {
-          // RVO completed the request but denied access for this KvK number: this is a
-          // definitive negative result, not a system fault, so it's worth recording.
-          await addFarmVerification(fdm, session.principal_id, b_id_farm, {
-            verification_method: "rvo_eherkenning",
-            verification_result: "not_verified",
-            b_businessid_farm: farm.b_businessid_farm,
-          })
-          throw new Response(
-            "U heeft met deze eHerkenning geen machtiging voor dit KvK-nummer bij RVO. Dit bedrijf kon daarom niet worden geverifieerd.",
-            { status: 403 },
-          )
+          // With a machtiging, RVO checked the machtiging against the KvK number we sent and
+          // denied it: a definitive negative result, not a system fault, so it's worth
+          // recording. For the own farm, no KvK number was sent, so nothing was verified.
+          if (rvoMode === "machtiging") {
+            await addFarmVerification(fdm, session.principal_id, b_id_farm, {
+              verification_method: "rvo_eherkenning",
+              verification_result: "not_verified",
+              b_businessid_farm: farm.b_businessid_farm,
+            })
+          }
+          throw new Response(getRvoPermissionDeniedMessage(rvoMode), { status: 403 })
         }
         throw fetchError
       }
@@ -162,15 +170,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         b_id_farm,
         rvo_field_count: rvoFields.length,
         calendar: yearString,
+        rvo_mode: rvoMode,
       })
 
-      // A successful response verifies the farm regardless of how many fields RVO returns —
-      // zero fields is a valid state for a farm that has not yet registered any percelen.
-      await addFarmVerification(fdm, session.principal_id, b_id_farm, {
-        verification_method: "rvo_eherkenning",
-        verification_result: "verified",
-        b_businessid_farm: farm.b_businessid_farm,
-      })
+      // A successful machtiging request verifies the farm regardless of how many fields RVO
+      // returns — zero fields is a valid state for a farm that has not yet registered any
+      // percelen. An own-farm request does not verify the farm: RVO does not tell us which
+      // KvK number the eHerkenning belongs to, so it does not prove the farm's KvK number.
+      if (rvoMode === "machtiging") {
+        await addFarmVerification(fdm, session.principal_id, b_id_farm, {
+          verification_method: "rvo_eherkenning",
+          verification_result: "verified",
+          b_businessid_farm: farm.b_businessid_farm,
+        })
+      }
 
       const cultivationsCatalogue = await getCultivationsFromCatalogue(
         fdm,
@@ -457,9 +470,17 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
       })
     }
 
+    const rvoMode = RvoRequestModeSchema.safeParse(formData.get("rvo_mode"))
+    if (!rvoMode.success) {
+      throw new Response(
+        "Kies of u gegevens ophaalt voor uw eigen bedrijf of namens een ander bedrijf.",
+        { status: 400 },
+      )
+    }
+
     const rvoClient = createConfiguredRvoClient(rvoCredentials)
 
-    const { state, cookieHeader } = await createRvoState(b_id_farm, url.toString())
+    const { state, cookieHeader } = await createRvoState(b_id_farm, url.toString(), rvoMode.data)
 
     const authUrl = generateAuthUrl(rvoClient, state)
 

@@ -3,21 +3,23 @@ import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import { BadgeCheck } from "lucide-react"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { BadgeCheck } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "~/components/ui/alert-dialog"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import {
+//   AlertDialog,
+//   AlertDialogAction,
+//   AlertDialogCancel,
+//   AlertDialogContent,
+//   AlertDialogDescription,
+//   AlertDialogFooter,
+//   AlertDialogHeader,
+//   AlertDialogTitle,
+//   AlertDialogTrigger,
+// } from "~/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -29,7 +31,8 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
-import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+// FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+// import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
 import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
 // Define the props type based on usage in the original file
@@ -60,9 +63,10 @@ export const PrincipalRow = ({
   invitation_id,
   invitation_expires_at,
   hasSharePermission,
-  isVerificationProvider,
+  // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+  // isVerificationProvider,
   isLastVerificationProvider,
-  farmName,
+  // farmName,
 }: PrincipalRowProps) => {
   const fetcher = useFetcher()
 
@@ -130,7 +134,8 @@ export const PrincipalRow = ({
 
   const isPending = status === "pending"
 
-  const farmLabel = farmName || "dit bedrijf"
+  // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
+  // const farmLabel = farmName || "dit bedrijf"
 
   const expiryLabel =
     isPending && invitation_expires_at
@@ -164,6 +169,7 @@ export const PrincipalRow = ({
                     : "Onbekend"}
               </p>
             )}
+            {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
             {isVerificationProvider && (
               <Tooltip>
                 <TooltipTrigger>
@@ -179,6 +185,7 @@ export const PrincipalRow = ({
                 </TooltipContent>
               </Tooltip>
             )}
+            */}
           </div>
         </div>
       </div>
@@ -221,6 +228,7 @@ export const PrincipalRow = ({
             )}
 
             {/* Button to trigger removal */}
+            {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
             {isLastVerificationProvider ? (
               <AlertDialog>
                 <AlertDialogTrigger asChild>{removeButton}</AlertDialogTrigger>
@@ -243,6 +251,8 @@ export const PrincipalRow = ({
             ) : (
               removeButton
             )}
+            */}
+            {removeButton}
           </fieldset>
         </fetcher.Form>
       ) : (

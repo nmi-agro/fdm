@@ -1,4 +1,5 @@
 import { CheckCircle2, ExternalLink, FlaskConical, Loader2 } from "lucide-react"
+import { useState } from "react"
 import { Form, Link } from "react-router"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
@@ -10,6 +11,28 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card"
+import { Label } from "~/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group"
+
+type RvoRequestMode = "own_farm" | "machtiging"
+
+const RVO_REQUEST_MODE_OPTIONS: {
+  value: RvoRequestMode
+  label: string
+  description: string
+}[] = [
+  {
+    value: "own_farm",
+    label: "Mijn eigen bedrijf",
+    description: "Ik log in met de eHerkenning van dit bedrijf.",
+  },
+  {
+    value: "machtiging",
+    label: "Een ander bedrijf (machtiging)",
+    description:
+      "Ik log in met de eHerkenning van mijn eigen organisatie en heb bij RVO een machtiging voor dit bedrijf.",
+  },
+]
 
 interface RvoConnectCardProps {
   b_businessid_farm: string | null
@@ -24,6 +47,8 @@ export function RvoConnectCard({
   isImporting,
   isRvoConfigured,
 }: RvoConnectCardProps) {
+  const [rvoMode, setRvoMode] = useState<RvoRequestMode | "">("")
+
   return (
     <Card className="w-full">
       <CardHeader className="space-y-6">
@@ -42,7 +67,10 @@ export function RvoConnectCard({
           <h4 className="mb-2 font-semibold text-slate-900">Voorwaarden voor gebruik:</h4>
           <ul className="list-inside list-disc space-y-1 text-slate-700">
             <li>U heeft een geldig KvK-nummer gekoppeld aan uw account.</li>
-            <li>U heeft een eHerkenning account met machtiging voor dit KvK-nummer.</li>
+            <li>
+              U logt in met de eHerkenning van dit bedrijf, of u heeft bij RVO een machtiging voor
+              dit bedrijf.
+            </li>
             <li>U geeft ons toestemming om perceelsgegevens op te halen.</li>
           </ul>
         </div>
@@ -77,9 +105,45 @@ export function RvoConnectCard({
             <Link to={`/farm/${b_id_farm}/settings`}>KvK-nummer toevoegen</Link>
           </Button>
         ) : (
-          <Form method="post" className="w-full">
+          <Form method="post" className="w-full space-y-4">
             <input type="hidden" name="intent" value="start_import" />
-            <Button type="submit" disabled={isImporting || !isRvoConfigured} className="w-full">
+            <fieldset className="space-y-3">
+              <legend className="mb-3 font-medium text-gray-900">
+                Voor welk bedrijf haalt u gegevens op?
+              </legend>
+              <RadioGroup
+                name="rvo_mode"
+                required
+                value={rvoMode}
+                onValueChange={(value) => setRvoMode(value as RvoRequestMode)}
+                className="gap-2"
+              >
+                {RVO_REQUEST_MODE_OPTIONS.map((option) => (
+                  <Label
+                    key={option.value}
+                    htmlFor={`rvo_mode_${option.value}`}
+                    className="has-data-[state=checked]:border-primary has-data-[state=checked]:bg-primary/5 flex cursor-pointer items-start gap-3 rounded-md border p-3 font-normal"
+                  >
+                    <RadioGroupItem
+                      id={`rvo_mode_${option.value}`}
+                      value={option.value}
+                      className="mt-0.5"
+                    />
+                    <span className="space-y-1">
+                      <span className="block font-medium">{option.label}</span>
+                      <span className="text-muted-foreground block text-sm">
+                        {option.description}
+                      </span>
+                    </span>
+                  </Label>
+                ))}
+              </RadioGroup>
+            </fieldset>
+            <Button
+              type="submit"
+              disabled={isImporting || !isRvoConfigured || !rvoMode}
+              className="w-full"
+            >
               {isImporting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
