@@ -1,7 +1,7 @@
 import type { AgentSummary } from "@nmi-agro/fdm-helpdesk"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId } from "react"
 import { Controller } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -64,7 +64,6 @@ export function AbsenceDialog({
   const formId = useId()
   const isSubmitting = fetcher.state !== "idle"
   const isCreating = !absence
-  const [isDeleting, setIsDeleting] = useState(false)
 
   // Can the current viewer edit (or delete) this absence?
   const canEdit = isCreating || isAdmin || absence?.agent_id === principal_id
@@ -92,11 +91,11 @@ export function AbsenceDialog({
   })
 
   // Reset the form whenever the dialog is (re)opened for a different absence/range.
-  // biome-ignore-start lint/correctness/useExhaustiveDependencies: intentionally only depends on identity of open target
+  const formReset = form.reset
   useEffect(() => {
     if (!open) return
     if (isCreating) {
-      form.reset({
+      formReset({
         intent: "create_absence",
         agent_id: principal_id,
         start_date: toDateInputValue(defaultRange?.start),
@@ -105,7 +104,7 @@ export function AbsenceDialog({
         note: "",
       })
     } else if (absence) {
-      form.reset({
+      formReset({
         intent: "update_absence",
         absence_id: absence.absence_id,
         start_date: toDateInputValue(absence.start_date),
@@ -114,8 +113,7 @@ export function AbsenceDialog({
         note: absence.note ?? "",
       })
     }
-    // biome-ignore-end lint/correctness/useExhaustiveDependencies
-  }, [open, absence?.absence_id, defaultRange?.start, defaultRange?.end])
+  }, [formReset, isCreating, principal_id, absence, open, defaultRange?.start, defaultRange?.end])
 
   // Close the dialog once the submission succeeds.
   useEffect(() => {
@@ -124,21 +122,13 @@ export function AbsenceDialog({
     }
   }, [form.formState.isSubmitSuccessful, onOpenChange])
 
-  // Close the dialog once a delete request succeeds.
-  useEffect(() => {
-    if (isDeleting && fetcher.state === "idle") {
-      setIsDeleting(false)
-      onOpenChange(false)
-    }
-  }, [isDeleting, fetcher.state, onOpenChange])
-
-  function handleDelete() {
+  async function handleDelete() {
     if (!absence) return
-    setIsDeleting(true)
     const formData = new FormData()
     formData.append("intent", "delete_absence")
     formData.append("absence_id", absence.absence_id)
-    void fetcher.submit(formData, { method: "post" })
+    await fetcher.submit(formData, { method: "post" })
+    onOpenChange(false)
   }
 
   const colors = absence ? getAgentColor(absence.agent_id, true) : null
@@ -294,7 +284,7 @@ export function AbsenceDialog({
                   variant="destructive"
                   className="sm:mr-auto"
                   disabled={isSubmitting}
-                  onClick={handleDelete}
+                  onClick={() => void handleDelete()}
                 >
                   Verwijderen
                 </Button>

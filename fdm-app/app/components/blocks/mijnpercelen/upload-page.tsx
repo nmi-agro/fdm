@@ -6,7 +6,7 @@ import type {
 } from "@nmi-agro/fdm-rvo/types"
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef } from "react"
 import { Form, useActionData, useLocation, useNavigation } from "react-router"
 import { toast } from "sonner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
@@ -14,10 +14,41 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { MijnPercelenUploadForm } from "~/components/blocks/mijnpercelen/form-upload"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
 import { Button } from "~/components/ui/button"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { cn } from "~/lib/utils"
 import type { genericAction } from "./loader-and-action.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
+
+// The default action for each review item in this wizard, keyed by item id.
+function defaultUserChoices(items: ReviewItem[]): UserChoiceMap {
+  const choices: UserChoiceMap = {}
+  for (const item of items) {
+    const id = getItemId(item)
+    let defaultAction: ImportReviewAction
+
+    switch (item.status) {
+      case "CONFLICT":
+        defaultAction = "UPDATE_FROM_REMOTE"
+        break
+      case "NEW_REMOTE":
+        defaultAction = "ADD_REMOTE"
+        break
+      case "NEW_LOCAL":
+        defaultAction = "KEEP_LOCAL"
+        break
+      case "EXPIRED_LOCAL":
+        defaultAction = "CLOSE_LOCAL"
+        break
+      // In creation wizard, other statuses are unlikely but good to handle defaults
+      default:
+        defaultAction = "NO_ACTION"
+        break
+    }
+    choices[id] = defaultAction
+  }
+  return choices
+}
 
 /**
  * Renders a single-page wizard that handles MijnPercelen shapefile uploads.
@@ -40,11 +71,24 @@ export function UploadMijnPercelenPage({
   const navigation = useNavigation()
   const location = useLocation()
 
-  const [rvoImportReviewData, setRvoImportReviewData] = useState<ReviewItem[] | null>()
-  const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
-  const [canUnloadSafely, setCanUnloadSafely] = useState(true)
-
   const actionData = useActionData<typeof genericAction>()
+  const actionRvoImportReviewData = actionData?.RvoImportReviewData
+
+  // Resets to the server's data (clearing local edits) whenever a new import batch arrives.
+  const [rvoImportReviewData, setRvoImportReviewData] = useKeyedState<
+    ReviewItem[] | undefined,
+    ReviewItem[] | null
+  >(actionRvoImportReviewData, (data) => data ?? null)
+  // Defaults re-derived per import batch; the user's choices on top are kept until the next batch.
+  const [userChoices, setUserChoices] = useKeyedState(actionRvoImportReviewData, (data) =>
+    data ? defaultUserChoices(data) : ({} as UserChoiceMap),
+  )
+  // Re-armed (false) whenever a new import batch arrives; the user explicitly disarms it by
+  // clicking "Opslaan en verder" below.
+  const [canUnloadSafely, setCanUnloadSafely] = useKeyedState(
+    actionRvoImportReviewData,
+    (data) => !data,
+  )
 
   const handleItemChange = (id: string, item: ReviewItem) => {
     // Note: there is the assumption that getItemId will keep returning the same id.
@@ -72,48 +116,15 @@ export function UploadMijnPercelenPage({
     setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
   }
 
-  const actionRvoImportReviewData = actionData?.RvoImportReviewData
-
   const isSaving =
     navigation.state !== "idle" && navigation.formData?.get("intent") === "save_fields"
 
+  // Jump to the review section the first time an import batch arrives (DOM navigation, no state).
+  const hasJumpedToReviewRef = useRef(false)
   useEffect(() => {
-    if (actionRvoImportReviewData) {
-      setRvoImportReviewData((oldData) => {
-        if (!oldData) {
-          window.location.hash = "#review"
-        }
-        return actionRvoImportReviewData
-      })
-
-      // Initialize user choices with defaults
-      const initialChoices: UserChoiceMap = {}
-      actionRvoImportReviewData.forEach((item) => {
-        const id = getItemId(item)
-        let defaultAction: ImportReviewAction
-
-        switch (item.status) {
-          case "CONFLICT":
-            defaultAction = "UPDATE_FROM_REMOTE"
-            break
-          case "NEW_REMOTE":
-            defaultAction = "ADD_REMOTE"
-            break
-          case "NEW_LOCAL":
-            defaultAction = "KEEP_LOCAL"
-            break
-          case "EXPIRED_LOCAL":
-            defaultAction = "CLOSE_LOCAL"
-            break
-          // In creation wizard, other statuses are unlikely but good to handle defaults
-          default:
-            defaultAction = "NO_ACTION"
-            break
-        }
-        initialChoices[id] = defaultAction
-      })
-      setCanUnloadSafely(false)
-      setUserChoices(initialChoices)
+    if (actionRvoImportReviewData && !hasJumpedToReviewRef.current) {
+      hasJumpedToReviewRef.current = true
+      window.location.hash = "#review"
     }
   }, [actionRvoImportReviewData])
 
@@ -141,19 +152,15 @@ export function UploadMijnPercelenPage({
     }
   }, [actionData])
 
-  // Mark unload as not safe if action data changes to unsuccessful
-  useEffect(() => {
-    if (!actionData?.success && rvoImportReviewData?.length) {
-      setCanUnloadSafely(false)
-    }
-  }, [actionData?.success, rvoImportReviewData])
+  // A failed save re-arms the guard even if the user had just disarmed it to submit.
+  const effectiveCanUnloadSafely = canUnloadSafely && actionData?.success !== false
 
   // Warn the user before refreshing or leaving when data is present
   useEffect(() => {
     if (rvoImportReviewData && rvoImportReviewData.length > 0) {
       const handleBeforeUnload = (e: BeforeUnloadEvent) => {
         // If this redirect should have been initiated by the route action, do nothing
-        if (canUnloadSafely) {
+        if (effectiveCanUnloadSafely) {
           return
         }
         e.preventDefault()
@@ -170,7 +177,7 @@ export function UploadMijnPercelenPage({
       window.addEventListener("beforeunload", handleBeforeUnload)
       return () => window.removeEventListener("beforeunload", handleBeforeUnload)
     }
-  }, [canUnloadSafely, rvoImportReviewData])
+  }, [effectiveCanUnloadSafely, rvoImportReviewData])
 
   return (
     <main className="flex-1 overflow-auto">

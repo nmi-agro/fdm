@@ -154,19 +154,25 @@ export function FieldsSourceAvailable({
 
   const navigate = useNavigate()
 
-  const cultivationCataloguePromise = useMemo(async () => {
-    try {
-      const items = await getCultivationCatalogue("brp")
-      const result: Record<string, CatalogueCultivationItem> = {}
-      for (const item of items) {
-        result[item.b_lu_catalogue] = item
-      }
-      return result
-    } catch (err) {
-      console.error("Failed to load cultivation catalogue; defaulting to other color.", err)
-      return {}
-    }
-  }, [])
+  // useMemo() callbacks must be synchronous, so the async work runs in an IIFE whose
+  // promise is what gets memoized.
+  const cultivationCataloguePromise = useMemo(
+    () =>
+      (async () => {
+        try {
+          const items = await getCultivationCatalogue("brp")
+          const result: Record<string, CatalogueCultivationItem> = {}
+          for (const item of items) {
+            result[item.b_lu_catalogue] = item
+          }
+          return result
+        } catch (err) {
+          console.error("Failed to load cultivation catalogue; defaulting to other color.", err)
+          return {}
+        }
+      })(),
+    [],
+  )
 
   useEffect(() => {
     if (map && redirectToDetailsPage) {

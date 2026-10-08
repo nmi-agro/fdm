@@ -3,7 +3,7 @@ import type { Fertilizer } from "@nmi-agro/fdm-core"
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import type { Navigation } from "react-router"
 import { Plus } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { useFetcher, useLocation, useNavigation, useParams } from "react-router"
 import { useFieldFertilizerFormStore } from "@/app/store/field-fertilizer-form"
 import { Button } from "~/components/ui/button"
@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "~/components/ui/dialog"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 import type { FieldFertilizerFormValues } from "./formschema"
@@ -47,12 +48,45 @@ export function FertilizerApplicationCard({
   const location = useLocation()
   const params = useParams()
   const navigation = useNavigation()
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editedFertilizerApplication, setEditedFertilizerApplication] =
-    useState<FertilizerApplication>()
   const previousNavigationState = useRef(navigation.state)
 
   const b_id_or_b_lu_catalogue = params.b_lu_catalogue || params.b_id
+
+  // Selected individually: these action methods are referentially stable forever, unlike the
+  // store object itself (which changes identity on every state update, including from other forms).
+  const loadFertilizerForm = useFieldFertilizerFormStore((s) => s.load)
+  const deleteFertilizerForm = useFieldFertilizerFormStore((s) => s.delete)
+  const { calendar } = useCalendarStore()
+  const savedFormValues =
+    params.b_id_farm && b_id_or_b_lu_catalogue
+      ? loadFertilizerForm(params.b_id_farm, b_id_or_b_lu_catalogue, calendar)
+      : null
+
+  // See if the saved form was for updating an existing application.
+  const applicationToEdit = savedFormValues?.p_app_id
+    ? fertilizerApplications.find((app) => app.p_app_id === savedFormValues.p_app_id)
+    : null
+
+  // Defaults to opening the dialog for the saved draft (if any, and the user can still edit or
+  // create it); the user's own open/close/edit choices on top are kept until the draft changes.
+  const [dialogState, setDialogState] = useKeyedState<
+    typeof savedFormValues,
+    { open: boolean; editing: FertilizerApplication | undefined }
+  >(savedFormValues, (saved) => {
+    if (!saved) return { open: false, editing: undefined }
+    if (saved.p_app_id) {
+      // Do not open the form if there is a risk it will create a new application
+      if (
+        applicationToEdit &&
+        (canModifyFertilizerApplication[applicationToEdit.p_app_id] ?? true)
+      ) {
+        return { open: true, editing: applicationToEdit }
+      }
+      return { open: false, editing: undefined }
+    }
+    return { open: canCreateFertilizerApplication, editing: undefined }
+  })
+  const { open: isDialogOpen, editing: editedFertilizerApplication } = dialogState
 
   const handleDelete = (p_app_id: string | string[]) => {
     if (fetcher.state !== "idle") return
@@ -61,8 +95,7 @@ export function FertilizerApplicationCard({
   }
 
   const handleEdit = (fertilizerApplication: FertilizerApplication) => () => {
-    setEditedFertilizerApplication(fertilizerApplication)
-    setIsDialogOpen(true)
+    setDialogState({ open: true, editing: fertilizerApplication })
   }
 
   useEffect(() => {
@@ -70,78 +103,39 @@ export function FertilizerApplicationCard({
     const isIdle = navigation.state === "idle"
 
     if (wasNotIdle && isIdle) {
-      setIsDialogOpen(false)
-      setEditedFertilizerApplication(undefined)
+      setDialogState({ open: false, editing: undefined })
     }
 
     previousNavigationState.current = navigation.state
-  }, [navigation.state])
+  }, [navigation.state, setDialogState])
 
-  const fieldFertilizerFormStore = useFieldFertilizerFormStore()
-  const { calendar } = useCalendarStore()
-  const savedFormValues =
-    params.b_id_farm && b_id_or_b_lu_catalogue
-      ? fieldFertilizerFormStore.load(params.b_id_farm, b_id_or_b_lu_catalogue, calendar)
-      : null
-
-  // See if the saved form was for updating an existing application.
-  // If so, verify that the user can still edit the application and update the state.
-  const applicationToEdit = savedFormValues?.p_app_id
-    ? fertilizerApplications.find((app) => app.p_app_id === savedFormValues.p_app_id)
-    : null
+  // Delete a saved draft that refers to an application that no longer exists or isn't editable.
   useEffect(() => {
-    if (applicationToEdit && !editedFertilizerApplication) {
-      setEditedFertilizerApplication(applicationToEdit)
-    }
-    if (savedFormValues?.p_app_id && !applicationToEdit) {
-      fieldFertilizerFormStore.delete(
-        params.b_id_farm || "",
-        b_id_or_b_lu_catalogue || "",
-        calendar,
-      )
+    if (
+      savedFormValues?.p_app_id &&
+      !applicationToEdit &&
+      params.b_id_farm &&
+      b_id_or_b_lu_catalogue
+    ) {
+      deleteFertilizerForm(params.b_id_farm, b_id_or_b_lu_catalogue, calendar)
     }
   }, [
+    savedFormValues,
     applicationToEdit,
     params.b_id_farm,
     b_id_or_b_lu_catalogue,
-    savedFormValues,
-    editedFertilizerApplication,
-    fieldFertilizerFormStore,
+    deleteFertilizerForm,
     calendar,
-  ])
-
-  useEffect(() => {
-    if (savedFormValues && !isDialogOpen) {
-      if (savedFormValues.p_app_id) {
-        // Do not open the form if there is a risk it will create a new application
-        if (
-          applicationToEdit &&
-          (canModifyFertilizerApplication[applicationToEdit.p_app_id] ?? true)
-        ) {
-          setIsDialogOpen(true)
-        }
-      } else if (canCreateFertilizerApplication) {
-        setIsDialogOpen(true)
-      }
-    }
-  }, [
-    savedFormValues,
-    applicationToEdit,
-    isDialogOpen,
-    canCreateFertilizerApplication,
-    canModifyFertilizerApplication,
   ])
 
   function handleDialogOpenChange(state: boolean) {
     if (!state && params.b_id_farm && b_id_or_b_lu_catalogue) {
-      fieldFertilizerFormStore.delete(params.b_id_farm, b_id_or_b_lu_catalogue, calendar)
+      deleteFertilizerForm(params.b_id_farm, b_id_or_b_lu_catalogue, calendar)
     }
 
-    if (!state) {
-      setEditedFertilizerApplication(undefined)
-    }
-
-    setIsDialogOpen(state)
+    setDialogState((prev) =>
+      state ? { ...prev, open: true } : { open: false, editing: undefined },
+    )
   }
 
   const formFertilizerApplication: Partial<FieldFertilizerFormValues> | null =
