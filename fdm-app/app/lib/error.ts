@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react-router"
 import { customAlphabet } from "nanoid"
-import { data, redirect } from "react-router"
+import { data, type ErrorResponse, isRouteErrorResponse, redirect } from "react-router"
 import { dataWithError, dataWithWarning } from "remix-toast"
 
 const customErrorAlphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ" // No lookalikes (0, 1, I, O, S, Z)
@@ -13,6 +13,27 @@ export const createErrorId = customAlphabet(customErrorAlphabet, errorIdSize)
 // (e.g. to keep the app shell up and show a friendly in-app message instead of throwing) don't
 // duplicate the string.
 export const PERMISSION_DENIED_MESSAGE = "Principal does not have permission to perform this action"
+
+/**
+ * Checks whether an error is a 404 or 405 created by React Router itself, i.e. the request did
+ * not match any route or used an unsupported method (e.g. `OPTIONS`, or `POST` to a route without
+ * an `action`). The app's own UI never makes these requests, so in practice they come from bots
+ * and scanners and should not be reported as errors.
+ *
+ * 404/405 responses thrown on purpose by loaders/actions are not internal and return `false`.
+ *
+ * @param error - The value passed to React Router's `handleError`.
+ * @returns `true` if the error is an internal React Router 404/405 response.
+ */
+export function isInternalRouterNoise(error: unknown): error is ErrorResponse {
+  return (
+    isRouteErrorResponse(error) &&
+    (error.status === 404 || error.status === 405) &&
+    // `internal` is private in the `ErrorResponseImpl` type but set at runtime
+    "internal" in error &&
+    error.internal === true
+  )
+}
 
 /**
  * Extracts `{ status, statusText }` from a thrown/returned route error, if it has one.
