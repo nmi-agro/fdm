@@ -14,7 +14,8 @@ import { normalizePage } from "~/lib/url-utils"
  * Routes can opt out by exporting `export const handle = { hideNavigationProgress: true }`.
  */
 export function NavigationProgress() {
-  const { state } = useNavigation()
+  const navigation = useNavigation()
+  const { state } = navigation
   const { pathname } = useLocation()
   const matches = useMatches()
   const hideProgress = matches.some(
@@ -23,9 +24,13 @@ export function NavigationProgress() {
       typeof m.handle === "object" &&
       (m.handle as Record<string, unknown>).hideNavigationProgress === true,
   )
-  const [show, setShow] = useState(false)
+  // The navigation key the 500ms timer last fired for. Comparing against the current
+  // navigation's key means an overlapping navigation is never shown using a stale timer.
+  const [shownFor, setShownFor] = useState<string | null>(null)
   const startTimeRef = useRef<number | null>(null)
   const startPathnameRef = useRef<string | null>(null)
+  const visible =
+    state !== "idle" && !hideProgress && shownFor === (navigation.location?.key ?? null)
 
   // Show after 500ms — emit a count metric when it appears
   useEffect(() => {
@@ -34,8 +39,9 @@ export function NavigationProgress() {
         startTimeRef.current = Date.now()
         startPathnameRef.current = pathname
       }
+      const key = navigation.location?.key ?? null
       const timer = setTimeout(() => {
-        setShow(true)
+        setShownFor(key)
         if (clientConfig.analytics.sentry) {
           Sentry.withScope((scope) => {
             scope.setTag("page", normalizePage(startPathnameRef.current ?? pathname))
@@ -46,8 +52,8 @@ export function NavigationProgress() {
       return () => clearTimeout(timer)
     }
 
-    // Navigation finished — emit duration metric and hide
-    if (show && startTimeRef.current !== null) {
+    // Navigation finished — emit duration metric
+    if (visible && startTimeRef.current !== null) {
       const duration = Date.now() - startTimeRef.current
       if (clientConfig.analytics.sentry) {
         Sentry.withScope((scope) => {
@@ -56,14 +62,13 @@ export function NavigationProgress() {
         })
       }
     }
-    setShow(false)
     startTimeRef.current = null
     startPathnameRef.current = null
-  }, [state, show, hideProgress, pathname])
+  }, [state, visible, hideProgress, pathname, navigation.location])
 
   return (
     <AnimatePresence>
-      {show && (
+      {visible && (
         <>
           {/* Backdrop blur */}
           <motion.div

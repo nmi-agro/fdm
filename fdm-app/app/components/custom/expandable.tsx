@@ -101,7 +101,7 @@ export function ExpandableContent(props: ExpandableContentProps) {
     setIsOverflowing(scroll > collapsed + 1)
 
     el.classList.remove("line-clamp-3")
-  }, [children])
+  }, [setIsOverflowing, children])
 
   const ellipsis = !expanded && !isAnimating
   const computedClassName = cn(

@@ -125,6 +125,7 @@ export default function OrganizationSettingsBlock() {
           </CardContent>
         </Card>
         <OrganizationSettingsForm
+          key={loaderData.organization?.id}
           className="grow"
           organization={loaderData.organization}
           canModify={loaderData.organizationEditPermission}

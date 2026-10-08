@@ -15,6 +15,7 @@ import { ArrowRight, Pencil } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
   Controller,
+  useWatch,
   type ControllerRenderProps,
   type FieldValues,
   type Resolver,
@@ -213,7 +214,7 @@ export default function AddFarmPage() {
     setPrefill(undefined)
   }
 
-  const kvkNumber = form.watch("b_businessid_farm")
+  const kvkNumber = useWatch({ control: form.control, name: "b_businessid_farm" })
 
   const kvkLookup = useKvkLookup(kvkNumber, (result) => {
     if (result.status !== "disabled") clearStalePrefill(result.kvkNumber)
@@ -247,25 +248,27 @@ export default function AddFarmPage() {
     setStep("details")
   }
 
-  const selectedYear = form.watch("year")
-  const organicCertified = form.watch("organic_certification")
+  const selectedYear = useWatch({ control: form.control, name: "year" })
+  const organicCertified = useWatch({ control: form.control, name: "organic_certification" })
+  const organicIssued = useWatch({ control: form.control, name: "organic_issued" })
   const isDerogationPossible = Number(selectedYear) < 2026
 
   // Set default organic issued date when certification is checked
+  const formSetValue = form.setValue
   useEffect(() => {
-    if (organicCertified && !form.getValues("organic_issued")) {
-      form.setValue("organic_issued", new Date(Number(selectedYear), 0, 1))
+    if (organicCertified && !organicIssued) {
+      formSetValue("organic_issued", new Date(Number(selectedYear), 0, 1))
     } else if (!organicCertified) {
-      form.setValue("organic_issued", undefined)
+      formSetValue("organic_issued", undefined)
     }
-  }, [organicCertified, selectedYear])
+  }, [formSetValue, organicIssued, organicCertified, selectedYear])
 
   // Reset derogation when year >= 2026
   useEffect(() => {
     if (Number(selectedYear) >= 2026) {
-      form.setValue("has_derogation", false)
+      formSetValue("has_derogation", false)
     }
-  }, [selectedYear])
+  }, [formSetValue, selectedYear])
 
   return (
     <SidebarInset>

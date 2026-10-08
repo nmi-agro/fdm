@@ -265,7 +265,8 @@ export function RouteErrorFallback({ error }: { error: unknown }) {
   const location = useLocation()
   const navigate = useNavigate()
   const page = location.pathname
-  const timestamp = new Date().toISOString()
+  // Computed once, not on every render: this is the time the error was first rendered.
+  const [timestamp] = useState(() => new Date().toISOString())
 
   const isUnauthorized = isRouteErrorResponse(error) && error.status === 401
 

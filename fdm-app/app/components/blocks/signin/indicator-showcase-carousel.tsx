@@ -1,6 +1,6 @@
 import Autoplay from "embla-carousel-autoplay"
 import { AlertTriangle, Gauge, ClipboardList } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import {
   Carousel,
   type CarouselApi,
@@ -58,7 +58,17 @@ const INDICATOR_SHOWCASE_SLIDES: IndicatorShowcaseSlide[] = [
  */
 export function IndicatorShowcaseCarousel() {
   const [api, setApi] = useState<CarouselApi>()
-  const [current, setCurrent] = useState(0)
+  // The carousel's current slide, read reactively from the embla API instead of mirrored into
+  // local state by an effect.
+  const current = useSyncExternalStore(
+    (onChange) => {
+      if (!api) return () => {}
+      api.on("select", onChange)
+      return () => api.off("select", onChange)
+    },
+    () => api?.selectedScrollSnap() ?? 0,
+    () => 0,
+  )
   const [autoplayPlugin] = useState(() => {
     const prefersReducedMotion =
       typeof window !== "undefined" &&
@@ -67,16 +77,6 @@ export function IndicatorShowcaseCarousel() {
       ? null
       : Autoplay({ delay: 4000, stopOnMouseEnter: true, stopOnInteraction: false })
   })
-
-  useEffect(() => {
-    if (!api) return
-    setCurrent(api.selectedScrollSnap())
-    const onSelect = () => setCurrent(api.selectedScrollSnap())
-    api.on("select", onSelect)
-    return () => {
-      api.off("select", onSelect)
-    }
-  }, [api])
 
   return (
     <div className="relative">
