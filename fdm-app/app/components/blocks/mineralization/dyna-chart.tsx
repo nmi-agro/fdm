@@ -11,6 +11,7 @@ import {
   ChartTooltip,
 } from "~/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
+import { useToday } from "~/hooks/use-today"
 
 const MONTH_LABELS_NL = [
   "Jan",
@@ -190,19 +191,15 @@ interface DynaChartProps {
   data: DynaDailyPoint[]
   fertilizingRecommendations?: DynaFertilizerAdvice | null
   events?: DynaChartEvent[]
-  year?: number
+  year: number
 }
 
-export function DynaChart({
-  data,
-  fertilizingRecommendations,
-  events = [],
-  year = new Date().getFullYear(),
-}: DynaChartProps) {
+export function DynaChart({ data, fertilizingRecommendations, events = [], year }: DynaChartProps) {
   const [activeTab, setActiveTab] = useState("dynamics")
   const monthTicks = getMonthTicks(data)
-  const today = new Date().toLocaleDateString("en-CA")
-  const isCurrentYear = year === new Date().getFullYear()
+  const today = useToday()
+  const todayStr = today?.toLocaleDateString("en-CA")
+  const isCurrentYear = today !== undefined && year === today.getFullYear()
 
   // Group events by date and only include dates present in the data
   const eventsByDate = groupEventsByDate(events)
@@ -316,7 +313,7 @@ export function DynaChart({
               {/* Today reference line — only for current year */}
               {isCurrentYear && (
                 <ReferenceLine
-                  x={today}
+                  x={todayStr}
                   stroke="hsl(var(--foreground))"
                   strokeDasharray="4 2"
                   label={{
@@ -405,7 +402,7 @@ export function DynaChart({
               {/* Today reference line */}
               {isCurrentYear && (
                 <ReferenceLine
-                  x={today}
+                  x={todayStr}
                   stroke="hsl(var(--foreground))"
                   strokeDasharray="4 2"
                   label={{

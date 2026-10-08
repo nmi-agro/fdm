@@ -49,9 +49,9 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
 
   const { current: map } = useMap()
   const [displayValue, setDisplayValue] = useState("")
-  const [results, setResults] = useState<MaptilerResult[]>([])
+  const [searchResults, setSearchResults] = useState<MaptilerResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState(isMobile)
 
   const [debouncedQuery, setDebouncedQuery] = useState("")
@@ -70,6 +70,8 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
 
   // Search for locations
   useEffect(() => {
+    if (!debouncedQuery?.trim()) return
+
     const abortController = new AbortController()
     abortControllerRef.current = abortController
     async function forwardGeocode(config: {
@@ -138,15 +140,9 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
       return []
     }
 
-    if (!debouncedQuery?.trim()) {
-      setResults([])
-      setError(null)
-      return
-    }
-
     const performSearch = async () => {
       setIsSearching(true)
-      setError(null)
+      setSearchError(null)
 
       try {
         const suggestions = await forwardGeocode({
@@ -158,15 +154,15 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
 
         if (abortController.signal.aborted) return
 
-        setResults(suggestions)
+        setSearchResults(suggestions)
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return
         }
 
         console.error("Search error:", err)
-        setError(err instanceof Error ? err.message : "Er is iets misgegaan.")
-        setResults([])
+        setSearchError(err instanceof Error ? err.message : "Er is iets misgegaan.")
+        setSearchResults([])
       } finally {
         if (!abortController.signal.aborted) {
           setIsSearching(false)
@@ -197,7 +193,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
       if (!map) return
 
       setIsSearching(true)
-      setError(null)
+      setSearchError(null)
 
       if (suggestion.bbox) {
         map.fitBounds(suggestion.bbox)
@@ -221,22 +217,27 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
     throttledSetDebouncedQuery.cancel()
     setDisplayValue("")
     setDebouncedQuery("")
-    setResults([])
-    setError(null)
+    setSearchResults([])
+    setSearchError(null)
     if (isMobile) {
       setCollapsed(true)
     }
   }, [isMobile, throttledSetDebouncedQuery])
 
+  // Collapsing only applies on mobile; switching to desktop re-expands without an effect.
+  const effectiveCollapsed = isMobile && collapsed
+
+  // Handles switching to mobile while already unfocused and empty (e.g. a viewport resize) — the
+  // common case (blurring the input while on mobile) is handled by the input's own onBlur below.
   useEffect(() => {
     if (isMobile && !displayValue && !collapsed && inputRef.current !== document.activeElement) {
       setCollapsed(true)
     }
-    if (!isMobile && collapsed) {
-      setCollapsed(false)
-    }
   }, [displayValue, isMobile, collapsed])
 
+  // Cleared without an effect once the query is empty, rather than mirrored via setState.
+  const results = debouncedQuery.trim() ? searchResults : []
+  const error = debouncedQuery.trim() ? searchError : null
   const hasResults = results.length > 0
   const isOpen = hasResults || error != null || (!isSearching && displayValue.trim().length > 0)
   const showEmptyState =
@@ -249,12 +250,12 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
           <PopoverAnchor
             className={cn(
               "transition-pe pointer-events-auto flex items-center justify-between gap-1 duration-300",
-              !collapsed && "pe-3",
+              !effectiveCollapsed && "pe-3",
               isOpen && "border-b",
             )}
             onClick={(e) => {
               e.stopPropagation()
-              if (collapsed) {
+              if (effectiveCollapsed) {
                 setCollapsed(false)
                 if (inputRef.current) {
                   inputRef.current.focus()
@@ -266,7 +267,7 @@ export function GeocoderControl({ position = "top-right" }: { position?: Control
               ref={inputRef}
               className={cn(
                 "flex-1 transition-[width,margin-left] duration-300",
-                collapsed ? "-ml-2 w-0" : "",
+                effectiveCollapsed ? "-ml-2 w-0" : "",
               )}
               placeholder="Zoek naar een locatie..."
               value={displayValue}

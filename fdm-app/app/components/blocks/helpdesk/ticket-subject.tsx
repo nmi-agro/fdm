@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useFetcher } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 
 export function TicketSubjectEditor({
   subject = "Ticket",
@@ -14,17 +15,9 @@ export function TicketSubjectEditor({
 }) {
   const fetcher = useFetcher()
   const [isEditing, setIsEditing] = useState(false)
-  const [value, setValue] = useState(subject)
-
-  useEffect(() => {
-    if (fetcher.state === "idle") {
-      setIsEditing(false)
-    }
-  }, [fetcher.state])
-
-  useEffect(() => {
-    setValue(subject)
-  }, [subject])
+  // Resets to the (possibly externally updated) subject whenever it changes, while surviving
+  // this component's own in-progress edits.
+  const [value, setValue] = useKeyedState(subject, (s) => s)
 
   if (!canModify) {
     return <h1 className="text-3xl font-bold">{subject}</h1>
@@ -52,13 +45,14 @@ export function TicketSubjectEditor({
         onChange={(e) => setValue(e.target.value)}
         disabled={fetcher.state !== "idle"}
         autoFocus
-        onBlur={() => {
+        onBlur={async () => {
           if (isEditing) {
             if (value !== subject) {
               const formData = new FormData()
               formData.set("intent", "update_subject")
               formData.set("subject", value)
-              void fetcher.submit(formData, { method: "POST" })
+              await fetcher.submit(formData, { method: "POST" })
+              setIsEditing(false)
             } else {
               setValue(subject)
               setIsEditing(false)

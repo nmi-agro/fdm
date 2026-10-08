@@ -29,6 +29,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import { useCookieConsentStore } from "~/store/cookie-consent"
 
 export function SidebarUser({
   name,
@@ -157,7 +158,5 @@ export function SidebarUser({
 }
 
 const openCookieSettings = () => {
-  if (window?.openCookieSettings) {
-    window.openCookieSettings()
-  }
+  useCookieConsentStore.getState().openCookieSettings()
 }

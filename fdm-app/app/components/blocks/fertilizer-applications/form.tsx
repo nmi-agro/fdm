@@ -6,7 +6,7 @@ import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
 import { useEffect, useId } from "react"
-import { Controller } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { cn } from "@/app/lib/utils"
@@ -100,48 +100,50 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     },
   })
 
-  const p_id = form.watch("p_id")
+  const p_id = useWatch({ control: form.control, name: "p_id" })
   const selectedFertilizer = options.find((option) => option.value === p_id)
   const isSubmitting = navigation.state !== "idle"
 
   // If the user switched the fertilizer, clear the application method and amount
+  const formSetValue = form.setValue
   useEffect(() => {
     if (p_id && (!fertilizerApplication || fertilizerApplication.p_id !== p_id)) {
-      form.setValue("p_app_method", "")
-      form.setValue("p_app_amount_display", undefined as unknown as number)
+      formSetValue("p_app_method", "")
+      formSetValue("p_app_amount_display", undefined as unknown as number)
     }
-  }, [p_id, fertilizerApplication, form.setValue])
+  }, [formSetValue, p_id, fertilizerApplication])
 
+  const formGetFieldState = form.getFieldState
+  const form_p_app_date = useWatch({ control: form.control, name: "p_app_date" })
   useEffect(() => {
-    const currentValue = form.getValues("p_app_date")
-    const { isDirty } = form.getFieldState("p_app_date")
+    const { isDirty } = formGetFieldState("p_app_date")
     if (
       !fertilizerApplication?.p_app_date &&
       !exampleFertilizerApplication &&
-      !currentValue &&
+      !form_p_app_date &&
       !isDirty
     ) {
-      form.setValue("p_app_date", getContextualDate(calendar, 3, 1))
+      formSetValue("p_app_date", getContextualDate(calendar, 3, 1))
     }
   }, [
+    formSetValue,
+    formGetFieldState,
+    form_p_app_date,
     calendar,
     exampleFertilizerApplication,
     fertilizerApplication?.p_app_date,
-    form.setValue,
-    form.getValues,
-    form.getFieldState,
   ])
 
-  const fieldFertilizerFormStore = useFieldFertilizerFormStore()
+  // Selected individually: these action methods are referentially stable forever, unlike the
+  // store object itself (which changes identity on every state update, including from other forms).
+  const loadFertilizerForm = useFieldFertilizerFormStore((s) => s.load)
+  const saveFertilizerForm = useFieldFertilizerFormStore((s) => s.save)
+  const deleteFertilizerForm = useFieldFertilizerFormStore((s) => s.delete)
 
   // If the user had a saved fertilizer form and was creating a new fertilizer, fill the form back in
   useEffect(() => {
     if (b_id_farm && b_id_or_b_lu_catalogue) {
-      const savedFormValues = fieldFertilizerFormStore.load(
-        b_id_farm,
-        b_id_or_b_lu_catalogue,
-        calendar,
-      )
+      const savedFormValues = loadFertilizerForm(b_id_farm, b_id_or_b_lu_catalogue, calendar)
       if (savedFormValues) {
         for (const [k, v] of Object.entries(savedFormValues)) {
           if (typeof v === "undefined" || v === null) continue
@@ -150,38 +152,38 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
         }
       }
     }
-  }, [b_id_farm, b_id_or_b_lu_catalogue, form.setValue, fieldFertilizerFormStore.load, calendar])
+  }, [b_id_farm, b_id_or_b_lu_catalogue, form, loadFertilizerForm, calendar])
 
   useEffect(() => {
     const p_app_amount_display = fertilizerApplication?.p_app_amount_display
     if (p_app_amount_display !== null && typeof p_app_amount_display !== "undefined") {
-      form.setValue("p_app_amount_display", Math.round(100 * p_app_amount_display) / 100)
+      formSetValue("p_app_amount_display", Math.round(100 * p_app_amount_display) / 100)
     }
-  }, [fertilizerApplication?.p_app_amount_display, form.setValue])
+  }, [formSetValue, fertilizerApplication?.p_app_amount_display])
 
   // Change fertilizer selection if the user has added a new fertilizer
   const new_p_id = searchParams.get("p_id")
   useEffect(() => {
     if (new_p_id) {
-      form.setValue("p_id", new_p_id)
+      formSetValue("p_id", new_p_id)
     }
-  }, [new_p_id, form.setValue])
+  }, [formSetValue, new_p_id])
 
   useEffect(() => {
     if (form.formState.isSubmitSuccessful) {
-      fieldFertilizerFormStore.delete(b_id_farm, b_id_or_b_lu_catalogue, calendar)
+      deleteFertilizerForm(b_id_farm, b_id_or_b_lu_catalogue, calendar)
     }
   }, [
     form.formState.isSubmitSuccessful,
     b_id_farm,
     b_id_or_b_lu_catalogue,
-    fieldFertilizerFormStore.delete,
+    deleteFertilizerForm,
     calendar,
   ])
 
   function handleManageFertilizers(_e: MouseEvent<HTMLButtonElement>) {
     if (b_id_farm && b_id_or_b_lu_catalogue) {
-      fieldFertilizerFormStore.save(b_id_farm, b_id_or_b_lu_catalogue, form.getValues(), calendar)
+      saveFertilizerForm(b_id_farm, b_id_or_b_lu_catalogue, form.getValues(), calendar)
     }
     void navigate(
       `/farm/${b_id_farm}/fertilizers/new?returnUrl=${encodeURIComponent(`${location.pathname}${location.search}`)}`,

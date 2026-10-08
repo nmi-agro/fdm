@@ -1,13 +1,9 @@
 import type React from "react"
-import type { z } from "zod"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { BadgeCheck } from "lucide-react"
-import { useEffect, useState } from "react"
 import { useFetcher } from "react-router"
-import { useRemixForm } from "remix-hook-form"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import {
 //   AlertDialog,
@@ -33,7 +29,6 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
 // import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
-import { AccessFormSchema } from "~/lib/schemas/access.schema"
 
 // Define the props type based on usage in the original file
 type PrincipalRowProps = {
@@ -63,29 +58,13 @@ export const PrincipalRow = ({
   invitation_id,
   invitation_expires_at,
   hasSharePermission,
-  // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
   // isVerificationProvider,
-  isLastVerificationProvider,
   // farmName,
 }: PrincipalRowProps) => {
   const fetcher = useFetcher()
 
-  const [selectedRole, setSelectedRole] = useState(role)
-  useEffect(() => {
-    if (fetcher.state === "idle") {
-      setSelectedRole(role)
-    }
-  }, [fetcher.state, role])
-
-  const form = useRemixForm<z.infer<typeof AccessFormSchema>>({
-    mode: "onSubmit",
-    resolver: zodResolver(AccessFormSchema),
-    defaultValues: {
-      username: username,
-      role: role as "owner" | "advisor" | "researcher",
-      intent: "update_role", // Default intent
-    },
-  })
+  // Reflect the in-flight submission optimistically; fall back to the server value otherwise.
+  const selectedRole = (fetcher.formData?.get("role") as typeof role | null) ?? role
 
   // Handler for removing the user/principal
   const handleRemove = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -94,38 +73,6 @@ export const PrincipalRow = ({
       {
         username: username,
         intent: "remove_user",
-        ...(invitation_id ? { invitation_id } : {}),
-      },
-      { method: "post" },
-    )
-  }
-
-  const removeButton = (
-    <Button
-      type={isLastVerificationProvider ? "button" : "submit"}
-      variant="destructive"
-      className="shrink-0"
-      name={isLastVerificationProvider ? undefined : "intent"}
-      value={isLastVerificationProvider ? undefined : "remove_user"}
-      disabled={fetcher.state !== "idle"}
-      onClick={isLastVerificationProvider ? undefined : handleRemove}
-    >
-      Verwijder
-    </Button>
-  )
-
-  // Handler for changing the role via Select dropdown
-  const handleSelectChange = async (value: string) => {
-    // Optimistically update displayed role
-    setSelectedRole(value as "owner" | "advisor" | "researcher")
-    // Update the form state immediately
-    form.setValue("role", value as "owner" | "advisor" | "researcher")
-    // Submit the form programmatically using the fetcher
-    void fetcher.submit(
-      {
-        username: username,
-        role: value,
-        intent: "update_role",
         ...(invitation_id ? { invitation_id } : {}),
       },
       { method: "post" },
@@ -169,92 +116,86 @@ export const PrincipalRow = ({
                     : "Onbekend"}
               </p>
             )}
-            {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
-            {isVerificationProvider && (
-              <Tooltip>
-                <TooltipTrigger>
-                  <Badge variant="outline" className="mt-2 gap-1 border-green-600 text-green-700">
-                    <BadgeCheck className="h-3.5 w-3.5" />
-                    {isLastVerificationProvider ? "Enige verificatiehouder" : "Verificatiehouder"}
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {isLastVerificationProvider
-                    ? "Als deze gebruiker wordt verwijderd, verliest dit bedrijf de geverifieerde status."
-                    : "Deze gebruiker heeft dit bedrijf via eHerkenning geverifieerd."}
-                </TooltipContent>
-              </Tooltip>
-            )}
-            */}
           </div>
         </div>
       </div>
       {hasSharePermission ? (
-        <fetcher.Form method="post">
-          <fieldset
-            // Disable fieldset during submission
+        <fieldset
+          // Disable fieldset during submission
+          disabled={fetcher.state !== "idle"}
+          className="flex items-center space-x-4"
+        >
+          {/* Show spinner during submission */}
+          {fetcher.state !== "idle" ? <Spinner /> : null}
+
+          {isPending ? (
+            <Badge>
+              {role === "owner"
+                ? "Eigenaar"
+                : role === "advisor"
+                  ? "Adviseur"
+                  : role === "researcher"
+                    ? "Onderzoeker"
+                    : "Onbekend"}
+            </Badge>
+          ) : (
+            <Select
+              value={selectedRole}
+              name="role"
+              onValueChange={(value) => {
+                const formData = new FormData()
+                formData.append("intent", "update_role")
+                formData.append("username", username)
+                formData.append("role", value)
+                fetcher.submit(formData, { method: "POST" })
+              }}
+              disabled={fetcher.state !== "idle"}
+            >
+              <SelectTrigger className="ml-auto w-37.5">
+                <SelectValue placeholder="Selecteer rol" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="owner">Eigenaar</SelectItem>
+                <SelectItem value="advisor">Adviseur</SelectItem>
+                <SelectItem value="researcher">Onderzoeker</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {/* Button to trigger removal */}
+          {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm{isLastVerificationProvider ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>{removeButton}</AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Laatste verificatiehouder verwijderen?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Deze gebruiker is de enige gebruiker die {farmLabel} via eHerkenning heeft
+                    geverifieerd. Als u deze gebruiker verwijdert, verliest {farmLabel} direct de
+                    geverifieerde status. Weet u zeker dat u de toegang van deze gebruiker wilt
+                    verwijderen?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleRemove}>Verwijderen</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            removeButton
+          )}*/}
+          <Button
+            type="submit"
+            variant="destructive"
+            className="shrink-0"
+            name="intent"
+            value="remove_user"
             disabled={fetcher.state !== "idle"}
-            className="flex items-center space-x-4"
+            onClick={handleRemove}
           >
-            {/* Show spinner during submission */}
-            {fetcher.state !== "idle" ? <Spinner /> : null}
-
-            {isPending ? (
-              <Badge>
-                {role === "owner"
-                  ? "Eigenaar"
-                  : role === "advisor"
-                    ? "Adviseur"
-                    : role === "researcher"
-                      ? "Onderzoeker"
-                      : "Onbekend"}
-              </Badge>
-            ) : (
-              <Select
-                value={selectedRole}
-                name="role"
-                onValueChange={handleSelectChange}
-                disabled={fetcher.state !== "idle"}
-              >
-                <SelectTrigger className="ml-auto w-37.5">
-                  <SelectValue placeholder="Selecteer rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="owner">Eigenaar</SelectItem>
-                  <SelectItem value="advisor">Adviseur</SelectItem>
-                  <SelectItem value="researcher">Onderzoeker</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-
-            {/* Button to trigger removal */}
-            {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
-            {isLastVerificationProvider ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>{removeButton}</AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Laatste verificatiehouder verwijderen?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Deze gebruiker is de enige gebruiker die {farmLabel} via eHerkenning heeft
-                      geverifieerd. Als u deze gebruiker verwijdert, verliest {farmLabel} direct de
-                      geverifieerde status. Weet u zeker dat u de toegang van deze gebruiker wilt
-                      verwijderen?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRemove}>Verwijderen</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : (
-              removeButton
-            )}
-            */}
-            {removeButton}
-          </fieldset>
-        </fetcher.Form>
+            Verwijder
+          </Button>
+        </fieldset>
       ) : (
         // Display role as Badge if user doesn't have permission to change it
         <p className="text-sm leading-none font-medium">
