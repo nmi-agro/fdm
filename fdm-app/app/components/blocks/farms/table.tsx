@@ -2,6 +2,7 @@ import { FlexRender, RowData, type SortingState, useTable } from "@tanstack/reac
 import fuzzysort from "fuzzysort"
 import { ChevronDown } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { dataTableRowCN } from "~/components/blocks/data-table/row"
 import { Button } from "~/components/ui/button"
 import {
   DropdownMenu,
@@ -142,21 +143,10 @@ export function DataTable<TData extends FarmExtended>({ columns, data }: DataTab
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => {
-                const parentRow = row.getParentRow()
                 return (
                   <TableRow
                     key={row.id}
-                    className={cn(
-                      row.original.type === "field" && "bg-muted/50 hover:bg-muted",
-                      row.original.type === "field" &&
-                        parentRow &&
-                        (parentRow.subRows.length === 1
-                          ? "shadow-[inset_0_1em_2em_-2em_#00000088,inset_0_-1em_2em_-2em_#00000088]"
-                          : row.index === 0
-                            ? "shadow-[inset_0_1em_2em_-2em_#00000088]"
-                            : row.index === parentRow.subRows.length - 1 &&
-                              "shadow-[inset_0_-1em_2em_-2em_#00000088]"),
-                    )}
+                    className={dataTableRowCN(row, row.original.type === "field")}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell

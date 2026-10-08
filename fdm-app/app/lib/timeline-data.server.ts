@@ -5,12 +5,14 @@ import {
   getHarvestsForFarm,
   getParametersForHarvestCat,
   getSoilAnalysesForFarm,
+  getSoilParametersDescription,
   Timeframe,
 } from "@nmi-agro/fdm-core"
 import type { TimelineField } from "~/components/blocks/timeline/gantt-view"
 import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { fdm } from "~/lib/fdm.server"
+import { isBcsAnalysis } from "./bcs"
 
 /**
  * Fetches and shapes one timeframe's worth of timeline data for a farm. Shared by the timeline
@@ -37,6 +39,11 @@ export async function fetchTimelineFields(
     getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe),
   ])
+
+  const soilParametersDescription = getSoilParametersDescription()
+  const soilAnalysisSourceParamDesc = soilParametersDescription.find(
+    (p) => p.parameter === "a_source",
+  )
 
   return fields
     .map((field) => {
@@ -97,7 +104,13 @@ export async function fetchTimelineFields(
         })),
         fertilizerApplications: fertilizerApplicationsByField.get(field.b_id) ?? [],
         harvests,
-        soilAnalyses: soilAnalysesByField.get(field.b_id) ?? [],
+        soilAnalyses: (soilAnalysesByField.get(field.b_id) ?? []).map((a) => ({
+          ...a,
+          type: isBcsAnalysis(a) ? ("soil_sampling_bcs" as const) : ("soil_sampling" as const),
+          a_source_name:
+            soilAnalysisSourceParamDesc?.options?.find((opt) => opt.value === a.a_source)?.label ??
+            "Overig",
+        })),
       }
     })
     .sort((a, b) => a.b_name.localeCompare(b.b_name, "nl"))
