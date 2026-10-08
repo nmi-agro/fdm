@@ -144,14 +144,15 @@ export default function FarmSettingsPropertiesBlock() {
     },
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
+    formReset({
       b_name_farm: loaderData.farm.b_name_farm ?? "",
       b_businessid_farm: loaderData.farm.b_businessid_farm ?? "",
       b_address_farm: loaderData.farm.b_address_farm ?? "",
       b_postalcode_farm: loaderData.farm.b_postalcode_farm ?? "",
     })
-  }, [loaderData, form.reset])
+  }, [loaderData, formReset])
 
   return (
     <div className="space-y-6">

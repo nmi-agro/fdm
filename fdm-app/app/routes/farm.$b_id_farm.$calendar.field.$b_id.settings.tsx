@@ -8,7 +8,7 @@ import {
   updateField,
 } from "@nmi-agro/fdm-core"
 import * as maplibregl from "maplibre-gl"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Controller,
   type ControllerRenderProps,
@@ -150,6 +150,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
  */
 export default function FarmFieldSettingsBlock() {
   const loaderData = useLoaderData<typeof loader>()
+  // Computed once, not on every render: used only as the default when there's no start date yet.
+  const [today] = useState(() => new Date())
 
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onTouched",
@@ -157,21 +159,22 @@ export default function FarmFieldSettingsBlock() {
     defaultValues: {
       b_name: loaderData.field.b_name,
       b_acquiring_method: loaderData.field.b_acquiring_method,
-      b_start: loaderData.field.b_start ?? new Date(),
+      b_start: loaderData.field.b_start ?? today,
       b_end: loaderData.field.b_end,
       b_bufferstrip: loaderData.field.b_bufferstrip ?? false,
     },
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
+    formReset({
       b_name: loaderData.field.b_name,
       b_acquiring_method: loaderData.field.b_acquiring_method,
-      b_start: loaderData.field.b_start ?? new Date(),
+      b_start: loaderData.field.b_start ?? today,
       b_end: loaderData.field.b_end,
       b_bufferstrip: loaderData.field.b_bufferstrip ?? false,
     })
-  }, [loaderData, form.reset])
+  }, [loaderData, formReset, today])
 
   const fieldGeo = loaderData.fieldGeo
   const mapId = "fieldsSaved"

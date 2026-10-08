@@ -14,9 +14,8 @@ import {
   getCultivationsFromCatalogue,
   getFarm,
 } from "@nmi-agro/fdm-core"
-import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { AlertTriangle, Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -40,6 +39,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
 import { SidebarInset } from "~/components/ui/sidebar"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getNmiApiKey, getSoilParameterEstimatesForGeometry } from "~/integrations/nmi.server"
 import {
   createConfiguredRvoClient,
@@ -51,6 +51,7 @@ import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { extractErrorMessage } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { defaultChoices } from "~/lib/rvo-import"
 import {
   compareFields,
   fetchRvoFields,
@@ -253,28 +254,14 @@ export default function RvoImportCreatePage() {
   const isSaving =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "save_fields"
 
-  const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
-
-  useEffect(() => {
-    // Initialize user choices with defaults
-    const initialChoices: UserChoiceMap = {}
-    rvoImportReviewData.forEach((item) => {
-      const id = getItemId(item)
-      let defaultAction: ImportReviewAction
-
-      switch (item.status) {
-        case "NEW_REMOTE":
-          defaultAction = "ADD_REMOTE"
-          break
-        // In creation wizard, other statuses are unlikely but good to handle defaults
-        default:
-          defaultAction = "NO_ACTION"
-          break
-      }
-      initialChoices[id] = defaultAction
-    })
-    setUserChoices(initialChoices)
-  }, [rvoImportReviewData])
+  // The defaults for the current review data, plus whatever the user has overridden. New review
+  // data (e.g. from a fresh import) starts without overrides.
+  const defaults = useMemo(() => defaultChoices(rvoImportReviewData), [rvoImportReviewData])
+  const [overrides, setOverrides] = useKeyedState<ReviewItem[], UserChoiceMap>(
+    rvoImportReviewData,
+    () => ({}),
+  )
+  const userChoices = { ...defaults, ...overrides }
 
   // Warn the user before refreshing or leaving when data is present
   useEffect(() => {
@@ -291,7 +278,7 @@ export default function RvoImportCreatePage() {
   }, [rvoImportReviewData])
 
   const handleChoiceChange = (id: string, action: ImportReviewAction) => {
-    setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
+    setOverrides((prev) => ({ ...prev, [id]: action }))
   }
 
   if (error) {

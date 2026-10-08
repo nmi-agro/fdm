@@ -487,13 +487,12 @@ export default function FarmDashboardIndex() {
   )
   const suggestedFieldsCount = suggestedFields.length
 
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
-    suggestedFields.map((f) => f.b_id),
+  // Pruned against the current suggestedFields during render, instead of via an effect, so a
+  // field that drops out of the list (e.g. after a revalidation) can't linger as "selected".
+  const [rawSelectedFieldIds, setSelectedFieldIds] = useState<string[]>([])
+  const selectedFieldIds = rawSelectedFieldIds.filter((id) =>
+    suggestedFields.some((f) => f.b_id === id),
   )
-
-  useEffect(() => {
-    setSelectedFieldIds((prev) => prev.filter((id) => suggestedFields.some((f) => f.b_id === id)))
-  }, [suggestedFields])
 
   const toggleFieldSelection = (b_id: string) => {
     setSelectedFieldIds((prev) =>

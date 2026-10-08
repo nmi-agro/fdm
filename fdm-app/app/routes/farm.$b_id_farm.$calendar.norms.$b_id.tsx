@@ -226,7 +226,7 @@ export default function FieldNormsBlock() {
       b_id: loaderData.b_id,
       calendar: loaderData.calendar,
     })
-  }, [])
+  }, [capture, loaderData.b_id_farm, loaderData.b_id, loaderData.calendar])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/norms`,
@@ -396,7 +396,6 @@ function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
                       {
                         message: errorMessage,
                         fieldId: fieldNormData?.b_id,
-                        timestamp: new Date(),
                       },
                       null,
                       2,

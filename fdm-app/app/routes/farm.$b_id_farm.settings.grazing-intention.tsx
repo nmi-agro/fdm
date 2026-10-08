@@ -1,4 +1,5 @@
 import { checkPermission, getGrazingIntentions, setGrazingIntention } from "@nmi-agro/fdm-core"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   type LoaderFunctionArgs,
@@ -73,7 +74,8 @@ export default function GrazingIntentionSettings() {
   const { grazingIntentions, farmWritePermission } = useLoaderData<typeof loader>()
   const fetcher = useFetcher<typeof action>()
 
-  const currentYear = new Date().getFullYear()
+  // Computed once, not on every render: only used to bound the selectable years below.
+  const [currentYear] = useState(() => new Date().getFullYear())
   const years = getCalendarSelection()
     .map(Number)
     .filter((year) => year >= 2006 && year <= currentYear + 1)

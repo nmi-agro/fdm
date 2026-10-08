@@ -13,7 +13,7 @@ import {
   CircleAlert,
   CircleCheck,
 } from "lucide-react"
-import { Suspense, use } from "react"
+import { Suspense, use, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -206,6 +206,8 @@ function NitrogenBalance({
   const location = useLocation()
   const page = location.pathname
   const calendar = useCalendarStore((state) => state.calendar)
+  // Computed once, not on every render: only shown in the error branch's debug dump below.
+  const [errorTimestamp] = useState(() => new Date())
 
   if (field.b_bufferstrip) {
     return <BufferStripWarning b_id={field.b_id} />
@@ -249,7 +251,7 @@ function NitrogenBalance({
                         //     fieldResult.errorMessage,
                         errorId: fieldResult.errorId,
                         page: page,
-                        timestamp: new Date(),
+                        timestamp: errorTimestamp,
                       },
                       null,
                       2,

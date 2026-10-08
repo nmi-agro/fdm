@@ -173,7 +173,7 @@ export default function FieldNutrientAdviceBlock() {
       b_id: field.b_id,
       calendar: loaderData.calendar,
     })
-  }, [])
+  }, [capture, field.b_id_farm, field.b_id, loaderData.calendar])
 
   const primaryNutrients = nutrientsDescription.filter(
     (item: NutrientDescription) => item.type === "primary",

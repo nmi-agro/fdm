@@ -16,7 +16,7 @@ import {
 } from "@nmi-agro/fdm-core"
 import { simplify } from "@turf/simplify"
 import { ClipboardList, Sparkles } from "lucide-react"
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react"
+import { lazy, Suspense, useCallback, useMemo, useState } from "react"
 import { Controller } from "react-hook-form"
 import {
   type ActionFunctionArgs,
@@ -706,18 +706,54 @@ function MeasureEditDialog({
   onClose: () => void
   action?: string
 }) {
+  return (
+    <Dialog open={row !== null} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
+        </DialogHeader>
+        {row && (
+          // Remount on row/mode change instead of resetting in an effect.
+          <MeasureEditForm
+            key={`${row.m_id}-${closeMode}`}
+            row={row}
+            closeMode={closeMode}
+            onClose={onClose}
+            action={action}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function MeasureEditForm({
+  row,
+  closeMode,
+  onClose,
+  action,
+}: {
+  row: MeasureTableRow
+  closeMode: boolean
+  onClose: () => void
+  action: string
+}) {
   const fetcher = useFetcher()
-  const [doorlopend, setDoorlopend] = useState(true)
+  const firstField = row.fields[0]
+  const [doorlopend, setDoorlopend] = useState(closeMode ? false : !firstField?.m_end)
 
   const form = useRemixForm<MeasureDateFormValues>({
     fetcher,
     resolver: zodResolver(MeasureDateSchema),
-    defaultValues: { m_start: "", m_end: null },
+    defaultValues: {
+      m_start: firstField?.m_start ? new Date(firstField.m_start).toISOString() : "",
+      m_end: firstField?.m_end ? new Date(firstField.m_end).toISOString() : null,
+    },
     submitHandlers: {
       onValid: (data) => {
         const fd = new FormData()
         fd.append("intent", "update")
-        for (const f of row?.fields ?? []) {
+        for (const f of row.fields) {
           fd.append("b_id_measure", f.b_id_measure)
         }
         fd.append("m_start", data.m_start)
@@ -729,125 +765,103 @@ function MeasureEditDialog({
     },
   })
 
-  // Reset form when the row or mode changes
-  const { reset } = form
-  useEffect(() => {
-    if (!row) return
-    const firstField = row.fields[0]
-    reset({
-      m_start: firstField?.m_start ? new Date(firstField.m_start).toISOString() : "",
-      m_end: firstField?.m_end ? new Date(firstField.m_end).toISOString() : null,
-    })
-    setDoorlopend(closeMode ? false : !firstField?.m_end)
-  }, [row, closeMode, reset])
-
   return (
-    <Dialog open={row !== null} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>{closeMode ? "Maatregel afsluiten" : "Maatregel bewerken"}</DialogTitle>
-        </DialogHeader>
-        {row && (
-          <form onSubmit={form.handleSubmit}>
-            <FieldGroup className="py-2">
-              <p className="text-sm font-medium">{row.m_name}</p>
-              {row.fields.length > 1 && (
-                <p className="text-muted-foreground -mt-3 text-xs">
-                  Geldt voor {row.fields.length} percelen. De datum wordt voor alle percelen
-                  aangepast.
-                </p>
-              )}
-
-              {!closeMode && (
-                <Controller
-                  control={form.control}
-                  name="m_start"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Startdatum"
-                      field={{
-                        ...field,
-                        value: field.value,
-                      }}
-                      fieldState={fieldState}
-                      required
-                    />
-                  )}
-                />
-              )}
-
-              {closeMode ? (
-                <Controller
-                  control={form.control}
-                  name="m_end"
-                  render={({ field, fieldState }) => (
-                    <DatePicker
-                      label="Einddatum"
-                      field={{
-                        ...field,
-                        value: field.value,
-                      }}
-                      fieldState={fieldState}
-                      required
-                    />
-                  )}
-                />
-              ) : (
-                <Field>
-                  <FieldLabel>Einddatum</FieldLabel>
-                  <RadioGroup
-                    value={doorlopend ? "doorlopend" : "einddatum"}
-                    onValueChange={(v) => {
-                      const isDoorlopend = v === "doorlopend"
-                      setDoorlopend(isDoorlopend)
-                      if (isDoorlopend) form.setValue("m_end", null)
-                    }}
-                    className="space-y-1"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="doorlopend" id="edit-doorlopend" />
-                      <Label htmlFor="edit-doorlopend" className="cursor-pointer font-normal">
-                        Doorlopend
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="einddatum" id="edit-einddatum" />
-                      <Label htmlFor="edit-einddatum" className="cursor-pointer font-normal">
-                        Vaste einddatum
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                  {!doorlopend && (
-                    <Controller
-                      control={form.control}
-                      name="m_end"
-                      render={({ field, fieldState }) => (
-                        <DatePicker
-                          label=""
-                          field={{
-                            ...field,
-                            value: field.value,
-                          }}
-                          fieldState={fieldState}
-                          required
-                        />
-                      )}
-                    />
-                  )}
-                </Field>
-              )}
-
-              <div className="flex justify-end gap-2 pt-1">
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Annuleren
-                </Button>
-                <Button type="submit">{closeMode ? "Afsluiten" : "Opslaan"}</Button>
-              </div>
-            </FieldGroup>
-          </form>
+    <form onSubmit={form.handleSubmit}>
+      <FieldGroup className="py-2">
+        <p className="text-sm font-medium">{row.m_name}</p>
+        {row.fields.length > 1 && (
+          <p className="text-muted-foreground -mt-3 text-xs">
+            Geldt voor {row.fields.length} percelen. De datum wordt voor alle percelen aangepast.
+          </p>
         )}
-      </DialogContent>
-    </Dialog>
+
+        {!closeMode && (
+          <Controller
+            control={form.control}
+            name="m_start"
+            render={({ field, fieldState }) => (
+              <DatePicker
+                label="Startdatum"
+                field={{
+                  ...field,
+                  value: field.value,
+                }}
+                fieldState={fieldState}
+                required
+              />
+            )}
+          />
+        )}
+
+        {closeMode ? (
+          <Controller
+            control={form.control}
+            name="m_end"
+            render={({ field, fieldState }) => (
+              <DatePicker
+                label="Einddatum"
+                field={{
+                  ...field,
+                  value: field.value,
+                }}
+                fieldState={fieldState}
+                required
+              />
+            )}
+          />
+        ) : (
+          <Field>
+            <FieldLabel>Einddatum</FieldLabel>
+            <RadioGroup
+              value={doorlopend ? "doorlopend" : "einddatum"}
+              onValueChange={(v) => {
+                const isDoorlopend = v === "doorlopend"
+                setDoorlopend(isDoorlopend)
+                if (isDoorlopend) form.setValue("m_end", null)
+              }}
+              className="space-y-1"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="doorlopend" id="edit-doorlopend" />
+                <Label htmlFor="edit-doorlopend" className="cursor-pointer font-normal">
+                  Doorlopend
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="einddatum" id="edit-einddatum" />
+                <Label htmlFor="edit-einddatum" className="cursor-pointer font-normal">
+                  Vaste einddatum
+                </Label>
+              </div>
+            </RadioGroup>
+            {!doorlopend && (
+              <Controller
+                control={form.control}
+                name="m_end"
+                render={({ field, fieldState }) => (
+                  <DatePicker
+                    label=""
+                    field={{
+                      ...field,
+                      value: field.value,
+                    }}
+                    fieldState={fieldState}
+                    required
+                  />
+                )}
+              />
+            )}
+          </Field>
+        )}
+
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Annuleren
+          </Button>
+          <Button type="submit">{closeMode ? "Afsluiten" : "Opslaan"}</Button>
+        </div>
+      </FieldGroup>
+    </form>
   )
 }
 
@@ -879,7 +893,7 @@ export default function MeasuresFarmIndex() {
   const [editingRow, setEditingRow] = useState<MeasureTableRow | null>(null)
   const [closingRow, setClosingRow] = useState<MeasureTableRow | null>(null)
 
-  const calendarYearStart = calendar ? `${calendar}-01-01` : `${new Date().getFullYear()}-01-01`
+  const calendarYearStart = `${calendar}-01-01`
 
   const handleFieldClick = useCallback(
     (b_id: string) => {
@@ -912,11 +926,9 @@ export default function MeasuresFarmIndex() {
   )
 
   const openMeasure = searchParams.get("openMeasure")
-  useEffect(() => {
-    if (!openMeasure) return
-    setInitialMeasureId(openMeasure)
-    setAddDialogOpen(true)
-  }, [openMeasure])
+  // The URL is the source of truth for a deep-linked measure: no effect needed to open it.
+  const measureDialogOpen = addDialogOpen || !!openMeasure
+  const measureDialogMeasureId = openMeasure ?? initialMeasureId
 
   const columns = getColumns(
     (b_id) => `${basePath}/${b_id}`,
@@ -1083,7 +1095,7 @@ export default function MeasuresFarmIndex() {
       </FarmContent>
 
       <AddMeasureDialog
-        open={addDialogOpen}
+        open={measureDialogOpen}
         onOpenChange={(next) => {
           setAddDialogOpen(next)
           if (!next) {
@@ -1108,7 +1120,7 @@ export default function MeasuresFarmIndex() {
         topOpportunities={recommendationsData?.topOpportunities}
         opportunitiesByField={recommendationsData?.opportunitiesByField}
         measureImpacts={recommendationsData?.measureImpacts}
-        initialMeasureId={initialMeasureId}
+        initialMeasureId={measureDialogMeasureId}
         calendarYearStart={calendarYearStart}
         harvestDate={null}
         action={`${basePath}?index`}

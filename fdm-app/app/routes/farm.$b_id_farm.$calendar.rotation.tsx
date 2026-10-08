@@ -322,7 +322,7 @@ export default function FarmRotationIndex() {
 
   useEffect(() => {
     capture("rotation_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
-  }, [])
+  }, [capture, loaderData.b_id_farm, loaderData.calendar])
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??

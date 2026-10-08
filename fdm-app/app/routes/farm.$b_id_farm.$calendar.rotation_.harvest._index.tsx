@@ -11,7 +11,7 @@ import {
   removeHarvest,
 } from "@nmi-agro/fdm-core"
 import { AlertTriangle, Info } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
@@ -60,6 +60,7 @@ import { Label } from "~/components/ui/label"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
@@ -328,14 +329,11 @@ export default function FarmRotationHarvestAddIndex() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
-  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>(
-    loaderData.selectedFields.map((field) => field.b_id!),
+  const [selectedFieldIds, setSelectedFieldIds] = useKeyedState(
+    loaderData.selectedFields,
+    (fields) => fields.map((field) => field.b_id!),
   )
   const [showOverwriteWarning, setShowOverwriteWarning] = useState(false)
-
-  useEffect(() => {
-    setSelectedFieldIds(loaderData.selectedFields.map((field) => field.b_id!))
-  }, [loaderData.selectedFields])
 
   const isSubmitting = navigation.state === "submitting" && Boolean(navigation.formData)
 
@@ -383,14 +381,10 @@ export default function FarmRotationHarvestAddIndex() {
 
   const isHarvestUpdate = loaderData.harvestApplication.b_lu_harvest_date
   const canBatchAdd = !isHarvestUpdate && loaderData.b_lu_harvestable === "multiple"
-  const [isBatchAdd, setIsBatchAdd] = useState(false)
-
-  // Switch back to the single harvest form if the conditions for batch harvest no longer hold
-  useEffect(() => {
-    if (!canBatchAdd && isBatchAdd) {
-      setIsBatchAdd(false)
-    }
-  }, [canBatchAdd, isBatchAdd])
+  const [isBatchAddRequested, setIsBatchAddRequested] = useState(false)
+  // Falls back to the single harvest form the moment the conditions for batch harvest no
+  // longer hold, with no extra render pass.
+  const isBatchAdd = canBatchAdd && isBatchAddRequested
 
   function handleSelectionDialogOpenChange(open: boolean) {
     if (!open) {
@@ -622,7 +616,7 @@ export default function FarmRotationHarvestAddIndex() {
                         calendar={loaderData.calendar}
                         b_lu_croprotation={loaderData.cultivation.b_lu_croprotation}
                         b_lu_harvestable={loaderData.b_lu_harvestable}
-                        onBack={() => setIsBatchAdd(false)}
+                        onBack={() => setIsBatchAddRequested(false)}
                         b_lu_start={loaderData.b_lu_start ?? null}
                         b_lu_end={loaderData.b_lu_end ?? null}
                         harvestParameters={loaderData.harvestParameters}
@@ -635,7 +629,7 @@ export default function FarmRotationHarvestAddIndex() {
                       <HarvestForm
                         key={selectedFieldIds.join(",")}
                         allowBatch={canBatchAdd}
-                        onBatchClick={() => setIsBatchAdd(true)}
+                        onBatchClick={() => setIsBatchAddRequested(true)}
                         b_lu_croprotation={loaderData.cultivation.b_lu_croprotation ?? undefined}
                         harvestParameters={loaderData.harvestParameters}
                         b_lu_harvest_date={loaderData.harvestApplication.b_lu_harvest_date}

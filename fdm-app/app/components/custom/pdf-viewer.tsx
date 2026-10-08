@@ -1,9 +1,10 @@
 import { Eye } from "lucide-react"
-import { ComponentProps, useEffect, useState } from "react"
+import { ComponentProps, useEffect } from "react"
 import { modifySearchParams } from "@/app/lib/url-utils"
 import { Button } from "~/components/ui/button"
 import { DialogContent } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { cn } from "~/lib/utils"
 import { FileViewerDialogHeader, FileViewerFallbackPanel } from "./file-viewer-parts"
 
@@ -27,7 +28,11 @@ export function PdfViewerDialogContent({
   const viewUrl = modifySearchParams(downloadUrl, (searchParams) => {
     searchParams.set("disposition", "inline")
   })
-  const [status, setStatus] = useState<"checking" | "loading" | "loaded" | "error">("checking")
+  // Keyed on viewUrl so a change resets to "checking" without an effect doing it.
+  const [status, setStatus] = useKeyedState<string, "checking" | "loading" | "loaded" | "error">(
+    viewUrl,
+    () => "checking",
+  )
 
   // An <iframe> doesn't fire onError for a same-origin 404/500 response —
   // the browser still successfully "loads" the error page inside it. Check
@@ -38,7 +43,6 @@ export function PdfViewerDialogContent({
   useEffect(() => {
     let cancelled = false
     const controller = new AbortController()
-    setStatus("checking")
     fetch(viewUrl, { signal: controller.signal })
       .then((res) => {
         if (!cancelled) setStatus(res.ok ? "loading" : "error")
@@ -51,7 +55,7 @@ export function PdfViewerDialogContent({
       cancelled = true
       controller.abort()
     }
-  }, [viewUrl])
+  }, [viewUrl, setStatus])
 
   return (
     <DialogContent className="flex h-[85vh] max-h-160 w-full max-w-4xl flex-col sm:max-h-[85vh]">

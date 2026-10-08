@@ -403,8 +403,10 @@ export function ImageGallery({
     setHoveredAnnotationIndex(null)
   }
 
-  // Compute live drawing preview element
-  const drawingPreview = useMemo(() => {
+  // Compute live drawing preview element. Not memoized: `drawingState.current` is a plain object
+  // field (the pointer's live position), not a ref, but its name makes the compiler's dependency
+  // inference treat it like one and mismatch the manual dependency array below.
+  function getDrawingPreview() {
     if (!drawingState) return null
     if (drawingState.tool === "circle" && drawingState.current) {
       const dx = drawingState.current.x - drawingState.start.x
@@ -456,7 +458,7 @@ export function ImageGallery({
       )
     }
     return null
-  }, [drawingState, imgSize])
+  }
 
   const getCursorClass = () => {
     if (!editMode || !onAddAnnotation) return "cursor-default"
@@ -756,7 +758,7 @@ export function ImageGallery({
                           }
                           return null
                         })}
-                        {drawingPreview}
+                        {getDrawingPreview()}
                       </svg>
                       {/* Annotation number badges */}
                       <AnnotationOverlay

@@ -268,7 +268,7 @@ export default function FieldNutrientAdviceIndex() {
 
   useEffect(() => {
     capture("nutrient_advice_viewed", { b_id_farm, calendar })
-  }, [])
+  }, [capture, b_id_farm, calendar])
 
   if (!hasFields) {
     return (

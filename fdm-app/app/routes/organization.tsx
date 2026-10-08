@@ -207,7 +207,7 @@ export default function App() {
         name: organization.name,
       })
     }
-  }, [loaderData.selectedOrganizationSlug, organization?.name])
+  }, [organization])
 
   return (
     <OrganizationShell loaderData={loaderData}>

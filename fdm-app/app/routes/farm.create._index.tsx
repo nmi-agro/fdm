@@ -17,6 +17,7 @@ import {
   type ControllerRenderProps,
   type FieldValues,
   type Resolver,
+  useWatch,
 } from "react-hook-form"
 import { Form, useLoaderData } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -162,25 +163,27 @@ export default function AddFarmPage() {
     },
   })
 
-  const selectedYear = form.watch("year")
-  const organicCertified = form.watch("organic_certification")
+  const selectedYear = useWatch({ control: form.control, name: "year" })
+  const organicCertified = useWatch({ control: form.control, name: "organic_certification" })
+  const organicIssued = useWatch({ control: form.control, name: "organic_issued" })
+  const hasDerogation = useWatch({ control: form.control, name: "has_derogation" })
   const isDerogationPossible = Number(selectedYear) < 2026
-
+  const formSetValue = form.setValue
   // Set default organic issued date when certification is checked
   useEffect(() => {
-    if (organicCertified && !form.getValues("organic_issued")) {
-      form.setValue("organic_issued", new Date(Number(selectedYear), 0, 1))
+    if (organicCertified && !organicIssued) {
+      formSetValue("organic_issued", new Date(Number(selectedYear), 0, 1))
     } else if (!organicCertified) {
-      form.setValue("organic_issued", undefined)
+      formSetValue("organic_issued", undefined)
     }
-  }, [organicCertified, selectedYear])
+  }, [organicCertified, organicIssued, selectedYear, formSetValue])
 
   // Reset derogation when year >= 2026
   useEffect(() => {
     if (Number(selectedYear) >= 2026) {
-      form.setValue("has_derogation", false)
+      formSetValue("has_derogation", false)
     }
-  }, [selectedYear])
+  }, [selectedYear, formSetValue])
 
   return (
     <SidebarInset>
@@ -287,7 +290,7 @@ export default function AddFarmPage() {
                                       </Field>
                                     )}
                                   />
-                                  {form.watch("has_derogation") && (
+                                  {hasDerogation && (
                                     <Controller
                                       control={form.control}
                                       name="derogation_start_year"

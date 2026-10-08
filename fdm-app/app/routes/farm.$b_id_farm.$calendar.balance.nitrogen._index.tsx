@@ -11,7 +11,7 @@ import {
   CircleCheck,
   CircleX,
 } from "lucide-react"
-import { Suspense, use, useEffect } from "react"
+import { Suspense, use, useEffect, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -142,7 +142,7 @@ export default function FarmBalanceNitrogenOverviewBlock() {
       calendar: params.calendar,
       balance_type: "nitrogen",
     })
-  }, [])
+  }, [capture, params.b_id_farm, params.calendar])
 
   return (
     <div className="space-y-4">
@@ -171,6 +171,8 @@ function FarmBalanceNitrogenOverview({
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
   const { nitrogenBalanceResult } = use(asyncData)
+  // Computed once, not on every render: only shown in the error branch's debug dump below.
+  const [errorTimestamp] = useState(() => new Date())
 
   const cultivationsMap = new Map(cultivationsEntries)
   const harvestsMap = new Map(harvestsEntries)
@@ -199,7 +201,7 @@ function FarmBalanceNitrogenOverview({
                   {JSON.stringify(
                     {
                       message: resolvedNitrogenBalanceResult.errorMessage,
-                      timestamp: new Date(),
+                      timestamp: errorTimestamp,
                     },
                     null,
                     2,

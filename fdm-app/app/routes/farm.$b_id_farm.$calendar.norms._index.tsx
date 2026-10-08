@@ -266,7 +266,7 @@ export default function FarmNormsBlock() {
 
   useEffect(() => {
     capture("norms_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
-  }, [])
+  }, [capture, loaderData.b_id_farm, loaderData.calendar])
 
   const action = {
     to: `/farm/${loaderData.b_id_farm}`,
@@ -342,7 +342,6 @@ function Norms(loaderData: Awaited<ReturnType<typeof loader>>) {
                       {
                         message: errorMessage,
                         page: page,
-                        timestamp: new Date(),
                       },
                       null,
                       2,

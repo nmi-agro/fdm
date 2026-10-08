@@ -66,11 +66,13 @@ export function SoilAnalysisForm(props: {
     defaultValues: defaultValues,
   })
 
+  const formState = form.formState
+  const formReset = form.reset
   useEffect(() => {
-    if (form.formState.isSubmitSuccessful) {
-      form.reset()
+    if (formState.isSubmitSuccessful) {
+      formReset()
     }
-  }, [form.formState, form.reset])
+  }, [formReset, formState])
 
   return (
     <RemixFormProvider {...form}>

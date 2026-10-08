@@ -12,6 +12,7 @@ import { Calendar } from "~/components/ui/calendar"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
 import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { endMonth } from "~/lib/calendar"
 import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
@@ -38,35 +39,33 @@ export function DatePicker({
   className,
 }: DatePickerProps) {
   const { calendar } = useCalendarStore()
-  const calendarYear = calendar ? Number(calendar) : new Date().getFullYear()
+  // Computed once, not on every render: only used as a fallback when the store has no calendar yet.
+  const [defaultYear] = useState(() => new Date().getFullYear())
+  const calendarYear = calendar ? Number(calendar) : defaultYear
   const referenceDate = new Date(calendarYear, 0, 1)
 
   const [open, setOpen] = useState(false)
-  const initialDate = (field.value && parseDateText(field.value, calendarYear)) || defaultValue
-  const [inputValue, setInputValue] = useState(initialDate ? formatDate(initialDate) : "")
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate || undefined)
-  const [month, setMonth] = useState<Date | undefined>(selectedDate ?? referenceDate)
+  const effectiveOpen = open && !field.disabled
 
+  // `field.value` is already reactive (it's a Controller render prop), so the displayed date is
+  // derived directly from it rather than mirrored into local state by an effect.
+  const selectedDate = field.value ? parseDateText(field.value, calendarYear) : undefined
+
+  // Keyed on field.value so the raw input text and calendar page reset whenever the field changes
+  // from outside this component's own handlers (which also drive field.value, keeping these in
+  // sync), while surviving this component's own in-progress typing.
+  const [inputValue, setInputValue] = useKeyedState(field.value, () => {
+    if (selectedDate) return formatDate(selectedDate)
+    return defaultValue ? formatDate(defaultValue) : ""
+  })
+  const [month, setMonth] = useKeyedState(field.value, () => selectedDate ?? referenceDate)
+
+  // A raw Date in the field (rather than the ISO string this component submits) gets normalized.
   useEffect(() => {
-    if (field.value && field.value instanceof Date) {
+    if (field.value instanceof Date) {
       field.onChange(field.value.toISOString())
-    } else if (field.value) {
-      const date = parseDateText(field.value, calendarYear)
-      setSelectedDate(date || undefined)
-      setInputValue(date ? formatDate(date) : "")
-      setMonth(date || referenceDate)
-    } else {
-      setInputValue("")
-      setSelectedDate(undefined)
-      setMonth(referenceDate)
     }
-  }, [field.value])
-
-  useEffect(() => {
-    if (field.disabled && open) {
-      setOpen(false)
-    }
-  }, [field.disabled, open])
+  }, [field])
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value)
@@ -75,18 +74,15 @@ export function DatePicker({
   const handleInputBlur = () => {
     const date = parseDateText(inputValue, calendarYear)
     if (date) {
-      setSelectedDate(date)
       setMonth(date)
       field.onChange(date.toISOString()) // Submit ISO string
     } else {
-      setSelectedDate(undefined)
       field.onChange(null)
     }
     field.onBlur()
   }
 
   const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date)
     const formattedDate = formatDate(date)
     setInputValue(formattedDate)
     field.onChange(date ? date.toISOString() : null) // Submit ISO string
@@ -114,7 +110,7 @@ export function DatePicker({
           }}
           required={required}
         />
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={effectiveOpen} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
               id="date-picker"

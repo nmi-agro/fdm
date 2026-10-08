@@ -15,7 +15,7 @@ import {
   Sprout,
 } from "lucide-react"
 import { useFeatureFlagEnabled } from "posthog-js/react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { NavLink, useLocation, useSearchParams, useNavigate, useFetcher } from "react-router"
 import type { FieldOption } from "~/lib/hoofdteelt.server"
 import { getCalendarSelection } from "@/app/lib/calendar"
@@ -47,6 +47,7 @@ import {
   SidebarMenuSubItem,
 } from "~/components/ui/sidebar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getFieldNavigationItems } from "~/lib/field-navigation"
 
 export type { FieldOption }
@@ -102,7 +103,9 @@ export function SidebarFarm({
     ? (fields.find((f) => f.b_id === activeFieldId)?.b_name ?? null)
     : null
   const [isPickerOpen, setIsPickerOpen] = useState(false)
-  const [isPerceelOpen, setIsPerceelOpen] = useState(false)
+  // Defaults to open whenever a field is active; re-derives per field, so the user's own
+  // collapse/expand still sticks until they navigate to a different field.
+  const [isPerceelOpen, setIsPerceelOpen] = useKeyedState(activeFieldId, (id) => !!id)
   const [targetSegment, setTargetSegment] = useState("")
 
   // Which farm-scoped feature the user tried to reach without a farm selected.
@@ -139,13 +142,6 @@ export function SidebarFarm({
     }
     setFieldPickerFarmId(null)
   }
-
-  // Auto-expand whenever a field is active
-  useEffect(() => {
-    if (activeFieldId) {
-      setIsPerceelOpen(true)
-    }
-  }, [activeFieldId])
 
   const getActiveSegment = () => {
     if (location.pathname.includes("/cultivation")) return "cultivation"

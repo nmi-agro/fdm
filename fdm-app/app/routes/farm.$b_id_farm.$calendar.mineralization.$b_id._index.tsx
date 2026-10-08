@@ -147,7 +147,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       const primaryResult =
         results.find((r) => r.method === "minip" && !r.error) ?? results.find((r) => !r.error)
 
-      const currentDoy = getCurrentDoy()
+      const currentDoy = getCurrentDoy(new Date())
 
       const insights = primaryResult
         ? generateInsights(primaryResult, undefined, currentDoy, Number(calendar))
