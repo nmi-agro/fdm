@@ -157,7 +157,7 @@ export default function FarmSettingsPropertiesBlock() {
   }, [loaderData, form.reset])
 
   // Prefill name and address from the KvK Handelsregister; the user still saves the form
-  const kvkLookup = useKvkLookup((result) => {
+  const kvkLookup = useKvkLookup(form.watch("b_businessid_farm"), (result) => {
     if (result.status !== "found") return
     const options = { shouldDirty: true, shouldValidate: true }
     form.setValue("b_name_farm", result.name, options)

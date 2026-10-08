@@ -213,7 +213,9 @@ export default function AddFarmPage() {
     setPrefill(undefined)
   }
 
-  const kvkLookup = useKvkLookup((result) => {
+  const kvkNumber = form.watch("b_businessid_farm")
+
+  const kvkLookup = useKvkLookup(kvkNumber, (result) => {
     if (result.status !== "disabled") clearStalePrefill(result.kvkNumber)
     if (result.status === "found") {
       const options = { shouldDirty: true, shouldValidate: true }
@@ -230,16 +232,6 @@ export default function AddFarmPage() {
     // Also continue when nothing was found, so the user can fill in the details manually
     setStep("details")
   })
-
-  const kvkNumber = form.watch("b_businessid_farm")
-
-  // Only show the lookup outcome when it belongs to the current KvK number
-  const kvkLookupResult =
-    kvkLookup.result &&
-    kvkLookup.result.status !== "disabled" &&
-    kvkLookup.result.kvkNumber !== kvkNumber?.trim()
-      ? undefined
-      : kvkLookup.result
 
   const lookupKvk = () => {
     if (kvkNumber) kvkLookup.lookup(kvkNumber)
@@ -372,7 +364,7 @@ export default function AddFarmPage() {
                                 Wijzigen
                               </Button>
                             </div>
-                            <KvkLookupStatus result={kvkLookupResult} />
+                            <KvkLookupStatus result={kvkLookup.result} />
                           </div>
                         )}
 

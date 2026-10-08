@@ -11,19 +11,38 @@ export function isValidKvkNumber(value: string | undefined | null): boolean {
   return /^\d{8}$/.test(value?.trim() ?? "")
 }
 
+/** Whether a lookup response belongs to the given KvK number. A `disabled` response applies to any number. */
+function matchesKvkNumber(result: KvkLookupResponse, kvkNumber: string | undefined): boolean {
+  return result.status === "disabled" || result.kvkNumber === (kvkNumber?.trim() ?? "")
+}
+
 /**
  * Looks up a KvK number through the `/api/lookup/kvk` resource route.
  *
- * @param onResult - Called once for every completed lookup.
- * @returns `lookup` to start a lookup, the latest `result` and whether a lookup is running.
+ * A response for a KvK number other than `currentKvkNumber` (e.g. when the user
+ * changed the number while the lookup was running) is not delivered.
+ *
+ * @param currentKvkNumber - The KvK number currently entered in the form.
+ * @param onResult - Called once for every completed lookup that matches `currentKvkNumber`.
+ * @returns `lookup` to start a lookup, the latest matching `result` and whether a lookup is running.
  */
-export function useKvkLookup(onResult?: (result: KvkLookupResponse) => void) {
+export function useKvkLookup(
+  currentKvkNumber: string | undefined,
+  onResult?: (result: KvkLookupResponse) => void,
+) {
   const fetcher = useFetcher<KvkLookupResponse>()
   const onResultRef = useRef(onResult)
   onResultRef.current = onResult
+  const currentKvkNumberRef = useRef(currentKvkNumber)
+  currentKvkNumberRef.current = currentKvkNumber
 
+  // Runs once per response; a response that no longer matches the entered number is dropped
   useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data) {
+    if (
+      fetcher.state === "idle" &&
+      fetcher.data &&
+      matchesKvkNumber(fetcher.data, currentKvkNumberRef.current)
+    ) {
       onResultRef.current?.(fetcher.data)
     }
   }, [fetcher.state, fetcher.data])
@@ -36,7 +55,8 @@ export function useKvkLookup(onResult?: (result: KvkLookupResponse) => void) {
 
   return {
     lookup,
-    result: fetcher.data,
+    result:
+      fetcher.data && matchesKvkNumber(fetcher.data, currentKvkNumber) ? fetcher.data : undefined,
     isLoading: fetcher.state !== "idle",
   }
 }
@@ -80,7 +100,7 @@ const ERROR_MESSAGES: Record<Extract<KvkLookupResponse, { status: "error" }>["re
 }
 
 /**
- * Shows the outcome of a KvK lookup: the source and time of the data, and
+ * Shows the outcome of a KvK lookup: the source of the data, and
  * warnings for an inactive registration or an incomplete address.
  */
 export function KvkLookupStatus({
