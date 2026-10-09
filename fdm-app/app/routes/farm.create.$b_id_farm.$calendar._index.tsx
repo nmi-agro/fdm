@@ -91,8 +91,8 @@ export default function ChooseFieldImportMethod() {
                         <ol className="list-inside list-decimal space-y-2">
                           <li>U heeft een geldig KvK-nummer gekoppeld aan uw account.</li>
                           <li>
-                            U logt in met de eHerkenning van dit bedrijf, of u heeft bij RVO een
-                            machtiging voor dit bedrijf.
+                            U logt in met de eHerkenning van dit bedrijf, of met die van uw eigen
+                            organisatie als u bij RVO een machtiging voor dit bedrijf heeft.
                           </li>
                           <li>U geeft ons toestemming om perceelsgegevens op te halen.</li>
                         </ol>

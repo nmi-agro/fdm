@@ -26,14 +26,20 @@ function parseRvoRequestMode(value: unknown): RvoRequestMode {
 /**
  * Returns the message shown when RVO denies access to the requested farm data (`EDI009`).
  * The likely cause differs per request mode.
+ * @param mode The eHerkenning the user chose to log in with.
+ * @param farmName Name of the farm the fields are imported into, if known.
  */
-export function getRvoPermissionDeniedMessage(mode: RvoRequestMode): string {
+export function getRvoPermissionDeniedMessage(
+  mode: RvoRequestMode,
+  farmName?: string | null,
+): string {
+  const farm = farmName?.trim() || "dit bedrijf"
   if (mode === "own_farm") {
-    return "RVO heeft de toegang geweigerd. Controleer of u bent ingelogd met de eHerkenning van dit bedrijf. Vraagt u gegevens op namens een ander bedrijf? Kies dan 'Een ander bedrijf (machtiging)'."
+    return `RVO heeft de toegang geweigerd. Controleer of u bent ingelogd met de eHerkenning van ${farm}. Logt u in met de eHerkenning van uw eigen organisatie? Kies dan die optie en probeer het opnieuw.`
   }
   // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
   // return "U heeft met deze eHerkenning geen machtiging voor dit KvK-nummer bij RVO. Dit bedrijf kon daarom niet worden geverifieerd."
-  return "U heeft met deze eHerkenning geen machtiging voor dit KvK-nummer bij RVO."
+  return `De eHerkenning waarmee u bent ingelogd heeft bij RVO geen machtiging voor ${farm}. Controleer de machtiging bij RVO en het KvK-nummer van dit bedrijf. Logt u in met de eHerkenning van ${farm} zelf? Kies dan die optie en probeer het opnieuw.`
 }
 
 const sessionSecret = serverConfig.auth.fdm_session_secret
