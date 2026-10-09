@@ -26,13 +26,13 @@
     "watch": "vitest"
   },
   "dependencies": {
-    "@langchain/core": "^1.2.14",
+    "@langchain/core": "^1.2.17",
     "@langchain/google-genai": "^2.3.2",
-    "@langchain/langgraph": "^1.4.18",
+    "@langchain/langgraph": "^1.4.21",
     "@nmi-agro/fdm-calculator": "workspace:^",
     "@nmi-agro/fdm-core": "workspace:^",
     "@nmi-agro/fdm-data": "workspace:^",
-    "@posthog/ai": "^8.13.4",
+    "@posthog/ai": "^8.13.5",
     "langchain": "^1.5.15",
     "posthog-node": "^5.55.0",
     "zod": "catalog:"
