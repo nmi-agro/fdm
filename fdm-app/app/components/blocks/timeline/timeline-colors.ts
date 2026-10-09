@@ -8,6 +8,7 @@ export const EVENT_TYPE_COLOR = {
   fertilizer: "#ea580c",
   harvest: "#eab308",
   soil_sampling: "#2563eb",
+  soil_sampling_bcs: "#2563eb",
 } as const
 
 export type FertilizerKind = "manure" | "mineral" | "compost" | "renure" | "other"
