@@ -7,15 +7,31 @@ interface RvoErrorAlertProps {
   error: string | Error
   onRetry?: () => void
   retryPath?: string
+  /** Label of the retry button. Defaults to "Opnieuw proberen". */
+  retryLabel?: string
+  /**
+   * Set when RVO denied access to the requested data. The `error` is then a user-facing
+   * message and is shown as is.
+   */
+  accessDenied?: boolean
 }
 
-export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps) {
+export function RvoErrorAlert({
+  error,
+  onRetry,
+  retryPath,
+  retryLabel = "Opnieuw proberen",
+  accessDenied = false,
+}: RvoErrorAlertProps) {
   const rawMessage = typeof error === "string" ? error : error.message
   let friendlyTitle = "Er is iets misgegaan"
   let friendlyMessage = "Er is een onverwachte fout opgetreden. Probeer het later opnieuw."
 
   // Map technical errors to user-friendly messages
-  if (
+  if (accessDenied) {
+    friendlyTitle = "Geen toegang tot de gegevens bij RVO"
+    friendlyMessage = rawMessage
+  } else if (
     rawMessage.includes("TVS Authorize Endpoint") ||
     rawMessage.includes("TVS Token Endpoint") ||
     rawMessage.includes("Client Name is required") ||
@@ -32,6 +48,11 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
     friendlyTitle = "Authenticatie mislukt"
     friendlyMessage =
       "Het is niet gelukt om in te loggen bij RVO of uw sessie is verlopen. Probeer opnieuw verbinding te maken."
+  } else if (rawMessage.includes("EDI009") || rawMessage.includes("Toegang geweigerd")) {
+    // RVO returns access denied as a SOAP fault with HTTP status 500, so check this first
+    friendlyTitle = "Geen toegang"
+    friendlyMessage =
+      "RVO heeft de toegang geweigerd. Controleer of u bent ingelogd met de eHerkenning van dit bedrijf, of dat u bij RVO een machtiging voor dit bedrijf heeft."
   } else if (rawMessage.includes("Request failed: 500")) {
     friendlyTitle = "RVO Storing"
     friendlyMessage =
@@ -42,7 +63,7 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
   ) {
     friendlyTitle = "Geen toegang"
     friendlyMessage =
-      "U heeft geen toegang tot de gegevens van dit bedrijf bij RVO. Controleer of u de juiste eHerkenning machtigingen heeft voor dit KvK-nummer."
+      "U heeft geen toegang tot de gegevens van dit bedrijf bij RVO. Controleer of u bent ingelogd met de eHerkenning van dit bedrijf, of dat u bij RVO een machtiging voor dit bedrijf heeft."
   } else if (rawMessage.includes("Request failed")) {
     friendlyTitle = "Communicatiefout"
     friendlyMessage = `Er is een fout opgetreden bij het ophalen van gegevens bij RVO. (${rawMessage})`
@@ -73,7 +94,7 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
             >
               <Link to={retryPath}>
                 <RefreshCw className="mr-2 h-3 w-3" />
-                Opnieuw proberen
+                {retryLabel}
               </Link>
             </Button>
           ) : onRetry ? (
@@ -85,7 +106,7 @@ export function RvoErrorAlert({ error, onRetry, retryPath }: RvoErrorAlertProps)
               className="w-fit border-red-200 bg-white text-red-700 hover:bg-red-50 hover:text-red-900"
             >
               <RefreshCw className="mr-2 h-3 w-3" />
-              Opnieuw proberen
+              {retryLabel}
             </Button>
           ) : null}
         </div>

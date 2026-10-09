@@ -27,6 +27,7 @@ import {
   useActionData,
   useLoaderData,
   useLocation,
+  useSearchParams,
   useNavigation,
   useParams,
 } from "react-router"
@@ -34,9 +35,10 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
+import { parseRvoRequestMode, RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
+import { RvoNoFieldsAlert } from "~/components/blocks/rvo/no-fields-alert"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
@@ -56,6 +58,10 @@ import {
   createConfiguredRvoClient,
   createRvoState,
   getRvoCredentials,
+  getRvoPermissionDeniedMessage,
+  parseRvoToken,
+  type RvoRequestMode,
+  RvoRequestModeSchema,
   rvoTokenCookie,
 } from "~/integrations/rvo.server"
 import { captureEvent } from "~/lib/analytics.server"
@@ -67,6 +73,7 @@ import {
   compareFields,
   fetchRvoFields,
   generateAuthUrl,
+  getRvoErrorDetails,
   isRvoPermissionDeniedError,
   processRvoImport,
 } from "~/lib/rvo.server"
@@ -90,10 +97,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const session = await getSession(request)
   const url = new URL(request.url)
-  const rvoAccessToken = await rvoTokenCookie.parse(request.headers.get("Cookie"))
+  const rvoToken = await parseRvoToken(request.headers.get("Cookie"))
 
   let rvoImportReviewData: ReviewItem[] = []
   let error: string | null = null
+  // Set once an RVO token is present: whose data was requested, and whether RVO denied it
+  let rvoMode: RvoRequestMode | null = null
+  let accessDenied = false
   let b_businessid_farm: string | null = null
   let b_name_farm: string | null = null
 
@@ -110,7 +120,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const farms = await getFarms(fdm, session.principal_id)
 
   // rvo_token cookie is set by /callback/rvo after a successful token exchange
-  if (rvoAccessToken) {
+  if (rvoToken) {
+    const rvoAccessToken = rvoToken.accessToken
+    rvoMode = rvoToken.mode
     try {
       if (!isRvoConfigured) {
         throw new Response("RVO client is not configured.", {
@@ -131,41 +143,45 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       captureEvent(session.principal_id, "fields_requested_rvo", {
         b_id_farm,
         calendar: yearString,
+        rvo_mode: rvoMode,
       })
 
       let rvoFields: Awaited<ReturnType<typeof fetchRvoFields>>
       try {
-        rvoFields = await fetchRvoFields(rvoClient, yearString, farm.b_businessid_farm)
+        // Only send the KvK number (as ThirdPartyFarmID) when requesting data on behalf of
+        // another farm. For the own farm, RVO derives the farm from the eHerkenning identity.
+        rvoFields = await fetchRvoFields(
+          rvoClient,
+          yearString,
+          rvoMode === "machtiging" ? farm.b_businessid_farm : undefined,
+        )
       } catch (fetchError) {
-        let status_code: string | undefined = undefined
-        let reason: unknown = undefined
-        if ((fetchError as ZodError)?.name === "ZodError") {
-          reason = { ZodError: (fetchError as ZodError)?.issues }
-        } else if (fetchError instanceof Error) {
-          reason = fetchError.message
-          const matches = fetchError.message.match(/^Request failed: (\d{3})\s/)
-          if (matches && matches.length >= 2) {
-            status_code = matches[1]
-          }
-        }
+        const { status_code, edi_code, message } = getRvoErrorDetails(fetchError)
+        const reason: unknown =
+          (fetchError as ZodError)?.name === "ZodError"
+            ? { ZodError: (fetchError as ZodError)?.issues }
+            : message
         captureEvent(session.principal_id, "fields_requested_rvo_failed", {
           b_id_farm,
           calendar: yearString,
+          rvo_mode: rvoMode,
           reason,
           status_code,
+          edi_code,
         })
         if (isRvoPermissionDeniedError(fetchError)) {
-          // RVO completed the request but denied access for this KvK number: this is a
-          // definitive negative result, not a system fault, so it's worth recording.
-          await addFarmVerification(fdm, session.principal_id, b_id_farm, {
-            verification_method: "rvo_eherkenning",
-            verification_result: "not_verified",
-            b_businessid_farm: farm.b_businessid_farm,
-          })
-          throw new Response(
-            "U heeft met deze eHerkenning geen machtiging voor dit KvK-nummer bij RVO. Dit bedrijf kon daarom niet worden geverifieerd.",
-            { status: 403 },
-          )
+          // With a machtiging, RVO checked the machtiging against the KvK number we sent and
+          // denied it: a definitive negative result, not a system fault, so it's worth
+          // recording. For the own farm, no KvK number was sent, so nothing was verified.
+          if (rvoMode === "machtiging") {
+            await addFarmVerification(fdm, session.principal_id, b_id_farm, {
+              verification_method: "rvo_eherkenning",
+              verification_result: "not_verified",
+              b_businessid_farm: farm.b_businessid_farm,
+            })
+          }
+          // Shown on this page, so the user can retry with the other option
+          accessDenied = true
         }
         throw fetchError
       }
@@ -175,15 +191,20 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         b_id_farm,
         rvo_field_count: rvoFields.length,
         calendar: yearString,
+        rvo_mode: rvoMode,
       })
 
-      // A successful response verifies the farm regardless of how many fields RVO returns —
-      // zero fields is a valid state for a farm that has not yet registered any percelen.
-      await addFarmVerification(fdm, session.principal_id, b_id_farm, {
-        verification_method: "rvo_eherkenning",
-        verification_result: "verified",
-        b_businessid_farm: farm.b_businessid_farm,
-      })
+      // A successful machtiging request verifies the farm regardless of how many fields RVO
+      // returns — zero fields is a valid state for a farm that has not yet registered any
+      // percelen. An own-farm request does not verify the farm: RVO does not tell us which
+      // KvK number the eHerkenning belongs to, so it does not prove the farm's KvK number.
+      if (rvoMode === "machtiging") {
+        await addFarmVerification(fdm, session.principal_id, b_id_farm, {
+          verification_method: "rvo_eherkenning",
+          verification_result: "verified",
+          b_businessid_farm: farm.b_businessid_farm,
+        })
+      }
 
       const localFields = await getFields(fdm, session.principal_id, b_id_farm)
       const localFieldsExtended = await Promise.all(
@@ -210,10 +231,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       )
     } catch (e) {
       console.error("Error with importing from RVO:", e)
-      if (e instanceof Response && e.status === 403) {
-        throw e
+      if (accessDenied) {
+        error = getRvoPermissionDeniedMessage(rvoToken.mode, farm?.b_name_farm)
+      } else {
+        if (e instanceof Response && e.status === 403) {
+          throw e
+        }
+        error = await extractErrorMessage(e)
       }
-      error = await extractErrorMessage(e)
     }
   } else if (!url.searchParams.has("start_import")) {
     const clearedTokenCookie = await rvoTokenCookie.serialize("", {
@@ -225,9 +250,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         rvoImportReviewData: [],
         error: null,
         showimportButton: true,
-        noRvoParcelsFound: false,
+        noRvoFieldsFound: false,
         b_businessid_farm,
         isRvoConfigured,
+        rvoMode,
+        accessDenied,
         farms,
         b_name_farm,
         calendar: yearString,
@@ -237,16 +264,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   const clearedTokenCookie = await rvoTokenCookie.serialize("", { maxAge: 0 })
-  const noRvoParcelsFound = !error && rvoImportReviewData.length === 0
+  const noRvoFieldsFound = !error && rvoImportReviewData.length === 0
   return data(
     {
       b_id_farm,
       rvoImportReviewData,
       error,
-      showimportButton: noRvoParcelsFound,
-      noRvoParcelsFound,
+      showimportButton: noRvoFieldsFound,
+      noRvoFieldsFound,
       b_businessid_farm,
       isRvoConfigured,
+      rvoMode,
+      accessDenied,
       farms,
       b_name_farm,
       calendar: yearString,
@@ -262,14 +291,17 @@ export default function RvoImportReviewPage() {
     error,
     b_businessid_farm,
     isRvoConfigured,
+    rvoMode,
+    accessDenied,
     farms,
     calendar,
     showimportButton,
-    noRvoParcelsFound,
+    noRvoFieldsFound,
   } = useLoaderData<typeof loader>()
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 
   const isImporting =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "start_import"
@@ -355,14 +387,28 @@ export default function RvoImportReviewPage() {
         <main>
           <div className="flex items-center justify-between">
             <FarmTitle
-              title="Fout bij ophalen percelen bij RVO"
-              description="Er is iets misgegaan bij het ophalen van gegevens."
+              title={accessDenied ? "Geen toegang bij RVO" : "Fout bij ophalen percelen bij RVO"}
+              description={
+                accessDenied
+                  ? "RVO heeft de aanvraag voor dit bedrijf geweigerd."
+                  : "Er is iets misgegaan bij het ophalen van gegevens."
+              }
             />
           </div>
           <FarmContent>
             <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-y-0 lg:space-x-12">
               <div className="w-full">
-                <RvoErrorAlert error={error} retryPath={location.pathname} />
+                <RvoErrorAlert
+                  error={error}
+                  accessDenied={accessDenied}
+                  retryPath={
+                    accessDenied && rvoMode
+                      ? // Offer the other option, as a wrong choice is the most likely cause
+                        `${location.pathname}?rvo_mode=${rvoMode === "own_farm" ? "machtiging" : "own_farm"}`
+                      : location.pathname
+                  }
+                  retryLabel={accessDenied ? "Opnieuw verbinden" : undefined}
+                />
               </div>
             </div>
           </FarmContent>
@@ -412,19 +458,16 @@ export default function RvoImportReviewPage() {
 
         {rvoImportReviewData.length === 0 ? (
           <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 py-10 sm:w-[600px]">
-            {noRvoParcelsFound && (
-              <Alert>
-                <AlertTitle>Geen percelen gevonden</AlertTitle>
-                <AlertDescription>
-                  Er zijn geen percelen gevonden voor dit bedrijf bij RVO. Controleer het KvK-nummer
-                  en probeer opnieuw.
-                </AlertDescription>
-              </Alert>
+            {noRvoFieldsFound && (
+              <RvoNoFieldsAlert mode={rvoMode} calendar={calendar} farmName={currentFarmName} />
             )}
             {showimportButton && (
               <RvoConnectCard
+                b_name_farm={currentFarmName}
                 b_businessid_farm={b_businessid_farm}
-                b_id_farm={b_id_farm}
+                calendar={calendar}
+                kvkHref={`/farm/${b_id_farm}/settings/properties`}
+                defaultMode={parseRvoRequestMode(searchParams.get("rvo_mode"))}
                 isImporting={isImporting}
                 isRvoConfigured={isRvoConfigured}
               />
@@ -565,9 +608,14 @@ export async function action({ request, params, url }: Route.ActionArgs) {
       })
     }
 
+    const rvoMode = RvoRequestModeSchema.safeParse(formData.get("rvo_mode"))
+    if (!rvoMode.success) {
+      throw new Response("Kies met welke eHerkenning u inlogt bij RVO.", { status: 400 })
+    }
+
     const rvoClient = createConfiguredRvoClient(rvoCredentials)
 
-    const { state, cookieHeader } = await createRvoState(b_id_farm, url.toString())
+    const { state, cookieHeader } = await createRvoState(b_id_farm, url.toString(), rvoMode.data)
 
     const authUrl = generateAuthUrl(rvoClient, state)
 
