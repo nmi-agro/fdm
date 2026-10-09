@@ -11,6 +11,7 @@ export type Resource =
   | "fertilizer_application"
   | "fertilizer_plan"
   | "harvesting"
+  | "farm_group"
 export type Role = "owner" | "advisor" | "researcher"
 export type Action = "read" | "write" | "list" | "share"
 

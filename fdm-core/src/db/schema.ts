@@ -122,6 +122,71 @@ export const fieldDiscarding = fdmSchema.table("field_discarding", {
 export type fieldDiscardingTypeSelect = typeof fieldDiscarding.$inferSelect
 export type fieldDiscardingTypeInsert = typeof fieldDiscarding.$inferInsert
 
+// Define farm_groups table: organization-scoped groupings of farms.
+// `b_id_organization` holds the organization principal id as plain text,
+// without a foreign key into the better-auth schema.
+export const farmGroups = fdmSchema.table(
+  "farm_groups",
+  {
+    b_id_group: text().primaryKey(),
+    b_id_organization: text().notNull(),
+    b_name_group: text().notNull(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("b_id_group_idx").on(table.b_id_group),
+    index("b_id_organization_group_idx").on(table.b_id_organization),
+  ],
+)
+
+export type farmGroupsTypeSelect = typeof farmGroups.$inferSelect
+export type farmGroupsTypeInsert = typeof farmGroups.$inferInsert
+
+// A farm joining a group, with the date from which the farm is part of the group.
+// This date is chosen by the user and is not the moment the record was made. It is
+// part of the key so that a farm can rejoin a group after it has left.
+export const farmGroupJoining = fdmSchema.table(
+  "farm_group_joining",
+  {
+    b_id_group: text()
+      .notNull()
+      .references(() => farmGroups.b_id_group),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
+    b_group_joined: timestamp({ withTimezone: true }).notNull(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.b_id_group, table.b_id_farm, table.b_group_joined] })],
+)
+
+export type farmGroupJoiningTypeSelect = typeof farmGroupJoining.$inferSelect
+export type farmGroupJoiningTypeInsert = typeof farmGroupJoining.$inferInsert
+
+// A farm leaving a group, with the date until which the farm is part of the group.
+// This date is chosen by the user and is not the moment the record was made. Ending a
+// membership records this event; the joining row is never deleted.
+export const farmGroupLeaving = fdmSchema.table(
+  "farm_group_leaving",
+  {
+    b_id_group: text()
+      .notNull()
+      .references(() => farmGroups.b_id_group),
+    b_id_farm: text()
+      .notNull()
+      .references(() => farms.b_id_farm),
+    b_group_leaved: timestamp({ withTimezone: true }).notNull(),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.b_id_group, table.b_id_farm, table.b_group_leaved] })],
+)
+
+export type farmGroupLeavingTypeSelect = typeof farmGroupLeaving.$inferSelect
+export type farmGroupLeavingTypeInsert = typeof farmGroupLeaving.$inferInsert
+
 // Define fertilizers table
 export const fertilizers = fdmSchema.table(
   "fertilizers",

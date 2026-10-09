@@ -10,6 +10,7 @@ import { createPathExistenceGuard, requestGuard } from "./guards"
 import { registerCalculationRoutes } from "./routes/calculations"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
+import { registerFarmGroupRoutes } from "./routes/farm-groups"
 import { registerFarmRoutes } from "./routes/farms"
 import { registerFertilizerApplicationRoutes } from "./routes/fertilizer-applications"
 import { registerFertilizerRoutes } from "./routes/fertilizers"
@@ -85,6 +86,7 @@ export function buildApp(
   app.get("/", (c) => c.redirect(`${pathPrefix}/docs`, 302))
 
   registerFarmRoutes(app, fdm, services)
+  registerFarmGroupRoutes(app, fdm, services)
   registerFieldRoutes(app, fdm, services)
   registerCalculationRoutes(app, fdm, services)
   registerCultivationRoutes(app, fdm, services)
@@ -133,6 +135,7 @@ export function buildApp(
 | **Organic certifications** | Register and verify certification periods |
 | **Derogations** | Manage regulatory derogations |
 | **Grazing intentions** | Set and query yearly grazing plans |
+| **Farm groups** | Organize the farms of an organization into groups |
 | **Calculations** | Nitrogen balance, organic-matter balance, fertilization norms, NPK dose |
 
 ## Authentication
@@ -192,6 +195,10 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
       {
         name: "Soil Analyses",
         description: "Manage soil analyses on fields",
+      },
+      {
+        name: "Farm Groups",
+        description: "Manage groups of farms within an organization",
       },
       { name: "Calculations", description: "Run agronomic calculations" },
     ],

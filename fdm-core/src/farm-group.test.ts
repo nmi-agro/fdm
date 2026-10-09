@@ -1,0 +1,554 @@
+import { eq } from "drizzle-orm"
+import { beforeAll, describe, expect, inject, it } from "vitest"
+import type { FdmAuth } from "./authentication"
+import type { FdmServerType } from "./fdm-server.types"
+import { createFdmAuth } from "./authentication"
+import { grantRole } from "./authorization"
+import * as schema from "./db/schema"
+import * as authNSchema from "./db/schema-authn"
+import { addFarm, removeFarm } from "./farm"
+import {
+  addFarmToGroup,
+  createFarmGroup,
+  getFarmGroup,
+  listFarmGroups,
+  removeFarmFromGroup,
+  removeFarmGroup,
+  renameFarmGroup,
+  updateFarmGroupMembership,
+} from "./farm-group"
+import { createFdmServer } from "./fdm-server"
+import { createId } from "./id"
+
+const DENIED = "Principal does not have permission to perform this action"
+
+/** handleError wraps the original error as `cause`; assert on its message. */
+const expectCause = async (promise: Promise<unknown>, text: string) => {
+  const error = await promise.then(
+    () => undefined,
+    (e: Error) => e,
+  )
+  expect(error).toBeDefined()
+  expect((error?.cause as Error | undefined)?.message).toContain(text)
+}
+
+describe("Farm group functions", () => {
+  let fdm: FdmServerType
+  let fdmAuth: FdmAuth
+  let member_id: string
+  let outsider_id: string
+  let b_id_organization: string
+  let b_id_farm_a: string
+  let b_id_farm_b: string
+  let b_id_farm_other: string
+
+  const createUser = async (name: string) => {
+    const result = await fdmAuth.api.signUpEmail({
+      headers: undefined,
+      body: {
+        email: `${name}@example.com`,
+        name,
+        username: name,
+        password: "password",
+      } as any,
+    })
+    return result.user.id
+  }
+
+  beforeAll(async () => {
+    fdm = createFdmServer(
+      inject("host"),
+      inject("port"),
+      inject("user"),
+      inject("password"),
+      inject("database"),
+    )
+    fdmAuth = createFdmAuth(
+      fdm,
+      { clientId: "mock_google_client_id", clientSecret: "mock_google_client_secret" },
+      {
+        clientId: "mock_ms_client_id",
+        tenantId: "common",
+        privateKey: "mock_ms_private_key",
+        certThumbprint: "mock_ms_thumbprint",
+      },
+      undefined,
+      true,
+    )
+
+    member_id = await createUser("farmgroupmember")
+    outsider_id = await createUser("farmgroupoutsider")
+
+    b_id_organization = createId()
+    await fdm.insert(authNSchema.organization).values({
+      id: b_id_organization,
+      name: "Farm Group Org",
+      slug: `farm-group-org-${b_id_organization.toLowerCase()}`,
+      createdAt: new Date(),
+    })
+    await fdm.insert(authNSchema.member).values({
+      id: createId(),
+      organizationId: b_id_organization,
+      userId: member_id,
+      role: "owner",
+      createdAt: new Date(),
+    })
+
+    // Two farms of the organization, one farm that is not
+    b_id_farm_a = await addFarm(fdm, member_id, "Farm A", null, null, null)
+    b_id_farm_b = await addFarm(fdm, member_id, "Farm B", null, null, null)
+    b_id_farm_other = await addFarm(fdm, member_id, "Farm other", null, null, null)
+    await grantRole(fdm, "farm", "owner", b_id_farm_a, b_id_organization)
+    await grantRole(fdm, "farm", "owner", b_id_farm_b, b_id_organization)
+  })
+
+  describe("createFarmGroup", () => {
+    it("should create a group and trim the name", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "  Project A ")
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.b_name_group).toBe("Project A")
+      expect(group.b_id_organization).toBe(b_id_organization)
+      expect(group.b_id_farms).toEqual([])
+    })
+
+    it("should reject principals that are not a member of the organization", async () => {
+      await expect(createFarmGroup(fdm, outsider_id, b_id_organization, "Nope")).rejects.toThrow(
+        DENIED,
+      )
+    })
+
+    it("should reject empty names and duplicate names in the same organization", async () => {
+      await expectCause(
+        createFarmGroup(fdm, member_id, b_id_organization, "   "),
+        "Name of the farm group is required",
+      )
+      await createFarmGroup(fdm, member_id, b_id_organization, "Duplicate")
+      await expectCause(
+        createFarmGroup(fdm, member_id, b_id_organization, "duplicate"),
+        "already exists",
+      )
+    })
+  })
+
+  describe("getFarmGroup / listFarmGroups", () => {
+    it("should deny access to principals without a role on the group", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Private")
+      await expect(getFarmGroup(fdm, outsider_id, b_id_group)).rejects.toThrow(DENIED)
+      await expect(getFarmGroup(fdm, member_id, createId())).rejects.toThrow()
+    })
+
+    it("should list groups of an organization ordered by name", async () => {
+      const orgId = createId()
+      await fdm.insert(authNSchema.organization).values({
+        id: orgId,
+        name: "List Org",
+        slug: `list-org-${orgId.toLowerCase()}`,
+        createdAt: new Date(),
+      })
+      await fdm.insert(authNSchema.member).values({
+        id: createId(),
+        organizationId: orgId,
+        userId: member_id,
+        role: "owner",
+        createdAt: new Date(),
+      })
+      expect(await listFarmGroups(fdm, member_id, orgId)).toEqual([])
+
+      await createFarmGroup(fdm, member_id, orgId, "Melkvee")
+      await createFarmGroup(fdm, member_id, orgId, "Akkerbouw")
+      const groups = await listFarmGroups(fdm, member_id, orgId)
+      expect(groups.map((g) => g.b_name_group)).toEqual(["Akkerbouw", "Melkvee"])
+      await expect(listFarmGroups(fdm, outsider_id, orgId)).rejects.toThrow(DENIED)
+    })
+  })
+
+  describe("renameFarmGroup", () => {
+    it("should rename a group and reject names that are in use", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Old name")
+      await createFarmGroup(fdm, member_id, b_id_organization, "Taken name")
+      await renameFarmGroup(fdm, member_id, b_id_group, "New name")
+      expect((await getFarmGroup(fdm, member_id, b_id_group)).b_name_group).toBe("New name")
+
+      await expectCause(renameFarmGroup(fdm, member_id, b_id_group, "taken name"), "already exists")
+      await expect(renameFarmGroup(fdm, outsider_id, b_id_group, "Hacked")).rejects.toThrow(DENIED)
+    })
+  })
+
+  describe("membership", () => {
+    it("should add a farm to multiple groups and derive membership", async () => {
+      const group1 = await createFarmGroup(fdm, member_id, b_id_organization, "Member group 1")
+      const group2 = await createFarmGroup(fdm, member_id, b_id_organization, "Member group 2")
+
+      await addFarmToGroup(fdm, member_id, group1, b_id_farm_a)
+      await addFarmToGroup(fdm, member_id, group2, b_id_farm_a)
+      await addFarmToGroup(fdm, member_id, group1, b_id_farm_b)
+      // Adding an active member again is a no-op
+      await addFarmToGroup(fdm, member_id, group1, b_id_farm_a)
+
+      expect((await getFarmGroup(fdm, member_id, group1)).b_id_farms.sort()).toEqual(
+        [b_id_farm_a, b_id_farm_b].sort(),
+      )
+      expect((await getFarmGroup(fdm, member_id, group2)).b_id_farms).toEqual([b_id_farm_a])
+    })
+
+    it("should record a leaving event instead of deleting the joining", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Leaving group")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a)
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a)
+      // Removing a non-member is a no-op
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a)
+
+      expect((await getFarmGroup(fdm, member_id, b_id_group)).b_id_farms).toEqual([])
+      const joinings = await fdm
+        .select()
+        .from(schema.farmGroupJoining)
+        .where(eq(schema.farmGroupJoining.b_id_group, b_id_group))
+      const leavings = await fdm
+        .select()
+        .from(schema.farmGroupLeaving)
+        .where(eq(schema.farmGroupLeaving.b_id_group, b_id_group))
+      expect(joinings).toHaveLength(1)
+      expect(leavings).toHaveLength(1)
+    })
+
+    it("should allow a farm to rejoin after leaving, repeatedly", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Rejoin group")
+      for (let i = 0; i < 3; i++) {
+        await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_b)
+        expect((await getFarmGroup(fdm, member_id, b_id_group)).b_id_farms).toEqual([b_id_farm_b])
+        await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_b)
+        expect((await getFarmGroup(fdm, member_id, b_id_group)).b_id_farms).toEqual([])
+      }
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_b)
+      expect((await getFarmGroup(fdm, member_id, b_id_group)).b_id_farms).toEqual([b_id_farm_b])
+    })
+
+    it("should reject farms that do not belong to the organization", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Foreign group")
+      await expectCause(
+        addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_other),
+        "does not belong to the organization",
+      )
+    })
+
+    it("should reject principals without permission", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Guarded group")
+      await expect(addFarmToGroup(fdm, outsider_id, b_id_group, b_id_farm_a)).rejects.toThrow(
+        DENIED,
+      )
+      await expect(removeFarmFromGroup(fdm, outsider_id, b_id_group, b_id_farm_a)).rejects.toThrow(
+        DENIED,
+      )
+    })
+  })
+
+  describe("membership dates", () => {
+    const day = 24 * 60 * 60 * 1000
+
+    it("should use the dates chosen by the user, not the moment of recording", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Dated group")
+      const from = new Date("2020-03-01T00:00:00Z")
+      const until = new Date("2021-03-01T00:00:00Z")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, from)
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, until)
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      // The period lies in the past, so the farm is not part of the group now
+      expect(group.b_id_farms).toEqual([])
+      expect(group.memberships).toEqual([
+        { b_id_farm: b_id_farm_a, b_group_joined: from, b_group_leaved: until },
+      ])
+    })
+
+    it("should treat a start date in the future as not yet part of the group", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Future group")
+      const from = new Date(Date.now() + 30 * day)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, from)
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.b_id_farms).toEqual([])
+      expect(group.memberships[0].b_group_joined).toEqual(from)
+      expect(group.memberships[0].b_group_leaved).toBeNull()
+    })
+
+    it("should keep the farm in the group until an end date in the future", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Ending group")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, new Date(Date.now() - 30 * day))
+      const until = new Date(Date.now() + 30 * day)
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, until)
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.b_id_farms).toEqual([b_id_farm_a])
+      expect(group.memberships[0].b_group_leaved).toEqual(until)
+    })
+
+    it("should support several periods of the same farm", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Periods group")
+      const t = (iso: string) => new Date(iso)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_b, t("2019-01-01T00:00:00Z"))
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_b, t("2019-06-01T00:00:00Z"))
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_b, t("2020-01-01T00:00:00Z"))
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.memberships).toEqual([
+        {
+          b_id_farm: b_id_farm_b,
+          b_group_joined: t("2019-01-01T00:00:00Z"),
+          b_group_leaved: t("2019-06-01T00:00:00Z"),
+        },
+        { b_id_farm: b_id_farm_b, b_group_joined: t("2020-01-01T00:00:00Z"), b_group_leaved: null },
+      ])
+      expect(group.b_id_farms).toEqual([b_id_farm_b])
+    })
+
+    it("should reject an end date that is not after the start date", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Order group")
+      const from = new Date("2020-03-01T00:00:00Z")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, from)
+      await expectCause(
+        removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, from),
+        "must be after",
+      )
+    })
+
+    it("should reject a second end date and an earlier start date", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Conflict group")
+      await addFarmToGroup(
+        fdm,
+        member_id,
+        b_id_group,
+        b_id_farm_a,
+        new Date("2020-03-01T00:00:00Z"),
+      )
+      await removeFarmFromGroup(
+        fdm,
+        member_id,
+        b_id_group,
+        b_id_farm_a,
+        new Date("2025-01-01T00:00:00Z"),
+      )
+      await expectCause(
+        removeFarmFromGroup(
+          fdm,
+          member_id,
+          b_id_group,
+          b_id_farm_a,
+          new Date("2024-01-01T00:00:00Z"),
+        ),
+        "already has an end date",
+      )
+      await expectCause(
+        addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, new Date("2019-01-01T00:00:00Z")),
+        "later date",
+      )
+    })
+
+    it("should reject an end date before the start of the open period", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Before group")
+      await addFarmToGroup(
+        fdm,
+        member_id,
+        b_id_group,
+        b_id_farm_a,
+        new Date("2020-03-01T00:00:00Z"),
+      )
+      await expectCause(
+        removeFarmFromGroup(
+          fdm,
+          member_id,
+          b_id_group,
+          b_id_farm_a,
+          new Date("2019-01-01T00:00:00Z"),
+        ),
+        "must be after",
+      )
+    })
+
+    it("should update the dates of an existing period", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Update group")
+      const t = (iso: string) => new Date(iso)
+      const update = (joined: string, changes: Parameters<typeof updateFarmGroupMembership>[5]) =>
+        updateFarmGroupMembership(fdm, member_id, b_id_group, b_id_farm_a, t(joined), changes)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2020-03-01T00:00:00Z"))
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2021-03-01T00:00:00Z"))
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2022-01-01T00:00:00Z"))
+
+      // Move the start and the end
+      await update("2020-03-01T00:00:00Z", {
+        b_group_joined: t("2020-01-01T00:00:00Z"),
+        b_group_leaved: t("2021-06-01T00:00:00Z"),
+      })
+      // Set an end date on the open period, then remove it again
+      await update("2022-01-01T00:00:00Z", { b_group_leaved: t("2023-01-01T00:00:00Z") })
+      await update("2022-01-01T00:00:00Z", { b_group_leaved: null })
+
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.memberships).toEqual([
+        {
+          b_id_farm: b_id_farm_a,
+          b_group_joined: t("2020-01-01T00:00:00Z"),
+          b_group_leaved: t("2021-06-01T00:00:00Z"),
+        },
+        { b_id_farm: b_id_farm_a, b_group_joined: t("2022-01-01T00:00:00Z"), b_group_leaved: null },
+      ])
+    })
+
+    it("should reject an invalid update", async () => {
+      const b_id_group = await createFarmGroup(
+        fdm,
+        member_id,
+        b_id_organization,
+        "Update bad group",
+      )
+      const t = (iso: string) => new Date(iso)
+      const update = (
+        principal: string,
+        joined: string,
+        changes: Parameters<typeof updateFarmGroupMembership>[5],
+      ) => updateFarmGroupMembership(fdm, principal, b_id_group, b_id_farm_a, t(joined), changes)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2020-01-01T00:00:00Z"))
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2021-01-01T00:00:00Z"))
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2022-01-01T00:00:00Z"))
+
+      await expectCause(
+        update(member_id, "2022-01-01T00:00:00Z", { b_group_leaved: t("2021-12-01T00:00:00Z") }),
+        "must be after",
+      )
+      await expectCause(
+        update(member_id, "2022-01-01T00:00:00Z", { b_group_joined: t("2020-06-01T00:00:00Z") }),
+        "overlaps",
+      )
+      await expectCause(
+        update(member_id, "2018-01-01T00:00:00Z", { b_group_leaved: t("2019-01-01T00:00:00Z") }),
+        "not found",
+      )
+      await expectCause(
+        update(outsider_id, "2022-01-01T00:00:00Z", { b_group_leaved: t("2023-01-01T00:00:00Z") }),
+        DENIED,
+      )
+    })
+
+    it("should store the start and end date of a period in one step", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Atomic group")
+      const t = (iso: string) => new Date(iso)
+      await addFarmToGroup(
+        fdm,
+        member_id,
+        b_id_group,
+        b_id_farm_a,
+        t("2020-01-01T00:00:00Z"),
+        t("2021-01-01T00:00:00Z"),
+      )
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.memberships).toEqual([
+        {
+          b_id_farm: b_id_farm_a,
+          b_group_joined: t("2020-01-01T00:00:00Z"),
+          b_group_leaved: t("2021-01-01T00:00:00Z"),
+        },
+      ])
+    })
+
+    it("should not store anything when the end date cannot be recorded", async () => {
+      const b_id_group = await createFarmGroup(
+        fdm,
+        member_id,
+        b_id_organization,
+        "Atomic bad group",
+      )
+      const t = (iso: string) => new Date(iso)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, t("2020-01-01T00:00:00Z"))
+      // Already a member on that date: the end date is not silently put on the existing period
+      await expectCause(
+        addFarmToGroup(
+          fdm,
+          member_id,
+          b_id_group,
+          b_id_farm_a,
+          t("2020-06-01T00:00:00Z"),
+          t("2021-01-01T00:00:00Z"),
+        ),
+        "already is part of the group on that date",
+      )
+      // An end date that is not after the start date leaves nothing behind
+      await expectCause(
+        addFarmToGroup(
+          fdm,
+          member_id,
+          b_id_group,
+          b_id_farm_b,
+          t("2020-06-01T00:00:00Z"),
+          t("2020-06-01T00:00:00Z"),
+        ),
+        "must be after",
+      )
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.memberships).toEqual([
+        { b_id_farm: b_id_farm_a, b_group_joined: t("2020-01-01T00:00:00Z"), b_group_leaved: null },
+      ])
+    })
+
+    it("should default the start date to the start of today (UTC)", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Default group")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a)
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      const now = new Date()
+      const midnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+      expect(group.memberships[0].b_group_joined).toEqual(midnight)
+    })
+
+    it("should reject ending a membership that has not started yet without a date", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Planned group")
+      const from = new Date(Date.now() + 30 * day)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, from)
+      await expectCause(
+        removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a),
+        "has not started yet",
+      )
+      const group = await getFarmGroup(fdm, member_id, b_id_group)
+      expect(group.memberships).toEqual([
+        { b_id_farm: b_id_farm_a, b_group_joined: from, b_group_leaved: null },
+      ])
+    })
+
+    it("should reject invalid dates", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Invalid group")
+      await expectCause(
+        addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a, new Date("nope")),
+        "not a valid date",
+      )
+    })
+  })
+
+  describe("removal", () => {
+    it("should remove a group with its membership events", async () => {
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Doomed group")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a)
+      await removeFarmFromGroup(fdm, member_id, b_id_group, b_id_farm_a)
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm_a)
+
+      await expect(removeFarmGroup(fdm, outsider_id, b_id_group)).rejects.toThrow(DENIED)
+      await removeFarmGroup(fdm, member_id, b_id_group)
+
+      await expect(getFarmGroup(fdm, member_id, b_id_group)).rejects.toThrow()
+      const groups = await listFarmGroups(fdm, member_id, b_id_organization)
+      expect(groups.find((g) => g.b_id_group === b_id_group)).toBeUndefined()
+      const joinings = await fdm
+        .select()
+        .from(schema.farmGroupJoining)
+        .where(eq(schema.farmGroupJoining.b_id_group, b_id_group))
+      expect(joinings).toHaveLength(0)
+    })
+
+    it("should drop group memberships when a farm is removed", async () => {
+      const b_id_farm = await addFarm(fdm, member_id, "Temporary farm", null, null, null)
+      await grantRole(fdm, "farm", "owner", b_id_farm, b_id_organization)
+      const b_id_group = await createFarmGroup(fdm, member_id, b_id_organization, "Farm removal")
+      await addFarmToGroup(fdm, member_id, b_id_group, b_id_farm)
+
+      await removeFarm(fdm, member_id, b_id_farm)
+
+      expect((await getFarmGroup(fdm, member_id, b_id_group)).b_id_farms).toEqual([])
+    })
+  })
+})

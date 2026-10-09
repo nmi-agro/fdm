@@ -18,11 +18,13 @@ import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { Separator } from "~/components/ui/separator"
 import { getMapStyle } from "~/integrations/map"
-import { auth } from "~/lib/auth.server"
+import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
+import { auth, getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getOrganizationFarmGroups, parseFarmIdsParam, selectFarms } from "~/lib/farm-selection.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { isExcludedFromBln3 } from "~/lib/indicators"
 import type { Route } from "./+types/organization.$slug.$calendar.measures"
@@ -97,7 +99,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       })
     }
 
-    const farms = await getFarms(fdm, organization.id)
+    const allFarms = await getFarms(fdm, organization.id)
+    const farms = selectFarms(allFarms, parseFarmIdsParam(new URL(request.url)))
+    const session = await getSession(request)
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      allFarms.map((farm) => farm.b_id_farm),
+    )
 
     function combineMeasureAggregate(
       existing: MeasureAggregate | undefined,
@@ -306,6 +315,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     })
 
     return {
+      farmGroups,
       fieldsGeoJSON,
       measureRows,
       mapStyle: getMapStyle("satellite"),
@@ -326,7 +336,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function MeasuresOrganizationIndex() {
-  const { fieldsGeoJSON, measureRows, mapStyle, stats, fieldSummaries } =
+  const { fieldsGeoJSON, measureRows, mapStyle, stats, fieldSummaries, farmGroups } =
     useLoaderData<typeof loader>()
   const { calendar } = useParams()
   const navigate = useNavigate()
@@ -389,6 +399,7 @@ export default function MeasuresOrganizationIndex() {
       <FarmTitle
         title="Maatregelen"
         description="Overzicht van bodembeheersmaatregelen per bedrijf met toegang door deze organisatie."
+        rightNode={<GroupPicker groups={farmGroups} />}
       />
 
       <div className="space-y-6 md:px-8 md:pb-8">

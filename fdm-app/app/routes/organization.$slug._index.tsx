@@ -5,7 +5,7 @@ import {
   getFields,
   listPendingInvitationsForUser,
 } from "@nmi-agro/fdm-core"
-import { Square, Users } from "lucide-react"
+import { Square, UserGroup, Users } from "lucide-react"
 import { useRef } from "react"
 import { useEffect } from "react"
 import { data, NavLink, redirect, useLoaderData, useSearchParams } from "react-router"
@@ -34,6 +34,7 @@ import { auth, getSession } from "~/lib/auth.server"
 import { getCalendarSelection, getTimeframe, isSupportedYear } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
+import { getOrganizationFarmGroups } from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { parseOrganizationMetadata } from "~/lib/organization-helpers"
@@ -118,6 +119,11 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
 
     // Get a list of possible farms of the user
     const farms = await getFarms(fdm, organization.id)
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      farms.map((farm) => farm.b_id_farm),
+    )
 
     const farmsExtended: (FarmWithRoles & {
       b_area_farm: number | null
@@ -132,6 +138,9 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
           roles: undefined,
           b_area_farm: farmArea,
           userRoles: [...new Set(farm.roles.map((role) => role.role))],
+          groups: farmGroups
+            .filter((group) => group.b_id_farms.includes(farm.b_id_farm))
+            .map((group) => ({ b_id_group: group.b_id_group, b_name_group: group.b_name_group })),
         }
       }),
     )
@@ -140,6 +149,11 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
 
     return {
       farms: farmsExtended,
+      groups: farmGroups.map((group) => ({
+        b_id_group: group.b_id_group,
+        b_name_group: group.b_name_group,
+        farmCount: group.b_id_farms.length,
+      })),
       totalArea: totalArea,
       calendar: calendar,
       slug: params.slug,
@@ -341,6 +355,49 @@ export default function AppIndex() {
                         <ExpandableTrigger />
                       </Expandable>
                     </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Groups */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-semibold tracking-tight">Groepen</h2>
+                  <Button asChild variant="outline">
+                    <NavLink to="./groups">Beheer</NavLink>
+                  </Button>
+                </div>
+                <Card>
+                  <CardContent className="pt-6">
+                    {loaderData.groups.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">
+                        Deze organisatie heeft nog geen groepen.
+                      </p>
+                    ) : (
+                      <ul className="grid gap-4">
+                        {loaderData.groups.map((group) => (
+                          <li key={group.b_id_group}>
+                            <NavLink
+                              to={`./groups/${group.b_id_group}`}
+                              className="hover:text-primary flex items-center gap-3"
+                            >
+                              <div className="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                                <UserGroup className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-sm leading-none font-medium">
+                                  {group.b_name_group}
+                                </p>
+                                <p className="text-muted-foreground mt-1 text-xs">
+                                  {group.farmCount}{" "}
+                                  {group.farmCount === 1 ? "bedrijf" : "bedrijven"}
+                                </p>
+                              </div>
+                            </NavLink>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </CardContent>
                 </Card>
               </div>

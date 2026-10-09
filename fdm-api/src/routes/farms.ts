@@ -3,6 +3,7 @@ import type {
   addFarm,
   FdmType,
   getFarm,
+  getFarmGroup,
   getFarms,
   removeFarm,
   updateFarm,
@@ -35,6 +36,8 @@ export interface FarmServices {
   updateFarm: typeof updateFarm
   /** Permanently deletes a farm and all its associated resources. */
   removeFarm: typeof removeFarm
+  /** Returns a farm group, used to filter farms by group. */
+  getFarmGroup: typeof getFarmGroup
 }
 
 const FarmSchema = z
@@ -81,6 +84,10 @@ const UpdateFarmBodySchema = z
   })
   .openapi("UpdateFarm")
 
+const ListFarmsQuerySchema = PaginationQuerySchema.extend({
+  b_id_group: z.string().optional().describe("Only list the farms that are a member of this group."),
+})
+
 const listFarmsRoute = createRoute({
   method: "get",
   path: "/farms",
@@ -88,7 +95,7 @@ const listFarmsRoute = createRoute({
   summary: "List all farms",
   description: "Returns all farms accessible by the authenticated API key.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { query: PaginationQuerySchema },
+  request: { query: ListFarmsQuerySchema },
   responses: {
     200: {
       description: "A paginated list of farms.",
@@ -222,8 +229,15 @@ export function registerFarmRoutes(
   const listFarmsHandler: RouteHandler<typeof listFarmsRoute> = async (c) => {
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const farms = await services.getFarms(fdm, principal.effectivePrincipalId)
+    const { limit, offset, b_id_group } = c.req.valid("query") as z.infer<
+      typeof ListFarmsQuerySchema
+    >
+    let farms = await services.getFarms(fdm, principal.effectivePrincipalId)
+    if (b_id_group) {
+      const group = await services.getFarmGroup(fdm, principal.effectivePrincipalId, b_id_group)
+      const members = new Set(group.b_id_farms)
+      farms = farms.filter((farm) => members.has(farm.b_id_farm))
+    }
     return c.json(paginatedResponse(farms.map(serialiseFarm), limit, offset), 200)
   }
 

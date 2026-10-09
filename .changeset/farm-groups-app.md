@@ -1,0 +1,5 @@
+---
+"@nmi-agro/fdm-app": minor
+---
+
+Add farm groups for organizations. Organization farms in the farm overview are shown under collapsible group headers when groups exist. The organization farms table gets a "Groepen" column, a group filter and a bulk action to assign farms to groups. The organization balance pages (nitrogen, organic matter), indicators, measures and the atlas indicators map get a group picker that selects the farms that are part of a group today. The organization page lists the groups and shows the groups on each farm card. Groups are managed on the new `/organization/:slug/groups` overview, with a page per group that lists the current, planned and past periods of its farms. For every farm, users set the dates from which and until which it is part of a group with the shared date picker; the start date defaults to 1 January of the selected year and there is no default end date. Periods can be edited afterwards and an end date before the start date is rejected. These are the dates of the period itself, not the moment of the change.
