@@ -10,6 +10,7 @@ import {
 import { Suspense, use, useEffect } from "react"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import type { NutrientDescription } from "~/components/blocks/nutrient-advice/types"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { CutAdviceCard } from "~/components/blocks/nutrient-advice/cut-advice-card"
 import { FieldNutrientAdviceLayout } from "~/components/blocks/nutrient-advice/layout"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
@@ -24,6 +25,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getNmiApiKey } from "../integrations/nmi.server"
 
@@ -72,6 +74,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const calendar = getCalendar(params)
 
     const field = await getField(fdm, session.principal_id, b_id)
+
+    // Skip the calculation when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        field: field,
+        nutrientsDescription: getNutrientsDescription(),
+        calendar: calendar,
+        asyncData: null,
+        fieldAvailability,
+      }
+    }
 
     const asyncData = (async () => {
       try {
@@ -156,6 +170,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       nutrientsDescription: nutrientsDescription,
       calendar: calendar,
       asyncData: asyncData,
+      fieldAvailability: null,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -174,6 +189,21 @@ export default function FieldNutrientAdviceBlock() {
       calendar: loaderData.calendar,
     })
   }, [])
+
+  if (loaderData.fieldAvailability || !loaderData.asyncData) {
+    return (
+      <div className="p-10">
+        <FieldNotAvailableForYear
+          availability={loaderData.fieldAvailability ?? "ended"}
+          calendar={loaderData.calendar}
+          b_name={field.b_name}
+          b_start={field.b_start}
+          b_end={field.b_end}
+          settingsHref={`/farm/${field.b_id_farm}/${loaderData.calendar}/field/${field.b_id}/settings`}
+        />
+      </div>
+    )
+  }
 
   const primaryNutrients = nutrientsDescription.filter(
     (item: NutrientDescription) => item.type === "primary",
@@ -196,7 +226,10 @@ export default function FieldNutrientAdviceBlock() {
       key={`${field.b_id_farm}#${loaderData.calendar}#${field.b_id}`}
       fallback={<FieldNutrientAdviceSkeleton {...splittedNutrients} />}
     >
-      <FieldNutrientAdvice loaderData={loaderData} {...splittedNutrients} />
+      <FieldNutrientAdvice
+        loaderData={{ ...loaderData, asyncData: loaderData.asyncData }}
+        {...splittedNutrients}
+      />
     </Suspense>
   )
 }
@@ -216,7 +249,9 @@ function FieldNutrientAdvice({
   secondaryNutrients,
   traceNutrients,
 }: {
-  loaderData: Awaited<ReturnType<typeof loader>>
+  loaderData: Awaited<ReturnType<typeof loader>> & {
+    asyncData: NonNullable<Awaited<ReturnType<typeof loader>>["asyncData"]>
+  }
   primaryNutrients: NutrientDescription[]
   secondaryNutrients: NutrientDescription[]
   traceNutrients: NutrientDescription[]

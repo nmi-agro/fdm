@@ -32,6 +32,7 @@ import {
 } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { dataWithError, dataWithSuccess } from "remix-toast"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { AddMeasureDialog } from "~/components/blocks/measures/add-measure-dialog"
 import {
@@ -69,6 +70,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { getBln3ExclusionMessage, isExcludedFromBln3 } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
@@ -113,10 +115,36 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const b_year = Number.isFinite(calendarYear) ? calendarYear : new Date().getFullYear()
 
-    const [field, fields, measures, catalogue, farmMeasures, cultivations, fieldWritePermission] =
+    const [field, fields] = await Promise.all([
+      getField(fdm, session.principal_id, b_id),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+
+    if (!field) {
+      throw data("not found: b_id", {
+        status: 404,
+        statusText: "not found: b_id",
+      })
+    }
+
+    const fieldList = fields.map((f) => ({
+      b_id: f.b_id,
+      b_name: f.b_name ?? null,
+    }))
+
+    // Skip the calculations when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        field,
+        fieldList,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+      }
+    }
+
+    const [measures, catalogue, farmMeasures, cultivations, fieldWritePermission] =
       await Promise.all([
-        getField(fdm, session.principal_id, b_id),
-        getFields(fdm, session.principal_id, b_id_farm, timeframe),
         getMeasures(fdm, session.principal_id, b_id, timeframe),
         getMeasuresFromCatalogue(fdm),
         getMeasuresForFarm(fdm, session.principal_id, b_id_farm, timeframe),
@@ -131,13 +159,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           false,
         ),
       ])
-
-    if (!field) {
-      throw data("not found: b_id", {
-        status: 404,
-        statusText: "not found: b_id",
-      })
-    }
 
     // Derive harvest date from the active cultivation's b_lu_end
     const cal = getCalendar(params)
@@ -268,14 +289,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       mapStyle: getMapStyle("satellite"),
       harvestDate,
       calendarYearStart,
-      fieldList: fields.map((f) => ({
-        b_id: f.b_id,
-        b_name: f.b_name ?? null,
-      })),
+      fieldList,
       fieldScore: bln3Result?.score ?? null,
       applicabilityMap,
       topOpportunities,
       measureImpacts,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -576,23 +596,7 @@ function MeasureEditDialog({
 }
 
 export default function MeasuresFieldDetail() {
-  const {
-    field,
-    isExcluded,
-    activeCultivationName,
-    measures,
-    catalogue,
-    fieldsGeoJSON,
-    selectedFieldGeoJSON,
-    mapStyle,
-    harvestDate,
-    calendarYearStart,
-    fieldScore,
-    applicabilityMap,
-    topOpportunities,
-    measureImpacts,
-    fieldWritePermission,
-  } = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
   const { b_id_farm, calendar, b_id } = useParams()
   const navigation = useNavigation()
   const navigate = useNavigate()
@@ -626,6 +630,37 @@ export default function MeasuresFieldDetail() {
     setDialogOpen(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openMeasure, indicator])
+
+  if (loaderData.fieldAvailability) {
+    return (
+      <FieldNotAvailableForYear
+        availability={loaderData.fieldAvailability}
+        calendar={loaderData.calendar}
+        b_name={loaderData.field.b_name}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${b_id_farm}/${loaderData.calendar}/field/${b_id}/settings`}
+      />
+    )
+  }
+
+  const {
+    field,
+    isExcluded,
+    activeCultivationName,
+    measures,
+    catalogue,
+    fieldsGeoJSON,
+    selectedFieldGeoJSON,
+    mapStyle,
+    harvestDate,
+    calendarYearStart,
+    fieldScore,
+    applicabilityMap,
+    topOpportunities,
+    measureImpacts,
+    fieldWritePermission,
+  } = loaderData
 
   return (
     <div className="flex flex-col gap-6 p-4 md:px-8 md:pb-8">

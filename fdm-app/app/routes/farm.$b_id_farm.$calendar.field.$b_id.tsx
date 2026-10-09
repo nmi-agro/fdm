@@ -16,6 +16,7 @@ import {
 } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderField } from "~/components/blocks/header/field"
@@ -25,6 +26,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { buildFieldOptions } from "~/lib/hoofdteelt.server"
 import { useCalendarStore } from "~/store/calendar"
 
@@ -51,6 +53,7 @@ export const meta: MetaFunction = () => {
  *  - fieldOptions: A sorted array of valid field options, each including an identifier, name, and area.
  *  - field: Detailed information about the field.
  *  - b_id: The field identifier.
+ *  - fieldAvailability: `null` when the field is managed in the selected calendar year, otherwise whether it has not started yet or has already ended.
  *  - user: Data of the authenticated user.
  *
  * @throws {Response} If either the farm ID or field ID is missing, with a status of 400.
@@ -123,6 +126,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
+    // Check whether the field is managed during the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+
     // Return user information from loader
     return {
       b_id_farm: b_id_farm,
@@ -130,6 +136,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldOptions: fieldOptions,
       field: field,
       b_id: b_id,
+      fieldAvailability: fieldAvailability,
+      calendar: params.calendar ?? "",
       fieldWritePermission: !!(await checkPermission(
         fdm,
         "field",
@@ -166,6 +174,12 @@ export default function FarmFieldIndex() {
   if (location.pathname.includes("fertilizer/manage")) return <Outlet />
 
   const fieldDashboardHref = `/farm/${loaderData.b_id_farm}/${calendar}/field/${loaderData.b_id}`
+  const fieldSettingsHref = `${fieldDashboardHref}/settings`
+  // The settings and delete pages stay available, so the start and end date can be corrected
+  const isFieldManagementRoute =
+    location.pathname.startsWith(fieldSettingsHref) ||
+    location.pathname.startsWith(`${fieldDashboardHref}/delete`)
+  const showNotAvailable = loaderData.fieldAvailability !== null && !isFieldManagementRoute
   const isSoilAnalysisRoute = location.pathname.includes(`/field/${loaderData.b_id}/soil/analysis`)
   const backAction = isDashboardRoute
     ? {
@@ -205,7 +219,18 @@ export default function FarmFieldIndex() {
           }
         />
         <FarmContent>
-          <Outlet />
+          {showNotAvailable && loaderData.fieldAvailability ? (
+            <FieldNotAvailableForYear
+              b_name={loaderData.field.b_name}
+              availability={loaderData.fieldAvailability}
+              calendar={loaderData.calendar}
+              b_start={loaderData.field.b_start}
+              b_end={loaderData.field.b_end}
+              settingsHref={fieldSettingsHref}
+            />
+          ) : (
+            <Outlet />
+          )}
         </FarmContent>
       </main>
     </SidebarInset>

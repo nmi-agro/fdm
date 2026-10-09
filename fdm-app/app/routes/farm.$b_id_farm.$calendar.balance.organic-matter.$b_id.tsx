@@ -25,6 +25,7 @@ import { MissingParametersWarning } from "~/components/blocks/balance/missing-pa
 import { OrganicMatterBalanceChart } from "~/components/blocks/balance/organic-matter-chart"
 import OrganicMatterBalanceDetails from "~/components/blocks/balance/organic-matter-details"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -39,6 +40,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { useCalendarStore } from "~/store/calendar"
 
 type OrganicMatterFieldResultWithErrorId = OrganicMatterBalanceFieldResultNumeric & {
@@ -85,6 +87,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "routes/farm.$b_id_farm.$calendar.balance.organic-matter.$b_id",
       false,
     )
+
+    // Skip the calculation when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        organicMatterBalanceResult: null,
+        field: field,
+        farm: farm,
+        fieldWritePermission,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+      }
+    }
 
     const organicMatterBalancePromise = collectInputForOrganicMatterBalance(
       fdm,
@@ -136,6 +151,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       field: field,
       farm: farm,
       fieldWritePermission,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -145,13 +162,29 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmBalanceOrganicMatterFieldBlock() {
   const loaderData = useLoaderData<typeof loader>()
 
+  if (loaderData.fieldAvailability || !loaderData.organicMatterBalanceResult) {
+    return (
+      <FieldNotAvailableForYear
+        availability={loaderData.fieldAvailability ?? "ended"}
+        calendar={loaderData.calendar}
+        b_name={loaderData.field.b_name}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${loaderData.farm.b_id_farm}/${loaderData.calendar}/field/${loaderData.field.b_id}/settings`}
+      />
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Suspense
         key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}`}
         fallback={<NitrogenBalanceFallback />}
       >
-        <OrganicMatterBalance {...loaderData} />
+        <OrganicMatterBalance
+          {...loaderData}
+          organicMatterBalanceResult={loaderData.organicMatterBalanceResult}
+        />
       </Suspense>
     </div>
   )
@@ -161,7 +194,11 @@ function OrganicMatterBalance({
   farm,
   field,
   organicMatterBalanceResult,
-}: Awaited<ReturnType<typeof loader>>) {
+}: Awaited<ReturnType<typeof loader>> & {
+  organicMatterBalanceResult: NonNullable<
+    Awaited<ReturnType<typeof loader>>["organicMatterBalanceResult"]
+  >
+}) {
   const { fieldResult, fieldInput } = use(organicMatterBalanceResult)
   const location = useLocation()
   const page = location.pathname

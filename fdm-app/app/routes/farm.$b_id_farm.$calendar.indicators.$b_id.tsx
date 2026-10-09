@@ -23,6 +23,7 @@ import {
   useSearchParams,
 } from "react-router"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
 import { Bln3BetaBanner } from "~/components/blocks/indicators/bln3-beta-banner"
 import { CategoryFilter } from "~/components/blocks/indicators/category-filter"
@@ -57,6 +58,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import {
   type Ecosysteemdienst,
@@ -206,11 +208,38 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
 
-    // Load in parallel: current field, all fields, BLN3 score + inputs, active measures, cultivations, BRP catalogue
+    const [field, fields] = await Promise.all([
+      getField(fdm, session.principal_id, b_id),
+      getFields(fdm, session.principal_id, b_id_farm, timeframe),
+    ])
+
+    if (!field) {
+      throw data("not found: b_id", {
+        status: 404,
+        statusText: "not found: b_id",
+      })
+    }
+
+    const fieldList = fields.map((f) => ({
+      b_id: f.b_id,
+      b_name: f.b_name ?? null,
+    }))
+
+    // Skip the calculations when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        field,
+        fieldScore: null,
+        fieldList,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+      }
+    }
+
+    // Load in parallel: BLN3 score + inputs, active measures, cultivations, BRP catalogue
     // Cultivations are fetched without timeframe to cover multi-year history (for display)
     const [
-      field,
-      fields,
       bln3Result,
       fieldMeasures,
       cultivations,
@@ -220,8 +249,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       advice,
       fieldWritePermission,
     ] = await Promise.all([
-      getField(fdm, session.principal_id, b_id),
-      getFields(fdm, session.principal_id, b_id_farm, timeframe),
       getIndicatorsForField({
         principal_id: session.principal_id,
         b_id,
@@ -271,13 +298,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ])
     const fieldScore = bln3Result.score
     const bln3Inputs = bln3Result.inputs
-
-    if (!field) {
-      throw data("not found: b_id", {
-        status: 404,
-        statusText: "not found: b_id",
-      })
-    }
 
     // Also fetch all farm scores (for map colouring)
     const farmScores = await getIndicatorsForFarm({
@@ -452,11 +472,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         measurements: soilMeasurements,
         bcsScores,
       },
-      fieldList: fields.map((f) => ({
-        b_id: f.b_id,
-        b_name: f.b_name ?? null,
-      })),
+      fieldList,
       fieldWritePermission,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -500,20 +519,8 @@ function readSessionMapScore(): string {
 }
 
 export default function IndicatorsFieldDetail() {
-  const {
-    field,
-    fieldScore,
-    fieldMeasures,
-    fieldsGeoJSON,
-    selectedFieldGeoJSON,
-    currentCultivationName,
-    currentCultivationCropRotation,
-    cultivationSummaries,
-    indicatorAdvice,
-    adviceUnavailable,
-    isExcluded,
-    soilData,
-  } = useLoaderData<typeof loader>()
+  const loaderData = useLoaderData<typeof loader>()
+  const { fieldScore } = loaderData
   const { b_id_farm, calendar, b_id } = useParams()
 
   // Restore filter state from sessionStorage
@@ -611,6 +618,33 @@ export default function IndicatorsFieldDetail() {
       return a.info.id.localeCompare(b.info.id)
     })
   }, [fieldScore, visibleIndicatorInfos, withMeasures])
+
+  if (loaderData.fieldAvailability) {
+    return (
+      <FieldNotAvailableForYear
+        availability={loaderData.fieldAvailability}
+        calendar={loaderData.calendar}
+        b_name={loaderData.field.b_name}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${b_id_farm}/${loaderData.calendar}/field/${b_id}/settings`}
+      />
+    )
+  }
+
+  const {
+    field,
+    fieldMeasures,
+    fieldsGeoJSON,
+    selectedFieldGeoJSON,
+    currentCultivationName,
+    currentCultivationCropRotation,
+    cultivationSummaries,
+    indicatorAdvice,
+    adviceUnavailable,
+    isExcluded,
+    soilData,
+  } = loaderData
 
   const scoreOf = (aggId: AggregationId) => {
     return getFieldAggregationScore(fieldScore, aggId)
