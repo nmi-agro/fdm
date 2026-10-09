@@ -27,6 +27,7 @@ import {
   useActionData,
   useLoaderData,
   useLocation,
+  useSearchParams,
   useNavigation,
   useParams,
 } from "react-router"
@@ -34,9 +35,10 @@ import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import { RvoConnectCard } from "~/components/blocks/rvo/connect-card"
+import { parseRvoRequestMode, RvoConnectCard } from "~/components/blocks/rvo/connect-card"
 import { RvoErrorAlert } from "~/components/blocks/rvo/error-alert"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
+import { RvoNoFieldsAlert } from "~/components/blocks/rvo/no-fields-alert"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import { Button } from "~/components/ui/button"
@@ -58,6 +60,7 @@ import {
   getRvoCredentials,
   getRvoPermissionDeniedMessage,
   parseRvoToken,
+  type RvoRequestMode,
   RvoRequestModeSchema,
   rvoTokenCookie,
 } from "~/integrations/rvo.server"
@@ -98,6 +101,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   let rvoImportReviewData: ReviewItem[] = []
   let error: string | null = null
+  // Set once an RVO token is present: whose data was requested, and whether RVO denied it
+  let rvoMode: RvoRequestMode | null = null
+  let accessDenied = false
   let b_businessid_farm: string | null = null
   let b_name_farm: string | null = null
 
@@ -115,7 +121,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   // rvo_token cookie is set by /callback/rvo after a successful token exchange
   if (rvoToken) {
-    const { accessToken: rvoAccessToken, mode: rvoMode } = rvoToken
+    const rvoAccessToken = rvoToken.accessToken
+    rvoMode = rvoToken.mode
     try {
       if (!isRvoConfigured) {
         throw new Response("RVO client is not configured.", {
@@ -173,7 +180,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
               b_businessid_farm: farm.b_businessid_farm,
             })
           }
-          throw new Response(getRvoPermissionDeniedMessage(rvoMode), { status: 403 })
+          // Shown on this page, so the user can retry with the other option
+          accessDenied = true
         }
         throw fetchError
       }
@@ -223,10 +231,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       )
     } catch (e) {
       console.error("Error with importing from RVO:", e)
-      if (e instanceof Response && e.status === 403) {
-        throw e
+      if (accessDenied) {
+        error = getRvoPermissionDeniedMessage(rvoToken.mode, farm?.b_name_farm)
+      } else {
+        if (e instanceof Response && e.status === 403) {
+          throw e
+        }
+        error = await extractErrorMessage(e)
       }
-      error = await extractErrorMessage(e)
     }
   } else if (!url.searchParams.has("start_import")) {
     const clearedTokenCookie = await rvoTokenCookie.serialize("", {
@@ -238,9 +250,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         rvoImportReviewData: [],
         error: null,
         showimportButton: true,
-        noRvoParcelsFound: false,
+        noRvoFieldsFound: false,
         b_businessid_farm,
         isRvoConfigured,
+        rvoMode,
+        accessDenied,
         farms,
         b_name_farm,
         calendar: yearString,
@@ -250,16 +264,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   const clearedTokenCookie = await rvoTokenCookie.serialize("", { maxAge: 0 })
-  const noRvoParcelsFound = !error && rvoImportReviewData.length === 0
+  const noRvoFieldsFound = !error && rvoImportReviewData.length === 0
   return data(
     {
       b_id_farm,
       rvoImportReviewData,
       error,
-      showimportButton: noRvoParcelsFound,
-      noRvoParcelsFound,
+      showimportButton: noRvoFieldsFound,
+      noRvoFieldsFound,
       b_businessid_farm,
       isRvoConfigured,
+      rvoMode,
+      accessDenied,
       farms,
       b_name_farm,
       calendar: yearString,
@@ -275,14 +291,17 @@ export default function RvoImportReviewPage() {
     error,
     b_businessid_farm,
     isRvoConfigured,
+    rvoMode,
+    accessDenied,
     farms,
     calendar,
     showimportButton,
-    noRvoParcelsFound,
+    noRvoFieldsFound,
   } = useLoaderData<typeof loader>()
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
 
   const isImporting =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "start_import"
@@ -368,14 +387,28 @@ export default function RvoImportReviewPage() {
         <main>
           <div className="flex items-center justify-between">
             <FarmTitle
-              title="Fout bij ophalen percelen bij RVO"
-              description="Er is iets misgegaan bij het ophalen van gegevens."
+              title={accessDenied ? "Geen toegang bij RVO" : "Fout bij ophalen percelen bij RVO"}
+              description={
+                accessDenied
+                  ? "RVO heeft de aanvraag voor dit bedrijf geweigerd."
+                  : "Er is iets misgegaan bij het ophalen van gegevens."
+              }
             />
           </div>
           <FarmContent>
             <div className="flex flex-col space-y-8 pb-10 lg:flex-row lg:space-y-0 lg:space-x-12">
               <div className="w-full">
-                <RvoErrorAlert error={error} retryPath={location.pathname} />
+                <RvoErrorAlert
+                  error={error}
+                  accessDenied={accessDenied}
+                  retryPath={
+                    accessDenied && rvoMode
+                      ? // Offer the other option, as a wrong choice is the most likely cause
+                        `${location.pathname}?rvo_mode=${rvoMode === "own_farm" ? "machtiging" : "own_farm"}`
+                      : location.pathname
+                  }
+                  retryLabel={accessDenied ? "Opnieuw verbinden" : undefined}
+                />
               </div>
             </div>
           </FarmContent>
@@ -425,19 +458,16 @@ export default function RvoImportReviewPage() {
 
         {rvoImportReviewData.length === 0 ? (
           <div className="mx-auto flex h-full w-full flex-col items-center justify-center space-y-6 py-10 sm:w-[600px]">
-            {noRvoParcelsFound && (
-              <Alert>
-                <AlertTitle>Geen percelen gevonden</AlertTitle>
-                <AlertDescription>
-                  Er zijn geen percelen gevonden voor dit bedrijf bij RVO. Controleer het KvK-nummer
-                  en probeer opnieuw.
-                </AlertDescription>
-              </Alert>
+            {noRvoFieldsFound && (
+              <RvoNoFieldsAlert mode={rvoMode} calendar={calendar} farmName={currentFarmName} />
             )}
             {showimportButton && (
               <RvoConnectCard
+                b_name_farm={currentFarmName}
                 b_businessid_farm={b_businessid_farm}
-                b_id_farm={b_id_farm}
+                calendar={calendar}
+                kvkHref={`/farm/${b_id_farm}/settings/properties`}
+                defaultMode={parseRvoRequestMode(searchParams.get("rvo_mode"))}
                 isImporting={isImporting}
                 isRvoConfigured={isRvoConfigured}
               />
@@ -580,10 +610,7 @@ export async function action({ request, params, url }: Route.ActionArgs) {
 
     const rvoMode = RvoRequestModeSchema.safeParse(formData.get("rvo_mode"))
     if (!rvoMode.success) {
-      throw new Response(
-        "Kies of u gegevens ophaalt voor uw eigen bedrijf of namens een ander bedrijf.",
-        { status: 400 },
-      )
+      throw new Response("Kies met welke eHerkenning u inlogt bij RVO.", { status: 400 })
     }
 
     const rvoClient = createConfiguredRvoClient(rvoCredentials)
