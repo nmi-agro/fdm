@@ -93,12 +93,12 @@ This schema holds the primary data related to farm operations.
 
 **Purpose**: Marks when a field is no longer actively managed or used within the system.
 
-| Column      | Type                       | Constraints                                         | Description                                              |
-| ----------- | -------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| **b_id**    | `text`                     | Primary Key, Foreign Key (references `fields.b_id`) | Identifier of the field being discarded.                 |
-| **b_end**   | `timestamp with time zone` |                                                     | Timestamp indicating when the field was discarded.       |
-| **created** | `timestamp with time zone` | Not Null                                            | Timestamp when this record was created (default: now()). |
-| **updated** | `timestamp with time zone` |                                                     | Timestamp when this record was last updated.             |
+| Column      | Type                       | Constraints                                         | Description                                                                                                                                                |
+| ----------- | -------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **b_id**    | `text`                     | Primary Key, Foreign Key (references `fields.b_id`) | Identifier of the field being discarded.                                                                                                                   |
+| **b_end**   | `timestamp with time zone` |                                                     | End of the last day the field is managed (inclusive, Europe/Amsterdam). An end date on 1 January is stored as the end of 31 December of the previous year. |
+| **created** | `timestamp with time zone` | Not Null                                            | Timestamp when this record was created (default: now()).                                                                                                   |
+| **updated** | `timestamp with time zone` |                                                     | Timestamp when this record was last updated.                                                                                                               |
 
 ---
 
