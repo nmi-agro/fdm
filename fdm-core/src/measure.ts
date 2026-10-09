@@ -4,6 +4,7 @@ import type { FdmType } from "./fdm.types"
 import type { Measure, MeasureCatalogue } from "./measure.types"
 import type { Timeframe } from "./timeframe"
 import { checkPermission } from "./authorization"
+import { normalizeEndDate } from "./date"
 import * as schema from "./db/schema"
 import { handleError } from "./error"
 import { createId } from "./id"
@@ -69,12 +70,17 @@ async function assertNoMeasureOverlap(
 /**
  * Creates a measure instance and applies it to a field in a single transaction.
  *
+ * `m_end` is the last day the measure is applied (inclusive), interpreted as a calendar date in
+ * Europe/Amsterdam. It is stored as the end of that day (`23:59:59.999` Europe/Amsterdam). A date on
+ * 1 January is stored as the end of 31 December of the previous year, so that a measure ended "on
+ * 1 January" is not part of that new calendar year. See {@link normalizeEndDate}.
+ *
  * @param fdm The FDM instance providing the connection to the database.
  * @param principal_id The ID of the principal making the request.
  * @param b_id The ID of the field to apply the measure to.
  * @param m_id The catalogue ID of the measure (e.g. "bln_BM1").
  * @param m_start The start date of the measure.
- * @param m_end The optional end date. Omit or pass undefined for doorlopend (ongoing).
+ * @param m_end The optional last day the measure is applied (inclusive, Europe/Amsterdam). A date on 1 January is treated as 31 December of the previous year. Omit or pass undefined for doorlopend (ongoing).
  * @returns A Promise resolving to the new `b_id_measure`.
  */
 export async function addMeasure(
@@ -85,7 +91,9 @@ export async function addMeasure(
   m_start: Date,
   m_end?: Date,
 ): Promise<string> {
-  if (m_end !== undefined && m_end.getTime() < m_start.getTime()) {
+  // Normalise the end date to the end of the last day the measure is applied
+  const m_end_normalized = m_end !== undefined ? normalizeEndDate(m_end) : undefined
+  if (m_end_normalized !== undefined && m_end_normalized.getTime() < m_start.getTime()) {
     throw new Error("m_end cannot be earlier than m_start")
   }
   try {
@@ -124,14 +132,14 @@ export async function addMeasure(
     }
 
     const b_id_measure = createId()
-    await assertNoMeasureOverlap(fdm, b_id, m_id, m_start, m_end ?? null)
+    await assertNoMeasureOverlap(fdm, b_id, m_id, m_start, m_end_normalized ?? null)
     await fdm.transaction(async (tx) => {
       await tx.insert(schema.measures).values({ b_id_measure, m_id })
       await tx.insert(schema.measureAdopting).values({
         b_id,
         b_id_measure,
         m_start,
-        m_end: m_end ?? null,
+        m_end: m_end_normalized ?? null,
       })
     })
     return b_id_measure
@@ -352,11 +360,15 @@ export async function getMeasuresFromCatalogue(fdm: FdmType): Promise<MeasureCat
  * Updates the start and/or end date of an existing measure.
  * Pass `m_end = null` to clear the end date (doorlopend).
  *
+ * `m_end` is normalised in the same way as in {@link addMeasure}: it is stored as the end of the
+ * last day the measure is applied in Europe/Amsterdam, and 1 January is treated as 31 December of
+ * the previous year. See {@link normalizeEndDate}.
+ *
  * @param fdm The FDM instance providing the connection to the database.
  * @param principal_id The ID of the principal making the request.
  * @param b_id_measure The instance ID of the measure.
  * @param m_start Optional new start date.
- * @param m_end Optional new end date. Pass `null` to clear it (doorlopend).
+ * @param m_end Optional new last day the measure is applied (inclusive, Europe/Amsterdam). Pass `null` to clear it (doorlopend).
  */
 export async function updateMeasure(
   fdm: FdmType,
@@ -382,8 +394,10 @@ export async function updateMeasure(
 
     await checkPermission(fdm, "field", "write", applying[0].b_id, principal_id, "updateMeasure")
 
+    // Normalise the end date to the end of the last day the measure is applied
+    const m_end_normalized = m_end ? normalizeEndDate(m_end) : m_end
     const effectiveStart = m_start ?? applying[0].m_start ?? undefined
-    const effectiveEnd = m_end !== undefined ? m_end : applying[0].m_end
+    const effectiveEnd = m_end_normalized !== undefined ? m_end_normalized : applying[0].m_end
     if (
       effectiveStart &&
       effectiveEnd instanceof Date &&
@@ -413,7 +427,7 @@ export async function updateMeasure(
       updated: new Date(),
     }
     if (m_start !== undefined) updates.m_start = m_start
-    if (m_end !== undefined) updates.m_end = m_end
+    if (m_end_normalized !== undefined) updates.m_end = m_end_normalized
 
     await fdm
       .update(schema.measureAdopting)
@@ -466,6 +480,9 @@ export async function removeMeasure(
 
 /**
  * Builds a SQL condition for filtering measures based on a timeframe overlap.
+ *
+ * As `m_end` is stored as the end of the last day the measure is applied, a measure ended on
+ * 31 December or 1 January does not overlap the next calendar year.
  *
  * A measure overlaps a timeframe if:
  * 1. It has an end date AND (starts within, ends within, or spans the timeframe)
