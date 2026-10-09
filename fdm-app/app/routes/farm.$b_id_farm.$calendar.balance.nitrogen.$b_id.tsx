@@ -26,6 +26,7 @@ import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-war
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import NitrogenBalanceDetails from "~/components/blocks/balance/nitrogen-details"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Button } from "~/components/ui/button"
 import {
   Card,
@@ -40,6 +41,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 import { useCalendarStore } from "~/store/calendar"
 
 type NitrogenFieldResultWithErrorId = NitrogenBalanceFieldResultNumeric & {
@@ -107,6 +109,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       false,
     )
 
+    // Skip the calculation when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        nitrogenBalanceResult: null,
+        field: field,
+        farm: farm,
+        fieldWritePermission,
+        fieldAvailability,
+        calendar: params.calendar ?? "",
+      }
+    }
+
     // Return promise directly for React Router v7 Suspense pattern
     const nitrogenBalancePromise = collectInputForNitrogenBalance(
       fdm,
@@ -166,6 +181,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       field: field,
       farm: farm,
       fieldWritePermission,
+      fieldAvailability: null,
+      calendar: params.calendar ?? "",
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -175,13 +192,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmBalanceNitrogenFieldBlock() {
   const loaderData = useLoaderData<typeof loader>()
 
+  if (loaderData.fieldAvailability || !loaderData.nitrogenBalanceResult) {
+    return (
+      <FieldNotAvailableForYear
+        b_name={loaderData.field.b_name}
+        availability={loaderData.fieldAvailability ?? "ended"}
+        calendar={loaderData.calendar}
+        b_start={loaderData.field.b_start}
+        b_end={loaderData.field.b_end}
+        settingsHref={`/farm/${loaderData.farm.b_id_farm}/${loaderData.calendar}/field/${loaderData.field.b_id}/settings`}
+      />
+    )
+  }
+
   return (
     <div className="space-y-4">
       <Suspense
         key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}`}
         fallback={<NitrogenBalanceFallback />}
       >
-        <NitrogenBalance {...loaderData} />
+        <NitrogenBalance {...loaderData} nitrogenBalanceResult={loaderData.nitrogenBalanceResult} />
       </Suspense>
     </div>
   )
@@ -200,7 +230,9 @@ function NitrogenBalance({
   farm,
   field,
   nitrogenBalanceResult,
-}: Awaited<ReturnType<typeof loader>>) {
+}: Awaited<ReturnType<typeof loader>> & {
+  nitrogenBalanceResult: NonNullable<Awaited<ReturnType<typeof loader>>["nitrogenBalanceResult"]>
+}) {
   const { fieldResult, fieldInput } = use(nitrogenBalanceResult)
 
   const location = useLocation()

@@ -1,4 +1,5 @@
 import type { Cultivation, CultivationCatalogue, Field } from "@nmi-agro/fdm-core"
+import { normalizeEndDate, startOfDayInFdmTimeZone } from "@nmi-agro/fdm-core"
 import bbox from "@turf/bbox"
 import {
   type FieldDiff,
@@ -203,7 +204,8 @@ export function compareFields(
           : local.b_start
             ? new Date(local.b_start)
             : null
-      const importYearStart = new Date(calendar, 0, 1) // Jan 1st of import year
+      // Start of Jan 1st of the import year in Europe/Amsterdam
+      const importYearStart = startOfDayInFdmTimeZone(calendar, 1, 1)
       // A missing start date means the field has no known start, so treat as not-yet-started → NEW_LOCAL
       const isStartedBeforeYear = localStart !== null && localStart < importYearStart
 
@@ -212,7 +214,9 @@ export function compareFields(
           ? local.b_end
           : new Date(local.b_end)
         : null
-      // If it has no end date, OR the end date is after the start of the import year
+      // If it has no end date, OR the end date is after the start of the import year.
+      // `b_end` is stored as the end of the last day the field is managed, so a field ended on
+      // Dec 31st or Jan 1st does not end in the import year.
       const isOpenOrEndsInYear = !localEnd || localEnd >= importYearStart
 
       // If the field ended before the import year, it's a historical field that is already closed.
@@ -298,8 +302,9 @@ function detectDiffs(local: Field, rvo: RvoField): FieldDiff[] {
       : typeof local.b_end === "string"
         ? local.b_end
         : null
+  // Normalise the RVO end date the same way fdm-core stores `b_end` (1 January becomes 31 December)
   const rvoEnd = rvo.properties.EndDate
-    ? new Date(rvo.properties.EndDate).toISOString().split("T")[0]
+    ? normalizeEndDate(new Date(rvo.properties.EndDate)).toISOString().split("T")[0]
     : null
 
   // Treat null/undefined as equal if both are missing

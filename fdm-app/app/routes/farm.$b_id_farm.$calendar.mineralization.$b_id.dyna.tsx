@@ -31,6 +31,7 @@ import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 
 export const meta: MetaFunction<typeof loader> = ({ loaderData }) => {
   const name = loaderData?.field?.b_name ?? "Perceel"
@@ -72,6 +73,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         status: 404,
         statusText: "not found: b_id",
       })
+    }
+    // Skip the calculations when the field is not managed in the selected calendar year; the
+    // layout route shows a message instead
+    if (getFieldAvailability(field, timeframe)) {
+      return {
+        notAvailable: true as const,
+        field,
+        b_id,
+        b_id_farm,
+        calendar: params.calendar ?? "",
+      }
     }
     if (field.b_bufferstrip) {
       return {
@@ -223,6 +235,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function DynaPage() {
   const loaderData = useLoaderData<typeof loader>()
+
+  if (loaderData.notAvailable) {
+    return null
+  }
 
   if (loaderData.isBufferStrip) {
     return (

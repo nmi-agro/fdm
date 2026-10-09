@@ -15,6 +15,7 @@ import { Suspense, use, useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
+import { FieldNotAvailableForYear } from "~/components/blocks/field/not-available-for-year"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderNorms } from "~/components/blocks/header/norms"
@@ -41,6 +42,7 @@ import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFieldAvailability } from "~/lib/field-availability"
 
 interface FieldNormData {
   b_id: string
@@ -150,6 +152,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     })
 
+    // Skip the calculation when the field is not managed in the selected calendar year
+    const fieldAvailability = getFieldAvailability(field, timeframe)
+    if (fieldAvailability) {
+      return {
+        farm,
+        field,
+        fieldWritePermission,
+        b_id_farm,
+        b_id,
+        calendar,
+        farmOptions,
+        fieldOptions,
+        asyncData: null,
+        fieldAvailability,
+      }
+    }
+
     const asyncData = (async () => {
       if (calendar !== "2025" && calendar !== "2026") {
         return {
@@ -210,6 +229,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farmOptions,
       fieldOptions,
       asyncData,
+      fieldAvailability: null,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -251,9 +271,22 @@ export default function FieldNormsBlock() {
         >
           <NormsDisclaimer calendar={loaderData.calendar} />
         </FarmTitle>
-        <Suspense key={`${loaderData.b_id}#${loaderData.calendar}`} fallback={<NormsFallback />}>
-          <FieldNormsContent {...loaderData} />
-        </Suspense>
+        {loaderData.fieldAvailability || !loaderData.asyncData ? (
+          <FarmContent>
+            <FieldNotAvailableForYear
+              availability={loaderData.fieldAvailability ?? "ended"}
+              calendar={loaderData.calendar}
+              b_name={loaderData.field.b_name}
+              b_start={loaderData.field.b_start}
+              b_end={loaderData.field.b_end}
+              settingsHref={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/field/${loaderData.b_id}/settings`}
+            />
+          </FarmContent>
+        ) : (
+          <Suspense key={`${loaderData.b_id}#${loaderData.calendar}`} fallback={<NormsFallback />}>
+            <FieldNormsContent {...loaderData} asyncData={loaderData.asyncData} />
+          </Suspense>
+        )}
       </main>
     </SidebarInset>
   )
@@ -359,7 +392,11 @@ const FertilizerApplicationCard = ({
   )
 }
 
-function FieldNormsContent(loaderData: Awaited<ReturnType<typeof loader>>) {
+type LoaderData = Awaited<ReturnType<typeof loader>>
+
+function FieldNormsContent(
+  loaderData: LoaderData & { asyncData: NonNullable<LoaderData["asyncData"]> },
+) {
   const { fieldNormData, errorMessage } = use(loaderData.asyncData)
 
   if (errorMessage && fieldNormData?.isWarning) {

@@ -253,7 +253,7 @@ describe("processRvoImport", () => {
     await processRvoImport(mockFdm, principalId, farmId, [item], choices, year)
 
     // Should update field with end date = Dec 31st of previous year (2024)
-    const expectedCloseDate = new Date(year - 1, 11, 31)
+    const expectedCloseDate = new Date(Date.UTC(year - 1, 11, 31))
     expect(updateField).toHaveBeenCalledWith(
       mockFdm,
       principalId,
@@ -397,7 +397,7 @@ describe("processRvoImport", () => {
 
     await processRvoImport(mockFdm, principalId, farmId, [item], choices, year)
 
-    const expectedCloseDate = new Date(year - 1, 11, 31)
+    const expectedCloseDate = new Date(Date.UTC(year - 1, 11, 31))
     expect(updateField).toHaveBeenCalledWith(
       mockFdm,
       principalId,

@@ -1,6 +1,6 @@
 import { Check, ChevronDown } from "lucide-react"
 import { useState } from "react"
-import { useNavigate } from "react-router"
+import { useMatches, useNavigate } from "react-router"
 import { useSelectedFieldStore } from "@/app/store/selected-field"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import {
@@ -91,6 +91,9 @@ export function FieldPickerItem({
  * bezocht" group (from the recently-visited fields store) and an "Alle percelen" group. Shared
  * across every header that lets the user jump between fields (field pages, nutrient advice,
  * balance, norms, indicators, measures) so the switching UX is consistent everywhere.
+ *
+ * When the selected field is not among the options (e.g. it is not managed in the selected
+ * calendar year), its name is taken from the `field` in the loader data of the active routes.
  */
 export function HeaderFieldPicker({
   b_id,
@@ -108,6 +111,7 @@ export function HeaderFieldPicker({
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const { recentFieldIds, setSelectedField } = useSelectedFieldStore()
+  const matches = useMatches()
 
   const handleSelect = (optionId: string, optionName: string) => {
     setOpen(false)
@@ -125,8 +129,18 @@ export function HeaderFieldPicker({
       (a, b) => (b.b_area ?? 0) - (a.b_area ?? 0) || (a.b_name ?? "").localeCompare(b.b_name ?? ""),
     )
 
+  // Fall back to the field loaded by the route when it is not among the options
+  const loadedFieldName = matches
+    .map(
+      (match) =>
+        (match.loaderData as { field?: { b_id?: string; b_name?: string | null } } | undefined)
+          ?.field,
+    )
+    .find((field) => field?.b_id === b_id)?.b_name
   const selectedLabel = b_id
-    ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ?? "Onbekend perceel")
+    ? (fieldOptions.find((option) => option.b_id === b_id)?.b_name ??
+      loadedFieldName ??
+      "Onbekend perceel")
     : placeholder
 
   return (

@@ -84,7 +84,7 @@ The gerund form of action tables is intentional: the row records that an event t
 
 **Audit timestamps.** Each table carries `created` and `updated`, both timestamps with time zone.
 
-**Lifecycle instead of deletion.** Assets are ended rather than removed, so that the recorded history remains valid. Ending is itself an action with its own table: `field_discarding` holds `b_end`, `cultivation_ending` holds `b_lu_end`, `fertilizer_picking` records when a fertilizer stock was taken out of use. Validity periods use the prefix of their domain: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`.
+**Lifecycle instead of deletion.** Assets are ended rather than removed, so that the recorded history remains valid. Ending is itself an action with its own table: `field_discarding` holds `b_end`, `cultivation_ending` holds `b_lu_end`, `fertilizer_picking` records when a fertilizer stock was taken out of use. Validity periods use the prefix of their domain: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. The end dates of fields (`b_end`) and measures (`m_end`) are the last day of the period, inclusive, in Europe/Amsterdam. fdm-core stores them as the end of that day, and an end date on 1 January as the end of 31 December of the previous year (see [Fields](./03-fields.md#start-and-end-dates)).
 
 **Coded values.** Columns with a fixed set of options store stable machine codes, with the human-readable label supplied separately by the application. Where a national code list exists it is used unchanged, such as `nl_01` and `nl_02` for land tenure types and `HC010` and `HC020` for harvest categories. Codes are therefore stable across releases and translations.
 

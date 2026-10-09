@@ -75,7 +75,7 @@ If a calculation is expensive enough to need caching, cache it in the `fdm-calcu
 
 ### Time and lifecycle, not deletion
 
-An asset that stops being relevant is *ended*, not deleted, because the history of what happened to it stays true. Ending is itself an action, in its own table: `field_discarding` (`b_end`), `cultivation_ending` (`b_lu_end`), `fertilizer_picking` (`p_picking_date`), `organic_certifications_holding`. Start and end timestamps use the owning domain's prefix: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`.
+An asset that stops being relevant is *ended*, not deleted, because the history of what happened to it stays true. Ending is itself an action, in its own table: `field_discarding` (`b_end`), `cultivation_ending` (`b_lu_end`), `fertilizer_picking` (`p_picking_date`), `organic_certifications_holding`. Start and end timestamps use the owning domain's prefix: `b_start`/`b_end`, `b_lu_start`/`b_lu_end`, `m_start`/`m_end`. `b_end` and `m_end` are the last day of the period (inclusive, Europe/Amsterdam); fdm-core stores them as the end of that day and moves 1 January to 31 December of the previous year (`normalizeEndDate`).
 
 ```ts
 // WRONG — flags and jsonb bags lose who, when and why

@@ -3,6 +3,7 @@ import { afterAll, beforeEach, describe, expect, inject, it } from "vitest"
 import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
 import { enableMeasureCatalogue, syncMeasuresCatalogueArray } from "./catalogues"
+import { normalizeEndDate } from "./date"
 import * as schema from "./db/schema"
 import { addFarm, removeFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -145,7 +146,7 @@ describe("Measure Data Model", () => {
       expect(applyingRow.length).toBe(1)
       expect(applyingRow[0].b_id).toBe(b_id)
       expect(applyingRow[0].m_start).toEqual(new Date("2023-03-01"))
-      expect(applyingRow[0].m_end).toEqual(new Date("2023-12-31"))
+      expect(applyingRow[0].m_end).toEqual(normalizeEndDate(new Date("2023-12-31")))
     })
 
     it("should set m_end to null when not provided (doorlopend)", async () => {
@@ -309,7 +310,7 @@ describe("Measure Data Model", () => {
       expect(measure.m_summary).toBe("Compost toedienen")
       expect(measure.m_conflicts).toEqual(["bln_BM2"])
       expect(measure.m_start).toEqual(new Date("2023-03-01"))
-      expect(measure.m_end).toEqual(new Date("2023-12-31"))
+      expect(measure.m_end).toEqual(normalizeEndDate(new Date("2023-12-31")))
     })
 
     it("should throw when b_id_measure does not exist", async () => {
@@ -361,6 +362,61 @@ describe("Measure Data Model", () => {
         end: new Date("2023-12-31"),
       })
       expect(measures.length).toBe(0)
+    })
+
+    it.each([
+      ["31 December, UTC midnight", "2025-12-31T00:00:00.000Z"],
+      ["31 December, Amsterdam midnight", "2025-12-30T23:00:00.000Z"],
+      ["1 January, UTC midnight", "2026-01-01T00:00:00.000Z"],
+      ["1 January, Amsterdam midnight", "2025-12-31T23:00:00.000Z"],
+    ])("should include a measure ending on %s in 2025 but not in 2026", async (_label, m_end) => {
+      const b_id_measure = await addMeasure(
+        fdm,
+        principal_id,
+        b_id,
+        "bln_BM1",
+        new Date("2025-03-01T00:00:00.000Z"),
+        new Date(m_end),
+      )
+
+      const measure = await getMeasure(fdm, principal_id, b_id_measure)
+      expect(measure.m_end?.toISOString()).toBe("2025-12-31T22:59:59.999Z")
+
+      const timeframes = {
+        "2025 (UTC)": [new Date("2025-01-01T00:00:00.000Z"), new Date("2025-12-31T23:59:59.999Z")],
+        "2025 (Europe/Amsterdam)": [
+          new Date("2024-12-31T23:00:00.000Z"),
+          new Date("2025-12-31T22:59:59.999Z"),
+        ],
+        "2026 (UTC)": [new Date("2026-01-01T00:00:00.000Z"), new Date("2026-12-31T23:59:59.999Z")],
+        "2026 (Europe/Amsterdam)": [
+          new Date("2025-12-31T23:00:00.000Z"),
+          new Date("2026-12-31T22:59:59.999Z"),
+        ],
+      }
+      for (const [name, [start, end]] of Object.entries(timeframes)) {
+        const measures = await getMeasures(fdm, principal_id, b_id, { start, end })
+        const ids = measures.map((m) => m.b_id_measure)
+        if (name.startsWith("2025")) {
+          expect(ids, name).toContain(b_id_measure)
+        } else {
+          expect(ids, name).not.toContain(b_id_measure)
+        }
+      }
+    })
+
+    it("should allow a measure to start on 1 January when the previous one ends on 1 January", async () => {
+      await addMeasure(
+        fdm,
+        principal_id,
+        b_id,
+        "bln_BM1",
+        new Date("2025-01-01T00:00:00.000Z"),
+        new Date("2026-01-01T00:00:00.000Z"),
+      )
+      await expect(
+        addMeasure(fdm, principal_id, b_id, "bln_BM1", new Date("2026-01-01T00:00:00.000Z")),
+      ).resolves.toBeTypeOf("string")
     })
   })
 
@@ -418,6 +474,27 @@ describe("Measure Data Model", () => {
   })
 
   describe("updateMeasure", () => {
+    it("should normalise m_end to the end of the last day", async () => {
+      const b_id_measure = await addMeasure(
+        fdm,
+        principal_id,
+        b_id,
+        "bln_BM1",
+        new Date("2025-03-01T00:00:00.000Z"),
+      )
+
+      await updateMeasure(
+        fdm,
+        principal_id,
+        b_id_measure,
+        undefined,
+        new Date("2026-01-01T00:00:00.000Z"),
+      )
+
+      const measure = await getMeasure(fdm, principal_id, b_id_measure)
+      expect(measure.m_end?.toISOString()).toBe("2025-12-31T22:59:59.999Z")
+    })
+
     it("should update start date", async () => {
       const b_id_measure = await addMeasure(
         fdm,

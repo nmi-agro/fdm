@@ -1,5 +1,9 @@
 import type { Timeframe } from "@nmi-agro/fdm-core"
 import type { Params } from "react-router"
+import { TZDate } from "@date-fns/tz"
+
+/** Time zone in which calendar years are interpreted, matching how fdm-core interprets dates. */
+const calendarTimeZone = "Europe/Amsterdam"
 
 const yearStart = 2020
 const yearEnd = new Date().getFullYear() + 1
@@ -17,13 +21,25 @@ export function isSupportedYear(year: number) {
   return Number.isInteger(year) && year >= yearStart && year <= yearEnd
 }
 
+/**
+ * Returns the timeframe spanning the calendar years `startYear` up to and including `endYear`,
+ * from 1 January 00:00 to 31 December 23:59:59.999 in Europe/Amsterdam.
+ */
+function getCalendarYearsTimeframe(startYear: number, endYear: number): Timeframe {
+  return {
+    start: new Date(new TZDate(startYear, 0, 1, calendarTimeZone).getTime()),
+    end: new Date(new TZDate(endYear + 1, 0, 1, calendarTimeZone).getTime() - 1),
+  }
+}
+
+/**
+ * Returns the timeframe of the calendar year in the route params (Europe/Amsterdam), or of all
+ * supported years when the calendar is not a year (e.g. `all`).
+ */
 export function getTimeframe(params: Params): Timeframe {
   const calendar = getCalendar(params)
 
-  const timeframe = {
-    start: new Date(`${yearStart}-01-01T00:00:00.000Z`),
-    end: new Date(`${yearEnd}-12-31T23:59:59.999Z`),
-  }
+  let timeframe = getCalendarYearsTimeframe(yearStart, yearEnd)
 
   // Check if calendar is year and create a timeframe
   if (calendar) {
@@ -35,8 +51,7 @@ export function getTimeframe(params: Params): Timeframe {
         throw new Error(`Unsupported year: ${calendar}`)
       }
       // Set start and end date
-      timeframe.start = new Date(`${year}-01-01T00:00:00.000Z`)
-      timeframe.end = new Date(`${year}-12-31T23:59:59.999Z`)
+      timeframe = getCalendarYearsTimeframe(year, year)
     }
   }
 
@@ -45,7 +60,8 @@ export function getTimeframe(params: Params): Timeframe {
 
 /**
  * Builds a `Timeframe` spanning multiple whole calendar years (inclusive), clamped to the app's
- * supported range (`yearStart`..`yearEnd`, the same bounds `getCalendarSelection` offers). Used
+ * supported range (`yearStart`..`yearEnd`, the same bounds `getCalendarSelection` offers), in
+ * Europe/Amsterdam. Used
  * by views that need more than one year of data at once (e.g. the farm timeline, which lets users
  * scroll across years rather than viewing one at a time).
  */
@@ -53,10 +69,7 @@ export function getTimeframeForYears(startYear: number, endYear: number): Timefr
   const clampedStart = Math.min(Math.max(startYear, yearStart), yearEnd)
   const clampedEnd = Math.min(Math.max(endYear, yearStart), yearEnd)
 
-  return {
-    start: new Date(`${clampedStart}-01-01T00:00:00.000Z`),
-    end: new Date(`${clampedEnd}-12-31T23:59:59.999Z`),
-  }
+  return getCalendarYearsTimeframe(clampedStart, clampedEnd)
 }
 
 /**

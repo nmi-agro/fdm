@@ -134,6 +134,16 @@ describe("compareFields", () => {
       expect(result[0].diffs).not.toContain("b_end")
     })
 
+    it("should detect MATCH when remote ends on 1 January and local on the end of 31 December", () => {
+      const local = createLocalField({ b_end: new Date("2025-12-31T22:59:59.999Z") })
+      const rvo = createRvoField({ EndDate: "2026-01-01" })
+
+      const result = compareFields([local], [rvo], calendar)
+
+      expect(result).toHaveLength(1)
+      expect(result[0].diffs).not.toContain("b_end")
+    })
+
     it("should detect CONFLICT when geometry differs significantly", () => {
       const local = createLocalField()
       const rvo = createRvoField({

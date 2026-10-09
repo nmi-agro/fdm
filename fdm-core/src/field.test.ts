@@ -4,6 +4,7 @@ import type { FdmServerType } from "./fdm-server.types"
 import type { FdmType } from "./fdm.types"
 import { enableCultivationCatalogue } from "./catalogues"
 import { addCultivation, addCultivationToCatalogue } from "./cultivation"
+import { normalizeEndDate } from "./date"
 import * as schema from "./db/schema"
 import { addFarm } from "./farm"
 import { createFdmServer } from "./fdm-server"
@@ -108,7 +109,7 @@ describe("Farm Data Model", () => {
       expect(field.b_perimeter).toBeGreaterThan(0)
       expect(field.b_bufferstrip).toBe(false)
       expect(field.b_start).toEqual(AcquireDate)
-      expect(field.b_end).toEqual(discardingDate)
+      expect(field.b_end).toEqual(normalizeEndDate(discardingDate))
       expect(field.b_acquiring_method).toBe(AcquiringMethod)
     })
 
@@ -432,6 +433,120 @@ describe("Farm Data Model", () => {
           expect(field.b_bufferstrip).toBe(false)
         }
       })
+
+      describe("fields ending at the turn of the year", () => {
+        const geometry: Polygon = {
+          type: "Polygon" as const,
+          coordinates: [
+            [
+              [0, 0],
+              [0, 1],
+              [1, 1],
+              [1, 0],
+              [0, 0],
+            ],
+          ],
+        }
+        const endDates = [
+          ["31 December, UTC midnight", "2025-12-31T00:00:00.000Z"],
+          ["31 December, Amsterdam midnight", "2025-12-30T23:00:00.000Z"],
+          ["1 January, UTC midnight", "2026-01-01T00:00:00.000Z"],
+          ["1 January, Amsterdam midnight", "2025-12-31T23:00:00.000Z"],
+        ] as const
+        const timeframes = {
+          "2025 (UTC)": {
+            start: new Date("2025-01-01T00:00:00.000Z"),
+            end: new Date("2025-12-31T23:59:59.999Z"),
+          },
+          "2025 (Europe/Amsterdam)": {
+            start: new Date("2024-12-31T23:00:00.000Z"),
+            end: new Date("2025-12-31T22:59:59.999Z"),
+          },
+          "2026 (UTC)": {
+            start: new Date("2026-01-01T00:00:00.000Z"),
+            end: new Date("2026-12-31T23:59:59.999Z"),
+          },
+          "2026 (Europe/Amsterdam)": {
+            start: new Date("2025-12-31T23:00:00.000Z"),
+            end: new Date("2026-12-31T22:59:59.999Z"),
+          },
+        }
+
+        it.each(endDates)(
+          "should include a field ending on %s in 2025 but not in 2026",
+          async (_label, b_end) => {
+            const b_id = await addField(
+              fdm,
+              principal_id,
+              b_id_farm,
+              "Field ending at year boundary",
+              "source-year-boundary",
+              geometry,
+              new Date("2025-01-01T00:00:00.000Z"),
+              "nl_01",
+              new Date(b_end),
+            )
+
+            const field = await getField(fdm, principal_id, b_id)
+            expect(field.b_end?.toISOString()).toBe("2025-12-31T22:59:59.999Z")
+
+            for (const [name, timeframe] of Object.entries(timeframes)) {
+              const fields = await getFields(fdm, principal_id, b_id_farm, timeframe)
+              const ids = fields.map((f) => f.b_id)
+              if (name.startsWith("2025")) {
+                expect(ids, name).toContain(b_id)
+              } else {
+                expect(ids, name).not.toContain(b_id)
+              }
+            }
+          },
+        )
+
+        it("should normalise b_end when updating a field", async () => {
+          const b_id = await addField(
+            fdm,
+            principal_id,
+            b_id_farm,
+            "Field updated to end at year boundary",
+            "source-year-boundary-update",
+            geometry,
+            new Date("2025-01-01T00:00:00.000Z"),
+            "nl_01",
+          )
+
+          const updated = await updateField(
+            fdm,
+            principal_id,
+            b_id,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            new Date("2026-01-01T00:00:00.000Z"),
+          )
+          expect(updated.b_end?.toISOString()).toBe("2025-12-31T22:59:59.999Z")
+
+          const fields2026 = await getFields(fdm, principal_id, b_id_farm, timeframes["2026 (UTC)"])
+          expect(fields2026.map((f) => f.b_id)).not.toContain(b_id)
+        })
+
+        it("should throw when a field starts and ends on 1 January", async () => {
+          await expect(
+            addField(
+              fdm,
+              principal_id,
+              b_id_farm,
+              "Field starting and ending on 1 January",
+              "source-year-boundary-invalid",
+              geometry,
+              new Date("2026-01-01T00:00:00.000Z"),
+              "nl_01",
+              new Date("2026-01-01T00:00:00.000Z"),
+            ),
+          ).rejects.toThrowError("Exception for addField")
+        })
+      })
     })
     it("should update a field", async () => {
       const farmName = "Test Farm"
@@ -508,7 +623,7 @@ describe("Farm Data Model", () => {
       expect(updatedField.b_id_source).toBe(updatedFieldIDSource)
       expect(updatedField.b_geometry).toStrictEqual(updatedFieldGeometry)
       expect(updatedField.b_start).toEqual(updatedAcquireDate)
-      expect(updatedField.b_end).toEqual(updatedDiscardingDate)
+      expect(updatedField.b_end).toEqual(normalizeEndDate(updatedDiscardingDate))
       expect(updatedField.b_acquiring_method).toBe(updatedAcquiringMethod)
     })
 
@@ -573,7 +688,7 @@ describe("Farm Data Model", () => {
       expect(updatedField.b_id_source).toBe(fieldIDSource) // Should remain the same
       expect(updatedField.b_geometry).toStrictEqual(fieldGeometry) // Should remain the same
       expect(updatedField.b_start).toEqual(AcquireDate) // Should remain the same
-      expect(updatedField.b_end).toEqual(discardingDate) // Should remain the same
+      expect(updatedField.b_end).toEqual(normalizeEndDate(discardingDate)) // Should remain the same
       expect(updatedField.b_acquiring_method).toBe(AcquiringMethod) // Should remain the same
 
       // Update only the manage type
@@ -593,7 +708,7 @@ describe("Farm Data Model", () => {
       expect(updatedField2.b_id_source).toBe(fieldIDSource) // Should remain the same
       expect(updatedField2.b_geometry).toStrictEqual(fieldGeometry) // Should remain the same
       expect(updatedField2.b_start).toEqual(AcquireDate) // Should remain the same
-      expect(updatedField2.b_end).toEqual(discardingDate) // Should remain the same
+      expect(updatedField2.b_end).toEqual(normalizeEndDate(discardingDate)) // Should remain the same
       expect(updatedField2.b_acquiring_method).toBe(updatedAcquiringMethod) // Should be updated
 
       //Partial updates for `fields` table
@@ -613,7 +728,7 @@ describe("Farm Data Model", () => {
       expect(updatedField3.b_id_source).toBe(updatedFieldIDSource) // Should be updated
       expect(updatedField3.b_geometry).toStrictEqual(fieldGeometry) // Should remain the same
       expect(updatedField3.b_start).toEqual(AcquireDate) // Should remain the same
-      expect(updatedField3.b_end).toEqual(discardingDate) // Should remain the same
+      expect(updatedField3.b_end).toEqual(normalizeEndDate(discardingDate)) // Should remain the same
       expect(updatedField3.b_acquiring_method).toBe(updatedAcquiringMethod) // Should remain the same
 
       // Partial updates for `farmManaging` table
@@ -633,7 +748,7 @@ describe("Farm Data Model", () => {
       expect(updatedField4.b_id_source).toBe(updatedFieldIDSource) // Should remain the same
       expect(updatedField4.b_geometry).toStrictEqual(fieldGeometry) // Should remain the same
       expect(updatedField4.b_start).toEqual(updatedAcquireDate) // Should be updated
-      expect(updatedField4.b_end).toEqual(discardingDate) // Should remain the same
+      expect(updatedField4.b_end).toEqual(normalizeEndDate(discardingDate)) // Should remain the same
       expect(updatedField4.b_acquiring_method).toBe(updatedAcquiringMethod) // Should remain the same
     })
 
