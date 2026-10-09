@@ -11,7 +11,8 @@ import {
   getFertilizersFromCatalogue,
   setGrazingIntention,
 } from "@nmi-agro/fdm-core"
-import { useEffect } from "react"
+import { ArrowRight, Pencil } from "lucide-react"
+import { useEffect, useState } from "react"
 import {
   Controller,
   type ControllerRenderProps,
@@ -21,7 +22,14 @@ import {
 import { Form, useLoaderData } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
+import validator from "validator"
 import { z } from "zod"
+import {
+  isValidKvkNumber,
+  KvkLookupButton,
+  KvkLookupStatus,
+  useKvkLookup,
+} from "~/components/blocks/farm/kvk-lookup"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { DatePicker } from "~/components/custom/date-picker-v2"
@@ -46,6 +54,8 @@ import {
 } from "~/components/ui/select"
 import { SidebarInset } from "~/components/ui/sidebar"
 import { Spinner } from "~/components/ui/spinner"
+import { Textarea } from "~/components/ui/textarea"
+import { isKvkConfigured } from "~/integrations/kvk.server"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
@@ -53,6 +63,8 @@ import { handleActionError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { getCalendarSelection } from "../lib/calendar"
+
+const { isPostalCode } = validator
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -85,6 +97,18 @@ const FormSchema = z
       .regex(/^\d{8}$/, "KvK-nummer moet uit 8 cijfers bestaan")
       .optional()
       .or(z.string().trim().length(0)),
+    b_address_farm: z
+      .string()
+      .trim()
+      .max(300, { error: "Adres mag maximaal 300 karakters bevatten" })
+      .optional(),
+    b_postalcode_farm: z
+      .string()
+      .trim()
+      .optional()
+      .refine((value) => !value || isPostalCode(value, "NL"), {
+        error: "Ongeldige postcode",
+      }),
     has_derogation: z.coerce.boolean().default(false),
     derogation_start_year: z.preprocess(
       (val) => (val === "" ? undefined : val),
@@ -135,6 +159,7 @@ export async function loader() {
   return {
     year: new Date().getFullYear(),
     yearSelection: yearSelection,
+    isKvkConfigured: isKvkConfigured(),
   }
 }
 
@@ -144,7 +169,10 @@ export async function loader() {
  * @returns The JSX element representing the add farm page.
  */
 export default function AddFarmPage() {
-  const { year, yearSelection } = useLoaderData<typeof loader>()
+  const { year, yearSelection, isKvkConfigured } = useLoaderData<typeof loader>()
+
+  // Without KvK the whole form is shown at once; with KvK the user starts by looking up the KvK number
+  const [step, setStep] = useState<"kvk" | "details">(isKvkConfigured ? "kvk" : "details")
 
   const form = useRemixForm<FormValues>({
     mode: "onTouched",
@@ -153,6 +181,8 @@ export default function AddFarmPage() {
       b_name_farm: "",
       year: year,
       b_businessid_farm: "",
+      b_address_farm: "",
+      b_postalcode_farm: "",
       has_derogation: false,
       derogation_start_year: 2025,
       grazing_intention: false,
@@ -161,6 +191,61 @@ export default function AddFarmPage() {
       organic_traces: "",
     },
   })
+
+  // Values filled in from the last successful KvK lookup, to clear them when the KvK number changes
+  const [prefill, setPrefill] = useState<{
+    kvkNumber: string
+    values: Partial<Record<"b_name_farm" | "b_address_farm" | "b_postalcode_farm", string>>
+  }>()
+
+  // Clears the fields that still hold values from a lookup of another KvK number.
+  // Fields the user has edited since the lookup are kept.
+  const clearStalePrefill = (currentKvkNumber: string | undefined) => {
+    if (!prefill || prefill.kvkNumber === currentKvkNumber) return
+    for (const [name, value] of Object.entries(prefill.values) as [
+      keyof typeof prefill.values,
+      string,
+    ][]) {
+      if (form.getValues(name) === value) {
+        form.setValue(name, "", { shouldDirty: true })
+      }
+    }
+    setPrefill(undefined)
+  }
+
+  const kvkNumber = form.watch("b_businessid_farm")
+
+  const kvkLookup = useKvkLookup(kvkNumber, (result) => {
+    if (result.status !== "disabled") clearStalePrefill(result.kvkNumber)
+    if (result.status === "found") {
+      const options = { shouldDirty: true, shouldValidate: true }
+      const values = {
+        b_name_farm: result.name,
+        b_address_farm: result.address ?? "",
+        ...(result.postalcode ? { b_postalcode_farm: result.postalcode } : {}),
+      }
+      for (const [name, value] of Object.entries(values) as [keyof typeof values, string][]) {
+        form.setValue(name, value, options)
+      }
+      setPrefill({ kvkNumber: result.kvkNumber, values })
+    }
+    // Also continue when nothing was found, so the user can fill in the details manually
+    setStep("details")
+  })
+
+  const lookupKvk = () => {
+    if (kvkNumber) kvkLookup.lookup(kvkNumber)
+  }
+
+  const skipKvk = () => {
+    // A partially typed KvK number would block submitting the form in the next step
+    if (!isValidKvkNumber(kvkNumber)) {
+      form.setValue("b_businessid_farm", "")
+      form.clearErrors("b_businessid_farm")
+    }
+    clearStalePrefill(isValidKvkNumber(kvkNumber) ? kvkNumber?.trim() : "")
+    setStep("details")
+  }
 
   const selectedYear = form.watch("year")
   const organicCertified = form.watch("organic_certification")
@@ -197,163 +282,269 @@ export default function AddFarmPage() {
                   <fieldset disabled={form.formState.isSubmitting}>
                     <CardHeader>
                       <CardTitle>Bedrijf toevoegen</CardTitle>
-                      <CardDescription>Voer de basisgegevens van je bedrijf in.</CardDescription>
+                      <CardDescription>
+                        {step === "kvk"
+                          ? "Begin met je KvK-nummer. We halen de bedrijfsnaam en het adres op uit het Handelsregister."
+                          : "Voer de basisgegevens van je bedrijf in."}
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* General Information */}
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="sm:col-span-2">
-                          <Controller
-                            control={form.control}
-                            name="b_name_farm"
-                            render={({ field, fieldState }) => (
-                              <Field data-invalid={fieldState.invalid}>
-                                <FieldLabel>Bedrijfsnaam</FieldLabel>
-                                <Input
-                                  placeholder="Bv. Jansen V.O.F."
-                                  aria-required="true"
-                                  {...field}
-                                />
-                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                              </Field>
-                            )}
-                          />
-                        </div>
-
-                        <Controller
-                          control={form.control}
-                          name="year"
-                          render={({ field, fieldState }) => (
-                            <Field data-invalid={fieldState.invalid}>
-                              <FieldLabel>Kalenderjaar</FieldLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                defaultValue={field.value.toString()}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecteer een jaar" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {yearSelection.map((yearOption: string) => (
-                                    <SelectItem key={yearOption} value={yearOption}>
-                                      {yearOption}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FieldDescription>Startjaar voor invoer.</FieldDescription>
-                              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                            </Field>
-                          )}
-                        />
-
+                    {step === "kvk" ? (
+                      <CardContent className="space-y-6">
                         <Controller
                           control={form.control}
                           name="b_businessid_farm"
                           render={({ field, fieldState }) => (
                             <Field data-invalid={fieldState.invalid}>
-                              <FieldLabel>KvK-nummer</FieldLabel>
-                              <Input placeholder="12345678" {...field} />
+                              <FieldLabel htmlFor="b_businessid_farm">KvK-nummer</FieldLabel>
+                              <div className="flex flex-col gap-2 sm:flex-row">
+                                <Input
+                                  id="b_businessid_farm"
+                                  placeholder="12345678"
+                                  inputMode="numeric"
+                                  autoComplete="off"
+                                  maxLength={8}
+                                  autoFocus
+                                  className="sm:max-w-48"
+                                  {...field}
+                                  onKeyDown={(event) => {
+                                    // Enter looks up the KvK number instead of submitting the form
+                                    if (event.key === "Enter") {
+                                      event.preventDefault()
+                                      lookupKvk()
+                                    }
+                                  }}
+                                />
+                                <KvkLookupButton
+                                  variant="default"
+                                  kvkNumber={field.value}
+                                  isLoading={kvkLookup.isLoading}
+                                  onLookup={lookupKvk}
+                                />
+                              </div>
+                              <FieldDescription>
+                                Je kunt de opgehaalde gegevens daarna nog controleren en aanpassen.
+                              </FieldDescription>
                               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                             </Field>
                           )}
                         />
-                      </div>
-
-                      <div className="space-y-6">
                         <div className="border-t pt-4">
-                          <h3 className="mb-4 text-base font-medium">Instellingen</h3>
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            {/* Derogation Section */}
-                            {isDerogationPossible && (
-                              <div className="rounded-lg border p-4 sm:col-span-2">
-                                <div className="space-y-4">
-                                  <Controller
-                                    control={form.control}
-                                    name="has_derogation"
-                                    render={({ field, fieldState }) => (
-                                      <Field
-                                        orientation="horizontal"
-                                        className="items-center justify-between"
-                                        data-invalid={fieldState.invalid}
-                                      >
-                                        <FieldLabel className="text-base font-normal">
-                                          Heeft dit bedrijf derogatie?
-                                        </FieldLabel>
-                                        <Checkbox
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                        />
-                                      </Field>
-                                    )}
+                          <p className="text-muted-foreground text-sm">
+                            Geen KvK-nummer, of vul je de gegevens liever zelf in?
+                          </p>
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="h-auto px-0"
+                            onClick={skipKvk}
+                          >
+                            Sla deze stap over en vul de gegevens zelf in
+                            <ArrowRight />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    ) : (
+                      <CardContent className="space-y-6">
+                        {isKvkConfigured && (
+                          <div className="space-y-3 rounded-lg border p-4">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="text-sm">
+                                <p className="text-muted-foreground">KvK-nummer</p>
+                                <p className="font-medium tabular-nums">
+                                  {kvkNumber || "Niet ingevuld"}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setStep("kvk")}
+                              >
+                                <Pencil />
+                                Wijzigen
+                              </Button>
+                            </div>
+                            <KvkLookupStatus result={kvkLookup.result} />
+                          </div>
+                        )}
+
+                        {/* General Information */}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="sm:col-span-2">
+                            <Controller
+                              control={form.control}
+                              name="b_name_farm"
+                              render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                  <FieldLabel>Bedrijfsnaam</FieldLabel>
+                                  <Input
+                                    placeholder="Bv. Jansen V.O.F."
+                                    aria-required="true"
+                                    {...field}
                                   />
-                                  {form.watch("has_derogation") && (
+                                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                </Field>
+                              )}
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <Controller
+                              control={form.control}
+                              name="b_address_farm"
+                              render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                  <FieldLabel>Adres</FieldLabel>
+                                  <Textarea
+                                    placeholder="Bv. Nieuwe Kanaal 7, Wageningen"
+                                    rows={2}
+                                    maxLength={300}
+                                    autoComplete="street-address"
+                                    {...field}
+                                  />
+                                  <FieldDescription>Optioneel</FieldDescription>
+                                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                </Field>
+                              )}
+                            />
+                          </div>
+
+                          <Controller
+                            control={form.control}
+                            name="b_postalcode_farm"
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel>Postcode</FieldLabel>
+                                <Input
+                                  placeholder="1234 AB"
+                                  maxLength={7}
+                                  autoComplete="postal-code"
+                                  {...field}
+                                />
+                                <FieldDescription>Optioneel</FieldDescription>
+                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                              </Field>
+                            )}
+                          />
+
+                          <Controller
+                            control={form.control}
+                            name="year"
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel>Kalenderjaar</FieldLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  defaultValue={field.value.toString()}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecteer een jaar" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {yearSelection.map((yearOption: string) => (
+                                      <SelectItem key={yearOption} value={yearOption}>
+                                        {yearOption}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FieldDescription>Startjaar voor invoer.</FieldDescription>
+                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                              </Field>
+                            )}
+                          />
+
+                          {!isKvkConfigured && (
+                            <Controller
+                              control={form.control}
+                              name="b_businessid_farm"
+                              render={({ field, fieldState }) => (
+                                <Field data-invalid={fieldState.invalid}>
+                                  <FieldLabel>KvK-nummer</FieldLabel>
+                                  <Input
+                                    placeholder="12345678"
+                                    inputMode="numeric"
+                                    maxLength={8}
+                                    {...field}
+                                  />
+                                  <FieldDescription>Optioneel</FieldDescription>
+                                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                                </Field>
+                              )}
+                            />
+                          )}
+                        </div>
+
+                        <div className="space-y-6">
+                          <div className="border-t pt-4">
+                            <h3 className="mb-4 text-base font-medium">Instellingen</h3>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              {/* Derogation Section */}
+                              {isDerogationPossible && (
+                                <div className="rounded-lg border p-4 sm:col-span-2">
+                                  <div className="space-y-4">
                                     <Controller
                                       control={form.control}
-                                      name="derogation_start_year"
+                                      name="has_derogation"
                                       render={({ field, fieldState }) => (
-                                        <Field data-invalid={fieldState.invalid}>
-                                          <FieldLabel>Startjaar</FieldLabel>
-                                          <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={String(field.value)}
-                                          >
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Selecteer een jaar" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {Array.from(
-                                                {
-                                                  length: 2025 - 2006 + 1,
-                                                },
-                                                (_, i) => 2006 + i,
-                                              ).map((year) => (
-                                                <SelectItem key={year} value={String(year)}>
-                                                  {year}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          {fieldState.invalid && (
-                                            <FieldError errors={[fieldState.error]} />
-                                          )}
+                                        <Field
+                                          orientation="horizontal"
+                                          className="items-center justify-between"
+                                          data-invalid={fieldState.invalid}
+                                        >
+                                          <FieldLabel className="text-base font-normal">
+                                            Heeft dit bedrijf derogatie?
+                                          </FieldLabel>
+                                          <Checkbox
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                          />
                                         </Field>
                                       )}
                                     />
-                                  )}
+                                    {form.watch("has_derogation") && (
+                                      <Controller
+                                        control={form.control}
+                                        name="derogation_start_year"
+                                        render={({ field, fieldState }) => (
+                                          <Field data-invalid={fieldState.invalid}>
+                                            <FieldLabel>Startjaar</FieldLabel>
+                                            <Select
+                                              onValueChange={field.onChange}
+                                              defaultValue={String(field.value)}
+                                            >
+                                              <SelectTrigger>
+                                                <SelectValue placeholder="Selecteer een jaar" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {Array.from(
+                                                  {
+                                                    length: 2025 - 2006 + 1,
+                                                  },
+                                                  (_, i) => 2006 + i,
+                                                ).map((year) => (
+                                                  <SelectItem key={year} value={String(year)}>
+                                                    {year}
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            {fieldState.invalid && (
+                                              <FieldError errors={[fieldState.error]} />
+                                            )}
+                                          </Field>
+                                        )}
+                                      />
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {/* Grazing Section */}
-                            <div className="rounded-lg border p-4 sm:col-span-2">
-                              <Controller
-                                control={form.control}
-                                name="grazing_intention"
-                                render={({ field, fieldState }) => (
-                                  <Field
-                                    orientation="horizontal"
-                                    className="items-center justify-between"
-                                    data-invalid={fieldState.invalid}
-                                  >
-                                    <FieldLabel className="text-base font-normal">
-                                      Is er een voornemen tot weiden?
-                                    </FieldLabel>
-                                    <Checkbox
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
-                                  </Field>
-                                )}
-                              />
-                            </div>
-
-                            {/* Organic Section */}
-                            <div className="rounded-lg border p-4 sm:col-span-2">
-                              <div className="space-y-4">
+                              {/* Grazing Section */}
+                              <div className="rounded-lg border p-4 sm:col-span-2">
                                 <Controller
                                   control={form.control}
-                                  name="organic_certification"
+                                  name="grazing_intention"
                                   render={({ field, fieldState }) => (
                                     <Field
                                       orientation="horizontal"
@@ -361,7 +552,7 @@ export default function AddFarmPage() {
                                       data-invalid={fieldState.invalid}
                                     >
                                       <FieldLabel className="text-base font-normal">
-                                        Is het bedrijf biologisch gecertificeerd?
+                                        Is er een voornemen tot weiden?
                                       </FieldLabel>
                                       <Checkbox
                                         checked={field.value}
@@ -370,68 +561,93 @@ export default function AddFarmPage() {
                                     </Field>
                                   )}
                                 />
-                                {organicCertified && (
-                                  <div className="space-y-4 pt-2">
-                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                              </div>
+
+                              {/* Organic Section */}
+                              <div className="rounded-lg border p-4 sm:col-span-2">
+                                <div className="space-y-4">
+                                  <Controller
+                                    control={form.control}
+                                    name="organic_certification"
+                                    render={({ field, fieldState }) => (
+                                      <Field
+                                        orientation="horizontal"
+                                        className="items-center justify-between"
+                                        data-invalid={fieldState.invalid}
+                                      >
+                                        <FieldLabel className="text-base font-normal">
+                                          Is het bedrijf biologisch gecertificeerd?
+                                        </FieldLabel>
+                                        <Checkbox
+                                          checked={field.value}
+                                          onCheckedChange={field.onChange}
+                                        />
+                                      </Field>
+                                    )}
+                                  />
+                                  {organicCertified && (
+                                    <div className="space-y-4 pt-2">
+                                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <Controller
+                                          control={form.control}
+                                          name="organic_skal"
+                                          render={({ field, fieldState }) => (
+                                            <Field data-invalid={fieldState.invalid}>
+                                              <FieldLabel>SKAL-nummer</FieldLabel>
+                                              <Input placeholder="012345" {...field} />
+                                              <FieldDescription>Optioneel</FieldDescription>
+                                              {fieldState.invalid && (
+                                                <FieldError errors={[fieldState.error]} />
+                                              )}
+                                            </Field>
+                                          )}
+                                        />
+                                        <Controller
+                                          control={form.control}
+                                          name="organic_traces"
+                                          render={({ field, fieldState }) => (
+                                            <Field data-invalid={fieldState.invalid}>
+                                              <FieldLabel>TRACES-nummer</FieldLabel>
+                                              <Input placeholder="NL-BIO-01..." {...field} />
+                                              <FieldDescription>Optioneel</FieldDescription>
+                                              {fieldState.invalid && (
+                                                <FieldError errors={[fieldState.error]} />
+                                              )}
+                                            </Field>
+                                          )}
+                                        />
+                                      </div>
                                       <Controller
                                         control={form.control}
-                                        name="organic_skal"
+                                        name="organic_issued"
                                         render={({ field, fieldState }) => (
-                                          <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel>SKAL-nummer</FieldLabel>
-                                            <Input placeholder="012345" {...field} />
-                                            <FieldDescription>Optioneel</FieldDescription>
-                                            {fieldState.invalid && (
-                                              <FieldError errors={[fieldState.error]} />
-                                            )}
-                                          </Field>
-                                        )}
-                                      />
-                                      <Controller
-                                        control={form.control}
-                                        name="organic_traces"
-                                        render={({ field, fieldState }) => (
-                                          <Field data-invalid={fieldState.invalid}>
-                                            <FieldLabel>TRACES-nummer</FieldLabel>
-                                            <Input placeholder="NL-BIO-01..." {...field} />
-                                            <FieldDescription>Optioneel</FieldDescription>
-                                            {fieldState.invalid && (
-                                              <FieldError errors={[fieldState.error]} />
-                                            )}
-                                          </Field>
+                                          <DatePicker
+                                            label="Certificaat geldig vanaf"
+                                            defaultValue={new Date(Number(selectedYear), 0, 1)}
+                                            field={
+                                              field as unknown as ControllerRenderProps<
+                                                FieldValues,
+                                                string
+                                              >
+                                            }
+                                            fieldState={fieldState}
+                                          />
                                         )}
                                       />
                                     </div>
-                                    <Controller
-                                      control={form.control}
-                                      name="organic_issued"
-                                      render={({ field, fieldState }) => (
-                                        <DatePicker
-                                          label="Certificaat geldig vanaf"
-                                          defaultValue={new Date(Number(selectedYear), 0, 1)}
-                                          field={
-                                            field as unknown as ControllerRenderProps<
-                                              FieldValues,
-                                              string
-                                            >
-                                          }
-                                          fieldState={fieldState}
-                                        />
-                                      )}
-                                    />
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
+                      </CardContent>
+                    )}
                     <CardFooter className="flex justify-between">
                       <Button variant="outline" type="button" onClick={() => window.history.back()}>
                         Terug
                       </Button>
-                      <Button type="submit">
+                      <Button type="submit" className={step === "kvk" ? "hidden" : undefined}>
                         {form.formState.isSubmitting ? (
                           <div className="flex items-center space-x-2">
                             <Spinner />
@@ -468,8 +684,9 @@ export default function AddFarmPage() {
                     bedrijfsgegevens in. Dit helpt bijvoorbeeld bij het bepalen van de
                     gebruiksruimte.
                     <p className="text-muted-foreground pt-1 text-xs italic">
-                      Tip: Vul alvast het KvK-nummer zodat we binnenkort eenvoudig gegevens kunnen
-                      importeren.
+                      {isKvkConfigured
+                        ? "Tip: Met je KvK-nummer halen we de bedrijfsnaam en het adres op uit het KvK Handelsregister. Geen KvK-nummer? Sla die stap dan over."
+                        : "Tip: Vul alvast het KvK-nummer in, dan kun je later eenvoudiger gegevens koppelen."}
                     </p>
                   </li>
                   <li>
@@ -539,6 +756,8 @@ export async function action({ request }: ActionFunctionArgs) {
       b_name_farm,
       year,
       b_businessid_farm,
+      b_address_farm,
+      b_postalcode_farm,
       has_derogation,
       derogation_start_year,
       grazing_intention,
@@ -553,8 +772,8 @@ export async function action({ request }: ActionFunctionArgs) {
       session.principal_id,
       b_name_farm,
       b_businessid_farm || null,
-      null,
-      null,
+      b_address_farm || null,
+      b_postalcode_farm || null,
     )
 
     const isDerogationAllowed = year < 2026

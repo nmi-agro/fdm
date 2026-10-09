@@ -20,6 +20,7 @@ import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithSuccess } from "remix-toast"
 import validator from "validator"
 import { z } from "zod"
+import { KvkLookupButton, KvkLookupStatus, useKvkLookup } from "~/components/blocks/farm/kvk-lookup"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +45,7 @@ import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { Textarea } from "~/components/ui/textarea"
+import { isKvkConfigured } from "~/integrations/kvk.server"
 import { getSession } from "~/lib/auth.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { getFarmVerificationStatus } from "~/lib/farm-verification.server"
@@ -116,6 +118,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       farm: farm,
       farmWritePermission: farmWritePermission,
       farmVerification,
+      isKvkConfigured: isKvkConfigured(),
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -153,6 +156,19 @@ export default function FarmSettingsPropertiesBlock() {
     })
   }, [loaderData, form.reset])
 
+  // Prefill name and address from the KvK Handelsregister; the user still saves the form
+  const kvkLookup = useKvkLookup(form.watch("b_businessid_farm"), (result) => {
+    if (result.status !== "found") return
+    const options = { shouldDirty: true, shouldValidate: true }
+    form.setValue("b_name_farm", result.name, options)
+    if (result.address) {
+      form.setValue("b_address_farm", result.address, options)
+    }
+    if (result.postalcode) {
+      form.setValue("b_postalcode_farm", result.postalcode, options)
+    }
+  })
+
   return (
     <div className="space-y-6">
       <div>
@@ -187,13 +203,25 @@ export default function FarmSettingsPropertiesBlock() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Kvk nummer</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="bv. 91021934"
-                          {...field}
-                          disabled={loaderData.farmVerification.isVerified}
-                        />
-                      </FormControl>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <FormControl>
+                          <Input
+                            placeholder="bv. 91021934"
+                            inputMode="numeric"
+                            maxLength={8}
+                            {...field}
+                            disabled={loaderData.farmVerification.isVerified}
+                          />
+                        </FormControl>
+                        {loaderData.isKvkConfigured && loaderData.farmWritePermission && (
+                          <KvkLookupButton
+                            variant="outline"
+                            kvkNumber={field.value}
+                            isLoading={kvkLookup.isLoading}
+                            onLookup={() => kvkLookup.lookup(field.value)}
+                          />
+                        )}
+                      </div>
                       <FormDescription>
                         {loaderData.farmVerification.isVerified ? (
                           <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
@@ -245,6 +273,9 @@ export default function FarmSettingsPropertiesBlock() {
                   )}
                 />
               </div>
+              {kvkLookup.result && (
+                <KvkLookupStatus result={kvkLookup.result} className="col-span-2" />
+              )}
               <div className="col-span-2 flex flex-col space-y-1.5">
                 <FormField
                   control={form.control as unknown as Control<any, any, any>}

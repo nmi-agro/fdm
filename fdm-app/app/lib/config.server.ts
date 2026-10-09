@@ -112,6 +112,14 @@ export const serverConfig: ServerConfig = {
           },
         }
       : {}),
+    ...(process.env.KVK_API_KEY?.trim()
+      ? {
+          kvk: {
+            api_key: process.env.KVK_API_KEY.trim(),
+            base_url: process.env.KVK_API_BASE_URL?.trim() || "https://api.kvk.nl/test/api",
+          },
+        }
+      : {}),
   },
 
   // Analytics
