@@ -40,7 +40,9 @@ const MeasureSchema = z
     m_id: z.string(),
     b_id: z.string(),
     m_start: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    m_end: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
+    m_end: DateStringSchema.nullable().describe(
+      "Last day the measure is applied (inclusive, Europe/Amsterdam), in YYYY-MM-DD format.",
+    ),
     m_name: z.string(),
     m_summary: z.string().nullable(),
     m_conflicts: z.array(z.string()).nullable(),
@@ -51,14 +53,22 @@ const CreateMeasureBodySchema = z
   .object({
     m_id: z.string().describe("Measure catalogue identifier."),
     m_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
-    m_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
+    m_end: DateStringSchema.nullable()
+      .optional()
+      .describe(
+        "Last day the measure is applied (inclusive, Europe/Amsterdam), in YYYY-MM-DD format. A date on 1 January is stored as 31 December of the previous year.",
+      ),
   })
   .openapi("CreateMeasure")
 
 const UpdateMeasureBodySchema = z
   .object({
     m_start: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
-    m_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
+    m_end: DateStringSchema.nullable()
+      .optional()
+      .describe(
+        "Last day the measure is applied (inclusive, Europe/Amsterdam), in YYYY-MM-DD format. A date on 1 January is stored as 31 December of the previous year.",
+      ),
   })
   .openapi("UpdateMeasure")
 

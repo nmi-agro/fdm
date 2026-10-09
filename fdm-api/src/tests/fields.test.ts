@@ -171,6 +171,19 @@ describe("GET /fields/:b_id", () => {
     expect(body.b_start).toBe("2024-03-15")
     expect(body.b_end).toBe("2024-12-01")
   })
+
+  it("serialises a normalised b_end (end of day in Europe/Amsterdam) to the same calendar date", async () => {
+    const field = {
+      ...baseField,
+      b_end: new Date("2025-12-31T22:59:59.999Z"),
+    }
+    const app = makeApp({ getField: vi.fn().mockResolvedValue(field) })
+    const res = await app.request("/fields/field-1", {
+      headers: { "x-api-key": "valid" },
+    })
+    const body = await res.json()
+    expect(body.b_end).toBe("2025-12-31")
+  })
 })
 
 // ---------------------------------------------------------------------------

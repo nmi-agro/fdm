@@ -53,7 +53,9 @@ const FieldSchema = z
     b_perimeter: z.number().nullable(),
     b_bufferstrip: z.boolean(),
     b_start: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
-    b_end: DateStringSchema.nullable().describe("Date in YYYY-MM-DD format."),
+    b_end: DateStringSchema.nullable().describe(
+      "Last day the field is managed (inclusive, Europe/Amsterdam), in YYYY-MM-DD format.",
+    ),
     b_acquiring_method: z.string(),
   })
   .openapi("Field")
@@ -67,7 +69,11 @@ const CreateFieldBodySchema = z
     ),
     b_start: DateStringSchema.describe("Date in YYYY-MM-DD format."),
     b_acquiring_method: z.string().describe("Method by which the field was acquired."),
-    b_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
+    b_end: DateStringSchema.nullable()
+      .optional()
+      .describe(
+        "Last day the field is managed (inclusive, Europe/Amsterdam), in YYYY-MM-DD format. A date on 1 January is stored as 31 December of the previous year.",
+      ),
     b_bufferstrip: z.boolean().optional().describe("Whether the field is a buffer strip."),
   })
   .openapi("CreateField")
@@ -81,7 +87,11 @@ const UpdateFieldBodySchema = z
       .describe("Field boundary as GeoJSON Polygon or MultiPolygon."),
     b_start: DateStringSchema.optional().describe("Date in YYYY-MM-DD format."),
     b_acquiring_method: z.string().optional().describe("Method by which the field was acquired."),
-    b_end: DateStringSchema.nullable().optional().describe("Date in YYYY-MM-DD format."),
+    b_end: DateStringSchema.nullable()
+      .optional()
+      .describe(
+        "Last day the field is managed (inclusive, Europe/Amsterdam), in YYYY-MM-DD format. A date on 1 January is stored as 31 December of the previous year.",
+      ),
     b_bufferstrip: z.boolean().optional().describe("Whether the field is a buffer strip."),
   })
   .openapi("UpdateField")
