@@ -147,7 +147,7 @@ export const PrincipalRow = ({
                 formData.append("intent", "update_role")
                 formData.append("username", username)
                 formData.append("role", value)
-                fetcher.submit(formData, { method: "POST" })
+                void fetcher.submit(formData, { method: "POST" })
               }}
               disabled={fetcher.state !== "idle"}
             >
@@ -164,7 +164,16 @@ export const PrincipalRow = ({
           {/* Button to trigger removal */}
           {/* FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm{isLastVerificationProvider ? (
             <AlertDialog>
-              <AlertDialogTrigger asChild>{removeButton}</AlertDialogTrigger>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="shrink-0"
+                  disabled={fetcher.state !== "idle"}
+                >
+                  Verwijder
+                </Button>
+              </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Laatste verificatiehouder verwijderen?</AlertDialogTitle>
