@@ -31,21 +31,19 @@ export function useKvkLookup(
   onResult?: (result: KvkLookupResponse) => void,
 ) {
   const fetcher = useFetcher<KvkLookupResponse>()
-  const onResultRef = useRef(onResult)
-  onResultRef.current = onResult
-  const currentKvkNumberRef = useRef(currentKvkNumber)
-  currentKvkNumberRef.current = currentKvkNumber
 
   // Runs once per response; a response that no longer matches the entered number is dropped
+  const lastReportedDataRef = useRef<unknown>(undefined)
   useEffect(() => {
     if (
       fetcher.state === "idle" &&
       fetcher.data &&
-      matchesKvkNumber(fetcher.data, currentKvkNumberRef.current)
+      matchesKvkNumber(fetcher.data, currentKvkNumber)
     ) {
-      onResultRef.current?.(fetcher.data)
+      onResult?.(fetcher.data)
+      lastReportedDataRef.current = fetcher.data
     }
-  }, [fetcher.state, fetcher.data])
+  }, [currentKvkNumber, onResult, fetcher.state, fetcher.data])
 
   const lookup = (kvkNumber: string) => {
     const kvk = kvkNumber.trim()
