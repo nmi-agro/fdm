@@ -778,14 +778,15 @@ export default function TimelinePage() {
   }, [registerJumpToYear])
 
   // Close the sheet once the action that was submitted while it was open succeeds.
-  const sheetRequest =
+  if (
     sheetState &&
-    !(
-      actionData !== sheetState.openedWithActionData &&
-      (actionData as { closeSheet?: boolean } | undefined)?.closeSheet
-    )
-      ? sheetState.request
-      : undefined
+    actionData !== sheetState.openedWithActionData &&
+    (actionData as { closeSheet?: boolean } | undefined)?.closeSheet
+  ) {
+    setSheetState(undefined)
+  }
+
+  const sheetRequest = sheetState?.request
 
   function setSheetRequest(request: AddEventSheetRequest | undefined) {
     setSheetState(request ? { request, openedWithActionData: actionData } : undefined)

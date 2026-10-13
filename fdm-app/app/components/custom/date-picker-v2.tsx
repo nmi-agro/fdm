@@ -61,11 +61,14 @@ export function DatePicker({
   const [month, setMonth] = useKeyedState(field.value, () => selectedDate ?? referenceDate)
 
   // A raw Date in the field (rather than the ISO string this component submits) gets normalized.
+  // Depends on the plain value/onChange identifiers (not `field`, which Controller recreates every
+  // render) so this doesn't re-run on every render.
+  const { value: fieldValue, onChange: fieldOnChange } = field
   useEffect(() => {
-    if (field.value instanceof Date) {
-      field.onChange(field.value.toISOString())
+    if (fieldValue instanceof Date) {
+      fieldOnChange(fieldValue.toISOString())
     }
-  }, [field])
+  }, [fieldValue, fieldOnChange])
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value)

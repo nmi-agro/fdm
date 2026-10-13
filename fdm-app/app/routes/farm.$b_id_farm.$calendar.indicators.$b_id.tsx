@@ -737,7 +737,7 @@ export default function IndicatorsFieldDetail() {
                 {/* Filters */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <CategoryFilter
-                    activeCategories={effectiveCategories}
+                    activeCategories={activeCategories}
                     onToggle={handleCategoryToggle}
                     onClearAll={handleCategoryAll}
                   />
