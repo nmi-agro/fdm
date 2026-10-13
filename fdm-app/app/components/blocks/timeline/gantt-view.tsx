@@ -205,7 +205,7 @@ function RowClickCatcher({
       {
         key: "soil-bcs",
         label: "BodemConditieScore toevoegen",
-        onSelect: () => onSelect("soil-bcs", clickedDate.current),
+        onSelect: () => clickedDate.current && onSelect("soil-bcs", clickedDate.current),
       },
     ],
   }

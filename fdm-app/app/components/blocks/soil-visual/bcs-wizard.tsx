@@ -81,9 +81,10 @@ export function BcsWizard({
   const hasAnyVisualScore = BCS_VISUAL_KEYS.some((key) => scores[key] != null)
 
   // Fetch server-side BCS preview whenever the review step is entered
+  const { submit: submitPreview } = previewFetcher
   useEffect(() => {
     if (!isReviewStep) return
-    void previewFetcher.submit(
+    void submitPreview(
       {
         scores,
         b_id,
@@ -95,7 +96,7 @@ export function BcsWizard({
         encType: "application/json",
       },
     )
-  }, [isReviewStep, scores, b_id, samplingDate, previewFetcher])
+  }, [isReviewStep, scores, b_id, samplingDate, submitPreview])
 
   const galleryImages = useMemo(
     () =>
