@@ -131,13 +131,9 @@ export function DataTable<TData extends FieldExtended>({
     },
   })
 
-  const selectedFields = useMemo(() => {
-    return table.getFilteredSelectedRowModel().rows.map((row) => row.original)
-  }, [table])
+  const selectedFieldIds = table.getFilteredSelectedRowModel().rows.map((row) => row.original.b_id)
 
-  const selectedFieldIds = selectedFields.map((field) => field.b_id)
-
-  const isFertilizerButtonDisabled = selectedFields.length === 0
+  const isFertilizerButtonDisabled = selectedFieldIds.length === 0
   const fertilizerTooltipContent = isFertilizerButtonDisabled
     ? "Selecteer één of meerdere percelen om bemesting toe te voegen"
     : "Bemesting toevoegen aan geselecteerde percelen"

@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Building, X } from "lucide-react"
 import { useEffect, useRef, useState, useTransition } from "react"
-import { Controller } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { useFetcher, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
@@ -85,8 +85,7 @@ export function OrganizationSettingsForm({
   }
 
   // Update slug when name changes
-  const organizationName = form.getValues("name")
-
+  const organizationName = useWatch({ control: form.control, name: "name" })
   const { getValues, setValue } = form
   useEffect(() => {
     if (!organizationName) return
