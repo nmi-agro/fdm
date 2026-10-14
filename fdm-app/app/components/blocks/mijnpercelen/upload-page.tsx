@@ -108,13 +108,17 @@ export function UploadMijnPercelenPage({
     navigation.state !== "idle" && navigation.formData?.get("intent") === "save_fields"
 
   // Conditional setState during render
-  if (actionRvoImportReviewData && rvoImportReviewData !== actionRvoImportReviewData) {
+  const [lastResetRvoImportReviewData, setLastResetRvoImportReviewData] = useState<
+    ReviewItem[] | null
+  >(null)
+  if (actionRvoImportReviewData && lastResetRvoImportReviewData !== actionRvoImportReviewData) {
     setRvoImportReviewData((oldData) => {
       if (!oldData) {
         window.location.hash = "#review"
       }
       return actionRvoImportReviewData
     })
+    setLastResetRvoImportReviewData(actionRvoImportReviewData)
 
     // Route can no longer unload safely
     setCanUnloadSafely(false)
