@@ -152,7 +152,6 @@ export function DataTable<TData extends FieldExtended>({
   useEffect(() => {
     const table = tableScrollContainerRef.current?.querySelector("table")
     const scroller = table?.parentElement
-    console.log(scroller, table)
     if (!table || !scroller) return
 
     const update = () => {
