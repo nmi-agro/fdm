@@ -6,7 +6,7 @@ import type {
 } from "@nmi-agro/fdm-rvo/types"
 import { getItemId } from "@nmi-agro/fdm-rvo/utils"
 import { Loader2 } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { useEffect, useState } from "react"
 import { Form, useActionData, useLocation, useNavigation } from "react-router"
 import { toast } from "sonner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
@@ -14,7 +14,6 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { MijnPercelenUploadForm } from "~/components/blocks/mijnpercelen/form-upload"
 import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
 import { Button } from "~/components/ui/button"
-import { useKeyedState } from "~/hooks/use-keyed-state"
 import { cn } from "~/lib/utils"
 import type { genericAction } from "./loader-and-action.server"
 
@@ -71,24 +70,11 @@ export function UploadMijnPercelenPage({
   const navigation = useNavigation()
   const location = useLocation()
 
-  const actionData = useActionData<typeof genericAction>()
-  const actionRvoImportReviewData = actionData?.RvoImportReviewData
+  const [rvoImportReviewData, setRvoImportReviewData] = useState<ReviewItem[] | null>()
+  const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
+  const [canUnloadSafely, setCanUnloadSafely] = useState(true)
 
-  // Resets to the server's data (clearing local edits) whenever a new import batch arrives.
-  const [rvoImportReviewData, setRvoImportReviewData] = useKeyedState<
-    ReviewItem[] | undefined,
-    ReviewItem[] | null
-  >(actionRvoImportReviewData, (data) => data ?? null)
-  // Defaults re-derived per import batch; the user's choices on top are kept until the next batch.
-  const [userChoices, setUserChoices] = useKeyedState(actionRvoImportReviewData, (data) =>
-    data ? defaultUserChoices(data) : ({} as UserChoiceMap),
-  )
-  // Re-armed (false) whenever a new import batch arrives; the user explicitly disarms it by
-  // clicking "Opslaan en verder" below.
-  const [canUnloadSafely, setCanUnloadSafely] = useKeyedState(
-    actionRvoImportReviewData,
-    (data) => !data,
-  )
+  const actionData = useActionData<typeof genericAction>()
 
   const handleItemChange = (id: string, item: ReviewItem) => {
     // Note: there is the assumption that getItemId will keep returning the same id.
@@ -116,17 +102,26 @@ export function UploadMijnPercelenPage({
     setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
   }
 
+  const actionRvoImportReviewData = actionData?.RvoImportReviewData
+
   const isSaving =
     navigation.state !== "idle" && navigation.formData?.get("intent") === "save_fields"
 
-  // Jump to the review section the first time an import batch arrives (DOM navigation, no state).
-  const hasJumpedToReviewRef = useRef(false)
-  useEffect(() => {
-    if (actionRvoImportReviewData && !hasJumpedToReviewRef.current) {
-      hasJumpedToReviewRef.current = true
-      window.location.hash = "#review"
-    }
-  }, [actionRvoImportReviewData])
+  // Conditional setState during render
+  if (actionRvoImportReviewData && rvoImportReviewData !== actionRvoImportReviewData) {
+    setRvoImportReviewData((oldData) => {
+      if (!oldData) {
+        window.location.hash = "#review"
+      }
+      return actionRvoImportReviewData
+    })
+
+    // Route can no longer unload safely
+    setCanUnloadSafely(false)
+
+    // Initialize user choices with defaults
+    setUserChoices(defaultUserChoices(actionRvoImportReviewData))
+  }
 
   useEffect(() => {
     if (typeof window === "undefined") return
