@@ -84,28 +84,50 @@ export default function UserSettingsApiKeys() {
   const [editName, setEditName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
-  const loadKeys = useCallback(async () => {
-    try {
-      const result = await authClient.apiKey.list({
-        query: { sortBy: "createdAt", sortDirection: "desc" },
-      })
-      if (result.error) {
+  const loadKeysAbortController = useRef<AbortController>(undefined)
+
+  /** Starts a transition that loads the API keys and sets `keys.` */
+  const loadKeys = useCallback(() => {
+    loadKeysAbortController.current?.abort()
+    const abortController = new AbortController()
+    loadKeysAbortController.current = abortController
+    startLoadingKeys(async () => {
+      try {
+        const result = await authClient.apiKey.list({
+          query: { sortBy: "createdAt", sortDirection: "desc" },
+          fetchOptions: {
+            signal: abortController.signal,
+          },
+        })
+        if (result.error) {
+          toast.error("Kon API-sleutels niet laden.")
+          return
+        }
+        if (!abortController.signal.aborted) {
+          setKeys(result.data?.apiKeys as ApiKey[])
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return
+        }
+        console.error(err)
         toast.error("Kon API-sleutels niet laden.")
-        return
       }
-      startLoadingKeys(() => setKeys((result.data?.apiKeys as ApiKey[]) ?? []))
-    } catch {
-      toast.error("Kon API-sleutels niet laden.")
-    }
+    })
   }, [])
 
-  const lastCalledLoadKeys = useRef<typeof loadKeys>(undefined)
+  // Call loadKeys initially
   useEffect(() => {
-    if (lastCalledLoadKeys.current !== loadKeys) {
-      loadKeys()
-      lastCalledLoadKeys.current = loadKeys
-    }
+    loadKeys()
   }, [loadKeys])
+
+  // Abort any fetches on unmount
+  useEffect(
+    () => () => {
+      loadKeysAbortController.current?.abort()
+    },
+    [],
+  )
 
   async function handleCreate() {
     if (!newKeyName.trim()) return
