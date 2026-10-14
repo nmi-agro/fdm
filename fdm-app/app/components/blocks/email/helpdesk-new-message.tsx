@@ -57,6 +57,7 @@ export function HelpdeskNewMessageEmail({
   logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
   attachments = [],
 }: HelpdeskNewMessageEmailProps) {
+  "use no memo"
   const previewText = `${senderName} heeft gereageerd op ticket ${ticketRef}.`
   const { text: shownMessage, truncated } = truncateMessage(messageBody, MESSAGE_PREVIEW_LIMIT)
 
