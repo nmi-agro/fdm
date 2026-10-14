@@ -1,11 +1,6 @@
 import { BookOpenIcon, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
-import { useState } from "react"
-import {
-  type LoaderFunctionArgs,
-  type MetaFunction,
-  useLoaderData,
-  useRevalidator,
-} from "react-router"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
+import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { toast } from "sonner"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import {
@@ -34,21 +29,14 @@ import {
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { authClient } from "~/lib/auth-client"
-import { auth, getSession } from "~/lib/auth.server"
+import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
     const session = await getSession(request)
-    const { apiKeys } = await auth.api.listApiKeys({
-      query: { sortBy: "createdAt", sortDirection: "desc" },
-      headers: request.headers,
-    })
-    return {
-      firstname: session.user.firstname ?? session.user.name,
-      keys: apiKeys as ApiKey[],
-    }
+    return { firstname: session.user.firstname ?? session.user.name }
   } catch (error) {
     throw handleLoaderError(error)
   }
@@ -84,8 +72,9 @@ interface ApiKey {
  * The raw key value is shown only once upon creation and never stored or displayed again.
  */
 export default function UserSettingsApiKeys() {
-  const { firstname, keys } = useLoaderData<typeof loader>()
-  const revalidator = useRevalidator()
+  const { firstname } = useLoaderData<typeof loader>()
+  const [keys, setKeys] = useState<ApiKey[]>([])
+  const [isLoading, startLoadingKeys] = useTransition()
   const [createOpen, setCreateOpen] = useState(false)
   const [newKeyName, setNewKeyName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
@@ -94,6 +83,29 @@ export default function UserSettingsApiKeys() {
   const [editId, setEditId] = useState<string | null>(null)
   const [editName, setEditName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+
+  const loadKeys = useCallback(async () => {
+    try {
+      const result = await authClient.apiKey.list({
+        query: { sortBy: "createdAt", sortDirection: "desc" },
+      })
+      if (result.error) {
+        toast.error("Kon API-sleutels niet laden.")
+        return
+      }
+      startLoadingKeys(() => setKeys((result.data?.apiKeys as ApiKey[]) ?? []))
+    } catch {
+      toast.error("Kon API-sleutels niet laden.")
+    }
+  }, [])
+
+  const lastCalledLoadKeys = useRef<typeof loadKeys>(undefined)
+  useEffect(() => {
+    if (lastCalledLoadKeys.current !== loadKeys) {
+      loadKeys()
+      lastCalledLoadKeys.current = loadKeys
+    }
+  }, [loadKeys])
 
   async function handleCreate() {
     if (!newKeyName.trim()) return
@@ -113,7 +125,7 @@ export default function UserSettingsApiKeys() {
       }
       setCreateOpen(false)
       setNewKeyName("")
-      await revalidator.revalidate()
+      await loadKeys()
     } catch {
       toast.error("Aanmaken van API-sleutel mislukt.")
     } finally {
@@ -129,7 +141,7 @@ export default function UserSettingsApiKeys() {
         return
       }
       toast.success("API-sleutel ingetrokken.")
-      await revalidator.revalidate()
+      await loadKeys()
     } catch {
       toast.error("Intrekken van API-sleutel mislukt.")
     }
@@ -149,7 +161,7 @@ export default function UserSettingsApiKeys() {
       }
       toast.success("Naam bijgewerkt.")
       setEditId(null)
-      await revalidator.revalidate()
+      await loadKeys()
     } catch {
       toast.error("Bijwerken mislukt.")
     } finally {
@@ -247,7 +259,9 @@ export default function UserSettingsApiKeys() {
             <CardDescription>Overzicht van al je actieve API-sleutels.</CardDescription>
           </CardHeader>
           <CardContent>
-            {keys.length === 0 ? (
+            {isLoading ? (
+              <p className="text-muted-foreground text-sm">Laden…</p>
+            ) : keys.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center">
                 <KeyIcon className="text-muted-foreground h-8 w-8" />
                 <p className="text-muted-foreground text-sm">
