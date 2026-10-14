@@ -618,8 +618,11 @@ export function TimelineMobileView({
 
   // Expand all visible fields by default; re-expand them whenever the filter changes the set.
   const [expandedFields, setExpandedFields] = useKeyedState(
-    visibleFields,
-    (vf) => new Set(vf.map((field) => field.b_id)),
+    visibleFields
+      .map((field) => field.b_id)
+      .sort()
+      .join("\0"),
+    () => new Set(visibleFields.map((field) => field.b_id)),
   )
 
   const events = useMemo(() => {

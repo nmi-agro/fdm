@@ -251,6 +251,7 @@ export default function AddFarmPage() {
   const selectedYear = useWatch({ control: form.control, name: "year" })
   const organicCertified = useWatch({ control: form.control, name: "organic_certification" })
   const organicIssued = useWatch({ control: form.control, name: "organic_issued" })
+  const hasDerogation = useWatch({ control: form.control, name: "has_derogation" })
   const isDerogationPossible = Number(selectedYear) < 2026
 
   // Set default organic issued date when certification is checked
@@ -505,7 +506,7 @@ export default function AddFarmPage() {
                                         </Field>
                                       )}
                                     />
-                                    {form.watch("has_derogation") && (
+                                    {hasDerogation && (
                                       <Controller
                                         control={form.control}
                                         name="derogation_start_year"
