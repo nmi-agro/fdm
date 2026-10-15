@@ -112,12 +112,7 @@ export function UploadMijnPercelenPage({
     ReviewItem[] | null
   >(null)
   if (actionRvoImportReviewData && lastResetRvoImportReviewData !== actionRvoImportReviewData) {
-    setRvoImportReviewData((oldData) => {
-      if (!oldData) {
-        window.location.hash = "#review"
-      }
-      return actionRvoImportReviewData
-    })
+    setRvoImportReviewData(actionRvoImportReviewData)
     setLastResetRvoImportReviewData(actionRvoImportReviewData)
 
     // Route can no longer unload safely
@@ -126,6 +121,14 @@ export function UploadMijnPercelenPage({
     // Initialize user choices with defaults
     setUserChoices(defaultUserChoices(actionRvoImportReviewData))
   }
+
+  // Set the page hash to #review if there is data to review.
+  const hasReviewData = Boolean(rvoImportReviewData)
+  useEffect(() => {
+    if (hasReviewData) {
+      window.location.hash = "#review"
+    }
+  }, [hasReviewData])
 
   useEffect(() => {
     if (typeof window === "undefined") return
