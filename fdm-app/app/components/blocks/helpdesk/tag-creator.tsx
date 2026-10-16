@@ -114,11 +114,12 @@ export function TagCreator({
   })
 
   // Close the dialog when tag creation succeeds
+  const isSubmitSuccessful = form.formState.isSubmitSuccessful
   useEffect(() => {
-    if (form.formState.isSubmitSuccessful) {
+    if (isSubmitSuccessful) {
       setDialogOpen(false)
     }
-  }, [form.formState.isSubmitSuccessful, setDialogOpen])
+  }, [isSubmitSuccessful, setDialogOpen])
 
   // Rrset the form if the list of available tags changes (so usually when a new tag is created)
   const formReset = form.reset

@@ -116,11 +116,12 @@ export function AbsenceDialog({
   }, [formReset, isCreating, principal_id, absence, open, defaultRange?.start, defaultRange?.end])
 
   // Close the dialog once the submission succeeds.
+  const isSubmitSuccessful = form.formState.isSubmitSuccessful
   useEffect(() => {
-    if (form.formState.isSubmitSuccessful) {
+    if (isSubmitSuccessful) {
       onOpenChange(false)
     }
-  }, [form.formState.isSubmitSuccessful, onOpenChange])
+  }, [isSubmitSuccessful, onOpenChange])
 
   async function handleDelete() {
     if (!absence) return

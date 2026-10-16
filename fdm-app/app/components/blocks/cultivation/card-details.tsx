@@ -58,8 +58,9 @@ export function CultivationDetailsCard({
   const { pathname } = useLocation()
   const isCreateWizard = pathname.includes("/farm/create/")
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
+    formReset({
       b_lu_start: toDate(cultivation.b_lu_start) ?? today,
       b_lu_end: toDate(cultivation.b_lu_end) ?? null,
       m_cropresidue:
@@ -68,7 +69,7 @@ export function CultivationDetailsCard({
           : undefined,
       b_lu_variety: cultivation.b_lu_variety ?? undefined,
     })
-  }, [cultivation, form, today])
+  }, [formReset, cultivation, today])
 
   const handleDeleteCultivation = () => {
     return fetcher.submit(null, { method: "delete" })
