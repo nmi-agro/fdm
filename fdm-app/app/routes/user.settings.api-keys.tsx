@@ -99,13 +99,12 @@ export default function UserSettingsApiKeys() {
             signal: abortController.signal,
           },
         })
+        if (abortController.signal.aborted) return
         if (result.error) {
           toast.error("Kon API-sleutels niet laden.")
           return
         }
-        if (!abortController.signal.aborted) {
-          setKeys(result.data?.apiKeys as ApiKey[])
-        }
+        setKeys((result.data?.apiKeys ?? []) as ApiKey[])
       } catch (err) {
         if (err instanceof Error && err.name === "AbortError") {
           return
