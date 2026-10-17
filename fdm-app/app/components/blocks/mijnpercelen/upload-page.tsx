@@ -1,23 +1,25 @@
 import type { Field } from "@nmi-agro/fdm-core"
-import type {
-  ImportReviewAction,
-  RvoImportReviewItem,
-  UserChoiceMap,
-} from "@nmi-agro/fdm-rvo/types"
-import { getItemId } from "@nmi-agro/fdm-rvo/utils"
+import type { RvoImportReviewItem } from "@nmi-agro/fdm-rvo/types"
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { Form, useActionData, useLocation, useNavigation } from "react-router"
+import { Form, useActionData, useLoaderData, useLocation, useNavigation } from "react-router"
 import { toast } from "sonner"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { MijnPercelenUploadForm } from "~/components/blocks/mijnpercelen/form-upload"
-import { RvoImportReviewTable } from "~/components/blocks/rvo/import-review-table"
+import {
+  CustomValueButtonsToggle,
+  RvoImportReviewTable,
+  useRvoImportForm,
+} from "~/components/blocks/rvo/import-review-table"
 import { Button } from "~/components/ui/button"
 import { cn } from "~/lib/utils"
-import type { genericAction } from "./loader-and-action.server"
+import type { genericAction, loader } from "./loader-and-action.server"
 
 type ReviewItem = RvoImportReviewItem<Field>
+
+const emptyReviewData: ReviewItem[] = []
+const mijnPercelenReviewFlags = { b_bufferstrip_info_available: false }
 
 /**
  * Renders a single-page wizard that handles MijnPercelen shapefile uploads.
@@ -37,85 +39,35 @@ export function UploadMijnPercelenPage({
   calendar: string
   backUrl: string
 }) {
+  const { cultivationOptions } = useLoaderData<typeof loader>()
+  type ActionData = Exclude<Awaited<ReturnType<typeof genericAction>>, Response>
+  const actionData = useActionData<ActionData>()
   const navigation = useNavigation()
   const location = useLocation()
 
-  const [rvoImportReviewData, setRvoImportReviewData] = useState<ReviewItem[] | null>()
-  const [userChoices, setUserChoices] = useState<UserChoiceMap>({})
-  const [canUnloadSafely, setCanUnloadSafely] = useState(true)
-
-  const actionData = useActionData<typeof genericAction>()
-
-  const handleItemChange = (id: string, item: ReviewItem) => {
-    // Note: there is the assumption that getItemId will keep returning the same id.
-    // Therefore, make sure that `item` doesn't have a different rvoField id and localField id.
-    if (getItemId(item) !== id) {
-      console.warn(
-        `Mismatched item id in handleItemChange: expected ${id}, got ${getItemId(item)}. Ignoring update.`,
-      )
-      return
-    }
-    setRvoImportReviewData((data) => {
-      if (!data) return data
-      const index = data.findIndex((originalItem) => getItemId(originalItem) === id)
-      if (index === -1) {
-        console.warn(`Item with id ${id} not found so nothing is modified.`)
-        return data
-      }
-      const newData = [...data]
-      newData[index] = item
-      return newData
-    })
-  }
-
-  const handleChoiceChange = (id: string, action: ImportReviewAction) => {
-    setUserChoices((prev: UserChoiceMap) => ({ ...prev, [id]: action }))
-  }
-
-  const actionRvoImportReviewData = actionData?.RvoImportReviewData
-
+  const rvoImportReviewData = actionData?.RvoImportReviewData
   const isSaving =
-    navigation.state !== "idle" && navigation.formData?.get("intent") === "save_fields"
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "save_fields"
 
+  const [canUnloadSafely, setCanUnloadSafely] = useState(true)
+  const { formValues } = useRvoImportForm(rvoImportReviewData ?? emptyReviewData, {
+    calendar,
+    flags: mijnPercelenReviewFlags,
+  })
+
+  // Warn the user before refreshing or leaving when data is present
   useEffect(() => {
-    if (actionRvoImportReviewData) {
-      setRvoImportReviewData((oldData) => {
-        if (!oldData) {
-          window.location.hash = "#review"
-        }
-        return actionRvoImportReviewData
-      })
-
-      // Initialize user choices with defaults
-      const initialChoices: UserChoiceMap = {}
-      actionRvoImportReviewData.forEach((item) => {
-        const id = getItemId(item)
-        let defaultAction: ImportReviewAction
-
-        switch (item.status) {
-          case "CONFLICT":
-            defaultAction = "UPDATE_FROM_REMOTE"
-            break
-          case "NEW_REMOTE":
-            defaultAction = "ADD_REMOTE"
-            break
-          case "NEW_LOCAL":
-            defaultAction = "KEEP_LOCAL"
-            break
-          case "EXPIRED_LOCAL":
-            defaultAction = "CLOSE_LOCAL"
-            break
-          // In creation wizard, other statuses are unlikely but good to handle defaults
-          default:
-            defaultAction = "NO_ACTION"
-            break
-        }
-        initialChoices[id] = defaultAction
-      })
-      setCanUnloadSafely(false)
-      setUserChoices(initialChoices)
+    if ((rvoImportReviewData ?? emptyReviewData).length > 0) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault()
+        e.returnValue =
+          "Als u de pagina ververst, wordt de verbinding met RVO verbroken en moet u opnieuw inloggen met eHerkenning. Wilt u doorgaan?"
+        return e.returnValue
+      }
+      window.addEventListener("beforeunload", handleBeforeUnload)
+      return () => window.removeEventListener("beforeunload", handleBeforeUnload)
     }
-  }, [actionRvoImportReviewData])
+  }, [rvoImportReviewData])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -194,12 +146,23 @@ export function UploadMijnPercelenPage({
               <Form method="post">
                 <div className="flex justify-end gap-2">
                   <input type="hidden" name="intent" value="save_fields" />
-                  <input type="hidden" name="userChoices" value={JSON.stringify(userChoices)} />
                   <input
                     type="hidden"
-                    name="RvoImportReviewDataJson"
-                    value={JSON.stringify(rvoImportReviewData)}
+                    name="fieldsToAdd"
+                    value={JSON.stringify(formValues.fieldsToAdd)}
                   />
+                  <input
+                    type="hidden"
+                    name="fieldsToRemove"
+                    value={JSON.stringify(formValues.fieldsToRemove)}
+                  />
+                  <input
+                    type="hidden"
+                    name="fieldsToUpdate"
+                    value={JSON.stringify(formValues.fieldsToUpdate)}
+                  />
+
+                  <CustomValueButtonsToggle />
 
                   <Button asChild variant="outline" className={cn(isSaving && "opacity-50")}>
                     {/* Vanilla anchor triggers refresh behavior */}
@@ -233,12 +196,8 @@ export function UploadMijnPercelenPage({
                 <RvoImportReviewTable
                   data={rvoImportReviewData}
                   calendar={calendar}
-                  userChoices={userChoices}
-                  flags={{
-                    b_bufferstrip_info_available: false,
-                  }}
-                  onItemChange={handleItemChange}
-                  onChoiceChange={handleChoiceChange}
+                  cultivationOptions={cultivationOptions}
+                  flags={mijnPercelenReviewFlags}
                 />
               </div>
             </div>
