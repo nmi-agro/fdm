@@ -1,4 +1,3 @@
-import type { Resolver } from "react-hook-form"
 import type {
   ActionFunctionArgs,
   LinksFunction,
@@ -40,6 +39,7 @@ import {
   Users,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { useWatch, type Resolver } from "react-hook-form"
 import { Form, Link, redirect, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
@@ -75,6 +75,7 @@ import { handleActionError, handleLoaderError } from "~/lib/error"
 import { magicLinkCookie } from "~/lib/magic-link-cookie.server"
 import { modifySearchParams, getSafeRedirect } from "~/lib/url-utils"
 import { cn } from "~/lib/utils"
+import { useCookieConsentStore } from "~/store/cookie-consent"
 import { extractFormValuesFromRequest } from "../lib/form"
 
 export const meta: MetaFunction = () => {
@@ -182,7 +183,7 @@ export default function SignIn() {
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams() // Get search params
   const moreInfoRef = useRef<HTMLDivElement>(null)
-  const [socialSignInError, setSocialSignInError] = useState<string | null>(null)
+  const [handlerError, setHandlerError] = useState<string | null>(null)
   const { capture } = useAnalytics()
 
   const rawRedirectTo = searchParams.get("redirectTo")
@@ -197,14 +198,14 @@ export default function SignIn() {
     }
   }, [rawRedirectTo, redirectTo, setSearchParams])
 
-  useEffect(() => {
-    const error = searchParams.get("error")
-    if (error === "microsoft_no_email") {
-      setSocialSignInError(
-        "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen.",
-      )
-    }
-  }, [searchParams])
+  // Error from the redirect back from the provider is derived from the URL, not copied into state
+  const errorParam = searchParams.get("error")
+  const redirectError =
+    errorParam === "microsoft_no_email"
+      ? "Uw Microsoft-account deelt geen e-mailadres met ons. Vul alstublieft uw e-mailadres hieronder in om een aanmeldlink te ontvangen."
+      : null
+  // A failed sign-in attempt in this session takes precedence over the redirect error
+  const socialSignInError = handlerError ?? redirectError
 
   const socialProviderNewUserCallbackUrl = modifySearchParams("/welcome", (searchParams) =>
     searchParams.set("redirectTo", redirectTo),
@@ -212,19 +213,12 @@ export default function SignIn() {
 
   const handleSignInError = (provider: string, error: unknown) => {
     setLoadingProvider(null)
-    setSocialSignInError(
+    setHandlerError(
       `Er is helaas iets misgegaan bij het aanmelden met ${provider}. Probeer het opnieuw.`,
     )
     console.error("Social sign-in failed:", error)
   }
-  const openCookieSettings = () => {
-    if (window?.openCookieSettings) {
-      window.openCookieSettings()
-    }
-  }
-  const onOpenCookieSettings = () => {
-    openCookieSettings()
-  }
+  const onOpenCookieSettings = useCookieConsentStore((state) => state.openCookieSettings)
 
   const scrollToMoreInfo = () => {
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
@@ -242,12 +236,13 @@ export default function SignIn() {
     },
   })
 
+  const formSetValue = form.setValue
   useEffect(() => {
     const timeZone = Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone
-    form.setValue("timeZone", timeZone)
-  }, [form.setValue])
+    formSetValue("timeZone", timeZone)
+  }, [formSetValue])
 
-  const emailValue = form.watch("email") ?? ""
+  const emailValue = useWatch({ control: form.control, name: "email" }) ?? ""
   const emailHasError = !!form.formState.errors.email
   const emailIsTouched = form.getFieldState("email").isTouched
   const emailIsValid = emailValue.length > 0 && emailIsTouched && !emailHasError

@@ -4,8 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CircleQuestionMark } from "lucide-react"
-import { type MouseEventHandler, useEffect, useMemo, useState } from "react"
-import { Controller, type Resolver } from "react-hook-form"
+import { type MouseEventHandler, useEffect, useMemo, useState, useSyncExternalStore } from "react"
+import { Controller, useWatch, type Resolver } from "react-hook-form"
 import { Form, useFetcher, useNavigate } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
@@ -97,7 +97,8 @@ function useHarvestRemixForm({
   handleConfirmation,
 }: HarvestFormDialogProps) {
   const { calendar } = useCalendarStore()
-  const currentYear = new Date().getFullYear()
+  // Computed once, not on every render: only used as a fallback when the store has no calendar yet.
+  const [currentYear] = useState(() => new Date().getFullYear())
   const parsedCalendar = calendar ? Number(calendar) : Number.NaN
   const calendarYear = Number.isNaN(parsedCalendar) ? currentYear : parsedCalendar
 
@@ -193,19 +194,20 @@ function useHarvestRemixForm({
 
   // When the calendar store is populated after initial render, re-evaluate the
   // default harvest date, but only if the user has not already entered a value.
+  const form_b_lu_harvest_date = useWatch({ control: form.control, name: "b_lu_harvest_date" })
+  const formGetFieldState = form.getFieldState
+  const formSetValue = form.setValue
   useEffect(() => {
-    const currentValue = form.getValues("b_lu_harvest_date")
-    const { isDirty } = form.getFieldState("b_lu_harvest_date")
-    if (!b_lu_harvest_date && !example_b_lu_harvest_date && !currentValue && !isDirty) {
-      form.setValue("b_lu_harvest_date", defaultHarvestDate ?? null)
+    const { isDirty } = formGetFieldState("b_lu_harvest_date")
+    if (!b_lu_harvest_date && !example_b_lu_harvest_date && !form_b_lu_harvest_date && !isDirty) {
+      formSetValue("b_lu_harvest_date", defaultHarvestDate ?? null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    form.setValue,
+    form_b_lu_harvest_date,
+    formGetFieldState,
+    formSetValue,
     example_b_lu_harvest_date,
     defaultHarvestDate,
-    form.getFieldState,
-    form.getValues,
     b_lu_harvest_date,
   ])
 
@@ -489,13 +491,20 @@ function HarvestFields({
   )
 }
 
+const noopSubscribe = () => () => {}
+function getHostnameSnapshot() {
+  return window.location.hostname
+}
+function getHostnameServerSnapshot() {
+  return ""
+}
+
 export function HarvestFormExplainer() {
-  const [hostname, setHostname] = useState("")
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setHostname(window.location.hostname)
-    }
-  }, [])
+  const hostname = useSyncExternalStore(
+    noopSubscribe,
+    getHostnameSnapshot,
+    getHostnameServerSnapshot,
+  )
 
   return (
     <FieldGroup>

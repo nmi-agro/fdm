@@ -12,10 +12,12 @@ import { pdfStyles } from "./styles"
 
 const Footer = ({
   config,
+  generatedAt,
   style,
   showPageNumbers = true,
 }: {
   config: { name: string }
+  generatedAt: string
   style?: any
   showPageNumbers?: boolean
 }) => {
@@ -23,7 +25,8 @@ const Footer = ({
     return (
       <View style={[pdfStyles.footer, style]} fixed>
         <Text>
-          {config.name} - Gegenereerd op {format(new Date(), "d MMMM yyyy", { locale: nl })}
+          {config.name} - Gegenereerd op{" "}
+          {format(new Date(generatedAt), "d MMMM yyyy", { locale: nl })}
         </Text>
         {showPageNumbers && (
           <Text render={({ pageNumber, totalPages }) => `Pagina ${pageNumber} / ${totalPages}`} />
@@ -169,13 +172,14 @@ const FrontPage = ({ data }: { data: BemestingsplanData }) => (
             <Text style={pdfStyles.frontInfo}>Oppervlakte: {data.totalArea.toFixed(1)} ha</Text>
           </View>
           <Text style={[pdfStyles.frontInfo, { marginTop: 20 }]}>
-            Datum: {format(new Date(), "d MMMM yyyy", { locale: nl })}
+            Datum: {format(new Date(data.generatedAt), "d MMMM yyyy", { locale: nl })}
           </Text>
         </View>
       </View>
     </View>
     <Footer
       config={data.config}
+      generatedAt={data.generatedAt}
       style={{ color: "#FFFFFF", borderTopWidth: 0 }}
       showPageNumbers={false}
     />
@@ -435,7 +439,7 @@ const TableOfContents = ({ data }: { data: BemestingsplanData }) => (
       </Text>
     </View>
 
-    <Footer config={data.config} />
+    <Footer config={data.config} generatedAt={data.generatedAt} />
   </Page>
 )
 
@@ -866,7 +870,7 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
           </PdfCard>
         </View>
       </View>
-      <Footer config={data.config} />
+      <Footer config={data.config} generatedAt={data.generatedAt} />
     </Page>
 
     {/* Page 4: Fields Overview Table */}
@@ -1000,7 +1004,7 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
             </View>
           ))}
       </PdfTable>
-      <Footer config={data.config} />
+      <Footer config={data.config} generatedAt={data.generatedAt} />
     </Page>
 
     {/* Detailed Field Reports */}
@@ -1575,7 +1579,7 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
               )}
             </PdfTable>
           </View>
-          <Footer config={data.config} />
+          <Footer config={data.config} generatedAt={data.generatedAt} />
         </Page>
       ))}
 
@@ -1648,7 +1652,7 @@ export const BemestingsplanPDF = ({ data }: { data: BemestingsplanData }) => (
               ))}
           </PdfTable>
         </View>
-        <Footer config={data.config} />
+        <Footer config={data.config} generatedAt={data.generatedAt} />
       </Page>
     )}
   </Document>

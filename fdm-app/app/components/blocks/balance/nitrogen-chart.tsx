@@ -5,7 +5,7 @@ import type {
 } from "@nmi-agro/fdm-calculator"
 import { nl } from "@daypicker/react/locale"
 import { format } from "date-fns/format"
-import { useId, useMemo, useState } from "react"
+import { useId, useState } from "react"
 import { Bar, BarChart, XAxis, YAxis, ZIndexLayer } from "recharts"
 import { cn } from "@/app/lib/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
@@ -391,13 +391,11 @@ export function NitrogenBalanceChart(
         fieldInput: FieldInput
       },
 ) {
-  const { type, balanceData, fieldInput } = props
   const [barOutlineFocus, setBarOutlineFocus] = useState<string | number | undefined>()
 
-  const { legend, chartData, chartConfig, supplyBar, removalBar } = useMemo(
-    () => buildChartDataAndLegend(props),
-    [type, balanceData, fieldInput],
-  )
+  // Not memoized: the dependency array would otherwise need `props` itself, which is a fresh
+  // object every render, defeating memoization anyway.
+  const { legend, chartData, chartConfig, supplyBar, removalBar } = buildChartDataAndLegend(props)
   const svgId = useId()
 
   const barRadius = 5

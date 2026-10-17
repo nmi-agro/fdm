@@ -1,7 +1,7 @@
 import type { ReactNode, Ref, SubmitEventHandler } from "react"
 import imageCompression from "browser-image-compression"
 import { LucideImage } from "lucide-react"
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useId, useState, useTransition } from "react"
 import { useFetcher } from "react-router"
 import { Dropzone } from "~/components/custom/dropzone"
 import {
@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { useIsMobile } from "~/hooks/use-mobile"
 import { compressAvatar } from "~/lib/image-upload.client"
 import { ALLOWED_IMAGE_MIME_TYPES, getFileExtensionFromMime } from "~/lib/upload-utils"
@@ -47,6 +48,7 @@ type ProfilePictureManagerProps = {
 
 export function ProfilePictureInput({
   ref: propRef,
+  id,
   className,
   name,
   files,
@@ -64,6 +66,8 @@ export function ProfilePictureInput({
   required,
 }: ProfilePictureManagerProps & {
   ref?: Ref<HTMLInputElement>
+  /** Id of the underlying file input, for a caller's own `<label htmlFor>`. */
+  id?: string
   className?: string
   name?: string
   title?: string
@@ -75,8 +79,12 @@ export function ProfilePictureInput({
   frameRelativeSize?: number
   required?: boolean
 }) {
-  const [imageData, setImageData] = useState<ImageData | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  // Keyed on the current file so it resets to "not loaded yet" whenever it changes.
+  const [imageData, setImageData] = useKeyedState<File | null, ImageData | null>(
+    files[0] ?? null,
+    () => null,
+  )
+  const isLoading = files.length > 0 && imageData === null
   const [cropFramePosition, setCropFramePosition] = useState({ x: 0, y: 0, scale: 1 })
   const [cropFrameRectangle, setCropFrameRectangle] = useState({
     x: 0,
@@ -87,31 +95,25 @@ export function ProfilePictureInput({
 
   // Take the input file, first convert it into a data URL, then read its width and height using an Image object, making up two asynchronous passes.
   useEffect(() => {
+    if (files.length === 0) return
     let active = true
-    if (files.length > 0) {
-      setIsLoading(true)
-      const fileReader = new FileReader()
-      fileReader.addEventListener("load", () => {
+    const fileReader = new FileReader()
+    fileReader.addEventListener("load", () => {
+      if (!active) return
+      if (typeof fileReader.result !== "string") return
+      const dataUrl = fileReader.result
+      const img = new Image()
+      img.src = dataUrl
+      img.addEventListener("load", () => {
         if (!active) return
-        if (typeof fileReader.result !== "string") return
-        const dataUrl = fileReader.result
-        const img = new Image()
-        img.src = dataUrl
-        img.addEventListener("load", () => {
-          if (!active) return
-          setIsLoading(false)
-          setImageData({ src: dataUrl, imageWidth: img.width, imageHeight: img.height })
-        })
+        setImageData({ src: dataUrl, imageWidth: img.width, imageHeight: img.height })
       })
-      fileReader.readAsDataURL(files[0])
-    } else {
-      setImageData(null)
-    }
+    })
+    fileReader.readAsDataURL(files[0])
     return () => {
       active = false
-      setIsLoading(false)
     }
-  }, [files])
+  }, [files, setImageData])
 
   return (
     <>
@@ -122,6 +124,7 @@ export function ProfilePictureInput({
       <div className={cn("relative", imageData && "hidden")}>
         <Dropzone
           ref={propRef}
+          id={id}
           name={name ?? DEFAULT_PROFILE_PICTURE_FILE_INPUT_NAME}
           accept={[...ALLOWED_IMAGE_MIME_TYPES].map((mime) => `.${getFileExtensionFromMime(mime)}`)}
           maxSize={maxFileSize}
@@ -208,23 +211,18 @@ export function ProfilePictureManager({
   const isUploading = isProcessingForm || uploadFetcher.state !== "idle"
   const isDeleting = deleteFetcher.state !== "idle"
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputId = useId()
 
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault()
     processForm(async () => {
-      void uploadFetcher.submit(await cropProfilePicture(new FormData(e.currentTarget)), {
+      await uploadFetcher.submit(await cropProfilePicture(new FormData(e.currentTarget)), {
         method: "post",
         encType: "multipart/form-data",
       })
+      setFiles([])
     })
   }
-
-  useEffect(() => {
-    if (uploadFetcher.state === "idle") {
-      setFiles([])
-    }
-  }, [uploadFetcher.state])
 
   return (
     <uploadFetcher.Form
@@ -235,7 +233,7 @@ export function ProfilePictureManager({
     >
       <input type="hidden" name="intent" value="update_profile_picture" />
       <ProfilePictureInput
-        ref={fileInputRef}
+        id={fileInputId}
         avatarFallback={avatarFallback}
         currentTitle={currentTitle}
         currentPicture={currentPicture as string}
@@ -293,7 +291,7 @@ export function ProfilePictureManager({
               </AlertDialogContent>
             </AlertDialog>
             <Button type="button" variant="outline" asChild>
-              <label htmlFor={fileInputRef.current?.id ?? ""}>Kies één nieuwe</label>
+              <label htmlFor={fileInputId}>Kies één nieuwe</label>
             </Button>
           </>
         ) : (

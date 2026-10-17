@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Building, X } from "lucide-react"
 import { useEffect, useRef, useState, useTransition } from "react"
-import { Controller } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { useFetcher, type HTMLFormMethod } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import z from "zod"
@@ -84,27 +84,16 @@ export function OrganizationSettingsForm({
       .replace(/^-|-$/g, "") // Trim - from start and end
   }
 
-  // Reset the form when the organization changes
-  useEffect(() => {
-    form.reset({
-      intent: "update_organization_info" as const,
-      name: organization?.name,
-      slug: organization?.slug,
-      description: organization?.metadata?.data?.description,
-    })
-    setProfilePictureFiles([])
-  }, [form.reset, !!organization, organization?.slug])
-
   // Update slug when name changes
-  const organizationName = form.getValues("name")
-
+  const organizationName = useWatch({ control: form.control, name: "name" })
+  const { getValues, setValue } = form
   useEffect(() => {
     if (!organizationName) return
     const newSlug = convertToSlug(organizationName)
-    if (form.getValues("slug") !== newSlug) {
-      form.setValue("slug", newSlug)
+    if (getValues("slug") !== newSlug) {
+      setValue("slug", newSlug)
     }
-  }, [organizationName, form.getValues, form.setValue])
+  }, [organizationName, getValues, setValue])
 
   const isSubmitting = isProcessingForm || fetcher.state !== "idle"
   const disabled = !canModify || isSubmitting

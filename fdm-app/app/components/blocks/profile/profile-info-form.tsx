@@ -32,13 +32,14 @@ export function ProfileInfoForm({
     },
   })
 
+  const formReset = form.reset
   useEffect(() => {
-    form.reset({
+    formReset({
       intent: "update_profile_info" as const,
       firstname: user.firstname ?? "",
       surname: user.surname ?? "",
     })
-  }, [user, form.reset])
+  }, [user, formReset])
 
   return (
     <RemixFormProvider {...form}>

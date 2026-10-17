@@ -12,7 +12,7 @@
     "start-dev": "dotenvx run -- pnpm db:migrate && dotenvx run -- node ./server.js",
     "db:migrate": "node ./app/lib/fdm-migrate.server.js",
     "check-types": "react-router typegen && tsc --noEmit",
-    "lint": "oxlint ."
+    "lint": "oxlint --type-aware ."
   },
   "dependencies": {
     "@better-auth/api-key": "catalog:",

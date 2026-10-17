@@ -1,5 +1,5 @@
 import { BookOpenIcon, KeyIcon, PlusIcon, TrashIcon } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
 import { toast } from "sonner"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
@@ -74,7 +74,7 @@ interface ApiKey {
 export default function UserSettingsApiKeys() {
   const { firstname } = useLoaderData<typeof loader>()
   const [keys, setKeys] = useState<ApiKey[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, startLoadingKeys] = useTransition()
   const [createOpen, setCreateOpen] = useState(false)
   const [newKeyName, setNewKeyName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
@@ -84,27 +84,49 @@ export default function UserSettingsApiKeys() {
   const [editName, setEditName] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
-  const loadKeys = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const result = await authClient.apiKey.list({
-        query: { sortBy: "createdAt", sortDirection: "desc" },
-      })
-      if (result.error) {
+  const loadKeysAbortController = useRef<AbortController>(undefined)
+
+  /** Starts a transition that loads the API keys and sets `keys.` */
+  const loadKeys = useCallback(() => {
+    loadKeysAbortController.current?.abort()
+    const abortController = new AbortController()
+    loadKeysAbortController.current = abortController
+    startLoadingKeys(async () => {
+      try {
+        const result = await authClient.apiKey.list({
+          query: { sortBy: "createdAt", sortDirection: "desc" },
+          fetchOptions: {
+            signal: abortController.signal,
+          },
+        })
+        if (abortController.signal.aborted) return
+        if (result.error) {
+          toast.error("Kon API-sleutels niet laden.")
+          return
+        }
+        setKeys((result.data?.apiKeys ?? []) as ApiKey[])
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") {
+          return
+        }
+        console.error(err)
         toast.error("Kon API-sleutels niet laden.")
-        return
       }
-      setKeys((result.data?.apiKeys as ApiKey[]) ?? [])
-    } catch {
-      toast.error("Kon API-sleutels niet laden.")
-    } finally {
-      setIsLoading(false)
-    }
+    })
   }, [])
 
+  // Call loadKeys initially
   useEffect(() => {
-    void loadKeys()
+    loadKeys()
   }, [loadKeys])
+
+  // Abort any fetches on unmount
+  useEffect(
+    () => () => {
+      loadKeysAbortController.current?.abort()
+    },
+    [],
+  )
 
   async function handleCreate() {
     if (!newKeyName.trim()) return
