@@ -94,9 +94,13 @@ export const serverConfig: ServerConfig = {
         process.env.PUBLIC_MAPTILER_API_KEY ?? process.env.MAPTILER_API_KEY ?? "",
       ),
     },
-    nmi: {
-      api_key: String(process.env.NMI_API_KEY),
-    },
+    ...(process.env.NMI_API_KEY?.trim()
+      ? {
+          nmi: {
+            api_key: process.env.NMI_API_KEY.trim(),
+          },
+        }
+      : {}),
     rvo: {
       clientId: String(process.env.RVO_CLIENT_ID),
       redirectUri: String(process.env.RVO_REDIRECT_URI),

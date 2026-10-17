@@ -38,12 +38,13 @@ The coordinate count is the total number of `[longitude, latitude]` pairs across
 
 Rate limits are enforced **per API key**. Limits reset on a rolling one-minute window.
 
-| Request category                     | Limit                        |
-| ------------------------------------ | ---------------------------- |
-| General (all GET requests)           | **120 requests / minute**    |
-| Write / delete (POST, PATCH, DELETE) | **30 requests / minute**     |
-| Calculation endpoints                | **10 requests / minute**     |
-| Key-management endpoints             | Subject to the general limit |
+| Request category                             | Limit                                            |
+| -------------------------------------------- | ------------------------------------------------ |
+| General (all GET requests)                   | **120 requests / minute**                        |
+| Write / delete (POST, PATCH, DELETE)         | **30 requests / minute**                         |
+| Calculation endpoints                        | **10 requests / minute**                         |
+| Indicator and measure-option endpoints (NMI) | **10 requests / minute** (separate `nmi` bucket) |
+| Key-management endpoints                     | Subject to the general limit                     |
 
 When a limit is exceeded, the API returns `429` with a `Retry-After` header indicating the number of seconds until the limit resets.
 

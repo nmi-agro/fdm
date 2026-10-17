@@ -179,6 +179,16 @@ The API covers 12 domains. See the [interactive docs](/docs) for full request/re
 | `PUT`    | `/grazing-intentions`                    | Set a grazing intention            |
 | `DELETE` | `/grazing-intentions/{b_id_farm}/{year}` | Remove a grazing intention         |
 
+### Indicators
+
+All require `?year=YYYY`, use the `nmi` rate limit and need `NMI_API_KEY` on the server (otherwise `503`).
+
+| Method | Path                                | Description                                                |
+| ------ | ----------------------------------- | ---------------------------------------------------------- |
+| `GET`  | `/fields/{b_id}/indicators`         | Indicator and aggregation scores of a field                |
+| `GET`  | `/farms/{b_id_farm}/indicators`     | Per-field scores and area-weighted farm scores             |
+| `GET`  | `/fields/{b_id}/measures/catalogue` | Field measure options with applicability, impacts, ranking |
+
 ### Calculations
 
 | Method | Path                                                     | Description                     |
@@ -234,6 +244,7 @@ Requests are rate-limited **per API key** within a 60-second sliding window.
 | `general` | 120 req / min | Read endpoints                   |
 | `write`   | 30 req / min  | Create, update, delete endpoints |
 | `calc`    | 10 req / min  | Calculation endpoints            |
+| `nmi`     | 10 req / min  | Endpoints that call the NMI API  |
 
 When the limit is exceeded the API returns `429 Too Many Requests` with a `Retry-After` header indicating how many seconds to wait.
 
@@ -335,7 +346,7 @@ See [`.env.example`](.env.example) for the full list. Key variables:
 | `PUBLIC_FDM_URL`          | Yes      | Public URL of this API service (used in error `type` links)     |
 | `FDM_API_ALLOWED_ORIGINS` | No       | Comma-separated CORS origins — defaults to `*` (open)           |
 | `PORT`                    | No       | HTTP port — Cloud Run sets this automatically (default: `8080`) |
-| `NMI_API_KEY`             | No       | Required for NMI-powered calculation endpoints                  |
+| `NMI_API_KEY`             | No       | Required for NMI-powered endpoints                              |
 
 ### Docker Compose (self-hosted)
 

@@ -24,6 +24,12 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
+    },
+    "./indicators": {
+      "import": {
+        "types": "./dist/indicators.d.ts",
+        "default": "./dist/indicators.js"
+      }
     }
   },
   "publishConfig": {
