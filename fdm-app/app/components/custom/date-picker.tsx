@@ -4,6 +4,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import React from "react"
+import { useWatch } from "react-hook-form"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
 import {
@@ -16,6 +17,7 @@ import {
 } from "~/components/ui/form"
 import { Input } from "~/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { endMonth } from "~/lib/calendar"
 import { useCalendarStore } from "~/store/calendar"
 
@@ -108,39 +110,26 @@ export function DatePicker<TFieldValues extends FieldValues>({
   disabled = false,
 }: DatePickerProps<TFieldValues>) {
   const { calendar } = useCalendarStore()
-  const calendarYear = calendar ? Number(calendar) : new Date().getFullYear()
+  // Computed once, not on every render: only used as a fallback when the store has no calendar yet.
+  const [defaultYear] = React.useState(() => new Date().getFullYear())
+  const calendarYear = calendar ? Number(calendar) : defaultYear
   const referenceDate = new Date(calendarYear, 0, 1)
 
   const [open, setOpen] = React.useState(false)
-  const [date, setDate] = React.useState<Date | undefined>(form.getValues(name))
-  const [month, setMonth] = React.useState<Date>(date || referenceDate)
-  const [value, setValue] = React.useState(formatDate(date))
-  const [isInputValid, setIsInputValid] = React.useState(true)
 
-  React.useEffect(() => {
-    const formDate: unknown = form.getValues(name) // Explicitly type as unknown
-    // Check if formDate is a valid Date object before using it
-    if (formDate instanceof Date && isValidDate(formDate)) {
-      if (formDate.getTime() !== date?.getTime()) {
-        setDate(formDate)
-        setMonth(formDate) // Set month to the selected date
-        setValue(formatDate(formDate))
-        setIsInputValid(true)
-      }
-    } else if (date !== undefined) {
-      // If formDate is undefined or invalid, and date was previously defined
-      setDate(undefined)
-      setMonth(referenceDate) // Reset month to calendar context month
-      setValue("") // Clear input value
-      setIsInputValid(true)
-    }
-  }, [form, name, date, referenceDate])
+  // The field's value, read reactively so external changes (form.reset(), a sibling setting this
+  // field) are picked up without an effect synchronizing a local copy of it.
+  const watchedValue: unknown = useWatch({ control: form.control, name })
+  const date = watchedValue instanceof Date && isValidDate(watchedValue) ? watchedValue : undefined
+  // Keyed on the resolved date so the calendar page, raw input text, and validity reset whenever
+  // the field's value changes from outside this component, while surviving this component's own
+  // (in sync) updates to it.
+  const dateKey = date ? date.getTime() : null
+  const [month, setMonth] = useKeyedState(dateKey, () => date || referenceDate)
+  const [value, setValue] = useKeyedState(dateKey, () => formatDate(date))
+  const [isInputValid, setIsInputValid] = useKeyedState(dateKey, () => true)
 
-  React.useEffect(() => {
-    if (disabled && open) {
-      setOpen(false)
-    }
-  }, [disabled, open])
+  const effectiveOpen = open && !disabled
 
   return (
     <FormField
@@ -161,7 +150,6 @@ export function DatePicker<TFieldValues extends FieldValues>({
                 onBlur={(e) => {
                   const text = e.target.value
                   if (text.trim() === "") {
-                    setDate(undefined)
                     setValue("")
                     field.onChange(undefined)
                     setIsInputValid(true)
@@ -171,7 +159,6 @@ export function DatePicker<TFieldValues extends FieldValues>({
 
                   const newDate = parseDateString(text, calendarYear)
                   if (newDate && isValidDate(newDate)) {
-                    setDate(newDate)
                     setMonth(newDate)
                     setValue(formatDate(newDate))
                     field.onChange(newDate)
@@ -194,7 +181,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
                 }}
               />
             </FormControl>
-            <Popover open={open} onOpenChange={setOpen}>
+            <Popover open={effectiveOpen} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
                   id={`${field.name}-picker`}
@@ -219,7 +206,6 @@ export function DatePicker<TFieldValues extends FieldValues>({
                   month={month}
                   onMonthChange={setMonth}
                   onSelect={(selectedDate) => {
-                    setDate(selectedDate)
                     setValue(formatDate(selectedDate))
                     field.onChange(selectedDate)
                     setOpen(false)

@@ -621,6 +621,7 @@ export async function computeBemestingsplanData({
   }
 
   const data = {
+    generatedAt: new Date().toISOString(),
     config: await configPromise,
     farm: {
       name: farm.b_name_farm || "Onbekend",

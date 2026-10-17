@@ -9,7 +9,7 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
 import { Map as MapIcon } from "lucide-react"
-import { Suspense, use, useEffect } from "react"
+import { Suspense, use, useEffect, useState } from "react"
 import {
   data,
   type LoaderFunctionArgs,
@@ -264,7 +264,7 @@ export default function FieldDetailsAtlasBlock() {
       b_id_farm: loaderData.b_id_farm,
       calendar: loaderData.calendar,
     })
-  }, [])
+  }, [capture, loaderData.b_id_farm, loaderData.calendar])
 
   return (
     <Suspense
@@ -297,12 +297,14 @@ function FieldDetailsAtlas({ b_id_farm, calendar, asyncData }: Awaited<ReturnTyp
   } = use(asyncData)
 
   const location = useLocation()
+  // Computed once, not on every render: only shown in the error branch below.
+  const [errorTimestamp] = useState(() => new Date().toISOString())
 
   if (typeof errorMessage === "string") {
     return (
       <ErrorBlock
         page={location.pathname}
-        timestamp={new Date().toISOString()}
+        timestamp={errorTimestamp}
         status={500}
         message={errorMessage}
         stacktrace={undefined}

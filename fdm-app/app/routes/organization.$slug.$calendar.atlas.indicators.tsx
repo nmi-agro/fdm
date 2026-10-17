@@ -6,6 +6,7 @@ import { data, type MetaFunction, useLoaderData } from "react-router"
 import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { ScoreSelect } from "~/components/blocks/indicators/atlas"
 import { Badge } from "~/components/ui/badge"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getIndicatorsForFarm } from "~/integrations/bln3.server"
 import { getMapStyle } from "~/integrations/map"
 import {
@@ -219,15 +220,20 @@ export default function OrgAtlasIndicatorsMap() {
   const tablePath = `/organization/${organization.slug}/${calendar}/indicators`
   const [selectedProperty, setSelectedProperty] = useState("S_BLN")
 
-  const [fieldScoresMap, setFieldScoresMap] = useState(new Map<string, FlattenedScores>())
-  const [completedFarmIds, setCompletedFarmIds] = useState<string[]>([])
-  const [erroredFarms, setErroredFarms] = useState<string[]>([])
+  // Reset for each new batch of streams (a fresh set of promises to accumulate from) by key,
+  // instead of resetting synchronously in the effect below.
+  const [fieldScoresMap, setFieldScoresMap] = useKeyedState(
+    farmScoreStreams,
+    () => new Map<string, FlattenedScores>(),
+  )
+  const [completedFarmIds, setCompletedFarmIds] = useKeyedState(
+    farmScoreStreams,
+    () => [] as string[],
+  )
+  const [erroredFarms, setErroredFarms] = useKeyedState(farmScoreStreams, () => [] as string[])
 
   useEffect(() => {
     let active = true
-    setFieldScoresMap(new Map())
-    setCompletedFarmIds([])
-    setErroredFarms([])
     for (const stream of farmScoreStreams) {
       stream.then(
         ({ b_id_farm, flattenedScores }) => {
@@ -257,7 +263,7 @@ export default function OrgAtlasIndicatorsMap() {
     return () => {
       active = false
     }
-  }, [farmScoreStreams])
+  }, [farmScoreStreams, setFieldScoresMap, setCompletedFarmIds, setErroredFarms])
 
   const displayedFieldsGeoJSON: FeatureCollection = useMemo(() => {
     return {

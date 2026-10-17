@@ -1,6 +1,7 @@
 import type { NSupplyMethod, NSupplyResult } from "~/integrations/mineralization.server"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Separator } from "~/components/ui/separator"
+import { useToday } from "~/hooks/use-today"
 import { getCurrentDoy } from "./mineralization-chart"
 
 const METHOD_LABELS: Record<NSupplyMethod, string> = {
@@ -101,7 +102,8 @@ export function FieldNSupplyDetailsCard({ results }: FieldNSupplyDetailsCardProp
   const bestResult =
     results.find((r) => !r.error && r.method === "minip") ?? results.find((r) => !r.error)
 
-  const currentDoy = getCurrentDoy()
+  const today = useToday()
+  const currentDoy = today ? getCurrentDoy(today) : 0
   const todayN =
     bestResult && bestResult.data.length > 0 ? getNAtDoy(bestResult.data, currentDoy) : undefined
   const progress =

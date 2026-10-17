@@ -140,7 +140,7 @@ export default function MineralizationFarmOverview() {
 
   useEffect(() => {
     capture("mineralization_viewed", { b_id_farm, calendar })
-  }, [])
+  }, [capture, b_id_farm, calendar])
 
   return (
     <div className="space-y-8">
