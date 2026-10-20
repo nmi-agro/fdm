@@ -1,6 +1,5 @@
 /** @module */
 
-import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
   // [MINERALIZATION: disabled — behind feature flag in fdm-app]
   // assessDataCompleteness,
@@ -26,14 +25,20 @@ import {
   addCultivation,
   addDerogation,
   addFarm,
+  addFarmToGroup,
   addFertilizer,
   addFertilizerApplication,
   addField,
   addHarvest,
-  addFarmToGroup,
   addMeasure,
   addOrganicCertification,
   addSoilAnalysis,
+  createFarmGroup,
+  enableCultivationCatalogue,
+  enableFertilizerCatalogue,
+  enableMeasureCatalogue,
+  type FdmAuth,
+  type FdmType,
   getCultivation,
   getCultivations,
   getCultivationsForFarm,
@@ -62,17 +67,14 @@ import {
   getSoilAnalysesForFarm,
   getSoilAnalysis,
   listDerogations,
+  listFarmGroups,
   listOrganicCertifications,
   removeCultivation,
   removeDerogation,
   removeFarm,
   removeFarmFromGroup,
-  removeFarmGroupMembership,
-  updateFarmGroupMembership,
   removeFarmGroup,
-  renameFarmGroup,
-  createFarmGroup,
-  listFarmGroups,
+  removeFarmGroupMembership,
   removeFertilizer,
   removeFertilizerApplication,
   removeField,
@@ -81,9 +83,11 @@ import {
   removeMeasure,
   removeOrganicCertification,
   removeSoilAnalysis,
+  renameFarmGroup,
   setGrazingIntention,
   updateCultivation,
   updateFarm,
+  updateFarmGroupMembership,
   updateFertilizerApplication,
   updateField,
   updateHarvest,
@@ -140,6 +144,7 @@ export interface FdmApiServices {
   updateField: typeof updateField
   removeField: typeof removeField
   // Cultivations
+  enableCultivationCatalogue: typeof enableCultivationCatalogue
   getCultivations: typeof getCultivations
   getCultivationsForFarm: typeof getCultivationsForFarm
   getCultivation: typeof getCultivation
@@ -153,6 +158,7 @@ export interface FdmApiServices {
   updateHarvest: typeof updateHarvest
   removeHarvest: typeof removeHarvest
   // Fertilizers
+  enableFertilizerCatalogue: typeof enableFertilizerCatalogue
   getFertilizers: typeof getFertilizers
   addFertilizer: typeof addFertilizer
   getFertilizer: typeof getFertilizer
@@ -165,6 +171,7 @@ export interface FdmApiServices {
   updateFertilizerApplication: typeof updateFertilizerApplication
   removeFertilizerApplication: typeof removeFertilizerApplication
   // Measures
+  enableMeasureCatalogue: typeof enableMeasureCatalogue
   getMeasures: typeof getMeasures
   getMeasure: typeof getMeasure
   addMeasure: typeof addMeasure
@@ -243,6 +250,7 @@ const defaultServices: FdmApiServices = {
   addField,
   updateField,
   removeField,
+  enableCultivationCatalogue,
   getCultivations,
   getCultivationsForFarm,
   getCultivation,
@@ -259,11 +267,13 @@ const defaultServices: FdmApiServices = {
   getFertilizer,
   removeFertilizer,
   getFertilizersFromCatalogue,
+  enableFertilizerCatalogue,
   getFertilizerApplications,
   getFertilizerApplication,
   addFertilizerApplication,
   updateFertilizerApplication,
   removeFertilizerApplication,
+  enableMeasureCatalogue,
   getMeasures,
   getMeasure,
   addMeasure,
