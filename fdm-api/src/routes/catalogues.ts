@@ -96,7 +96,7 @@ const listAvailableCataloguesRoute = createRoute({
   tags: ["Catalogues", "Cultivations", "Fertilizers", "Measures"],
   summary: "List the available catalogues",
   description:
-    "List the available cultivation, fertilizer, and field measure catalogues that can be enabled on a farm. Enable/disable endpoints may be called by using `source` as the last parameter.",
+    "Lists the available cultivation, fertilizer, and field measure catalogues that can be enabled on a farm. Enable/disable endpoints may be called by using `source` as the last parameter.",
   responses: {
     200: {
       description: "Available catalogues are listed successfully.",
@@ -110,7 +110,7 @@ const listEnabledCultivationCataloguesRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/cultivation",
   tags: ["Catalogues", "Cultivations"],
   summary: "List the enabled cultivation catalogues",
-  description: "List the enabled cultivation catalogues on a farm.",
+  description: "Lists the enabled cultivation catalogues on a farm.",
   request: { params: ListEnabledCataloguesParamsSchema },
   responses: {
     200: {
@@ -125,7 +125,7 @@ const listEnabledFertilizerCataloguesRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/fertilizer",
   tags: ["Catalogues", "Fertilizers"],
   summary: "List the enabled fertilizer catalogues",
-  description: "List the enabled fertilizer catalogues on a farm.",
+  description: "Lists the enabled fertilizer catalogues on a farm.",
   request: { params: ListEnabledCataloguesParamsSchema },
   responses: {
     200: {
@@ -140,7 +140,7 @@ const listEnabledMeasureCataloguesRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/measure",
   tags: ["Catalogues", "Measures"],
   summary: "List the enabled field measure catalogues",
-  description: "List the enabled field measure catalogues on a farm.",
+  description: "Lists the enabled field measure catalogues on a farm.",
   request: { params: ListEnabledCataloguesParamsSchema },
   responses: {
     200: {
@@ -155,7 +155,7 @@ const listCultivationCatalogueRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/cultivation/{source}",
   tags: ["Catalogues", "Cultivations"],
   summary: "List a cultivation catalogue",
-  description: "List the cultivations in a cultivation catalogue.",
+  description: "Lists the cultivations in a cultivation catalogue.",
   request: { params: ListCatalogueItemsParamsSchema },
   responses: {
     200: {
@@ -170,7 +170,7 @@ const listFertilizerCatalogueRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/fertilizer/{source}",
   tags: ["Catalogues", "Fertilizers"],
   summary: "List a fertilizer catalogue",
-  description: "List the fertilizers in a fertilizer catalogue.",
+  description: "Lists the fertilizers in a fertilizer catalogue.",
   request: { params: ListCatalogueItemsParamsSchema },
   responses: {
     200: {
@@ -185,7 +185,7 @@ const listMeasureCatalogueRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/measure/{source}",
   tags: ["Catalogues", "Measures"],
   summary: "List a field measures catalogue",
-  description: "List the field measures in a field measure catalogue.",
+  description: "Lists the field measures in a field measure catalogue.",
   request: { params: ListCatalogueItemsParamsSchema },
   responses: {
     200: {
@@ -200,41 +200,6 @@ const listMeasureCatalogueRoute = createRoute({
 // `../guards.ts` and unit tests need to be added in
 // `../tests/guards.test.ts`
 
-// Fertilizer catalogue routes ------------------------------------
-const enableFertilizerCatalogueRoute = createRoute({
-  method: "post",
-  path: "/farms/{b_id_farm}/catalogues/fertilizer/{source}",
-  tags: ["Catalogues", "Fertilizers"],
-  summary: "Enable a fertilizer catalogue",
-  description:
-    "Enables the given fertilizer catalogue on the farm. Only the standard catalogues may be added. The farm's own catalogue cannot be enabled or disabled.",
-  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: CatalogueEnablementParamsSchema },
-  responses: {
-    201: {
-      description: "Catalogue was enabled successfully.",
-    },
-    ...writeErrorResponses,
-  },
-})
-
-const disableFertilizerCatalogueRoute = createRoute({
-  method: "delete",
-  path: "/farms/{b_id_farm}/catalogues/fertilizer/{source}",
-  tags: ["Catalogues", "Fertilizers"],
-  summary: "Disables a fertilizer catalogue",
-  description:
-    "Disables the given fertilizer catalogue on the farm. No fertilizer applications that use codes from this catalogue should exist on the farm before this operation. Only the standard catalogues may be disabled. The farm's own catalogue cannot be enabled or disabled.",
-  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-  request: { params: CatalogueEnablementParamsSchema },
-  responses: {
-    204: {
-      description: "Catalogue was disabled successfully.",
-    },
-    ...writeErrorResponses,
-  },
-})
-
 // Cultivation catalogue routes ------------------------------------
 const enableCultivationCatalogueRoute = createRoute({
   method: "post",
@@ -248,6 +213,9 @@ const enableCultivationCatalogueRoute = createRoute({
     201: {
       description: "Catalogue was enabled successfully.",
     },
+    204: {
+      description: "Catalogue was already enabled.",
+    },
     ...writeErrorResponses,
   },
 })
@@ -256,14 +224,52 @@ const disableCultivationCatalogueRoute = createRoute({
   method: "delete",
   path: "/farms/{b_id_farm}/catalogues/cultivation/{source}",
   tags: ["Catalogues", "Cultivations"],
-  summary: "Disables a cultivation catalogue",
+  summary: "Disable a cultivation catalogue",
   description:
     "Disables the given cultivation catalogue on the farm. No cultivations that use codes from this catalogue should exist on the farm before this operation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: { params: CatalogueEnablementParamsSchema },
   responses: {
     204: {
-      description: "Catalogue was disabled successfully.",
+      description: "Catalogue was disabled successfully, or was already disabled.",
+    },
+    ...writeErrorResponses,
+  },
+})
+
+// Fertilizer catalogue routes ------------------------------------
+const enableFertilizerCatalogueRoute = createRoute({
+  method: "post",
+  path: "/farms/{b_id_farm}/catalogues/fertilizer/{source}",
+  tags: ["Catalogues", "Fertilizers"],
+  summary: "Enable a fertilizer catalogue",
+  description:
+    "Enables the given fertilizer catalogue on the farm. Only the standard catalogues may be enabled. The farm's own catalogue cannot be enabled or disabled.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  request: { params: CatalogueEnablementParamsSchema },
+  responses: {
+    201: {
+      description: "Catalogue was enabled successfully.",
+    },
+    204: {
+      description: "Catalogue was already enabled.",
+    },
+    ...writeErrorResponses,
+  },
+})
+
+const disableFertilizerCatalogueRoute = createRoute({
+  method: "delete",
+  path: "/farms/{b_id_farm}/catalogues/fertilizer/{source}",
+  tags: ["Catalogues", "Fertilizers"],
+  summary: "Disable a fertilizer catalogue",
+  description:
+    "Disables the given fertilizer catalogue on the farm. No fertilizer applications that use codes from this catalogue should exist on the farm before this operation. Only the standard catalogues may be disabled. The farm's own catalogue cannot be enabled or disabled.",
+  security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
+  request: { params: CatalogueEnablementParamsSchema },
+  responses: {
+    204: {
+      description: "Catalogue was disabled successfully, or was already disabled.",
     },
     ...writeErrorResponses,
   },
@@ -282,6 +288,9 @@ const enableMeasureCatalogueRoute = createRoute({
     201: {
       description: "Catalogue was enabled successfully.",
     },
+    204: {
+      description: "Catalogue was already enabled.",
+    },
     ...writeErrorResponses,
   },
 })
@@ -290,14 +299,14 @@ const disableMeasureCatalogueRoute = createRoute({
   method: "delete",
   path: "/farms/{b_id_farm}/catalogues/measure/{source}",
   tags: ["Catalogues", "Measures"],
-  summary: "Disables a field measure catalogue",
+  summary: "Disable a field measure catalogue",
   description:
     "Disables the given field measure catalogue on the farm. No field measures that use codes from this catalogue should exist on the farm before this operation.",
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: { params: CatalogueEnablementParamsSchema },
   responses: {
     204: {
-      description: "Catalogue was disabled successfully.",
+      description: "Catalogue was disabled successfully, or was already disabled.",
     },
     ...writeErrorResponses,
   },
@@ -359,17 +368,19 @@ export function listItemsInCatalogueRouteHandler(
 
 /**
  * Builds a handler that applies a catalogue service to the farm and source in the path.
+ * If the catalogue was enabled it will return 204.
  *
  * @param fdm - Database and service context used by route handlers.
  * @param catalogueSources - Allowed catalogue descriptions for this endpoint.
+ * @param cataloguesGetter - Service to call with fdm, principal ID, farm ID to get the enabled catalogues.
  * @param action - Service to call with fdm, principal ID, farm ID, and id of the catalogue.
  * @returns a function that will handle a request context.
  */
-export function catalogueEnablementRouteHandler(
+export function enableCatalogueRouteHandler(
   fdm: FdmType,
   catalogueSources: CatalogueSource[],
+  cataloguesGetter: (fdm: FdmType, principalId: string, b_id_farm: string) => Promise<string[]>,
   action: (fdm: FdmType, principalId: string, b_id_farm: string, source: string) => Promise<void>,
-  status: 201 | 204,
 ) {
   return async function (c: any) {
     if (c.req.header("content-type")) {
@@ -385,8 +396,51 @@ export function catalogueEnablementRouteHandler(
     if (!catalogueSources.some((x) => x.source === source)) {
       throw new ApiError(404, "not-found", "Catalogue not available.")
     }
-    await action(fdm, principal.effectivePrincipalId, b_id_farm, source)
-    return c.newResponse(null, status)
+    let enabled = false
+    await fdm.transaction(async (tx) => {
+      const catalogues = await cataloguesGetter(tx, principal.effectivePrincipalId, b_id_farm)
+      if (!catalogues.includes(source)) {
+        await action(tx, principal.effectivePrincipalId, b_id_farm, source)
+        enabled = true
+      }
+    })
+    return c.newResponse(null, enabled ? 201 : 204)
+  }
+}
+
+/**
+ * Builds a handler that applies a catalogue service to the farm and source in the path.
+ *
+ * It will return status 204.
+ *
+ * @param fdm - Database and service context used by route handlers.
+ * @param cataloguesGetter - Service to call with fdm, principal ID, farm ID to get the enabled catalogues.
+ * @param action - Service to call with fdm, principal ID, farm ID, and id of the catalogue.
+ * @returns a function that will handle a request context.
+ */
+export function disableCatalogueRouteHandler(
+  fdm: FdmType,
+  cataloguesGetter: (fdm: FdmType, principalId: string, b_id_farm: string) => Promise<string[]>,
+  action: (fdm: FdmType, principalId: string, b_id_farm: string, source: string) => Promise<void>,
+) {
+  return async function (c: any) {
+    if (c.req.header("content-type")) {
+      throw new ApiError(
+        415,
+        "unsupported-media-type",
+        "Body not allowed. Content type must be undefined.",
+      )
+    }
+    const params = c.req.valid("param")
+    const { b_id_farm, source } = params as z.infer<typeof CatalogueEnablementParamsSchema>
+    const principal = c.get("principal") as unknown as ApiPrincipalContext
+    await fdm.transaction(async (tx) => {
+      const catalogues = await cataloguesGetter(tx, principal.effectivePrincipalId, b_id_farm)
+      if (catalogues.includes(source)) {
+        await action(tx, principal.effectivePrincipalId, b_id_farm, source)
+      }
+    })
+    return c.newResponse(null, 204)
   }
 }
 
@@ -434,47 +488,44 @@ export function registerCatalogueRoutes(
     async (fdm, _principalId, sources) =>
       sources.includes("bln") ? await services.getMeasuresFromCatalogue(fdm) : [],
   )
-  const enableFertilizerCatalogueHandler: RouteHandler<typeof enableFertilizerCatalogueRoute> =
-    catalogueEnablementRouteHandler(
-      fdm,
-      CATALOGUE_SOURCES.fertilizer,
-      (...args) => services.enableFertilizerCatalogue(...args),
-      201,
-    )
-  const disableFertilizerCatalogueHandler: RouteHandler<typeof disableFertilizerCatalogueRoute> =
-    catalogueEnablementRouteHandler(
-      fdm,
-      CATALOGUE_SOURCES.fertilizer,
-      (...args) => services.disableFertilizerCatalogue(...args),
-      204,
-    )
   const enableCultivationCatalogueHandler: RouteHandler<typeof enableCultivationCatalogueRoute> =
-    catalogueEnablementRouteHandler(
+    enableCatalogueRouteHandler(
       fdm,
       CATALOGUE_SOURCES.cultivation,
+      (...args) => services.getEnabledCultivationCatalogues(...args),
       (...args) => services.enableCultivationCatalogue(...args),
-      201,
     )
   const disableCultivationCatalogueHandler: RouteHandler<typeof disableCultivationCatalogueRoute> =
-    catalogueEnablementRouteHandler(
+    disableCatalogueRouteHandler(
       fdm,
-      CATALOGUE_SOURCES.cultivation,
+      (...args) => services.getEnabledCultivationCatalogues(...args),
       (...args) => services.disableCultivationCatalogue(...args),
-      204,
+    )
+  const enableFertilizerCatalogueHandler: RouteHandler<typeof enableFertilizerCatalogueRoute> =
+    enableCatalogueRouteHandler(
+      fdm,
+      CATALOGUE_SOURCES.fertilizer,
+      (...args) => services.getEnabledFertilizerCatalogues(...args),
+      (...args) => services.enableFertilizerCatalogue(...args),
+    )
+  const disableFertilizerCatalogueHandler: RouteHandler<typeof disableFertilizerCatalogueRoute> =
+    disableCatalogueRouteHandler(
+      fdm,
+      (...args) => services.getEnabledFertilizerCatalogues(...args),
+      (...args) => services.disableFertilizerCatalogue(...args),
     )
   const enableMeasureCatalogueHandler: RouteHandler<typeof enableMeasureCatalogueRoute> =
-    catalogueEnablementRouteHandler(
+    enableCatalogueRouteHandler(
       fdm,
       CATALOGUE_SOURCES.measure,
+      (...args) => services.getEnabledMeasureCatalogues(...args),
       (...args) => services.enableMeasureCatalogue(...args),
-      201,
     )
   const disableMeasureCatalogueHandler: RouteHandler<typeof disableMeasureCatalogueRoute> =
-    catalogueEnablementRouteHandler(
+    disableCatalogueRouteHandler(
       fdm,
-      CATALOGUE_SOURCES.measure,
+      (...args) => services.getEnabledMeasureCatalogues(...args),
       (...args) => services.disableMeasureCatalogue(...args),
-      204,
     )
 
   app.openapi(listAvailableCataloguesRoute, (c) => {
@@ -486,10 +537,10 @@ export function registerCatalogueRoutes(
   app.openapi(listCultivationCatalogueRoute, listCultivationCatalogueHandler)
   app.openapi(listFertilizerCatalogueRoute, listFertilizerCatalogueHandler)
   app.openapi(listMeasureCatalogueRoute, listMeasureCatalogueHandler)
-  app.openapi(enableFertilizerCatalogueRoute, enableFertilizerCatalogueHandler)
-  app.openapi(disableFertilizerCatalogueRoute, disableFertilizerCatalogueHandler)
   app.openapi(enableCultivationCatalogueRoute, enableCultivationCatalogueHandler)
   app.openapi(disableCultivationCatalogueRoute, disableCultivationCatalogueHandler)
+  app.openapi(enableFertilizerCatalogueRoute, enableFertilizerCatalogueHandler)
+  app.openapi(disableFertilizerCatalogueRoute, disableFertilizerCatalogueHandler)
   app.openapi(enableMeasureCatalogueRoute, enableMeasureCatalogueHandler)
   app.openapi(disableMeasureCatalogueRoute, disableMeasureCatalogueHandler)
 }

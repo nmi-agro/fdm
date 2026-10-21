@@ -83,8 +83,6 @@ export const requestGuard: MiddlewareHandler = async (c, next) => {
 
   const matchedRoutesList = matchedRoutes(c)
 
-  console.log(matchedRoutesList)
-
   if (
     WRITE_METHODS.has(method) &&
     !matchedRoutesList.some((route) => CONTENT_TYPE_GUARD_OVERRIDE_ROUTES.has(route.path))

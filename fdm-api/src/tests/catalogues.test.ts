@@ -1,3 +1,4 @@
+import { FdmType } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createFdmApi, FdmApiServices } from "../index"
 import { CATALOGUE_SOURCES, CatalogueServices } from "../routes/catalogues"
@@ -10,6 +11,9 @@ const mockAuth = {
 } as any
 
 const mockFdm = {
+  transaction<T>(handler: (tx: FdmType) => Promise<T>) {
+    return handler(this)
+  },
   insert: vi.fn().mockReturnThis(),
   values: vi.fn().mockReturnThis(),
   onConflictDoUpdate: vi.fn().mockReturnThis(),
@@ -32,6 +36,7 @@ function mockServices() {
     getEnabledMeasureCatalogues: vi.fn(),
   } satisfies CatalogueServices
 }
+type MockServices = ReturnType<typeof mockServices>
 
 const config = { appName: "Test App", appUrl: "https://test.example.com" }
 
@@ -202,7 +207,7 @@ describe("Catalogues - list available catalogues", () => {
 })
 
 describe("Catalogues - list farm catalogues", () => {
-  let services: ReturnType<typeof mockServices>
+  let services: MockServices
   let app: ReturnType<typeof makeApp>
 
   beforeEach(() => {
@@ -243,7 +248,7 @@ describe("Catalogues - list farm catalogues", () => {
 })
 
 describe("Catalogues - list catalogue items", () => {
-  let services: ReturnType<typeof mockServices>
+  let services: MockServices
   let app: ReturnType<typeof makeApp>
 
   beforeEach(() => {
@@ -332,7 +337,7 @@ describe("Catalogues - list catalogue items", () => {
 })
 
 describe("Catalogues - enable", () => {
-  let services: CatalogueServices
+  let services: MockServices
   let app: ReturnType<typeof makeApp>
 
   beforeEach(() => {
@@ -341,7 +346,8 @@ describe("Catalogues - enable", () => {
     validKey()
   })
 
-  it("returns 201 for POST /farms/{b_id_farm}/catalogues/cultivation/{source} with media type", async () => {
+  it("returns 201 for POST /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+    services.getEnabledCultivationCatalogues.mockResolvedValueOnce([])
     const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp`, {
       method: "post",
       headers: { "x-api-key": "valid-key" },
@@ -355,7 +361,8 @@ describe("Catalogues - enable", () => {
     )
   })
 
-  it("returns 201 for POST /farms/{b_id_farm}/catalogues/fertilizer/{source} with media type", async () => {
+  it("returns 201 for POST /farms/{b_id_farm}/catalogues/fertilizer/{source}", async () => {
+    services.getEnabledFertilizerCatalogues.mockResolvedValueOnce([])
     const res = await app.request(`/farms/farm-1/catalogues/fertilizer/baat`, {
       method: "post",
       headers: { "x-api-key": "valid-key" },
@@ -369,7 +376,8 @@ describe("Catalogues - enable", () => {
     )
   })
 
-  it("returns 201 for POST /farms/{b_id_farm}/catalogues/measure/{source} with media type", async () => {
+  it("returns 201 for POST /farms/{b_id_farm}/catalogues/measure/{source}", async () => {
+    services.getEnabledMeasureCatalogues.mockResolvedValueOnce([])
     const res = await app.request(`/farms/farm-1/catalogues/measure/bln`, {
       method: "post",
       headers: { "x-api-key": "valid-key" },
@@ -377,10 +385,40 @@ describe("Catalogues - enable", () => {
     expect(res.status).toBe(201)
     expect(services.enableMeasureCatalogue).toHaveBeenCalledWith(mockFdm, "user-1", "farm-1", "bln")
   })
+
+  it("returns 204 for POST /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+    services.getEnabledCultivationCatalogues.mockResolvedValueOnce(["brp"])
+    const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp`, {
+      method: "post",
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(204)
+    expect(services.enableCultivationCatalogue).not.toHaveBeenCalled()
+  })
+
+  it("returns 204 for POST /farms/{b_id_farm}/catalogues/fertilizer/{source}", async () => {
+    services.getEnabledFertilizerCatalogues.mockResolvedValueOnce(["baat"])
+    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/baat`, {
+      method: "post",
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(204)
+    expect(services.enableFertilizerCatalogue).not.toHaveBeenCalled()
+  })
+
+  it("returns 204 for POST /farms/{b_id_farm}/catalogues/measure/{source}", async () => {
+    services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["bln"])
+    const res = await app.request(`/farms/farm-1/catalogues/measure/bln`, {
+      method: "post",
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(204)
+    expect(services.enableMeasureCatalogue).not.toHaveBeenCalled()
+  })
 })
 
 describe("Catalogues - disable", () => {
-  let services: CatalogueServices
+  let services: MockServices
   let app: ReturnType<typeof makeApp>
 
   beforeEach(() => {
@@ -389,7 +427,8 @@ describe("Catalogues - disable", () => {
     validKey()
   })
 
-  it("returns 204 for DELETE /farms/{b_id_farm}/catalogues/cultivation/{source} with media type", async () => {
+  it("returns 204 (deleted) for DELETE /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+    services.getEnabledCultivationCatalogues.mockResolvedValueOnce(["brp"])
     const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp`, {
       method: "delete",
       headers: { "x-api-key": "valid-key" },
@@ -403,7 +442,8 @@ describe("Catalogues - disable", () => {
     )
   })
 
-  it("returns 204 for DELETE /farms/{b_id_farm}/catalogues/fertilizer/{source} with media type", async () => {
+  it("returns 204 (deleted) for DELETE /farms/{b_id_farm}/catalogues/fertilizer/{source}", async () => {
+    services.getEnabledFertilizerCatalogues.mockResolvedValueOnce(["baat"])
     const res = await app.request(`/farms/farm-1/catalogues/fertilizer/baat`, {
       method: "delete",
       headers: { "x-api-key": "valid-key" },
@@ -417,7 +457,8 @@ describe("Catalogues - disable", () => {
     )
   })
 
-  it("returns 204 for DELETE /farms/{b_id_farm}/catalogues/measure/{source} with media type", async () => {
+  it("returns 204 (deleted) for DELETE /farms/{b_id_farm}/catalogues/measure/{source}", async () => {
+    services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["bln"])
     const res = await app.request(`/farms/farm-1/catalogues/measure/bln`, {
       method: "delete",
       headers: { "x-api-key": "valid-key" },
@@ -429,5 +470,35 @@ describe("Catalogues - disable", () => {
       "farm-1",
       "bln",
     )
+  })
+
+  it("returns 204 (no-op) for DELETE /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+    services.getEnabledCultivationCatalogues.mockResolvedValueOnce([])
+    const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp`, {
+      method: "delete",
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(204)
+    expect(services.disableCultivationCatalogue).not.toHaveBeenCalled()
+  })
+
+  it("returns 204 (no-op) for DELETE /farms/{b_id_farm}/catalogues/fertilizer/{source}", async () => {
+    services.getEnabledFertilizerCatalogues.mockResolvedValueOnce([])
+    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/baat`, {
+      method: "delete",
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(204)
+    expect(services.disableFertilizerCatalogue).not.toHaveBeenCalled()
+  })
+
+  it("returns 204 (no-op) for DELETE /farms/{b_id_farm}/catalogues/measure/{source}", async () => {
+    services.getEnabledMeasureCatalogues.mockResolvedValueOnce([])
+    const res = await app.request(`/farms/farm-1/catalogues/measure/bln`, {
+      method: "delete",
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(204)
+    expect(services.disableMeasureCatalogue).not.toHaveBeenCalled()
   })
 })
