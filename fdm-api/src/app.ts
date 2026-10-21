@@ -9,6 +9,7 @@ import { createApiKeyAuth } from "./auth"
 import { createErrorHandler, createNotFoundHandler } from "./error"
 import { createPathExistenceGuard, requestGuard } from "./guards"
 import { registerCalculationRoutes } from "./routes/calculations"
+import { registerCatalogueRoutes } from "./routes/catalogues"
 import { registerCultivationRoutes } from "./routes/cultivations"
 import { registerDerogationRoutes } from "./routes/derogations"
 import { registerFarmGroupRoutes } from "./routes/farm-groups"
@@ -105,6 +106,7 @@ export function buildApp(
   registerFarmGroupRoutes(app, fdm, services)
   registerFieldRoutes(app, fdm, services)
   registerCalculationRoutes(app, fdm, services)
+  registerCatalogueRoutes(app, fdm, services)
   registerCultivationRoutes(app, fdm, services)
   registerHarvestRoutes(app, fdm, services)
   registerFertilizerRoutes(app, fdm, services)

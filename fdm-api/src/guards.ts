@@ -1,10 +1,16 @@
 import type { MiddlewareHandler } from "hono"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import { bodyLimit } from "hono/body-limit"
+import { matchedRoutes } from "hono/route"
 import { ApiError } from "./error"
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH"])
+const CONTENT_TYPE_GUARD_OVERRIDE_ROUTES = new Set([
+  "/farms/:b_id_farm/catalogues/cultivation/:source",
+  "/farms/:b_id_farm/catalogues/fertilizer/:source",
+  "/farms/:b_id_farm/catalogues/measure/:source",
+])
 
 const bodyLimitMiddleware = bodyLimit({
   maxSize: MAX_BODY_BYTES,
@@ -75,7 +81,14 @@ export function createPathExistenceGuard(appUrl: string): MiddlewareHandler {
 export const requestGuard: MiddlewareHandler = async (c, next) => {
   const method = c.req.method
 
-  if (WRITE_METHODS.has(method)) {
+  const matchedRoutesList = matchedRoutes(c)
+
+  console.log(matchedRoutesList)
+
+  if (
+    WRITE_METHODS.has(method) &&
+    !matchedRoutesList.some((route) => CONTENT_TYPE_GUARD_OVERRIDE_ROUTES.has(route.path))
+  ) {
     const rawContentType = c.req.header("content-type") ?? ""
     const mediaType = rawContentType.split(";")[0]?.trim().toLowerCase()
     if (mediaType !== "application/json") {

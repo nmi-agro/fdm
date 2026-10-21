@@ -119,6 +119,7 @@ describe("createPathExistenceGuard", () => {
 
 // ---------------------------------------------------------------------------
 // requestGuard: GET / DELETE pass through without Content-Type check
+// Requests to some other endpoints may pass through without Content-Type check too
 // ---------------------------------------------------------------------------
 describe("requestGuard: read methods bypass content-type check", () => {
   it("GET request without Content-Type passes through (200)", async () => {
@@ -132,6 +133,19 @@ describe("requestGuard: read methods bypass content-type check", () => {
     const res = await app.request("/any-path", { method: "DELETE" })
     expect(res.status).toBe(200)
   })
+
+  it.each([
+    "/farms/farm-1/catalogues/cultivation/brp",
+    "/farms/farm-1/catalogues/fertilizer/baat",
+    "/farms/farm-1/catalogues/measure/bln",
+  ])(
+    "POST requests to the catalogue enable endpoints without Content-Type pass through (200)",
+    async (path) => {
+      const app = makeFullApp()
+      const res = await app.request(path, { method: "POST" })
+      expect(res.status).toBe(401)
+    },
+  )
 })
 
 // ---------------------------------------------------------------------------
