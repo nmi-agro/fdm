@@ -39,7 +39,8 @@ import { calculateTargetForNitrogenBalance } from "./target"
 export function calculateNitrogenBalanceField(
   nitrogenBalanceInput: NitrogenBalanceFieldInput,
 ): NitrogenBalanceFieldNumeric {
-  const { fieldInput, fertilizerDetails, cultivationDetails, timeFrame } = nitrogenBalanceInput
+  const { fieldInput, fertilizerDetails, cultivationDetails, timeFrame, useEffectiveNitrogen } =
+    nitrogenBalanceInput
 
   // Get the details of the field
   const { field, harvests, cultivations, soilAnalyses, fertilizerApplications, depositionSupply } =
@@ -131,6 +132,7 @@ export function calculateNitrogenBalanceField(
     fertilizerDetailsMap,
     depositionSupply,
     timeFrameField,
+    useEffectiveNitrogen,
   )
 
   // Calculate the amount of Nitrogen removed
@@ -148,9 +150,26 @@ export function calculateNitrogenBalanceField(
   // Calculate the balance
   const balance = supply.total.add(removal.total).add(emission.ammonia.total)
 
+  // Nitrate leaching is always based on the surplus of the balance with total nitrogen, so that it
+  // is the same for the balance with total and with effective nitrogen (same applied products)
+  const balanceTotalNitrogen = useEffectiveNitrogen
+    ? calculateNitrogenSupply(
+        cultivations,
+        fertilizerApplications,
+        soilAnalysis,
+        cultivationDetailsMap,
+        fertilizerDetailsMap,
+        depositionSupply,
+        timeFrameField,
+        false,
+      )
+        .total.add(removal.total)
+        .add(emission.ammonia.total)
+    : balance
+
   // Calculate the Nitrogen Emssion via Nitrate as the surplus of nitrogen balance that is leached out
   const nitrateEmission = calculateNitrogenEmissionViaNitrate(
-    balance,
+    balanceTotalNitrogen,
     cultivations,
     soilAnalysis,
     cultivationDetailsMap,

@@ -18,9 +18,11 @@ import {
   type MetaFunction,
   NavLink,
   useLoaderData,
+  useLocation,
   useParams,
 } from "react-router"
 import { BufferStripInfo } from "~/components/blocks/balance/buffer-strip-info"
+import { isEffectiveNitrogenRequested } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { FieldCultivationsBadge } from "~/components/blocks/balance/field-cultivations-badge"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
@@ -65,6 +67,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get timeframe from calendar store
     const timeframe = getTimeframe(params)
 
+    // Calculate with effective nitrogen when selected with the toggle
+    const useEffectiveNitrogen = isEffectiveNitrogenRequested(request)
+
     // Get details of farm
     const farm = await getFarm(fdm, session.principal_id, b_id_farm)
     if (!farm) {
@@ -89,6 +94,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         principal_id: session.principal_id,
         b_id_farm,
         timeframe,
+        useEffectiveNitrogen,
       })
 
       if (nitrogenBalanceResult.hasErrors) {
@@ -124,6 +130,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       cultivationsEntries: [...cultivationsMap.entries()] as [string, Cultivation[]][],
       harvestsEntries: [...harvestsMap.entries()] as [string, Harvest[]][],
       mainCultivationEntries: mainCultivationEntries as [string, Cultivation | undefined][],
+      useEffectiveNitrogen: useEffectiveNitrogen,
       asyncData: asyncData,
     }
   } catch (error) {
@@ -146,7 +153,10 @@ export default function FarmBalanceNitrogenOverviewBlock() {
 
   return (
     <div className="space-y-4">
-      <Suspense key={loaderData.farm.b_id_farm} fallback={<NitrogenBalanceFallback />}>
+      <Suspense
+        key={`${loaderData.farm.b_id_farm}#${loaderData.useEffectiveNitrogen}`}
+        fallback={<NitrogenBalanceFallback />}
+      >
         <FarmBalanceNitrogenOverview {...loaderData} />
       </Suspense>
     </div>
@@ -168,9 +178,12 @@ function FarmBalanceNitrogenOverview({
   cultivationsEntries,
   harvestsEntries,
   mainCultivationEntries,
+  useEffectiveNitrogen,
   asyncData,
 }: Awaited<ReturnType<typeof loader>>) {
   const { nitrogenBalanceResult } = use(asyncData)
+  // Keep the selected nitrogen option when navigating to a field
+  const { search } = useLocation()
   // Computed once, not on every render: only shown in the error branch's debug dump below.
   const [errorTimestamp] = useState(() => new Date())
 
@@ -230,14 +243,19 @@ function FarmBalanceNitrogenOverview({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overschot / Doel (Bedrijf)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {/* The target applies to the balance with total nitrogen only */}
+              {useEffectiveNitrogen ? "Overschot (Bedrijf)" : "Overschot / Doel (Bedrijf)"}
+            </CardTitle>
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
                 <p>
-                  {`${resolvedNitrogenBalanceResult.balance} / ${resolvedNitrogenBalanceResult.target}`}
+                  {useEffectiveNitrogen
+                    ? `${resolvedNitrogenBalanceResult.balance}`
+                    : `${resolvedNitrogenBalanceResult.balance} / ${resolvedNitrogenBalanceResult.target}`}
                 </p>
                 {hasErrors ? (
                   <Tooltip>
@@ -246,7 +264,7 @@ function FarmBalanceNitrogenOverview({
                     </TooltipTrigger>
                     <TooltipContent>Niet alle percelen konden worden berekend</TooltipContent>
                   </Tooltip>
-                ) : resolvedNitrogenBalanceResult.balance <=
+                ) : useEffectiveNitrogen ? null : resolvedNitrogenBalanceResult.balance <=
                   resolvedNitrogenBalanceResult.target ? (
                   <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
@@ -259,7 +277,9 @@ function FarmBalanceNitrogenOverview({
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {useEffectiveNitrogen ? "Aanvoer (werkzaam)" : "Aanvoer"}
+            </CardTitle>
             <ArrowDown className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
@@ -335,7 +355,9 @@ function FarmBalanceNitrogenOverview({
                 return (
                   <div className="flex items-center" key={fieldResult.b_id}>
                     {fieldResult.balance ? (
-                      fieldResult.balance.balance <= fieldResult.balance.target ? (
+                      useEffectiveNitrogen ? (
+                        <div className="h-6 w-6" />
+                      ) : fieldResult.balance.balance <= fieldResult.balance.target ? (
                         <CircleCheck className="h-6 w-6 rounded-full bg-green-100 p-0 text-green-500" />
                       ) : (
                         <CircleX className="h-6 w-6 rounded-full bg-red-100 p-0 text-red-500" />
@@ -346,7 +368,7 @@ function FarmBalanceNitrogenOverview({
 
                     <div className="ml-4 space-y-1">
                       <div className="flex items-baseline gap-2">
-                        <NavLink to={`./${fieldResult.b_id}`}>
+                        <NavLink to={`./${fieldResult.b_id}${search}`}>
                           <p className="text-sm leading-none font-medium hover:underline">
                             {fieldData?.b_name}
                           </p>
@@ -362,9 +384,13 @@ function FarmBalanceNitrogenOverview({
                     </div>
                     <div className="ml-auto font-medium">
                       {fieldResult.balance ? (
-                        `${fieldResult.balance.balance} / ${fieldResult.balance.target}`
+                        useEffectiveNitrogen ? (
+                          `${fieldResult.balance.balance}`
+                        ) : (
+                          `${fieldResult.balance.balance} / ${fieldResult.balance.target}`
+                        )
                       ) : (
-                        <NavLink to={`./${fieldResult.b_id}`}>
+                        <NavLink to={`./${fieldResult.b_id}${search}`}>
                           <p className="text-end text-sm text-orange-500 hover:underline">
                             {"Bekijk foutmelding"}
                           </p>
