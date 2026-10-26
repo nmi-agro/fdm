@@ -40,7 +40,10 @@ const FieldNameSchema = z.string().trim().min(1, "Vul een naam in voor elk perce
 const FieldInitBaseSchema = z.object({
   b_name: FieldNameSchema,
   b_id_source: z.string().nullable(),
-  b_geometry: z.object(),
+  b_geometry: z.looseObject({
+    type: z.enum(["Polygon", "MultiPolygon"]),
+    coordinates: z.array(z.any()),
+  }),
   b_lu_catalogue: z.string().nullable(),
   b_start: NonNullableDateSchema,
   b_end: NullableDateSchema,
