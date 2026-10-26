@@ -109,20 +109,6 @@ export const FormSchema = z
         })
         .optional(),
     ),
-    b_lu_p_harvestable: z.preprocess(
-      (val) => (val === "" ? undefined : typeof val === "string" ? Number(val) : val),
-      z
-        .number({
-          error: "Het fosfaatgehalte moet een getal zijn",
-        })
-        .min(0, {
-          message: "Het fosfaatgehalte mag niet negatief zijn",
-        })
-        .max(100, {
-          message: "Het fosfaatgehalte mag niet groter zijn dan 100 g P₂O₅/kg DS",
-        })
-        .optional(),
-    ),
     b_lu_tarra: z.preprocess(
       (val) => (val === "" ? undefined : typeof val === "string" ? Number(val) : val),
       z

@@ -40,7 +40,6 @@ export type HarvestParameter =
   | "b_lu_dm"
   | "b_lu_cp"
   | "b_lu_n_harvestable"
-  | "b_lu_p_harvestable"
 
 export type HarvestParameters = HarvestParameter[]
 
@@ -54,5 +53,4 @@ export interface HarvestParametersDefault {
   b_lu_uww?: schema.harvestableAnalysesTypeInsert["b_lu_uww"]
   b_lu_cp?: schema.harvestableAnalysesTypeInsert["b_lu_cp"]
   b_lu_n_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_n_harvestable"]
-  b_lu_p_harvestable?: schema.harvestableAnalysesTypeInsert["b_lu_p_harvestable"]
 }

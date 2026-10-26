@@ -960,35 +960,17 @@ export function getParametersForHarvestCat(
 ): HarvestParameters {
   switch (b_lu_harvestcat) {
     case "HC010":
-      return ["b_lu_yield_fresh", "b_lu_dm", "b_lu_n_harvestable", "b_lu_p_harvestable"]
+      return ["b_lu_yield_fresh", "b_lu_dm", "b_lu_n_harvestable"]
     case "HC020":
       return ["b_lu_yield", "b_lu_cp"]
     case "HC031":
       return ["b_lu_yield", "b_lu_cp"]
     case "HC040":
-      return [
-        "b_lu_yield_bruto",
-        "b_lu_tarra",
-        "b_lu_dm",
-        "b_lu_n_harvestable",
-        "b_lu_p_harvestable",
-      ]
+      return ["b_lu_yield_bruto", "b_lu_tarra", "b_lu_dm", "b_lu_n_harvestable"]
     case "HC041":
-      return [
-        "b_lu_yield_bruto",
-        "b_lu_tarra",
-        "b_lu_dm",
-        "b_lu_n_harvestable",
-        "b_lu_p_harvestable",
-      ]
+      return ["b_lu_yield_bruto", "b_lu_tarra", "b_lu_dm", "b_lu_n_harvestable"]
     case "HC042":
-      return [
-        "b_lu_yield_bruto",
-        "b_lu_tarra",
-        "b_lu_uww",
-        "b_lu_n_harvestable",
-        "b_lu_p_harvestable",
-      ]
+      return ["b_lu_yield_bruto", "b_lu_tarra", "b_lu_uww", "b_lu_n_harvestable"]
     case "HC050":
       return ["b_lu_yield_fresh", "b_lu_moist", "b_lu_cp"]
     default:
@@ -1094,9 +1076,6 @@ export function getDefaultsForHarvestParameters(
       }
     } else if (parameter === "b_lu_n_harvestable") {
       // Default harvestable nitrogen content.
-      defaultHarvestParameters[parameter] = cultivationsCatalogueItem[parameter]
-    } else if (parameter === "b_lu_p_harvestable") {
-      // Default harvestable phosphate content (g P2O5 / kg DM). Null when the catalogue has no value.
       defaultHarvestParameters[parameter] = cultivationsCatalogueItem[parameter]
     }
   }

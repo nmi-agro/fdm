@@ -246,10 +246,6 @@ export type TimelineHarvest = {
   harvestableAnalysis: HarvestableAnalysis | null
   /** Pre-filtered/labeled by the server loader to only the parameters fillable for this crop's harvest category. */
   parameters: { id: HarvestParameters[number]; label: string; value: number }[]
-  /** Parameters to show when editing this harvest: the ones with a value, plus the phosphate content when fillable. */
-  editableParameters: HarvestParameters
-  /** Catalogue default for the phosphate content, used when the harvest itself has no value. */
-  b_lu_p_harvestable_default: number | null
 }
 
 export type TimelineSoilAnalysis = {
