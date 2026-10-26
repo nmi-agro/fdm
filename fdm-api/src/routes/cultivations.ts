@@ -325,16 +325,41 @@ export function registerCultivationRoutes(
     const { b_id } = c.req.valid("param") as { b_id: string }
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const body = c.req.valid("json") as z.infer<typeof CreateCultivationBodySchema>
-    const b_lu = await services.addCultivation(
-      fdm,
-      principal.effectivePrincipalId,
-      body.b_lu_catalogue,
-      b_id,
-      new Date(body.b_lu_start),
-      body.b_lu_end ? new Date(body.b_lu_end) : undefined,
-      body.m_cropresidue ?? undefined,
-      body.b_lu_variety ?? undefined,
-    )
+    let b_lu: string
+    try {
+      b_lu = await services.addCultivation(
+        fdm,
+        principal.effectivePrincipalId,
+        body.b_lu_catalogue,
+        b_id,
+        new Date(body.b_lu_start),
+        body.b_lu_end ? new Date(body.b_lu_end) : undefined,
+        body.m_cropresidue ?? undefined,
+        body.b_lu_variety ?? undefined,
+      )
+    } catch (e) {
+      if (
+        e instanceof Error &&
+        e.cause instanceof Error &&
+        e.cause.message === "Cultivation code is not available for this time period"
+      ) {
+        throw new ApiError(
+          400,
+          "bad-request",
+          `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
+          {
+            errors: [
+              {
+                code: "custom",
+                path: ["b_lu_catalogue"],
+                message: `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
+              },
+            ],
+          },
+        )
+      }
+      throw e
+    }
     const cultivation = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
     if (!cultivation?.b_lu) {
       throw new ApiError(500, "internal-error", "Cultivation created but could not be retrieved.")
@@ -390,16 +415,41 @@ export function registerCultivationRoutes(
         throw new ApiError(400, "validation-failed", "b_lu_start must not be after b_lu_end.")
       }
     }
-    await services.updateCultivation(
-      fdm,
-      principal.effectivePrincipalId,
-      b_lu,
-      body.b_lu_catalogue,
-      body.b_lu_start ? new Date(body.b_lu_start) : undefined,
-      body.b_lu_end === undefined ? undefined : body.b_lu_end ? new Date(body.b_lu_end) : null,
-      body.m_cropresidue,
-      body.b_lu_variety,
-    )
+
+    try {
+      await services.updateCultivation(
+        fdm,
+        principal.effectivePrincipalId,
+        b_lu,
+        body.b_lu_catalogue,
+        body.b_lu_start ? new Date(body.b_lu_start) : undefined,
+        body.b_lu_end === undefined ? undefined : body.b_lu_end ? new Date(body.b_lu_end) : null,
+        body.m_cropresidue,
+        body.b_lu_variety,
+      )
+    } catch (e) {
+      if (
+        e instanceof Error &&
+        e.cause instanceof Error &&
+        e.cause.message === "Cultivation code is not available for this time period"
+      ) {
+        throw new ApiError(
+          400,
+          "bad-request",
+          `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
+          {
+            errors: [
+              {
+                code: "custom",
+                path: ["b_lu_catalogue"],
+                message: `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
+              },
+            ],
+          },
+        )
+      }
+      throw e
+    }
     const cultivation = await services.getCultivation(fdm, principal.effectivePrincipalId, b_lu)
     if (!cultivation?.b_lu) {
       throw new ApiError(404, "not-found", `Cultivation '${b_lu}' not found.`)
