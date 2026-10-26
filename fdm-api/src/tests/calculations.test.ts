@@ -257,38 +257,6 @@ const mockNormsServices = {
 //         .mockResolvedValue([{ parameter: "a_som_loi", value: 3.5, a_depth_lower: 0.3 }]),
 // }
 
-// [MINERALIZATION: disabled — behind feature flag in fdm-app]
-// const mockNSupplyServices = {
-//     getNSupply: vi.fn().mockResolvedValue({
-//         b_id: "field-1", b_name: "Test field", area: 2.5, method: "minip", totalAnnualN: 80,
-//         data: [{ doy: 1, d_n_supply_actual: 0 }, { doy: 365, d_n_supply_actual: 80 }],
-//         completeness: { available: [], missing: [], estimated: [], score: 80 },
-//     }),
-//     assessDataCompleteness: vi.fn().mockReturnValue({ available: [], missing: [], estimated: [], score: 80 }),
-//     buildNSupplyRequest: vi.fn().mockReturnValue({}),
-//     getField: vi.fn().mockResolvedValue({ b_id: "field-1", b_name: "Test field", b_area: 2.5, b_id_farm: "farm-1" }),
-//     getCurrentSoilData: vi.fn().mockResolvedValue([]),
-//     getCultivations: vi.fn().mockResolvedValue([]),
-// }
-//
-// const mockDynaServices = {
-//     getDyna: vi.fn().mockResolvedValue({
-//         b_id: "field-1", calculationDyna: [],
-//         nitrogenBalance: { b_nw: 100, b_n_uptake: 80, b_n_greenmanure: 0, b_n_fertilizer_organic: 30,
-//             b_n_fertilizer_artificial: 70, b_n_fertilizer_preceeding: 5 },
-//         fertilizingRecommendations: null, harvestingRecommendation: null,
-//     }),
-//     buildDynaRequest: vi.fn().mockReturnValue({}),
-//     getField: vi.fn().mockResolvedValue({ b_id: "field-1", b_id_farm: "farm-1", b_name: "Test field", b_area: 2.5 }),
-//     getCurrentSoilData: vi.fn().mockResolvedValue([]),
-//     getCultivations: vi.fn().mockResolvedValue([]),
-//     getCultivationsFromCatalogue: vi.fn().mockResolvedValue([]),
-//     getHarvestsForFarm: vi.fn().mockResolvedValue(new Map()),
-//     getFertilizerApplications: vi.fn().mockResolvedValue([]),
-//     getFertilizers: vi.fn().mockResolvedValue([]),
-//     getGrazingIntention: vi.fn().mockResolvedValue(false),
-// }
-
 // ---------------------------------------------------------------------------
 // 401 — unauthenticated
 // ---------------------------------------------------------------------------
@@ -347,19 +315,6 @@ describe("Calculations — unauthenticated", () => {
   // it("returns 401 for GET /fields/:id/calculations/nutrient-advice without key", async () => {
   //     const app = makeApp()
   //     const res = await app.request("/fields/field-1/calculations/nutrient-advice")
-  //     expect(res.status).toBe(401)
-  // })
-
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // it("returns 401 for GET /fields/:id/calculations/nsupply without key", async () => {
-  //     const app = makeApp()
-  //     const res = await app.request("/fields/field-1/calculations/nsupply?year=2025&method=minip")
-  //     expect(res.status).toBe(401)
-  // })
-  //
-  // it("returns 401 for GET /fields/:id/calculations/dyna without key", async () => {
-  //     const app = makeApp()
-  //     const res = await app.request("/fields/field-1/calculations/dyna?year=2025")
   //     expect(res.status).toBe(401)
   // })
 })
@@ -805,36 +760,5 @@ describe("GET /fields/:b_id/calculations/norms", () => {
 //         const body = await res.json()
 //         expect(body.b_id).toBe("field-1")
 //         expect(body.d_n_req).toBe(150)
-//     })
-// })
-
-// [MINERALIZATION: disabled — behind feature flag in fdm-app]
-// describe("GET /fields/:b_id/calculations/nsupply", () => {
-//     beforeEach(() => { vi.clearAllMocks(); validKey() })
-//     it("returns 200 with nsupply result", async () => {
-//         vi.stubEnv("NMI_API_KEY", "test-nmi-key")
-//         const app = makeApp(mockNSupplyServices)
-//         const res = await app.request("/fields/field-1/calculations/nsupply?year=2025&method=minip",
-//             { headers: { "x-api-key": "valid-key" } })
-//         expect(res.status).toBe(200)
-//         const body = await res.json()
-//         expect(body.b_id).toBe("field-1")
-//         expect(body.method).toBe("minip")
-//         expect(body.totalAnnualN).toBe(80)
-//     })
-// })
-//
-// describe("GET /fields/:b_id/calculations/dyna", () => {
-//     beforeEach(() => { vi.clearAllMocks(); validKey() })
-//     it("returns 200 with dyna result", async () => {
-//         vi.stubEnv("NMI_API_KEY", "test-nmi-key")
-//         const app = makeApp(mockDynaServices)
-//         const res = await app.request("/fields/field-1/calculations/dyna?year=2025",
-//             { headers: { "x-api-key": "valid-key" } })
-//         expect(res.status).toBe(200)
-//         const body = await res.json()
-//         expect(body.b_id).toBe("field-1")
-//         expect(body.nitrogenBalance.b_nw).toBe(100)
-//         expect(body.fertilizingRecommendations).toBeNull()
 //     })
 // })

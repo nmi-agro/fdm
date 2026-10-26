@@ -82,6 +82,18 @@
       opacity: 0;
     }
   }
+
+  /* Brief highlight that marks content as just updated, e.g. a recalculated scenario */
+  --animate-just-updated: just-updated 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+  @keyframes just-updated {
+    0% {
+      box-shadow: 0 0 0 3px hsl(var(--ring) / 0.35);
+      background-color: hsl(var(--accent));
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--ring) / 0);
+    }
+  }
 }
 
 /*

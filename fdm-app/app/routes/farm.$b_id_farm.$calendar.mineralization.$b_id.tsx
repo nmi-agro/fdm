@@ -55,6 +55,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+export { shouldRevalidateMineralization as shouldRevalidate } from "~/lib/mineralization"
+
 export default function MineralizationFieldLayout() {
   const loaderData = useLoaderData<typeof loader>()
 
