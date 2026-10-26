@@ -23,7 +23,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { isOfOrigin, modifySearchParams } from "~/lib/url-utils"
+import { isOfOrigin, modifySearchParams, stripDataSuffix } from "~/lib/url-utils"
 
 export const meta: MetaFunction = () => {
   return [
@@ -119,7 +119,13 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
       throw new Error("missing: b_id_farm")
     }
 
-    const returnUrl = url.searchParams.get("returnUrl") ?? `/farm/${b_id_farm}/fertilizers`
+    // Strip a `.data` suffix from the path of the return URL, leaving the query and hash intact
+    const rawReturnUrl = url.searchParams.get("returnUrl") ?? `/farm/${b_id_farm}/fertilizers`
+    const returnUrlSuffixStart = rawReturnUrl.search(/[?#]/)
+    const returnUrl =
+      returnUrlSuffixStart === -1
+        ? stripDataSuffix(rawReturnUrl)
+        : `${stripDataSuffix(rawReturnUrl.slice(0, returnUrlSuffixStart))}${rawReturnUrl.slice(returnUrlSuffixStart)}`
 
     const session = await getSession(request)
     const formValues = await extractFormValuesFromRequest(request, FormSchema)
