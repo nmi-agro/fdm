@@ -64,10 +64,10 @@ export function WeatherStrip({
           daarna het langjarig klimaatgemiddelde.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Two rows of a week on small screens, one row from sm on */}
+      <CardContent className="@container space-y-4">
+        {/* Two rows of a week in a narrow card, one row once every day has room for its labels */}
         <ol
-          className="grid grid-cols-7 gap-x-1 gap-y-4 sm:grid-cols-[repeat(var(--days),minmax(0,1fr))]"
+          className="grid grid-cols-7 gap-x-1 gap-y-4 @2xl:grid-cols-[repeat(var(--days),minmax(0,1fr))]"
           style={{ "--days": forecast.days.length } as CSSProperties}
           aria-label="Weersverwachting per dag"
         >

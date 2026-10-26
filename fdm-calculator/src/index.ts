@@ -133,6 +133,7 @@ export type {
   ScenarioDiff,
   ScenarioFertilizer,
   ScenarioFertilizerApplication,
+  ScenarioHarvest,
   SeasonPhase,
   WeatherForecast,
   WeatherForecastDay,

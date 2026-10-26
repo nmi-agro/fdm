@@ -14,6 +14,7 @@ import {
   type MineralizationApplication,
   type MineralizationCultivation,
   type MineralizationFertilizer,
+  DYNA_V2_MAX_HARVESTS_PER_CULTIVATION,
   mapApplicationMethod,
 } from "./prepare"
 
@@ -29,11 +30,24 @@ export interface ScenarioFertilizerApplication {
   p_app_date: string
 }
 
-/** Scenario for one field: the full list of applications in the year and the harvest of the main crop. */
+/** Harvest of the main cultivation in a scenario. */
+export interface ScenarioHarvest {
+  /** Identifier of an existing harvest; absent for new harvests. */
+  b_id_harvesting?: string
+  /** Calendar date (`YYYY-MM-DD`). */
+  b_date_harvest: string
+  /** Yield in kg DM/ha; absent when unknown. */
+  b_lu_yield?: number
+}
+
+/**
+ * Scenario for one field: the full list of applications in the year and the harvests of the main
+ * cultivation in the year (one for a crop harvested once, the cuts for grassland).
+ */
 export interface MineralizationScenario {
   fertilizerApplications: ScenarioFertilizerApplication[]
-  /** (Last) harvest of the main cultivation; absent to keep the current harvest. */
-  harvest?: { b_date_harvest: string; b_lu_yield?: number }
+  /** Harvests of the main cultivation; absent to keep the current harvests. */
+  harvests?: ScenarioHarvest[]
 }
 
 /** Fertilizer properties needed to calculate a scenario. */
@@ -46,14 +60,19 @@ export interface ScenarioDiff {
   update: (ScenarioFertilizerApplication & { p_app_id: string })[]
   /** `p_app_id` of the applications to remove. */
   remove: string[]
-  /** Harvest to add (`b_id_harvesting` null) or update; `null` when unchanged. */
-  harvest: { b_id_harvesting: string | null; b_date_harvest: string; b_lu_yield?: number } | null
+  /** Harvests of the main cultivation to add, update and remove (`b_id_harvesting`). */
+  harvests: {
+    add: ScenarioHarvest[]
+    update: (ScenarioHarvest & { b_id_harvesting: string })[]
+    remove: string[]
+  }
 }
 
 /**
  * Returns the schema that validates a scenario for a calendar year.
  *
- * Dates must be `YYYY-MM-DD` within the year and amounts must not be negative.
+ * Dates must be `YYYY-MM-DD` within the year and amounts must not be negative. A scenario has at
+ * least one and at most {@link DYNA_V2_MAX_HARVESTS_PER_CULTIVATION} harvests.
  *
  * @param year - Calendar year of the scenario.
  * @returns Zod schema of {@link MineralizationScenario}.
@@ -73,8 +92,16 @@ export function getMineralizationScenarioSchema(year: number) {
         p_app_date: dateInYear,
       }),
     ),
-    harvest: z
-      .object({ b_date_harvest: dateInYear, b_lu_yield: z.number().min(0).optional() })
+    harvests: z
+      .array(
+        z.object({
+          b_id_harvesting: z.string().min(1).optional(),
+          b_date_harvest: dateInYear,
+          b_lu_yield: z.number().min(0).optional(),
+        }),
+      )
+      .min(1)
+      .max(DYNA_V2_MAX_HARVESTS_PER_CULTIVATION)
       .optional(),
   })
 }
@@ -83,14 +110,18 @@ export function getMineralizationScenarioSchema(year: number) {
  * Applies a scenario to a prepared Dyna v2 request.
  *
  * The fertilizer applications of the request are replaced by those of the scenario (converted to
- * kg/ha). When the scenario contains a harvest, it replaces the last harvest of the main
- * cultivation; for crops harvested once, the cultivation then also ends on that date.
+ * kg/ha). When the scenario contains harvests, they replace the harvests of the main cultivation;
+ * an existing harvest keeps its other properties (such as its nitrogen content), a new one takes
+ * over the crop residue setting of the cultivation. For crops harvested once, the cultivation then
+ * ends on the last harvest.
  *
  * @param args.request - Request prepared with `prepareMineralizationInput`.
  * @param args.scenario - Scenario to apply.
  * @param args.fertilizers - Fertilizers of the farm by `p_id`.
  * @param args.mainB_lu - `b_lu` of the main cultivation.
  * @param args.mainHarvestable - Whether the main cultivation is harvested once or multiple times.
+ * @param args.mainHarvestIds - `b_id_harvesting` of the main cultivation's harvests in the request,
+ *   in the same order, to recognise existing harvests in the scenario.
  * @returns A new request; the input is not modified.
  * @throws `Error` when the scenario uses a fertilizer that is not known on the farm.
  */
@@ -100,6 +131,7 @@ export function applyScenarioToRequest(args: {
   fertilizers: Map<string, ScenarioFertilizer>
   mainB_lu: string
   mainHarvestable: MineralizationCultivation["b_lu_harvestable"]
+  mainHarvestIds?: string[]
 }): DynaV2Request {
   const { request, scenario, fertilizers, mainB_lu, mainHarvestable } = args
   const result: DynaV2Request = { ...request }
@@ -131,22 +163,36 @@ export function applyScenarioToRequest(args: {
     delete result.fertilizer_properties
   }
 
-  if (scenario.harvest) {
-    const { b_date_harvest, b_lu_yield } = scenario.harvest
+  if (scenario.harvests && scenario.harvests.length > 0) {
     const harvests = request.harvests ?? []
     const mainHarvests = harvests.filter((h) => h.b_lu_id === mainB_lu)
-    const replaced = mainHarvests.at(-1)
-    const newHarvest = {
-      ...replaced,
-      b_lu_id: mainB_lu,
-      b_date_harvest,
-      ...(b_lu_yield !== undefined ? { b_lu_yield } : {}),
-    }
-    const keptMain = mainHarvestable === "once" ? [] : mainHarvests.slice(0, -1)
-    result.harvests = [...harvests.filter((h) => h.b_lu_id !== mainB_lu), ...keptMain, newHarvest]
-    if (mainHarvestable === "once") {
+    const existingById = new Map(
+      (args.mainHarvestIds ?? []).flatMap((id, i) =>
+        mainHarvests[i] ? [[id, mainHarvests[i]] as const] : [],
+      ),
+    )
+    const cropResidue = mainHarvests.find((h) => h.m_cropresidue !== undefined)?.m_cropresidue
+    const scenarioHarvests = [...scenario.harvests]
+      .sort((a, b) => a.b_date_harvest.localeCompare(b.b_date_harvest))
+      .map(({ b_id_harvesting, b_date_harvest, b_lu_yield }) => {
+        const existing = b_id_harvesting ? existingById.get(b_id_harvesting) : undefined
+        const m_cropresidue = existing ? existing.m_cropresidue : cropResidue
+        // The yield of the scenario replaces the stored one, also when it was cleared
+        return {
+          b_lu_id: mainB_lu,
+          b_date_harvest,
+          ...(b_lu_yield !== undefined ? { b_lu_yield } : {}),
+          ...(existing?.b_lu_n_harvestable !== undefined
+            ? { b_lu_n_harvestable: existing.b_lu_n_harvestable }
+            : {}),
+          ...(m_cropresidue !== undefined ? { m_cropresidue } : {}),
+        }
+      })
+    result.harvests = [...harvests.filter((h) => h.b_lu_id !== mainB_lu), ...scenarioHarvests]
+    const lastHarvest = scenarioHarvests.at(-1)?.b_date_harvest
+    if (mainHarvestable === "once" && lastHarvest) {
       result.cultivations = request.cultivations?.map((c) =>
-        c.b_lu_id === mainB_lu ? { ...c, b_lu_end: b_date_harvest } : c,
+        c.b_lu_id === mainB_lu ? { ...c, b_lu_end: lastHarvest } : c,
       )
     }
   }
@@ -158,24 +204,29 @@ export function applyScenarioToRequest(args: {
  * Determines which changes are needed to save a scenario.
  *
  * @param current - Current fertilizer applications of the field in the scenario's year.
- * @param currentHarvest - Current (last) harvest of the main cultivation, or `null`.
+ * @param currentHarvests - Current harvests of the main cultivation in the scenario's year.
  * @param scenario - Scenario to save.
  * @param base - The scenario as it was before the user edited it. When given, only applications
- *   in the base can be updated or removed, and they only count as changed when they differ from
- *   the base; applications the scenario did not show are left untouched.
- * @returns Applications to add, update and remove, and the harvest to add or update.
+ *   and harvests in the base can be updated or removed, and they only count as changed when they
+ *   differ from the base; those the scenario did not show are left untouched.
+ * @returns Applications and harvests to add, update and remove.
  */
 export function diffScenario(
   current: MineralizationApplication[],
-  currentHarvest: {
+  currentHarvests: {
     b_id_harvesting: string
     b_date_harvest: string
     b_lu_yield: number | null
-  } | null,
+  }[],
   scenario: MineralizationScenario,
   base?: MineralizationScenario,
 ): ScenarioDiff {
-  const diff: ScenarioDiff = { add: [], update: [], remove: [], harvest: null }
+  const diff: ScenarioDiff = {
+    add: [],
+    update: [],
+    remove: [],
+    harvests: { add: [], update: [], remove: [] },
+  }
   const scenarioIds = new Set<string>()
   const baseById = new Map(
     (base?.fertilizerApplications ?? []).flatMap((a) => (a.p_app_id ? [[a.p_app_id, a]] : [])),
@@ -219,17 +270,37 @@ export function diffScenario(
     if (removable && !scenarioIds.has(existing.p_app_id)) diff.remove.push(existing.p_app_id)
   }
 
-  if (scenario.harvest) {
-    const { b_date_harvest, b_lu_yield } = scenario.harvest
-    const changed =
-      !currentHarvest ||
-      currentHarvest.b_date_harvest !== b_date_harvest ||
-      (b_lu_yield !== undefined && b_lu_yield !== currentHarvest.b_lu_yield)
-    if (changed) {
-      diff.harvest = {
-        b_id_harvesting: currentHarvest?.b_id_harvesting ?? null,
-        b_date_harvest,
-        ...(b_lu_yield !== undefined ? { b_lu_yield } : {}),
+  if (scenario.harvests) {
+    const baseHarvests = new Map(
+      (base?.harvests ?? []).flatMap((h) => (h.b_id_harvesting ? [[h.b_id_harvesting, h]] : [])),
+    )
+    const kept = new Set<string>()
+    for (const harvest of scenario.harvests) {
+      const existing = harvest.b_id_harvesting
+        ? currentHarvests.find((h) => h.b_id_harvesting === harvest.b_id_harvesting)
+        : undefined
+      if (!existing) {
+        const { b_id_harvesting: _id, ...added } = harvest
+        diff.harvests.add.push(added)
+        continue
+      }
+      kept.add(existing.b_id_harvesting)
+      // Compare with what the user started from when known, like the applications
+      const reference = baseHarvests.get(existing.b_id_harvesting)
+      const changed = reference
+        ? reference.b_date_harvest !== harvest.b_date_harvest ||
+          reference.b_lu_yield !== harvest.b_lu_yield
+        : existing.b_date_harvest !== harvest.b_date_harvest ||
+          (harvest.b_lu_yield !== undefined && harvest.b_lu_yield !== existing.b_lu_yield)
+      if (changed) {
+        diff.harvests.update.push({ ...harvest, b_id_harvesting: existing.b_id_harvesting })
+      }
+    }
+    for (const existing of currentHarvests) {
+      // With a base, only harvests that were part of the scenario can be removed by it
+      const removable = base ? baseHarvests.has(existing.b_id_harvesting) : true
+      if (removable && !kept.has(existing.b_id_harvesting)) {
+        diff.harvests.remove.push(existing.b_id_harvesting)
       }
     }
   }

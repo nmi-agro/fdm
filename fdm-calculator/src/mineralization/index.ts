@@ -54,6 +54,7 @@ export type {
   ScenarioDiff,
   ScenarioFertilizer,
   ScenarioFertilizerApplication,
+  ScenarioHarvest,
 } from "./scenario"
 export { applyScenarioToRequest, diffScenario, getMineralizationScenarioSchema } from "./scenario"
 export type { WeatherForecast, WeatherForecastDay, WeatherForecastInput } from "./weather"

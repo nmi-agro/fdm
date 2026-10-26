@@ -343,11 +343,14 @@ function FieldMineralization(props: LoaderData) {
   }
 }
 
-/** The current fertilization plan and harvest of the year, as the starting point of a scenario. */
+/**
+ * The current fertilization plan and the harvests of the main cultivation in the year (every cut
+ * for grassland), as the starting point of a scenario.
+ */
 function getScenarioBase(outcome: FieldMineralizationOk): MineralizationScenario {
-  const mainHarvest = outcome.usedInput.harvests
-    .filter((h) => h.b_lu === outcome.mainCultivation.b_lu)
-    .at(-1)
+  const mainHarvests = outcome.usedInput.harvests.filter(
+    (h) => h.b_lu === outcome.mainCultivation.b_lu,
+  )
   return {
     fertilizerApplications: outcome.usedInput.fertilizerApplications.map((a) => ({
       p_app_id: a.p_app_id,
@@ -356,12 +359,13 @@ function getScenarioBase(outcome: FieldMineralizationOk): MineralizationScenario
       p_app_method: a.method ?? "broadcasting",
       p_app_date: a.date,
     })),
-    ...(mainHarvest
+    ...(mainHarvests.length > 0
       ? {
-          harvest: {
-            b_date_harvest: mainHarvest.date,
-            ...(mainHarvest.b_lu_yield !== null ? { b_lu_yield: mainHarvest.b_lu_yield } : {}),
-          },
+          harvests: mainHarvests.map((h) => ({
+            b_id_harvesting: h.b_id_harvesting,
+            b_date_harvest: h.date,
+            ...(h.b_lu_yield !== null ? { b_lu_yield: h.b_lu_yield } : {}),
+          })),
         }
       : {}),
   }
@@ -380,8 +384,8 @@ function getChartEvents(outcome: FieldMineralizationOk): ChartEvent[] {
 }
 
 /**
- * Applications of the scenario that are new or moved, as events for the lane of the chart; the
- * plan's own events stay in place, so the shift is visible.
+ * Applications and harvests of the scenario that are new or moved, as events for the lane of the
+ * chart; the plan's own events stay in place, so the shift is visible.
  */
 function getScenarioEvents(
   outcome: FieldMineralizationOk,
@@ -389,7 +393,23 @@ function getScenarioEvents(
   scenario: MineralizationScenario,
 ): ChartEvent[] {
   const optionById = new Map(outcome.fertilizerOptions.map((o) => [o.p_id, o]))
-  return scenario.fertilizerApplications.flatMap((app): ChartEvent[] => {
+  const harvestEvents = (scenario.harvests ?? []).flatMap((harvest): ChartEvent[] => {
+    const original = base.harvests?.find((h) => h.b_id_harvesting === harvest.b_id_harvesting)
+    if (original?.b_date_harvest === harvest.b_date_harvest) return []
+    return [
+      {
+        date: harvest.b_date_harvest,
+        type: "harvest",
+        label: outcome.mainCultivation.b_lu_name ?? outcome.mainCultivation.b_lu_catalogue,
+        planned: true,
+        b_lu: outcome.mainCultivation.b_lu,
+        ...(harvest.b_lu_yield !== undefined
+          ? { amount: harvest.b_lu_yield, unit: "kg DS/ha" }
+          : {}),
+      },
+    ]
+  })
+  const applicationEvents = scenario.fertilizerApplications.flatMap((app): ChartEvent[] => {
     const original = base.fertilizerApplications.find((a) => a.p_app_id === app.p_app_id)
     const isNew = getApplicationChange(app, base) === "new"
     if (!isNew && original?.p_app_date === app.p_app_date) return []
@@ -408,6 +428,7 @@ function getScenarioEvents(
       },
     ]
   })
+  return [...applicationEvents, ...harvestEvents]
 }
 
 const SCENARIO_DEBOUNCE_MS = 600
@@ -489,222 +510,246 @@ function FieldMineralizationResult(
   const fieldHref = `/farm/${props.b_id_farm}/${props.calendar}/field/${props.b_id}`
   const nextYearHref = `/farm/${props.b_id_farm}/${year + 1}/mineralization/${props.b_id}?phase=planning`
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <PhaseSelector
-          value={phase}
-          currentPhase={isCurrentYear ? outcome.insights.defaultPhase : null}
-          disabled={growingUnavailable ? { growing: growingUnavailable } : undefined}
-          onChange={(next) =>
-            setSearchParams(
-              (prev) => {
-                prev.set("phase", next)
-                return prev
-              },
-              { replace: true, preventScrollReset: true },
-            )
-          }
+  const balanceAndAttention = (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <NitrogenBalanceCard
+        balance={outcome.result.balance}
+        hasFertilizerApplications={outcome.usedInput.fertilizerApplications.length > 0}
+      />
+      {phase === "evaluation" ? (
+        <EvaluationCard
+          insights={outcome.insights}
+          nextYear={year + 1}
+          nextYearHref={nextYearHref}
         />
-        <Button asChild variant="link" size="sm" className="text-muted-foreground">
-          <a href={`#${USED_INPUT_ID}`} onClick={() => setUsedInputOpen(true)}>
-            Welke gegevens zijn gebruikt?
-          </a>
-        </Button>
-      </div>
-      {isCurrentYear && growingUnavailable ? (
-        <p className="text-muted-foreground -mt-4 text-xs">
-          Groeiseizoen is niet beschikbaar: {growingUnavailable.charAt(0).toLowerCase()}
-          {growingUnavailable.slice(1)}
-        </p>
-      ) : null}
-
-      {outcome.partial ? (
-        <Alert>
-          <Info aria-hidden />
-          <AlertTitle>Alleen de hoofdteelt is meegerekend</AlertTitle>
-          <AlertDescription>
-            De groenbemester of het vanggewas na de hoofdteelt kon nog niet worden meegenomen in de
-            berekening. Het verloop na de oogst is daardoor minder nauwkeurig.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      {outcome.usedInput.omittedHarvests.length > 0 ? (
-        <Alert>
-          <Info aria-hidden />
-          <AlertTitle>Maximaal {DYNA_V2_MAX_HARVESTS} sneden meegerekend</AlertTitle>
-          <AlertDescription>
-            De berekening kan per teelt maximaal {DYNA_V2_MAX_HARVESTS} oogsten of sneden verwerken.
-            Niet meegerekend:{" "}
-            {outcome.usedInput.omittedHarvests.map((h) => formatLongDate(h.date)).join(", ")}. De
-            opname na de {DYNA_V2_MAX_HARVESTS}e snede ontbreekt daardoor in de berekening.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
-      <Card id={CHART_ID} className="scroll-mt-4">
-        <CardHeader className="space-y-4">
-          <div className="space-y-1.5">
-            <CardTitle>Stikstof door het seizoen</CardTitle>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Aandachtspunten</CardTitle>
             <CardDescription>
-              {outcome.mainCultivation.b_lu_name ?? outcome.mainCultivation.b_lu_catalogue}, {year}
+              {phase === "planning"
+                ? "Wat de berekening van je bemestingsplan laat zien."
+                : "Wat er de komende tijd aandacht vraagt."}
             </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {attention.length > 0 ? (
+              <SignalChips items={attention} className="flex-col items-start" />
+            ) : (
+              <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                <CircleCheck className="size-4" aria-hidden /> Geen aandachtspunten op dit moment.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+  const weatherStrip =
+    phase === "growing" && outcome.forecast && outcome.forecast.days.length > 0 ? (
+      <WeatherStrip
+        forecast={outcome.forecast}
+        signals={outcome.insights.signals}
+        canSuggestShift={(signal) =>
+          signal.eventType === "fertilizer"
+            ? scenario.fertilizerApplications.some((a) => a.p_app_id === signal.p_app_id)
+            : signal.b_lu === outcome.mainCultivation.b_lu &&
+              (scenario.harvests ?? []).some((h) => h.b_date_harvest === signal.eventDate)
+        }
+        onSuggestShift={(suggestion) => {
+          dispatch({
+            type: "shift",
+            eventType: suggestion.eventType,
+            p_app_id: suggestion.p_app_id,
+            eventDate: suggestion.eventDate,
+            newDate: suggestion.newDate,
+          })
+          // Bring the changed scenario into view, so the effect of the shift is not off-screen
+          const panel = document.getElementById(SCENARIO_PANEL_ID)
+          panel?.scrollIntoView({ behavior: "smooth", block: "start" })
+          panel?.focus({ preventScroll: true })
+        }}
+      />
+    ) : null
+  const scenarioPanel =
+    phase !== "evaluation" ? (
+      <ScenarioPanel
+        id={SCENARIO_PANEL_ID}
+        base={base}
+        scenario={scenario}
+        dispatch={dispatch}
+        year={year}
+        newApplicationDate={newApplicationDate}
+        mainCultivation={outcome.mainCultivation}
+        fertilizerOptions={outcome.fertilizerOptions}
+        methodLabels={props.methodLabels}
+        dirty={dirty}
+        pending={scenarioPending}
+        error={scenarioError}
+        current={outcome.insights.kpis}
+        result={scenarioOk?.insights.kpis ?? null}
+        saving={saving}
+        onSave={() => {
+          capture("mineralization_scenario_saved", { b_id_farm: props.b_id_farm, year })
+          void saveFetcher.submit(
+            {
+              intent: "save_scenario",
+              scenario: JSON.stringify(scenario),
+              base: JSON.stringify(base),
+            },
+            { method: "post" },
+          )
+        }}
+        onDiscard={() => {
+          if (timer.current) clearTimeout(timer.current)
+          setScenario(base)
+        }}
+        onRetry={() => loadScenario(scenario)}
+        resultKey={scenarioKey}
+        onShowChart={() => {
+          const chart = document.getElementById(CHART_ID)
+          chart?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }}
+      />
+    ) : null
+
+  return (
+    // Bands: the chart with what matters most in this phase, then the rest, then the data behind
+    // it. Planning puts the scenario under the chart; the growing season reads the balance and
+    // attention points first, then acts on them with the weather and the scenario.
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <PhaseSelector
+              value={phase}
+              currentPhase={isCurrentYear ? outcome.insights.defaultPhase : null}
+              disabled={growingUnavailable ? { growing: growingUnavailable } : undefined}
+              onChange={(next) =>
+                setSearchParams(
+                  (prev) => {
+                    prev.set("phase", next)
+                    return prev
+                  },
+                  { replace: true, preventScrollReset: true },
+                )
+              }
+            />
+            <Button asChild variant="link" size="sm" className="text-muted-foreground">
+              <a href={`#${USED_INPUT_ID}`} onClick={() => setUsedInputOpen(true)}>
+                Welke gegevens zijn gebruikt?
+              </a>
+            </Button>
           </div>
-          <KeyFigures insights={outcome.insights} phase={phase} timing={timing} />
-          {dirty && phase !== "evaluation" ? (
-            // Remounts with every new result, so the highlight plays once per recalculation
-            <div
-              key={scenarioOk ? scenarioKey : "pending"}
-              className={cn(
-                "bg-muted/50 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between",
-                scenarioOk && "motion-safe:animate-just-updated",
-              )}
-            >
-              <div className="min-w-0 space-y-1">
-                <p className="text-sm font-medium">
-                  Scenario (gestippeld) ten opzichte van je plan
-                </p>
-                {scenarioPending ? (
-                  <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                    <Spinner /> Wordt berekend…
-                  </p>
-                ) : scenarioError ? (
-                  <p className="text-destructive text-sm">
-                    De berekening van het scenario is niet gelukt.
-                  </p>
-                ) : scenarioOk ? (
-                  <ScenarioDeltas
-                    current={outcome.insights.kpis}
-                    result={scenarioOk.insights.kpis}
-                  />
-                ) : null}
-              </div>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="shrink-0 self-start sm:self-center"
-              >
-                <a href={`#${SCENARIO_PANEL_ID}`}>Naar scenario</a>
-              </Button>
-            </div>
+          {isCurrentYear && growingUnavailable ? (
+            <p className="text-muted-foreground text-xs">
+              Groeiseizoen is niet beschikbaar: {growingUnavailable.charAt(0).toLowerCase()}
+              {growingUnavailable.slice(1)}
+            </p>
           ) : null}
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <NitrogenChart
-            series={outcome.result.series}
-            scenarioSeries={scenarioOk && !scenarioPending ? scenarioOk.result.series : undefined}
-            events={getChartEvents(outcome)}
-            scenarioEvents={scenarioEvents}
-            year={year}
-            today={today}
-            phase={phase}
-            forecastDays={outcome.forecast?.days}
-            rainEventDates={rainEventDates}
-          />
-          <ChartExplainer />
-        </CardContent>
-      </Card>
+        </div>
 
-      {phase === "growing" && outcome.forecast && outcome.forecast.days.length > 0 ? (
-        <WeatherStrip
-          forecast={outcome.forecast}
-          signals={outcome.insights.signals}
-          canSuggestShift={(signal) =>
-            signal.eventType === "fertilizer"
-              ? scenario.fertilizerApplications.some((a) => a.p_app_id === signal.p_app_id)
-              : signal.b_lu === outcome.mainCultivation.b_lu &&
-                signal.eventDate === base.harvest?.b_date_harvest
-          }
-          onSuggestShift={(suggestion) => {
-            dispatch({
-              type: "shift",
-              eventType: suggestion.eventType,
-              p_app_id: suggestion.p_app_id,
-              newDate: suggestion.newDate,
-            })
-            // Bring the changed scenario into view, so the effect of the shift is not off-screen
-            const panel = document.getElementById(SCENARIO_PANEL_ID)
-            panel?.scrollIntoView({ behavior: "smooth", block: "start" })
-            panel?.focus({ preventScroll: true })
-          }}
-        />
-      ) : null}
+        {outcome.partial ? (
+          <Alert>
+            <Info aria-hidden />
+            <AlertTitle>Alleen de hoofdteelt is meegerekend</AlertTitle>
+            <AlertDescription>
+              De groenbemester of het vanggewas na de hoofdteelt kon nog niet worden meegenomen in
+              de berekening. Het verloop na de oogst is daardoor minder nauwkeurig.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-      {phase !== "evaluation" ? (
-        <ScenarioPanel
-          id={SCENARIO_PANEL_ID}
-          base={base}
-          scenario={scenario}
-          dispatch={dispatch}
-          year={year}
-          newApplicationDate={newApplicationDate}
-          fertilizerOptions={outcome.fertilizerOptions}
-          methodLabels={props.methodLabels}
-          dirty={dirty}
-          pending={scenarioPending}
-          error={scenarioError}
-          current={outcome.insights.kpis}
-          result={scenarioOk?.insights.kpis ?? null}
-          saving={saving}
-          onSave={() => {
-            capture("mineralization_scenario_saved", { b_id_farm: props.b_id_farm, year })
-            void saveFetcher.submit(
-              {
-                intent: "save_scenario",
-                scenario: JSON.stringify(scenario),
-                base: JSON.stringify(base),
-              },
-              { method: "post" },
-            )
-          }}
-          onDiscard={() => {
-            if (timer.current) clearTimeout(timer.current)
-            setScenario(base)
-          }}
-          onRetry={() => loadScenario(scenario)}
-          resultKey={scenarioKey}
-          onShowChart={() => {
-            const chart = document.getElementById(CHART_ID)
-            chart?.scrollIntoView({ behavior: "smooth", block: "start" })
-          }}
-        />
-      ) : null}
+        {outcome.usedInput.omittedHarvests.length > 0 ? (
+          <Alert>
+            <Info aria-hidden />
+            <AlertTitle>Maximaal {DYNA_V2_MAX_HARVESTS} sneden meegerekend</AlertTitle>
+            <AlertDescription>
+              De berekening kan per teelt maximaal {DYNA_V2_MAX_HARVESTS} oogsten of sneden
+              verwerken. Niet meegerekend:{" "}
+              {outcome.usedInput.omittedHarvests.map((h) => formatLongDate(h.date)).join(", ")}. De
+              opname na de {DYNA_V2_MAX_HARVESTS}e snede ontbreekt daardoor in de berekening.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <NitrogenBalanceCard
-          balance={outcome.result.balance}
-          hasFertilizerApplications={outcome.usedInput.fertilizerApplications.length > 0}
-        />
-        {phase === "evaluation" ? (
-          <EvaluationCard
-            insights={outcome.insights}
-            nextYear={year + 1}
-            nextYearHref={nextYearHref}
-          />
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Aandachtspunten</CardTitle>
+        <Card id={CHART_ID} className="scroll-mt-4">
+          <CardHeader className="space-y-4">
+            <div className="space-y-1.5">
+              <CardTitle>Stikstof door het seizoen</CardTitle>
               <CardDescription>
-                {phase === "planning"
-                  ? "Wat de berekening van je bemestingsplan laat zien."
-                  : "Wat er de komende tijd aandacht vraagt."}
+                {outcome.mainCultivation.b_lu_name ?? outcome.mainCultivation.b_lu_catalogue},{" "}
+                {year}
               </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {attention.length > 0 ? (
-                <SignalChips items={attention} className="flex-col items-start" />
-              ) : (
-                <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <CircleCheck className="size-4" aria-hidden /> Geen aandachtspunten op dit moment.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
+            </div>
+            <KeyFigures insights={outcome.insights} phase={phase} timing={timing} />
+            {dirty && phase !== "evaluation" ? (
+              // Remounts with every new result, so the highlight plays once per recalculation
+              <div
+                key={scenarioOk ? scenarioKey : "pending"}
+                className={cn(
+                  "bg-muted/50 flex flex-col gap-3 rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between",
+                  scenarioOk && "motion-safe:animate-just-updated",
+                )}
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium">
+                    Scenario (gestippeld) ten opzichte van je plan
+                  </p>
+                  {scenarioPending ? (
+                    <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                      <Spinner /> Wordt berekend…
+                    </p>
+                  ) : scenarioError ? (
+                    <p className="text-destructive text-sm">
+                      De berekening van het scenario is niet gelukt.
+                    </p>
+                  ) : scenarioOk ? (
+                    <ScenarioDeltas
+                      current={outcome.insights.kpis}
+                      result={scenarioOk.insights.kpis}
+                    />
+                  ) : null}
+                </div>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 self-start sm:self-center"
+                >
+                  <a href={`#${SCENARIO_PANEL_ID}`}>Naar scenario</a>
+                </Button>
+              </div>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <NitrogenChart
+              series={outcome.result.series}
+              scenarioSeries={scenarioOk && !scenarioPending ? scenarioOk.result.series : undefined}
+              events={getChartEvents(outcome)}
+              scenarioEvents={scenarioEvents}
+              year={year}
+              today={today}
+              phase={phase}
+              forecastDays={outcome.forecast?.days}
+              rainEventDates={rainEventDates}
+            />
+            <ChartExplainer />
+          </CardContent>
+        </Card>
+
+        {/* While planning, the scenario sits right under the chart it redraws */}
+        {phase === "planning" ? scenarioPanel : balanceAndAttention}
       </div>
+
+      {phase === "planning" ? (
+        balanceAndAttention
+      ) : phase === "growing" ? (
+        <div className="flex flex-col gap-6">
+          {weatherStrip}
+          {scenarioPanel}
+        </div>
+      ) : null}
 
       <UsedInput
         id={USED_INPUT_ID}

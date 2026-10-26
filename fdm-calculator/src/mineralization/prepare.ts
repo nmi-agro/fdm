@@ -122,7 +122,14 @@ export interface MineralizationUsedInput {
     end: string
     role: "main" | "after"
   }[]
-  harvests: { b_lu: string; date: string; b_lu_yield: number | null; planned: boolean }[]
+  harvests: {
+    b_lu: string
+    /** Identifier of the harvest, to change it in a scenario. */
+    b_id_harvesting: string
+    date: string
+    b_lu_yield: number | null
+    planned: boolean
+  }[]
   fertilizerApplications: {
     p_app_id: string
     p_id: string
@@ -458,6 +465,7 @@ export function prepareMineralizationInput(
       })
       usedInput.harvests.push({
         b_lu: cultivation.b_lu,
+        b_id_harvesting: h.b_id_harvesting,
         date,
         b_lu_yield,
         planned: date > todayDate,

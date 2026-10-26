@@ -14,7 +14,14 @@ import { getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { getCultivationColor } from "~/components/custom/cultivation-colors"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
 import { Skeleton } from "~/components/ui/skeleton"
 import { Spinner } from "~/components/ui/spinner"
@@ -548,6 +555,13 @@ export function FarmFieldTable({
             </TableRow>
           </TableHeader>
           <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-muted-foreground py-6 text-center">
+                  Geen percelen om te berekenen.
+                </TableCell>
+              </TableRow>
+            ) : null}
             {rows.map((field) => {
               const outcome = outcomes[field.b_id]
               const name = (
@@ -635,12 +649,26 @@ export function FarmFieldTable({
           </TableBody>
         </Table>
       </CardContent>
+      <NotCalculatedFields
+        fields={fields}
+        outcomes={outcomes}
+        year={year}
+        open={rows.length === 0}
+      />
     </Card>
   )
 }
 
-/** Collapsed list of fields that are not calculated, with the reason. */
-export function NotCalculatedFields({ fields, outcomes, year }: FarmOverviewProps) {
+/**
+ * Footer of the field table with the fields that are not calculated and why, collapsed unless
+ * `open` is set.
+ */
+function NotCalculatedFields({
+  fields,
+  outcomes,
+  year,
+  open,
+}: Pick<FarmOverviewProps, "fields" | "outcomes" | "year"> & { open: boolean }) {
   const rows = fields.flatMap((field) => {
     const outcome = outcomes[field.b_id]
     if (
@@ -655,25 +683,28 @@ export function NotCalculatedFields({ fields, outcomes, year }: FarmOverviewProp
   if (rows.length === 0) return null
 
   return (
-    <Collapsible>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
-          <ChevronDown
-            className="transition-transform group-data-[state=open]:rotate-180"
-            aria-hidden
-          />
-          Niet berekend ({rows.length})
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent>
-        <ul className="text-muted-foreground mt-2 space-y-1 text-sm">
-          {rows.map(({ field, reason }) => (
-            <li key={field.b_id}>
-              <span className="text-foreground">{field.b_name ?? "Perceel"}</span> — {reason}
-            </li>
-          ))}
-        </ul>
-      </CollapsibleContent>
-    </Collapsible>
+    // Remounts when `open` changes, so it follows the table once the outcomes are in
+    <CardFooter key={String(open)} className="block border-t pt-4">
+      <Collapsible defaultOpen={open}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="group text-muted-foreground -ml-2">
+            <ChevronDown
+              className="transition-transform group-data-[state=open]:rotate-180"
+              aria-hidden
+            />
+            Niet berekend ({rows.length})
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <ul className="text-muted-foreground mt-2 space-y-1 text-sm">
+            {rows.map(({ field, reason }) => (
+              <li key={field.b_id}>
+                <span className="text-foreground">{field.b_name ?? "Perceel"}</span> — {reason}
+              </li>
+            ))}
+          </ul>
+        </CollapsibleContent>
+      </Collapsible>
+    </CardFooter>
   )
 }

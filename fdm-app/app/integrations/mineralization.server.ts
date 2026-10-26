@@ -19,6 +19,7 @@ import {
   getDynaV2,
   getWeatherForecast,
   type MineralizationCultivation,
+  type MineralizationUsedInput,
   type MineralizationFieldData,
   type MineralizationScenario,
   NmiApiError,
@@ -40,6 +41,7 @@ import {
   getFields,
   getHarvestsForFarm,
   removeFertilizerApplication,
+  removeHarvest,
   startOfDayInFdmTimeZone,
   type Timeframe,
   toFdmDateString,
@@ -214,6 +216,7 @@ export async function calculateFieldMineralization(
     transformRequest?: (
       request: DynaV2Request,
       mainCultivation: MineralizationCultivation,
+      usedInput: MineralizationUsedInput,
     ) => DynaV2Request
   } = {},
 ): Promise<FieldMineralizationOutcome> {
@@ -273,7 +276,7 @@ export async function calculateFieldMineralization(
 
     const main = preparation.mainCultivation
     const request = options.transformRequest
-      ? options.transformRequest(preparation.request, main)
+      ? options.transformRequest(preparation.request, main, preparation.usedInput)
       : preparation.request
     const todayDate = toFdmDateString(ctx.today)
     const currentYear = Number(todayDate.slice(0, 4))
@@ -369,21 +372,24 @@ export async function calculateScenario(args: {
   }
   const fertilizers = new Map(ctx.fertilizers.map((f) => [f.p_id, f]))
   return calculateFieldMineralization(ctx, args.b_id, args.principal_id, args.b_id_farm, {
-    transformRequest: (request, main) =>
+    transformRequest: (request, main, usedInput) =>
       applyScenarioToRequest({
         request,
         scenario: args.scenario,
         fertilizers,
         mainB_lu: main.b_lu,
         mainHarvestable: main.b_lu_harvestable,
+        mainHarvestIds: usedInput.harvests
+          .filter((h) => h.b_lu === main.b_lu)
+          .map((h) => h.b_id_harvesting),
       }),
   })
 }
 
 /**
- * Saves a scenario to the fertilization plan of a field: fertilizer applications in the year are
- * added, changed or removed and the harvest of the main cultivation is added or changed, all in
- * one transaction.
+ * Saves a scenario to the fertilization plan of a field: fertilizer applications in the year and
+ * the harvests of the main cultivation in the year are added, changed or removed, all in one
+ * transaction.
  *
  * @throws `Error` when the field has no main cultivation in the year.
  */
@@ -393,7 +399,7 @@ export async function saveScenario(args: {
   b_id: string
   year: number
   scenario: MineralizationScenario
-  /** The scenario as the user started editing it; only its applications can be changed. */
+  /** The scenario as the user started editing it; only its applications and harvests can be changed. */
   base: MineralizationScenario
 }): Promise<void> {
   const { principal_id, b_id, year, scenario } = args
@@ -411,26 +417,19 @@ export async function saveScenario(args: {
   const currentApplications = data.applications.filter((a) =>
     toFdmDateString(a.p_app_date).startsWith(prefix),
   )
-  const currentHarvest =
-    (data.harvests.get(main.b_lu) ?? [])
-      .filter((h) => h.b_lu_harvest_date && toFdmDateString(h.b_lu_harvest_date).startsWith(prefix))
-      .sort(
-        (a, b) => (a.b_lu_harvest_date as Date).getTime() - (b.b_lu_harvest_date as Date).getTime(),
-      )
-      .at(-1) ?? null
-
-  const diff = diffScenario(
-    currentApplications,
-    currentHarvest
-      ? {
-          b_id_harvesting: currentHarvest.b_id_harvesting,
-          b_date_harvest: toFdmDateString(currentHarvest.b_lu_harvest_date as Date),
-          b_lu_yield: currentHarvest.harvestable?.harvestable_analyses?.[0]?.b_lu_yield ?? null,
-        }
-      : null,
-    scenario,
-    args.base,
+  const currentHarvests = (data.harvests.get(main.b_lu) ?? []).flatMap((h) =>
+    h.b_lu_harvest_date && toFdmDateString(h.b_lu_harvest_date).startsWith(prefix)
+      ? [
+          {
+            b_id_harvesting: h.b_id_harvesting,
+            b_date_harvest: toFdmDateString(h.b_lu_harvest_date),
+            b_lu_yield: h.harvestable?.harvestable_analyses?.[0]?.b_lu_yield ?? null,
+          },
+        ]
+      : [],
   )
+
+  const diff = diffScenario(currentApplications, currentHarvests, scenario, args.base)
 
   const toDate = (date: string) => {
     const [y, m, d] = date.split("-").map(Number)
@@ -463,26 +462,28 @@ export async function saveScenario(args: {
         toDate(app.p_app_date),
       )
     }
-    if (diff.harvest) {
-      const properties =
-        diff.harvest.b_lu_yield !== undefined ? { b_lu_yield: diff.harvest.b_lu_yield } : undefined
-      if (diff.harvest.b_id_harvesting) {
-        await updateHarvest(
-          tx,
-          principal_id,
-          diff.harvest.b_id_harvesting,
-          toDate(diff.harvest.b_date_harvest),
-          properties,
-        )
-      } else {
-        await addHarvest(
-          tx,
-          principal_id,
-          main.b_lu,
-          toDate(diff.harvest.b_date_harvest),
-          properties,
-        )
-      }
+    const harvestProperties = (harvest: { b_lu_yield?: number }) =>
+      harvest.b_lu_yield !== undefined ? { b_lu_yield: harvest.b_lu_yield } : undefined
+    for (const b_id_harvesting of diff.harvests.remove) {
+      await removeHarvest(tx, principal_id, b_id_harvesting)
+    }
+    for (const harvest of diff.harvests.update) {
+      await updateHarvest(
+        tx,
+        principal_id,
+        harvest.b_id_harvesting,
+        toDate(harvest.b_date_harvest),
+        harvestProperties(harvest),
+      )
+    }
+    for (const harvest of diff.harvests.add) {
+      await addHarvest(
+        tx,
+        principal_id,
+        main.b_lu,
+        toDate(harvest.b_date_harvest),
+        harvestProperties(harvest),
+      )
     }
   })
 }

@@ -7,3 +7,5 @@ Switch the nitrogen mineralization module to the NMI Dyna v2 endpoint and add th
 **Breaking:** the N-supply integration (`getNSupply`, `requestNSupply`, `buildNSupplyRequest`, `assessDataCompleteness`, `methodRequirements`) and Dyna v1 (`getDyna`, `requestDyna`, `buildDynaRequest`, `dynaResponseDataSchema`) are removed, together with their types.
 
 Dyna accepts at most 6 harvests per cultivation: `prepareMineralizationInput` now sends only the first 6 harvests (by date) of each cultivation and lists the others in `usedInput.omittedHarvests`; the limit is exported as `DYNA_V2_MAX_HARVESTS_PER_CULTIVATION`.
+
+A scenario holds all harvests of the main cultivation in the year (`harvests`, each with its `b_id_harvesting`), so the cuts of grassland can be changed, added or removed; `diffScenario` returns the harvests to add, update and remove. `usedInput.harvests` now includes `b_id_harvesting`.

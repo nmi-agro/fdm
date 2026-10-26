@@ -1,13 +1,28 @@
 import { getFields, toFdmDateString } from "@nmi-agro/fdm-core"
+import { Map as MapIcon } from "lucide-react"
 import { useEffect } from "react"
-import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
+import {
+  data,
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  NavLink,
+  useLoaderData,
+} from "react-router"
 import {
   FarmAttentionList,
   FarmFieldTable,
   FarmSummary,
-  NotCalculatedFields,
 } from "~/components/blocks/mineralization/farm-overview"
 import { useSettledOutcomes } from "~/components/blocks/mineralization/use-settled-outcomes"
+import { Button } from "~/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty"
 import { useAnalytics } from "~/hooks/use-analytics"
 import {
   calculateFieldMineralization,
@@ -134,12 +149,35 @@ function FarmOverview({
       }),
   }
 
+  if (fields.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <MapIcon />
+          </EmptyMedia>
+          <EmptyTitle>Nog geen percelen in {year}</EmptyTitle>
+          <EmptyDescription>
+            Voeg percelen toe aan dit bedrijf om de mineralisatie te berekenen.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button asChild>
+            <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Percelen toevoegen</NavLink>
+          </Button>
+        </EmptyContent>
+      </Empty>
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <FarmSummary fields={fields} outcomes={outcomes} />
-      <FarmAttentionList {...props} />
+    <div className="flex flex-col gap-6">
+      {/* The summary introduces the attention list, so it sits closer to it than the cards do */}
+      <div className="flex flex-col gap-3">
+        <FarmSummary fields={fields} outcomes={outcomes} />
+        <FarmAttentionList {...props} />
+      </div>
       <FarmFieldTable {...props} />
-      <NotCalculatedFields {...props} />
     </div>
   )
 }

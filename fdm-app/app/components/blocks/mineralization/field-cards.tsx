@@ -68,14 +68,17 @@ export function KeyFigures({
   }
 
   return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-      {figures.map((figure) => (
-        <div key={figure.label}>
-          <dt className="text-muted-foreground text-xs">{figure.label}</dt>
-          <dd className="text-lg font-semibold tabular-nums">{figure.value}</dd>
-        </div>
-      ))}
-    </dl>
+    // Four in a row only when the card is wide enough, not when the viewport is
+    <div className="@container">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 @lg:grid-cols-4">
+        {figures.map((figure) => (
+          <div key={figure.label}>
+            <dt className="text-muted-foreground text-xs">{figure.label}</dt>
+            <dd className="text-lg font-semibold tabular-nums">{figure.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   )
 }
 

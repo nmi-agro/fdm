@@ -7,6 +7,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react"
+import { getHarvestDateTerm, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -21,9 +22,12 @@ import {
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
 import {
+  addDays,
+  DYNA_V2_MAX_HARVESTS,
   formatKgN,
   formatNumber,
   formatShortDate,
+  type MineralizationMainCultivation,
   type ScenarioFertilizerOption,
 } from "~/lib/mineralization"
 import { cn } from "~/lib/utils"
@@ -31,6 +35,7 @@ import { DateField } from "./date-field"
 import { FertilizerField } from "./fertilizer-field"
 
 type ScenarioApplication = MineralizationScenario["fertilizerApplications"][number]
+type ScenarioHarvest = NonNullable<MineralizationScenario["harvests"]>[number]
 
 /** Change to a scenario. */
 export type ScenarioAction =
@@ -41,8 +46,17 @@ export type ScenarioAction =
     }
   | { type: "add_application"; date: string; option: ScenarioFertilizerOption | undefined }
   | { type: "remove_application"; index: number }
-  | { type: "update_harvest"; patch: Partial<NonNullable<MineralizationScenario["harvest"]>> }
-  | { type: "shift"; eventType: "fertilizer" | "harvest"; p_app_id?: string; newDate: string }
+  | { type: "update_harvest"; index: number; patch: Partial<ScenarioHarvest> }
+  | { type: "add_harvest"; date: string }
+  | { type: "remove_harvest"; index: number }
+  | {
+      type: "shift"
+      eventType: "fertilizer" | "harvest"
+      p_app_id?: string
+      /** Current date of the event; identifies the harvest to shift. */
+      eventDate: string
+      newDate: string
+    }
 
 /** Applies a change to a scenario. */
 export function scenarioReducer(
@@ -77,13 +91,32 @@ export function scenarioReducer(
         fertilizerApplications: state.fertilizerApplications.filter((_, i) => i !== action.index),
       }
     case "update_harvest":
-      if (!state.harvest) return state
-      return { ...state, harvest: { ...state.harvest, ...action.patch } }
+      if (!state.harvests) return state
+      return {
+        ...state,
+        harvests: state.harvests.map((harvest, i) =>
+          i === action.index ? { ...harvest, ...action.patch } : harvest,
+        ),
+      }
+    case "add_harvest":
+      return {
+        ...state,
+        harvests: [...(state.harvests ?? []), { b_date_harvest: action.date }],
+      }
+    case "remove_harvest":
+      if (!state.harvests || state.harvests.length <= 1) return state
+      return { ...state, harvests: state.harvests.filter((_, i) => i !== action.index) }
     case "shift":
       if (action.eventType === "harvest") {
-        return state.harvest
-          ? { ...state, harvest: { ...state.harvest, b_date_harvest: action.newDate } }
-          : state
+        if (!state.harvests) return state
+        return {
+          ...state,
+          harvests: state.harvests.map((harvest) =>
+            harvest.b_date_harvest === action.eventDate
+              ? { ...harvest, b_date_harvest: action.newDate }
+              : harvest,
+          ),
+        }
       }
       return {
         ...state,
@@ -113,14 +146,46 @@ export function getApplicationChange(
     : null
 }
 
+/** Compares a harvest of the scenario with the same harvest in the plan. */
+export function getHarvestChange(
+  harvest: ScenarioHarvest,
+  base: MineralizationScenario,
+): ApplicationChange {
+  if (!harvest.b_id_harvesting) return "new"
+  const original = base.harvests?.find((h) => h.b_id_harvesting === harvest.b_id_harvesting)
+  if (!original) return "new"
+  return original.b_date_harvest !== harvest.b_date_harvest ||
+    original.b_lu_yield !== harvest.b_lu_yield
+    ? "changed"
+    : null
+}
+
+/** Date of a newly added cut: six weeks after the last one, within the year. */
+export function getNewHarvestDate(
+  scenario: MineralizationScenario,
+  year: number,
+  fallback: string,
+) {
+  const last = (scenario.harvests ?? [])
+    .map((h) => h.b_date_harvest)
+    .sort()
+    .at(-1)
+  if (!last) return fallback
+  const next = addDays(last, 42)
+  return next > `${year}-12-31` ? `${year}-12-31` : next
+}
+
 /**
  * Lists in Dutch what saving the scenario changes in the fertilization plan, e.g.
  * "Verschoven: KAS van 3 apr naar 10 apr".
+ *
+ * @param harvestTerm - Word for one harvest of the main cultivation, e.g. "oogst" or "snede".
  */
 export function describeScenarioChanges(
   base: MineralizationScenario,
   scenario: MineralizationScenario,
   fertilizerOptions: ScenarioFertilizerOption[],
+  harvestTerm = "oogst",
 ): string[] {
   const optionById = new Map(fertilizerOptions.map((o) => [o.p_id, o]))
   const name = (p_id: string) => optionById.get(p_id)?.p_name_nl ?? "Meststof"
@@ -154,17 +219,32 @@ export function describeScenarioChanges(
       changes.push(`Nieuw: ${name(app.p_id)}, ${amount(app)} op ${formatShortDate(app.p_app_date)}`)
     }
   }
-  if (base.harvest && scenario.harvest) {
-    if (base.harvest.b_date_harvest !== scenario.harvest.b_date_harvest) {
+  const Term = `${harvestTerm.charAt(0).toUpperCase()}${harvestTerm.slice(1)}`
+  const yieldText = (harvest: ScenarioHarvest) =>
+    harvest.b_lu_yield === undefined ? "" : `, ${formatNumber(harvest.b_lu_yield)} kg DS/ha`
+  for (const original of base.harvests ?? []) {
+    const harvest = scenario.harvests?.find((h) => h.b_id_harvesting === original.b_id_harvesting)
+    if (!harvest) {
+      changes.push(`Verwijderd: ${harvestTerm} van ${formatShortDate(original.b_date_harvest)}`)
+      continue
+    }
+    if (harvest.b_date_harvest !== original.b_date_harvest) {
       changes.push(
-        `Oogst verschoven van ${formatShortDate(base.harvest.b_date_harvest)} naar ${formatShortDate(scenario.harvest.b_date_harvest)}`,
+        `${Term} verschoven van ${formatShortDate(original.b_date_harvest)} naar ${formatShortDate(harvest.b_date_harvest)}`,
       )
     }
-    if (base.harvest.b_lu_yield !== scenario.harvest.b_lu_yield) {
+    if (harvest.b_lu_yield !== original.b_lu_yield) {
       changes.push(
-        scenario.harvest.b_lu_yield === undefined
-          ? "Opbrengst verwijderd"
-          : `Opbrengst wordt ${formatNumber(scenario.harvest.b_lu_yield)} kg DS/ha`,
+        harvest.b_lu_yield === undefined
+          ? `Opbrengst ${harvestTerm} van ${formatShortDate(harvest.b_date_harvest)} verwijderd`
+          : `Opbrengst ${harvestTerm} van ${formatShortDate(harvest.b_date_harvest)} wordt ${formatNumber(harvest.b_lu_yield)} kg DS/ha`,
+      )
+    }
+  }
+  for (const harvest of scenario.harvests ?? []) {
+    if (getHarvestChange(harvest, base) === "new") {
+      changes.push(
+        `Nieuw: ${harvestTerm} op ${formatShortDate(harvest.b_date_harvest)}${yieldText(harvest)}`,
       )
     }
   }
@@ -254,7 +334,8 @@ function ScenarioDeltasInline({
 }
 
 /**
- * Edits a what-if scenario of fertilizer applications and the harvest, shows its effect and what
+ * Edits a what-if scenario of fertilizer applications and the harvests of the main cultivation
+ * (every cut for grassland), shows its effect and what
  * saving changes in the fertilization plan, and lets the user save or discard it. A status bar at
  * the bottom stays in view and shows that the chart recalculates with every change.
  */
@@ -265,6 +346,7 @@ export function ScenarioPanel({
   dispatch,
   year,
   newApplicationDate,
+  mainCultivation,
   fertilizerOptions,
   methodLabels,
   dirty,
@@ -287,6 +369,8 @@ export function ScenarioPanel({
   year: number
   /** Date of a newly added application. */
   newApplicationDate: string
+  /** Main cultivation, to name its harvests (cuts for grassland) and allow more of them. */
+  mainCultivation: Pick<MineralizationMainCultivation, "b_lu_croprotation" | "b_lu_harvestable">
   fertilizerOptions: ScenarioFertilizerOption[]
   methodLabels: Record<string, string>
   dirty: boolean
@@ -310,7 +394,21 @@ export function ScenarioPanel({
   const missingAmount = scenario.fertilizerApplications.some(
     (app) => getApplicationChange(app, base) !== null && !(app.p_app_amount_display > 0),
   )
-  const changes = dirty ? describeScenarioChanges(base, scenario, fertilizerOptions) : []
+  const harvestTerm = getHarvestTerm(
+    mainCultivation.b_lu_croprotation,
+    false,
+    mainCultivation.b_lu_harvestable,
+  )
+  const harvestDateTerm = getHarvestDateTerm(
+    mainCultivation.b_lu_croprotation,
+    mainCultivation.b_lu_harvestable,
+  )
+  // Crops harvested once keep their single harvest; others can gain or lose harvests
+  const multipleHarvests = mainCultivation.b_lu_harvestable === "multiple"
+  const harvests = scenario.harvests ?? []
+  const changes = dirty
+    ? describeScenarioChanges(base, scenario, fertilizerOptions, harvestTerm)
+    : []
   const deltas = result ? getScenarioDeltas(current, result) : null
   const noEffect =
     deltas !== null &&
@@ -324,7 +422,7 @@ export function ScenarioPanel({
       <CardHeader>
         <CardTitle>Scenario: wat als…</CardTitle>
         <CardDescription>
-          Verschuif of wijzig bemestingen en de oogst. Elke wijziging wordt direct doorgerekend en
+          Verschuif of wijzig bemestingen en oogsten. Elke wijziging wordt direct doorgerekend en
           verschijnt gestippeld in de grafiek. Je bemestingsplan verandert pas als je het scenario
           opslaat.
         </CardDescription>
@@ -480,46 +578,121 @@ export function ScenarioPanel({
           </Button>
         </fieldset>
 
-        {scenario.harvest ? (
-          <fieldset className="grid gap-2 sm:grid-cols-2 lg:max-w-xl">
-            <legend className="mb-2 text-sm font-semibold">Oogst hoofdteelt</legend>
-            <DateField
-              name="scenario-harvest-date"
-              label="Oogstdatum"
-              className="[&_input]:text-base sm:[&_input]:text-sm [&>label]:text-xs"
-              min={min}
-              max={max}
-              required
-              value={scenario.harvest.b_date_harvest}
-              onChange={(b_date_harvest) =>
-                dispatch({ type: "update_harvest", patch: { b_date_harvest } })
-              }
-            />
-            <div className="grid gap-1">
-              <Label htmlFor="scenario-harvest-yield" className="text-xs">
-                Opbrengst (kg DS/ha)
-              </Label>
-              <Input
-                className="text-base sm:text-sm"
-                id="scenario-harvest-yield"
-                type="number"
-                min={0}
-                step="any"
-                inputMode="decimal"
-                value={scenario.harvest.b_lu_yield ?? ""}
-                onChange={(e) =>
-                  dispatch({
-                    type: "update_harvest",
-                    patch: {
-                      b_lu_yield:
-                        e.target.value === ""
-                          ? undefined
-                          : Math.max(0, Number(e.target.value) || 0),
-                    },
-                  })
-                }
-              />
-            </div>
+        {harvests.length > 0 ? (
+          <fieldset className="space-y-3">
+            <legend className="mb-2 text-sm font-semibold">
+              {getHarvestTerm(
+                mainCultivation.b_lu_croprotation,
+                multipleHarvests,
+                mainCultivation.b_lu_harvestable,
+                true,
+              )}{" "}
+              hoofdteelt
+            </legend>
+            {harvests.map((harvest, index) => {
+              const rowId = `scenario-harvest-${index}`
+              const change = getHarvestChange(harvest, base)
+              return (
+                <div
+                  key={harvest.b_id_harvesting ?? `new-${index}`}
+                  className={cn(
+                    "grid gap-2 rounded-lg border p-3 sm:grid-cols-[11rem_minmax(0,12rem)_auto] sm:items-start",
+                    change !== null && "border-foreground/30 bg-muted/40",
+                  )}
+                >
+                  <DateField
+                    name={`${rowId}-date`}
+                    label={harvestDateTerm}
+                    className="[&_input]:text-base sm:[&_input]:text-sm [&>label]:text-xs"
+                    min={min}
+                    max={max}
+                    required
+                    value={harvest.b_date_harvest}
+                    onChange={(b_date_harvest) =>
+                      dispatch({ type: "update_harvest", index, patch: { b_date_harvest } })
+                    }
+                  />
+                  <div className="grid gap-1">
+                    <Label htmlFor={`${rowId}-yield`} className="text-xs">
+                      Opbrengst (kg DS/ha)
+                    </Label>
+                    <Input
+                      className="text-base sm:text-sm"
+                      id={`${rowId}-yield`}
+                      type="number"
+                      min={0}
+                      step="any"
+                      inputMode="decimal"
+                      value={harvest.b_lu_yield ?? ""}
+                      onChange={(e) =>
+                        dispatch({
+                          type: "update_harvest",
+                          index,
+                          patch: {
+                            b_lu_yield:
+                              e.target.value === ""
+                                ? undefined
+                                : Math.max(0, Number(e.target.value) || 0),
+                          },
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-2 sm:mt-5">
+                    {change ? (
+                      <Badge variant="outline" className="font-normal">
+                        {change === "new" ? "Nieuw" : "Gewijzigd"}
+                      </Badge>
+                    ) : null}
+                    {multipleHarvests ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="pointer-coarse:size-11"
+                        // The main cultivation keeps at least one harvest to calculate with
+                        disabled={harvests.length <= 1}
+                        aria-label={`${harvestTerm.charAt(0).toUpperCase()}${harvestTerm.slice(1)} van ${formatShortDate(harvest.b_date_harvest)} verwijderen`}
+                        onClick={() => dispatch({ type: "remove_harvest", index })}
+                      >
+                        <Trash2 aria-hidden />
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              )
+            })}
+            {multipleHarvests ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={harvests.length >= DYNA_V2_MAX_HARVESTS}
+                  onClick={() =>
+                    dispatch({
+                      type: "add_harvest",
+                      date: getNewHarvestDate(scenario, year, newApplicationDate),
+                    })
+                  }
+                >
+                  <Plus aria-hidden />
+                  {harvestTerm.charAt(0).toUpperCase()}
+                  {harvestTerm.slice(1)} toevoegen
+                </Button>
+                {harvests.length >= DYNA_V2_MAX_HARVESTS ? (
+                  <p className="text-muted-foreground text-xs">
+                    De berekening kan maximaal {DYNA_V2_MAX_HARVESTS}{" "}
+                    {getHarvestTerm(
+                      mainCultivation.b_lu_croprotation,
+                      true,
+                      mainCultivation.b_lu_harvestable,
+                    )}{" "}
+                    per jaar verwerken.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </fieldset>
         ) : null}
 
