@@ -2,6 +2,7 @@ import { calculateNlv } from "@nmi-agro/fdm-calculator"
 import {
   checkPermission,
   getCultivationsForFarm,
+  getCultivationsFromCatalogue,
   getCurrentSoilDataForFarm,
   getFarms,
   getFertilizerApplicationsForFarm,
@@ -10,6 +11,7 @@ import {
   getSoilAnalysesForFarm,
   updateField,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
@@ -38,6 +40,7 @@ import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
 import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -170,6 +173,14 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       b_id_farm,
       timeframe,
     )
+    // The catalogue holds the years in which each RVO crop code is available.
+    const availabilityYearsByCatalogue = new Map(
+      (await getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm)).map((item) => [
+        item.b_lu_catalogue,
+        item.b_lu_ya,
+      ]),
+    )
+    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
     const fertilizerApplicationsForFarm = await getFertilizerApplicationsForFarm(
       fdm,
       session.principal_id,
@@ -188,7 +199,14 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     })
     const fieldsExtended = await Promise.all(
       fields.map(async (field) => {
-        const cultivations = cultivationsForFarm.get(field.b_id) ?? []
+        const cultivations = (cultivationsForFarm.get(field.b_id) ?? []).map((cultivation) => ({
+          ...cultivation,
+          availabilityWarning: isCultivationUnavailableInPeriod(
+            cultivation,
+            availabilityYearsByCatalogue.get(cultivation.b_lu_catalogue),
+            lastCultivationAvailabilityYear,
+          ),
+        }))
 
         const fertilizerApplications = fertilizerApplicationsForFarm.get(field.b_id) ?? []
 

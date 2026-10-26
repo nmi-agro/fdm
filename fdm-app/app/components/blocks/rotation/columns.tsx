@@ -2,6 +2,7 @@ import { createColumnHelper, type Row } from "@tanstack/react-table"
 import { ChevronRight } from "lucide-react"
 import { useMemo } from "react"
 import { NavLink } from "react-router"
+import type { CultivationAvailabilityResult } from "~/components/blocks/cultivation/availability-warning"
 import { cn } from "@/app/lib/utils"
 import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import { getHarvestTerm } from "~/components/blocks/harvest/utils"
@@ -27,6 +28,8 @@ import { TableVarietySelector } from "./variety-selector"
 
 export type CropRow = {
   type: "crop"
+  /** First RVO crop code availability problem among the fields, `null` when there is none. */
+  availabilityWarning: CultivationAvailabilityResult
   canModify: boolean
   b_lu_catalogue: string
   b_lu_name: string
@@ -40,6 +43,8 @@ export type CropRow = {
 
 export type FieldRow = {
   type: "field"
+  /** First RVO crop code availability problem among the cultivations, `null` when there is none. */
+  availabilityWarning: CultivationAvailabilityResult
   canModify: boolean
   b_id: string
   b_name: string

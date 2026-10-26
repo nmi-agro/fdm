@@ -17,6 +17,7 @@ import {
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
   getDefaultDatesOfCultivation,
+  isCultivationUnavailableInPeriod,
   removeCultivation,
   updateCultivation,
 } from "./cultivation"
@@ -33,6 +34,7 @@ describe("Cultivation Data Model", () => {
   let fdm: FdmServerType
   let b_lu_catalogue: string
   let b_lu_catalogue_2: string
+  let b_lu_catalogue_3: string
   let b_id_farm: string
   let b_id_farm_2: string
   let b_id: string
@@ -53,6 +55,7 @@ describe("Cultivation Data Model", () => {
 
     b_lu_catalogue = createId()
     b_lu_catalogue_2 = createId()
+    b_lu_catalogue_3 = createId()
     const farmName = "Test Farm"
     const farmName2 = "Test Farm 2"
     const farmBusinessId = "123456"
@@ -158,6 +161,7 @@ describe("Cultivation Data Model", () => {
         b_lu_variety_options: ["variety1", "variety2"] as string[],
         b_lu_start_default: "03-01",
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       } as const
       await addCultivationToCatalogue(fdm, {
         ...details,
@@ -170,6 +174,13 @@ describe("Cultivation Data Model", () => {
         b_lu_catalogue: b_lu_catalogue_2,
         b_lu_source: b_lu_source_2,
         b_lu_name: "test-name-2",
+      })
+      await addCultivationToCatalogue(fdm, {
+        ...details,
+        b_lu_catalogue: b_lu_catalogue_3,
+        b_lu_source: b_lu_source,
+        b_lu_name: "test-name-3",
+        b_lu_ya: [2025],
       })
 
       b_lu_start = new Date("2024-01-01")
@@ -208,6 +219,16 @@ describe("Cultivation Data Model", () => {
           (c) => c.b_lu_catalogue === b_lu_catalogue_2 && farmSources2.has(c.b_lu_source),
         ),
       ).toBeDefined()
+    })
+
+    it("should get all cultivations for farms from catalogue only for a given year", async () => {
+      const cultivations = await getCultivationsFromCatalogue(fdm, principal_id, b_id_farm, 2026)
+      expect(
+        cultivations.find((cultivation) => cultivation.b_lu_catalogue === b_lu_catalogue),
+      ).toBeDefined() // b_lu_ya is null for this cultivation.
+      expect(
+        cultivations.find((cultivation) => cultivation.b_lu_catalogue === b_lu_catalogue_3),
+      ).toBeUndefined() // b_lu_ya is [2025] for this cultivation.
     })
 
     it("should handle empty catalogues", async () => {
@@ -297,6 +318,7 @@ describe("Cultivation Data Model", () => {
         b_lu_variety_options: ["variety1", "variety2"],
         b_lu_start_default: "03-01",
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       const cultivations = await getCultivationsFromCatalogue(fdm, principal_id, b_id_farm)
@@ -346,6 +368,69 @@ describe("Cultivation Data Model", () => {
           b_lu_variety_options: null,
           b_lu_start_default: "03-01",
           b_date_harvest_default: "09-15",
+          b_lu_ya: null,
+        }),
+      ).rejects.toThrow()
+    })
+
+    it("should throw an error when adding a cultivation with invalid b_lu_ya", async () => {
+      const b_lu_catalogue = createId()
+
+      await expect(
+        addCultivationToCatalogue(fdm, {
+          b_lu_catalogue,
+          b_lu_source: b_lu_source,
+          b_lu_name: "test-name",
+          b_lu_name_en: "test-name-en",
+          b_lu_harvestable: "invalid-value" as any,
+          b_lu_hcat3: "test-hcat3",
+          b_lu_hcat3_name: "test-hcat3-name",
+          b_lu_croprotation: "cereal",
+          b_lu_harvestcat: "HC050",
+          b_lu_yield: 6000,
+          b_lu_dm: 500,
+          b_lu_hi: 0.4,
+          b_lu_n_harvestable: 4,
+          b_lu_n_residue: 2,
+          b_n_fixation: 0,
+          b_lu_eom: 100,
+          b_lu_eom_residue: 50,
+          b_lu_rest_oravib: false,
+          b_lu_variety_options: null,
+          b_lu_start_default: "03-01",
+          b_date_harvest_default: "09-15",
+          b_lu_ya: ["4"] as any,
+        }),
+      ).rejects.toThrow()
+    })
+
+    it("should not allow an empty array of b_lu_ya", async () => {
+      const b_lu_catalogue = createId()
+
+      await expect(
+        addCultivationToCatalogue(fdm, {
+          b_lu_catalogue,
+          b_lu_source: b_lu_source,
+          b_lu_name: "test-name",
+          b_lu_name_en: "test-name-en",
+          b_lu_harvestable: "invalid-value" as any,
+          b_lu_hcat3: "test-hcat3",
+          b_lu_hcat3_name: "test-hcat3-name",
+          b_lu_croprotation: "cereal",
+          b_lu_harvestcat: "HC050",
+          b_lu_yield: 6000,
+          b_lu_dm: 500,
+          b_lu_hi: 0.4,
+          b_lu_n_harvestable: 4,
+          b_lu_n_residue: 2,
+          b_n_fixation: 0,
+          b_lu_eom: 100,
+          b_lu_eom_residue: 50,
+          b_lu_rest_oravib: false,
+          b_lu_variety_options: null,
+          b_lu_start_default: "03-01",
+          b_date_harvest_default: "09-15",
+          b_lu_ya: [],
         }),
       ).rejects.toThrow()
     })
@@ -376,6 +461,45 @@ describe("Cultivation Data Model", () => {
           b_id,
           new Date("2023-06-15T00:00:00.000Z"),
           new Date("2023-06-15T00:00:00.000Z"),
+        ),
+      ).rejects.toThrow("Exception for addCultivation")
+    })
+
+    it("should reject adding for an interval including years unavailable for the cultivation code", async () => {
+      const b_lu_catalogue = createId()
+      await addCultivationToCatalogue(fdm, {
+        b_lu_catalogue: b_lu_catalogue,
+        b_lu_source: b_lu_source,
+        b_lu_name: "new-name",
+        b_lu_name_en: "new-name-en",
+        b_lu_harvestable: "multiple",
+        b_lu_hcat3: "new-hcat3",
+        b_lu_hcat3_name: "new-hcat3-name",
+        b_lu_croprotation: "cereal",
+        b_lu_harvestcat: "HC050",
+        b_lu_yield: 6000,
+        b_lu_dm: 500,
+        b_lu_hi: 0.4,
+        b_lu_n_harvestable: 4,
+        b_lu_n_residue: 2,
+        b_n_fixation: 0,
+        b_lu_rest_oravib: false,
+        b_lu_variety_options: null,
+        b_lu_start_default: "03-01",
+        b_lu_eom: null,
+        b_lu_eom_residue: null,
+        b_date_harvest_default: "09-15",
+        b_lu_ya: [2023],
+      })
+
+      await expect(
+        addCultivation(
+          fdm,
+          principal_id,
+          b_lu_catalogue,
+          b_id,
+          new Date("2024-01-01"),
+          new Date("2024-12-31"),
         ),
       ).rejects.toThrow("Exception for addCultivation")
     })
@@ -516,6 +640,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       await updateCultivation(fdm, principal_id, b_lu, newCatalogueId, newSowingDate)
@@ -570,6 +695,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       const newSowingDate = new Date("2024-02-01")
@@ -616,6 +742,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       await updateCultivation(fdm, principal_id, b_lu, newCatalogueId)
@@ -703,6 +830,7 @@ describe("Cultivation Data Model", () => {
         b_lu_variety_options: ["variety1", "variety2"],
         b_lu_start_default: "03-01",
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       const b_lu = await addCultivation(fdm, principal_id, b_lu_catalogue, b_id, b_lu_start)
@@ -728,6 +856,99 @@ describe("Cultivation Data Model", () => {
         .from(schema.cultivationHarvesting)
         .where(eq(schema.cultivationHarvesting.b_lu, b_lu))
       expect(harvestsAfterDelete.length).toBe(1)
+    })
+
+    it("should reject updating b_lu_start and b_lu_end to an interval including years unavailable for the cultivation code", async () => {
+      const b_lu_catalogue = createId()
+      await addCultivationToCatalogue(fdm, {
+        b_lu_catalogue: b_lu_catalogue,
+        b_lu_source: b_lu_source,
+        b_lu_name: "new-name",
+        b_lu_name_en: "new-name-en",
+        b_lu_harvestable: "multiple",
+        b_lu_hcat3: "new-hcat3",
+        b_lu_hcat3_name: "new-hcat3-name",
+        b_lu_croprotation: "cereal",
+        b_lu_harvestcat: "HC050",
+        b_lu_yield: 6000,
+        b_lu_dm: 500,
+        b_lu_hi: 0.4,
+        b_lu_n_harvestable: 4,
+        b_lu_n_residue: 2,
+        b_n_fixation: 0,
+        b_lu_rest_oravib: false,
+        b_lu_variety_options: null,
+        b_lu_start_default: "03-01",
+        b_lu_eom: null,
+        b_lu_eom_residue: null,
+        b_date_harvest_default: "09-15",
+        b_lu_ya: [2023],
+      })
+
+      const b_lu = await addCultivation(
+        fdm,
+        principal_id,
+        b_lu_catalogue,
+        b_id,
+        new Date("2023-01-01"),
+        new Date("2023-12-31"),
+      )
+
+      await expect(
+        updateCultivation(
+          fdm,
+          principal_id,
+          b_lu,
+          undefined,
+          new Date("2024-01-01"),
+          new Date("2024-12-31"),
+        ),
+      ).rejects.toThrow("Exception for updateCultivation")
+    })
+
+    it("should update b_lu_start even if b_lu_end is not present and there are availability years", async () => {
+      const b_lu_catalogue = createId()
+      await addCultivationToCatalogue(fdm, {
+        b_lu_catalogue: b_lu_catalogue,
+        b_lu_source: b_lu_source,
+        b_lu_name: "new-name",
+        b_lu_name_en: "new-name-en",
+        b_lu_harvestable: "multiple",
+        b_lu_hcat3: "new-hcat3",
+        b_lu_hcat3_name: "new-hcat3-name",
+        b_lu_croprotation: "cereal",
+        b_lu_harvestcat: "HC050",
+        b_lu_yield: 6000,
+        b_lu_dm: 500,
+        b_lu_hi: 0.4,
+        b_lu_n_harvestable: 4,
+        b_lu_n_residue: 2,
+        b_n_fixation: 0,
+        b_lu_rest_oravib: false,
+        b_lu_variety_options: null,
+        b_lu_start_default: "03-01",
+        b_lu_eom: null,
+        b_lu_eom_residue: null,
+        b_date_harvest_default: "09-15",
+        b_lu_ya: [2023],
+      })
+
+      // b_lu_end is defined here, and it won't be cleared during the update
+      const b_lu = await addCultivation(
+        fdm,
+        principal_id,
+        b_lu_catalogue,
+        b_id,
+        new Date("2023-01-01"),
+        new Date("2023-12-31"),
+      )
+
+      // The final interval will be 2024-02-02 - 2023-12-31
+      const newSowingDate = new Date("2023-02-02")
+      await updateCultivation(fdm, principal_id, b_lu, undefined, newSowingDate)
+
+      const updatedCultivation = await getCultivation(fdm, principal_id, b_lu)
+      expect(updatedCultivation.b_lu_start).toEqual(newSowingDate)
     })
 
     it("should update a cultivation with only the crop residue", async () => {
@@ -885,6 +1106,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       const cultivations = await getCultivationsFromCatalogue(fdm, principal_id, b_id_farm)
@@ -920,6 +1142,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: "09-15",
+          b_lu_ya: null,
         }),
       ).rejects.toThrow("Exception for addCultivationToCatalogue")
     })
@@ -949,6 +1172,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: "2024-09-15", // Invalid format
+          b_lu_ya: null,
         }),
       ).rejects.toThrow("Exception for addCultivationToCatalogue")
     })
@@ -979,6 +1203,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: "09-15",
+          b_lu_ya: null,
         }),
       ).resolves.not.toThrow()
     })
@@ -1009,6 +1234,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: null,
+          b_lu_ya: null,
         }),
       ).resolves.not.toThrow()
     })
@@ -1052,6 +1278,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: "07-20", // July 20th
+          b_lu_ya: null,
         })
 
         const year = 2024
@@ -1092,6 +1319,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: null,
+          b_lu_ya: null,
         })
 
         const year = 2024
@@ -1132,6 +1360,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: null,
+          b_lu_ya: null,
         })
 
         const year = 2024
@@ -1172,6 +1401,7 @@ describe("Cultivation Data Model", () => {
           b_lu_eom: null,
           b_lu_eom_residue: null,
           b_date_harvest_default: "09-15",
+          b_lu_ya: null,
         })
 
         const year = 2024
@@ -1195,6 +1425,160 @@ describe("Cultivation Data Model", () => {
         await expect(
           getDefaultDatesOfCultivation(fdm, principal_id, b_id_farm, nonExistentCatalogueId, year),
         ).rejects.toThrow("Exception for getDefaultDatesOfCultivation")
+      })
+    })
+
+    describe("isCultivationUnavailableInPeriod", () => {
+      it("should return null when the cultivation is available in the given time period", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2024-09-30") },
+            [2024],
+            2026,
+          ),
+        ).toBeNull()
+      })
+
+      it("should return an open unavailability interval when the cultivation is not available after the last b_lu_ya for an open interval", () => {
+        expect(
+          isCultivationUnavailableInPeriod({ b_lu_start: new Date("2024-02-01") }, [2024], 2026),
+        ).toEqual({ first_unavailable_in: 2025 })
+      })
+
+      it("should return null when availability is not known for years beyond the last availability year for an open interval", () => {
+        expect(
+          isCultivationUnavailableInPeriod({ b_lu_start: new Date("2024-02-01") }, [2024], 2024),
+        ).toBeNull()
+      })
+
+      it("should return an object when the cultivation is not available after the last b_lu_ya", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2025-06-10") },
+            [2024],
+            2026,
+          ),
+        ).toEqual({ first_unavailable_in: 2025, last_unavailable_in: 2025 })
+      })
+
+      it("should return an object when the whole interval is after the last b_lu_ya", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2025-02-01"), b_lu_end: new Date("2025-06-10") },
+            [2023],
+            2026,
+          ),
+        ).toEqual({ first_unavailable_in: 2025, last_unavailable_in: 2025 })
+      })
+
+      it("should return null when availability is not known for years beyond the last availability year", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2025-06-10") },
+            [2024, 2025], // Should not happen in practice
+            2024,
+          ),
+        ).toBeNull()
+      })
+
+      it("should return an object when the cultivation is not available before the first b_lu_ya", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2025-06-10") },
+            [2025],
+            2026,
+          ),
+        ).toEqual({ first_unavailable_in: 2024, last_unavailable_in: 2024 })
+      })
+
+      it("should return an object when the whole interval is before the first b_lu_ya", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2023-02-01"), b_lu_end: new Date("2023-06-10") },
+            [2025],
+            2026,
+          ),
+        ).toEqual({ first_unavailable_in: 2023, last_unavailable_in: 2023 })
+      })
+
+      it("should return { unavailable_in } when the cultivation is not available in a gap in b_lu_ya", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2025-06-10") },
+            [2024, 2026],
+            2026,
+          ),
+        ).toEqual({ first_unavailable_in: 2025, last_unavailable_in: 2025 })
+      })
+
+      it("should return {} when the checking range is too long", () => {
+        const b_lu_ya = []
+        for (let i = 2000; i <= 2150; i++) {
+          b_lu_ya.push(i)
+        }
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2001-02-01"), b_lu_end: new Date("2132-09-30") },
+            b_lu_ya,
+            2180,
+          ),
+        ).toEqual({})
+      })
+
+      it("should return null if b_lu_ya is null", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2025-06-10") },
+            null,
+            2026,
+          ),
+        ).toBeNull()
+      })
+
+      it("should return null if last availability year is not passed", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2025-06-10") },
+            [2024],
+            undefined,
+          ),
+        ).toBeNull()
+      })
+
+      it("should return null if last availability year is NaN", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2025-06-10") },
+            [2024],
+            Number.NaN,
+          ),
+        ).toBeNull()
+      })
+
+      it("should return null if b_lu_end is before b_lu_start", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-02-01"), b_lu_end: new Date("2024-01-01") },
+            [2024],
+            2026,
+          ),
+        ).toBeNull()
+      })
+
+      it("should return null if b_lu_start year is NaN", () => {
+        expect(
+          isCultivationUnavailableInPeriod({ b_lu_start: new Date("hello") }, [2024], 2026),
+        ).toBeNull()
+      })
+
+      it("should return null if b_lu_start year is NaN", () => {
+        expect(
+          isCultivationUnavailableInPeriod(
+            { b_lu_start: new Date("2024-01-01"), b_lu_end: new Date("hello") },
+            [2024],
+            2026,
+          ),
+        ).toBeNull()
       })
     })
   })
@@ -1281,6 +1665,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       await addCultivation(fdm, principal_id, b_lu_catalogue, b_id, new Date("2024-03-01"))
@@ -1437,6 +1822,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       // Add a second field
@@ -1566,6 +1952,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       // Add a cultivation 'Wheat' within the timeframe
@@ -1627,6 +2014,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       // Add a cultivation 'Wheat'
@@ -1766,6 +2154,7 @@ describe("Cultivation Data Model", () => {
         b_lu_eom: null,
         b_lu_eom_residue: null,
         b_date_harvest_default: "09-15",
+        b_lu_ya: null,
       })
 
       // Add a cultivation 'Wheat' - outside timeframe
@@ -1897,6 +2286,7 @@ describe("buildCultivationTimeframeCondition", () => {
       b_lu_eom: null,
       b_lu_eom_residue: null,
       b_date_harvest_default: "09-15",
+      b_lu_ya: null,
     })
   })
 
@@ -2190,6 +2580,7 @@ describe("getCultivationsForFarm", () => {
       b_lu_eom: null,
       b_lu_eom_residue: null,
       b_date_harvest_default: "09-15",
+      b_lu_ya: null,
     })
   })
 

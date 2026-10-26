@@ -11,7 +11,7 @@
  * @packageDocumentation
  */
 
-export { getCultivationCatalogue } from "./cultivations"
+export { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "./cultivations"
 export type {
   CatalogueCultivation,
   CatalogueCultivationItem,

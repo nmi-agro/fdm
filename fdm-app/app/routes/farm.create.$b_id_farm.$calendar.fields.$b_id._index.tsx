@@ -9,6 +9,7 @@ import {
   updateCultivation,
   updateField,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import {
   type ActionFunctionArgs,
   data,
@@ -74,6 +75,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get the session
     const session = await getSession(request)
 
+    const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
     // Get the field data
@@ -116,23 +118,55 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const isEstimated =
       currentSoilData.length > 0 && currentSoilData.every((i) => i.a_source === "nl-other-nmi")
 
-    // Get the available cultivations
-    let cultivationOptions = []
+    // Get the cultivation
+    const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
+
+    const b_lu_name = cultivations[0]?.b_lu_name
+    const b_lu_catalogue = cultivations[0]?.b_lu_catalogue
+
+    // Map catalogue cultivations to options for the combobox
+    // Include those that already exist on the farm, or available in this year
+    const availabilityYearRaw = Number.parseInt(calendar)
+    const availabilityYear = Number.isNaN(availabilityYearRaw)
+      ? undefined
+      : Math.min(await getLastCultivationAvailabilityYear(), availabilityYearRaw)
+
+    // Get the cultivations from catalogue
     const cultivationsCatalogue = await getCultivationsFromCatalogue(
       fdm,
       session.principal_id,
       b_id_farm,
+      availabilityYear,
     )
-    cultivationOptions = cultivationsCatalogue
-      .filter((cultivation) => cultivation?.b_lu_catalogue && cultivation?.b_lu_name)
-      .map((cultivation) => ({
-        value: cultivation.b_lu_catalogue,
-        label: `${cultivation.b_lu_name} (${cultivation.b_lu_catalogue.split("_")[1]})`,
-      }))
 
-    // Get the cultivation
-    const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
-    const b_lu_catalogue = cultivations[0]?.b_lu_catalogue
+    const cultivationOptions = cultivationsCatalogue.map((c) => ({
+      value: c.b_lu_catalogue,
+      label: c.b_lu_name,
+      availableThisYear: true,
+    }))
+
+    // Add the current cultivation to the cultivation options if it is missing
+    if (b_lu_catalogue) {
+      let insertionIndex = 0
+      let found = false
+      for (let i = 0; i < cultivationOptions.length; i++) {
+        const c = cultivationOptions[i]
+        if (c.value === b_lu_catalogue) {
+          found = true
+          break
+        }
+        if (c.label.localeCompare(b_lu_name, "nl") < 0) {
+          insertionIndex = i + 1
+        }
+      }
+      if (!found) {
+        cultivationOptions.splice(insertionIndex, 0, {
+          value: b_lu_catalogue,
+          label: b_lu_name,
+          availableThisYear: false,
+        })
+      }
+    }
 
     // Get Map Style
     const mapStyle = getMapStyle("satellite")
@@ -143,6 +177,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       b_name: field.b_name,
       b_lu_catalogue: b_lu_catalogue,
       b_lu_start: cultivations[0]?.b_lu_start,
+      cultivationAvailabilityYear: availabilityYear,
       currentSoilData: currentSoilData,
       isEstimated: isEstimated,
       soilParameterDescription: soilParameterDescription,
@@ -172,6 +207,7 @@ export default function Index() {
       b_lu_catalogue={loaderData.b_lu_catalogue}
       b_area={loaderData.b_area}
       b_bufferstrip={loaderData.b_bufferstrip}
+      cultivationAvailabilityYear={loaderData.cultivationAvailabilityYear}
       cultivationOptions={loaderData.cultivationOptions}
       featureCollection={loaderData.featureCollection}
       mapStyle={loaderData.mapStyle}

@@ -57,6 +57,7 @@ export function AddEventSheet({
   onOpenChange,
   b_id_farm,
   calendar,
+  lastCultivationAvailabilityYear,
   canModify,
   fields,
   fertilizerOptions,
@@ -66,6 +67,7 @@ export function AddEventSheet({
   onOpenChange: (open: boolean) => void
   b_id_farm: string
   calendar: string
+  lastCultivationAvailabilityYear: number
   canModify: boolean
   fields: TimelineField[]
   fertilizerOptions: {
@@ -74,7 +76,7 @@ export function AddEventSheet({
     p_app_amount_unit: AppAmountUnit
     applicationMethodOptions: { value: ApplicationMethods; label: string }[]
   }[]
-  cultivationOptions: { value: string; label: string }[]
+  cultivationOptions: { value: string; label: string; b_lu_ya: number[] | null }[]
 }) {
   const open = !!request
   const field = request ? fields.find((f) => f.b_id === request.context.b_id) : undefined
@@ -202,6 +204,11 @@ export function AddEventSheet({
     submittedDeleteInteractionRef.current = null
   })
 
+  // Only offer cultivation codes that are available in the year of the selected date.
+  const cultivationAvailabilityYear = request?.context.date
+    ? Math.min(lastCultivationAvailabilityYear, request.context.date.getFullYear())
+    : undefined
+
   return (
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-lg">
@@ -298,7 +305,15 @@ export function AddEventSheet({
                 b_lu_start: request.context.date ?? today,
                 b_lu_end: undefined,
               }}
-              options={cultivationOptions}
+              lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+              options={cultivationOptions.filter(
+                (c) =>
+                  c.value === request.context.b_lu ||
+                  (request.context.date &&
+                    (typeof cultivationAvailabilityYear !== "number" ||
+                      c.b_lu_ya === null ||
+                      c.b_lu_ya.includes(cultivationAvailabilityYear))),
+              )}
             />
           ) : null}
           {request &&
@@ -316,6 +331,7 @@ export function AddEventSheet({
                     ? request.context.date
                     : (cultivation?.b_lu_end ?? undefined),
               }}
+              lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
               options={cultivationOptions}
             />
           ) : null}

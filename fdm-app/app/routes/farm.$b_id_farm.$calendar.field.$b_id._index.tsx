@@ -14,6 +14,7 @@ import {
   type Cultivation,
   getCultivations,
   getCultivationsForFarm,
+  getCultivationsFromCatalogue,
   getCurrentSoilData,
   getField,
   getFields,
@@ -26,7 +27,7 @@ import {
   getSoilParametersDescription,
   listAvailableAcquiringMethods,
 } from "@nmi-agro/fdm-core"
-import { getCultivationCatalogue } from "@nmi-agro/fdm-data"
+import { getCultivationCatalogue, getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { simplify } from "@turf/simplify"
 import { useEffect } from "react"
 import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
@@ -70,6 +71,7 @@ import { deriveBcsScores } from "~/lib/bcs-derived.server"
 import { computeBcs } from "~/lib/bcs.server"
 import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
 import { getCultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -508,6 +510,25 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         })()
       : null
 
+    const showAvailabilityYearWarningPromise = (async function getShowAvailabilityYearWarning() {
+      // The catalogue holds the years in which each RVO crop code is available.
+      const cultivationCatalogue = activeCultivation
+        ? await getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm)
+        : []
+      const activeCatalogueItem = activeCultivation
+        ? cultivationCatalogue.find(
+            (item) => item.b_lu_catalogue === activeCultivation.b_lu_catalogue,
+          )
+        : undefined
+      return activeCultivation
+        ? isCultivationUnavailableInPeriod(
+            activeCultivation,
+            activeCatalogueItem?.b_lu_ya,
+            await getLastCultivationAvailabilityYear(),
+          )
+        : null
+    })()
+
     const cultivationHistoryPromise = (async (): Promise<
       AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>
     > => {
@@ -937,6 +958,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         endedCount: measures.filter((measure) => !!measure.m_end).length,
       },
       asyncInsights: {
+        showAvailabilityYearWarning: showAvailabilityYearWarningPromise,
         fertilizer: fertilizerAsyncPromise,
         bln: blnPromise,
         cultivationHistory: cultivationHistoryPromise,

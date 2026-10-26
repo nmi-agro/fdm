@@ -56,6 +56,7 @@ export {
   getCultivationsFromCatalogue,
   getCultivationsFromCatalogues,
   getDefaultDatesOfCultivation,
+  isCultivationUnavailableInPeriod,
   removeCultivation,
   updateCultivation,
 } from "./cultivation"
