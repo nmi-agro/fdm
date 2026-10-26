@@ -347,13 +347,6 @@ export function listItemsInCatalogueRouteHandler(
   itemsGetter: (fdm: FdmType, principalId: string, sources: string[]) => Promise<any[]>,
 ) {
   return async function (c: any) {
-    if (c.req.header("content-type")) {
-      throw new ApiError(
-        415,
-        "unsupported-media-type",
-        "Body not allowed. Content type must be undefined.",
-      )
-    }
     const params = c.req.valid("param")
     const { b_id_farm, source } = params as z.infer<typeof ListCatalogueItemsParamsSchema>
     const principal = c.get("principal") as unknown as ApiPrincipalContext

@@ -382,6 +382,22 @@ describe("POST /farms", () => {
     expect(res.status).toBe(403)
   })
 
+  it("returns 500 if getFarm fails", async () => {
+    const app = makeApp({
+      addFarm: vi.fn().mockResolvedValue("farm-new"),
+      getFarm: vi.fn().mockRejectedValue(new Error("Permission denied")),
+    })
+    const res = await app.request("/farms", {
+      method: "POST",
+      headers: {
+        "x-api-key": "valid",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ b_name_farm: "Farm" }),
+    })
+    expect(res.status).toBe(500)
+  })
+
   it("returns 500 if catalogue enablement fails", async () => {
     const newFarm = {
       b_id_farm: "farm-new",

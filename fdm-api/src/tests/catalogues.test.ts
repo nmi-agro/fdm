@@ -415,6 +415,15 @@ describe("Catalogues - enable", () => {
     expect(res.status).toBe(204)
     expect(services.enableMeasureCatalogue).not.toHaveBeenCalled()
   })
+
+  it("returns 404 for POST /farms/{b_id_farm}/catalogues/measure/anlb", async () => {
+    const res = await app.request(`/farms/farm-1/catalogues/measure/anlb`, {
+      method: "post",
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(404)
+    expect(services.enableMeasureCatalogue).not.toHaveBeenCalled()
+  })
 })
 
 describe("Catalogues - disable", () => {
