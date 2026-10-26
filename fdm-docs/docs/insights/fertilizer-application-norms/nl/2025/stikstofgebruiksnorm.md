@@ -33,6 +33,7 @@ The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) t
    - **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety. See [RVO Tabel 2c](https://www.rvo.nl/sites/default/files/2024-12/Tabel-2c-Consumptieaardappelen%20hoge%20of%20lage%20norm-2025.pdf).
    - **Maize (`Maïs`)**: The norm depends on the farm's derogation status (160 kg N/ha derogation vs 185 kg N/ha no derogation on clay).
    - **Outdoor Flowers (`Buitenbloemen`)**: A higher norm is applied for specific varieties.
+   - **Other leafy crops and herbs (`Bladgewassen overig`, `Kruiden`)**: The norm depends on the number of harvests of the cultivation in the norm year. With 0 or 1 harvest the _eenmalige oogst_ norm applies; with more than 1 harvest the _meermalige oogst_ norm applies. The generic herb codes (`nl_2743`, `nl_2744`) do not tell leaf, root and seed herbs apart, so the _bladgewas_ sub-types are always used for them.
 5. **Sum Cultivation Norms**: The total field nitrogen allowance is the sum of norms across all cultivations in the year.
 6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: Reductions are subtracted from the total:
    - **Catch crop reduction (art. 28d Urm)**: Assessed on the previous calendar year (2024) on sand and loess.
@@ -62,6 +63,7 @@ The following statutory options and specialized exceptions from the _Uitvoerings
 6. **Fixed farm-level nitrogen norm (`Vaste norm op bedrijfsniveau`, footnote 9)**: The 110 kg N/ha fixed allowance when the farm's weighted average is between 100 and 110 kg N/ha.
 7. **Two-year winter crop budget split (`Winterteelt "waarvan ten hoogste na 31/12"`, footnote 5/18)**: Multi-year budget cap attribution between sowing year and harvest year.
 8. **Seed potato grow-out (`Pootaardappelen, uitgroeiteelt (loofvernietiging na 15 augustus)`)**: The date of haulm destruction (`loofvernietiging`) is not recorded, so the condition that it takes place after 15 August is not verified.
+9. **Root and seed herbs (`Kruiden, wortelgewassen` / `Kruiden, zaadgewassen`)**: The generic herb BRP codes always use the leaf-crop (`bladgewas`) norms; the separate norms for root and seed herbs are not applied.
 
 ---
 

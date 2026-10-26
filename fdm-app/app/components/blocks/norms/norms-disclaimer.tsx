@@ -93,6 +93,14 @@ export function NormsDisclaimer({ className }: NormsDisclaimerProps) {
                     </span>{" "}
                     Uitsplitsing van de stikstofruimte over zaai- en oogstjaar.
                   </li>
+                  <li>
+                    <span className="text-foreground font-medium">
+                      Kruiden (wortel- en zaadgewassen):
+                    </span>{" "}
+                    Voor de algemene BRP-codes voor kruiden wordt de norm voor bladgewassen
+                    gebruikt; aparte normen voor wortel- en zaadgewassen worden hiervoor (nog) niet
+                    toegepast.
+                  </li>
                 </ul>
               </div>
             </CollapsibleContent>

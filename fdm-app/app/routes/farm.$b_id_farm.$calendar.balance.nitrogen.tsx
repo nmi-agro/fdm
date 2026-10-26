@@ -5,8 +5,10 @@ import {
   type MetaFunction,
   Outlet,
   useLoaderData,
+  useLocation,
   useParams,
 } from "react-router"
+import { EffectiveNitrogenToggle } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { HeaderBalance } from "~/components/blocks/header/balance"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
@@ -124,10 +126,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function FarmBalanceNitrogenBlock() {
   const loaderData = useLoaderData<typeof loader>()
   const { b_id, calendar } = useParams()
+  const { search } = useLocation()
 
   const action = b_id
     ? {
-        to: `/farm/${loaderData.b_id_farm}/${calendar}/balance/nitrogen`,
+        to: `/farm/${loaderData.b_id_farm}/${calendar}/balance/nitrogen${search}`,
         label: "Terug naar stikstofbalans",
         disabled: false,
       }
@@ -149,10 +152,11 @@ export default function FarmBalanceNitrogenBlock() {
       </Header>
       <main>
         <div className="space-y-6 px-10 py-5 pb-0">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
             <div className="space-y-0.5 ">
               <h2 className="text-2xl font-bold tracking-tight">Stikstof</h2>
             </div>
+            <EffectiveNitrogenToggle />
           </div>
           <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
             <div className="flex-1">{<Outlet />}</div>

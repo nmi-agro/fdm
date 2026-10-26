@@ -36,6 +36,7 @@ The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) t
    - **Grass for industrial processing (`Gras voor industriële verwerking`)**: Grass sown in a previous year or before 15 May receives the "inzaai voor 15 mei en volgende jaren" norm. Other sowing dates in the first year receive the "inzaai in september en eerste jaar" norm. A missing start date is treated as 1 January.
    - **Potatoes (`Aardappelen`)**: The norm is adjusted based on the potato variety.
    - **Outdoor Flowers (`Buitenbloemen`)**: A higher norm is applied for specific varieties.
+   - **Other leafy crops and herbs (`Bladgewassen overig`, `Kruiden`)**: The norm depends on the number of harvests of the cultivation in the norm year. With 0 or 1 harvest the _eenmalige oogst_ norm applies; with more than 1 harvest the _meermalige oogst_ norm applies. The generic herb codes (`nl_2743`, `nl_2744`) do not tell leaf, root and seed herbs apart, so the _bladgewas_ sub-types are always used for them.
 5. **Sum Cultivation Norms**: The total field nitrogen allowance is the sum of norms across all cultivations in the year.
 6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: Reductions are subtracted from the total:
    - **Catch crop reduction (art. 28d Urm)**: Assessed on the previous calendar year (2025) on sand and loess.
@@ -65,6 +66,7 @@ The following statutory options and specialized exceptions from the _Uitvoerings
 6. **Fixed farm-level nitrogen norm (`Vaste norm op bedrijfsniveau`, footnote 9)**: The 110 kg N/ha fixed allowance when the farm's weighted average is between 100 and 110 kg N/ha.
 7. **Two-year winter crop budget split (`Winterteelt "waarvan ten hoogste na 31/12"`, footnote 5/18)**: Multi-year budget cap attribution between sowing year and harvest year.
 8. **Seed potato grow-out (`Pootaardappelen, uitgroeiteelt (loofvernietiging na 15 augustus)`)**: The date of haulm destruction (`loofvernietiging`) is not recorded, so the condition that it takes place after 15 August is not verified.
+9. **Root and seed herbs (`Kruiden, wortelgewassen` / `Kruiden, zaadgewassen`)**: The generic herb BRP codes always use the leaf-crop (`bladgewas`) norms; the separate norms for root and seed herbs are not applied.
 
 ---
 
@@ -73,7 +75,7 @@ The following statutory options and specialized exceptions from the _Uitvoerings
 The `fdm-calculator` uses the `calculateNL2026StikstofGebruiksNorm` function in `fdm-calculator/src/norms/nl/2026/value/stikstofgebruiksnorm.ts`, which relies on:
 
 - **`stikstofgebruiksnorm-data.ts`**: Contains the norm data per crop, soil region and `NV-gebied` status.
-- **`input.ts`**: Defines the required inputs. Cultivations are collected from **1 January 2025**, because the catch crop rules depend on what was grown in the previous year.
+- **`input.ts`**: Defines the required inputs. Cultivations are collected from **1 January 2025**, because the catch crop rules depend on what was grown in the previous year. Harvests are collected per cultivation for the norm year (1 January to 31 December 2026), to tell a single from multiple harvests.
 - **`../../vanggewas-winterteelt.ts`**: Determines whether a crop is a catch crop and/or a winter crop, and evaluates the statutory conditions attached to specific crops.
 
 ---

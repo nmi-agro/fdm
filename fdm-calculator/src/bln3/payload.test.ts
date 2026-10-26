@@ -1,7 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { requestBln3MeasureAdvice } from "./advice"
-import { requestBln3MeasureApplicability } from "./applicability"
-import { requestBln3Score } from "./index"
+import { requestBln3MeasureAdvice, requestBln3MeasureApplicability, requestBln3Score } from "./api"
 import { BLN3_MEASURE_FIELDS, BLN3_SCORE_FIELDS, pickBln3Payload } from "./payload"
 
 const INTERNAL_FIELDS = ["b_bufferstrip", "b_lu_croprotation", "b_lu_catalogue", "isExcluded"]

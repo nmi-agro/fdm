@@ -4,7 +4,8 @@ import tailwindcss from "@tailwindcss/vite"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { defineConfig } from "vite"
+import { transform } from "oxc-transform-react"
+import { defineConfig, type Plugin } from "vite"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const calculatorPackagePath = path.resolve(__dirname, "../fdm-calculator/package.json")
@@ -28,6 +29,49 @@ const replaceCalculatorVersion = {
   },
 }
 
+const COMPILED_FILE = /[/\\]app[/\\].*\.[jt]sx?$/
+const EXCLUDED_FILE = /\.server\.[jt]sx?$/
+
+/**
+ * React Compiler plugin to be run before any other Vite plugins.
+ */
+function reactCompiler(): Plugin {
+  return {
+    name: "oxc-react-compiler",
+    enforce: "pre",
+    async transform(code, id) {
+      const [filepath] = id.split("?")
+      if (
+        id.includes("node_modules") ||
+        !COMPILED_FILE.test(filepath) ||
+        EXCLUDED_FILE.test(filepath)
+      ) {
+        return
+      }
+
+      const result = await transform(filepath, code, {
+        jsx: "preserve",
+        sourcemap: true,
+        reactCompiler: {
+          target: "19",
+          compilationMode: "infer",
+          panicThreshold: "none",
+        },
+      })
+
+      if (result.fatal) {
+        this.error(
+          result.errors
+            .map((error) => `${error.message}${error.codeframe ? `\n${error.codeframe}` : ""}`)
+            .join("\n\n"),
+        )
+      }
+
+      return { code: result.code, map: result.map }
+    },
+  }
+}
+
 export default defineConfig((env) => {
   const isProd = env.mode === "production"
   const enableSentry = isProd && !!process.env.SENTRY_AUTH_TOKEN
@@ -36,6 +80,7 @@ export default defineConfig((env) => {
     plugins: [
       replaceCalculatorVersion,
       reactRouter(),
+      reactCompiler(),
       tailwindcss(),
       enableSentry &&
         sentryReactRouter(
@@ -89,6 +134,8 @@ export default defineConfig((env) => {
       // above are excluded from Vite's dep scanning.
       // Only include browser-compatible packages resolvable from fdm-app.
       include: [
+        // Imported by every component the React Compiler compiles.
+        "react/compiler-runtime",
         // From fdm-app direct deps
         "maplibre-gl",
         "recharts",

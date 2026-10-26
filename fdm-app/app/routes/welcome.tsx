@@ -7,7 +7,7 @@ import imageSize from "image-size"
 import { User } from "lucide-react"
 import crypto from "node:crypto"
 import { useRef, useState, useTransition } from "react"
-import { Controller } from "react-hook-form"
+import { Controller, useWatch } from "react-hook-form"
 import { Form, redirect, useLoaderData, useNavigation, useSubmit } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import { redirectWithSuccess } from "remix-toast"
@@ -122,7 +122,7 @@ export default function Welcome() {
     },
   })
 
-  const doNotUseSocialImage = form.watch("doNotUseSocialImage")
+  const doNotUseSocialImage = useWatch({ control: form.control, name: "doNotUseSocialImage" })
 
   const profilePictureInputRef = useRef<HTMLInputElement>(null)
   const [profilePictureFiles, setProfilePictureFiles] = useState<File[]>([])
@@ -256,10 +256,9 @@ export default function Welcome() {
   )
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, url }: ActionFunctionArgs) {
   try {
     // Get the URL object to extract search params
-    const url = new URL(request.url)
     const redirectTo = url.searchParams.get("redirectTo") || "/farm"
     // Validate redirectTo to prevent open redirect
     const isValidRedirect = redirectTo.startsWith("/") && !redirectTo.startsWith("//")

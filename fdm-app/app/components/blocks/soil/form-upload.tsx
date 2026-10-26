@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { AlertCircle, CheckCircle, FileUp, Upload } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
+import { useWatch } from "react-hook-form"
 import { Form, useActionData, useNavigation } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { z } from "zod"
@@ -18,13 +19,16 @@ import {
 import { FormDescription, FormField, FormItem, FormMessage } from "~/components/ui/form"
 import { Progress } from "~/components/ui/progress"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 
 type UploadStatus = "idle" | "uploading" | "success" | "error"
+type ActionData = {
+  message?: string
+  fieldErrors?: Record<string, string[]>
+  formErrors?: string[]
+} | null
 
 export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}) {
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle")
-  const [uploadProgress, setUploadProgress] = useState(0)
-
   const form = useRemixForm<z.infer<typeof FormSchema>>({
     mode: "onTouched",
     resolver: zodResolver(FormSchema),
@@ -33,45 +37,44 @@ export function SoilAnalysisUploadForm({ disabled }: { disabled?: boolean } = {}
     },
   })
 
-  const selectedFile = form.watch("soilAnalysisFile")
+  const selectedFile = useWatch({ control: form.control, name: "soilAnalysisFile" })
   const dropzoneValue = useMemo(() => (selectedFile ? [selectedFile] : []), [selectedFile])
 
-  const actionData = useActionData<{
-    message?: string
-    fieldErrors?: Record<string, string[]>
-    formErrors?: string[]
-  } | null>()
+  const actionData = useActionData<ActionData>()
   const navigation = useNavigation()
 
   // Determine if the form is currently submitting
   const isSubmitting = navigation.state !== "idle"
 
+  // Whether the current actionData's result has already been shown for its 2s display window.
+  const [dismissed, setDismissed] = useKeyedState(actionData, () => false)
+
+  const uploadStatus: UploadStatus = isSubmitting
+    ? "uploading"
+    : actionData && !dismissed
+      ? actionData.message
+        ? "success"
+        : actionData.fieldErrors || actionData.formErrors
+          ? "error"
+          : "idle"
+      : "idle"
+  const uploadProgress = isSubmitting ? 100 : 0
+
+  // Reset to idle a short delay after a result is shown, for visual feedback.
+  const formReset = form.reset
   useEffect(() => {
-    if (isSubmitting) {
-      setUploadStatus("uploading")
-      setUploadProgress(100)
-    } else if (actionData) {
-      if (actionData.message) {
-        setUploadStatus("success")
-      } else if (actionData.fieldErrors || actionData.formErrors) {
-        setUploadStatus("error")
-      }
-      // Reset status after a short delay for visual feedback
+    if (!isSubmitting && actionData && !dismissed) {
       const timer = setTimeout(() => {
-        setUploadStatus("idle")
-        setUploadProgress(0)
-        form.reset()
+        setDismissed(true)
+        formReset()
       }, 2000)
       return () => clearTimeout(timer)
-    } else {
-      setUploadStatus("idle")
-      setUploadProgress(0)
     }
-  }, [isSubmitting, actionData, form.reset])
+  }, [formReset, isSubmitting, actionData, dismissed, setDismissed])
 
   const handleFilesChange = (files: File[]) => {
     form.setValue("soilAnalysisFile", files[0])
-    setUploadStatus("idle")
+    setDismissed(true)
   }
 
   return (

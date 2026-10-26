@@ -257,7 +257,7 @@ function getFdmCultivationHistoryEntries(
   return history
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     const b_id = params.b_id
@@ -275,7 +275,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
-    const pathname = new URL(request.url).pathname
+    const pathname = url.pathname
 
     const [
       field,

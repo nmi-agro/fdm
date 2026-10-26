@@ -1,3 +1,0 @@
-interface Window {
-  openCookieSettings?: () => void
-}

@@ -1,46 +1,38 @@
 import type { ApplicationMethods } from "@nmi-agro/fdm-data"
-import type { ComponentProps } from "react"
-import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
 import {
   addFertilizerApplication,
   checkPermission,
-  getCultivations,
-  getCurrentSoilData,
+  getCultivationsForFarm,
   getFertilizerApplications,
   getFertilizerParametersDescription,
   getFertilizers,
   getField,
+  getFields,
   removeFertilizerApplication,
   updateFertilizerApplication,
 } from "@nmi-agro/fdm-core"
+import { useMemo } from "react"
 import {
   type ActionFunctionArgs,
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
   useLoaderData,
-  useNavigation,
 } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
-import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
-import { FertilizerApplicationCard } from "~/components/blocks/fertilizer-applications/card"
+import { FieldFertilizerPage } from "~/components/blocks/fertilizer-applications/bulk/field-fertilizer-page"
 import {
   FormSchema,
   FormSchemaModify,
 } from "~/components/blocks/fertilizer-applications/formschema"
-import {
-  FertilizerApplicationMetricsCard,
-  type MetricsResult,
-} from "~/components/blocks/fertilizer-applications/metrics"
-import { getNitrogenBalanceForField, getNorms } from "~/integrations/calculator"
-import { getNmiApiKey } from "~/integrations/nmi.server"
+import { loadBulkCurrentState } from "~/integrations/fertilizer-application-impact.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { getFertilizerOptions, toBulkFieldOptions } from "~/lib/fertilizer-application-bulk.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -54,55 +46,15 @@ export const meta: MetaFunction = () => {
 }
 
 /**
- * Handles promise rejections of type Error by building a result object.
+ * Loads the fertilizer applications of a field, the data for the application form, and the
+ * streamed impact of the field (farm norms, advice and nitrogen balance) including the input to
+ * preview the effect of a new or changed application in the browser.
  *
- * @param fn Function that fetches the metrics.
- * @returns `{ status: "ok", data: ... }` if the function resolves.
- * `{ "status": "error", message: ... }` with the error message if a rejection
- * happens due to missing soil parameters.
- * @throws any rejection other than those for missing soil parameters.
- */
-async function promiseMetricsResult<T>(fn: () => Promise<T>): Promise<MetricsResult<T>> {
-  try {
-    const data = await fn()
-
-    return {
-      status: "ok",
-      data: data,
-    }
-  } catch (err) {
-    if (
-      err instanceof Error &&
-      (err.message.match(/Missing required soil parameters/) || err.message.match(/bufferstrook/))
-    ) {
-      return {
-        status: "error",
-        message: err.message,
-      }
-    }
-
-    handleLoaderError(err)
-    return {
-      status: "error",
-      message: "Onbekende fout.",
-    }
-  }
-}
-
-/**
- * Loads data necessary for managing fertilizer applications for a specific field.
- *
- * This function validates that both the farm and field IDs are provided in the route parameters.
- * It retrieves the user session, fetches field details (throwing an error if the field is not found),
- * obtains available fertilizers for the farm and maps them to combobox options, and retrieves existing
- * fertilizer applications for the field. It also calculates the required fertilizer dose based on the retrieved data.
- *
- * @returns An object containing the field details, fertilizer options (for a combobox), the list of fertilizer applications,
- *          and the calculated fertilizer dose.
+ * The advice is based on the main cultivation of the year.
  *
  * @throws {Error} If the farm or field ID is missing, or if the specified field does not exist.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -128,21 +80,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     // Get timeframe from calendar store
     const timeframe = getTimeframe(params)
+    const calendar = getCalendar(params)
 
     // Get details of field
-    const field = await getField(fdm, session.principal_id, b_id)
+    const field = await getField(fdm, principal_id, b_id)
     if (!field) {
       throw data("Field is not found", {
         status: 404,
         statusText: "Field is not found",
       })
     }
-    const b_centroid = field.b_centroid
 
-    // Get available fertilizers for the farm
-    const fertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm)
-    const fertilizerParameterDescription = getFertilizerParametersDescription()
-    const applicationMethods = fertilizerParameterDescription.find(
+    const [
+      farmFields,
+      cultivationsByField,
+      fertilizers,
+      fertilizerOptions,
+      fertilizerApplications,
+    ] = await Promise.all([
+      getFields(fdm, principal_id, b_id_farm, timeframe),
+      getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
+      getFertilizers(fdm, principal_id, b_id_farm),
+      getFertilizerOptions(fdm, principal_id, b_id_farm),
+      getFertilizerApplications(fdm, principal_id, b_id, timeframe),
+    ])
+    const fieldOptions = toBulkFieldOptions(farmFields, cultivationsByField, calendar)
+    const fieldOption = fieldOptions.find((option) => option.b_id === b_id) ?? {
+      b_id,
+      b_name: field.b_name,
+      b_area: Math.round((field.b_area ?? 0) * 10) / 10,
+      b_bufferstrip: field.b_bufferstrip ?? false,
+      cultivations: [],
+      mainCultivationName: null,
+      mainCultivationCropRotation: null,
+    }
+
+    const applicationMethods = getFertilizerParametersDescription().find(
       (x: { parameter: string }) => x.parameter === "p_app_method_options",
     )
     if (!applicationMethods) throw new Error("Parameter metadata missing")
@@ -150,147 +123,53 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       .filter(
         (option): option is { value: ApplicationMethods; label: string } => option.value !== null,
       )
-      .map((option) => ({
-        value: option.value,
-        label: option.label,
-      }))
-    // Map fertilizers to options for the combobox
-    const fertilizerOptions: FertilizerOption[] = fertilizers.map((fertilizer) => ({
-      value: fertilizer.p_id,
-      label: fertilizer.p_name_nl ?? "",
-      applicationMethodOptions: (fertilizer.p_app_method_options ?? [])
-        .map((opt) => applicationMethodOptions.find((x) => x.value === opt))
-        .filter(
-          (
-            option,
-          ): option is {
-            value: ApplicationMethods
-            label: string
-          } => option !== undefined,
-        ),
-      p_app_amount_unit: fertilizer.p_app_amount_unit,
-    }))
+      .map((option) => ({ value: option.value, label: option.label }))
 
-    // Get fertilizer applications for the field
-    const fertilizerApplications = await getFertilizerApplications(
+    // Start calculating the impact of the field; streamed to the page
+    const current = loadBulkCurrentState({
       fdm,
-      session.principal_id,
-      b_id,
+      principal_id,
+      b_id_farm,
+      calendar,
       timeframe,
-    )
-
-    const dose = calculateDose({
-      applications: fertilizerApplications,
-      fertilizers,
+      farmFields: farmFields.some((f) => f.b_id === b_id) ? farmFields : [...farmFields, field],
+      selectedFieldIds: [b_id],
     })
 
-    const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
-
-    const url = new URL(request.url)
-    const cultivationId = url.searchParams.get("cultivation")
-    const calendar = getCalendar(params)
-
-    const activeCultivation = cultivationId
-      ? cultivations.find((c) => c.b_lu === cultivationId)
-      : getMainCultivation(cultivations, calendar)
-
-    const currentSoilData = await getCurrentSoilData(fdm, session.principal_id, b_id)
-
-    const nmiApiKey = getNmiApiKey()
-
-    let nutrientAdvice = null
-    if (activeCultivation) {
-      nutrientAdvice = await getNutrientAdvice(fdm, {
-        b_lu_catalogue: activeCultivation.b_lu_catalogue,
-        b_centroid: b_centroid,
-        currentSoilData: currentSoilData,
-        nmiApiKey: nmiApiKey,
-        b_bufferstrip: field.b_bufferstrip,
-      })
-    }
-
-    const fertilizerApplicationMetricsData = {
-      norms: promiseMetricsResult(async () =>
-        calendar === "2025" || calendar === "2026"
-          ? getNorms({
-              fdm,
-              principal_id,
-              b_id,
-              calendar,
-            })
-          : null,
-      ),
-      nitrogenBalance: promiseMetricsResult(async () => {
-        if (field.b_bufferstrip) {
-          return {
-            b_id,
-            b_area: field.b_area ?? 0,
-            b_bufferstrip: true,
-          }
-        }
-        return await getNitrogenBalanceForField({
-          fdm,
-          principal_id,
-          b_id_farm,
-          b_id,
-          timeframe,
-        })
-      }),
-      nutrientAdvice: nutrientAdvice,
-      dose: dose.dose,
-      b_id: b_id,
-      b_id_farm: b_id_farm,
-      b_bufferstrip: field.b_bufferstrip,
-      calendar: calendar,
-      cultivations,
-      activeCultivation,
-    }
-
-    const pathname = new URL(request.url).pathname
-    const fieldWritePermission = checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      pathname,
-      false,
-    )
-
-    const fertilizerApplicationWritePermissionsEntries = await Promise.all(
-      fertilizerApplications.map(
-        async (app) =>
-          [
-            app.p_app_id,
-            await checkPermission(
-              fdm,
-              "fertilizer_application",
-              "write",
+    const pathname = url.pathname
+    const [fieldWritePermission, permissionEntries] = await Promise.all([
+      checkPermission(fdm, "field", "write", b_id, principal_id, pathname, false),
+      Promise.all(
+        fertilizerApplications.map(
+          async (app) =>
+            [
               app.p_app_id,
-              session.principal_id,
-              pathname,
-              false,
-            ),
-          ] as [string, boolean],
+              await checkPermission(
+                fdm,
+                "fertilizer_application",
+                "write",
+                app.p_app_id,
+                principal_id,
+                pathname,
+                false,
+              ),
+            ] as [string, boolean],
+        ),
       ),
-    )
+    ])
 
-    const fertilizerApplicationWritePermissions = Object.fromEntries(
-      fertilizerApplicationWritePermissionsEntries,
-    )
-
-    // Return user information from loader, including the promises
     return {
-      field: field,
-      fertilizerOptions: fertilizerOptions,
-      fertilizerApplications: fertilizerApplications,
-      fertilizers: fertilizers,
-      dose: dose.dose,
+      b_id_farm,
+      calendar,
+      field: fieldOption,
+      fieldOptions,
+      fertilizerOptions,
+      fertilizers,
+      fertilizerApplications,
       applicationMethodOptions,
-      fertilizerApplicationMetricsData: fertilizerApplicationMetricsData,
-      calendar: calendar,
-      fieldWritePermission: await fieldWritePermission,
-      fertilizerApplicationWritePermissions: fertilizerApplicationWritePermissions,
+      current,
+      fieldWritePermission,
+      fertilizerApplicationWritePermissions: Object.fromEntries(permissionEntries),
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -298,43 +177,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 /**
- * Renders the overview for managing fertilizer applications on a field.
- *
- * This component displays a header and descriptive text followed by a grid layout.
- * The grid contains a form for submitting new fertilizer applications along with a list
- * of existing applications, and a section showcasing the calculated fertilizer dose in cards.
- * Data required for rendering is obtained via the loader, and the component leverages
- * React Router hooks for location tracking and data fetching.
+ * Renders the fertilizer page of a field: an always visible form to add or change an
+ * application, the list of applications, and the impact on the farm norms, the advice and the
+ * nitrogen balance before and after the change.
  */
 export default function FarmFieldsOverviewBlock() {
   const loaderData = useLoaderData<typeof loader>()
-  const navigation = useNavigation()
-  const isSubmitting = navigation.state !== "idle"
+  const fieldNames = useMemo(
+    () => new Map(loaderData.fieldOptions.map((field) => [field.b_id, field.b_name])),
+    [loaderData.fieldOptions],
+  )
 
   return (
-    <div className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
-      <div className="2xl:col-span-1">
-        <FertilizerApplicationCard
-          fertilizerApplications={loaderData.fertilizerApplications}
-          applicationMethodOptions={loaderData.applicationMethodOptions}
-          fertilizers={loaderData.fertilizers}
-          fertilizerOptions={loaderData.fertilizerOptions}
-          dose={loaderData.dose}
-          canCreateFertilizerApplication={loaderData.fieldWritePermission}
-          canModifyFertilizerApplication={loaderData.fertilizerApplicationWritePermissions}
-        />
-      </div>
-      <div className="min-w-0 2xl:col-span-2">
-        <FertilizerApplicationMetricsCard
-          fertilizerApplicationMetricsData={
-            loaderData.fertilizerApplicationMetricsData as ComponentProps<
-              typeof FertilizerApplicationMetricsCard
-            >["fertilizerApplicationMetricsData"]
-          }
-          isSubmitting={isSubmitting}
-        />
-      </div>
-    </div>
+    <FieldFertilizerPage
+      b_id_farm={loaderData.b_id_farm}
+      calendar={loaderData.calendar}
+      field={loaderData.field}
+      fieldNames={fieldNames}
+      fertilizerOptions={loaderData.fertilizerOptions}
+      fertilizers={loaderData.fertilizers}
+      fertilizerApplications={loaderData.fertilizerApplications}
+      applicationMethodOptions={loaderData.applicationMethodOptions}
+      current={loaderData.current}
+      canCreate={loaderData.fieldWritePermission}
+      canModify={loaderData.fertilizerApplicationWritePermissions}
+    />
   )
 }
 
@@ -404,9 +271,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
         p_app_date,
       )
 
-      return dataWithSuccess("Date edited successfully", {
-        message: "Bemesting is gewijzigd",
-      })
+      return dataWithSuccess(
+        { result: "Data saved successfully" },
+        { message: "Bemesting is gewijzigd" },
+      )
     }
 
     if (request.method === "DELETE") {

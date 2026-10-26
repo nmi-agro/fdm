@@ -61,7 +61,7 @@ export function calculateOrganicMatterDegradation(
 
   // Extract soil properties from the analysis.
   const a_som_loi = new Decimal(soilAnalysis.a_som_loi) // Soil Organic Matter content (%)
-  const a_density_sa = new Decimal(soilAnalysis.a_density_sa).times(1000) // Bulk density (g/cm³)
+  const a_density_sa = new Decimal(soilAnalysis.a_density_sa).times(1000) // Bulk density, converted from g/cm³ to kg/m³
 
   // Guard against non-positive SOM value
   if (a_som_loi.lte(0)) {

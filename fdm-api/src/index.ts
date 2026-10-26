@@ -2,18 +2,15 @@
 
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // assessDataCompleteness,
-  // buildDynaRequest,
-  // buildNSupplyRequest,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
   createFunctionsForNorms,
   getDoseForField,
-  // getDyna,
-  // getNSupply,
+  getFarmIndicators,
+  getFieldIndicators,
+  getFieldMeasureOptions,
   getNitrogenBalanceField,
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice,
@@ -27,6 +24,7 @@ import {
   addFertilizerApplication,
   addField,
   addHarvest,
+  addFarmToGroup,
   addMeasure,
   addOrganicCertification,
   addSoilAnalysis,
@@ -34,8 +32,8 @@ import {
   getCultivations,
   getCultivationsForFarm,
   getCurrentSoilData,
-  // getCultivationsFromCatalogue,
   getFarm,
+  getFarmGroup,
   getFarms,
   getFertilizer,
   getFertilizerApplication,
@@ -44,12 +42,9 @@ import {
   getFertilizersFromCatalogue,
   getField,
   getFields,
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // getGrazingIntention,
   getGrazingIntentions,
   getHarvest,
   getHarvests,
-  // getHarvestsForFarm,
   getMeasure,
   getMeasures,
   getOrganicCertification,
@@ -61,6 +56,13 @@ import {
   removeCultivation,
   removeDerogation,
   removeFarm,
+  removeFarmFromGroup,
+  removeFarmGroupMembership,
+  updateFarmGroupMembership,
+  removeFarmGroup,
+  renameFarmGroup,
+  createFarmGroup,
+  listFarmGroups,
   removeFertilizer,
   removeFertilizerApplication,
   removeField,
@@ -111,6 +113,16 @@ export interface FdmApiServices {
   addFarm: typeof addFarm
   updateFarm: typeof updateFarm
   removeFarm: typeof removeFarm
+  // Farm groups
+  listFarmGroups: typeof listFarmGroups
+  getFarmGroup: typeof getFarmGroup
+  createFarmGroup: typeof createFarmGroup
+  renameFarmGroup: typeof renameFarmGroup
+  removeFarmGroup: typeof removeFarmGroup
+  addFarmToGroup: typeof addFarmToGroup
+  removeFarmFromGroup: typeof removeFarmFromGroup
+  updateFarmGroupMembership: typeof updateFarmGroupMembership
+  removeFarmGroupMembership: typeof removeFarmGroupMembership
   // Fields
   getFields: typeof getFields
   getField: typeof getField
@@ -148,6 +160,12 @@ export interface FdmApiServices {
   addMeasure: typeof addMeasure
   updateMeasure: typeof updateMeasure
   removeMeasure: typeof removeMeasure
+  // indicators and measure options
+  getFieldIndicators: typeof getFieldIndicators
+  getFarmIndicators: typeof getFarmIndicators
+  getFieldMeasureOptions: typeof getFieldMeasureOptions
+  /** Resolves the server-side NMI API key; `undefined` when not configured. */
+  getNmiApiKey: () => string | undefined
   // Organic certifications
   listOrganicCertifications: typeof listOrganicCertifications
   addOrganicCertification: typeof addOrganicCertification
@@ -177,22 +195,10 @@ export interface FdmApiServices {
   calculateOrganicMatterBalance: typeof calculateOrganicMatterBalance
   getOrganicMatterBalanceField: typeof getOrganicMatterBalanceField
   getDoseForField: typeof getDoseForField
-  // Additional data fetching for norms/mineralization
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
-  // getHarvestsForFarm: typeof getHarvestsForFarm
-  // getGrazingIntention: typeof getGrazingIntention
   // Norms
   createFunctionsForNorms: typeof createFunctionsForNorms
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice: typeof getNutrientAdvice
-  // Mineralization (N-Supply + DYNA)
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // buildNSupplyRequest: typeof buildNSupplyRequest
-  // assessDataCompleteness: typeof assessDataCompleteness
-  // getNSupply: typeof getNSupply
-  // buildDynaRequest: typeof buildDynaRequest
-  // getDyna: typeof getDyna
 }
 
 const defaultServices: FdmApiServices = {
@@ -201,6 +207,15 @@ const defaultServices: FdmApiServices = {
   addFarm,
   updateFarm,
   removeFarm,
+  listFarmGroups,
+  getFarmGroup,
+  createFarmGroup,
+  renameFarmGroup,
+  removeFarmGroup,
+  addFarmToGroup,
+  removeFarmFromGroup,
+  updateFarmGroupMembership,
+  removeFarmGroupMembership,
   getFields,
   getField,
   addField,
@@ -232,6 +247,10 @@ const defaultServices: FdmApiServices = {
   addMeasure,
   updateMeasure,
   removeMeasure,
+  getFieldIndicators,
+  getFarmIndicators,
+  getFieldMeasureOptions,
+  getNmiApiKey: () => process.env.NMI_API_KEY || undefined,
   listOrganicCertifications,
   addOrganicCertification,
   getOrganicCertification,
@@ -256,18 +275,9 @@ const defaultServices: FdmApiServices = {
   calculateOrganicMatterBalance,
   getOrganicMatterBalanceField,
   getDoseForField,
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // getCultivationsFromCatalogue,
-  // getHarvestsForFarm,
-  // getGrazingIntention,
   createFunctionsForNorms,
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice,
-  // buildNSupplyRequest,
-  // assessDataCompleteness,
-  // getNSupply,
-  // buildDynaRequest,
-  // getDyna,
 }
 
 /**

@@ -2,6 +2,7 @@ import { getFarms, getFields } from "@nmi-agro/fdm-core"
 import { Map as MapIcon } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { data, type MetaFunction, NavLink, useLoaderData, useParams } from "react-router"
+import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { AggregationPainpoints } from "~/components/blocks/indicators/aggregation-painpoints"
 import { AggregationTree } from "~/components/blocks/indicators/aggregation-tree"
@@ -14,6 +15,7 @@ import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
 import { Input } from "~/components/ui/input"
 import { Separator } from "~/components/ui/separator"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import {
   type Bln3Score,
   type FieldBln3Score,
@@ -25,10 +27,15 @@ import {
   computeAreaWeightedAggregation,
   getFieldAggregationScore,
 } from "~/lib/aggregations"
-import { auth } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { auth, getSession } from "~/lib/auth.server"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
+import {
+  getOrganizationFarmGroups,
+  parseFarmIdsParam,
+  selectFarms,
+} from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
 import { type Ecosysteemdienst, INDICATORS } from "~/lib/indicators"
 import { cn } from "~/lib/utils"
@@ -106,7 +113,7 @@ export function computeFarmMinScores(fieldScores: FieldBln3Score[]): Bln3Score {
   }
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
+export async function loader({ request, params, url }: Route.LoaderArgs) {
   try {
     const timeframe = getTimeframe(params)
 
@@ -122,7 +129,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       })
     }
 
-    const farms = await getFarms(fdm, organization.id)
+    const allFarms = await getFarms(fdm, organization.id)
+    const farms = selectFarms(allFarms, parseFarmIdsParam(url))
+    const session = await getSession(request)
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      allFarms.map((farm) => farm.b_id_farm),
+      getCalendar(params),
+    )
 
     // Sequential score promises: farm i+1 starts only after farm i finishes
     const farmScoreStreams: Array<Promise<FieldBln3Score>> = []
@@ -174,6 +189,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     return {
       organization,
+      farmGroups,
       farms: farmsExtended,
       farmScoreStreams,
     }
@@ -184,18 +200,21 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function IndicatorsFarmIndex() {
-  const { farms, farmScoreStreams } = useLoaderData<typeof loader>()
+  const { farms, farmScoreStreams, farmGroups } = useLoaderData<typeof loader>()
   const { slug, calendar } = useParams()
 
   const [activeCategories, setActiveCategories] = useState<Ecosysteemdienst[]>([])
   const [withMeasures, setWithMeasures] = useState(true)
   const [fieldSearch, setFieldSearch] = useState("")
   const [isPending, startTransition] = useTransition()
-  const [fieldScores, setFieldScores] = useState<FieldBln3Score[]>([])
+  // Reset for each new batch of streams (keyed), instead of resetting synchronously below.
+  const [fieldScores, setFieldScores] = useKeyedState(
+    farmScoreStreams,
+    () => [] as FieldBln3Score[],
+  )
 
   useEffect(() => {
     let active = true
-    setFieldScores([])
     for (const stream of farmScoreStreams) {
       stream.then(
         (scores) => {
@@ -214,18 +233,17 @@ export default function IndicatorsFarmIndex() {
     return () => {
       active = false
     }
-  }, [farmScoreStreams])
+  }, [farmScoreStreams, setFieldScores])
 
-  // Debounce the pending indicator to avoid flickering on fast transitions
-  const [showPending, setShowPending] = useState(false)
+  // Debounce the pending indicator to avoid flickering on fast transitions. Keyed on isPending so
+  // it resets for each new pending episode without a synchronous setState in the effect.
+  const [pendingDelayElapsed, setPendingDelayElapsed] = useKeyedState(isPending, () => false)
   useEffect(() => {
-    if (!isPending) {
-      setShowPending(false)
-      return
-    }
-    const id = setTimeout(() => setShowPending(true), 150)
+    if (!isPending) return
+    const id = setTimeout(() => setPendingDelayElapsed(true), 150)
     return () => clearTimeout(id)
-  }, [isPending])
+  }, [isPending, setPendingDelayElapsed])
+  const showPending = isPending && pendingDelayElapsed
 
   const showIndex = !withMeasures
 
@@ -296,6 +314,7 @@ export default function IndicatorsFarmIndex() {
         description="BLN3 bodemkwaliteitsindicatoren voor alle bedrijven met toegang door deze organisatie."
         rightNode={
           <div className="flex items-center gap-2">
+            <GroupPicker groups={farmGroups} />
             <Bln3BetaBanner />
             <Bln3HelpDialog />
           </div>

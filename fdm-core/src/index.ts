@@ -82,6 +82,18 @@ export {
   removeDerogation,
 } from "./derogation"
 export {
+  addFarmToGroup,
+  createFarmGroup,
+  getFarmGroup,
+  listFarmGroups,
+  removeFarmFromGroup,
+  removeFarmGroup,
+  removeFarmGroupMembership,
+  renameFarmGroup,
+  updateFarmGroupMembership,
+} from "./farm-group"
+export type { FarmGroup, FarmGroupMembership } from "./farm-group.types"
+export {
   addFarm,
   cancelInvitationForFarm,
   getFarm,
@@ -172,6 +184,8 @@ export {
   removeHarvest,
   updateHarvest,
 } from "./harvest"
+export { convertHarvestParameters } from "./harvest-conversion"
+export type { StandardHarvestParameters } from "./harvest-conversion.types"
 export type {
   Harvest,
   Harvestable,

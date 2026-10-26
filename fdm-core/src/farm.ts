@@ -1180,6 +1180,14 @@ export async function removeFarm(
           ),
         )
 
+      // Step 4c: Remove the farm from all farm groups
+      await tx
+        .delete(schema.farmGroupJoining)
+        .where(eq(schema.farmGroupJoining.b_id_farm, b_id_farm))
+      await tx
+        .delete(schema.farmGroupLeaving)
+        .where(eq(schema.farmGroupLeaving.b_id_farm, b_id_farm))
+
       // Step 5: Finally, delete the farm itself
       await tx.delete(schema.farms).where(eq(schema.farms.b_id_farm, b_id_farm))
     })

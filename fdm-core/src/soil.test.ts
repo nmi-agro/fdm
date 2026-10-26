@@ -834,6 +834,29 @@ describe("getSoilParametersDescription", () => {
     }
   })
 
+  it("should use the units of the NMI parameter definitions", () => {
+    const descriptions = getSoilParametersDescription("NL-nl")
+    const unitOf = (parameter: string) =>
+      descriptions.find((description) => description.parameter === parameter)?.unit
+
+    expect(unitOf("a_c_of")).toBe("g C/kg")
+    expect(unitOf("a_n_rt")).toBe("mg N/kg")
+    expect(unitOf("a_ca_co")).toBe("mmol+/kg")
+    expect(unitOf("a_k_co")).toBe("mmol+/kg")
+    expect(unitOf("a_mg_co")).toBe("mmol+/kg")
+    expect(unitOf("a_cec_co")).toBe("mmol+/kg")
+    expect(unitOf("a_density_sa")).toBe("g/cm³")
+  })
+
+  it("should label exchangeable cations as exchangeable, not as total reserve", () => {
+    const descriptions = getSoilParametersDescription("NL-nl")
+    for (const parameter of ["a_ca_co", "a_k_co", "a_mg_co"]) {
+      const description = descriptions.find((item) => item.parameter === parameter)
+      expect(description?.name).toContain("uitwisselbaar")
+      expect(description?.description).not.toContain("totale bodemvoorraad")
+    }
+  })
+
   it("should throw an error for unsupported locales", () => {
     expect(() => getSoilParametersDescription("en-US")).toThrowError("Unsupported locale")
     expect(() => getSoilParametersDescription("de-DE")).toThrowError("Unsupported locale")

@@ -1,7 +1,15 @@
 import throttle from "lodash.throttle"
 import { X } from "lucide-react"
 import { Point, MapGeoJSONFeature, LngLat, Popup as MapPopup } from "maplibre-gl"
-import { ComponentProps, ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import {
+  ComponentProps,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 import { createPortal } from "react-dom"
 import { useMap, MapRef } from "react-map-gl/maplibre"
 import { cn } from "@/app/lib/utils"
@@ -370,13 +378,23 @@ export function AtlasPopup({
 }) {
   const { current: map } = useMap()
   const popupRef = useRef<MapPopup | null>(null)
-  const [container, setContainer] = useState<HTMLDivElement | null>(null)
+  // Created once (lazily), independent of map readiness, so it never needs to be synced into
+  // state from an effect — children can portal into it immediately; it only becomes visible once
+  // the popup below attaches it to the map.
+  const [container] = useState(() => document.createElement("div"))
+
+  // The initial anchor for the popup created below. Kept in a ref (synced in a layout effect,
+  // since refs can't be written during render) instead of listing longitude/latitude as effect
+  // dependencies, which would tear down and recreate the popup on every position update — the
+  // effect below only needs their value once, at creation time.
+  const initialPositionRef = useRef({ longitude, latitude })
+  useLayoutEffect(() => {
+    initialPositionRef.current = { longitude, latitude }
+  })
 
   // Create the maplibre Popup once when the map is ready and tear it down on unmount.
   useEffect(() => {
     if (!map) return
-
-    const el = document.createElement("div")
 
     const popup = new MapPopup({
       closeButton: false,
@@ -384,27 +402,22 @@ export function AtlasPopup({
       maxWidth: "none",
       className: "atlas-popup",
     })
-      .setLngLat([longitude, latitude])
-      .setDOMContent(el)
+      .setLngLat([initialPositionRef.current.longitude, initialPositionRef.current.latitude])
+      .setDOMContent(container)
       .addTo(map.getMap())
 
     popupRef.current = popup
-    setContainer(el)
 
     return () => {
       popup.remove()
       popupRef.current = null
-      setContainer(null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map])
+  }, [map, container])
 
   // Keep the anchor coordinates in sync without recreating the popup.
   useEffect(() => {
     popupRef.current?.setLngLat([longitude, latitude])
   }, [longitude, latitude])
-
-  if (!container) return null
 
   return createPortal(
     <AtlasNativePopupCard className={className} onPointerUp={onPointerUp}>

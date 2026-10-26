@@ -921,17 +921,17 @@ export function getSoilParametersDescription(locale = "NL-nl"): SoilParameterDes
     },
     {
       parameter: "a_c_of",
-      unit: "g C/g",
+      unit: "g C/kg",
       name: "C-organisch",
       type: "numeric",
-      description: "Organisch koolstogehalte",
+      description: "Organisch koolstofgehalte",
     },
     {
       parameter: "a_ca_co",
       unit: "mmol+/kg",
-      name: "Ca-bodemvoorraad",
+      name: "Ca-uitwisselbaar",
       type: "numeric",
-      description: "Calcium, totale bodemvoorraad",
+      description: "Calcium, uitwisselbaar (CEC-gebonden)",
     },
     {
       parameter: "a_ca_co_po",
@@ -1006,9 +1006,9 @@ export function getSoilParametersDescription(locale = "NL-nl"): SoilParameterDes
     {
       parameter: "a_k_co",
       unit: "mmol+/kg",
-      name: "K-bodemvoorraad",
+      name: "K-uitwisselbaar",
       type: "numeric",
-      description: "Kalium, totale bodemvoorraad",
+      description: "Kalium, uitwisselbaar (CEC-gebonden)",
     },
     {
       parameter: "a_k_co_po",
@@ -1026,10 +1026,10 @@ export function getSoilParametersDescription(locale = "NL-nl"): SoilParameterDes
     },
     {
       parameter: "a_mg_co",
-      unit: "mmol+ Mg/kg",
-      name: "Mg-bodemvoorraad",
+      unit: "mmol+/kg",
+      name: "Mg-uitwisselbaar",
       type: "numeric",
-      description: "Magnesium, totale bodemvoorraad",
+      description: "Magnesium, uitwisselbaar (CEC-gebonden)",
     },
     {
       parameter: "a_mg_co_po",
@@ -1047,7 +1047,7 @@ export function getSoilParametersDescription(locale = "NL-nl"): SoilParameterDes
     },
     {
       parameter: "a_n_rt",
-      unit: "mg N/g",
+      unit: "mg N/kg",
       name: "N-totale bodemvoorraad",
       type: "numeric",
       description: "Stikstof, totale bodemvoorraad",

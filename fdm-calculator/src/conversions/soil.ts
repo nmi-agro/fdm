@@ -93,7 +93,7 @@ export function calculateCarbonNitrogenRatio(
  * mineral and organic components of the soil. The calculation uses different formulas
  * depending on whether the soil is sandy (including loess) or not, reflecting the different
  * structural properties of these soil types. The result is clamped within a plausible range
- * for agricultural soils (0.5 to 3 kg / m³) to maintain accuracy.
+ * for agricultural soils (0.5 to 3 g / cm³) to maintain accuracy.
  * @param a_som_loi - The soil organic matter content as a percentage (%).
  * @param b_soiltype_agr - The agricultural soil type classification.
  */

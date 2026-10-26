@@ -14,6 +14,18 @@ A `Farm` has the following properties, which are stored in the `farms` table:
 - **`b_address_farm`**: The physical address of the farm.
 - **`b_postalcode_farm`**: The postal code of the farm address.
 
+### Looking up farm details in the KvK Handelsregister
+
+In fdm-app, users can fill in `b_name_farm` and `b_address_farm` (and `b_postalcode_farm` when available) by looking up the farm's KvK number in the KvK Handelsregister (Dutch Chamber of Commerce), using the KvK Zoeken API. The lookup only prefills the form: the user checks the details and saves them. The data is stored in the same columns as manually entered data; the form shows that the details come from KvK, but this source is not stored.
+
+The lookup has some limitations:
+
+- **It is data enrichment, not verification.** It confirms that a KvK registration exists and whether it is active. It does not prove that the user represents the company. Because of the GDPR, the KvK APIs do not expose officials, owners or ultimate beneficial owners.
+- **The address can be incomplete.** The Zoeken API does not always return the house number and postal code. The user is asked to complete them.
+- **The name can be personal data.** For a sole proprietorship (eenmanszaak), the trade name often contains the name of the owner.
+
+When a KvK number has several registrations, the main establishment (hoofdvestiging) is used, then the legal entity (rechtspersoon), then a branch (nevenvestiging). Active registrations are preferred.
+
 ## Users and Roles
 
 Users are associated with a `Farm` through the `fdm-authz` schema. The `role` table links a `principal_id` (the user) to a `resource_id` (the `b_id_farm`). This allows you to control who has access to the farm's data and what actions they can perform.

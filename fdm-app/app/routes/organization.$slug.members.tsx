@@ -1,7 +1,6 @@
 import type { Invitation, Member, Organization, OrganizationRole } from "better-auth/plugins"
 import { formatDistanceToNow } from "date-fns"
 import { nl } from "date-fns/locale"
-import { useEffect, useState } from "react"
 import { data, useFetcher, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
 import { z } from "zod"
@@ -19,6 +18,7 @@ import {
 } from "~/components/ui/select"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { auth, getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { isInactiveRecipientError, renderInvitationEmail, sendEmail } from "~/lib/email.server"
@@ -226,7 +226,8 @@ const MemberAction = ({
 }) => {
   const fetcher = useFetcher()
   const disabled = fetcher.state !== "idle" && Boolean(fetcher.formData)
-  const [role, setRole] = useState(member.role)
+  // Reflect the in-flight submission optimistically; fall back to the server value otherwise.
+  const role = (fetcher.formData?.get("role") as OrganizationRole["role"] | null) ?? member.role
 
   function submitRoleChange(role: OrganizationRole["role"]) {
     void fetcher.submit(
@@ -238,10 +239,6 @@ const MemberAction = ({
       { method: "post" },
     )
   }
-
-  useEffect(() => {
-    setRole(member.role)
-  }, [member.role])
 
   return (
     <fetcher.Form method="post" className="flex items-center space-x-4">
@@ -316,10 +313,12 @@ const InvitationRow = ({ invitation }: { invitation: Invitation }) => {
 
 const InvitationForm = ({ organizationId }: { organizationId: Organization["id"] }) => {
   const fetcher = useFetcher()
-  const [email, setEmail] = useState("")
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data?.ok) setEmail("")
-  }, [fetcher.state, fetcher.data])
+  // Keyed on a successful fetcher result only, so a failed invite leaves the
+  // typed address in place while a successful one clears the field.
+  const [email, setEmail] = useKeyedState(
+    fetcher.data?.ok === true ? fetcher.data : undefined,
+    () => "",
+  )
 
   return (
     <fetcher.Form method="post" className="flex space-x-2">

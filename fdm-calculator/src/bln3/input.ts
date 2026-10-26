@@ -30,10 +30,14 @@ function isExcludedCultivation(croprotation?: string | null, catalogue?: string 
  * NMI BLN3 API. The caller is responsible for adding `nmiApiKey` before calling
  * `getBln3Score`.
  *
+ * For soil analyses, the latest lab data for each relevant parameter is collected. Only if no lab
+ * data  is found for a parameter, the latest available NMI BodemSchat estimate is used.
+ *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The principal making the request.
  * @param b_id - The field ID for which to collect inputs.
  * @param timeframe - Optional timeframe applied to soil analyses and measures only.
+ *   Start date is ignored when retrieving soil analyses.
  *   Cultivations are always fetched without a timeframe to cover the full multi-year
  *   history needed for the BLN3 calculation.
  * @returns A promise resolving to the collected BLN3 score inputs (without `nmiApiKey`).
@@ -49,7 +53,7 @@ export async function collectInputForBln3Score(
     // Fetch all cultivations without timeframe to cover multi-year history
     const [field, soilAnalyses, cultivations, measures] = await Promise.all([
       getField(fdm, principal_id, b_id),
-      getSoilAnalyses(fdm, principal_id, b_id, timeframe),
+      getSoilAnalyses(fdm, principal_id, b_id, { start: undefined, end: timeframe?.end }),
       getCultivations(fdm, principal_id, b_id),
       getMeasures(fdm, principal_id, b_id, timeframe),
     ])
@@ -93,6 +97,9 @@ export async function collectInputForBln3Score(
     ] as const
     const allNumericFields = [...labNumericFields, ...bcsNumericFields] as const
 
+    // fdm-core uses `ORDER BY b_sampling_date DESC NULLS LAST` for getSoilAnalyses.
+    // Since NMI BodemSchat analyses have their b_sampling_date and a_date set to NULL,
+    // they always appear last so the estimates get considered last here.
     const soilData: Record<string, number> = {}
     for (const f of allNumericFields) {
       const analysis = soilAnalyses.find((a) => typeof a[f] === "number")
@@ -198,15 +205,21 @@ export async function collectInputForBln3Score(
 /**
  * Collects all field data needed for a BLN3 measure applicability check from the FDM database.
  *
- * Fetches field geometry (lat/lon), soil analysis, and cultivation history, and optionally calls
- * `getSoilParameterEstimates` (if `nmiApiKey` is provided) to populate GxG and SOM potential fields.
- * Note that `measures` is intentionally excluded per NMI applicability endpoint requirements.
+ * Fetches field geometry (lat/lon), soil analysis, and cultivation history to populate GxG and
+ * SOM potential fields. Note that `measures` is intentionally excluded per NMI applicability
+ * endpoint requirements.
+ *
+ * For soil analyses, the latest lab data for each relevant parameter is collected. Only if no lab
+ * data  is found for a parameter, the latest available NMI BodemSchat estimate is used.
  *
  * @param fdm - The FDM instance for database interaction.
  * @param principal_id - The principal making the request.
  * @param b_id - The field ID for which to collect inputs.
  * @param b_year - The calendar year for the applicability check.
- * @param timeframe - Optional timeframe applied to soil analyses.
+ * @param timeframe - Optional timeframe applied to soil analyses and fertilizer applications.
+ *   Start date is ignored when retrieving soil analyses.
+ *   Cultivations are always fetched without a timeframe to cover the full multi-year
+ *   history needed for the BLN3 measure applicability estimation.
  * @returns A promise resolving to collected BLN3 measure applicability inputs.
  */
 export async function collectInputForBln3MeasureApplicability(
@@ -219,7 +232,7 @@ export async function collectInputForBln3MeasureApplicability(
   try {
     const [field, soilAnalyses, cultivations, fertilizerApplications] = await Promise.all([
       getField(fdm, principal_id, b_id),
-      getSoilAnalyses(fdm, principal_id, b_id, timeframe),
+      getSoilAnalyses(fdm, principal_id, b_id, { start: undefined, end: timeframe?.end }),
       getCultivations(fdm, principal_id, b_id),
       getFertilizerApplications(fdm, principal_id, b_id, timeframe).catch(() => []),
     ])
@@ -247,6 +260,9 @@ export async function collectInputForBln3MeasureApplicability(
       "a_som_loi",
     ] as const
 
+    // fdm-core uses `ORDER BY b_sampling_date DESC NULLS LAST` for getSoilAnalyses.
+    // Since NMI BodemSchat analyses have their b_sampling_date and a_date set to NULL,
+    // they always appear last so the estimates get considered last here.
     const soilData: Record<string, number> = {}
     for (const f of labNumericFields) {
       const analysis = soilAnalyses.find((a) => typeof a[f] === "number")

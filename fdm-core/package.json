@@ -58,7 +58,7 @@
     "jose": "catalog:",
     "nanoid": "catalog:",
     "postgres": "^3.4.9",
-    "safe-stable-stringify": "^2.5.0",
+    "safe-stable-stringify": "^3.0.0",
     "unique-username-generator": "^1.5.1",
     "validator": "^13.15.35",
     "zod": "catalog:"

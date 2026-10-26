@@ -18,6 +18,7 @@ export function WelcomeEmail({
   senderName,
   logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
 }: WelcomeEmailProps) {
+  "use no memo"
   const previewText = "Ga aan de slag en krijg beter agronomisch inzicht."
   const absoluteUrl = url.startsWith("http") ? url : `https://${url}`
 

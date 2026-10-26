@@ -163,7 +163,9 @@ export function SidebarApps({
                                         ? "de indicatoren"
                                         : info.value === "soil-analysis"
                                           ? "de bodemanalyses"
-                                          : info.label.toLowerCase(),
+                                          : info.value === "nutrient-advice"
+                                            ? "het bemestingsadvies"
+                                            : info.label.toLowerCase(),
                                       (b_id_farm) =>
                                         info.config.url({
                                           ...params,

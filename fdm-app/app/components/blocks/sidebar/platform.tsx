@@ -10,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import { useCookieConsentStore } from "~/store/cookie-consent"
 
 export function SidebarPlatform() {
   const location = useLocation()
@@ -91,7 +92,5 @@ export function SidebarPlatform() {
 }
 
 const openCookieSettings = () => {
-  if (window?.openCookieSettings) {
-    window.openCookieSettings()
-  }
+  useCookieConsentStore.getState().openCookieSettings()
 }

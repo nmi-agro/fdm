@@ -20,6 +20,7 @@ export const FarmInvitationCancelledEmail = ({
   senderName,
   logoFileName = "/fdm-high-resolution-logo-transparent-no-text.png",
 }: FarmInvitationCancelledEmailProps) => {
+  "use no memo"
   const previewText = `Je uitnodiging voor ${farmName} is ingetrokken.`
 
   return (

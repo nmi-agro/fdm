@@ -2689,3 +2689,74 @@ describe("calculateNL2026StikstofGebruiksNorm - overwintered temporary grassland
     expect(result.normSource).toContain("heringezaaid")
   })
 })
+
+describe("NL2026 stikstof eenmalige vs. meermalige oogst", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const cultivation = (
+    b_lu_catalogue: string,
+    harvestDates?: Date[],
+  ): NL2026NormsInputForCultivation =>
+    ({
+      b_lu: "lu-1",
+      b_lu_catalogue,
+      b_lu_start: new Date(2026, 3, 1),
+      b_lu_end: new Date(2026, 8, 30),
+      ...(harvestDates
+        ? { harvests: harvestDates.map((b_lu_harvest_date) => ({ b_lu_harvest_date })) }
+        : {}),
+    }) as NL2026NormsInputForCultivation
+
+  it("uses the eenmalige oogst norm for Bladgewassen overig without harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(baseInput([cultivation("nl_2791")]))
+    expect(result.normValue).toBe(150)
+    expect(result.normSource).toEqual("Bladgewassen, Bladgewassen overig (eenmalige oogst).")
+  })
+
+  it("uses the eenmalige oogst norm for Bladgewassen overig with one harvest", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2792", [new Date(2026, 5, 21)])]),
+    )
+    expect(result.normValue).toBe(150)
+    expect(result.normSource).toEqual("Bladgewassen, Bladgewassen overig (eenmalige oogst).")
+  })
+
+  it("uses the meermalige oogst norm for Bladgewassen overig with two harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2791", [new Date(2026, 5, 21), new Date(2026, 7, 15)])]),
+    )
+    expect(result.normValue).toBe(275)
+    expect(result.normSource).toEqual("Bladgewassen, Bladgewassen overig (meermalige oogst).")
+  })
+
+  it("uses the nv_area value for Bladgewassen overig in an NV-gebied", async () => {
+    setupGeoMock(1, 1)
+    const eenmalig = await calculateNL2026StikstofGebruiksNorm(baseInput([cultivation("nl_2791")]))
+    expect(eenmalig.normValue).toBe(120)
+    const meermalig = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2791", [new Date(2026, 5, 21), new Date(2026, 7, 15)])]),
+    )
+    expect(meermalig.normValue).toBe(220)
+  })
+
+  it("uses the bladgewas, eenmalige oogst norm for Kruiden without harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(baseInput([cultivation("nl_2743")]))
+    expect(result.normValue).toBe(150)
+    expect(result.normSource).toEqual("Kruiden (bladgewas, eenmalige oogst).")
+  })
+
+  it("uses the bladgewas, meermalig oogsten norm for Kruiden with two harvests", async () => {
+    setupGeoMock(1, 0)
+    const result = await calculateNL2026StikstofGebruiksNorm(
+      baseInput([cultivation("nl_2744", [new Date(2026, 5, 21), new Date(2026, 7, 15)])]),
+    )
+    expect(result.normValue).toBe(275)
+    expect(result.normSource).toEqual("Kruiden (bladgewas, meermalig oogsten).")
+  })
+})

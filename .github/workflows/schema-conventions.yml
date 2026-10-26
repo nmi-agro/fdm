@@ -19,6 +19,6 @@ jobs:
           node-version: 24
 
       # Zero-dependency check, so it needs no install and runs in seconds.
-      # Rules are documented in .github/skills/fdm-schema/SKILL.md
+      # Rules are documented in .claude/skills/fdm-schema/SKILL.md
       - name: Check fdm schema conventions
-        run: node .github/skills/fdm-schema/scripts/check-schema-conventions.mjs
+        run: node .claude/skills/fdm-schema/scripts/check-schema-conventions.mjs

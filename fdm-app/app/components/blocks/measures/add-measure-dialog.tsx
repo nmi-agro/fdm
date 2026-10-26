@@ -17,8 +17,8 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import fuzzysort from "fuzzysort"
 import { AlertTriangle, ChevronLeft, Search, Sparkles, X } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { Controller } from "react-hook-form"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { Controller, useWatch } from "react-hook-form"
 import { useFetcher } from "react-router"
 import { useRemixForm } from "remix-hook-form"
 import type { FieldTopOpportunity, MeasureApplicabilityInfo } from "~/integrations/bln3.server"
@@ -209,16 +209,23 @@ export function AddMeasureDialog({
 
   // Capture initialFieldIds in a ref so the reset effect doesn't re-run
   // whenever the parent passes a new array instance with the same content.
+  // Synced in a layout effect since refs can't be written during render.
   const initialFieldIdsRef = useRef(initialFieldIds)
-  initialFieldIdsRef.current = initialFieldIds
+  useLayoutEffect(() => {
+    initialFieldIdsRef.current = initialFieldIds
+  })
 
   // Destructure reset so the effect can depend on a stable function reference
   // (react-hook-form guarantees `reset` identity is stable across renders).
   const { reset: resetForm } = form
 
-  // Reset form when dialog opens
+  // Reset form when dialog opens. This resets several independent pieces of local UI state
+  // together in response to the dialog opening; a remount-by-key would need a key that's stable
+  // for repeated manual opens with no distinguishing prop, which Radix's exit-animation-delayed
+  // unmount can't be relied on to force — kept as an effect deliberately.
   useEffect(() => {
     if (open) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setQuery("")
       setSelected(null)
       setStep("select")
@@ -402,16 +409,19 @@ export function AddMeasureDialog({
     return map
   }, [effectiveTopOpportunities])
 
-  const impactFor = (m_id: string): number => {
-    const opp = opportunityMap.get(m_id)
-    if (!opp) return 0
-    if (focusIndicatorId) {
-      return (
-        opp.indicatorImpacts.find((i) => i.indicator_id === focusIndicatorId)?.measure_impact ?? 0
-      )
-    }
-    return opp.aggregateImpact
-  }
+  const impactFor = useCallback(
+    (m_id: string): number => {
+      const opp = opportunityMap.get(m_id)
+      if (!opp) return 0
+      if (focusIndicatorId) {
+        return (
+          opp.indicatorImpacts.find((i) => i.indicator_id === focusIndicatorId)?.measure_impact ?? 0
+        )
+      }
+      return opp.aggregateImpact
+    },
+    [opportunityMap, focusIndicatorId],
+  )
 
   // Cap the "Aanbevolen" badge to a small top-N (independent of sortMode) so
   // it stays a genuine highlight instead of tagging most of the catalogue —
@@ -427,8 +437,7 @@ export function AddMeasureDialog({
         .sort((a, b) => impactFor(b) - impactFor(a))
         .slice(0, TOP_RECOMMENDED_COUNT),
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opportunityMap, focusIndicatorId, effectiveTopOpportunities])
+  }, [opportunityMap, effectiveTopOpportunities, impactFor])
 
   // Hide farm-level measures (via catalogue field or fallback message check)
   const fieldLevelCatalogue = useMemo(() => {
@@ -479,7 +488,7 @@ export function AddMeasureDialog({
       }
       return 0
     })
-  }, [filteredCatalogue, computedApplicabilityMap, sortMode, opportunityMap, focusIndicatorId])
+  }, [filteredCatalogue, computedApplicabilityMap, sortMode, impactFor])
 
   // Impact bars use the true scale: NMI confirms measure_impact is always
   // between 0 and 1, so a bar is simply impact × 100% — comparable across
@@ -500,8 +509,8 @@ export function AddMeasureDialog({
     else form.setValue("m_end", null)
   }
 
-  const mStart = form.watch("m_start")
-  const mEnd = form.watch("m_end")
+  const mStart = useWatch({ control: form.control, name: "m_start" })
+  const mEnd = useWatch({ control: form.control, name: "m_end" })
 
   const canSubmit =
     selected !== null &&
@@ -566,22 +575,25 @@ export function AddMeasureDialog({
     })
   }, [selectableFields, selected, opportunitiesByField])
 
-  const handleSelectMeasure = (item: MeasureCatalogue) => {
-    setSelected(item)
-    setStep("configure")
+  const handleSelectMeasure = useCallback(
+    (item: MeasureCatalogue) => {
+      setSelected(item)
+      setStep("configure")
 
-    if (applicabilityByField && fields && selectedFieldIds.size > 0) {
-      // Filter pre-selected fields to remove any where item.m_id is not applicable
-      const validFieldIds = new Set<string>()
-      for (const b_id of selectedFieldIds) {
-        const info = applicabilityByField[b_id]?.[item.m_id]
-        if (!info || info.applicability === "applicable") {
-          validFieldIds.add(b_id)
+      if (applicabilityByField && fields && selectedFieldIds.size > 0) {
+        // Filter pre-selected fields to remove any where item.m_id is not applicable
+        const validFieldIds = new Set<string>()
+        for (const b_id of selectedFieldIds) {
+          const info = applicabilityByField[b_id]?.[item.m_id]
+          if (!info || info.applicability === "applicable") {
+            validFieldIds.add(b_id)
+          }
         }
+        setSelectedFieldIds(validFieldIds)
       }
-      setSelectedFieldIds(validFieldIds)
-    }
-  }
+    },
+    [applicabilityByField, fields, selectedFieldIds],
+  )
 
   const handleBackToSelect = () => {
     setSelected(null)
@@ -612,10 +624,20 @@ export function AddMeasureDialog({
     const appInfo = computedApplicabilityMap?.[item.m_id]
     const isNotApplicable = appInfo?.isBlocked
     if (isAlreadyActive || hasConflict || isNotApplicable) return
+    // Reacting to the initialMeasureId prop (a deep link), not a user event; handleSelectMeasure
+    // is also a real click handler elsewhere.
+    // oxlint-disable-next-line react/set-state-in-effect
     handleSelectMeasure(item)
     appliedInitialMeasureIdRef.current = initialMeasureId
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialMeasureId, catalogue, activeMeasureIds, conflictMap, computedApplicabilityMap])
+  }, [
+    open,
+    initialMeasureId,
+    catalogue,
+    activeMeasureIds,
+    conflictMap,
+    computedApplicabilityMap,
+    handleSelectMeasure,
+  ])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

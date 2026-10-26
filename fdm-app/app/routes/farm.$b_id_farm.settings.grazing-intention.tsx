@@ -1,4 +1,5 @@
 import { checkPermission, getGrazingIntentions, setGrazingIntention } from "@nmi-agro/fdm-core"
+import { useState } from "react"
 import {
   type ActionFunctionArgs,
   type LoaderFunctionArgs,
@@ -21,7 +22,7 @@ import { getCalendarSelection } from "~/lib/calendar"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -35,7 +36,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
     return { b_id_farm, grazingIntentions, farmWritePermission }
@@ -73,7 +74,8 @@ export default function GrazingIntentionSettings() {
   const { grazingIntentions, farmWritePermission } = useLoaderData<typeof loader>()
   const fetcher = useFetcher<typeof action>()
 
-  const currentYear = new Date().getFullYear()
+  // Computed once, not on every render: only used to bound the selectable years below.
+  const [currentYear] = useState(() => new Date().getFullYear())
   const years = getCalendarSelection()
     .map(Number)
     .filter((year) => year >= 2006 && year <= currentYear + 1)

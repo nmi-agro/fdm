@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react"
 import { useFetcher } from "react-router"
 import { useCalendarStore } from "@/app/store/calendar"
 import { Button } from "~/components/ui/button"
@@ -10,6 +9,7 @@ import {
   SelectValue,
 } from "~/components/ui/select"
 import { Spinner } from "~/components/ui/spinner"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { getCalendarSelection } from "~/lib/calendar"
 import { cn } from "~/lib/utils"
 
@@ -18,13 +18,7 @@ export function NewBemestingsplanForm({ className }: { className?: string }) {
   const fetcher = useFetcher()
   const isSubmitting = fetcher.state !== "idle"
   const calendar = useCalendarStore((store) => store.calendar)
-  const [year, setYear] = useState<string>(calendar ?? String(new Date().getFullYear()))
-
-  useEffect(() => {
-    if (calendar) {
-      setYear(calendar)
-    }
-  }, [calendar])
+  const [year, setYear] = useKeyedState(calendar, (c) => c)
 
   return (
     <fetcher.Form method="post">

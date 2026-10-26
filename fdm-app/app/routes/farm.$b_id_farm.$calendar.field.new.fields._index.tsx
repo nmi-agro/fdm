@@ -2,7 +2,7 @@ import { data, type LoaderFunctionArgs, redirect } from "react-router"
 import { getCalendar } from "~/lib/calendar"
 import { handleLoaderError } from "~/lib/error"
 
-export function loader({ params, request }: LoaderFunctionArgs) {
+export function loader({ params, url }: LoaderFunctionArgs) {
   try {
     // Get the Id of the farm
     const b_id_farm = params.b_id_farm
@@ -14,7 +14,6 @@ export function loader({ params, request }: LoaderFunctionArgs) {
     }
 
     const calendar = getCalendar(params)
-    const url = new URL(request.url)
 
     // Obtain the fieldIds
     // Redirect to one of them if not viewing a field currently.

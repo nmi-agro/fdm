@@ -118,4 +118,4 @@ pnpm check-schema -- --strict # additionally lists numeric columns without a uni
 
 It validates column naming per schema, the presence of `created` and `updated` on tables in the `fdm` schema, the exported inferred types, the correspondence between an enum's PostgreSQL name and its column, and the use of `jsonb`. The script requires no database and no build step, and runs on every push as the _Schema Conventions_ workflow.
 
-Genuine exceptions are recorded in the allowlist at the top of `.github/skills/fdm-schema/scripts/check-schema-conventions.mjs`, each with a stated reason.
+Genuine exceptions are recorded in the allowlist at the top of `.claude/skills/fdm-schema/scripts/check-schema-conventions.mjs`, each with a stated reason.

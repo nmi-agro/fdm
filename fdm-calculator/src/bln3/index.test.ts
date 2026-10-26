@@ -1,320 +1,380 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import type { Bln3Score, Bln3ScoreInputs, Bln3ScoreResponse } from "./types"
-import { getBln3Score, requestBln3Score } from "./index"
+import type { FdmType, PrincipalId } from "@nmi-agro/fdm-core"
+import {
+  adjustEndDateAtYearStart,
+  getEnabledMeasureCatalogues,
+  getField,
+  getFields,
+  getMeasures,
+  getMeasuresFromCatalogue,
+} from "@nmi-agro/fdm-core"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Bln3Score } from "./types"
+import { getBln3MeasureAdvice, getBln3MeasureApplicability, getBln3Score } from "./api"
+import { IndicatorsUnavailableError } from "./errors"
+import {
+  getFarmIndicators,
+  getFieldIndicators,
+  getFieldMeasureOptions,
+  getYearTimeframe,
+} from "./index"
+import { collectInputForBln3MeasureApplicability, collectInputForBln3Score } from "./input"
 
-// Default NmiApiClient timeout (60s) plus margin for the retry back-off
-const ATTEMPT_STEP_MS = 62_000
+vi.mock("@nmi-agro/fdm-core", async () => {
+  const actual = await vi.importActual("@nmi-agro/fdm-core")
+  return {
+    ...actual,
+    getEnabledMeasureCatalogues: vi.fn(),
+    getField: vi.fn(),
+    getFields: vi.fn(),
+    getMeasures: vi.fn(),
+    getMeasuresFromCatalogue: vi.fn(),
+  }
+})
 
-const mockBln3ScoreResponse: Bln3ScoreResponse = {
-  request_id: "test-uuid",
-  success: true,
-  status: 200,
-  message: null,
-  data: {
-    indicator: [
-      {
-        indicator_id: "C_P",
-        status: 4.9398,
-        target: 6,
-        index: 0.9752,
-        impact: 0,
-        score: 0.9752,
-      },
-      {
-        indicator_id: "C_K",
-        status: 0.7559,
-        target: 30,
-        index: 0.1748,
-        impact: 0,
-        score: 0.1748,
-      },
-    ],
-  },
-}
+vi.mock("./api", () => ({
+  getBln3MeasureAdvice: vi.fn(),
+  getBln3MeasureApplicability: vi.fn(),
+  getBln3Score: vi.fn(),
+}))
 
-const baseInputs: Bln3ScoreInputs = {
-  nmiApiKey: "mock-api-key",
-  a_lat: 51.613,
-  a_lon: 5.2,
-}
+vi.mock("./input", () => ({
+  collectInputForBln3MeasureApplicability: vi.fn(),
+  collectInputForBln3Score: vi.fn(),
+}))
 
-describe("requestBln3Score", () => {
-  beforeAll(() => {
-    vi.stubGlobal("fetch", vi.fn())
+const mockedGetBln3Score = vi.mocked(getBln3Score)
+const mockedGetBln3MeasureApplicability = vi.mocked(getBln3MeasureApplicability)
+const mockedGetBln3MeasureAdvice = vi.mocked(getBln3MeasureAdvice)
+const mockedCollectScore = vi.mocked(collectInputForBln3Score)
+const mockedCollectApplicability = vi.mocked(collectInputForBln3MeasureApplicability)
+const mockedGetFields = vi.mocked(getFields)
+const mockedGetField = vi.mocked(getField)
+const mockedGetMeasures = vi.mocked(getMeasures)
+const mockedGetMeasuresFromCatalogue = vi.mocked(getMeasuresFromCatalogue)
+const mockedGetEnabledMeasureCatalogues = vi.mocked(getEnabledMeasureCatalogues)
+
+// Domain functions are mocked, so the FDM instance is never used
+const mockFdm = {} as FdmType
+const principal_id: PrincipalId = "test-principal"
+const nmiApiKey = "mock-api-key"
+const year = 2026
+
+const score = (value: number): Bln3Score => ({
+  indicators: [
+    { indicator_id: "C_N", status: 1, target: 2, index: value, impact: 0, score: value },
+  ],
+  aggregations: [{ aggregation_id: "S_BLN", score: value }],
+})
+
+const scoreInputs = { a_lat: 51.6, a_lon: 5.2 } as Awaited<
+  ReturnType<typeof collectInputForBln3Score>
+>
+const excludedScoreInputs = { ...scoreInputs, isExcluded: true } as Awaited<
+  ReturnType<typeof collectInputForBln3Score>
+>
+
+describe("getYearTimeframe", () => {
+  it("should start at 1 January 00:00 in Europe/Amsterdam", () => {
+    expect(getYearTimeframe(2026).start?.toISOString()).toBe("2025-12-31T23:00:00.000Z")
   })
 
-  afterEach(() => {
-    vi.mocked(fetch).mockClear()
+  it("should end at 31 December 23:59:59.999 in Europe/Amsterdam", () => {
+    expect(getYearTimeframe(2026).end?.toISOString()).toBe("2026-12-31T22:59:59.999Z")
   })
 
-  afterAll(() => {
-    vi.restoreAllMocks()
-  })
-
-  it("should return null immediately without calling fetch if isExcluded is true", async () => {
-    const inputs: Bln3ScoreInputs = {
-      ...baseInputs,
-      nmiApiKey: undefined,
-      isExcluded: true,
-    }
-    const result = await requestBln3Score(inputs)
-    expect(result).toBeNull()
-    expect(fetch).not.toHaveBeenCalled()
-  })
-
-  it("should return null immediately without calling fetch if b_bufferstrip is true", async () => {
-    const inputs: Bln3ScoreInputs = {
-      ...baseInputs,
-      nmiApiKey: undefined,
-      b_bufferstrip: true,
-    }
-    const result = await requestBln3Score(inputs)
-    expect(result).toBeNull()
-    expect(fetch).not.toHaveBeenCalled()
-  })
-
-  it("should return null immediately without calling fetch if b_lu_croprotation is nature", async () => {
-    const inputs: Bln3ScoreInputs = {
-      ...baseInputs,
-      nmiApiKey: undefined,
-      b_lu_croprotation: "nature",
-    }
-    const result = await requestBln3Score(inputs)
-    expect(result).toBeNull()
-    expect(fetch).not.toHaveBeenCalled()
-  })
-
-  it("should return null immediately without calling fetch if b_lu_catalogue is nl_343 or nl_6801", async () => {
-    const inputs: Bln3ScoreInputs = {
-      ...baseInputs,
-      nmiApiKey: undefined,
-      b_lu_catalogue: "nl_343",
-    }
-    const result = await requestBln3Score(inputs)
-    expect(result).toBeNull()
-    expect(fetch).not.toHaveBeenCalled()
-  })
-
-  it("should throw if nmiApiKey is not provided", async () => {
-    const inputs: Bln3ScoreInputs = { ...baseInputs, nmiApiKey: undefined }
-    await expect(requestBln3Score(inputs)).rejects.toThrow("NMI API key not provided")
-    expect(fetch).not.toHaveBeenCalled()
-  })
-
-  it("should call the NMI API with correct URL, headers, and body", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockBln3ScoreResponse,
-    } as Response)
-
-    const inputs: Bln3ScoreInputs = {
-      ...baseInputs,
-      cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
-      measures: [{ measure_id: "BM3", year: 2025 }],
-    }
-
-    await requestBln3Score(inputs)
-
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(fetch).toHaveBeenCalledWith(
-      "https://api.nmi-agro.nl/maatwerk/bln3/score/field",
-      expect.objectContaining({
-        method: "POST",
-        headers: {
-          Authorization: "Bearer mock-api-key",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          a_lat: 51.613,
-          a_lon: 5.2,
-          cultivations: [{ b_lu_brp: 266, b_lu_year: 2025 }],
-          measures: [{ measure_id: "BM3", year: 2025 }],
-        }),
-      }),
+  it("should end at the same moment as an end date on 1 January of the next year", () => {
+    expect(getYearTimeframe(2026).end?.getTime()).toBe(
+      adjustEndDateAtYearStart(new Date("2027-01-01")).getTime(),
     )
-  })
-
-  it("should return mapped Bln3Score with indicators (plural)", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockBln3ScoreResponse,
-    } as Response)
-
-    const result = await requestBln3Score(baseInputs)
-
-    expect(result).toEqual<Bln3Score>({
-      indicators: mockBln3ScoreResponse.data.indicator,
-      aggregations: undefined,
-    })
-  })
-
-  it("should throw if the NMI API returns a non-ok response", async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      text: vi.fn().mockResolvedValue("upstream error"),
-    } as unknown as Response)
-
-    await expect(requestBln3Score(baseInputs)).rejects.toThrow(
-      "BLN3 score request failed with status 500",
-    )
-    expect(fetch).toHaveBeenCalledTimes(3)
-  })
-
-  it("should throw if the NMI API returns success: false", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: false,
-        status: 400,
-        message: "semantic failure message",
-      }),
-    } as Response)
-
-    await expect(requestBln3Score(baseInputs)).rejects.toThrow(
-      "BLN3 score API returned failure (status 400): semantic failure message",
-    )
-    expect(fetch).toHaveBeenCalledTimes(1)
-  })
-
-  it("should throw if the NMI API returns a malformed payload", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        success: true,
-        status: 200,
-        data: {}, // Missing indicator
-      }),
-    } as Response)
-
-    await expect(requestBln3Score(baseInputs)).rejects.toThrow(
-      "BLN3 score API returned a malformed payload",
-    )
-  })
-
-  it("should rethrow network errors from fetch", async () => {
-    vi.mocked(fetch).mockRejectedValue(new Error("Network connection lost"))
-
-    await expect(requestBln3Score(baseInputs)).rejects.toThrow("Network connection lost")
-  })
-
-  it("should map AbortError to a specific timeout message", async () => {
-    vi.useFakeTimers()
-
-    try {
-      vi.mocked(fetch).mockImplementation((_url, options) => {
-        return new Promise((_resolve, reject) => {
-          options?.signal?.addEventListener("abort", () => {
-            reject(options?.signal?.reason)
-          })
-        })
-      })
-
-      const assertion = expect(requestBln3Score(baseInputs)).rejects.toThrow(
-        "BLN3 score request timed out. The NMI API did not respond in time.",
-      )
-
-      try {
-        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
-        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
-        await vi.advanceTimersByTimeAsync(ATTEMPT_STEP_MS)
-      } finally {
-        await assertion
-      }
-    } finally {
-      vi.useRealTimers()
-    }
   })
 })
 
-describe("getBln3Score cache semantics", () => {
-  let mockRows: any[] = []
-  const mockFdm = {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockImplementation(() => ({
-      // eslint-disable-next-line unicorn/no-thenable -- Mocking third-party query objects with custom `.then` is necessary to simulate Drizzle ORM cache behaviors.
-      then: (cb: any) => Promise.resolve(cb(mockRows)),
-    })),
-    insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockReturnThis(),
-    onConflictDoUpdate: vi.fn().mockReturnThis(),
-    catch: vi.fn().mockResolvedValue(undefined),
-  } as any
-
-  const mockResult: Bln3Score = {
-    indicators: mockBln3ScoreResponse.data.indicator,
-  }
-
-  beforeAll(() => {
-    vi.stubGlobal("fetch", vi.fn())
-  })
-
-  afterEach(() => {
-    mockRows = []
+describe("getFieldIndicators", () => {
+  beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  afterAll(() => {
-    vi.restoreAllMocks()
-  })
+  it("should return the score of the field for the calendar year", async () => {
+    mockedCollectScore.mockResolvedValueOnce(scoreInputs)
+    mockedGetBln3Score.mockResolvedValueOnce(score(0.5))
 
-  it("should call fetch and store result on cache miss", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockBln3ScoreResponse,
-    } as Response)
+    const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, nmiApiKey)
 
-    mockRows = [] // Cache miss
-
-    const result = await getBln3Score(mockFdm, baseInputs)
-
-    expect(result).toEqual(mockResult)
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(mockFdm.select).toHaveBeenCalled()
-    expect(mockFdm.insert).toHaveBeenCalled()
-  })
-
-  it("should return cached result on cache hit without calling fetch", async () => {
-    mockRows = [{ result: mockResult }] // Cache hit
-
-    const result = await getBln3Score(mockFdm, baseInputs)
-
-    expect(result).toEqual(mockResult)
-    expect(fetch).not.toHaveBeenCalled()
-    expect(mockFdm.select).toHaveBeenCalled()
-    expect(mockFdm.insert).not.toHaveBeenCalled()
-  })
-
-  it("should proceed with calculation and log error if cache read fails", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockBln3ScoreResponse,
-    } as Response)
-
-    // Mock select chain to throw
-    mockFdm.limit.mockImplementationOnce(() => ({
-      // eslint-disable-next-line unicorn/no-thenable -- Mocking third-party query objects with custom `.then` is necessary to simulate Drizzle ORM cache behaviors.
-      then: () => Promise.reject(new Error("DB Error")),
-    }))
-    const spyConsole = vi.spyOn(console, "error").mockImplementation(() => {})
-
-    const result = await getBln3Score(mockFdm, baseInputs)
-
-    expect(result).toEqual(mockResult)
-    expect(fetch).toHaveBeenCalledTimes(1)
-    expect(spyConsole).toHaveBeenCalledWith(
-      expect.stringContaining("Failed to read from calculation cache"),
+    expect(result).toEqual({ b_id: "field-1", year, is_excluded: false, score: score(0.5) })
+    expect(mockedCollectScore).toHaveBeenCalledWith(
+      mockFdm,
+      principal_id,
+      "field-1",
+      getYearTimeframe(year),
     )
-    spyConsole.mockRestore()
+    expect(mockedGetBln3Score).toHaveBeenCalledWith(mockFdm, { ...scoreInputs, nmiApiKey })
+  })
+
+  it("should return an excluded field without score and without an API key", async () => {
+    mockedCollectScore.mockResolvedValueOnce(excludedScoreInputs)
+
+    const result = await getFieldIndicators(mockFdm, principal_id, "field-1", year, undefined)
+
+    expect(result).toEqual({ b_id: "field-1", year, is_excluded: true, score: null })
+    expect(mockedGetBln3Score).not.toHaveBeenCalled()
+  })
+
+  it("should throw IndicatorsUnavailableError when no API key is configured", async () => {
+    mockedCollectScore.mockResolvedValueOnce(scoreInputs)
+
+    await expect(
+      getFieldIndicators(mockFdm, principal_id, "field-1", year, undefined),
+    ).rejects.toThrow(IndicatorsUnavailableError)
+    expect(mockedGetBln3Score).not.toHaveBeenCalled()
+  })
+
+  it("should wrap a failing score request in IndicatorsUnavailableError", async () => {
+    const cause = new Error("NMI API unavailable")
+    mockedCollectScore.mockResolvedValueOnce(scoreInputs)
+    mockedGetBln3Score.mockRejectedValueOnce(cause)
+
+    const error = await getFieldIndicators(mockFdm, principal_id, "field-1", year, nmiApiKey).catch(
+      (err: unknown) => err,
+    )
+
+    expect(error).toBeInstanceOf(IndicatorsUnavailableError)
+    expect((error as Error).cause).toBe(cause)
+  })
+
+  it("should throw IndicatorsUnavailableError when no score is returned", async () => {
+    mockedCollectScore.mockResolvedValueOnce(scoreInputs)
+    mockedGetBln3Score.mockResolvedValueOnce(null)
+
+    await expect(
+      getFieldIndicators(mockFdm, principal_id, "field-1", year, nmiApiKey),
+    ).rejects.toThrow(IndicatorsUnavailableError)
   })
 })
 
-// getBln3Score is the cached wrapper around requestBln3Score via withCalculationCache.
-// Cache behaviour is tested thoroughly in fdm-core/src/calculator.test.ts.
-// We just verify the export exists and has the correct shape.
-it("getBln3Score should be a function", () => {
-  expect(typeof getBln3Score).toBe("function")
+describe("getFarmIndicators", () => {
+  const fields = Array.from({ length: 6 }, (_, i) => ({
+    b_id: `field-${i + 1}`,
+    b_area: i + 1,
+  })) as Awaited<ReturnType<typeof getFields>>
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("should score all eligible fields across batches and weight the farm scores by area", async () => {
+    mockedGetFields.mockResolvedValueOnce(fields)
+    // Six fields span two batches; field-6 is excluded
+    mockedCollectScore.mockImplementation(async (_fdm, _principal, b_id) =>
+      b_id === "field-6" ? excludedScoreInputs : scoreInputs,
+    )
+    mockedGetBln3Score.mockResolvedValue(score(0.5))
+
+    const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
+
+    expect(mockedGetFields).toHaveBeenCalledWith(
+      mockFdm,
+      principal_id,
+      "farm-1",
+      getYearTimeframe(year),
+    )
+    expect(mockedCollectScore).toHaveBeenCalledTimes(6)
+    expect(result.b_id_farm).toBe("farm-1")
+    expect(result.year).toBe(year)
+    expect(result.fields.map((f) => f.b_id)).toEqual([
+      "field-1",
+      "field-2",
+      "field-3",
+      "field-4",
+      "field-5",
+    ])
+    expect(result.farm).toEqual({
+      indicators: [{ indicator_id: "C_N", score: 0.5 }],
+      aggregations: [{ aggregation_id: "S_BLN", score: 0.5 }],
+    })
+  })
+
+  it("should weight the farm scores by field area", async () => {
+    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
+    mockedCollectScore.mockResolvedValue(scoreInputs)
+    // field-1 (1 ha) scores 0.2, field-2 (2 ha) scores 0.8
+    mockedGetBln3Score.mockResolvedValueOnce(score(0.2)).mockResolvedValueOnce(score(0.8))
+
+    const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
+
+    expect(result.farm.aggregations[0].score).toBeCloseTo(0.6)
+  })
+
+  it("should return empty scores for a farm without fields", async () => {
+    mockedGetFields.mockResolvedValueOnce([])
+
+    const result = await getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey)
+
+    expect(result).toEqual({
+      b_id_farm: "farm-1",
+      year,
+      fields: [],
+      farm: { indicators: [], aggregations: [] },
+    })
+  })
+
+  it("should fail as a whole when one eligible field cannot be scored", async () => {
+    mockedGetFields.mockResolvedValueOnce(fields.slice(0, 2))
+    mockedCollectScore.mockResolvedValue(scoreInputs)
+    mockedGetBln3Score.mockResolvedValueOnce(score(0.5)).mockResolvedValueOnce(null)
+
+    await expect(
+      getFarmIndicators(mockFdm, principal_id, "farm-1", year, nmiApiKey),
+    ).rejects.toThrow(IndicatorsUnavailableError)
+  })
+})
+
+describe("getFieldMeasureOptions", () => {
+  const applicabilityInputs = { a_lat: 51.6, a_lon: 5.2, b_year: year } as Awaited<
+    ReturnType<typeof collectInputForBln3MeasureApplicability>
+  >
+  const catalogue = [
+    {
+      m_id: "bln_BM1",
+      m_source: "bln",
+      m_name: "Measure BM1",
+      m_description: "desc",
+      m_summary: null,
+      m_source_url: null,
+      m_conflicts: null,
+      m_stage_applicability: "field",
+    },
+    {
+      m_id: "bln_BM2",
+      m_source: "bln",
+      m_name: "Measure BM2",
+      m_description: "desc",
+      m_summary: null,
+      m_source_url: null,
+      m_conflicts: null,
+      m_stage_applicability: "field",
+    },
+  ] as Awaited<ReturnType<typeof getMeasuresFromCatalogue>>
+  const applicability = {
+    applicability: [
+      { m_id: "bln_BM1", applicability: "applicable" as const, message: "" },
+      { m_id: "bln_BM2", applicability: "applicable" as const, message: "" },
+    ],
+  }
+  const advice = {
+    indicator_advice: [{ indicator: "C_N", measures: [{ m_id: "bln_BM1", measure_impact: 0.2 }] }],
+  }
+
+  /** Sets up a field that is scored and has `bln_BM2` already adopted. */
+  function setupEligibleField() {
+    mockedGetField.mockResolvedValueOnce({ b_id: "field-1", b_id_farm: "farm-1" } as Awaited<
+      ReturnType<typeof getField>
+    >)
+    mockedCollectApplicability.mockResolvedValueOnce(applicabilityInputs)
+    mockedGetMeasuresFromCatalogue.mockResolvedValueOnce(catalogue)
+    mockedGetEnabledMeasureCatalogues.mockResolvedValueOnce(["bln"])
+    mockedGetMeasures.mockResolvedValueOnce([
+      { b_id_measure: "measure-1", m_id: "bln_BM2", m_conflicts: null },
+    ] as Awaited<ReturnType<typeof getMeasures>>)
+    mockedCollectScore.mockResolvedValueOnce(scoreInputs)
+    mockedGetBln3Score.mockResolvedValueOnce(score(0.3))
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("should return the measure options of the field with recommendations", async () => {
+    setupEligibleField()
+    mockedGetBln3MeasureApplicability.mockResolvedValueOnce(applicability)
+    mockedGetBln3MeasureAdvice.mockResolvedValueOnce(advice)
+
+    const result = await getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, nmiApiKey)
+
+    expect(result.b_id).toBe("field-1")
+    expect(result.year).toBe(year)
+    expect(result.is_excluded).toBe(false)
+    expect(mockedGetEnabledMeasureCatalogues).toHaveBeenCalledWith(mockFdm, principal_id, "farm-1")
+    expect(mockedGetMeasures).toHaveBeenCalledWith(
+      mockFdm,
+      principal_id,
+      "field-1",
+      getYearTimeframe(year),
+    )
+    expect(mockedCollectApplicability).toHaveBeenCalledWith(
+      mockFdm,
+      principal_id,
+      "field-1",
+      year,
+      getYearTimeframe(year),
+    )
+    const bm1 = result.data.find((o) => o.m_id === "bln_BM1")
+    const bm2 = result.data.find((o) => o.m_id === "bln_BM2")
+    expect(bm1?.recommendation?.rank).toBe(1)
+    expect(bm2?.active_measures).toEqual(["measure-1"])
+  })
+
+  it("should return no options for an excluded field without an API key", async () => {
+    mockedGetField.mockResolvedValueOnce({ b_id: "field-1", b_id_farm: "farm-1" } as Awaited<
+      ReturnType<typeof getField>
+    >)
+    mockedCollectApplicability.mockResolvedValueOnce({
+      ...applicabilityInputs,
+      isExcluded: true,
+    })
+
+    const result = await getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, undefined)
+
+    expect(result).toEqual({ b_id: "field-1", year, is_excluded: true, data: [] })
+    expect(mockedGetBln3MeasureApplicability).not.toHaveBeenCalled()
+    expect(mockedGetBln3MeasureAdvice).not.toHaveBeenCalled()
+  })
+
+  it("should throw IndicatorsUnavailableError when no API key is configured", async () => {
+    mockedGetField.mockResolvedValueOnce({ b_id: "field-1", b_id_farm: "farm-1" } as Awaited<
+      ReturnType<typeof getField>
+    >)
+    mockedCollectApplicability.mockResolvedValueOnce(applicabilityInputs)
+
+    await expect(
+      getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, undefined),
+    ).rejects.toThrow(IndicatorsUnavailableError)
+  })
+
+  it("should throw IndicatorsUnavailableError when the field score is unavailable", async () => {
+    setupEligibleField()
+    mockedGetBln3Score.mockReset().mockResolvedValueOnce(null)
+
+    await expect(
+      getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, nmiApiKey),
+    ).rejects.toThrow(IndicatorsUnavailableError)
+    expect(mockedGetBln3MeasureAdvice).not.toHaveBeenCalled()
+  })
+
+  it("should wrap a failing applicability or advice request in IndicatorsUnavailableError", async () => {
+    const cause = new Error("NMI API unavailable")
+    setupEligibleField()
+    mockedGetBln3MeasureApplicability.mockRejectedValueOnce(cause)
+    mockedGetBln3MeasureAdvice.mockResolvedValueOnce(advice)
+
+    const error = await getFieldMeasureOptions(
+      mockFdm,
+      principal_id,
+      "field-1",
+      year,
+      nmiApiKey,
+    ).catch((err: unknown) => err)
+
+    expect(error).toBeInstanceOf(IndicatorsUnavailableError)
+    expect((error as Error).cause).toBe(cause)
+  })
+
+  it("should throw IndicatorsUnavailableError when no advice is returned", async () => {
+    setupEligibleField()
+    mockedGetBln3MeasureApplicability.mockResolvedValueOnce(applicability)
+    mockedGetBln3MeasureAdvice.mockResolvedValueOnce(null)
+
+    await expect(
+      getFieldMeasureOptions(mockFdm, principal_id, "field-1", year, nmiApiKey),
+    ).rejects.toThrow(IndicatorsUnavailableError)
+  })
 })

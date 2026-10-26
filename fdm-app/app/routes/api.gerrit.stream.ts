@@ -27,9 +27,8 @@ import { computePlanMetrics, repairTruncatedJson } from "~/lib/gerrit.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import PostHogClient from "~/posthog.server"
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, url }: LoaderFunctionArgs) {
   const session = await getSession(request)
-  const url = new URL(request.url)
 
   const b_id_farm = url.searchParams.get("b_id_farm")
   const calendar = url.searchParams.get("calendar")

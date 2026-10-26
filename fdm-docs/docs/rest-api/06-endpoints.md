@@ -130,6 +130,28 @@ Authorization: Bearer fdm_live_xxxxxxxxxxxxxxxxxxxx
 
 ---
 
+## Farm groups
+
+Farm groups are named, organization-scoped groupings of farms. The API key owner must be a member of the organization. Group membership is recorded as events: adding a farm records the date from which it is part of the group (`b_group_joined`, default today) and optionally the date until which (`b_group_leaved`). Removing a farm records the date until which it is part of the group (query parameter `b_group_leaved`, default today). When both dates are given on adding a farm they are stored together, so a period is never half recorded. These are the dates of the period itself, not the moment of the request, so they can lie in the past or the future. Dates use the format `YYYY-MM-DD`. Ending a membership records an end date and preserves the membership history; a later planned end date is moved forward to the given date; only a membership that starts today and is removed without a date is cancelled instead. `PATCH` (`updateFarmGroupMembership`) replaces the dates of a period rather than adding to its history, and `DELETE` on a period (`removeFarmGroupMembership`) deletes the period itself, for example to correct a mistake.
+
+| Method   | Path                                                               | Description                                                                            | `fdm-core` mapping          |
+| -------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------- | --------------------------- |
+| `GET`    | `/api/organizations/{organization_id}/farm-groups`                 | List the farm groups of an organization                                                | `listFarmGroups`            |
+| `POST`   | `/api/organizations/{organization_id}/farm-groups`                 | Create a farm group                                                                    | `createFarmGroup`           |
+| `GET`    | `/api/farm-groups/{b_id_group}`                                    | Get a group including its current member farm ids                                      | `getFarmGroup`              |
+| `PATCH`  | `/api/farm-groups/{b_id_group}`                                    | Rename a group                                                                         | `renameFarmGroup`           |
+| `DELETE` | `/api/farm-groups/{b_id_group}`                                    | Delete a group and its membership history                                              | `removeFarmGroup`           |
+| `POST`   | `/api/farm-groups/{b_id_group}/farms`                              | Add a farm to a group (body: `b_id_farm`, optional `b_group_joined`, `b_group_leaved`) | `addFarmToGroup`            |
+| `DELETE` | `/api/farm-groups/{b_id_group}/farms/{b_id_farm}`                  | End the membership of a farm (optional `b_group_leaved`)                               | `removeFarmFromGroup`       |
+| `PATCH`  | `/api/farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}` | Change the dates of a membership period                                                | `updateFarmGroupMembership` |
+| `DELETE` | `/api/farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}` | Delete a membership period, as if the farm never was part of the group then            | `removeFarmGroupMembership` |
+
+`PATCH` changes the dates of an existing period. The `b_group_joined` in the path is the current join date of the period and identifies it. A `b_group_joined` in the body updates the join date to that new date, and a `b_group_leaved` in the body updates the end date (`null` removes it). A period may not overlap another period of the same farm.
+
+`GET /api/farms` also accepts a `b_id_group` query parameter to list only the farms of a group.
+
+---
+
 ## Calculations
 
 Calculation endpoints operate on **stored FDM resource identifiers** — they do not accept standalone calculation payloads that are not linked to stored data.
@@ -147,6 +169,26 @@ Calculation endpoints use `POST` because calculations may be expensive and may r
 Calculation endpoint schemas are documented once the response format is stable. See the interactive docs at `/api/docs` for the latest schemas.
 
 :::
+
+---
+
+## Indicators and measure options
+
+Read-only endpoints for indicator scores and the measure options of a field. All require a four-digit `year` query parameter (e.g. `?year=2026`); soil analyses and adopted measures are limited to 1 January through 31 December of that year, while the cultivation history needed for the indicators is kept. They use the NMI API and have their own rate limit of **10 requests per minute per key** (`nmi` bucket). These endpoints are new; they carry a **New** badge in the API reference, and recent API changes are listed on the **Changelog** page there.
+
+| Method | Path                                    | Description                                                            |
+| ------ | --------------------------------------- | ---------------------------------------------------------------------- |
+| `GET`  | `/api/fields/{b_id}/indicators`         | Indicator and aggregation scores of a field                            |
+| `GET`  | `/api/farms/{b_id_farm}/indicators`     | Scores of all eligible fields and area-weighted farm scores            |
+| `GET`  | `/api/fields/{b_id}/measures/catalogue` | Field-level catalogue measures with applicability, impacts and ranking |
+
+Scores are on the normalized indicator scale (0..1, higher is better).
+
+- **Excluded fields:** buffer strips and nature fields return `200` with `is_excluded: true` and empty `indicators`/`aggregations` (or `data: []`). A farm leaves them out of `fields` and weighting; a farm without eligible fields returns empty `fields` and empty farm aggregates.
+- **Farm weighting:** each indicator and aggregation is weighted by the positive area of the eligible fields that have a score for it. Metrics without contributing fields are omitted. If any eligible field cannot be scored, the whole request fails with `503`.
+- **Measure options:** `/measures/catalogue` lists catalogue candidates, not adopted measures. Farm-only entries and sources not enabled for the farm are left out; inapplicable, active, conflicting and non-recommended field-level entries stay visible. `applicability.status` is `applicable`, `not yet applicable`, `inapplicable` or `unknown` (no result; never treated as applicable). `selectable` is a hint; creating the measure with `POST /fields/{b_id}/measures` is validated again.
+- **Predicted impacts:** `predicted_impacts` holds the positive impacts over all indicators, also for options that are not recommended. `recommendation` is `null` unless the option is among the top five applicable, not-yet-adopted, non-conflicting options; `indicator_impacts` then holds the impacts on the weak (non-green) indicators used for ranking, and `aggregate_impact` their sum. Predicted impacts are advice for this field and year, not stored on the measure. The upstream advice service is experimental.
+- **Errors:** `400` for a missing or invalid `year`, `401`, `403`, `404`, `429`, and `503` when scores, applicability or advice are unavailable or the server has no NMI configuration. Responses never contain upstream error details, credentials or coordinates.
 
 ---
 

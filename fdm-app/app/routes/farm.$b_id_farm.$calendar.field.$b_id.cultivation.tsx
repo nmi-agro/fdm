@@ -62,7 +62,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} When the "b_id_farm" or "b_id" parameters are missing or if the field is not found.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -94,7 +94,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

@@ -1,6 +1,5 @@
 import {
   checkPermission,
-  getCultivations,
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getCurrentSoilDataForFarm,
@@ -126,8 +125,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
       getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
       getHarvestsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-      getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm),
-      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm),
+      getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+      getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
       checkPermission(
         fdm,
         "farm",
@@ -322,7 +321,7 @@ export default function FarmRotationIndex() {
 
   useEffect(() => {
     capture("rotation_viewed", { b_id_farm: loaderData.b_id_farm, calendar: loaderData.calendar })
-  }, [])
+  }, [capture, loaderData.b_id_farm, loaderData.calendar])
 
   const currentFarmName =
     loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
@@ -403,13 +402,13 @@ export default function FarmRotationIndex() {
   )
 }
 
-export async function action({ params, request }: Route.ActionArgs) {
+export async function action({ params, request, url }: Route.ActionArgs) {
   try {
     const session = await getSession(request)
     const timeframe = getTimeframe(params)
     const b_id_farm = params.b_id_farm
 
-    const searchParams = new URL(request.url).searchParams
+    const searchParams = url.searchParams
 
     const fieldIdsParam = searchParams.get("fieldIds") ?? ""
     const cultivationIdsParam = searchParams.get("cultivationIds") ?? ""
@@ -438,28 +437,35 @@ export async function action({ params, request }: Route.ActionArgs) {
       const fields = (await getFields(fdm, session.principal_id, b_id_farm, timeframe)).filter(
         (field) => fieldIds.has(field.b_id),
       )
-      await Promise.all(
-        fields.map(async (field) => {
-          const cultivations = (
-            await getCultivations(fdm, session.principal_id, field.b_id, timeframe)
-          ).filter((cultivation) => cultivationIds.has(cultivation.b_lu_catalogue))
-
-          return Promise.all(
-            cultivations.map((cultivation) => {
-              return updateCultivation(
-                fdm,
-                session.principal_id,
-                cultivation.b_lu,
-                undefined,
-                cultivationUpdates.b_lu_start,
-                cultivationUpdates.b_lu_end,
-                cultivationUpdates.m_cropresidue,
-                cultivationUpdates.b_lu_variety,
-              )
-            }),
-          )
-        }),
-      )
+      await fdm.transaction(async (tx) => {
+        const cultivationsForFarm = await getCultivationsForFarm(
+          tx,
+          session.principal_id,
+          b_id_farm,
+          timeframe,
+        )
+        await Promise.all(
+          fields.map(async (field) => {
+            const cultivations = (cultivationsForFarm.get(field.b_id) ?? []).filter((cultivation) =>
+              cultivationIds.has(cultivation.b_lu_catalogue),
+            )
+            return Promise.all(
+              cultivations.map((cultivation) => {
+                return updateCultivation(
+                  tx,
+                  session.principal_id,
+                  cultivation.b_lu,
+                  undefined,
+                  cultivationUpdates.b_lu_start,
+                  cultivationUpdates.b_lu_end,
+                  cultivationUpdates.m_cropresidue,
+                  cultivationUpdates.b_lu_variety,
+                )
+              }),
+            )
+          }),
+        )
+      })
     }
 
     return dataWithSuccess(null, {

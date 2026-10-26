@@ -1,38 +1,17 @@
 import { Cookie, X } from "lucide-react"
 import posthog from "posthog-js"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Button } from "~/components/ui/button"
 import { clientConfig } from "~/lib/config"
-
-type ConsentType = "yes" | "no" | "undecided"
-
-export function cookieConsentGiven(): ConsentType {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return "undecided"
-  }
-  if (!localStorage.getItem("cookie_consent")) {
-    return "undecided"
-  }
-  const consent = localStorage.getItem("cookie_consent")
-  return consent === "yes" || consent === "no" ? consent : "undecided"
-}
-
-export function resetCookieConsent(): ConsentType {
-  if (typeof window === "undefined" || !window.localStorage) {
-    return "undecided"
-  }
-  localStorage.removeItem("cookie_consent")
-  return "undecided"
-}
+import { useCookieConsentStore } from "~/store/cookie-consent"
 
 export function Banner() {
-  const [consentGiven, setConsentGiven] = useState<"yes" | "no" | "undecided">("undecided")
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    setConsentGiven(cookieConsentGiven())
-    setIsVisible(cookieConsentGiven() === "undecided")
-  }, [])
+  const consentGiven = useCookieConsentStore((state) => state.consent)
+  const isVisible = useCookieConsentStore((state) => state.isBannerVisible)
+  const acceptCookies = useCookieConsentStore((state) => state.acceptCookies)
+  const declineCookies = useCookieConsentStore((state) => state.declineCookies)
+  const resetCookieConsent = useCookieConsentStore((state) => state.resetCookieConsent)
+  const closeCookieSettings = useCookieConsentStore((state) => state.closeCookieSettings)
 
   useEffect(() => {
     // Set PostHog persistence based on consent, if PostHog is configured
@@ -46,61 +25,6 @@ export function Banner() {
       }
     }
   }, [consentGiven])
-
-  const handleAcceptCookies = () => {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return
-    }
-    localStorage.setItem("cookie_consent", "yes")
-    setConsentGiven("yes")
-    setIsVisible(false)
-  }
-
-  const handleDeclineCookies = () => {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return
-    }
-    localStorage.setItem("cookie_consent", "no")
-    setConsentGiven("no")
-    setIsVisible(false)
-  }
-
-  const handleResetCookies = () => {
-    setConsentGiven(resetCookieConsent())
-    setIsVisible(true)
-  }
-
-  // Function to be called from outside the component to show the banner
-  useEffect(() => {
-    // Create a custom event to open cookie settings
-    const handleOpenCookieSettings = () => {
-      setIsVisible(true)
-    }
-
-    window.addEventListener("openCookieSettings", handleOpenCookieSettings)
-
-    return () => {
-      window.removeEventListener("openCookieSettings", handleOpenCookieSettings)
-    }
-  }, [])
-
-  // Export a function to trigger the cookie settings banner
-  // Set up the global function in an effect with cleanup
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.openCookieSettings = () => {
-        window.dispatchEvent(new Event("openCookieSettings"))
-      }
-
-      // Cleanup function to remove the method when component unmounts
-      return () => {
-        window.openCookieSettings = undefined
-      }
-    }
-  }, [])
-  const handleCloseBanner = () => {
-    setIsVisible(false)
-  }
 
   return (
     <div>
@@ -117,7 +41,7 @@ export function Banner() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={handleCloseBanner}
+                      onClick={closeCookieSettings}
                       aria-label="Sluiten"
                     >
                       <X className="h-4 w-4" />
@@ -153,19 +77,19 @@ export function Banner() {
               </div>
               <div className="border-border dark:bg-background/20 flex gap-2 border-t p-4 py-5">
                 {consentGiven === "yes" ? (
-                  <Button onClick={handleResetCookies} className="w-full" variant="outline">
+                  <Button onClick={resetCookieConsent} className="w-full" variant="outline">
                     Reset keuze: Geaccepteerd
                   </Button>
                 ) : consentGiven === "no" ? (
-                  <Button onClick={handleResetCookies} className="w-full" variant="outline">
+                  <Button onClick={resetCookieConsent} className="w-full" variant="outline">
                     Reset keuze: Geweigerd
                   </Button>
                 ) : (
                   <>
-                    <Button onClick={handleAcceptCookies} className="w-1/2">
+                    <Button onClick={acceptCookies} className="w-1/2">
                       Accepteren
                     </Button>
-                    <Button onClick={handleDeclineCookies} className="w-1/2" variant="secondary">
+                    <Button onClick={declineCookies} className="w-1/2" variant="secondary">
                       Weigeren
                     </Button>
                   </>

@@ -3,11 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { RegionKey } from "../value/types"
 import type { NL2026NormsFillingInput } from "./types"
 import { getRegion } from "../../2025/value/stikstofgebruiksnorm"
-import {
-  calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
-  getWorkingCoefficient,
-  isBouwland,
-} from "./stikstofgebruiksnorm"
+import { getWorkingCoefficient, isBouwland } from "./stikstofgebruiksnorm"
+import { calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm } from "./stikstofgebruiksnorm-cache"
 
 // Mock getRegion
 vi.mock("../../2025/value/stikstofgebruiksnorm", async (importOriginal) => {

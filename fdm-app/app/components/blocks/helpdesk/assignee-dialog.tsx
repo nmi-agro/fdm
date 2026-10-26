@@ -4,7 +4,7 @@ import type {
   TicketAssignmentSummary,
 } from "@nmi-agro/fdm-helpdesk"
 import { Check, Crown, UserPlus, Users } from "lucide-react"
-import { type MouseEventHandler, useEffect, useId, useState } from "react"
+import { type MouseEventHandler, useId, useState } from "react"
 import { useFetcher } from "react-router"
 import { cn } from "@/app/lib/utils"
 import { AvatarGroup, AvatarGroupCount } from "~/components/blocks/farms/user-display"
@@ -23,6 +23,7 @@ import { Field } from "~/components/ui/field"
 import { Separator } from "~/components/ui/separator"
 import { Spinner } from "~/components/ui/spinner"
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import type { HelpdeskUser } from "./types"
 import { AgentAvailabilityDisplay } from "./agent-availability"
 import { HelpdeskUserAvatar, makeHelpdeskUser } from "./helpdesk-user"
@@ -51,11 +52,12 @@ export function AssignmentSelector({
   const formId = useId()
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false)
 
-  const [selectedAssignees, setSelectedAssignees] = useState<string[]>(
-    assignees.map((assignee) => assignee.agent_id),
+  // Reset to the server's assignees (clearing local edits) whenever they change externally.
+  const [selectedAssignees, setSelectedAssignees] = useKeyedState(assignees, (a) =>
+    a.map((assignee) => assignee.agent_id),
   )
-  const [primaryAssignees, setPrimaryAssignees] = useState<string[]>(
-    assignees.filter((assignee) => assignee.is_primary).map((assignee) => assignee.agent_id),
+  const [primaryAssignees, setPrimaryAssignees] = useKeyedState(assignees, (a) =>
+    a.filter((assignee) => assignee.is_primary).map((assignee) => assignee.agent_id),
   )
 
   const assigneeNames = assignees.map((assignee) => assignee.display_name)
@@ -115,20 +117,6 @@ export function AssignmentSelector({
     })
   }
 
-  // Close dialogs when navigation finishes (the user has probably submitted the form in the dialog)
-  useEffect(() => {
-    if (fetcher.state === "idle") {
-      setAssignmentDialogOpen(false)
-    }
-  }, [fetcher.state])
-
-  useEffect(() => {
-    setSelectedAssignees(assignees.map((assignee) => assignee.agent_id))
-    setPrimaryAssignees(
-      assignees.filter((assignee) => assignee.is_primary).map((assignee) => assignee.agent_id),
-    )
-  }, [assignees])
-
   return (
     <Dialog open={assignmentDialogOpen} onOpenChange={setAssignmentDialogOpen}>
       <DialogTrigger asChild>
@@ -165,7 +153,16 @@ export function AssignmentSelector({
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <fetcher.Form id={formId} method="post" className="space-y-4">
+        <fetcher.Form
+          id={formId}
+          method="post"
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault()
+            await fetcher.submit(new FormData(e.currentTarget), { method: "post" })
+            setAssignmentDialogOpen(false)
+          }}
+        >
           <DialogHeader>
             <DialogTitle>Medewerker toewijzen</DialogTitle>
             <DialogDescription>

@@ -80,11 +80,6 @@ export function Combobox<TFieldValues extends FieldValues, TName extends Path<TF
                   name={name}
                   disabled={disabled}
                   className="w-full justify-between truncate focus-visible:ring-2"
-                  aria-label={`Selecteer ${
-                    options.find((option) => option.value === field.value)?.label ||
-                    defaultLabel ||
-                    "Klik om te begin met typen..."
-                  }`}
                   aria-controls="combobox-options"
                   aria-haspopup="listbox"
                 >

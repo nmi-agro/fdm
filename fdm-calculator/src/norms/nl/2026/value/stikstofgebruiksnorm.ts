@@ -114,6 +114,9 @@ export function getNormsForCultivation(
  * - **Gras voor industriële verwerking / Graszaad / Roodzwenkgras**: Differentiates establishment / 1st year from multi-year / overjarig stands.
  * - **Zaaiui / Winterui**: Differentiates 1st year (`nl_1932`) from 2nd year (`nl_1933`).
  * - **Bladgewassen (Spinazie, Slasoorten, Andijvie)**: Differentiates 1st cultivation (`1e teelt`) for the main crop from subsequent cultivation (`volgteelt`).
+ * - **Bladgewassen overig**: Differentiates a single harvest (`eenmalige oogst`) from multiple harvests (`meermalige oogst`) in the norm year.
+ * - **Kruiden**: Differentiates a single harvest (`bladgewas, eenmalige oogst`) from multiple harvests (`bladgewas, meermalig oogsten`) in the norm year.
+ *   The BRP codes do not tell leaf, root and seed herbs apart, so the bladgewas sub-types are always used.
  *
  * @param cultivation - The cultivation object being evaluated.
  * @param standard - The matching `NitrogenStandard` definition from Tabel 2 (2026).
@@ -232,6 +235,17 @@ function determineSubTypeOmschrijving(
 
   if (bladgewasRvoTable2s.includes(standard.cultivation_rvo_table2)) {
     return isHoofdteelt ? "1e teelt" : "volgteelt"
+  }
+
+  // Bladgewassen overig and Kruiden logic based on the number of harvests in the norm year
+  const isMeermaligeOogst = (cultivation.harvests?.length ?? 0) > 1
+
+  if (standard.cultivation_rvo_table2 === "Bladgewassen, Bladgewassen overig") {
+    return isMeermaligeOogst ? "meermalige oogst" : "eenmalige oogst"
+  }
+
+  if (standard.cultivation_rvo_table2 === "Kruiden") {
+    return isMeermaligeOogst ? "bladgewas, meermalig oogsten" : "bladgewas, eenmalige oogst"
   }
 
   return undefined

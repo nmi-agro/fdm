@@ -64,7 +64,7 @@ export function BcsWizard({
   const { capture } = useAnalytics()
   const totalSteps = BCS_FIELD_INDICATORS.length + 2
   const [currentStep, setCurrentStep] = useState(0)
-  const [samplingDate, setSamplingDate] = useState<Date>(new Date())
+  const [samplingDate, setSamplingDate] = useState<Date>(() => new Date())
   const [scores, setScores] = useState<Partial<Record<BcsVisualKey, 0 | 1 | 2>>>({})
   const [images, setImages] = useState<WizardImage[]>([])
   const [annotations, setAnnotations] = useState<WizardAnnotation[]>([])
@@ -81,9 +81,10 @@ export function BcsWizard({
   const hasAnyVisualScore = BCS_VISUAL_KEYS.some((key) => scores[key] != null)
 
   // Fetch server-side BCS preview whenever the review step is entered
+  const { submit: submitPreview } = previewFetcher
   useEffect(() => {
     if (!isReviewStep) return
-    void previewFetcher.submit(
+    void submitPreview(
       {
         scores,
         b_id,
@@ -95,8 +96,7 @@ export function BcsWizard({
         encType: "application/json",
       },
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReviewStep, scores, b_id, samplingDate, previewFetcher.submit])
+  }, [isReviewStep, scores, b_id, samplingDate, submitPreview])
 
   const galleryImages = useMemo(
     () =>

@@ -1,4 +1,4 @@
-import type { Cultivation, Field, SoilAnalysis } from "@nmi-agro/fdm-core"
+import type { Cultivation, Field, Harvest, SoilAnalysis } from "@nmi-agro/fdm-core"
 
 /**
  * Represents the collected input for a single cultivation, required for NL 2026 norm calculations.
@@ -6,7 +6,14 @@ import type { Cultivation, Field, SoilAnalysis } from "@nmi-agro/fdm-core"
 export type NL2026NormsInputForCultivation = Pick<
   Cultivation,
   "b_lu" | "b_lu_catalogue" | "b_lu_start" | "b_lu_end" | "b_lu_variety"
->
+> & {
+  /**
+   * Harvests of this cultivation within the norm year (1 January to 31 December 2026).
+   * Used to tell a single harvest (eenmalige oogst) from multiple harvests (meermalige oogst).
+   * When omitted, the cultivation is treated as harvested at most once.
+   */
+  harvests?: Pick<Harvest, "b_lu_harvest_date">[]
+}
 
 /**
  * Represents the complete set of inputs required to calculate all NL 2026 norms for a given farm.

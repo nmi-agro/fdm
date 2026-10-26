@@ -7,7 +7,7 @@ import {
 } from "@nmi-agro/fdm-helpdesk"
 import posthog from "posthog-js"
 import { useEffect } from "react"
-import { Outlet, redirect, useLoaderData } from "react-router"
+import { Outlet, redirect, useLoaderData, useLocation } from "react-router"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderOrganization } from "~/components/blocks/header/organization"
 import { SidebarOrganization } from "~/components/blocks/sidebar/organization"
@@ -36,11 +36,11 @@ type OrganizationLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
  *
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the session
     const session = await getSession(request)
-    const sessionCheckResponse = await checkSession(session, request)
+    const sessionCheckResponse = await checkSession(session, url)
     // If checkSession returns a Response, it means a redirect is needed
     if (sessionCheckResponse instanceof Response) {
       return sessionCheckResponse
@@ -106,7 +106,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // If getSession throws (e.g., invalid token), it might result in a 401
     // We need to handle that case here as well, similar to the ErrorBoundary
     if (error instanceof Response && error.status === 401) {
-      const currentPath = new URL(request.url).pathname
+      const currentPath = url.pathname
       const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
       return redirect(signInUrl)
     }
@@ -131,6 +131,11 @@ function OrganizationShell({
   const organization = loaderData.organizations.find(
     (org) => org.slug === loaderData.selectedOrganizationSlug,
   )
+
+  // On the page of a single group, back leads to the list of groups instead of the organization
+  const location = useLocation()
+  const groupsPath = /^\/organization\/[^/]+\/[^/]+\/groups(?=\/[^/]+)/.exec(location.pathname)?.[0]
+  const isGroupPage = groupsPath !== undefined
 
   return (
     <SidebarProvider>
@@ -159,10 +164,13 @@ function OrganizationShell({
       <SidebarInset className="min-w-0">
         <Header
           action={{
-            to: loaderData.selectedOrganizationSlug
-              ? `/organization/${loaderData.selectedOrganizationSlug}`
-              : "/organization",
-            label: "Terug naar organisatie",
+            to:
+              isGroupPage && groupsPath
+                ? groupsPath
+                : loaderData.selectedOrganizationSlug
+                  ? `/organization/${loaderData.selectedOrganizationSlug}`
+                  : "/organization",
+            label: isGroupPage ? "Terug naar groepen" : "Terug naar organisatie",
             disabled: false,
           }}
         >
@@ -207,7 +215,7 @@ export default function App() {
         name: organization.name,
       })
     }
-  }, [loaderData.selectedOrganizationSlug, organization?.name])
+  }, [organization])
 
   return (
     <OrganizationShell loaderData={loaderData}>

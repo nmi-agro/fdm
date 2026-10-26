@@ -10,6 +10,7 @@ import { ClipboardList } from "lucide-react"
 import { lazy, Suspense, useMemo } from "react"
 import { data, type MetaFunction, useLoaderData, useNavigate, useParams } from "react-router"
 import { DataTableColumnHeader } from "@/app/components/blocks/data-table/column-header"
+import { GroupPicker } from "~/components/blocks/farm-groups/group-picker"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { getColumns, type MeasureTableRow } from "~/components/blocks/measures/columns"
 import { getFieldSummaryColumns } from "~/components/blocks/measures/field-summary-columns"
@@ -18,10 +19,15 @@ import { MeasuresDataTable } from "~/components/blocks/measures/table"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { Separator } from "~/components/ui/separator"
 import { getMapStyle } from "~/integrations/map"
-import { auth } from "~/lib/auth.server"
+import { auth, getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
+import {
+  getOrganizationFarmGroups,
+  parseFarmIdsParam,
+  selectFarms,
+} from "~/lib/farm-selection.server"
 import { fdm } from "~/lib/fdm.server"
 import { getMainCultivation } from "~/lib/hoofdteelt.server"
 import { isExcludedFromBln3 } from "~/lib/indicators"
@@ -80,7 +86,7 @@ export function buildFarmMultiPolygon(
   }
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
+export async function loader({ request, params, url }: Route.LoaderArgs) {
   try {
     const timeframe = getTimeframe(params)
     const calendar = getCalendar(params)
@@ -97,7 +103,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       })
     }
 
-    const farms = await getFarms(fdm, organization.id)
+    const allFarms = await getFarms(fdm, organization.id)
+    const farms = selectFarms(allFarms, parseFarmIdsParam(url))
+    const session = await getSession(request)
+    const farmGroups = await getOrganizationFarmGroups(
+      session.principal_id,
+      organization.id,
+      allFarms.map((farm) => farm.b_id_farm),
+      calendar,
+    )
 
     function combineMeasureAggregate(
       existing: MeasureAggregate | undefined,
@@ -306,6 +320,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     })
 
     return {
+      farmGroups,
       fieldsGeoJSON,
       measureRows,
       mapStyle: getMapStyle("satellite"),
@@ -326,7 +341,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 // ── Page component ────────────────────────────────────────────────────────────
 
 export default function MeasuresOrganizationIndex() {
-  const { fieldsGeoJSON, measureRows, mapStyle, stats, fieldSummaries } =
+  const { fieldsGeoJSON, measureRows, mapStyle, stats, fieldSummaries, farmGroups } =
     useLoaderData<typeof loader>()
   const { calendar } = useParams()
   const navigate = useNavigate()
@@ -389,6 +404,7 @@ export default function MeasuresOrganizationIndex() {
       <FarmTitle
         title="Maatregelen"
         description="Overzicht van bodembeheersmaatregelen per bedrijf met toegang door deze organisatie."
+        rightNode={<GroupPicker groups={farmGroups} />}
       />
 
       <div className="space-y-6 md:px-8 md:pb-8">

@@ -16,7 +16,12 @@ if (replacement.length > placeholder.length) {
 const paddedReplacement = replacement.padEnd(placeholder.length, " ")
 
 export default defineConfig({
-  entry: ["src/index.ts"],
+  entry: {
+    index: "src/index.ts",
+    // Browser-safe subpath without fdm-core or network dependencies, for client-side code: the
+    // pure norms, nitrogen balance, dose, nutrient advice and indicator functions.
+    browser: "src/browser.ts",
+  },
   format: "esm",
   outDir: "dist",
   tsconfig: "./tsconfig.build.json",
