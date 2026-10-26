@@ -351,7 +351,7 @@ export function registerCultivationRoutes(
             errors: [
               {
                 code: "custom",
-                path: ["b_lu_catalogue"],
+                path: ["b_lu_end"],
                 message: `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
               },
             ],
@@ -433,20 +433,24 @@ export function registerCultivationRoutes(
         e.cause instanceof Error &&
         e.cause.message === "Cultivation code is not available for this time period"
       ) {
-        throw new ApiError(
-          400,
-          "validation-failed",
-          `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
-          {
-            errors: [
-              {
-                code: "custom",
-                path: ["b_lu_catalogue"],
-                message: `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
-              },
-            ],
-          },
-        )
+        const firstPart =
+          typeof body.b_lu_catalogue === "string"
+            ? `Cultivation ${body.b_lu_catalogue}`
+            : "Cultivation's current cultivation code"
+        const secondPart =
+          body.b_lu_start || body.b_lu_end
+            ? "the updated time period"
+            : "the cultivation's current time period"
+        const errorMessage = `${firstPart} is not available for ${secondPart}.`
+        throw new ApiError(400, "validation-failed", errorMessage, {
+          errors: [
+            {
+              code: "custom",
+              path: ["b_lu_end"],
+              message: errorMessage,
+            },
+          ],
+        })
       }
       throw e
     }
