@@ -453,7 +453,6 @@ export function AggregationPainpoints({
                 // recommendations exist for this indicator".
                 result.adviceAvailable ? (
                   <WhereToStartPanel
-                    recommendations={result.recommendations}
                     candidates={result.candidates}
                     activeIndId={activeIndId}
                     activeIndName={activeIndName ?? activeIndId}
@@ -484,8 +483,7 @@ function RecommendationsLoadingPanel() {
 }
 
 type WhereToStartPanelProps = {
-  recommendations: FarmMeasureRecommendation[]
-  /** Every eligible variant per field, used to choose one variant per measure family */
+  /** Every eligible variant per field; one variant per measure family is shown */
   candidates: FarmMeasureRecommendation[]
   activeIndId: string
   activeIndName: string
@@ -495,7 +493,6 @@ type WhereToStartPanelProps = {
 }
 
 function WhereToStartPanel({
-  recommendations,
   candidates,
   activeIndId,
   activeIndName,
@@ -515,7 +512,7 @@ function WhereToStartPanel({
       }
     >()
 
-    for (const rec of recommendations) {
+    for (const rec of candidates) {
       if (rec.indicator_id !== activeIndId) continue
       const area = areaByBid.get(rec.b_id) ?? 0
       if (area <= 0) continue
@@ -538,12 +535,11 @@ function WhereToStartPanel({
 
     // One variant per measure family: the one with the highest area-weighted
     // impact over all eligible variants of all fields, the same rule as the
-    // farm measures overview (which weights every field equally). Only
-    // variants recommended for this indicator can win, so a family never
-    // disappears from the list.
+    // farm measures overview (which weights every field equally). The winning
+    // variant is listed on every field where it is eligible.
     const bestVariantIds = getFarmBestVariantIds(
       candidates
-        .filter((c) => c.indicator_id === activeIndId && grouped.has(c.m_id))
+        .filter((c) => c.indicator_id === activeIndId)
         .map((c) => ({ b_id: c.b_id, m_id: c.m_id, impact: c.measure_impact })),
       areaByBid,
     )
@@ -566,7 +562,7 @@ function WhereToStartPanel({
       })
       .sort((a, b) => b.weightedImpact - a.weightedImpact)
       .slice(0, 3)
-  }, [recommendations, candidates, activeIndId, fields])
+  }, [candidates, activeIndId, fields])
 
   if (ranked.length === 0) {
     return (

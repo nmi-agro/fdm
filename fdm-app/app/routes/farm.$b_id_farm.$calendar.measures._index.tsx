@@ -123,7 +123,7 @@ async function getFarmNextSteps({
   const activeMeasureIdsByField = new Map(
     b_ids.map((b_id) => [b_id, new Set((measuresMap.get(b_id) ?? []).map((m) => m.m_id))]),
   )
-  const { opportunities: fieldOpportunities, candidates } = await getFarmMeasureOpportunities({
+  const { candidates } = await getFarmMeasureOpportunities({
     principal_id,
     b_ids,
     b_year,
@@ -135,16 +135,12 @@ async function getFarmNextSteps({
 
   // Show one variant per measure family farm-wide: the variant with the highest
   // impact summed over all eligible candidates of all fields (not only each
-  // field's winner). Only variants that are some field's best variant can win,
-  // so the family never disappears. Fields where another variant of that
-  // family scored best are not listed for it.
-  const recommendedIds = new Set(fieldOpportunities.map((opp) => opp.m_id))
+  // field's winner). The winning variant is listed on every field where it is
+  // eligible, also where another variant of that family scored best.
   const bestVariantIds = getFarmBestVariantIds(
-    candidates
-      .filter((c) => recommendedIds.has(c.m_id))
-      .map((c) => ({ b_id: c.b_id, m_id: c.m_id, impact: c.aggregateImpact })),
+    candidates.map((c) => ({ b_id: c.b_id, m_id: c.m_id, impact: c.aggregateImpact })),
   )
-  const opportunities = fieldOpportunities.filter((opp) => bestVariantIds.has(opp.m_id))
+  const opportunities = candidates.filter((c) => bestVariantIds.has(c.m_id))
 
   const opportunitiesByField: Record<string, FieldTopOpportunity[]> = {}
   const farmOpportunitiesByMId = new Map<string, FieldTopOpportunity>()
