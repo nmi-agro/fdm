@@ -18,7 +18,7 @@ export function MineralizationExperimentalNote({ b_id_farm }: { b_id_farm: strin
         >
           Ondersteuning
         </NavLink>
-        {" "}.
+        .
       </span>
     </p>
   )
