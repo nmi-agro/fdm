@@ -15,7 +15,11 @@ import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { DYNA_V2_MAX_HARVESTS, formatLongDate, formatNumber } from "~/lib/mineralization"
+import {
+  DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
+  formatLongDate,
+  formatNumber,
+} from "~/lib/mineralization"
 
 /** Name and unit of a soil parameter. */
 export type SoilParameterLabels = Record<string, { name: string; unit: string }>
@@ -272,7 +276,7 @@ export function UsedInput({
             )}
             {usedInput.omittedHarvests.length > 0 ? (
               <p className="text-muted-foreground text-xs">
-                Niet meegerekend (maximaal {DYNA_V2_MAX_HARVESTS} per teelt):{" "}
+                Niet meegerekend (binnen {DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} dagen na de vorige):{" "}
                 {usedInput.omittedHarvests.map((h) => formatLongDate(h.date)).join(", ")}.
               </p>
             ) : null}

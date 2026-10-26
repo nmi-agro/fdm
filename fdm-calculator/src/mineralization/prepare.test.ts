@@ -71,6 +71,18 @@ const slurry: MineralizationFertilizer = {
   p_s_rt: null,
 }
 
+function grassland(): MineralizationCultivation {
+  return cultivation({
+    b_lu: "lu_grass",
+    b_lu_catalogue: "nl_265",
+    b_lu_name: "Grasland",
+    b_lu_croprotation: "grass",
+    b_lu_harvestable: "multiple",
+    b_lu_start: winterDate("2018-01-01"),
+    b_lu_end: null,
+  })
+}
+
 function fieldData(overrides: Partial<MineralizationFieldData> = {}): MineralizationFieldData {
   return {
     field: { b_id: "field_1", b_name: "Perceel 1", b_centroid: [5.6, 52.0], b_bufferstrip: false },
@@ -298,44 +310,53 @@ describe("prepareMineralizationInput", () => {
     expect(result.usedInput.omittedHarvests).toEqual([])
   })
 
-  it("sends at most 6 harvests per cultivation and lists the others", () => {
-    const dates = [
-      "2026-04-20",
-      "2026-05-25",
-      "2026-06-25",
-      "2026-07-25",
-      "2026-08-25",
-      "2026-09-20",
-      "2026-10-10",
-      "2026-10-20",
-    ]
+  it("skips harvests within 10 days of the previous one", () => {
     const data = fieldData({
-      cultivations: [
-        cultivation({
-          b_lu: "lu_grass",
-          b_lu_catalogue: "nl_265",
-          b_lu_name: "Grasland",
-          b_lu_croprotation: "grass",
-          b_lu_harvestable: "multiple",
-          b_lu_start: winterDate("2018-01-01"),
-          b_lu_end: null,
-        }),
-      ],
-      // Unsorted on purpose: the first 6 by date are sent
+      cultivations: [grassland()],
+      // Unsorted on purpose: the gap is checked in date order
       harvests: new Map([
-        ["lu_grass", [...dates].reverse().map((date, i) => harvest(`h${i}`, summerDate(date)))],
+        [
+          "lu_grass",
+          ["2026-07-01", "2026-06-15", "2026-06-11", "2026-06-05", "2026-06-01"].map((date, i) =>
+            harvest(`h${i}`, summerDate(date)),
+          ),
+        ],
       ]),
     })
     const result = prepareMineralizationInput(data, YEAR, TODAY)
     expect(result.status).toBe("ready")
     if (result.status !== "ready") return
-    expect(result.request.harvests?.map((h) => h.b_date_harvest)).toEqual(dates.slice(0, 6))
-    expect(result.usedInput.harvests.map((h) => h.date)).toEqual(dates.slice(0, 6))
-    expect(result.usedInput.omittedHarvests).toEqual([
-      { b_lu: "lu_grass", date: "2026-10-10" },
-      { b_lu: "lu_grass", date: "2026-10-20" },
+    expect(result.request.harvests?.map((h) => h.b_date_harvest)).toEqual([
+      "2026-06-01",
+      "2026-06-11",
+      "2026-07-01",
     ])
-    expect(result.events.filter((e) => e.type === "harvest")).toHaveLength(6)
+    expect(result.usedInput.harvests.map((h) => h.date)).toEqual([
+      "2026-06-01",
+      "2026-06-11",
+      "2026-07-01",
+    ])
+    expect(result.usedInput.omittedHarvests).toEqual([
+      { b_lu: "lu_grass", date: "2026-06-05" },
+      { b_lu: "lu_grass", date: "2026-06-15" },
+    ])
+    expect(result.events.filter((e) => e.type === "harvest")).toHaveLength(3)
+  })
+
+  it("sends any number of harvests that are far enough apart", () => {
+    const dates = Array.from({ length: 8 }, (_, i) => {
+      const d = new Date(Date.UTC(2026, 3, 1 + i * 21))
+      return d.toISOString().slice(0, 10)
+    })
+    const data = fieldData({
+      cultivations: [grassland()],
+      harvests: new Map([["lu_grass", dates.map((date, i) => harvest(`h${i}`, summerDate(date)))]]),
+    })
+    const result = prepareMineralizationInput(data, YEAR, TODAY)
+    expect(result.status).toBe("ready")
+    if (result.status !== "ready") return
+    expect(result.request.harvests?.map((h) => h.b_date_harvest)).toEqual(dates)
+    expect(result.usedInput.omittedHarvests).toEqual([])
   })
 
   it("marks harvests after today as planned", () => {

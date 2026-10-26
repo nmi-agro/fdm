@@ -62,7 +62,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
-  DYNA_V2_MAX_HARVESTS,
+  DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
   type FieldMineralizationOk,
   type FieldMineralizationOutcome,
   formatLongDate,
@@ -663,12 +663,12 @@ function FieldMineralizationResult(
         {outcome.usedInput.omittedHarvests.length > 0 ? (
           <Alert>
             <Info aria-hidden />
-            <AlertTitle>Maximaal {DYNA_V2_MAX_HARVESTS} sneden meegerekend</AlertTitle>
+            <AlertTitle>Niet alle oogsten meegerekend</AlertTitle>
             <AlertDescription>
-              De berekening kan per teelt maximaal {DYNA_V2_MAX_HARVESTS} oogsten of sneden
-              verwerken. Niet meegerekend:{" "}
-              {outcome.usedInput.omittedHarvests.map((h) => formatLongDate(h.date)).join(", ")}. De
-              opname na de {DYNA_V2_MAX_HARVESTS}e snede ontbreekt daardoor in de berekening.
+              Tussen twee oogsten of sneden moeten voor de berekening minimaal{" "}
+              {DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} dagen zitten. Niet meegerekend, omdat ze binnen{" "}
+              {DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} dagen na de vorige vallen:{" "}
+              {outcome.usedInput.omittedHarvests.map((h) => formatLongDate(h.date)).join(", ")}.
             </AlertDescription>
           </Alert>
         ) : null}

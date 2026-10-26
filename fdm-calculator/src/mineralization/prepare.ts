@@ -143,8 +143,8 @@ export interface MineralizationUsedInput {
   }[]
   skippedApplications: { p_app_id: string; reason: "unknown_fertilizer" }[]
   /**
-   * Harvests in the year that were not sent, because Dyna accepts at most
-   * {@link DYNA_V2_MAX_HARVESTS_PER_CULTIVATION} harvests per cultivation.
+   * Harvests in the year that were not sent, because they fall within
+   * {@link DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} days after the previous harvest of the cultivation.
    */
   omittedHarvests: { b_lu: string; date: string }[]
 }
@@ -163,8 +163,16 @@ export type MineralizationPreparation =
       events: MineralizationEvent[]
     }
 
-/** Maximum number of harvests per cultivation that the Dyna v2 endpoint accepts. */
-export const DYNA_V2_MAX_HARVESTS_PER_CULTIVATION = 6
+/**
+ * Minimum number of days between two harvests of one cultivation that are sent to Dyna. Dyna
+ * needs harvests to be about a week apart; 10 days leaves a safe margin.
+ */
+export const DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS = 10
+
+/** Number of days from one calendar date (`YYYY-MM-DD`) to another. */
+function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
+}
 
 /** Soil parameters that Dyna v2 accepts. */
 export const DYNA_V2_SOIL_PARAMETERS: readonly string[] = [
@@ -394,14 +402,17 @@ export function prepareMineralizationInput(
   const cultivations: NonNullable<DynaV2Request["cultivations"]> = []
   const harvests: NonNullable<DynaV2Request["harvests"]> = []
   for (const cultivation of selected) {
-    // Dyna accepts a limited number of harvests per cultivation; later ones are reported instead
-    const allHarvests = harvestsInYear(cultivation.b_lu)
-    const cultivationHarvests = allHarvests.slice(0, DYNA_V2_MAX_HARVESTS_PER_CULTIVATION)
-    for (const h of allHarvests.slice(DYNA_V2_MAX_HARVESTS_PER_CULTIVATION)) {
-      usedInput.omittedHarvests.push({
-        b_lu: cultivation.b_lu,
-        date: toFdmDateString(h.b_lu_harvest_date as Date),
-      })
+    // Dyna cannot handle harvests close after each other; those are reported instead of sent
+    const cultivationHarvests: MineralizationHarvest[] = []
+    let lastKept: string | null = null
+    for (const h of harvestsInYear(cultivation.b_lu)) {
+      const date = toFdmDateString(h.b_lu_harvest_date as Date)
+      if (lastKept !== null && daysBetween(lastKept, date) < DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS) {
+        usedInput.omittedHarvests.push({ b_lu: cultivation.b_lu, date })
+        continue
+      }
+      cultivationHarvests.push(h)
+      lastKept = date
     }
     const start = getRequestStart(cultivation, year)
     let end: string

@@ -14,7 +14,7 @@ import {
   type MineralizationApplication,
   type MineralizationCultivation,
   type MineralizationFertilizer,
-  DYNA_V2_MAX_HARVESTS_PER_CULTIVATION,
+  DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
   mapApplicationMethod,
 } from "./prepare"
 
@@ -72,7 +72,8 @@ export interface ScenarioDiff {
  * Returns the schema that validates a scenario for a calendar year.
  *
  * Dates must be `YYYY-MM-DD` within the year and amounts must not be negative. A scenario has at
- * least one and at most {@link DYNA_V2_MAX_HARVESTS_PER_CULTIVATION} harvests.
+ * least one harvest, and harvests are at least {@link DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} days
+ * apart.
  *
  * @param year - Calendar year of the scenario.
  * @returns Zod schema of {@link MineralizationScenario}.
@@ -101,7 +102,15 @@ export function getMineralizationScenarioSchema(year: number) {
         }),
       )
       .min(1)
-      .max(DYNA_V2_MAX_HARVESTS_PER_CULTIVATION)
+      .refine((harvests) => {
+        const dates = harvests.map((h) => h.b_date_harvest).sort()
+        return dates.every(
+          (date, i) =>
+            i === 0 ||
+            Date.parse(`${date}T00:00:00Z`) - Date.parse(`${dates[i - 1]}T00:00:00Z`) >=
+              DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS * 86_400_000,
+        )
+      }, `Tussen twee oogsten moeten minimaal ${DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} dagen zitten.`)
       .optional(),
   })
 }

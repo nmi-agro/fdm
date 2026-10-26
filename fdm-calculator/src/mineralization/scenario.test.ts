@@ -259,19 +259,27 @@ describe("getMineralizationScenarioSchema", () => {
     ).toBe(true)
   })
 
-  it("accepts one to six harvests", () => {
-    const harvests = (count: number) =>
-      Array.from({ length: count }, (_, i) => ({ b_date_harvest: `2026-0${i + 4}-01` }))
-    expect(schema.safeParse({ fertilizerApplications: [], harvests: harvests(6) }).success).toBe(
-      true,
+  it("accepts any number of harvests at least 10 days apart", () => {
+    const harvests = Array.from({ length: 8 }, (_, i) => ({
+      b_date_harvest: new Date(Date.UTC(2026, 3, 1 + i * 21)).toISOString().slice(0, 10),
+    }))
+    expect(schema.safeParse({ fertilizerApplications: [], harvests }).success).toBe(true)
+  })
+
+  it("rejects harvests less than 10 days apart", () => {
+    const result = schema.safeParse({
+      fertilizerApplications: [],
+      // Unsorted on purpose
+      harvests: [{ b_date_harvest: "2026-06-05" }, { b_date_harvest: "2026-06-01" }],
+    })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.message).toBe(
+      "Tussen twee oogsten moeten minimaal 10 dagen zitten.",
     )
+  })
+
+  it("rejects a scenario without harvests", () => {
     expect(schema.safeParse({ fertilizerApplications: [], harvests: [] }).success).toBe(false)
-    expect(
-      schema.safeParse({
-        fertilizerApplications: [],
-        harvests: [...harvests(6), { b_date_harvest: "2026-11-01" }],
-      }).success,
-    ).toBe(false)
   })
 
   it("rejects applications outside the year", () => {

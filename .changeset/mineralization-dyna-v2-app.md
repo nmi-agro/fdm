@@ -6,4 +6,4 @@ Redesign the Mineralisatie app (Labs) around Dyna v2. The farm overview shows ho
 
 Return links after saving (for example on the fertilizer application, fertilizer and harvest forms) are now resolved against the app's own address, so a crafted link can no longer send users to another site.
 
-The weather forecast is shown in the growing season only. When a cultivation has more than 6 harvests or cuts, the first 6 are calculated and the page and farm overview warn which ones were not included.
+The weather forecast is shown in the growing season only. Harvests or cuts of one cultivation need at least 10 days between them for the calculation: a harvest closer to the previous one is left out, and the page and farm overview warn which ones were not included. In a scenario, any number of cuts can be added, as long as they are at least 10 days apart.

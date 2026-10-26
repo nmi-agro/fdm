@@ -146,7 +146,7 @@ export {
   deriveMineralizationInsights,
   determineSeasonPhase,
   diffScenario,
-  DYNA_V2_MAX_HARVESTS_PER_CULTIVATION,
+  DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
   DYNA_V2_SOIL_PARAMETERS,
   getDynaV2,
   getMineralizationScenarioSchema,

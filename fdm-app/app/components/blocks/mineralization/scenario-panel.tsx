@@ -23,10 +23,11 @@ import {
 import { Spinner } from "~/components/ui/spinner"
 import {
   addDays,
-  DYNA_V2_MAX_HARVESTS,
+  DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
   formatKgN,
   formatNumber,
   formatShortDate,
+  getHarvestsTooClose,
   type MineralizationMainCultivation,
   type ScenarioFertilizerOption,
 } from "~/lib/mineralization"
@@ -668,7 +669,6 @@ export function ScenarioPanel({
                   type="button"
                   variant="outline"
                   size="sm"
-                  disabled={harvests.length >= DYNA_V2_MAX_HARVESTS}
                   onClick={() =>
                     dispatch({
                       type: "add_harvest",
@@ -680,15 +680,20 @@ export function ScenarioPanel({
                   {harvestTerm.charAt(0).toUpperCase()}
                   {harvestTerm.slice(1)} toevoegen
                 </Button>
-                {harvests.length >= DYNA_V2_MAX_HARVESTS ? (
-                  <p className="text-muted-foreground text-xs">
-                    De berekening kan maximaal {DYNA_V2_MAX_HARVESTS}{" "}
+                {getHarvestsTooClose(harvests.map((h) => h.b_date_harvest)).length > 0 ? (
+                  <p className="text-muted-foreground text-xs" aria-live="polite">
+                    Tussen twee{" "}
                     {getHarvestTerm(
                       mainCultivation.b_lu_croprotation,
                       true,
                       mainCultivation.b_lu_harvestable,
                     )}{" "}
-                    per jaar verwerken.
+                    moeten minimaal {DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} dagen zitten; pas de datum
+                    van{" "}
+                    {getHarvestsTooClose(harvests.map((h) => h.b_date_harvest))
+                      .map(formatShortDate)
+                      .join(", ")}{" "}
+                    aan.
                   </p>
                 ) : null}
               </div>

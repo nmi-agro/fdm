@@ -38,7 +38,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       return { key, outcome: invalid }
     }
     const parsed = getMineralizationScenarioSchema(year).safeParse(raw)
-    if (!parsed.success) return { key, outcome: invalid }
+    if (!parsed.success) {
+      // Show the rule that was broken (e.g. harvests too close together) when there is one
+      const message = parsed.error.issues.find((issue) => issue.code === "custom")?.message
+      return { key, outcome: message ? { ...invalid, message } : invalid }
+    }
 
     const outcome = await calculateScenario({
       principal_id: session.principal_id,

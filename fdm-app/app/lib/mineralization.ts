@@ -73,10 +73,32 @@ export interface ScenarioFertilizerOption {
 export type FieldMineralizationOk = Extract<FieldMineralizationOutcome, { status: "ok" }>
 
 /**
- * Maximum number of harvests per cultivation that Dyna accepts. Mirrors
- * `DYNA_V2_MAX_HARVESTS_PER_CULTIVATION` of fdm-calculator, which client code cannot import.
+ * Minimum number of days between two harvests of one cultivation in the calculation. Mirrors
+ * `DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS` of fdm-calculator, which client code cannot import.
  */
-export const DYNA_V2_MAX_HARVESTS = 6
+export const DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS = 10
+
+/**
+ * Returns the harvest dates (`YYYY-MM-DD`) that fall within
+ * {@link DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS} days after the previous harvest that is kept; the
+ * calculation leaves those out.
+ */
+export function getHarvestsTooClose(dates: string[]): string[] {
+  const tooClose: string[] = []
+  let lastKept: string | null = null
+  for (const date of [...dates].sort()) {
+    const days =
+      lastKept === null
+        ? Number.POSITIVE_INFINITY
+        : (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${lastKept}T00:00:00Z`)) / 86_400_000
+    if (days < DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS) {
+      tooClose.push(date)
+    } else {
+      lastKept = date
+    }
+  }
+  return tooClose
+}
 
 /** Dutch labels of the season phases. */
 export const PHASE_LABELS: Record<SeasonPhase, string> = {
@@ -195,7 +217,7 @@ export function seriesInYear(series: DynaV2DailyPoint[], year: number): DynaV2Da
 export type AttentionItem =
   | { kind: "missing_harvest" }
   | { kind: "error"; message: string }
-  | { kind: "harvest_limit"; count: number }
+  | { kind: "harvest_gap"; count: number }
   | { kind: "signal"; signal: MineralizationSignal }
 
 const SIGNAL_PRIORITY: Record<MineralizationSignal["type"], number> = {
@@ -209,7 +231,7 @@ const SIGNAL_PRIORITY: Record<MineralizationSignal["type"], number> = {
 export function getAttentionPriority(item: AttentionItem): number {
   if (item.kind === "missing_harvest") return 0
   if (item.kind === "error") return 1
-  if (item.kind === "harvest_limit") return 1.5
+  if (item.kind === "harvest_gap") return 1.5
   return SIGNAL_PRIORITY[item.signal.type]
 }
 
@@ -220,7 +242,7 @@ export function getAttentionItems(outcome: FieldMineralizationOutcome): Attentio
   if (outcome.status !== "ok") return []
   const omitted = outcome.usedInput.omittedHarvests.length
   return [
-    ...(omitted > 0 ? [{ kind: "harvest_limit" as const, count: omitted }] : []),
+    ...(omitted > 0 ? [{ kind: "harvest_gap" as const, count: omitted }] : []),
     ...outcome.insights.signals.map((signal): AttentionItem => ({ kind: "signal", signal })),
   ].sort((a, b) => getAttentionPriority(a) - getAttentionPriority(b))
 }
@@ -229,8 +251,10 @@ export function getAttentionItems(outcome: FieldMineralizationOutcome): Attentio
 export function describeAttentionItem(item: AttentionItem): string {
   if (item.kind === "missing_harvest") return "Oogst ontbreekt"
   if (item.kind === "error") return "Berekening mislukt"
-  if (item.kind === "harvest_limit") {
-    return item.count === 1 ? "1 snede niet meegerekend" : `${item.count} sneden niet meegerekend`
+  if (item.kind === "harvest_gap") {
+    return item.count === 1
+      ? "1 oogst te kort na de vorige, niet meegerekend"
+      : `${item.count} oogsten te kort na de vorige, niet meegerekend`
   }
   const { signal } = item
   switch (signal.type) {

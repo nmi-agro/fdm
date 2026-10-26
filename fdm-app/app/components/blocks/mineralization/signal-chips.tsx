@@ -15,7 +15,7 @@ import { cn } from "~/lib/utils"
 function getIcon(item: AttentionItem): LucideIcon {
   if (item.kind === "missing_harvest") return CalendarX2
   if (item.kind === "error") return CircleAlert
-  if (item.kind === "harvest_limit") return Scissors
+  if (item.kind === "harvest_gap") return Scissors
   switch (item.signal.type) {
     case "n_shortage":
       return TrendingDown
