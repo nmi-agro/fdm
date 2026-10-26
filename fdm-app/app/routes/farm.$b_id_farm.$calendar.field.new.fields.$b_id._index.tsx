@@ -178,7 +178,7 @@ export default function Index() {
  * @returns A payload with a success message upon successful update.
  * @throws {Error} If either the field ID or farm ID is missing.
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   try {
     const b_id = params.b_id
     if (!b_id) {
@@ -194,8 +194,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     const timeframe = getTimeframe(params)
     const calendar = getCalendar(params)
-
-    const url = new URL(request.url)
 
     if (request.method === "POST") {
       const formValues = await extractFormValuesFromRequest(request, FormSchema)

@@ -75,7 +75,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} When the field ID is missing or the field is not found.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the field id
     const b_id = params.b_id
@@ -104,7 +104,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

@@ -51,7 +51,7 @@ function getRouteParams(params: ActionFunctionArgs["params"]) {
   return { a_id, b_id }
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const { a_id, b_id } = getRouteParams(params)
     const session = await getSession(request)
@@ -70,7 +70,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

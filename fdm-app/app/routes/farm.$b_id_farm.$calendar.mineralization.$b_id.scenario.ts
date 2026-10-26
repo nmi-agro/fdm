@@ -12,7 +12,7 @@ import { handleLoaderError } from "~/lib/error"
  * Problems with the scenario or the calculation are returned as an outcome with
  * `status: "error"`, so the page keeps working.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     const b_id = params.b_id
@@ -30,7 +30,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       message: "Het scenario is niet compleet: controleer de datums en hoeveelheden.",
     }
     // The key lets the page ignore results of an earlier version of the scenario
-    const key = new URL(request.url).searchParams.get("scenario") ?? ""
+    const key = url.searchParams.get("scenario") ?? ""
     let raw: unknown
     try {
       raw = JSON.parse(key)

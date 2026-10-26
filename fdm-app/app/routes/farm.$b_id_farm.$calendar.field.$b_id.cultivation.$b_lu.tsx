@@ -61,7 +61,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} If the farm, field, or cultivation ID is missing (status 400) or if the field or cultivation cannot be found (status 404).
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -103,7 +103,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_lu,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

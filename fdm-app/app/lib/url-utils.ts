@@ -134,3 +134,32 @@ export function getSafeRedirect(address: string | null | undefined): string {
     return "/farm"
   }
 }
+
+/**
+ * Strips any .data suffixes from a URL pathname that might have been introduced
+ * by React Router V8+.
+ *
+ * Use this for redirect-URL sanitization only, and use the pathname of the
+ * framework-provided URL object that is found in LoaderArgs and ActionArgs for
+ * other purposes.
+ *
+ * @param pathname pathname like `/farm/farm-id/fertilizers.data` to sanitize.
+ * @returns the pathname with any `.data` or `/_.data` suffixes stripped off.
+ */
+export function stripDataSuffix(pathname: string): string {
+  return pathname.replace(/(?:\.data)+$/, "").replace(/\/_$/, "/")
+}
+
+/**
+ * Strips any .data suffix from the pathname of a full address, leaving the
+ * query string and hash intact. Use this for return URLs read from search
+ * parameters.
+ *
+ * @param address address like `/farm/farm-id/fertilizers.data?a=1#top` to sanitize.
+ * @returns the address with the `.data` suffix removed from its path.
+ */
+export function stripDataSuffixFromAddress(address: string): string {
+  const suffixStart = address.search(/[?#]/)
+  if (suffixStart === -1) return stripDataSuffix(address)
+  return `${stripDataSuffix(address.slice(0, suffixStart))}${address.slice(suffixStart)}`
+}
