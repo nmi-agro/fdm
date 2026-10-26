@@ -150,3 +150,17 @@ export function getSafeRedirect(address: string | null | undefined): string {
 export function stripDataSuffix(pathname: string): string {
   return pathname.replace(/\/_\.data$/, "/").replace(/\.data$/, "")
 }
+
+/**
+ * Strips any .data suffix from the pathname of a full address, leaving the
+ * query string and hash intact. Use this for return URLs read from search
+ * parameters.
+ *
+ * @param address address like `/farm/farm-id/fertilizers.data?a=1#top` to sanitize.
+ * @returns the address with the `.data` suffix removed from its path.
+ */
+export function stripDataSuffixFromAddress(address: string): string {
+  const suffixStart = address.search(/[?#]/)
+  if (suffixStart === -1) return stripDataSuffix(address)
+  return `${stripDataSuffix(address.slice(0, suffixStart))}${address.slice(suffixStart)}`
+}

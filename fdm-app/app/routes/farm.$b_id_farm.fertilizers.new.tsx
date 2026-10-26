@@ -16,7 +16,7 @@ import { getSession } from "~/lib/auth.server"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { isOfOrigin } from "~/lib/url-utils"
+import { isOfOrigin, stripDataSuffixFromAddress } from "~/lib/url-utils"
 import type { Route } from "./+types/farm.$b_id_farm.fertilizers.new"
 
 export const meta: MetaFunction = () => {
@@ -40,7 +40,9 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       })
     }
 
-    const returnUrl = url.searchParams.get("returnUrl") ?? `/farm/${b_id_farm}/fertilizers`
+    const returnUrl = stripDataSuffixFromAddress(
+      url.searchParams.get("returnUrl") ?? `/farm/${b_id_farm}/fertilizers`,
+    )
 
     if (!isOfOrigin(returnUrl, url.origin)) {
       return redirectWithError(
@@ -98,7 +100,8 @@ export default function FarmFertilizerBlock({ params: _params }: Route.Component
   const [searchParams] = useSearchParams()
   const loaderData = useLoaderData<typeof loader>()
 
-  const returnUrl = searchParams.get("returnUrl")
+  const returnUrlParam = searchParams.get("returnUrl")
+  const returnUrl = returnUrlParam ? stripDataSuffixFromAddress(returnUrlParam) : null
 
   return (
     <SidebarInset>

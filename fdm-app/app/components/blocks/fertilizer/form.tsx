@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select"
+import { stripDataSuffixFromAddress } from "~/lib/url-utils"
 
 type FormSchemaKeys = keyof z.infer<typeof FormSchema>
 
@@ -46,7 +47,8 @@ export function FertilizerForm({
   const { p_id, b_id_farm } = useParams()
   const location = useLocation()
   const searchParams = new URLSearchParams(location.search)
-  const returnUrl = searchParams.get("returnUrl")
+  const returnUrlParam = searchParams.get("returnUrl")
+  const returnUrl = returnUrlParam ? stripDataSuffixFromAddress(returnUrlParam) : null
 
   const formValues = useWatch({ control: form.control })
   const sidebarButtonRef = useRef<HTMLDivElement>(null)
