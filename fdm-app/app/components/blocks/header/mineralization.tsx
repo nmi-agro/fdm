@@ -1,5 +1,5 @@
 import { Check, ChevronDown } from "lucide-react"
-import { NavLink, useLocation } from "react-router"
+import { NavLink } from "react-router"
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
 import {
   DropdownMenu,
@@ -25,8 +25,6 @@ export function HeaderMineralization({
   fieldOptions: HeaderFieldOption[]
 }) {
   const calendar = useCalendarStore((state) => state.calendar)
-  const location = useLocation()
-  const isDyna = location.pathname.endsWith("/dyna")
 
   const selectedField = b_id ? fieldOptions.find((f) => f.b_id === b_id) : undefined
 
@@ -44,7 +42,7 @@ export function HeaderMineralization({
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex max-w-[120px] items-center gap-1 outline-none sm:max-w-[200px] md:max-w-none">
+              <DropdownMenuTrigger className="focus-visible:ring-ring flex max-w-[120px] items-center gap-1 rounded-sm outline-none focus-visible:ring-2 sm:max-w-[200px] md:max-w-none">
                 <span className="truncate">{selectedField?.b_name ?? "Kies een perceel"}</span>
                 <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
               </DropdownMenuTrigger>
@@ -68,28 +66,6 @@ export function HeaderMineralization({
             </DropdownMenu>
           </BreadcrumbItem>
         </>
-      )}
-
-      {isDyna ? (
-        <>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}/dyna`}>
-              DYNA
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-        </>
-      ) : (
-        b_id && (
-          <>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href={`/farm/${b_id_farm}/${calendar}/mineralization/${b_id}`}>
-                Bodem N-levering
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          </>
-        )
       )}
     </>
   )
