@@ -86,6 +86,7 @@ describe("applyScenarioToRequest", () => {
       fertilizers,
       mainB_lu: "lu_main",
       mainHarvestable: "once",
+      mainHarvestcat: "HC031",
     })
     expect(result.fertilizer_applications).toEqual([
       {
@@ -115,6 +116,7 @@ describe("applyScenarioToRequest", () => {
       fertilizers,
       mainB_lu: "lu_main",
       mainHarvestable: "once",
+      mainHarvestcat: "HC031",
     })
     expect(result.fertilizer_applications).toBeUndefined()
     expect(result.fertilizer_properties).toBeUndefined()
@@ -125,15 +127,28 @@ describe("applyScenarioToRequest", () => {
       request,
       scenario: {
         fertilizerApplications: [],
-        harvests: [{ b_id_harvesting: "h1", b_date_harvest: "2026-09-25", b_lu_yield: 50000 }],
+        harvests: [
+          {
+            b_id_harvesting: "h1",
+            b_date_harvest: "2026-09-25",
+            parameters: { b_lu_yield: 50000, b_lu_cp: 75 },
+          },
+        ],
       },
       fertilizers,
       mainB_lu: "lu_main",
       mainHarvestable: "once",
+      mainHarvestcat: "HC031",
       mainHarvestIds: ["h1"],
     })
     expect(result.harvests).toEqual([
-      { b_lu_id: "lu_main", b_date_harvest: "2026-09-25", b_lu_yield: 50000, m_cropresidue: true },
+      {
+        b_lu_id: "lu_main",
+        b_date_harvest: "2026-09-25",
+        b_lu_yield: 50000,
+        b_lu_n_harvestable: 12,
+        m_cropresidue: true,
+      },
     ])
     expect(result.cultivations?.[0].b_lu_end).toBe("2026-09-25")
   })
@@ -156,6 +171,7 @@ describe("applyScenarioToRequest", () => {
           b_lu_id: "lu_main",
           b_date_harvest: "2026-06-20",
           b_lu_yield: 3000,
+          b_lu_n_harvestable: 30,
           m_cropresidue: false,
         },
       ],
@@ -167,13 +183,22 @@ describe("applyScenarioToRequest", () => {
         fertilizers,
         mainB_lu: "lu_main",
         mainHarvestable: "multiple",
+        mainHarvestcat: "HC020",
         mainHarvestIds: ["h1", "h2"],
       })
 
-    it("changes every cut and keeps their other properties", () => {
+    it("converts the yield and crude protein of each cut", () => {
       const result = apply([
-        { b_id_harvesting: "h1", b_date_harvest: "2026-05-15", b_lu_yield: 3500 },
-        { b_id_harvesting: "h2", b_date_harvest: "2026-06-25", b_lu_yield: 2800 },
+        {
+          b_id_harvesting: "h1",
+          b_date_harvest: "2026-05-15",
+          parameters: { b_lu_yield: 3500, b_lu_cp: 200 },
+        },
+        {
+          b_id_harvesting: "h2",
+          b_date_harvest: "2026-06-25",
+          parameters: { b_lu_yield: 2800, b_lu_cp: 150 },
+        },
       ])
       expect(result.harvests).toEqual([
         {
@@ -187,16 +212,33 @@ describe("applyScenarioToRequest", () => {
           b_lu_id: "lu_main",
           b_date_harvest: "2026-06-25",
           b_lu_yield: 2800,
+          b_lu_n_harvestable: 24,
           m_cropresidue: false,
         },
       ])
       expect(result.cultivations?.[0].b_lu_end).toBe("2026-12-31")
     })
 
+    it("keeps the stored values of a cut with incomplete parameters", () => {
+      const result = apply([
+        { b_id_harvesting: "h2", b_date_harvest: "2026-06-22", parameters: { b_lu_yield: 2000 } },
+      ])
+      expect(result.harvests).toEqual([
+        {
+          b_lu_id: "lu_main",
+          b_date_harvest: "2026-06-22",
+          b_lu_yield: 3000,
+          b_lu_n_harvestable: 30,
+          m_cropresidue: false,
+        },
+      ])
+    })
+
     it("adds and removes cuts, in date order", () => {
       const result = apply([
-        { b_date_harvest: "2026-08-01" },
-        { b_id_harvesting: "h1", b_date_harvest: "2026-05-10", b_lu_yield: 3500 },
+        { b_date_harvest: "2026-08-01", parameters: { b_lu_yield: 2500, b_lu_cp: 175 } },
+        { b_date_harvest: "2026-09-15" },
+        { b_id_harvesting: "h1", b_date_harvest: "2026-05-10" },
       ])
       expect(result.harvests).toEqual([
         {
@@ -206,14 +248,14 @@ describe("applyScenarioToRequest", () => {
           b_lu_n_harvestable: 32,
           m_cropresidue: false,
         },
-        { b_lu_id: "lu_main", b_date_harvest: "2026-08-01", m_cropresidue: false },
-      ])
-    })
-
-    it("drops the stored yield when the scenario clears it", () => {
-      const result = apply([{ b_id_harvesting: "h2", b_date_harvest: "2026-06-20" }])
-      expect(result.harvests).toEqual([
-        { b_lu_id: "lu_main", b_date_harvest: "2026-06-20", m_cropresidue: false },
+        {
+          b_lu_id: "lu_main",
+          b_date_harvest: "2026-08-01",
+          b_lu_yield: 2500,
+          b_lu_n_harvestable: 28,
+          m_cropresidue: false,
+        },
+        { b_lu_id: "lu_main", b_date_harvest: "2026-09-15", m_cropresidue: false },
       ])
     })
   })
@@ -235,6 +277,7 @@ describe("applyScenarioToRequest", () => {
         fertilizers,
         mainB_lu: "lu_main",
         mainHarvestable: "once",
+        mainHarvestcat: "HC031",
       }),
     ).toThrow("Onbekende meststof")
   })
@@ -254,7 +297,9 @@ describe("getMineralizationScenarioSchema", () => {
             p_app_date: "2026-05-01",
           },
         ],
-        harvests: [{ b_date_harvest: "2026-09-01" }],
+        harvests: [
+          { b_date_harvest: "2026-09-01", parameters: { b_lu_yield: 12000, b_lu_cp: 80 } },
+        ],
       }).success,
     ).toBe(true)
   })
@@ -465,7 +510,7 @@ describe("diffScenario", () => {
     expect(
       diffScenario(
         current,
-        [{ b_id_harvesting: "h1", b_date_harvest: "2026-09-20", b_lu_yield: null }],
+        [{ b_id_harvesting: "h1", b_date_harvest: "2026-09-20", parameters: {} }],
         withHarvest,
       ).harvests,
     ).toEqual({
@@ -481,39 +526,52 @@ describe("diffScenario", () => {
     expect(
       diffScenario(
         current,
-        [{ b_id_harvesting: "h1", b_date_harvest: "2026-09-25", b_lu_yield: null }],
+        [{ b_id_harvesting: "h1", b_date_harvest: "2026-09-25", parameters: {} }],
         withHarvest,
       ).harvests,
     ).toEqual({ add: [], update: [], remove: [] })
   })
 
   it("adds, changes and removes cuts, but only cuts the scenario was built from", () => {
+    const stored = { b_lu_yield: 3500, b_lu_cp: 200 }
     const currentCuts = [
-      { b_id_harvesting: "h1", b_date_harvest: "2026-05-10", b_lu_yield: 3500 },
-      { b_id_harvesting: "h2", b_date_harvest: "2026-06-20", b_lu_yield: null },
-      { b_id_harvesting: "h3", b_date_harvest: "2026-08-01", b_lu_yield: null },
-      // Not shown in the scenario, e.g. a seventh cut that is not calculated
-      { b_id_harvesting: "h7", b_date_harvest: "2026-11-01", b_lu_yield: null },
+      { b_id_harvesting: "h1", b_date_harvest: "2026-05-10", parameters: stored },
+      { b_id_harvesting: "h2", b_date_harvest: "2026-06-20", parameters: stored },
+      { b_id_harvesting: "h3", b_date_harvest: "2026-08-01", parameters: stored },
+      // Not shown in the scenario, e.g. a cut that is too close to the previous one
+      { b_id_harvesting: "h4", b_date_harvest: "2026-08-05", parameters: stored },
     ]
     const base: MineralizationScenario = {
       fertilizerApplications: [],
       harvests: [
-        { b_id_harvesting: "h1", b_date_harvest: "2026-05-10", b_lu_yield: 3500 },
-        { b_id_harvesting: "h2", b_date_harvest: "2026-06-20" },
-        { b_id_harvesting: "h3", b_date_harvest: "2026-08-01" },
+        { b_id_harvesting: "h1", b_date_harvest: "2026-05-10", parameters: stored },
+        { b_id_harvesting: "h2", b_date_harvest: "2026-06-20", parameters: stored },
+        { b_id_harvesting: "h3", b_date_harvest: "2026-08-01", parameters: stored },
       ],
     }
     const edited: MineralizationScenario = {
       fertilizerApplications: [],
       harvests: [
-        { b_id_harvesting: "h1", b_date_harvest: "2026-05-10", b_lu_yield: 3500 },
-        { b_id_harvesting: "h2", b_date_harvest: "2026-06-24", b_lu_yield: 2900 },
-        { b_date_harvest: "2026-09-15" },
+        { b_id_harvesting: "h1", b_date_harvest: "2026-05-14", parameters: stored },
+        {
+          b_id_harvesting: "h2",
+          b_date_harvest: "2026-06-20",
+          parameters: { b_lu_yield: 2900, b_lu_cp: 180 },
+        },
+        { b_date_harvest: "2026-09-15", parameters: { b_lu_yield: 2000, b_lu_cp: 170 } },
       ],
     }
     expect(diffScenario([], currentCuts, edited, base).harvests).toEqual({
-      add: [{ b_date_harvest: "2026-09-15" }],
-      update: [{ b_id_harvesting: "h2", b_date_harvest: "2026-06-24", b_lu_yield: 2900 }],
+      add: [{ b_date_harvest: "2026-09-15", parameters: { b_lu_yield: 2000, b_lu_cp: 170 } }],
+      update: [
+        // Only the date changed, so the parameters are left as stored
+        { b_id_harvesting: "h1", b_date_harvest: "2026-05-14" },
+        {
+          b_id_harvesting: "h2",
+          b_date_harvest: "2026-06-20",
+          parameters: { b_lu_yield: 2900, b_lu_cp: 180 },
+        },
+      ],
       remove: ["h3"],
     })
   })

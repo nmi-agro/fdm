@@ -36,6 +36,7 @@ export type {
   MineralizationEvent,
   MineralizationFertilizer,
   MineralizationFieldData,
+  HarvestParameterValues,
   MineralizationHarvest,
   MineralizationPreparation,
   MineralizationSoilItem,
@@ -45,6 +46,7 @@ export {
   DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
   DYNA_V2_SOIL_PARAMETERS,
   getMainCultivation,
+  HARVEST_PARAMETER_KEYS,
   mapApplicationMethod,
   prepareMineralizationInput,
   restrictToMainCultivation,
@@ -56,7 +58,12 @@ export type {
   ScenarioFertilizerApplication,
   ScenarioHarvest,
 } from "./scenario"
-export { applyScenarioToRequest, diffScenario, getMineralizationScenarioSchema } from "./scenario"
+export {
+  applyScenarioToRequest,
+  diffScenario,
+  getMineralizationScenarioSchema,
+  isSameHarvestParameters,
+} from "./scenario"
 export type { WeatherForecast, WeatherForecastDay, WeatherForecastInput } from "./weather"
 export { getWeatherForecast, requestWeatherForecast, roundCoordinate } from "./weather"
 export { dynaV2ResponseDataSchema } from "./schemas"

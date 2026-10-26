@@ -104,7 +104,8 @@ function countOutcomes(fields: FarmOverviewField[], outcomes: FarmOverviewProps[
     if (!outcome) counts.pending++
     else if (outcome.status === "ok") {
       counts.ok++
-      if (outcome.insights.signals.length > 0) counts.attention++
+      // Same items as the attention list, including cuts that could not be calculated
+      if (getAttentionItems(outcome).length > 0) counts.attention++
     } else if (outcome.status === "missing_harvest") counts.missingHarvest++
     else if (outcome.status === "error") counts.error++
   }

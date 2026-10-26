@@ -15,6 +15,7 @@ import { FarmTitle } from "~/components/blocks/farm/farm-title"
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { HeaderMineralization } from "~/components/blocks/header/mineralization"
+import { MineralizationExperimentalNote } from "~/components/blocks/mineralization/experimental-note"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "~/components/ui/empty"
 import { SidebarInset } from "~/components/ui/sidebar"
 import {
@@ -191,7 +192,16 @@ export default function MineralizationLayout() {
         />
       </Header>
       <main>
-        <FarmTitle title={title} description={description} />
+        <FarmTitle
+          title={title}
+          description={description}
+          descriptionNode={
+            <div className="space-y-2">
+              <p className="text-muted-foreground wrap-break-word">{description}</p>
+              <MineralizationExperimentalNote b_id_farm={loaderData.b_id_farm} />
+            </div>
+          }
+        />
         <FarmContent>
           <Outlet />
         </FarmContent>

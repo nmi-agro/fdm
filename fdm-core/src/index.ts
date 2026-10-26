@@ -184,6 +184,8 @@ export {
   removeHarvest,
   updateHarvest,
 } from "./harvest"
+export { convertHarvestParameters } from "./harvest-conversion"
+export type { StandardHarvestParameters } from "./harvest-conversion.types"
 export type {
   Harvest,
   Harvestable,

@@ -1,7 +1,11 @@
 import { ArrowRight, CalendarX2 } from "lucide-react"
 import { useState } from "react"
 import { NavLink, useFetcher } from "react-router"
-import type { MineralizationMainCultivation } from "~/lib/mineralization"
+import type {
+  MineralizationHarvestSettings,
+  MineralizationMainCultivation,
+} from "~/lib/mineralization"
+import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
@@ -13,16 +17,21 @@ import { DateField } from "./date-field"
 /**
  * Asks for the measured or planned harvest of the main cultivation; the calculation needs it.
  *
- * Crops with one harvest get an inline form. Crops with several cuts, such as grassland, link to
- * the harvest form of the crop rotation, where all cuts can be entered.
+ * Crops with one harvest get an inline form with the fields of their harvest class, as in the
+ * harvest form, filled in with the usual values for the crop; they can also be left empty to save
+ * only the date. Crops with several cuts, such as grassland, link to the harvest form of the crop
+ * rotation, where all cuts can be entered.
  */
 export function MissingHarvestCard({
   mainCultivation,
+  harvestSettings,
   defaultHarvestDate,
   year,
   bulkHarvestHref,
 }: {
   mainCultivation: MineralizationMainCultivation
+  /** Fields of the harvest class and their usual values. */
+  harvestSettings: MineralizationHarvestSettings | null
   defaultHarvestDate: string | null
   year: number
   /** Harvest form of the crop rotation for this field. */
@@ -30,6 +39,15 @@ export function MissingHarvestCard({
 }) {
   const fetcher = useFetcher()
   const [harvestDate, setHarvestDate] = useState(defaultHarvestDate ?? "")
+  const parameters = harvestSettings?.parameters ?? []
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      parameters.map((key) => [key, String(harvestSettings?.defaults[key] ?? "")]),
+    ),
+  )
+  // Saved with all fields of the harvest class, or with none
+  const filled = parameters.filter((key) => (values[key] ?? "").trim() !== "").length
+  const partlyFilled = filled > 0 && filled < parameters.length
   const busy = fetcher.state !== "idle"
   const cropName = mainCultivation.b_lu_name ?? mainCultivation.b_lu_catalogue
   const multiple =
@@ -63,42 +81,55 @@ export function MissingHarvestCard({
             </NavLink>
           </Button>
         ) : (
-          <fetcher.Form
-            method="post"
-            className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-          >
+          <fetcher.Form method="post" className="space-y-4">
             <input type="hidden" name="intent" value="save_harvest" />
             <input type="hidden" name="b_lu" value={mainCultivation.b_lu} />
             <input type="hidden" name="b_lu_harvest_date" value={harvestDate} />
-            <DateField
-              name="b_lu_harvest_date_input"
-              label="Oogstdatum"
-              className="[&_input]:text-base sm:[&_input]:text-sm"
-              min={`${year}-01-01`}
-              max={`${year}-12-31`}
-              required
-              value={harvestDate}
-              onChange={setHarvestDate}
-            />
-            <div className="grid gap-1.5">
-              <Label htmlFor="b_lu_yield">
-                Opbrengst{" "}
-                <span className="text-muted-foreground font-normal">(kg DS/ha, optioneel)</span>
-              </Label>
-              <Input
-                id="b_lu_yield"
-                name="b_lu_yield"
-                type="number"
-                min={0}
-                step="any"
-                inputMode="decimal"
-                className="text-base sm:text-sm"
+            <div className="grid gap-4 sm:grid-cols-2 sm:items-end">
+              <DateField
+                name="b_lu_harvest_date_input"
+                label="Oogstdatum"
+                className="[&_input]:text-base sm:[&_input]:text-sm"
+                min={`${year}-01-01`}
+                max={`${year}-12-31`}
+                required
+                value={harvestDate}
+                onChange={setHarvestDate}
               />
+              {parameters.map((key) => (
+                <div key={key} className="grid gap-1.5">
+                  <Label htmlFor={`missing-harvest-${key}`}>{getHarvestParameterLabel(key)}</Label>
+                  <Input
+                    id={`missing-harvest-${key}`}
+                    name={key}
+                    type="number"
+                    min={0}
+                    step="any"
+                    inputMode="decimal"
+                    className="text-base sm:text-sm"
+                    aria-invalid={(partlyFilled && !values[key]?.trim()) || undefined}
+                    value={values[key] ?? ""}
+                    onChange={(e) => setValues((prev) => ({ ...prev, [key]: e.target.value }))}
+                  />
+                </div>
+              ))}
             </div>
-            <Button type="submit" disabled={busy || !harvestDate}>
-              {busy ? <Spinner /> : null}
-              Oogst opslaan
-            </Button>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <Button type="submit" disabled={busy || !harvestDate || partlyFilled}>
+                {busy ? <Spinner /> : null}
+                Oogst opslaan
+              </Button>
+              {partlyFilled ? (
+                <p className="text-muted-foreground text-xs" aria-live="polite">
+                  Vul alle gegevens van de oogst in, of laat ze allemaal leeg om alleen de datum op
+                  te slaan.
+                </p>
+              ) : parameters.length > 0 ? (
+                <p className="text-muted-foreground text-xs">
+                  Ingevuld met gangbare waarden voor {cropName}; pas ze aan als je ze weet.
+                </p>
+              ) : null}
+            </div>
           </fetcher.Form>
         )}
       </CardContent>

@@ -1,4 +1,8 @@
-import type { MineralizationKpis, MineralizationScenario } from "@nmi-agro/fdm-calculator"
+import type {
+  HarvestParameterValues,
+  MineralizationKpis,
+  MineralizationScenario,
+} from "@nmi-agro/fdm-calculator"
 import {
   ArrowUp,
   ChartLine as LineChart,
@@ -7,6 +11,8 @@ import {
   Plus,
   Trash2,
 } from "lucide-react"
+import { type ComponentProps, type CSSProperties, useState } from "react"
+import { getHarvestParameterLabel } from "~/components/blocks/harvest/parameters"
 import { getHarvestDateTerm, getHarvestTerm } from "~/components/blocks/harvest/utils"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
@@ -28,6 +34,7 @@ import {
   formatNumber,
   formatShortDate,
   getHarvestsTooClose,
+  type MineralizationHarvestSettings,
   type MineralizationMainCultivation,
   type ScenarioFertilizerOption,
 } from "~/lib/mineralization"
@@ -48,7 +55,13 @@ export type ScenarioAction =
   | { type: "add_application"; date: string; option: ScenarioFertilizerOption | undefined }
   | { type: "remove_application"; index: number }
   | { type: "update_harvest"; index: number; patch: Partial<ScenarioHarvest> }
-  | { type: "add_harvest"; date: string }
+  | {
+      type: "update_harvest_parameter"
+      index: number
+      key: keyof HarvestParameterValues
+      value: number | undefined
+    }
+  | { type: "add_harvest"; date: string; parameters?: HarvestParameterValues }
   | { type: "remove_harvest"; index: number }
   | {
       type: "shift"
@@ -99,10 +112,28 @@ export function scenarioReducer(
           i === action.index ? { ...harvest, ...action.patch } : harvest,
         ),
       }
+    case "update_harvest_parameter":
+      if (!state.harvests) return state
+      return {
+        ...state,
+        harvests: state.harvests.map((harvest, i) => {
+          if (i !== action.index) return harvest
+          const parameters = { ...harvest.parameters }
+          if (action.value === undefined) delete parameters[action.key]
+          else parameters[action.key] = action.value
+          return { ...harvest, parameters }
+        }),
+      }
     case "add_harvest":
       return {
         ...state,
-        harvests: [...(state.harvests ?? []), { b_date_harvest: action.date }],
+        harvests: [
+          ...(state.harvests ?? []),
+          {
+            b_date_harvest: action.date,
+            ...(action.parameters ? { parameters: { ...action.parameters } } : {}),
+          },
+        ],
       }
     case "remove_harvest":
       if (!state.harvests || state.harvests.length <= 1) return state
@@ -147,18 +178,49 @@ export function getApplicationChange(
     : null
 }
 
+/** Whether two sets of harvest parameters have the same values. */
+function isSameHarvestParameters(
+  a: HarvestParameterValues | undefined,
+  b: HarvestParameterValues | undefined,
+): boolean {
+  const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])
+  return [...keys].every(
+    (key) => a?.[key as keyof HarvestParameterValues] === b?.[key as keyof HarvestParameterValues],
+  )
+}
+
+/** The harvest of the plan that a harvest of the scenario started from, if any. */
+function findOriginalHarvest(harvest: ScenarioHarvest, base: MineralizationScenario) {
+  return harvest.b_id_harvesting
+    ? base.harvests?.find((h) => h.b_id_harvesting === harvest.b_id_harvesting)
+    : undefined
+}
+
 /** Compares a harvest of the scenario with the same harvest in the plan. */
 export function getHarvestChange(
   harvest: ScenarioHarvest,
   base: MineralizationScenario,
 ): ApplicationChange {
-  if (!harvest.b_id_harvesting) return "new"
-  const original = base.harvests?.find((h) => h.b_id_harvesting === harvest.b_id_harvesting)
+  const original = findOriginalHarvest(harvest, base)
   if (!original) return "new"
   return original.b_date_harvest !== harvest.b_date_harvest ||
-    original.b_lu_yield !== harvest.b_lu_yield
+    !isSameHarvestParameters(original.parameters, harvest.parameters)
     ? "changed"
     : null
+}
+
+/**
+ * Whether saving the harvest needs parameters it does not have: a new harvest, or one whose
+ * parameters were changed, is saved with all parameters of its harvest class.
+ */
+export function isHarvestIncomplete(
+  harvest: ScenarioHarvest,
+  base: MineralizationScenario,
+  parameters: MineralizationHarvestSettings["parameters"],
+): boolean {
+  const original = findOriginalHarvest(harvest, base)
+  if (original && isSameHarvestParameters(original.parameters, harvest.parameters)) return false
+  return parameters.some((key) => harvest.parameters?.[key] === undefined)
 }
 
 /** Date of a newly added cut: six weeks after the last one, within the year. */
@@ -222,7 +284,9 @@ export function describeScenarioChanges(
   }
   const Term = `${harvestTerm.charAt(0).toUpperCase()}${harvestTerm.slice(1)}`
   const yieldText = (harvest: ScenarioHarvest) =>
-    harvest.b_lu_yield === undefined ? "" : `, ${formatNumber(harvest.b_lu_yield)} kg DS/ha`
+    harvest.parameters?.b_lu_yield === undefined
+      ? ""
+      : `, ${formatNumber(harvest.parameters.b_lu_yield)} kg DS/ha`
   for (const original of base.harvests ?? []) {
     const harvest = scenario.harvests?.find((h) => h.b_id_harvesting === original.b_id_harvesting)
     if (!harvest) {
@@ -234,11 +298,9 @@ export function describeScenarioChanges(
         `${Term} verschoven van ${formatShortDate(original.b_date_harvest)} naar ${formatShortDate(harvest.b_date_harvest)}`,
       )
     }
-    if (harvest.b_lu_yield !== original.b_lu_yield) {
+    if (!isSameHarvestParameters(original.parameters, harvest.parameters)) {
       changes.push(
-        harvest.b_lu_yield === undefined
-          ? `Opbrengst ${harvestTerm} van ${formatShortDate(harvest.b_date_harvest)} verwijderd`
-          : `Opbrengst ${harvestTerm} van ${formatShortDate(harvest.b_date_harvest)} wordt ${formatNumber(harvest.b_lu_yield)} kg DS/ha`,
+        `Gegevens ${harvestTerm} van ${formatShortDate(harvest.b_date_harvest)} gewijzigd${yieldText(harvest)}`,
       )
     }
   }
@@ -334,6 +396,59 @@ function ScenarioDeltasInline({
   )
 }
 
+/** Text of an amount input for a value; 0 is shown empty when `zeroIsEmpty` is set. */
+function formatAmount(value: number | undefined, zeroIsEmpty: boolean): string {
+  return value === undefined || !Number.isFinite(value) || (zeroIsEmpty && value === 0)
+    ? ""
+    : String(value)
+}
+
+/** Value of the text of an amount input: a nonnegative number, or `undefined` when empty. */
+function parseAmount(text: string): number | undefined {
+  if (text.trim() === "") return undefined
+  const value = Number(text.replace(",", "."))
+  return Number.isFinite(value) ? Math.max(0, value) : undefined
+}
+
+/**
+ * Number input that keeps the text as typed, so intermediate values such as "0" or "0," stay
+ * visible while entering a value below 1. Reports the parsed, nonnegative number; an empty field
+ * reports `undefined`.
+ */
+function AmountInput({
+  value,
+  zeroIsEmpty = false,
+  onValueChange,
+  ...props
+}: Omit<ComponentProps<typeof Input>, "value" | "onChange" | "type"> & {
+  value: number | undefined
+  /** Shows 0 as an empty field, e.g. for an amount that still has to be entered. */
+  zeroIsEmpty?: boolean
+  onValueChange: (value: number | undefined) => void
+}) {
+  const [text, setText] = useState(() => formatAmount(value, zeroIsEmpty))
+  // Follow changes from outside, such as discarding the scenario, but not the typed text itself;
+  // adjusted while rendering, so the field never shows a stale value
+  const typed = parseAmount(text)
+  if (typed !== value && !(typed === undefined && zeroIsEmpty && value === 0)) {
+    setText(formatAmount(value, zeroIsEmpty))
+  }
+  return (
+    <Input
+      {...props}
+      type="number"
+      min={0}
+      step="any"
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value)
+        onValueChange(parseAmount(e.target.value))
+      }}
+    />
+  )
+}
+
 /**
  * Edits a what-if scenario of fertilizer applications and the harvests of the main cultivation
  * (every cut for grassland), shows its effect and what
@@ -348,6 +463,7 @@ export function ScenarioPanel({
   year,
   newApplicationDate,
   mainCultivation,
+  harvestSettings,
   fertilizerOptions,
   methodLabels,
   dirty,
@@ -372,6 +488,8 @@ export function ScenarioPanel({
   newApplicationDate: string
   /** Main cultivation, to name its harvests (cuts for grassland) and allow more of them. */
   mainCultivation: Pick<MineralizationMainCultivation, "b_lu_croprotation" | "b_lu_harvestable">
+  /** Parameters of a harvest for the main cultivation and their usual values. */
+  harvestSettings: MineralizationHarvestSettings | null
   fertilizerOptions: ScenarioFertilizerOption[]
   methodLabels: Record<string, string>
   dirty: boolean
@@ -407,6 +525,10 @@ export function ScenarioPanel({
   // Crops harvested once keep their single harvest; others can gain or lose harvests
   const multipleHarvests = mainCultivation.b_lu_harvestable === "multiple"
   const harvests = scenario.harvests ?? []
+  const harvestParameters = harvestSettings?.parameters ?? []
+  const missingHarvestParameters = harvests.some((harvest) =>
+    isHarvestIncomplete(harvest, base, harvestParameters),
+  )
   const changes = dirty
     ? describeScenarioChanges(base, scenario, fertilizerOptions, harvestTerm)
     : []
@@ -489,27 +611,19 @@ export function ScenarioPanel({
                   <Label htmlFor={`${rowId}-amount`} className="text-xs">
                     Hoeveelheid ({option?.p_app_amount_unit ?? "kg/ha"})
                   </Label>
-                  <Input
+                  <AmountInput
                     className="text-base sm:text-sm"
                     id={`${rowId}-amount`}
-                    type="number"
-                    min={0}
-                    step="any"
-                    inputMode="decimal"
                     aria-invalid={amountMissing || undefined}
                     aria-describedby={amountMissing ? `${rowId}-amount-error` : undefined}
-                    value={
-                      Number.isFinite(app.p_app_amount_display) &&
-                      (app.p_app_amount_display > 0 || change === null)
-                        ? app.p_app_amount_display
-                        : ""
-                    }
+                    value={app.p_app_amount_display}
+                    zeroIsEmpty={change !== null}
                     placeholder="0"
-                    onChange={(e) =>
+                    onValueChange={(amount) =>
                       dispatch({
                         type: "update_application",
                         index,
-                        patch: { p_app_amount_display: Math.max(0, Number(e.target.value) || 0) },
+                        patch: { p_app_amount_display: amount ?? 0 },
                       })
                     }
                   />
@@ -593,13 +707,15 @@ export function ScenarioPanel({
             {harvests.map((harvest, index) => {
               const rowId = `scenario-harvest-${index}`
               const change = getHarvestChange(harvest, base)
+              const incomplete = isHarvestIncomplete(harvest, base, harvestParameters)
               return (
                 <div
                   key={harvest.b_id_harvesting ?? `new-${index}`}
                   className={cn(
-                    "grid gap-2 rounded-lg border p-3 sm:grid-cols-[11rem_minmax(0,12rem)_auto] sm:items-start",
+                    "grid gap-2 rounded-lg border p-3 sm:grid-cols-2 lg:grid-cols-[11rem_repeat(var(--parameters),minmax(0,1fr))_auto] lg:items-end",
                     change !== null && "border-foreground/30 bg-muted/40",
                   )}
+                  style={{ "--parameters": harvestParameters.length } as CSSProperties}
                 >
                   <DateField
                     name={`${rowId}-date`}
@@ -613,33 +729,26 @@ export function ScenarioPanel({
                       dispatch({ type: "update_harvest", index, patch: { b_date_harvest } })
                     }
                   />
-                  <div className="grid gap-1">
-                    <Label htmlFor={`${rowId}-yield`} className="text-xs">
-                      Opbrengst (kg DS/ha)
-                    </Label>
-                    <Input
-                      className="text-base sm:text-sm"
-                      id={`${rowId}-yield`}
-                      type="number"
-                      min={0}
-                      step="any"
-                      inputMode="decimal"
-                      value={harvest.b_lu_yield ?? ""}
-                      onChange={(e) =>
-                        dispatch({
-                          type: "update_harvest",
-                          index,
-                          patch: {
-                            b_lu_yield:
-                              e.target.value === ""
-                                ? undefined
-                                : Math.max(0, Number(e.target.value) || 0),
-                          },
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center justify-end gap-2 sm:mt-5">
+                  {harvestParameters.map((key) => {
+                    const missing = incomplete && harvest.parameters?.[key] === undefined
+                    return (
+                      <div key={key} className="grid gap-1">
+                        <Label htmlFor={`${rowId}-${key}`} className="text-xs">
+                          {getHarvestParameterLabel(key)}
+                        </Label>
+                        <AmountInput
+                          className="text-base sm:text-sm"
+                          id={`${rowId}-${key}`}
+                          aria-invalid={missing || undefined}
+                          value={harvest.parameters?.[key]}
+                          onValueChange={(value) =>
+                            dispatch({ type: "update_harvest_parameter", index, key, value })
+                          }
+                        />
+                      </div>
+                    )
+                  })}
+                  <div className="flex items-center justify-end gap-2">
                     {change ? (
                       <Badge variant="outline" className="font-normal">
                         {change === "new" ? "Nieuw" : "Gewijzigd"}
@@ -673,6 +782,7 @@ export function ScenarioPanel({
                     dispatch({
                       type: "add_harvest",
                       date: getNewHarvestDate(scenario, year, newApplicationDate),
+                      parameters: harvestSettings?.defaults,
                     })
                   }
                 >
@@ -762,6 +872,12 @@ export function ScenarioPanel({
                   Vul eerst bij elke gift een hoeveelheid in om op te slaan.
                 </p>
               ) : null}
+              {dirty && missingHarvestParameters ? (
+                <p className="text-muted-foreground text-xs">
+                  Vul eerst bij elke nieuwe of gewijzigde {harvestTerm} alle gegevens in om op te
+                  slaan.
+                </p>
+              ) : null}
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {error ? (
@@ -781,7 +897,15 @@ export function ScenarioPanel({
               <Button
                 type="button"
                 onClick={onSave}
-                disabled={!dirty || pending || !!error || !result || saving || missingAmount}
+                disabled={
+                  !dirty ||
+                  pending ||
+                  !!error ||
+                  !result ||
+                  saving ||
+                  missingAmount ||
+                  missingHarvestParameters
+                }
               >
                 {saving ? <Spinner /> : null}
                 Opslaan in bemestingsplan

@@ -26,9 +26,32 @@ export type MineralizationCultivation = Pick<
   | "b_lu_name"
   | "b_lu_croprotation"
   | "b_lu_harvestable"
+  | "b_lu_harvestcat"
   | "b_lu_start"
   | "b_lu_end"
   | "m_cropresidue"
+>
+
+/**
+ * Parameters of a harvest as they are entered for its harvest class (`b_lu_harvestcat`), e.g. the
+ * dry matter yield and crude protein content for grassland, or the fresh yield, dry matter and
+ * nitrogen content for most other crops.
+ */
+export const HARVEST_PARAMETER_KEYS = [
+  "b_lu_yield",
+  "b_lu_yield_bruto",
+  "b_lu_yield_fresh",
+  "b_lu_tarra",
+  "b_lu_dm",
+  "b_lu_moist",
+  "b_lu_uww",
+  "b_lu_cp",
+  "b_lu_n_harvestable",
+] as const
+
+/** Values of the {@link HARVEST_PARAMETER_KEYS} of a harvest; absent when not known. */
+export type HarvestParameterValues = Partial<
+  Record<(typeof HARVEST_PARAMETER_KEYS)[number], number>
 >
 
 /** Harvest properties used for the mineralization calculation. */
@@ -36,10 +59,7 @@ export interface MineralizationHarvest {
   b_id_harvesting: string
   b_lu_harvest_date: Date | null
   harvestable?: {
-    harvestable_analyses: {
-      b_lu_yield?: number | null
-      b_lu_n_harvestable?: number | null
-    }[]
+    harvestable_analyses: Partial<Record<(typeof HARVEST_PARAMETER_KEYS)[number], number | null>>[]
   } | null
 }
 
@@ -128,6 +148,8 @@ export interface MineralizationUsedInput {
     b_id_harvesting: string
     date: string
     b_lu_yield: number | null
+    /** The parameters as entered, to start a scenario from. */
+    parameters: HarvestParameterValues
     planned: boolean
   }[]
   fertilizerApplications: {
@@ -168,6 +190,20 @@ export type MineralizationPreparation =
  * needs harvests to be about a week apart; 10 days leaves a safe margin.
  */
 export const DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS = 10
+
+/** The known parameters of a harvest analysis. */
+function getHarvestParameterValues(
+  analysis:
+    | NonNullable<MineralizationHarvest["harvestable"]>["harvestable_analyses"][number]
+    | undefined,
+): HarvestParameterValues {
+  const values: HarvestParameterValues = {}
+  for (const key of HARVEST_PARAMETER_KEYS) {
+    const value = analysis?.[key]
+    if (value != null) values[key] = value
+  }
+  return values
+}
 
 /** Number of days from one calendar date (`YYYY-MM-DD`) to another. */
 function daysBetween(from: string, to: string): number {
@@ -479,6 +515,7 @@ export function prepareMineralizationInput(
         b_id_harvesting: h.b_id_harvesting,
         date,
         b_lu_yield,
+        parameters: getHarvestParameterValues(analysis),
         planned: date > todayDate,
       })
       events.push({

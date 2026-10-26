@@ -30,6 +30,7 @@ function cultivation(overrides: Partial<MineralizationCultivation>): Mineralizat
     b_lu_name: "Aardappelen",
     b_lu_croprotation: "potato",
     b_lu_harvestable: "once",
+    b_lu_harvestcat: "HC042",
     b_lu_start: summerDate("2026-04-15"),
     b_lu_end: null,
     m_cropresidue: null,
@@ -308,6 +309,12 @@ describe("prepareMineralizationInput", () => {
       { b_lu_id: "lu_grass", b_date_harvest: "2026-08-15" },
     ])
     expect(result.usedInput.omittedHarvests).toEqual([])
+    // The parameters as entered, without the ones that are not known
+    expect(result.usedInput.harvests.map((h) => [h.b_id_harvesting, h.parameters])).toEqual([
+      ["h1", { b_lu_yield: 3500 }],
+      ["h2", { b_lu_yield: 3000 }],
+      ["h3", {}],
+    ])
   })
 
   it("skips harvests within 10 days of the previous one", () => {

@@ -2,6 +2,7 @@ import type {
   DynaV2DailyPoint,
   DynaV2Result,
   FieldExclusionReason,
+  HarvestParameterValues,
   MineralizationCultivation,
   MineralizationEvent,
   MineralizationInsights,
@@ -15,12 +16,22 @@ import type {
  *
  * Safe to import from both server and client code: it only contains types and pure functions.
  */
+import type { HarvestParameters } from "@nmi-agro/fdm-core"
 import type { ShouldRevalidateFunctionArgs } from "react-router"
+
+/**
+ * Parameters of a harvest for the harvest class of the main cultivation, with their usual values
+ * for the crop to start a new harvest with.
+ */
+export interface MineralizationHarvestSettings {
+  parameters: HarvestParameters
+  defaults: HarvestParameterValues
+}
 
 /** Main cultivation summary that is sent to the browser. */
 export type MineralizationMainCultivation = Pick<
   MineralizationCultivation,
-  "b_lu" | "b_lu_catalogue" | "b_lu_name" | "b_lu_harvestable"
+  "b_lu" | "b_lu_catalogue" | "b_lu_name" | "b_lu_harvestable" | "b_lu_harvestcat"
 > & { b_lu_croprotation: string | null }
 
 interface OutcomeBase {

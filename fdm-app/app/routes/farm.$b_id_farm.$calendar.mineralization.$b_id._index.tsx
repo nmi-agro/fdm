@@ -1,12 +1,18 @@
 import {
   DYNA_V2_SOIL_PARAMETERS,
   getMineralizationScenarioSchema,
+  HARVEST_PARAMETER_KEYS,
+  type HarvestParameterValues,
   type MineralizationScenario,
   type SeasonPhase,
 } from "@nmi-agro/fdm-calculator"
 import {
   addHarvest,
+  getCultivation,
+  getCultivationsFromCatalogue,
+  getDefaultsForHarvestParameters,
   getFertilizerParametersDescription,
+  getParametersForHarvestCat,
   getSoilParametersDescription,
   startOfDayInFdmTimeZone,
   toFdmDateString,
@@ -71,6 +77,7 @@ import {
   getBulkHarvestHref,
   getNotCalculatedReason,
   getSeasonTiming,
+  type MineralizationHarvestSettings,
 } from "~/lib/mineralization"
 import { cn } from "~/lib/utils"
 
@@ -121,6 +128,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }
       })
 
+    // What can be entered for a harvest of the main cultivation, as in the harvest form
+    const harvestSettings = outcome.then(
+      async (result): Promise<MineralizationHarvestSettings | null> => {
+        if (result.status !== "ok" && result.status !== "missing_harvest") return null
+        const { b_lu_catalogue, b_lu_harvestcat } = result.mainCultivation
+        const defaults: HarvestParameterValues = {}
+        try {
+          const catalogue = await getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm)
+          const values = getDefaultsForHarvestParameters(b_lu_catalogue, catalogue)
+          for (const [key, value] of Object.entries(values)) {
+            if (typeof value === "number") defaults[key as keyof HarvestParameterValues] = value
+          }
+        } catch (error) {
+          // Without usual values a new harvest starts empty
+          reportError(error, { page: "mineralization", scope: "harvest-defaults" })
+        }
+        return { parameters: getParametersForHarvestCat(b_lu_harvestcat), defaults }
+      },
+    )
+
     // Parameters the calculation accepts but that are not stored as soil analysis parameters
     const soilLabels: SoilParameterLabels = {
       a_nmin_cc_d30: { name: "Minerale stikstof 0–30 cm", unit: "kg N/ha" },
@@ -162,6 +189,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       soilLabels,
       sourceLabels,
       outcome,
+      harvestSettings,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -169,13 +197,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 }
 
+const optionalNumber = z.preprocess(
+  (v) => (v === "" || v === null ? undefined : v),
+  z.coerce.number().min(0).optional(),
+)
 const harvestFormSchema = z.object({
   b_lu: z.string().min(1),
   b_lu_harvest_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  b_lu_yield: z.preprocess(
-    (v) => (v === "" || v === null ? undefined : v),
-    z.coerce.number().min(0).optional(),
-  ),
+  ...(Object.fromEntries(HARVEST_PARAMETER_KEYS.map((key) => [key, optionalNumber])) as Record<
+    (typeof HARVEST_PARAMETER_KEYS)[number],
+    typeof optionalNumber
+  >),
 })
 
 /**
@@ -195,13 +227,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
       if (!parsed.success) {
         throw data("Ongeldige oogstgegevens", { status: 400 })
       }
+      // Either all parameters of the harvest class are given, or none (only the date is saved)
+      const cultivation = await getCultivation(fdm, session.principal_id, parsed.data.b_lu)
+      const required = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
+      const given = required.filter((key) => parsed.data[key] !== undefined)
+      if (given.length > 0 && given.length < required.length) {
+        throw data("Vul alle gegevens van de oogst in, of laat ze allemaal leeg.", { status: 400 })
+      }
+      const properties: HarvestParameterValues = {}
+      for (const key of given) properties[key] = parsed.data[key]
       const [y, m, d] = parsed.data.b_lu_harvest_date.split("-").map(Number)
       await addHarvest(
         fdm,
         session.principal_id,
         parsed.data.b_lu,
         startOfDayInFdmTimeZone(y, m, d),
-        parsed.data.b_lu_yield !== undefined ? { b_lu_yield: parsed.data.b_lu_yield } : undefined,
+        given.length > 0 ? properties : undefined,
       )
       return dataWithSuccess(
         { result: "ok" },
@@ -300,6 +341,7 @@ function FieldMineralization(props: LoaderData) {
       return (
         <MissingHarvestCard
           mainCultivation={outcome.mainCultivation}
+          harvestSettings={use(props.harvestSettings)}
           defaultHarvestDate={outcome.defaultHarvestDate}
           year={props.year}
           bulkHarvestHref={getBulkHarvestHref({
@@ -337,6 +379,7 @@ function FieldMineralization(props: LoaderData) {
           {...props}
           outcome={outcome}
           base={base}
+          harvestSettings={use(props.harvestSettings)}
         />
       )
     }
@@ -364,7 +407,7 @@ function getScenarioBase(outcome: FieldMineralizationOk): MineralizationScenario
           harvests: mainHarvests.map((h) => ({
             b_id_harvesting: h.b_id_harvesting,
             b_date_harvest: h.date,
-            ...(h.b_lu_yield !== null ? { b_lu_yield: h.b_lu_yield } : {}),
+            parameters: h.parameters,
           })),
         }
       : {}),
@@ -403,8 +446,8 @@ function getScenarioEvents(
         label: outcome.mainCultivation.b_lu_name ?? outcome.mainCultivation.b_lu_catalogue,
         planned: true,
         b_lu: outcome.mainCultivation.b_lu,
-        ...(harvest.b_lu_yield !== undefined
-          ? { amount: harvest.b_lu_yield, unit: "kg DS/ha" }
+        ...(harvest.parameters?.b_lu_yield !== undefined
+          ? { amount: harvest.parameters.b_lu_yield, unit: "kg DS/ha" }
           : {}),
       },
     ]
@@ -441,9 +484,10 @@ function isPhase(value: string | null): value is SeasonPhase {
 }
 
 function FieldMineralizationResult(
-  props: Omit<LoaderData, "outcome"> & {
+  props: Omit<LoaderData, "outcome" | "harvestSettings"> & {
     outcome: FieldMineralizationOk
     base: MineralizationScenario
+    harvestSettings: MineralizationHarvestSettings | null
   },
 ) {
   const { outcome, base, year, today, isCurrentYear } = props
@@ -581,6 +625,7 @@ function FieldMineralizationResult(
         year={year}
         newApplicationDate={newApplicationDate}
         mainCultivation={outcome.mainCultivation}
+        harvestSettings={props.harvestSettings}
         fertilizerOptions={outcome.fertilizerOptions}
         methodLabels={props.methodLabels}
         dirty={dirty}

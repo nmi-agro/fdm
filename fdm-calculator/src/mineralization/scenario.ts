@@ -6,7 +6,13 @@
  * Dyna before they are saved.
  */
 
-import { type Fertilizer, toFdmDateString, toKgPerHa } from "@nmi-agro/fdm-core"
+import {
+  convertHarvestParameters,
+  type Fertilizer,
+  getParametersForHarvestCat,
+  toFdmDateString,
+  toKgPerHa,
+} from "@nmi-agro/fdm-core"
 import { z } from "zod"
 import type { DynaV2Request } from "./types"
 import {
@@ -15,6 +21,8 @@ import {
   type MineralizationCultivation,
   type MineralizationFertilizer,
   DYNA_V2_MIN_DAYS_BETWEEN_HARVESTS,
+  HARVEST_PARAMETER_KEYS,
+  type HarvestParameterValues,
   mapApplicationMethod,
 } from "./prepare"
 
@@ -36,8 +44,58 @@ export interface ScenarioHarvest {
   b_id_harvesting?: string
   /** Calendar date (`YYYY-MM-DD`). */
   b_date_harvest: string
-  /** Yield in kg DM/ha; absent when unknown. */
-  b_lu_yield?: number
+  /**
+   * Parameters as entered for the harvest class of the main cultivation, e.g. yield and crude
+   * protein content for grassland. They are converted to dry matter yield and nitrogen content
+   * for the calculation, and saved as entered.
+   */
+  parameters?: HarvestParameterValues
+}
+
+/**
+ * Whether two sets of harvest parameters are the same.
+ *
+ * @param a - Parameters of one harvest.
+ * @param b - Parameters of the other harvest.
+ * @returns `true` when every parameter has the same value or is absent in both.
+ */
+export function isSameHarvestParameters(
+  a: HarvestParameterValues | undefined,
+  b: HarvestParameterValues | undefined,
+): boolean {
+  return HARVEST_PARAMETER_KEYS.every((key) => a?.[key] === b?.[key])
+}
+
+/**
+ * Converts the parameters of a harvest to dry matter yield and nitrogen content.
+ *
+ * @param b_lu_harvestcat - Harvest class of the cultivation.
+ * @param parameters - Parameters as entered.
+ * @returns The converted values, or `null` when a parameter the harvest class needs is missing.
+ */
+function convertScenarioHarvest(
+  b_lu_harvestcat: MineralizationCultivation["b_lu_harvestcat"],
+  parameters: HarvestParameterValues | undefined,
+): { b_lu_yield: number; b_lu_n_harvestable: number } | null {
+  const required = getParametersForHarvestCat(b_lu_harvestcat)
+  if (!parameters || required.length === 0) return null
+  if (required.some((key) => parameters[key] === undefined)) return null
+  try {
+    return convertHarvestParameters(
+      b_lu_harvestcat,
+      parameters.b_lu_yield,
+      parameters.b_lu_yield_bruto,
+      parameters.b_lu_yield_fresh,
+      parameters.b_lu_tarra,
+      parameters.b_lu_moist,
+      parameters.b_lu_uww,
+      parameters.b_lu_dm,
+      parameters.b_lu_cp,
+      parameters.b_lu_n_harvestable,
+    )
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -60,7 +118,10 @@ export interface ScenarioDiff {
   update: (ScenarioFertilizerApplication & { p_app_id: string })[]
   /** `p_app_id` of the applications to remove. */
   remove: string[]
-  /** Harvests of the main cultivation to add, update and remove (`b_id_harvesting`). */
+  /**
+   * Harvests of the main cultivation to add, update and remove (`b_id_harvesting`). `parameters` of
+   * an update are only set when they changed.
+   */
   harvests: {
     add: ScenarioHarvest[]
     update: (ScenarioHarvest & { b_id_harvesting: string })[]
@@ -98,7 +159,13 @@ export function getMineralizationScenarioSchema(year: number) {
         z.object({
           b_id_harvesting: z.string().min(1).optional(),
           b_date_harvest: dateInYear,
-          b_lu_yield: z.number().min(0).optional(),
+          parameters: z
+            .object(
+              Object.fromEntries(
+                HARVEST_PARAMETER_KEYS.map((key) => [key, z.number().min(0).optional()]),
+              ) as Record<(typeof HARVEST_PARAMETER_KEYS)[number], z.ZodOptional<z.ZodNumber>>,
+            )
+            .optional(),
         }),
       )
       .min(1)
@@ -119,16 +186,18 @@ export function getMineralizationScenarioSchema(year: number) {
  * Applies a scenario to a prepared Dyna v2 request.
  *
  * The fertilizer applications of the request are replaced by those of the scenario (converted to
- * kg/ha). When the scenario contains harvests, they replace the harvests of the main cultivation;
- * an existing harvest keeps its other properties (such as its nitrogen content), a new one takes
- * over the crop residue setting of the cultivation. For crops harvested once, the cultivation then
- * ends on the last harvest.
+ * kg/ha). When the scenario contains harvests, they replace the harvests of the main cultivation.
+ * The parameters of each harvest are converted to dry matter yield and nitrogen content for the
+ * harvest class; when a parameter is missing, an existing harvest keeps its stored values and a
+ * new one is sent without them. A new harvest takes over the crop residue setting of the
+ * cultivation. For crops harvested once, the cultivation then ends on the last harvest.
  *
  * @param args.request - Request prepared with `prepareMineralizationInput`.
  * @param args.scenario - Scenario to apply.
  * @param args.fertilizers - Fertilizers of the farm by `p_id`.
  * @param args.mainB_lu - `b_lu` of the main cultivation.
  * @param args.mainHarvestable - Whether the main cultivation is harvested once or multiple times.
+ * @param args.mainHarvestcat - Harvest class of the main cultivation, to convert the parameters.
  * @param args.mainHarvestIds - `b_id_harvesting` of the main cultivation's harvests in the request,
  *   in the same order, to recognise existing harvests in the scenario.
  * @returns A new request; the input is not modified.
@@ -140,6 +209,7 @@ export function applyScenarioToRequest(args: {
   fertilizers: Map<string, ScenarioFertilizer>
   mainB_lu: string
   mainHarvestable: MineralizationCultivation["b_lu_harvestable"]
+  mainHarvestcat: MineralizationCultivation["b_lu_harvestcat"]
   mainHarvestIds?: string[]
 }): DynaV2Request {
   const { request, scenario, fertilizers, mainB_lu, mainHarvestable } = args
@@ -183,17 +253,19 @@ export function applyScenarioToRequest(args: {
     const cropResidue = mainHarvests.find((h) => h.m_cropresidue !== undefined)?.m_cropresidue
     const scenarioHarvests = [...scenario.harvests]
       .sort((a, b) => a.b_date_harvest.localeCompare(b.b_date_harvest))
-      .map(({ b_id_harvesting, b_date_harvest, b_lu_yield }) => {
+      .map(({ b_id_harvesting, b_date_harvest, parameters }) => {
         const existing = b_id_harvesting ? existingById.get(b_id_harvesting) : undefined
         const m_cropresidue = existing ? existing.m_cropresidue : cropResidue
-        // The yield of the scenario replaces the stored one, also when it was cleared
+        const converted = convertScenarioHarvest(args.mainHarvestcat, parameters)
+        const b_lu_yield = converted ? converted.b_lu_yield : existing?.b_lu_yield
+        const b_lu_n_harvestable = converted
+          ? converted.b_lu_n_harvestable
+          : existing?.b_lu_n_harvestable
         return {
           b_lu_id: mainB_lu,
           b_date_harvest,
           ...(b_lu_yield !== undefined ? { b_lu_yield } : {}),
-          ...(existing?.b_lu_n_harvestable !== undefined
-            ? { b_lu_n_harvestable: existing.b_lu_n_harvestable }
-            : {}),
+          ...(b_lu_n_harvestable !== undefined ? { b_lu_n_harvestable } : {}),
           ...(m_cropresidue !== undefined ? { m_cropresidue } : {}),
         }
       })
@@ -225,7 +297,7 @@ export function diffScenario(
   currentHarvests: {
     b_id_harvesting: string
     b_date_harvest: string
-    b_lu_yield: number | null
+    parameters: HarvestParameterValues
   }[],
   scenario: MineralizationScenario,
   base?: MineralizationScenario,
@@ -295,14 +367,19 @@ export function diffScenario(
       }
       kept.add(existing.b_id_harvesting)
       // Compare with what the user started from when known, like the applications
-      const reference = baseHarvests.get(existing.b_id_harvesting)
-      const changed = reference
-        ? reference.b_date_harvest !== harvest.b_date_harvest ||
-          reference.b_lu_yield !== harvest.b_lu_yield
-        : existing.b_date_harvest !== harvest.b_date_harvest ||
-          (harvest.b_lu_yield !== undefined && harvest.b_lu_yield !== existing.b_lu_yield)
-      if (changed) {
-        diff.harvests.update.push({ ...harvest, b_id_harvesting: existing.b_id_harvesting })
+      const reference = baseHarvests.get(existing.b_id_harvesting) ?? {
+        b_date_harvest: existing.b_date_harvest,
+        parameters: existing.parameters,
+      }
+      const parametersChanged =
+        harvest.parameters !== undefined &&
+        !isSameHarvestParameters(reference.parameters, harvest.parameters)
+      if (reference.b_date_harvest !== harvest.b_date_harvest || parametersChanged) {
+        diff.harvests.update.push({
+          b_id_harvesting: existing.b_id_harvesting,
+          b_date_harvest: harvest.b_date_harvest,
+          ...(parametersChanged ? { parameters: harvest.parameters } : {}),
+        })
       }
     }
     for (const existing of currentHarvests) {

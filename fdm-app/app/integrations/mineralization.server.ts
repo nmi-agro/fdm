@@ -14,6 +14,8 @@ import {
   applyScenarioToRequest,
   diffScenario,
   type DynaV2Request,
+  HARVEST_PARAMETER_KEYS,
+  type HarvestParameterValues,
   type DynaV2Result,
   deriveMineralizationInsights,
   getDynaV2,
@@ -40,6 +42,7 @@ import {
   getFertilizers,
   getFields,
   getHarvestsForFarm,
+  getParametersForHarvestCat,
   removeFertilizerApplication,
   removeHarvest,
   startOfDayInFdmTimeZone,
@@ -191,6 +194,7 @@ function summarizeCultivation(c: MineralizationCultivation): MineralizationMainC
     b_lu_catalogue: c.b_lu_catalogue,
     b_lu_name: c.b_lu_name,
     b_lu_harvestable: c.b_lu_harvestable,
+    b_lu_harvestcat: c.b_lu_harvestcat,
     b_lu_croprotation: c.b_lu_croprotation ?? null,
   }
 }
@@ -379,6 +383,7 @@ export async function calculateScenario(args: {
         fertilizers,
         mainB_lu: main.b_lu,
         mainHarvestable: main.b_lu_harvestable,
+        mainHarvestcat: main.b_lu_harvestcat,
         mainHarvestIds: usedInput.harvests
           .filter((h) => h.b_lu === main.b_lu)
           .map((h) => h.b_id_harvesting),
@@ -417,17 +422,24 @@ export async function saveScenario(args: {
   const currentApplications = data.applications.filter((a) =>
     toFdmDateString(a.p_app_date).startsWith(prefix),
   )
-  const currentHarvests = (data.harvests.get(main.b_lu) ?? []).flatMap((h) =>
-    h.b_lu_harvest_date && toFdmDateString(h.b_lu_harvest_date).startsWith(prefix)
-      ? [
-          {
-            b_id_harvesting: h.b_id_harvesting,
-            b_date_harvest: toFdmDateString(h.b_lu_harvest_date),
-            b_lu_yield: h.harvestable?.harvestable_analyses?.[0]?.b_lu_yield ?? null,
-          },
-        ]
-      : [],
-  )
+  const currentHarvests = (data.harvests.get(main.b_lu) ?? []).flatMap((h) => {
+    if (!h.b_lu_harvest_date || !toFdmDateString(h.b_lu_harvest_date).startsWith(prefix)) {
+      return []
+    }
+    const analysis = h.harvestable?.harvestable_analyses?.[0]
+    const parameters: HarvestParameterValues = {}
+    for (const key of HARVEST_PARAMETER_KEYS) {
+      const value = analysis?.[key]
+      if (value != null) parameters[key] = value
+    }
+    return [
+      {
+        b_id_harvesting: h.b_id_harvesting,
+        b_date_harvest: toFdmDateString(h.b_lu_harvest_date),
+        parameters,
+      },
+    ]
+  })
 
   const diff = diffScenario(currentApplications, currentHarvests, scenario, args.base)
 
@@ -462,8 +474,21 @@ export async function saveScenario(args: {
         toDate(app.p_app_date),
       )
     }
-    const harvestProperties = (harvest: { b_lu_yield?: number }) =>
-      harvest.b_lu_yield !== undefined ? { b_lu_yield: harvest.b_lu_yield } : undefined
+    // Harvests are saved with the parameters of their harvest class, as in the harvest form;
+    // fdm-core derives the dry matter yield and nitrogen content from them
+    const required = getParametersForHarvestCat(main.b_lu_harvestcat)
+    const harvestProperties = (harvest: { parameters?: HarvestParameterValues }) => {
+      if (!harvest.parameters || required.length === 0) return undefined
+      const properties: HarvestParameterValues = {}
+      for (const key of required) {
+        const value = harvest.parameters[key]
+        if (value === undefined) {
+          throw new Error("Vul bij elke gewijzigde oogst alle gegevens in.")
+        }
+        properties[key] = value
+      }
+      return properties
+    }
     for (const b_id_harvesting of diff.harvests.remove) {
       await removeHarvest(tx, principal_id, b_id_harvesting)
     }
