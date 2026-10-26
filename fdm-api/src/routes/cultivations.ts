@@ -345,7 +345,7 @@ export function registerCultivationRoutes(
       ) {
         throw new ApiError(
           400,
-          "bad-request",
+          "validation-failed",
           `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
           {
             errors: [
@@ -435,7 +435,7 @@ export function registerCultivationRoutes(
       ) {
         throw new ApiError(
           400,
-          "bad-request",
+          "validation-failed",
           `Cultivation ${body.b_lu_catalogue} is not available for this time period.`,
           {
             errors: [

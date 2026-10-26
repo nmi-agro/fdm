@@ -160,6 +160,53 @@ describe("POST /fields/:b_id/cultivations", () => {
     })
     expect(res.status).toBe(400)
   })
+
+  it("returns 400 problem details when the cultivation code is unavailable for the period", async () => {
+    const app = makeApp({
+      // Mimics the error shape fdm-core produces: a wrapper error whose cause carries the reason.
+      addCultivation: vi.fn().mockRejectedValue(
+        new Error("Exception for addCultivation", {
+          cause: new Error("Cultivation code is not available for this time period"),
+        }),
+      ),
+      getCultivation: vi.fn(),
+    })
+    const res = await app.request("/fields/field-1/cultivations", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_catalogue: "cat-001", b_lu_start: "2023-10-01" }),
+    })
+    expect(res.status).toBe(400)
+    expect(res.headers.get("content-type")).toContain("application/problem+json")
+    const body = await res.json()
+    expect(body.type).toMatch(/\/problems\/validation-failed$/)
+    expect(body.status).toBe(400)
+    expect(body.detail).toBe("Cultivation cat-001 is not available for this time period.")
+    expect(body.errors).toEqual([
+      {
+        code: "custom",
+        path: ["b_lu_catalogue"],
+        message: "Cultivation cat-001 is not available for this time period.",
+      },
+    ])
+  })
+
+  it("does not leak other core errors as 400 on create", async () => {
+    const app = makeApp({
+      addCultivation: vi
+        .fn()
+        .mockRejectedValue(
+          new Error("Exception for addCultivation", { cause: new Error("db down") }),
+        ),
+    })
+    const res = await app.request("/fields/field-1/cultivations", {
+      method: "POST",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_catalogue: "cat-001", b_lu_start: "2023-10-01" }),
+    })
+    expect(res.status).toBe(500)
+    expect(JSON.stringify(await res.json())).not.toContain("db down")
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -372,5 +419,52 @@ describe("PATCH /cultivations/:b_lu", () => {
       body: JSON.stringify({ b_lu_start: "2024-12-01", b_lu_end: null }),
     })
     expect(res.status).toBe(200)
+  })
+
+  it("returns 400 problem details when the cultivation code is unavailable for the period", async () => {
+    const app = makeApp({
+      // Mimics the error shape fdm-core produces: a wrapper error whose cause carries the reason.
+      updateCultivation: vi.fn().mockRejectedValue(
+        new Error("Exception for addCultivation", {
+          cause: new Error("Cultivation code is not available for this time period"),
+        }),
+      ),
+      getCultivation: vi.fn(),
+    })
+    const res = await app.request("/cultivations/cult-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_catalogue: "cat-001" }),
+    })
+    expect(res.status).toBe(400)
+    expect(res.headers.get("content-type")).toContain("application/problem+json")
+    const body = await res.json()
+    expect(body.type).toMatch(/\/problems\/validation-failed$/)
+    expect(body.status).toBe(400)
+    expect(body.detail).toBe("Cultivation cat-001 is not available for this time period.")
+    expect(body.errors).toEqual([
+      {
+        code: "custom",
+        path: ["b_lu_catalogue"],
+        message: "Cultivation cat-001 is not available for this time period.",
+      },
+    ])
+  })
+
+  it("does not leak other core errors as 400 on update", async () => {
+    const app = makeApp({
+      updateCultivation: vi
+        .fn()
+        .mockRejectedValue(
+          new Error("Exception for updateCultivation", { cause: new Error("db down") }),
+        ),
+    })
+    const res = await app.request("/cultivations/cult-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_catalogue: "cat-001" }),
+    })
+    expect(res.status).toBe(500)
+    expect(JSON.stringify(await res.json())).not.toContain("db down")
   })
 })
