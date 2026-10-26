@@ -72,6 +72,12 @@ export interface ScenarioFertilizerOption {
 /** Outcome of a field that could be calculated. */
 export type FieldMineralizationOk = Extract<FieldMineralizationOutcome, { status: "ok" }>
 
+/**
+ * Maximum number of harvests per cultivation that Dyna accepts. Mirrors
+ * `DYNA_V2_MAX_HARVESTS_PER_CULTIVATION` of fdm-calculator, which client code cannot import.
+ */
+export const DYNA_V2_MAX_HARVESTS = 6
+
 /** Dutch labels of the season phases. */
 export const PHASE_LABELS: Record<SeasonPhase, string> = {
   planning: "Planning",
@@ -189,6 +195,7 @@ export function seriesInYear(series: DynaV2DailyPoint[], year: number): DynaV2Da
 export type AttentionItem =
   | { kind: "missing_harvest" }
   | { kind: "error"; message: string }
+  | { kind: "harvest_limit"; count: number }
   | { kind: "signal"; signal: MineralizationSignal }
 
 const SIGNAL_PRIORITY: Record<MineralizationSignal["type"], number> = {
@@ -202,6 +209,7 @@ const SIGNAL_PRIORITY: Record<MineralizationSignal["type"], number> = {
 export function getAttentionPriority(item: AttentionItem): number {
   if (item.kind === "missing_harvest") return 0
   if (item.kind === "error") return 1
+  if (item.kind === "harvest_limit") return 1.5
   return SIGNAL_PRIORITY[item.signal.type]
 }
 
@@ -210,15 +218,20 @@ export function getAttentionItems(outcome: FieldMineralizationOutcome): Attentio
   if (outcome.status === "missing_harvest") return [{ kind: "missing_harvest" }]
   if (outcome.status === "error") return [{ kind: "error", message: outcome.message }]
   if (outcome.status !== "ok") return []
-  return outcome.insights.signals
-    .map((signal): AttentionItem => ({ kind: "signal", signal }))
-    .sort((a, b) => getAttentionPriority(a) - getAttentionPriority(b))
+  const omitted = outcome.usedInput.omittedHarvests.length
+  return [
+    ...(omitted > 0 ? [{ kind: "harvest_limit" as const, count: omitted }] : []),
+    ...outcome.insights.signals.map((signal): AttentionItem => ({ kind: "signal", signal })),
+  ].sort((a, b) => getAttentionPriority(a) - getAttentionPriority(b))
 }
 
 /** Short Dutch description of an attention item. */
 export function describeAttentionItem(item: AttentionItem): string {
   if (item.kind === "missing_harvest") return "Oogst ontbreekt"
   if (item.kind === "error") return "Berekening mislukt"
+  if (item.kind === "harvest_limit") {
+    return item.count === 1 ? "1 snede niet meegerekend" : `${item.count} sneden niet meegerekend`
+  }
   const { signal } = item
   switch (signal.type) {
     case "n_shortage":

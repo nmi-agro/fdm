@@ -135,6 +135,11 @@ export interface MineralizationUsedInput {
     p_n_rt: number | null
   }[]
   skippedApplications: { p_app_id: string; reason: "unknown_fertilizer" }[]
+  /**
+   * Harvests in the year that were not sent, because Dyna accepts at most
+   * {@link DYNA_V2_MAX_HARVESTS_PER_CULTIVATION} harvests per cultivation.
+   */
+  omittedHarvests: { b_lu: string; date: string }[]
 }
 
 /** Outcome of {@link prepareMineralizationInput}. */
@@ -150,6 +155,9 @@ export type MineralizationPreparation =
       usedInput: MineralizationUsedInput
       events: MineralizationEvent[]
     }
+
+/** Maximum number of harvests per cultivation that the Dyna v2 endpoint accepts. */
+export const DYNA_V2_MAX_HARVESTS_PER_CULTIVATION = 6
 
 /** Soil parameters that Dyna v2 accepts. */
 export const DYNA_V2_SOIL_PARAMETERS: readonly string[] = [
@@ -348,6 +356,7 @@ export function prepareMineralizationInput(
     harvests: [],
     fertilizerApplications: [],
     skippedApplications: [],
+    omittedHarvests: [],
   }
   const events: MineralizationEvent[] = []
 
@@ -378,7 +387,15 @@ export function prepareMineralizationInput(
   const cultivations: NonNullable<DynaV2Request["cultivations"]> = []
   const harvests: NonNullable<DynaV2Request["harvests"]> = []
   for (const cultivation of selected) {
-    const cultivationHarvests = harvestsInYear(cultivation.b_lu)
+    // Dyna accepts a limited number of harvests per cultivation; later ones are reported instead
+    const allHarvests = harvestsInYear(cultivation.b_lu)
+    const cultivationHarvests = allHarvests.slice(0, DYNA_V2_MAX_HARVESTS_PER_CULTIVATION)
+    for (const h of allHarvests.slice(DYNA_V2_MAX_HARVESTS_PER_CULTIVATION)) {
+      usedInput.omittedHarvests.push({
+        b_lu: cultivation.b_lu,
+        date: toFdmDateString(h.b_lu_harvest_date as Date),
+      })
+    }
     const start = getRequestStart(cultivation, year)
     let end: string
     if (cultivation.b_lu_harvestable === "once" && cultivationHarvests.length > 0) {

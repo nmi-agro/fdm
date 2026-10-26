@@ -42,6 +42,7 @@ export type {
   MineralizationUsedInput,
 } from "./prepare"
 export {
+  DYNA_V2_MAX_HARVESTS_PER_CULTIVATION,
   DYNA_V2_SOIL_PARAMETERS,
   getMainCultivation,
   mapApplicationMethod,

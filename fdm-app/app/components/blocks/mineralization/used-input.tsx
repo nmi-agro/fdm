@@ -15,7 +15,7 @@ import { FertilizerBadge } from "~/components/custom/fertilizer-badge"
 import { Badge } from "~/components/ui/badge"
 import { Button } from "~/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible"
-import { formatLongDate, formatNumber } from "~/lib/mineralization"
+import { DYNA_V2_MAX_HARVESTS, formatLongDate, formatNumber } from "~/lib/mineralization"
 
 /** Name and unit of a soil parameter. */
 export type SoilParameterLabels = Record<string, { name: string; unit: string }>
@@ -270,6 +270,12 @@ export function UsedInput({
             ) : (
               <p className="text-muted-foreground text-sm">Geen oogst nodig voor deze teelt.</p>
             )}
+            {usedInput.omittedHarvests.length > 0 ? (
+              <p className="text-muted-foreground text-xs">
+                Niet meegerekend (maximaal {DYNA_V2_MAX_HARVESTS} per teelt):{" "}
+                {usedInput.omittedHarvests.map((h) => formatLongDate(h.date)).join(", ")}.
+              </p>
+            ) : null}
           </Section>
 
           <Section

@@ -295,6 +295,47 @@ describe("prepareMineralizationInput", () => {
       { b_lu_id: "lu_grass", b_date_harvest: "2026-06-20", b_lu_yield: 3000 },
       { b_lu_id: "lu_grass", b_date_harvest: "2026-08-15" },
     ])
+    expect(result.usedInput.omittedHarvests).toEqual([])
+  })
+
+  it("sends at most 6 harvests per cultivation and lists the others", () => {
+    const dates = [
+      "2026-04-20",
+      "2026-05-25",
+      "2026-06-25",
+      "2026-07-25",
+      "2026-08-25",
+      "2026-09-20",
+      "2026-10-10",
+      "2026-10-20",
+    ]
+    const data = fieldData({
+      cultivations: [
+        cultivation({
+          b_lu: "lu_grass",
+          b_lu_catalogue: "nl_265",
+          b_lu_name: "Grasland",
+          b_lu_croprotation: "grass",
+          b_lu_harvestable: "multiple",
+          b_lu_start: winterDate("2018-01-01"),
+          b_lu_end: null,
+        }),
+      ],
+      // Unsorted on purpose: the first 6 by date are sent
+      harvests: new Map([
+        ["lu_grass", [...dates].reverse().map((date, i) => harvest(`h${i}`, summerDate(date)))],
+      ]),
+    })
+    const result = prepareMineralizationInput(data, YEAR, TODAY)
+    expect(result.status).toBe("ready")
+    if (result.status !== "ready") return
+    expect(result.request.harvests?.map((h) => h.b_date_harvest)).toEqual(dates.slice(0, 6))
+    expect(result.usedInput.harvests.map((h) => h.date)).toEqual(dates.slice(0, 6))
+    expect(result.usedInput.omittedHarvests).toEqual([
+      { b_lu: "lu_grass", date: "2026-10-10" },
+      { b_lu: "lu_grass", date: "2026-10-20" },
+    ])
+    expect(result.events.filter((e) => e.type === "harvest")).toHaveLength(6)
   })
 
   it("marks harvests after today as planned", () => {

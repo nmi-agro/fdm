@@ -62,8 +62,10 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import {
+  DYNA_V2_MAX_HARVESTS,
   type FieldMineralizationOk,
   type FieldMineralizationOutcome,
+  formatLongDate,
   formatShortDate,
   getAttentionItems,
   getBulkHarvestHref,
@@ -528,6 +530,19 @@ function FieldMineralizationResult(
         </Alert>
       ) : null}
 
+      {outcome.usedInput.omittedHarvests.length > 0 ? (
+        <Alert>
+          <Info aria-hidden />
+          <AlertTitle>Maximaal {DYNA_V2_MAX_HARVESTS} sneden meegerekend</AlertTitle>
+          <AlertDescription>
+            De berekening kan per teelt maximaal {DYNA_V2_MAX_HARVESTS} oogsten of sneden verwerken.
+            Niet meegerekend:{" "}
+            {outcome.usedInput.omittedHarvests.map((h) => formatLongDate(h.date)).join(", ")}. De
+            opname na de {DYNA_V2_MAX_HARVESTS}e snede ontbreekt daardoor in de berekening.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <Card id={CHART_ID} className="scroll-mt-4">
         <CardHeader className="space-y-4">
           <div className="space-y-1.5">
@@ -592,7 +607,7 @@ function FieldMineralizationResult(
         </CardContent>
       </Card>
 
-      {phase !== "evaluation" && outcome.forecast && outcome.forecast.days.length > 0 ? (
+      {phase === "growing" && outcome.forecast && outcome.forecast.days.length > 0 ? (
         <WeatherStrip
           forecast={outcome.forecast}
           signals={outcome.insights.signals}
