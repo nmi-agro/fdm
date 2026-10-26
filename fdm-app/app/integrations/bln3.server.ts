@@ -445,7 +445,13 @@ export type FarmMeasureRecommendation = {
  * empty state that would present a fetch failure as "no recommendations".
  */
 export type FarmMeasureRecommendationsResult = {
+  /** Each field's best variant per measure family */
   recommendations: FarmMeasureRecommendation[]
+  /**
+   * Every eligible variant per field, used to choose one variant per family
+   * over the whole farm. Not shown as recommendations themselves.
+   */
+  candidates: FarmMeasureRecommendation[]
   adviceAvailable: boolean
 }
 

@@ -20,7 +20,7 @@ import {
   LEAF_AGGREGATION_IDS,
 } from "~/lib/aggregations"
 import {
-  getBestVariantIds,
+  getFarmBestVariantIds,
   getScoreBadgeClass,
   getScoreDotClass,
   getScoreTextClass,
@@ -454,6 +454,7 @@ export function AggregationPainpoints({
                 result.adviceAvailable ? (
                   <WhereToStartPanel
                     recommendations={result.recommendations}
+                    candidates={result.candidates}
                     activeIndId={activeIndId}
                     activeIndName={activeIndName ?? activeIndId}
                     fields={fields}
@@ -484,6 +485,8 @@ function RecommendationsLoadingPanel() {
 
 type WhereToStartPanelProps = {
   recommendations: FarmMeasureRecommendation[]
+  /** Every eligible variant per field, used to choose one variant per measure family */
+  candidates: FarmMeasureRecommendation[]
   activeIndId: string
   activeIndName: string
   fields: (FieldAreaInput & { b_name: string | null | undefined })[]
@@ -493,6 +496,7 @@ type WhereToStartPanelProps = {
 
 function WhereToStartPanel({
   recommendations,
+  candidates,
   activeIndId,
   activeIndName,
   fields,
@@ -532,9 +536,16 @@ function WhereToStartPanel({
       grouped.set(rec.m_id, existing)
     }
 
-    // One variant per measure family: the one with the highest area-weighted impact.
-    const bestVariantIds = getBestVariantIds(
-      new Map([...grouped.entries()].map(([m_id, g]) => [m_id, g.weightedImpact])),
+    // One variant per measure family: the one with the highest area-weighted
+    // impact over all eligible variants of all fields, the same rule as the
+    // farm measures overview (which weights every field equally). Only
+    // variants recommended for this indicator can win, so a family never
+    // disappears from the list.
+    const bestVariantIds = getFarmBestVariantIds(
+      candidates
+        .filter((c) => c.indicator_id === activeIndId && grouped.has(c.m_id))
+        .map((c) => ({ b_id: c.b_id, m_id: c.m_id, impact: c.measure_impact })),
+      areaByBid,
     )
 
     return [...grouped.entries()]
@@ -555,7 +566,7 @@ function WhereToStartPanel({
       })
       .sort((a, b) => b.weightedImpact - a.weightedImpact)
       .slice(0, 3)
-  }, [recommendations, activeIndId, fields])
+  }, [recommendations, candidates, activeIndId, fields])
 
   if (ranked.length === 0) {
     return (

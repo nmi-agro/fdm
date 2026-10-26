@@ -5,6 +5,7 @@
 export { EXCLUDED_BLN3_BRP_CODES, isExcludedFromBln3 } from "./exclusion"
 export type {
   ActiveMeasure,
+  FieldVariantImpact,
   IndicatorImpact,
   FieldTopOpportunity,
   MeasureApplicabilityInfo,
@@ -17,6 +18,7 @@ export {
   buildMeasureOptions,
   buildPredictedImpacts,
   getBestVariantIds,
+  getFarmBestVariantIds,
   getFieldOpportunityCandidates,
   getMeasureFamilyId,
   getTopOpportunitiesForField,

@@ -19,6 +19,7 @@ export type IndicatorInfo = {
 import {
   EXCLUDED_BLN3_BRP_CODES,
   getBestVariantIds,
+  getFarmBestVariantIds,
   getMeasureFamilyId,
   getScoreTier,
   isExcludedFromBln3,
@@ -30,6 +31,7 @@ import {
 export {
   EXCLUDED_BLN3_BRP_CODES,
   getBestVariantIds,
+  getFarmBestVariantIds,
   getMeasureFamilyId,
   getScoreTier,
   isExcludedFromBln3,

@@ -4,6 +4,7 @@ import { IndicatorsUnavailableError } from "./errors"
 import {
   buildMeasureOptions,
   getBestVariantIds,
+  getFarmBestVariantIds,
   getFieldOpportunityCandidates,
   getMeasureFamilyId,
   getTopOpportunitiesForField,
@@ -357,5 +358,103 @@ describe("getTopOpportunitiesForField", () => {
       activeMeasureIds: new Set(["bln_BM56b"]),
     })
     expect(result.map((o) => o.m_id)).toEqual(["bln_BM239"])
+  })
+})
+
+describe("getFarmBestVariantIds", () => {
+  // Field A prefers b narrowly; fields B and C prefer c narrowly.
+  const impacts = [
+    { b_id: "A", m_id: "bln_BM56b", impact: 0.5 },
+    { b_id: "A", m_id: "bln_BM56c", impact: 0.45 },
+    { b_id: "B", m_id: "bln_BM56b", impact: 0.28 },
+    { b_id: "B", m_id: "bln_BM56c", impact: 0.3 },
+    { b_id: "C", m_id: "bln_BM56b", impact: 0.28 },
+    { b_id: "C", m_id: "bln_BM56c", impact: 0.3 },
+    { b_id: "A", m_id: "bln_BM239", impact: 0.1 },
+  ]
+
+  it("sums the impacts of all variants over all fields", () => {
+    // b: 1.06, c: 1.05; summing only each field's best variant would pick c
+    expect([...getFarmBestVariantIds(impacts)].sort()).toEqual(["bln_BM239", "bln_BM56b"])
+  })
+
+  it("weights the impacts per field", () => {
+    const area = new Map([
+      ["A", 1],
+      ["B", 2],
+      ["C", 2],
+    ])
+    // b: 0.5 + 0.56 + 0.56 = 1.62, c: 0.45 + 0.6 + 0.6 = 1.65
+    expect(getFarmBestVariantIds(impacts, area).has("bln_BM56c")).toBe(true)
+  })
+
+  it("ignores fields without a positive weight", () => {
+    const area = new Map([
+      ["A", 0],
+      ["B", 1],
+    ])
+    const ids = getFarmBestVariantIds(impacts, area)
+    expect([...ids]).toEqual(["bln_BM56c"])
+  })
+
+  it("treats sums that are equal in decimal arithmetic as a tie", () => {
+    const ids = getFarmBestVariantIds([
+      { b_id: "A", m_id: "bln_BM56c", impact: 0.1 },
+      { b_id: "B", m_id: "bln_BM56c", impact: 0.2 },
+      { b_id: "A", m_id: "bln_BM56b", impact: 0.3 },
+    ])
+    expect([...ids]).toEqual(["bln_BM56b"])
+  })
+})
+
+describe("selectable variants", () => {
+  const variantAdvice = {
+    indicator_advice: [
+      {
+        indicator: "C_N",
+        measures: [
+          { m_id: "bln_BM56c", measure_impact: 0.3 },
+          { m_id: "bln_BM56b", measure_impact: 0.2 },
+        ],
+      },
+    ],
+  }
+  const variantApplicability = Object.fromEntries(
+    ["bln_BM56b", "bln_BM56c"].map((id) => [
+      id,
+      { applicability: "applicable" as const, message: "" },
+    ]),
+  )
+
+  it("compares only selectable variants when selectable IDs are given", () => {
+    const result = getTopOpportunitiesForField({
+      advice: variantAdvice,
+      score,
+      applicability: variantApplicability,
+      activeMeasureIds: new Set(),
+      selectableMeasureIds: new Set(["bln_BM56b"]),
+    })
+    expect(result.map((o) => o.m_id)).toEqual(["bln_BM56b"])
+  })
+
+  it("recommends a selectable sibling when the best variant conflicts with an active measure", () => {
+    const options = buildMeasureOptions({
+      catalogue: [
+        entry("bln_BM56b"),
+        entry("bln_BM56c", { m_conflicts: ["bln_BM9"] }),
+        entry("bln_BM9"),
+      ],
+      enabledSources: ["bln"],
+      activeMeasures: [{ b_id_measure: "active-other", m_id: "bln_BM9", m_conflicts: null }],
+      applicability: {
+        applicability: [applicable("bln_BM56b"), applicable("bln_BM56c"), applicable("bln_BM9")],
+      },
+      advice: variantAdvice,
+      score,
+    })
+    const byId = new Map(options.map((o) => [o.m_id, o]))
+    expect(byId.get("bln_BM56c")?.selectable).toBe(false)
+    expect(byId.get("bln_BM56c")?.recommendation).toBeNull()
+    expect(byId.get("bln_BM56b")?.recommendation?.rank).toBe(1)
   })
 })

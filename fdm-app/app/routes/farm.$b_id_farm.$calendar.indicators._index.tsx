@@ -81,7 +81,7 @@ async function getFarmMeasureRecommendations({
     b_ids.map((b_id) => [b_id, new Set((measuresByField.get(b_id) ?? []).map((m) => m.m_id))]),
   )
 
-  const { opportunities, adviceAvailable } = await getFarmMeasureOpportunities({
+  const { opportunities, candidates, adviceAvailable } = await getFarmMeasureOpportunities({
     principal_id,
     b_ids,
     b_year,
@@ -91,9 +91,8 @@ async function getFarmMeasureRecommendations({
     measureNameById: new Map(catalogue.map((m) => [m.m_id, m.m_name])),
   })
 
-  return {
-    adviceAvailable,
-    recommendations: opportunities.flatMap((opportunity) =>
+  const toRecommendations = (items: typeof opportunities) =>
+    items.flatMap((opportunity) =>
       opportunity.indicatorImpacts.map((impact) => ({
         b_id: opportunity.b_id,
         indicator_id: impact.indicator_id,
@@ -101,7 +100,12 @@ async function getFarmMeasureRecommendations({
         m_name: opportunity.m_name,
         measure_impact: impact.measure_impact,
       })),
-    ),
+    )
+
+  return {
+    adviceAvailable,
+    recommendations: toRecommendations(opportunities),
+    candidates: toRecommendations(candidates),
   }
 }
 
@@ -160,7 +164,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldScores,
     }).catch((error) => {
       reportError(error, { page: "farm indicators recommendations" })
-      return { recommendations: [], adviceAvailable: false }
+      return { recommendations: [], candidates: [], adviceAvailable: false }
     })
 
     return {

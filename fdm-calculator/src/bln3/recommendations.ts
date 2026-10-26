@@ -146,6 +146,43 @@ export function getBestVariantIds(impactByMeasureId: Map<string, number>): Set<s
 }
 
 /**
+ * Impact of one measure variant on one field, used to choose variants over several fields.
+ */
+export type FieldVariantImpact = {
+  b_id: string
+  m_id: string
+  impact: number
+}
+
+/**
+ * Selects one variant per measure family over several fields, for example a whole farm.
+ *
+ * Pass the impacts of all eligible variants per field (see
+ * {@link getFieldOpportunityCandidates}), not only each field's best variant; otherwise a
+ * variant that narrowly loses on many fields can never win. The impacts are summed per
+ * variant, optionally multiplied by a weight per field (for example its area), and the best
+ * variant per family is chosen with {@link getBestVariantIds}.
+ *
+ * @param impacts - Impact per field and variant.
+ * @param weightByField - Optional weight per field ID. When given, fields without a positive
+ *   weight are ignored. When omitted, every field has weight 1.
+ * @returns The IDs of the winning variants, one per family.
+ */
+export function getFarmBestVariantIds(
+  impacts: FieldVariantImpact[],
+  weightByField?: Map<string, number>,
+): Set<string> {
+  const totals = new Map<string, Decimal>()
+  for (const { b_id, m_id, impact } of impacts) {
+    const weight = weightByField ? (weightByField.get(b_id) ?? 0) : 1
+    if (!(weight > 0)) continue
+    const total = totals.get(m_id) ?? new Decimal(0)
+    totals.set(m_id, total.plus(new Decimal(impact).times(weight)))
+  }
+  return getBestVariantIds(new Map([...totals].map(([m_id, total]) => [m_id, total.toNumber()])))
+}
+
+/**
  * Collects all eligible measure candidates for a field from raw measure advice, before
  * reducing them to one variant per measure family.
  *
@@ -214,22 +251,33 @@ export function getFieldOpportunityCandidates({
  *
  * Takes the candidates of {@link getFieldOpportunityCandidates}, reduces them to the best
  * variant per measure family (see {@link getBestVariantIds}) and sorts them by descending
- * `aggregateImpact`. This is a pure function; it performs no NMI request.
+ * `aggregateImpact`. When `selectableMeasureIds` is given, other candidates are dropped
+ * before the variants are compared, so a variant that cannot be adopted (for example
+ * because it conflicts with an active measure) does not hide a sibling that can. This is a
+ * pure function; it performs no NMI request.
  *
  * @param params - Inputs.
  * @param params.advice - Measure advice for the field.
  * @param params.score - Current indicator score of the field.
  * @param params.applicability - Applicability per measure ID.
  * @param params.activeMeasureIds - Catalogue IDs of measures already adopted.
+ * @param params.selectableMeasureIds - Optional catalogue IDs that can be adopted; when
+ *   omitted, every eligible candidate is considered.
  * @returns Opportunities sorted by descending aggregate impact.
  */
-export function getTopOpportunitiesForField(params: {
+export function getTopOpportunitiesForField({
+  selectableMeasureIds,
+  ...params
+}: {
   advice: Bln3MeasureAdviceResult
   score: Bln3Score | null
   applicability: Record<string, MeasureApplicabilityInfo>
   activeMeasureIds: Set<string>
+  selectableMeasureIds?: Set<string>
 }): FieldTopOpportunity[] {
-  const candidates = getFieldOpportunityCandidates(params)
+  const candidates = getFieldOpportunityCandidates(params).filter(
+    (o) => !selectableMeasureIds || selectableMeasureIds.has(o.m_id),
+  )
   const bestVariantIds = getBestVariantIds(
     new Map(candidates.map((o) => [o.m_id, o.aggregateImpact])),
   )
@@ -382,6 +430,7 @@ export function buildMeasureOptions(params: {
     score: params.score,
     applicability: applicabilityInfo,
     activeMeasureIds: new Set(params.activeMeasures.map((a) => a.m_id)),
+    selectableMeasureIds: new Set(options.filter((o) => o.selectable).map((o) => o.m_id)),
   })
     .filter((c) => c.aggregateImpact > 0 && optionById.get(c.m_id)?.selectable)
     .sort((a, b) => b.aggregateImpact - a.aggregateImpact || a.m_id.localeCompare(b.m_id))
