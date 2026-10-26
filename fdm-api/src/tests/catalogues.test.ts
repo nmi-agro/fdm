@@ -1,7 +1,7 @@
 import { FdmType } from "@nmi-agro/fdm-core"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { createFdmApi, FdmApiServices } from "../index"
-import { CATALOGUE_SOURCES, CatalogueServices } from "../routes/catalogues"
+import { CatalogueServices } from "../routes/catalogues"
 
 // ---------------------------------------------------------------------------
 // Shared test setup
