@@ -266,9 +266,9 @@ function RowClickCatcher({
 
 /** Diagonal hatch built from muted tokens, so it works in light and dark mode. */
 const HATCH_STYLE: React.CSSProperties = {
-  backgroundColor: "color-mix(in oklab, var(--muted) 55%, transparent)",
+  backgroundColor: "color-mix(in oklab, var(--color-muted) 55%, transparent)",
   backgroundImage:
-    "repeating-linear-gradient(135deg, color-mix(in oklab, var(--muted-foreground) 35%, transparent) 0 1px, transparent 1px 6px)",
+    "repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-muted-foreground) 35%, transparent) 0 1px, transparent 1px 6px)",
 }
 
 /**
