@@ -20,8 +20,7 @@ import { exchangeToken } from "~/lib/rvo.server"
  * The originating page reads the token cookie, calls rvoClient.setAccessToken(),
  * and proceeds to fetch the user's RVO fields.
  */
-export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url)
+export async function loader({ request, url }: LoaderFunctionArgs) {
   const code = url.searchParams.get("code")
   const state = url.searchParams.get("state")
 

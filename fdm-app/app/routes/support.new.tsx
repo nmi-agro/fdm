@@ -51,10 +51,9 @@ export const meta: Route.MetaFunction = () => {
   ]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request, url }: Route.LoaderArgs) {
   try {
     let farmOptions: FarmOptions = []
-    const url = new URL(request.url)
 
     try {
       const session = await getSession(request)

@@ -286,7 +286,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           "write",
           field.b_id,
           session.principal_id,
-          new URL(request.url).pathname,
+          url.pathname,
           false,
         )
         return {
@@ -334,7 +334,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

@@ -38,7 +38,7 @@ import {
 } from "~/lib/fertilizer-application-bulk.server"
 import { parseAppIds } from "~/lib/fertilizer-application-helpers"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { isOfOrigin } from "~/lib/url-utils"
+import { isOfOrigin, stripDataSuffixFromAddress } from "~/lib/url-utils"
 
 export const meta: MetaFunction = () => {
   return [
@@ -84,7 +84,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const returnUrlParam = url.searchParams.get("returnUrl")
     const returnUrl =
       returnUrlParam && isOfOrigin(returnUrlParam, url.origin)
-        ? returnUrlParam
+        ? stripDataSuffixFromAddress(returnUrlParam)
         : `/farm/${b_id_farm}/${params.calendar}/field`
 
     // Get fieldIds from search params; without any, the page asks to select fields
@@ -208,7 +208,7 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
     const returnUrlParam = url.searchParams.get("returnUrl")
     const returnUrl =
       returnUrlParam && isOfOrigin(returnUrlParam, url.origin)
-        ? returnUrlParam
+        ? stripDataSuffixFromAddress(returnUrlParam)
         : url.searchParams.has("create")
           ? `/farm/create/${b_id_farm}/${calendar}/field`
           : `/farm/${b_id_farm}/${calendar}/field`
