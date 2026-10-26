@@ -57,6 +57,7 @@ const columnInfos = {
   b_lu_uww: { type: "number", placeholder: "350", unit: "g / 5kg" },
   b_lu_moist: { type: "number", placeholder: "15", unit: "%" },
   b_lu_n_harvestable: { type: "number", placeholder: "850", unit: "g / kg" },
+  b_lu_p_harvestable: { type: "number", placeholder: "5", unit: "g P₂O₅ / kg DS" },
   b_lu_cp: { type: "number", placeholder: "170", unit: "g RE / kg DS" },
 } as const satisfies Record<HarvestParameters[number], ColumnInfo>
 

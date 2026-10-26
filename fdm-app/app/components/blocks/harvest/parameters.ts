@@ -20,6 +20,8 @@ export function getHarvestParameterLabel(param: HarvestParameters[number]) {
       return "Ruw eiwit (g RE / kg DS)"
     case "b_lu_n_harvestable":
       return "Stikstofgehalte (g N / kg DS)"
+    case "b_lu_p_harvestable":
+      return "Fosfaatgehalte (g P₂O₅ / kg DS)"
     default:
       return param
   }

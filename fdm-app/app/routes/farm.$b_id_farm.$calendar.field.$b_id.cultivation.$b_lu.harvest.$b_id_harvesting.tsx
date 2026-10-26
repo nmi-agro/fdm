@@ -24,6 +24,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { getCatalogueHarvestDefaults } from "~/lib/harvest-defaults.server"
 import { getHarvestParameterLabel } from "../components/blocks/harvest/parameters"
 
 type HarvestParameter = HarvestParameters[number]
@@ -123,6 +124,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const harvestParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
 
+    // Harvests recorded before the phosphate content was a harvest parameter have no value;
+    // pre-fill the form with the catalogue default so the user can keep or replace it.
+    const catalogueDefaults = harvestParameters.includes("b_lu_p_harvestable")
+      ? await getCatalogueHarvestDefaults(
+          session.principal_id,
+          b_id_farm,
+          cultivation.b_lu_catalogue,
+        )
+      : {}
+    const b_lu_p_harvestable =
+      harvestableAnalysis?.b_lu_p_harvestable ?? catalogueDefaults.b_lu_p_harvestable ?? null
+
     const effectiveHarvestable = getEffectiveHarvestable(
       cultivation.b_lu_harvestable,
       cultivation.b_lu_croprotation,
@@ -133,6 +146,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       cultivation: cultivation,
       harvest: harvest,
       harvestableAnalysis: harvestableAnalysis,
+      b_lu_p_harvestable: b_lu_p_harvestable,
       b_id_farm: b_id_farm,
       calendar: calendar,
       harvestParameters: harvestParameters,
@@ -170,6 +184,7 @@ export default function FarmFieldsOverviewBlock() {
       b_lu_dm={loaderData.harvestableAnalysis.b_lu_dm ?? undefined}
       b_lu_cp={loaderData.harvestableAnalysis.b_lu_cp ?? undefined}
       b_lu_n_harvestable={loaderData.harvestableAnalysis.b_lu_n_harvestable ?? undefined}
+      b_lu_p_harvestable={loaderData.b_lu_p_harvestable ?? undefined}
       b_lu_harvestable={loaderData.effectiveHarvestable}
       b_lu_start={loaderData.cultivation.b_lu_start}
       b_lu_end={loaderData.cultivation.b_lu_end}

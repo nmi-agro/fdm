@@ -140,6 +140,7 @@ export default function HarvestNewBlock() {
       b_lu_dm={loaderData.defaultHarvestParameters.b_lu_dm ?? undefined}
       b_lu_cp={loaderData.defaultHarvestParameters.b_lu_cp ?? undefined}
       b_lu_n_harvestable={loaderData.defaultHarvestParameters.b_lu_n_harvestable ?? undefined}
+      b_lu_p_harvestable={loaderData.defaultHarvestParameters.b_lu_p_harvestable ?? undefined}
       b_lu_harvestable={loaderData.effectiveHarvestable}
       b_lu_start={loaderData.cultivation.b_lu_start}
       b_lu_end={loaderData.cultivation.b_lu_end}

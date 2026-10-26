@@ -311,6 +311,41 @@ describe("Cultivation Data Model", () => {
       expect(cultivation?.b_lu_hcat3_name).toBe(b_lu_hcat3_name)
     })
 
+    it("should store the phosphate contents when adding a cultivation to the catalogue", async () => {
+      const b_lu_catalogue = createId()
+
+      await addCultivationToCatalogue(fdm, {
+        b_lu_catalogue,
+        b_lu_source: "custom",
+        b_lu_name: "Test Cultivation with phosphate",
+        b_lu_name_en: null,
+        b_lu_harvestable: "once",
+        b_lu_hcat3: null,
+        b_lu_hcat3_name: null,
+        b_lu_harvestcat: "HC010",
+        b_lu_croprotation: "cereal",
+        b_lu_yield: 6000,
+        b_lu_dm: 500,
+        b_lu_hi: 0.4,
+        b_lu_n_harvestable: 4,
+        b_lu_n_residue: 2,
+        b_lu_p_harvestable: 1.6,
+        b_lu_p_residue: 0.8,
+        b_n_fixation: 0,
+        b_lu_eom: 100,
+        b_lu_eom_residue: 50,
+        b_lu_rest_oravib: false,
+        b_lu_variety_options: null,
+        b_lu_start_default: "03-01",
+        b_date_harvest_default: "09-15",
+      })
+
+      const cultivations = await getCultivationsFromCatalogue(fdm, principal_id, b_id_farm)
+      const cultivation = cultivations.find((c) => c.b_lu_catalogue === b_lu_catalogue)
+      expect(cultivation?.b_lu_p_harvestable).toBe(1.6)
+      expect(cultivation?.b_lu_p_residue).toBe(0.8)
+    })
+
     it("should throw an error when adding a cultivation with an invalid catalogue ID", async () => {
       const invalid_b_lu_catalogue = "invalid-catalogue-id"
       const b_lu_start = new Date("2024-01-01")

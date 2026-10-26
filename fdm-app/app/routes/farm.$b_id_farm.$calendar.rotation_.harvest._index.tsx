@@ -247,6 +247,16 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
         targetCultivation.b_lu_catalogue,
         cultivationCatalogueData,
       )
+    } else if (selectedFields.length > 0 && harvestableAnalysis.b_lu_p_harvestable == null) {
+      // Harvests recorded before the phosphate content was a harvest parameter have no value;
+      // pre-fill the form with the catalogue default so the user can keep or replace it.
+      harvestableAnalysis = {
+        ...harvestableAnalysis,
+        b_lu_p_harvestable: getDefaultsForHarvestParameters(
+          targetCultivation.b_lu_catalogue,
+          cultivationCatalogueData,
+        ).b_lu_p_harvestable,
+      }
     }
 
     const b_lu_starts = selectedFields.map(
@@ -647,6 +657,9 @@ export default function FarmRotationHarvestAddIndex() {
                         b_lu_cp={loaderData.harvestableAnalysis.b_lu_cp ?? undefined}
                         b_lu_n_harvestable={
                           loaderData.harvestableAnalysis.b_lu_n_harvestable ?? undefined
+                        }
+                        b_lu_p_harvestable={
+                          loaderData.harvestableAnalysis.b_lu_p_harvestable ?? undefined
                         }
                         b_lu_harvestable={loaderData.b_lu_harvestable}
                         b_lu_start={loaderData.b_lu_start}

@@ -261,6 +261,10 @@ export function AddEventSheet({
                     loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_n_harvestable ??
                     undefined
                   }
+                  b_lu_p_harvestable={
+                    loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_p_harvestable ??
+                    undefined
+                  }
                   b_lu_start={cultivation.b_lu_start}
                   b_lu_tarra={
                     loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_tarra ?? undefined
@@ -354,13 +358,18 @@ export function AddEventSheet({
               b_lu_harvestable={cultivation.b_lu_harvestable}
               b_lu_moist={harvest.harvestableAnalysis?.b_lu_moist ?? undefined}
               b_lu_n_harvestable={harvest.harvestableAnalysis?.b_lu_n_harvestable ?? undefined}
+              b_lu_p_harvestable={
+                harvest.harvestableAnalysis?.b_lu_p_harvestable ??
+                harvest.b_lu_p_harvestable_default ??
+                undefined
+              }
               b_lu_start={cultivation.b_lu_start}
               b_lu_tarra={harvest.harvestableAnalysis?.b_lu_tarra ?? undefined}
               b_lu_uww={harvest.harvestableAnalysis?.b_lu_uww ?? undefined}
               b_lu_yield={harvest.harvestableAnalysis?.b_lu_yield ?? undefined}
               b_lu_yield_bruto={harvest.harvestableAnalysis?.b_lu_yield_bruto ?? undefined}
               b_lu_yield_fresh={harvest.harvestableAnalysis?.b_lu_yield_fresh ?? undefined}
-              harvestParameters={harvest.parameters.map((x) => x.id)}
+              harvestParameters={harvest.editableParameters}
               onDelete={() => setConfirmingDelete(true)}
             />
           ) : null}

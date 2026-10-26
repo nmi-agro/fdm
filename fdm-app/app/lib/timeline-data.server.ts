@@ -1,5 +1,6 @@
 import {
   getCultivationsForFarm,
+  getCultivationsFromCatalogue,
   getFertilizerApplicationsForFarm,
   getFields,
   getHarvestsForFarm,
@@ -32,13 +33,18 @@ export async function fetchTimelineFields(
     fertilizerApplicationsByField,
     harvestsByCultivation,
     soilAnalysesByField,
+    cultivationsCatalogue,
   ] = await Promise.all([
     getFields(fdm, principal_id, b_id_farm, timeframe),
     getCultivationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getSoilAnalysesForFarm(fdm, principal_id, b_id_farm, timeframe),
+    getCultivationsFromCatalogue(fdm, principal_id, b_id_farm),
   ])
+  const cataloguePhosphate = new Map(
+    cultivationsCatalogue.map((item) => [item.b_lu_catalogue, item.b_lu_p_harvestable ?? null]),
+  )
 
   const soilParametersDescription = getSoilParametersDescription()
   const soilAnalysisSourceParamDesc = soilParametersDescription.find(
@@ -67,12 +73,19 @@ export async function fetchTimelineFields(
               label: getHarvestParameterLabel(param),
               value: analysis?.[param] as number,
             }))
+          // Parameters shown when editing: the ones with a value, plus the phosphate content so
+          // harvests recorded before it was a harvest parameter can be completed.
+          const editableParameters = fillableParameters.filter(
+            (param) => analysis?.[param] != null || param === "b_lu_p_harvestable",
+          )
           return {
             b_id_harvesting: harvest.b_id_harvesting,
             b_lu: harvest.b_lu,
             b_lu_name: cultivation.b_lu_name,
             b_lu_harvest_date: harvest.b_lu_harvest_date,
             parameters,
+            editableParameters,
+            b_lu_p_harvestable_default: cataloguePhosphate.get(cultivation.b_lu_catalogue) ?? null,
             term: getHarvestTerm(
               cultivation.b_lu_croprotation,
               false,

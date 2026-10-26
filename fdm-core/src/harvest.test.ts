@@ -334,7 +334,12 @@ describe("Harvest Data Model", () => {
 describe("getParametersForHarvestCat", () => {
   it('should return correct parameters for "HC010"', () => {
     const params = getParametersForHarvestCat("HC010")
-    expect(params).toEqual(["b_lu_yield_fresh", "b_lu_dm", "b_lu_n_harvestable"])
+    expect(params).toEqual([
+      "b_lu_yield_fresh",
+      "b_lu_dm",
+      "b_lu_n_harvestable",
+      "b_lu_p_harvestable",
+    ])
   })
 
   it('should return correct parameters for "HC020"', () => {
@@ -349,17 +354,35 @@ describe("getParametersForHarvestCat", () => {
 
   it('should return correct parameters for "HC040"', () => {
     const params = getParametersForHarvestCat("HC040")
-    expect(params).toEqual(["b_lu_yield_bruto", "b_lu_tarra", "b_lu_dm", "b_lu_n_harvestable"])
+    expect(params).toEqual([
+      "b_lu_yield_bruto",
+      "b_lu_tarra",
+      "b_lu_dm",
+      "b_lu_n_harvestable",
+      "b_lu_p_harvestable",
+    ])
   })
 
   it('should return correct parameters for "HC041"', () => {
     const params = getParametersForHarvestCat("HC041")
-    expect(params).toEqual(["b_lu_yield_bruto", "b_lu_tarra", "b_lu_dm", "b_lu_n_harvestable"])
+    expect(params).toEqual([
+      "b_lu_yield_bruto",
+      "b_lu_tarra",
+      "b_lu_dm",
+      "b_lu_n_harvestable",
+      "b_lu_p_harvestable",
+    ])
   })
 
   it('should return correct parameters for "HC042"', () => {
     const params = getParametersForHarvestCat("HC042")
-    expect(params).toEqual(["b_lu_yield_bruto", "b_lu_tarra", "b_lu_uww", "b_lu_n_harvestable"])
+    expect(params).toEqual([
+      "b_lu_yield_bruto",
+      "b_lu_tarra",
+      "b_lu_uww",
+      "b_lu_n_harvestable",
+      "b_lu_p_harvestable",
+    ])
   })
 
   it('should return correct parameters for "HC050"', () => {
@@ -484,7 +507,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_hi: 0.5,
       b_lu_n_harvestable: 20,
       b_lu_n_residue: 5,
-      b_lu_p_harvestable: null,
+      b_lu_p_harvestable: 1.4,
       b_lu_p_residue: null,
       b_n_fixation: 0,
       b_lu_eom: null,
@@ -624,6 +647,7 @@ describe("getDefaultsForHarvestParameters", () => {
         b_lu_yield_fresh: 10000,
         b_lu_dm: 200,
         b_lu_n_harvestable: 15,
+        b_lu_p_harvestable: null,
       })
     })
 
@@ -719,6 +743,7 @@ describe("getDefaultsForHarvestParameters", () => {
         b_lu_tarra: 5,
         b_lu_dm: 250,
         b_lu_n_harvestable: 20,
+        b_lu_p_harvestable: 1.4,
       })
     })
 
@@ -752,6 +777,7 @@ describe("getDefaultsForHarvestParameters", () => {
         b_lu_tarra: 5,
         b_lu_dm: 220,
         b_lu_n_harvestable: 18,
+        b_lu_p_harvestable: null,
       })
     })
 
@@ -785,6 +811,7 @@ describe("getDefaultsForHarvestParameters", () => {
         b_lu_tarra: 5,
         b_lu_uww: 350,
         b_lu_n_harvestable: 25,
+        b_lu_p_harvestable: null,
       })
     })
 

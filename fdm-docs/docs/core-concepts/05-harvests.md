@@ -44,7 +44,7 @@ Here are a few examples of how harvest categories are used to standardize harves
     - `b_lu_n_harvestable` is calculated from crude protein: `b_lu_n_harvestable = b_lu_cp / 6.25`.
 
 - **HC042 (Potatoes)**:
-  - **Measured parameters**: `b_lu_yield_bruto` (kg/ha), `b_lu_tarra` (%), and `b_lu_uww` (g/5kg). `b_lu_n_harvestable` is often a default value for the crop.
+  - **Measured parameters**: `b_lu_yield_bruto` (kg/ha), `b_lu_tarra` (%), and `b_lu_uww` (g/5kg). `b_lu_n_harvestable` and `b_lu_p_harvestable` are often default values for the crop.
   - **Formulas**:
     - First, dry matter content (`b_lu_dm`) is calculated from underwater weight: `b_lu_dm = (b_lu_uww * 0.049 + 2.0) * 10`.
     - Then, fresh yield is calculated: `b_lu_yield_fresh = b_lu_yield_bruto * (1 - b_lu_tarra / 100)`.
@@ -56,6 +56,10 @@ Here are a few examples of how harvest categories are used to standardize harves
     - Dry matter content is calculated from moisture: `b_lu_dm = (100 - b_lu_moist) * 10`.
     - Dry matter yield is calculated: `b_lu_yield = b_lu_yield_fresh * b_lu_dm / 1000`.
     - Nitrogen content is calculated from crude protein (using a specific factor for cereals): `b_lu_n_harvestable = b_lu_cp / 5.7`.
+
+### Phosphate content
+
+For the harvest categories that ask for the nitrogen content directly (HC010, HC040, HC041 and HC042), the phosphate content of the harvested product (`b_lu_p_harvestable`, g P₂O₅/kg DM) is also expected. It is stored as entered; no conversion is applied. Its default value comes from the cultivation catalogue, which receives it from the NMI API when the catalogues are synchronised with an NMI API key. Grassland (HC020), maize (HC031) and cereals (HC050) do not ask for it.
 
 ### Practical Implications
 

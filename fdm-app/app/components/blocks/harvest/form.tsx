@@ -54,6 +54,8 @@ type HarvestFormDialogProps = {
   b_lu_dm: number | undefined
   b_lu_cp: number | undefined
   b_lu_n_harvestable: number | undefined
+  /** Phosphate content of the harvested product (g P2O5 / kg DM): the harvest's own analysis or the catalogue default */
+  b_lu_p_harvestable?: number | undefined
   b_lu_harvestable: "once" | "multiple" | "none"
   b_lu_start: Date | undefined | null
   b_lu_end: Date | undefined | null
@@ -90,6 +92,7 @@ function useHarvestRemixForm({
   b_lu_dm,
   b_lu_cp,
   b_lu_n_harvestable,
+  b_lu_p_harvestable,
   b_lu_harvestable,
   b_lu_start,
   b_lu_end,
@@ -185,6 +188,9 @@ function useHarvestRemixForm({
       b_lu_cp: harvestParameters.includes("b_lu_cp") ? b_lu_cp : undefined,
       b_lu_n_harvestable: harvestParameters.includes("b_lu_n_harvestable")
         ? b_lu_n_harvestable
+        : undefined,
+      b_lu_p_harvestable: harvestParameters.includes("b_lu_p_harvestable")
+        ? b_lu_p_harvestable
         : undefined,
       b_lu_start: b_lu_start,
       b_lu_end: b_lu_end,
@@ -456,6 +462,32 @@ function HarvestFields({
               aria-required="true"
               aria-invalid={fieldState.invalid}
               type="number"
+              value={field.value ?? ""}
+            />
+            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+          </Field>
+        )}
+      />
+      <Controller
+        name="b_lu_p_harvestable"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <Field
+            data-invalid={fieldState.invalid}
+            className={cn("gap-1", harvestParameters.includes(field.name) ? "" : "hidden")}
+          >
+            <FieldLabel>{getHarvestParameterLabel(field.name)}</FieldLabel>
+            <Input
+              {...field}
+              placeholder={
+                Number.isFinite(exampleHarvestableAnalysis?.b_lu_p_harvestable)
+                  ? `Er zijn verschillende waarden ingevuld, bv: ${exampleHarvestableAnalysis?.b_lu_p_harvestable} g P₂O₅ / kg DS`
+                  : "Bv. 5 g P₂O₅ / kg DS"
+              }
+              aria-required="true"
+              aria-invalid={fieldState.invalid}
+              type="number"
+              step="any"
               value={field.value ?? ""}
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

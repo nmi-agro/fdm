@@ -21,6 +21,7 @@ import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
+import { getCatalogueHarvestDefaults } from "~/lib/harvest-defaults.server"
 import type { Route } from "./+types/farm.$b_id_farm.$calendar.rotation.modify_harvest"
 
 // Meta
@@ -158,6 +159,25 @@ export async function loader({ request, params, url }: Route.LoaderArgs) {
       }
     }
 
+    // Harvests recorded before the phosphate content was a harvest parameter have no value;
+    // when none of the selected harvests has one, pre-fill the catalogue default.
+    if (
+      harvestParameters.includes("b_lu_p_harvestable") &&
+      harvests.every(
+        (harvest) => harvest.harvestable.harvestable_analyses[0]?.b_lu_p_harvestable == null,
+      )
+    ) {
+      const catalogueDefaults = await getCatalogueHarvestDefaults(
+        session.principal_id,
+        b_id_farm,
+        cultivation.b_lu_catalogue,
+      )
+      initialHarvestableAnalysis = {
+        ...initialHarvestableAnalysis,
+        b_lu_p_harvestable: catalogueDefaults.b_lu_p_harvestable ?? null,
+      }
+    }
+
     const effectiveHarvestable = getEffectiveHarvestable(
       cultivation.b_lu_harvestable,
       cultivation.b_lu_croprotation,
@@ -209,6 +229,7 @@ export default function ModifyHarvestingDialog() {
       b_lu_dm={loaderData.initialHarvestableAnalysis.b_lu_dm ?? undefined}
       b_lu_cp={loaderData.initialHarvestableAnalysis.b_lu_cp ?? undefined}
       b_lu_n_harvestable={loaderData.initialHarvestableAnalysis.b_lu_n_harvestable ?? undefined}
+      b_lu_p_harvestable={loaderData.initialHarvestableAnalysis.b_lu_p_harvestable ?? undefined}
       b_lu_harvestable={loaderData.effectiveHarvestable}
       b_lu_start={loaderData.cultivation.b_lu_start}
       b_lu_end={loaderData.cultivation.b_lu_end}
@@ -278,6 +299,18 @@ export async function action({ request, params, url }: Route.ActionArgs) {
         }
       }
 
+      // Harvests recorded before the phosphate content was a harvest parameter have no value;
+      // when the form leaves it unchanged, fall back to the catalogue default for those harvests.
+      const cataloguePhosphate = requiredHarvestParameters.includes("b_lu_p_harvestable")
+        ? ((
+            await getCatalogueHarvestDefaults(
+              session.principal_id,
+              b_id_farm,
+              cultivation.b_lu_catalogue,
+            )
+          ).b_lu_p_harvestable ?? null)
+        : null
+
       await fdm.transaction((tx) =>
         Promise.all(
           harvestingIds.map(async (b_id_harvesting) => {
@@ -291,6 +324,9 @@ export async function action({ request, params, url }: Route.ActionArgs) {
             const finalHarvestProperties = {
               ...currentHarvestProperties,
               ...updatedHarvestProperties,
+            }
+            if (cataloguePhosphate !== null) {
+              finalHarvestProperties.b_lu_p_harvestable ??= cataloguePhosphate
             }
 
             // Check if all required parameters are present
