@@ -29,6 +29,7 @@ import {
   useSearchParams,
   useNavigation,
   useParams,
+  ShouldRevalidateFunctionArgs,
 } from "react-router"
 import { redirectWithSuccess } from "remix-toast"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
@@ -95,6 +96,23 @@ type ReviewItem = RvoImportReviewItem<Field>
 
 export const meta: Route.MetaFunction = ({ params }) => {
   return [{ title: `Percelen ophalen bij RVO - Bedrijf ${params.b_id_farm}` }]
+}
+
+export function shouldRevalidate({
+  formData,
+  actionResult,
+  defaultShouldRevalidate,
+}: ShouldRevalidateFunctionArgs) {
+  // Do not revalidate (run the loader again) if this was a form submission.
+  const intent = formData?.get("intent")
+  const failedReviewSave =
+    intent === "apply_changes" &&
+    typeof actionResult === "object" &&
+    actionResult !== null &&
+    "success" in actionResult &&
+    actionResult.success === false
+
+  return failedReviewSave ? false : defaultShouldRevalidate
 }
 
 export async function loader({ request, params, url }: Route.LoaderArgs) {
