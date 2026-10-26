@@ -376,10 +376,10 @@ describe("POST /farms", () => {
     expect(res.status).toBe(403)
   })
 
-  it("returns 500 if getFarm fails", async () => {
+  it("returns 500 if getFarm returns null", async () => {
     const app = makeApp({
       addFarm: vi.fn().mockResolvedValue("farm-new"),
-      getFarm: vi.fn().mockRejectedValue(new Error("Permission denied")),
+      getFarm: vi.fn().mockResolvedValue(null),
     })
     const res = await app.request("/farms", {
       method: "POST",
