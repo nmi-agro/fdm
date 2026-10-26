@@ -8,23 +8,36 @@ import type {
   NitrogenSupplyMineralization,
   SoilAnalysisPicked,
 } from "../types"
+import { calculateMinipNitrogenMineralization } from "../../../shared/minip"
 
 /**
- * Calculates the amount of nitrogen supplied through soil mineralization using Minip.
+ * Calculates the amount of nitrogen supplied through soil mineralization.
  *
- * This function determines the mineralization based on the soil analyses conducted.
+ * By default, a default value per soil type and land use is used. With `useMinip`, the yearly
+ * mineralization is calculated with the MINIP model from the soil analysis (organic carbon,
+ * C/N ratio and bulk density). In both cases the yearly value is pro-rated for the timeframe.
+ * @param cultivations - The cultivations on the field.
  * @param soilAnalysis - Combined soil analysis data for the field.
+ * @param cultivationDetails - A map with the details of each cultivation.
  * @param timeFrame - The timeframe for which to calculate the nitrogen mineralization.
+ * @param useMinip - When `true`, the MINIP model is used instead of the default values. Defaults to `false`.
  * @returns The NitrogenSupplyMineralization object containing the total amount of Nitrogen mineralized.
+ * @throws Throws an error when `useMinip` is `true` and `a_c_of`, `a_cn_fr` or `a_density_sa` is missing.
  */
 export function calculateNitrogenSupplyBySoilMineralization(
   cultivations: FieldInput["cultivations"],
   soilAnalysis: SoilAnalysisPicked,
   cultivationDetails: Map<string, CultivationDetail>,
   timeFrame: NitrogenBalanceInput["timeFrame"],
+  useMinip = false,
 ): NitrogenSupplyMineralization {
   let totalMineralization = new Decimal(0)
   const minerlizationPerYear = []
+
+  // MINIP gives the yearly mineralization (kg N / ha / year) from the soil analysis. It is only
+  // calculated for a year that overlaps with the timeframe, so that its soil parameters are not
+  // required when the timeframe is empty.
+  let yearlyMineralizationMinip: Decimal | undefined
 
   const startYear = timeFrame.start.getFullYear()
   const endYear = timeFrame.end.getFullYear()
@@ -52,11 +65,6 @@ export function calculateNitrogenSupplyBySoilMineralization(
       )
     })
 
-    const yearlyMineralization = calculateNitrogenSupplyBySoilMineralizationUsingDefaults(
-      soilAnalysis.b_soiltype_agr,
-      isGrassland,
-    )
-
     const yearStartTime = new Date(year, 0, 1).getTime()
     const yearEndTime = new Date(year + 1, 0, 1).getTime()
     const timeframeStartTime = timeFrame.start.getTime()
@@ -66,6 +74,19 @@ export function calculateNitrogenSupplyBySoilMineralization(
     const overlapEnd = Math.min(yearEndTime, timeframeEndTime)
 
     if (overlapStart < overlapEnd) {
+      if (useMinip && yearlyMineralizationMinip === undefined) {
+        yearlyMineralizationMinip = calculateNitrogenSupplyBySoilMineralizationUsingMinip(
+          soilAnalysis.a_c_of,
+          soilAnalysis.a_cn_fr,
+          soilAnalysis.a_density_sa,
+        )
+      }
+      const yearlyMineralization =
+        yearlyMineralizationMinip ??
+        calculateNitrogenSupplyBySoilMineralizationUsingDefaults(
+          soilAnalysis.b_soiltype_agr,
+          isGrassland,
+        )
       const daysInYear = new Date(year, 1, 29).getMonth() === 1 ? 366 : 365
       const overlapDays = differenceInCalendarDays(new Date(overlapEnd), new Date(overlapStart))
       const adjustedMineralization = yearlyMineralization.times(overlapDays).dividedBy(daysInYear)
@@ -117,36 +138,20 @@ function calculateNitrogenSupplyBySoilMineralizationUsingDefaults(
 /**
  * Calculates the amount of nitrogen supplied through soil mineralization by using the MINIP model
  *
- * This function applies a specific formula to calculate nitrogen mineralization based on organic carbon content,
- * C/N ratio, and soil bulk density.
+ * The organic carbon stock of the plough layer (20 cm) is derived from the organic carbon content and
+ * the soil bulk density. The mineralization is calculated over 10 years at the average yearly
+ * temperature in the Netherlands (10.6 °C) and returned as the yearly average.
  * @param a_c_of - The organic carbon content of the soil (g C / kg soil).
  * @param a_cn_fr - The C/N ratio of the soil organic matter.
  * @param a_density_sa - The soil bulk density (g / cm³).
- * @returns The amount of nitrogen mineralized in kg N / ha.
- * @throws Throws an error if required soil analysis data is missing or average yearly temperature is too high.
+ * @returns The amount of nitrogen mineralized in kg N / ha / year.
+ * @throws Throws an error if required soil analysis data is missing.
  */
 export function calculateNitrogenSupplyBySoilMineralizationUsingMinip(
   a_c_of: fdmSchema.soilAnalysisTypeSelect["a_c_of"],
   a_cn_fr: fdmSchema.soilAnalysisTypeSelect["a_cn_fr"],
   a_density_sa: fdmSchema.soilAnalysisTypeSelect["a_density_sa"],
 ): Decimal {
-  // Average yearly temperature
-  const w_temp_mean = new Decimal(10.6)
-
-  // Depth of bouwvoor (cm)
-  const bouwvoor = new Decimal(20)
-
-  // Calculate temperature correction
-  let temperatureCorrection = new Decimal(0)
-  if (w_temp_mean.gt(-1) && w_temp_mean.lte(9)) {
-    temperatureCorrection = w_temp_mean.times(0.1)
-  } else if (w_temp_mean.gt(9) && w_temp_mean.lte(27)) {
-    const a = w_temp_mean.minus(9).dividedBy(9)
-    temperatureCorrection = new Decimal(2).pow(a)
-  } else if (w_temp_mean.gt(27)) {
-    throw new Error("Average yearly temperature is too high")
-  }
-
   if (a_c_of === null || a_c_of === undefined) {
     throw new Error("No a_c_of value found in soil analysis for arable")
   }
@@ -157,17 +162,20 @@ export function calculateNitrogenSupplyBySoilMineralizationUsingMinip(
     throw new Error("No a_density_sa value found in soil analysis for arable")
   }
 
-  // Calculate Cdec
-  const b = temperatureCorrection.times(10).add(17).pow(-0.6)
-  const c = new Decimal(17).pow(-0.6)
-  const d = b.minus(c).times(4.7).exp()
-  const e = new Decimal(1).minus(d)
-  const cDec = new Decimal(a_c_of).times(e).dividedBy(10)
+  // Depth of the plough layer (m) and length of the period (years)
+  const depth = new Decimal(0.2)
+  const years = new Decimal(10)
 
-  // Calculate the mineralization
-  const f = new Decimal(1.5).times(cDec).dividedBy(a_cn_fr)
-  const g = cDec.dividedBy(bouwvoor)
-  const mineralization = f.minus(g).times(10000).times(bouwvoor.dividedBy(100)).times(a_density_sa)
+  // Organic carbon stock of the plough layer (kg C / ha): g C / kg soil * t soil / ha
+  const c_stock = new Decimal(a_c_of).times(a_density_sa).times(depth).times(10000)
 
-  return mineralization
+  const mineralization = calculateMinipNitrogenMineralization({
+    c_stock,
+    a_cn_fr,
+    age: 17,
+    temperature: 10.6,
+    time: years,
+  })
+
+  return mineralization.dividedBy(years)
 }

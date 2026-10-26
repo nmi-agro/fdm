@@ -1,19 +1,15 @@
-import { calculateDose, getNutrientAdvice } from "@nmi-agro/fdm-calculator"
-import {
-  checkPermission,
-  getCultivationsForFarm,
-  getCurrentSoilDataForFarm,
-  getFertilizerApplicationsForFarm,
-  getFertilizers,
-  getFields,
-} from "@nmi-agro/fdm-core"
+import { checkPermission, getFields } from "@nmi-agro/fdm-core"
 import { BookOpenText } from "lucide-react"
-import { Suspense, use, useEffect } from "react"
-import { type LoaderFunctionArgs, type MetaFunction, NavLink, useLoaderData } from "react-router"
+import { useEffect, useMemo } from "react"
+import {
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  NavLink,
+  useLoaderData,
+  useRevalidator,
+} from "react-router"
 import type { FieldNutrientRow } from "~/components/blocks/nutrient-advice/overview-types"
 import { getNutrientsDescription } from "~/components/blocks/nutrient-advice/nutrients"
-import { toFriendlyAdviceError } from "~/components/blocks/nutrient-advice/overview-errors"
-import { NutrientAdviceOverviewSkeleton } from "~/components/blocks/nutrient-advice/overview-skeleton"
 import { NutrientAdviceOverviewTable } from "~/components/blocks/nutrient-advice/overview-table"
 import { Button } from "~/components/ui/button"
 import {
@@ -25,28 +21,14 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty"
 import { useAnalytics } from "~/hooks/use-analytics"
+import { useStreamedRows } from "~/hooks/use-streamed-rows"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
-import { getCultivationSuggestion } from "~/lib/cultivation-suggestion.server"
 import { handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
-import { getMainCultivation } from "~/lib/hoofdteelt.server"
+import { startFarmNutrientAdviceRows } from "~/lib/nutrient-advice.server"
 import { cn } from "~/lib/utils"
-import { getNmiApiKey } from "../integrations/nmi.server"
-
-// Cap on simultaneous getNutrientAdvice calls per farm, so farms with many fields don't overload
-// the external NMI API with unbounded parallel requests.
-const NUTRIENT_ADVICE_CONCURRENCY = 4
-
-/** Splits an array into consecutive chunks of at most `size` items each. */
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size))
-  }
-  return chunks
-}
 
 // Meta
 export const meta: MetaFunction = () => {
@@ -63,8 +45,9 @@ export const meta: MetaFunction = () => {
 
 /**
  * Loads the fields of a farm and their write permission, so the overview can render immediately.
- * The (slower) per-field nutrient advice calculation is deferred into `asyncData` and streamed in,
- * since it requires an external NMI API call per field.
+ * The (slower) per-field nutrient advice calculation is returned as one promise per field
+ * (`rowPromises`) and streamed in, since it requires an external NMI API call per field.
+ * `pendingFields` lets the table show every field's name while its advice is still loading.
  */
 export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
@@ -95,158 +78,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const nutrientsDescription = getNutrientsDescription()
 
-    const asyncData = (async (): Promise<{ rows: FieldNutrientRow[] }> => {
-      if (fields.length === 0) {
-        return { rows: [] }
-      }
-
-      // Fetch farm-wide data in a handful of batched queries instead of N queries per field. If this
-      // batch fails, fall back to per-field error rows instead of throwing to the route error boundary.
-      let cultivationsByField: Awaited<ReturnType<typeof getCultivationsForFarm>>
-      let fertilizerApplicationsByField: Awaited<
-        ReturnType<typeof getFertilizerApplicationsForFarm>
-      >
-      let soilDataByField: Awaited<ReturnType<typeof getCurrentSoilDataForFarm>>
-      let fertilizers: Awaited<ReturnType<typeof getFertilizers>>
-      try {
-        ;[cultivationsByField, fertilizerApplicationsByField, soilDataByField, fertilizers] =
-          await Promise.all([
-            getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-            getFertilizerApplicationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-            getCurrentSoilDataForFarm(fdm, session.principal_id, b_id_farm, timeframe),
-            getFertilizers(fdm, session.principal_id, b_id_farm),
-          ])
-      } catch (error) {
-        const errorMessage = toFriendlyAdviceError(error)
-        return {
-          rows: fields.map((field): FieldNutrientRow => ({
-            b_id: field.b_id,
-            b_name: field.b_name,
-            b_area: field.b_area ?? 0,
-            mainCultivation: null,
-            errorMessage,
-            values: {},
-          })),
-        }
-      }
-
-      const nmiApiKey = getNmiApiKey()
-
-      const results: PromiseSettledResult<FieldNutrientRow>[] = []
-      for (const fieldsChunk of chunk(fields, NUTRIENT_ADVICE_CONCURRENCY)) {
-        const chunkResults = await Promise.allSettled(
-          fieldsChunk.map(async (field): Promise<FieldNutrientRow> => {
-            const cultivations = cultivationsByField.get(field.b_id) ?? []
-            const b_area = field.b_area ?? 0
-
-            if (cultivations.length === 0) {
-              return {
-                b_id: field.b_id,
-                b_name: field.b_name,
-                b_area,
-                mainCultivation: null,
-                errorMessage: "Geen gewas geregistreerd voor dit perceel.",
-                values: {},
-              }
-            }
-
-            const activeCultivation = getMainCultivation(cultivations, calendar)
-            const hasDefaultCultivation = !!activeCultivation
-            const fertilizerApplications = fertilizerApplicationsByField.get(field.b_id) ?? []
-            const currentSoilData = soilDataByField.get(field.b_id) ?? []
-
-            const cultivationSuggestion = hasDefaultCultivation
-              ? undefined
-              : await getCultivationSuggestion(
-                  fdm,
-                  session.principal_id,
-                  b_id_farm,
-                  field.b_id,
-                  calendar,
-                  nmiApiKey,
-                )
-
-            if (!activeCultivation) {
-              return {
-                b_id: field.b_id,
-                b_name: field.b_name,
-                b_area,
-                mainCultivation: null,
-                cultivationSuggestion,
-                errorMessage: "Geen hoofdteelt bepaald voor dit jaar.",
-                values: {},
-              }
-            }
-
-            const mainCultivation = {
-              b_lu: activeCultivation.b_lu,
-              b_lu_name: activeCultivation.b_lu_name,
-              b_lu_croprotation: activeCultivation.b_lu_croprotation ?? null,
-            }
-
-            try {
-              const doses = calculateDose({ applications: fertilizerApplications, fertilizers })
-              const nutrientAdvice = await getNutrientAdvice(fdm, {
-                b_lu_catalogue: activeCultivation.b_lu_catalogue,
-                b_centroid: field.b_centroid,
-                currentSoilData,
-                nmiApiKey,
-                b_bufferstrip: field.b_bufferstrip,
-              })
-
-              const values: FieldNutrientRow["values"] = {}
-              for (const nutrient of nutrientsDescription) {
-                values[nutrient.symbol] = {
-                  filling:
-                    (doses.dose[nutrient.doseParameter as keyof typeof doses.dose] as number) ?? 0,
-                  advice:
-                    nutrientAdvice[
-                      nutrient.adviceParameter as Exclude<keyof typeof nutrientAdvice, "cuts">
-                    ] ?? 0,
-                }
-              }
-
-              return {
-                b_id: field.b_id,
-                b_name: field.b_name,
-                b_area,
-                mainCultivation,
-                cultivationSuggestion,
-                values,
-              }
-            } catch (error) {
-              return {
-                b_id: field.b_id,
-                b_name: field.b_name,
-                b_area,
-                mainCultivation,
-                cultivationSuggestion,
-                errorMessage: toFriendlyAdviceError(error),
-                values: {},
-              }
-            }
-          }),
-        )
-        results.push(...chunkResults)
-      }
-
-      const rows = results.map((result, index) => {
-        if (result.status === "fulfilled") {
-          return result.value
-        }
-        const field = fields[index]
-        return {
-          b_id: field.b_id,
-          b_name: field.b_name,
-          b_area: field.b_area ?? 0,
-          mainCultivation: null,
-          errorMessage: toFriendlyAdviceError(result.reason),
-          values: {},
-        } satisfies FieldNutrientRow
-      })
-
-      return { rows }
-    })()
+    // Per-field advice is shared with the Atlas "Bemestingsadvies" layer (FDM-361).
+    const rowPromises: Promise<FieldNutrientRow>[] = startFarmNutrientAdviceRows(
+      { principal_id: session.principal_id, b_id_farm, calendar, timeframe },
+      fields,
+    )
 
     return {
       hasFields: fields.length > 0,
@@ -254,7 +90,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       calendar: calendar,
       farmWritePermission,
       nutrientsDescription,
-      asyncData,
+      pendingFields: fields.map((field) => ({
+        b_id: field.b_id,
+        b_name: field.b_name,
+        b_area: field.b_area ?? 0,
+      })),
+      rowPromises,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -305,29 +146,42 @@ export default function FieldNutrientAdviceIndex() {
 
   return (
     <div className="min-w-0 px-10 pb-10">
-      <Suspense key={`${b_id_farm}#${calendar}`} fallback={<NutrientAdviceOverviewSkeleton />}>
-        <NutrientAdviceOverview loaderData={loaderData} />
-      </Suspense>
+      {/* Keyed per farm and year, so search and sorting start fresh on a switch. */}
+      <NutrientAdviceOverview key={`${b_id_farm}#${calendar}`} loaderData={loaderData} />
     </div>
   )
 }
 
 /**
- * Renders the table once the per-field nutrient advice has resolved.
- *
- * This has to be extracted into a separate component because of the `use(...)` hook.
- * React will not render the component until `asyncData` resolves, but React Router
- * handles it nicely via the `Suspense` component and server-to-client data streaming.
+ * Renders the table straight away and fills it field by field as the streamed advice arrives.
+ * Fields whose advice has not arrived yet are shown as `pending` placeholder rows, so their names
+ * are visible immediately.
  */
 function NutrientAdviceOverview({
   loaderData,
 }: {
-  loaderData: Awaited<ReturnType<typeof loader>>
+  loaderData: ReturnType<typeof useLoaderData<typeof loader>>
 }) {
-  const { rows } = use(loaderData.asyncData)
+  const streamed = useStreamedRows(loaderData.rowPromises)
+  // Re-runs the loader, which returns new `rowPromises` (shown as loading again).
+  const revalidator = useRevalidator()
+
+  const data = useMemo(
+    () =>
+      loaderData.pendingFields.map(
+        (field, index): FieldNutrientRow =>
+          streamed.rows[index] ?? { ...field, mainCultivation: null, values: {}, pending: true },
+      ),
+    [loaderData.pendingFields, streamed.rows],
+  )
+
   return (
     <NutrientAdviceOverviewTable
-      data={rows}
+      data={data}
+      progress={{ settled: streamed.settled, total: streamed.total }}
+      loadFailed={streamed.failed}
+      onRetry={() => void revalidator.revalidate()}
+      isRetrying={revalidator.state === "loading"}
       nutrients={loaderData.nutrientsDescription}
       b_id_farm={loaderData.b_id_farm}
       calendar={loaderData.calendar}

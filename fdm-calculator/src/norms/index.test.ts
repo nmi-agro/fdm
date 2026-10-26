@@ -5,36 +5,28 @@ import {
   createFunctionsForNorms,
   createUncachedFunctionsForFertilizerApplicationFilling,
 } from "./index"
-import {
-  calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-  getNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-} from "./nl/2025/filling/dierlijke-mest-gebruiksnorm"
-import {
-  calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
-  getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm,
-} from "./nl/2025/filling/fosfaatgebruiksnorm"
+import { calculateNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2025/filling/dierlijke-mest-gebruiksnorm"
+import { getNL2025FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2025/filling/dierlijke-mest-gebruiksnorm-cache"
+import { calculateNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2025/filling/fosfaatgebruiksnorm"
+import { getNL2025FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2025/filling/fosfaatgebruiksnorm-cache"
 import { collectNL2025InputForFertilizerApplicationFilling } from "./nl/2025/filling/input"
 import {
   calculateNL2025FertilizerApplicationFillingForStikstofGebruiksNorm,
   getNL2025FertilizerApplicationFillingForStikstofGebruiksNorm,
-} from "./nl/2025/filling/stikstofgebruiksnorm"
+} from "./nl/2025/filling/stikstofgebruiksnorm-cache"
 import { getNL2025DierlijkeMestGebruiksNorm } from "./nl/2025/value/dierlijke-mest-gebruiksnorm"
 import { getNL2025FosfaatGebruiksNorm } from "./nl/2025/value/fosfaatgebruiksnorm"
 import { collectNL2025InputForNorms } from "./nl/2025/value/input"
 import { getNL2025StikstofGebruiksNorm } from "./nl/2025/value/stikstofgebruiksnorm"
-import {
-  calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-  getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm,
-} from "./nl/2026/filling/dierlijke-mest-gebruiksnorm"
-import {
-  calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
-  getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm,
-} from "./nl/2026/filling/fosfaatgebruiksnorm"
+import { calculateNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2026/filling/dierlijke-mest-gebruiksnorm"
+import { getNL2026FertilizerApplicationFillingForDierlijkeMestGebruiksNorm } from "./nl/2026/filling/dierlijke-mest-gebruiksnorm-cache"
+import { calculateNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2026/filling/fosfaatgebruiksnorm"
+import { getNL2026FertilizerApplicationFillingForFosfaatGebruiksNorm } from "./nl/2026/filling/fosfaatgebruiksnorm-cache"
 import { collectNL2026InputForFertilizerApplicationFilling } from "./nl/2026/filling/input"
 import {
   calculateNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
   getNL2026FertilizerApplicationFillingForStikstofGebruiksNorm,
-} from "./nl/2026/filling/stikstofgebruiksnorm"
+} from "./nl/2026/filling/stikstofgebruiksnorm-cache"
 import { getNL2026DierlijkeMestGebruiksNorm } from "./nl/2026/value/dierlijke-mest-gebruiksnorm"
 import { getNL2026FosfaatGebruiksNorm } from "./nl/2026/value/fosfaatgebruiksnorm"
 import { collectNL2026InputForNorms } from "./nl/2026/value/input"

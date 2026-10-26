@@ -158,8 +158,8 @@ async function fetchWithRetry(
  * Races a shared promise against a caller-specific AbortSignal.
  * The shared promise itself is never cancelled — only this caller's view of it is.
  */
-function raceWithSignal(promise: Promise<GeoTIFF>, signal: AbortSignal): Promise<GeoTIFF> {
-  return new Promise<GeoTIFF>((resolve, reject) => {
+function raceWithSignal<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
     if (signal.aborted) {
       reject(signal.reason)
       return
@@ -262,7 +262,55 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
 }
 
 /**
+ * In-memory LRU cache for raster values at a coordinate, keyed by URL and coordinate.
+ *
+ * The rasters are static public datasets whose URL contains the dataset and its version, so a
+ * value read once does not change while the process runs. Caching the promise also deduplicates
+ * concurrent reads of the same pixel. Failed reads are not cached.
+ */
+const valueCache = new Map<string, Promise<number | null>>()
+
+const MAX_VALUE_CACHE_SIZE = 20_000
+
+function valueCacheKey(url: string, longitude: number, latitude: number) {
+  return `${url}|${longitude}|${latitude}`
+}
+
+function valueCacheGet(key: string): Promise<number | null> | undefined {
+  const value = valueCache.get(key)
+  if (value !== undefined) {
+    // Refresh recency: move the entry to the end of insertion order
+    valueCache.delete(key)
+    valueCache.set(key, value)
+  }
+  return value
+}
+
+function valueCacheSet(key: string, value: Promise<number | null>): void {
+  if (!valueCache.has(key) && valueCache.size >= MAX_VALUE_CACHE_SIZE) {
+    // Evict the oldest (least-recently-used) entry
+    const lruKey = valueCache.keys().next().value
+    if (lruKey !== undefined) valueCache.delete(lruKey)
+  }
+  valueCache.set(key, value)
+}
+
+/**
+ * Clears the cache of raster values. Intended for tests.
+ *
+ * @internal
+ */
+export function clearGeoTiffValueCache(): void {
+  valueCache.clear()
+}
+
+/**
  * Fetches a GeoTIFF value at a specific geographic coordinate.
+ *
+ * Values are cached in memory per URL and coordinate, so repeated lookups of the same location,
+ * for example when a calculation is repeated with different fertilizer applications, do not read
+ * the raster again. An aborted call stops waiting for the value, but the shared read continues so
+ * that its value can be reused.
  *
  * @param url - The URL of the GeoTIFF file.
  * @param longitude - The longitude of the location.
@@ -271,6 +319,28 @@ export async function getTiff(url: string, signal?: AbortSignal): Promise<GeoTIF
  * @returns A promise that resolves with the GeoTIFF value at the specified location, or null if outside the TIFF bounds or no data.
  */
 export async function getGeoTiffValue(
+  url: string,
+  longitude: number,
+  latitude: number,
+  signal?: AbortSignal,
+): Promise<number | null> {
+  if (signal?.aborted) throw signal.reason
+
+  const key = valueCacheKey(url, longitude, latitude)
+  let promise = valueCacheGet(key)
+  if (!promise) {
+    promise = readGeoTiffValue(url, longitude, latitude)
+    valueCacheSet(key, promise)
+    // Do not keep failed reads, so a later call can try again
+    promise.catch(() => {
+      if (valueCache.get(key) === promise) valueCache.delete(key)
+    })
+  }
+  return signal ? raceWithSignal(promise, signal) : promise
+}
+
+/** Reads the raster value at a coordinate, without caching. */
+async function readGeoTiffValue(
   url: string,
   longitude: number,
   latitude: number,

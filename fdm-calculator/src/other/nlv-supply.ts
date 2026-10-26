@@ -1,4 +1,5 @@
 import Decimal from "decimal.js"
+import { calculateMinipNitrogenMineralization } from "../shared/minip"
 
 /**
  * Parameters for calculating the Nitrogen Supplying Capacity (Stikstof Leverend Vermogen, NLV / d_n_supply_base) of a soil.
@@ -37,13 +38,6 @@ export interface NlvSupplyBySomParams {
  * @returns The absolute NLV (in kg N / ha / year).
  */
 export function calculateNlv({ a_clay_mi, a_cn_fr, a_som_loi }: NlvParams): number {
-  // Settings (from MINIP model)
-  const paramA = new Decimal(20) // Age of organic matter
-  const paramB = new Decimal(2).pow(new Decimal(14.1).sub(9).div(9)) // Temperature correction
-  const paramCnMicro = new Decimal(10) // CN ratio of micro organisms
-  const paramT = new Decimal(5).div(12) // 5 months a year
-  const paramDissMicro = new Decimal(2) // Dissimilation : assimilation ratio of micro organisms
-
   const clayPct = new Decimal(a_clay_mi)
   const cnFr = new Decimal(a_cn_fr)
   const som = new Decimal(a_som_loi)
@@ -70,16 +64,15 @@ export function calculateNlv({ a_clay_mi, a_cn_fr, a_som_loi }: NlvParams): numb
     .times(density)
     .times(1000)
 
-  // Step 3: Estimate NLV
-  // c.diss = SOC * (1 - exp(4.7 * ((param.a + param.b * param.t)^-0.6 - param.a^-0.6)))
-  const exponent = new Decimal(4.7).times(
-    paramA.add(paramB.times(paramT)).pow(-0.6).sub(paramA.pow(-0.6)),
-  )
-  const cDiss = socStock.times(new Decimal(1).sub(exponent.exp()))
-  const cAss = cDiss.div(paramDissMicro)
-
-  // nlv = ((c.diss + c.ass) / A_CN_FR) - (c.ass / param.cn.micro)
-  return cDiss.add(cAss).div(cnFr).sub(cAss.div(paramCnMicro)).toNumber()
+  // Step 3: Estimate NLV with MINIP for the growing season of 5 months at 14.1 °C, for organic
+  // matter with an age of 20 years
+  return calculateMinipNitrogenMineralization({
+    c_stock: socStock,
+    a_cn_fr: cnFr,
+    age: 20,
+    temperature: 14.1,
+    time: new Decimal(5).div(12),
+  }).toNumber()
 }
 
 /**

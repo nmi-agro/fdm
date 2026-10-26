@@ -91,6 +91,23 @@ export function HeaderFarmCreate({ b_name_farm }: { b_name_farm: string | undefi
           )}
         </>
       ) : null}
+      {currentPath.match(/\/rotation/) ? (
+        currentPath.match(/fertilizer/) ? (
+          <>
+            <BreadcrumbItem className="hidden xl:block">
+              <BreadcrumbLink>Bouwplan</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="hidden xl:block" />
+            <BreadcrumbItem>
+              <BreadcrumbLink>Bemesting</BreadcrumbLink>
+            </BreadcrumbItem>
+          </>
+        ) : (
+          <BreadcrumbItem>
+            <BreadcrumbLink>Bouwplan</BreadcrumbLink>
+          </BreadcrumbItem>
+        )
+      ) : null}
       {currentPath.match(/access/) ? (
         <BreadcrumbItem>
           <BreadcrumbLink>Toegang</BreadcrumbLink>

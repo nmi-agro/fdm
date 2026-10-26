@@ -147,14 +147,26 @@ export type {
   InputAggregateNormsToFarmLevel,
 } from "./norms/farm"
 export { aggregateNormFillingsToFarmLevel, aggregateNormsToFarmLevel } from "./norms/farm"
+export type {
+  FertilizerApplicationFillingInputByYear,
+  FertilizerApplicationFillings,
+} from "./norms/filling"
+export { calculateFertilizerApplicationFillingsWithRegion } from "./norms/filling"
 export {
   isFieldInGWGBGebied,
   isFieldInNatura2000Gebied,
 } from "./norms/nl/2025/value/dierlijke-mest-gebruiksnorm"
 export { getRegion, isFieldInNVGebied } from "./norms/nl/2025/value/stikstofgebruiksnorm"
-export type { NL2025NormsInput } from "./norms/nl/2025/value/types"
+export type { NL2025NormsInput, RegionKey } from "./norms/nl/2025/value/types"
 export type { GebruiksnormResult, NormFilling } from "./norms/nl/types"
 export { getNutrientAdvice, requestNutrientAdvice } from "./nutrient-advice"
+export type {
+  AggregatedNutrientAdvice,
+  InputAggregateNutrientAdviceToFarmLevel,
+  NutrientAdviceAggregationMode,
+  NutrientDoseAndAdvice,
+} from "./nutrient-advice/aggregate"
+export { aggregateNutrientAdviceToFarmLevel } from "./nutrient-advice/aggregate"
 export type {
   NutrientAdvice,
   NutrientAdviceCut,

@@ -7,6 +7,8 @@ import type {
   getDoseForField,
   getNitrogenBalanceField,
   getOrganicMatterBalanceField,
+  NitrogenBalanceFieldNumeric,
+  NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
 // [MINERALIZATION: disabled — behind feature flag in fdm-app]
 // import {
@@ -83,15 +85,34 @@ export interface CalculationServices {
 // Shared schemas
 // ---------------------------------------------------------------------------
 
+const TimeframeQueryShape = {
+  start: DateStringSchema.describe("Inclusive start date in YYYY-MM-DD format."),
+  end: DateStringSchema.describe("Inclusive end date in YYYY-MM-DD format."),
+}
+
+const isTimeframeOrdered = (d: { start: string; end: string }) =>
+  new Date(d.start) <= new Date(d.end)
+
+const timeframeOrderError = {
+  message: "start must be before or equal to end",
+  path: ["end"],
+}
+
 const TimeframeQuerySchema = z
+  .object(TimeframeQueryShape)
+  .refine(isTimeframeOrdered, timeframeOrderError)
+
+const NitrogenBalanceQuerySchema = z
   .object({
-    start: DateStringSchema.describe("Inclusive start date in YYYY-MM-DD format."),
-    end: DateStringSchema.describe("Inclusive end date in YYYY-MM-DD format."),
+    ...TimeframeQueryShape,
+    effective_nitrogen: z
+      .enum(["true", "false"])
+      .optional()
+      .describe(
+        "When `true`, the supply by fertilizers is calculated with effective nitrogen (`p_n_rt * p_n_wc`) and the soil mineralization with the MINIP model. Nitrate leaching is still based on the surplus of the balance with total nitrogen. The target is only available for the balance with total nitrogen and is omitted from the response. Defaults to `false`.",
+      ),
   })
-  .refine((d) => new Date(d.start) <= new Date(d.end), {
-    message: "start must be before or equal to end",
-    path: ["end"],
-  })
+  .refine(isTimeframeOrdered, timeframeOrderError)
 
 const ApplicationValueSchema = z.object({
   id: z.string(),
@@ -191,7 +212,10 @@ const NitrogenBalanceFieldResultSchema = z
         supply: NitrogenSupplyFieldSchema,
         removal: NitrogenRemovalFieldSchema,
         emission: NitrogenEmissionFieldSchema,
-        target: z.number().describe("Target nitrogen balance in kg N/ha"),
+        target: z
+          .number()
+          .optional()
+          .describe("Target nitrogen balance in kg N/ha. Omitted when `effective_nitrogen=true`."),
       })
       .optional(),
     errorMessage: z.string().optional(),
@@ -228,7 +252,12 @@ const NitrogenBalanceSchema = z
       }),
       nitrate: z.number(),
     }),
-    target: z.number().describe("Weighted average target nitrogen balance in kg N/ha"),
+    target: z
+      .number()
+      .optional()
+      .describe(
+        "Weighted average target nitrogen balance in kg N/ha. Omitted when `effective_nitrogen=true`.",
+      ),
     fields: z.array(NitrogenBalanceFieldResultSchema),
     hasErrors: z.boolean(),
     fieldErrorMessages: z.array(z.string()),
@@ -437,6 +466,34 @@ const FarmNormsSchema = z
 //     .openapi("DynaResult")
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Removes the target from a nitrogen balance. The target only applies to the balance with total
+ * nitrogen, so it is omitted from the balance with effective nitrogen.
+ */
+function omitTarget(
+  balance: NitrogenBalanceFieldNumeric,
+): Omit<NitrogenBalanceFieldNumeric, "target"> {
+  const { target: _target, ...rest } = balance
+  return rest
+}
+
+/**
+ * Removes the target from a farm nitrogen balance and from the balance of each of its fields.
+ */
+function omitNitrogenBalanceTargets(result: NitrogenBalanceNumeric) {
+  const { target: _target, fields, ...rest } = result
+  return {
+    ...rest,
+    fields: fields.map((field) =>
+      field.balance ? { ...field, balance: omitTarget(field.balance) } : field,
+    ),
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Routes
 // ---------------------------------------------------------------------------
 
@@ -445,12 +502,12 @@ const farmNitrogenBalanceRoute = createRoute({
   path: "/farms/{b_id_farm}/calculations/nitrogen-balance",
   summary: "Calculate nitrogen balance for a farm",
   description:
-    "Computes the weighted-average nitrogen balance across all fields for the given farm and timeframe. All values in kg N/ha.",
+    "Computes the weighted-average nitrogen balance across all fields for the given farm and timeframe. Set `effective_nitrogen=true` for the balance with effective nitrogen. All values in kg N/ha.",
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({ b_id_farm: z.string() }),
-    query: TimeframeQuerySchema,
+    query: NitrogenBalanceQuerySchema,
   },
   responses: {
     200: {
@@ -489,12 +546,12 @@ const fieldNitrogenBalanceRoute = createRoute({
   path: "/fields/{b_id}/calculations/nitrogen-balance",
   summary: "Calculate nitrogen balance for a field",
   description:
-    "Computes the nitrogen balance for a single field for the given timeframe. All values in kg N/ha.",
+    "Computes the nitrogen balance for a single field for the given timeframe. Set `effective_nitrogen=true` for the balance with effective nitrogen. All values in kg N/ha.",
   tags: ["Calculations"],
   security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
   request: {
     params: z.object({ b_id: z.string() }),
-    query: TimeframeQuerySchema,
+    query: NitrogenBalanceQuerySchema,
   },
   responses: {
     200: {
@@ -762,10 +819,12 @@ export function registerCalculationRoutes(
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { b_id_farm } = c.req.valid("param") as { b_id_farm: string }
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { start, end } = c.req.valid("query") as {
+    const { start, end, effective_nitrogen } = c.req.valid("query") as {
       start: string
       end: string
+      effective_nitrogen?: "true" | "false"
     }
+    const useEffectiveNitrogen = effective_nitrogen === "true"
 
     const timeframe = { start: new Date(start), end: new Date(end) }
     const input = await services.collectInputForNitrogenBalance(
@@ -774,8 +833,16 @@ export function registerCalculationRoutes(
       b_id_farm,
       timeframe,
     )
-    const result = await services.calculateNitrogenBalance(fdm, input)
-    return c.json(result as z.infer<typeof NitrogenBalanceSchema>, 200)
+    const result = await services.calculateNitrogenBalance(fdm, {
+      ...input,
+      useEffectiveNitrogen,
+    })
+    return c.json(
+      (useEffectiveNitrogen ? omitNitrogenBalanceTargets(result) : result) as z.infer<
+        typeof NitrogenBalanceSchema
+      >,
+      200,
+    )
   }
 
   // --- Farm-level organic matter balance ---
@@ -814,10 +881,12 @@ export function registerCalculationRoutes(
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
     const { b_id } = c.req.valid("param") as { b_id: string }
     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-    const { start, end } = c.req.valid("query") as {
+    const { start, end, effective_nitrogen } = c.req.valid("query") as {
       start: string
       end: string
+      effective_nitrogen?: "true" | "false"
     }
+    const useEffectiveNitrogen = effective_nitrogen === "true"
 
     const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
     if (!field) {
@@ -850,6 +919,7 @@ export function registerCalculationRoutes(
         start: input.timeFrame.start as Date,
         end: input.timeFrame.end as Date,
       },
+      useEffectiveNitrogen,
     })
 
     return c.json(
@@ -857,7 +927,7 @@ export function registerCalculationRoutes(
         b_id: fieldInput.field.b_id,
         b_area: fieldInput.field.b_area ?? 0,
         b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
-        balance,
+        balance: useEffectiveNitrogen ? omitTarget(balance) : balance,
       } as z.infer<typeof NitrogenBalanceFieldResultSchema>,
       200,
     )

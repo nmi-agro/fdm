@@ -90,15 +90,15 @@ export const meta: MetaFunction = () => {
  */
 export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
-    // This route is a layout to be able to show dialogs on top of the table
-    // An empty layout should be rendered for irrelevant routes
+    // This route renders the fields table only on its own path; child routes are full pages,
+    // so an empty layout is rendered for them
     if (params.b_id_farm && params.calendar) {
       const base = `/farm/${params.b_id_farm}/${params.calendar}/field`
 
       const toTest = url.pathname.endsWith("/")
         ? url.pathname.substring(0, url.pathname.length - 1)
         : url.pathname
-      if (toTest !== base && !toTest.startsWith(`${base}/modify_fertilizer`)) {
+      if (toTest !== base) {
         return {
           shouldShowLayout: false,
           b_id_farm: params.b_id_farm,

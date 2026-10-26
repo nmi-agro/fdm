@@ -395,6 +395,68 @@ describe("GET /farms/:b_id_farm/calculations/nitrogen-balance", () => {
     })
   })
 
+  it("calculates with total nitrogen and returns the target by default", async () => {
+    const calculate = vi.fn().mockResolvedValue(mockNitrogenBalance)
+
+    const app = makeApp({
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      calculateNitrogenBalance: calculate,
+    })
+    const res = await app.request(
+      `/farms/farm-1/calculations/nitrogen-balance?start=${START}&end=${END}`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.target).toBe(20)
+    expect(calculate).toHaveBeenCalledWith(
+      mockFdm,
+      expect.objectContaining({ useEffectiveNitrogen: false }),
+    )
+  })
+
+  it("calculates with effective nitrogen and omits the targets when effective_nitrogen=true", async () => {
+    const calculate = vi.fn().mockResolvedValue({
+      ...mockNitrogenBalance,
+      fields: [
+        {
+          b_id: "field-1",
+          b_area: 5.0,
+          b_bufferstrip: false,
+          balance: mockFieldNitrogenBalance,
+        },
+      ],
+    })
+
+    const app = makeApp({
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      calculateNitrogenBalance: calculate,
+    })
+    const res = await app.request(
+      `/farms/farm-1/calculations/nitrogen-balance?start=${START}&end=${END}&effective_nitrogen=true`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.balance).toBe(15.5)
+    expect(body).not.toHaveProperty("target")
+    expect(body.fields[0].balance.balance).toBe(15.5)
+    expect(body.fields[0].balance).not.toHaveProperty("target")
+    expect(calculate).toHaveBeenCalledWith(
+      mockFdm,
+      expect.objectContaining({ useEffectiveNitrogen: true }),
+    )
+  })
+
+  it("returns 400 for an invalid effective_nitrogen value", async () => {
+    const app = makeApp()
+    const res = await app.request(
+      `/farms/farm-1/calculations/nitrogen-balance?start=${START}&end=${END}&effective_nitrogen=yes`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(400)
+  })
+
   it("returns 400 when start date is missing", async () => {
     const app = makeApp()
     const res = await app.request(`/farms/farm-1/calculations/nitrogen-balance?end=${END}`, {
@@ -496,6 +558,49 @@ describe("GET /fields/:b_id/calculations/nitrogen-balance", () => {
       "farm-1",
       { start: new Date(START), end: new Date(END) },
       "field-1",
+    )
+  })
+
+  it("calculates with total nitrogen and returns the target by default", async () => {
+    const getNitrogenField = vi.fn().mockResolvedValue(mockFieldNitrogenBalance)
+
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      getNitrogenBalanceField: getNitrogenField,
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/nitrogen-balance?start=${START}&end=${END}`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.balance.target).toBe(20)
+    expect(getNitrogenField).toHaveBeenCalledWith(
+      mockFdm,
+      expect.objectContaining({ useEffectiveNitrogen: false }),
+    )
+  })
+
+  it("calculates with effective nitrogen and omits the target when effective_nitrogen=true", async () => {
+    const getNitrogenField = vi.fn().mockResolvedValue(mockFieldNitrogenBalance)
+
+    const app = makeApp({
+      getField: vi.fn().mockResolvedValue(mockField),
+      collectInputForNitrogenBalance: vi.fn().mockResolvedValue(mockNitrogenInput),
+      getNitrogenBalanceField: getNitrogenField,
+    })
+    const res = await app.request(
+      `/fields/field-1/calculations/nitrogen-balance?start=${START}&end=${END}&effective_nitrogen=true`,
+      { headers: { "x-api-key": "valid-key" } },
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.balance.balance).toBe(15.5)
+    expect(body.balance).not.toHaveProperty("target")
+    expect(getNitrogenField).toHaveBeenCalledWith(
+      mockFdm,
+      expect.objectContaining({ useEffectiveNitrogen: true }),
     )
   })
 

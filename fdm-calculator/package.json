@@ -25,10 +25,10 @@
         "default": "./dist/index.js"
       }
     },
-    "./indicators": {
+    "./browser": {
       "import": {
-        "types": "./dist/indicators.d.ts",
-        "default": "./dist/indicators.js"
+        "types": "./dist/browser.d.ts",
+        "default": "./dist/browser.js"
       }
     }
   },

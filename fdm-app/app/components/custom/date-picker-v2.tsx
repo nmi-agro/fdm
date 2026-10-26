@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import type { ControllerFieldState, ControllerRenderProps, FieldValues } from "react-hook-form"
 import { nl as calenderLocale } from "@daypicker/react/locale"
 import * as chrono from "chrono-node"
@@ -18,7 +19,7 @@ import { cn } from "~/lib/utils"
 import { useCalendarStore } from "~/store/calendar"
 
 type DatePickerProps = {
-  label: string | undefined
+  label: ReactNode
   description?: string
   placeholder?: string
   defaultValue?: Date
@@ -94,7 +95,7 @@ export function DatePicker({
 
   return (
     <Field data-invalid={fieldState.invalid} className={cn("gap-1", className)}>
-      {typeof label === "string" && <FieldLabel>{label}</FieldLabel>}
+      {label ? <FieldLabel>{label}</FieldLabel> : null}
       <div className="relative flex gap-2">
         <Input
           {...field}

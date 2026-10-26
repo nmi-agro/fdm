@@ -1,5 +1,6 @@
 import {
   aggregateNormFillingsToFarmLevel,
+  aggregateNutrientAdviceToFarmLevel,
   aggregateNormsToFarmLevel,
   calculateDose,
   createFunctionsForFertilizerApplicationFilling,
@@ -569,32 +570,36 @@ export async function computeBemestingsplanData({
     })),
   )
 
-  const totalAdviceKg = pdfFieldsData.reduce(
-    (acc, f) => ({
-      d_n_req: acc.d_n_req + f.advice.d_n_req * f.area,
-      d_p_req: acc.d_p_req + f.advice.d_p_req * f.area,
-      d_k_req: acc.d_k_req + f.advice.d_k_req * f.area,
-      d_c_req: acc.d_c_req + f.advice.d_c_req * f.area,
-    }),
-    { d_n_req: 0, d_p_req: 0, d_k_req: 0, d_c_req: 0 },
+  // Total advice and planned dose in kg. Both total N and workable N are compared with the N advice.
+  const totalAdviceAndDoseKg = aggregateNutrientAdviceToFarmLevel(
+    pdfFieldsData.map((f) => ({
+      b_area: f.area,
+      values: {
+        n: { dose: f.planned.p_dose_n, advice: f.advice.d_n_req },
+        nw: { dose: f.planned.p_dose_nw, advice: f.advice.d_n_req },
+        p: { dose: f.planned.p_dose_p, advice: f.advice.d_p_req },
+        k: { dose: f.planned.p_dose_k, advice: f.advice.d_k_req },
+        eoc: { dose: f.planned.p_dose_eoc, advice: f.advice.d_c_req },
+      },
+    })),
+    ["n", "nw", "p", "k", "eoc"],
+    "total",
   )
 
-  const totalPlannedUsageKg = pdfFieldsData.reduce(
-    (acc, f) => ({
-      p_dose_n: acc.p_dose_n + f.planned.p_dose_n * f.area,
-      p_dose_nw: acc.p_dose_nw + f.planned.p_dose_nw * f.area,
-      p_dose_p: acc.p_dose_p + f.planned.p_dose_p * f.area,
-      p_dose_k: acc.p_dose_k + f.planned.p_dose_k * f.area,
-      p_dose_eoc: acc.p_dose_eoc + f.planned.p_dose_eoc * f.area,
-    }),
-    {
-      p_dose_n: 0,
-      p_dose_nw: 0,
-      p_dose_p: 0,
-      p_dose_k: 0,
-      p_dose_eoc: 0,
-    },
-  )
+  const totalAdviceKg = {
+    d_n_req: totalAdviceAndDoseKg.n.advice,
+    d_p_req: totalAdviceAndDoseKg.p.advice,
+    d_k_req: totalAdviceAndDoseKg.k.advice,
+    d_c_req: totalAdviceAndDoseKg.eoc.advice,
+  }
+
+  const totalPlannedUsageKg = {
+    p_dose_n: totalAdviceAndDoseKg.n.dose,
+    p_dose_nw: totalAdviceAndDoseKg.nw.dose,
+    p_dose_p: totalAdviceAndDoseKg.p.dose,
+    p_dose_k: totalAdviceAndDoseKg.k.dose,
+    p_dose_eoc: totalAdviceAndDoseKg.eoc.dose,
+  }
 
   // Calculate aggregate OM balance (weighted average per ha)
   const totalOmBalance =

@@ -27,4 +27,6 @@ export type FieldNutrientRow = {
   errorMessage?: string
   /** Nutrient values keyed by nutrient symbol (e.g. "N", "P", "EOC"). */
   values: Record<string, FieldNutrientValue>
+  /** Set on placeholder rows whose advice is still being calculated (streamed in later). */
+  pending?: true
 }

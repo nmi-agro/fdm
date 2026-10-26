@@ -18,8 +18,9 @@ const paddedReplacement = replacement.padEnd(placeholder.length, " ")
 export default defineConfig({
   entry: {
     index: "src/index.ts",
-    // Browser-safe subpath without fdm-core or network dependencies, for client-side code.
-    indicators: "src/bln3/postprocessing.ts",
+    // Browser-safe subpath without fdm-core or network dependencies, for client-side code: the
+    // pure norms, nitrogen balance, dose, nutrient advice and indicator functions.
+    browser: "src/browser.ts",
   },
   format: "esm",
   outDir: "dist",

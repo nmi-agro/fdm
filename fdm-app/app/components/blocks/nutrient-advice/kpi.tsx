@@ -124,7 +124,7 @@ export function NutrientKPICardForNutrientDeficit({
               navigation.state === "loading"
                 ? "rounded-full bg-black/10 p-3"
                 : hasDeficit
-                  ? "rounded-full bg-red-500/10 p-3"
+                  ? "rounded-full bg-orange-500/10 p-3"
                   : "rounded-full bg-green-500/10 p-3"
             }
           >
@@ -133,7 +133,7 @@ export function NutrientKPICardForNutrientDeficit({
                 navigation.state === "loading"
                   ? "h-6 w-6 text-black"
                   : hasDeficit
-                    ? "h-6 w-6 text-red-500"
+                    ? "h-6 w-6 text-orange-500"
                     : "h-6 w-6 text-green-500"
               }
             />
@@ -213,7 +213,7 @@ export function NutrientKPICardForNutrientExcess({
               navigation.state === "loading"
                 ? "rounded-full bg-black/10 p-3"
                 : hasExcess
-                  ? "rounded-full bg-orange-500/10 p-3"
+                  ? "rounded-full bg-red-500/10 p-3"
                   : "rounded-full bg-green-500/10 p-3"
             }
           >
@@ -222,7 +222,7 @@ export function NutrientKPICardForNutrientExcess({
                 navigation.state === "loading"
                   ? "h-6 w-6 text-black"
                   : hasExcess
-                    ? "h-6 w-6 text-orange-500"
+                    ? "h-6 w-6 text-red-500"
                     : "h-6 w-6 text-green-500"
               }
             />

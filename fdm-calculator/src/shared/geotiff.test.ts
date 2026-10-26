@@ -1,6 +1,6 @@
 import * as geotiff from "geotiff"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { getGeoTiffValue, getTiff } from "./geotiff"
+import { clearGeoTiffValueCache, getGeoTiffValue, getTiff } from "./geotiff"
 
 // Mock the geotiff module
 vi.mock("geotiff", () => ({
@@ -197,6 +197,31 @@ describe("geotiff module", () => {
       vi.mocked(geotiff.fromUrl).mockResolvedValue({
         getImage: async () => mockImage,
       } as any)
+      clearGeoTiffValueCache()
+    })
+
+    it("should cache the value per url and coordinate", async () => {
+      mockImage.readRasters.mockResolvedValue([new Float32Array([7])])
+
+      const url = "http://example.com/memo.tif"
+      expect(await getGeoTiffValue(url, 50, 50)).toBe(7)
+      expect(await getGeoTiffValue(url, 50, 50)).toBe(7)
+      expect(mockImage.readRasters).toHaveBeenCalledTimes(1)
+
+      // Another coordinate is read separately
+      expect(await getGeoTiffValue(url, 20, 20)).toBe(7)
+      expect(mockImage.readRasters).toHaveBeenCalledTimes(2)
+    })
+
+    it("should not cache a failed read", async () => {
+      mockImage.readRasters
+        .mockRejectedValueOnce(new Error("Read failed"))
+        .mockResolvedValueOnce([new Float32Array([9])])
+
+      const url = "http://example.com/memo-error.tif"
+      await expect(getGeoTiffValue(url, 50, 50)).rejects.toThrow("Read failed")
+      expect(await getGeoTiffValue(url, 50, 50)).toBe(9)
+      expect(mockImage.readRasters).toHaveBeenCalledTimes(2)
     })
 
     it("should return null if coordinates are out of bounds", async () => {

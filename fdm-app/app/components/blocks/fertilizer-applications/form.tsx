@@ -1,11 +1,11 @@
-import type { MouseEvent } from "react"
+import type { MouseEvent, ReactNode } from "react"
 import type { Navigation } from "react-router"
 /* eslint-disable typescript/unbound-method -- react-hook-form registration and control references are unbound by design in standard React Hook Form usage. */
 import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
-import { useEffect, useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -30,6 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip
 import { getContextualDate } from "~/lib/calendar"
 import { useCalendarStore } from "~/store/calendar"
 import type { FertilizerOption } from "./types.d"
+import { DRAFT_SAVED_STATE } from "./bulk/use-unsaved-changes-guard"
 import {
   type FieldFertilizerFormValues,
   FormSchema,
@@ -45,6 +46,15 @@ import {
  * It accepts two partial FieldFertilizerFormValues objects to pre-fill the form and set the placeholders.
  * - The fields are pre-filled according to the fertilizerApplication prop value. If it is missing, all form fields are left empty. fertilizerApplication cannot be used to drive the form state.
  * - The placeholders will be set according to the exampleFertilizerApplication prop value. If it is missing, the default placeholders are used for all form fields.
+ *
+ * Optional props for embedding the form in a larger page:
+ * - `submitLabel` replaces the text of the submit button.
+ * - `onValuesChange` is called with the current form values whenever a value changes, for example to preview the effect of the application.
+ * - `footerSlot` is rendered directly above the submit button, for example for warnings.
+ * - `submitDisabledReason` disables the submit button and shows the reason next to it.
+ * - `onCancel` adds an Annuleren button next to the submit button, for example to stop editing.
+ * - `onDirtyChange` is called when the user starts or stops having unsaved input, for example to
+ *   warn before leaving the page.
  */
 export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   intent,
@@ -58,6 +68,14 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   exampleFertilizerApplication,
   schema,
   fieldsClassName,
+  submitLabel,
+  onValuesChange,
+  footerSlot,
+  submitDisabledReason,
+  id,
+  submitAreaClassName,
+  onCancel,
+  onDirtyChange,
 }: {
   intent?: string
   b_id?: string
@@ -70,10 +88,20 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   exampleFertilizerApplication?: Partial<FieldFertilizerFormValues> | null | undefined
   schema?: T
   fieldsClassName?: string
+  submitLabel?: string
+  onValuesChange?: (values: Partial<FieldFertilizerFormValues>) => void
+  footerSlot?: ReactNode
+  submitDisabledReason?: string
+  /** Id of the form element, so a button elsewhere on the page can submit it. */
+  id?: string
+  submitAreaClassName?: string
+  onCancel?: () => void
+  onDirtyChange?: (dirty: boolean) => void
 }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const formId = useId()
+  const generatedFormId = useId()
+  const formId = id ?? generatedFormId
   const { calendar } = useCalendarStore()
   const form = useRemixForm<FieldFertilizerFormValues>({
     mode: "onTouched",
@@ -100,18 +128,57 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     },
   })
 
+  // Report whether the user has unsaved input, for example to warn before leaving the page
+  const isDirty = form.formState.isDirty
+  const onDirtyChangeRef = useRef(onDirtyChange)
+  useEffect(() => {
+    onDirtyChangeRef.current = onDirtyChange
+  })
+  useEffect(() => {
+    onDirtyChangeRef.current?.(isDirty)
+  }, [isDirty])
+
+  // Report value changes to the parent, for example to preview the effect of the application
+  const onValuesChangeRef = useRef(onValuesChange)
+  useEffect(() => {
+    onValuesChangeRef.current = onValuesChange
+  }, [onValuesChange])
+  const hasValuesListener = Boolean(onValuesChange)
+  const { watch, getValues } = form
+  useEffect(() => {
+    if (!hasValuesListener) return
+    onValuesChangeRef.current?.(getValues())
+    const subscription = watch((values) =>
+      onValuesChangeRef.current?.(values as Partial<FieldFertilizerFormValues>),
+    )
+    return () => subscription.unsubscribe()
+  }, [hasValuesListener, watch, getValues])
+
   const p_id = useWatch({ control: form.control, name: "p_id" })
   const selectedFertilizer = options.find((option) => option.value === p_id)
-  const isSubmitting = navigation.state !== "idle"
+  // Only a form submission counts; leaving the page without saving is a navigation without form
+  // data and must not look like saving
+  const isSubmitting = navigation.state !== "idle" && Boolean(navigation.formData)
+  // With a custom (partial) schema, empty fields keep their value, so they are not required
+  const requiredMarker = schema ? null : (
+    <span className="text-red-500" aria-hidden="true">
+      *
+    </span>
+  )
 
-  // If the user switched the fertilizer, clear the application method and amount
+  // If the user switched the fertilizer, clear the amount and the application method. When the
+  // fertilizer has a single application method, choose it right away.
   const formSetValue = form.setValue
+  const singleMethod =
+    selectedFertilizer?.applicationMethodOptions.length === 1
+      ? selectedFertilizer.applicationMethodOptions[0].value
+      : undefined
   useEffect(() => {
     if (p_id && (!fertilizerApplication || fertilizerApplication.p_id !== p_id)) {
-      formSetValue("p_app_method", "")
+      formSetValue("p_app_method", singleMethod ?? "")
       formSetValue("p_app_amount_display", undefined as unknown as number)
     }
-  }, [formSetValue, p_id, fertilizerApplication])
+  }, [formSetValue, p_id, fertilizerApplication, singleMethod])
 
   const formGetFieldState = form.getFieldState
   const form_p_app_date = useWatch({ control: form.control, name: "p_app_date" })
@@ -185,8 +252,10 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
     if (b_id_farm && b_id_or_b_lu_catalogue) {
       saveFertilizerForm(b_id_farm, b_id_or_b_lu_catalogue, form.getValues(), calendar)
     }
+    // The input is kept as a draft, so a warning about unsaved input is not needed
     void navigate(
       `/farm/${b_id_farm}/fertilizers/new?returnUrl=${encodeURIComponent(`${location.pathname}${location.search}`)}`,
+      { state: DRAFT_SAVED_STATE },
     )
   }
 
@@ -213,7 +282,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                   label={
                     <span>
                       Meststof
-                      <span className="text-red-500">*</span>
+                      {requiredMarker}
                     </span>
                   }
                   defaultValue={fertilizerApplication?.p_id}
@@ -228,6 +297,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                       variant="secondary"
                       className="ml-2"
                       onClick={handleManageFertilizers}
+                      aria-label="Voeg een nieuwe meststof toe"
                     >
                       <Plus className="size-4" />
                     </Button>
@@ -242,7 +312,12 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
               name="p_app_method"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <FieldLabel>Toedieningsmethode</FieldLabel>
+                  <FieldLabel>
+                    <span>
+                      Toedieningsmethode
+                      {requiredMarker}
+                    </span>
+                  </FieldLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value ?? ""}
@@ -267,14 +342,18 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
               name="p_app_amount_display"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid} className="gap-1">
-                  <FieldLabel>Hoeveelheid ({currentApplicationUnitLabel})</FieldLabel>
+                  <FieldLabel>
+                    <span>
+                      Hoeveelheid ({currentApplicationUnitLabel}){requiredMarker}
+                    </span>
+                  </FieldLabel>
                   <Input
                     {...field}
                     placeholder={
                       Number.isFinite(exampleFertilizerApplication?.p_app_amount_display) &&
                       fertilizerApplication?.p_id === p_id
-                        ? `Er zijn verschillende waarden ingevuld, bv: ${exampleFertilizerApplication?.p_app_amount_display} ${currentApplicationUnitLabel}`
-                        : `Bv. ${({ "kg/ha": "3700", "ton/ha": "3.7", "l/ha": "3700", "m3/ha": "3.7" } as const)[currentApplicationUnit]} ${currentApplicationUnitLabel}`
+                        ? `Verschillend, bv. ${exampleFertilizerApplication?.p_app_amount_display} ${currentApplicationUnitLabel}`
+                        : `Bv. ${({ "kg/ha": "3700", "ton/ha": "3,7", "l/ha": "3700", "m3/ha": "3,7" } as const)[currentApplicationUnit]} ${currentApplicationUnitLabel}`
                     }
                     aria-required="true"
                     aria-invalid={fieldState.invalid}
@@ -304,10 +383,15 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
               control={form.control}
               render={({ field, fieldState }) => (
                 <DatePicker
-                  label="Datum"
+                  label={
+                    <span>
+                      Datum
+                      {requiredMarker}
+                    </span>
+                  }
                   placeholder={
                     exampleFertilizerApplication?.p_app_date
-                      ? `Er zijn verschillende waarden ingevuld, bv: ${formatDate(exampleFertilizerApplication.p_app_date, "PP", { locale: nl })}`
+                      ? `Verschillend, bv. ${formatDate(exampleFertilizerApplication.p_app_date, "PP", { locale: nl })}`
                       : undefined
                   }
                   defaultValue={fertilizerApplication?.p_app_date}
@@ -319,18 +403,33 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                 />
               )}
             />
-            <div className="invisible" />
-            <div className="ml-auto">
-              <Button type="submit">
+            {footerSlot ? (
+              <div className="col-span-full">{footerSlot}</div>
+            ) : (
+              <div className="invisible" />
+            )}
+            <div
+              className={cn(
+                "col-span-full ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1 md:col-span-1",
+                submitAreaClassName,
+              )}
+            >
+              {submitDisabledReason && (
+                <p className="text-muted-foreground text-sm">{submitDisabledReason}</p>
+              )}
+              {onCancel && (
+                <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+                  Annuleren
+                </Button>
+              )}
+              <Button type="submit" disabled={Boolean(submitDisabledReason)}>
                 {isSubmitting ? (
                   <div className="flex items-center space-x-2">
                     <Spinner />
                     <span>Opslaan...</span>
                   </div>
-                ) : fertilizerApplication ? (
-                  "Opslaan"
                 ) : (
-                  "Voeg toe"
+                  (submitLabel ?? (fertilizerApplication ? "Opslaan" : "Voeg toe"))
                 )}
               </Button>
             </div>

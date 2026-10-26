@@ -5,10 +5,23 @@ export type AdviceProgressStatus = "under" | "on-target" | "over"
 const ADVICE_UNDER_THRESHOLD = 90
 const ADVICE_OVER_THRESHOLD = 110
 
+/*
+ * Status colours for nutrient advice, shared by the progress bar, the overview table and the
+ * Atlas map: orange below 90 % of the advice, green within 90–110 %, red above 110 %. EOC is
+ * never "over", so it is only ever orange or green. Usage norms (gebruiksruimte) follow different
+ * rules and do not use these colours.
+ */
 const ADVICE_STATUS_INDICATOR_CLASSES: Record<AdviceProgressStatus, string> = {
   under: "bg-orange-500",
   "on-target": "bg-green-500",
   over: "bg-red-500",
+}
+
+/** Text colour per status, for applied-vs-advice numbers such as the overview table cells. */
+export const ADVICE_STATUS_TEXT_CLASSES: Record<AdviceProgressStatus, string> = {
+  under: "text-orange-600 dark:text-orange-500",
+  "on-target": "text-green-600 dark:text-green-500",
+  over: "text-red-600 dark:text-red-500",
 }
 
 /**
@@ -29,10 +42,13 @@ export function computeAdviceProgress(current: number, target: number, excessExe
   }
 
   const rawPercentage = (current / target) * 100
+  // Round away floating-point noise before comparing, so exactly 90 % and 110 % count as
+  // on-target (e.g. 110 / 100 * 100 = 110.00000000000001 would otherwise read as "over").
+  const comparablePercentage = Math.round(rawPercentage * 1e6) / 1e6
   const status: AdviceProgressStatus =
-    rawPercentage < ADVICE_UNDER_THRESHOLD
+    comparablePercentage < ADVICE_UNDER_THRESHOLD
       ? "under"
-      : rawPercentage > ADVICE_OVER_THRESHOLD && !excessExempt
+      : comparablePercentage > ADVICE_OVER_THRESHOLD && !excessExempt
         ? "over"
         : "on-target"
 

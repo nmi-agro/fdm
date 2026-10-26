@@ -1,89 +1,55 @@
-import type { ApplicationMethods } from "@nmi-agro/fdm-data"
-import type { Navigation } from "react-router"
 import {
-  addFertilizerApplication,
   getCultivationsForFarm,
   getCultivationsFromCatalogue,
   getFarms,
-  getFertilizerParametersDescription,
-  getFertilizers,
   getFields,
 } from "@nmi-agro/fdm-core"
-import { AlertTriangle, Info } from "lucide-react"
-import { useState } from "react"
 import {
   type ActionFunctionArgs,
   data,
   type LoaderFunctionArgs,
   type MetaFunction,
-  NavLink,
   redirect,
   useLoaderData,
   useLocation,
-  useNavigation,
-  useSearchParams,
 } from "react-router"
 import { dataWithError, redirectWithSuccess } from "remix-toast"
 import { z } from "zod"
-import type { FertilizerOption } from "~/components/blocks/fertilizer-applications/types.d"
 import { FarmContent } from "~/components/blocks/farm/farm-content"
 import { FarmTitle } from "~/components/blocks/farm/farm-title"
-import { FertilizerApplicationForm } from "~/components/blocks/fertilizer-applications/form"
+import { BulkFertilizerPage } from "~/components/blocks/fertilizer-applications/bulk/bulk-page"
 import { FormSchema } from "~/components/blocks/fertilizer-applications/formschema"
 import { Header } from "~/components/blocks/header/base"
+import { HeaderFarmCreate } from "~/components/blocks/header/create-farm"
 import { HeaderFarm } from "~/components/blocks/header/farm"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "~/components/ui/accordion"
-import { Badge } from "~/components/ui/badge"
 import { BreadcrumbItem, BreadcrumbSeparator } from "~/components/ui/breadcrumb"
-import { Button } from "~/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card"
-import { Checkbox } from "~/components/ui/checkbox"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "~/components/ui/dialog"
-import { Label } from "~/components/ui/label"
 import { SidebarInset } from "~/components/ui/sidebar"
-import { Spinner } from "~/components/ui/spinner"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
-import { useKeyedState } from "~/hooks/use-keyed-state"
-import { captureEvent } from "~/lib/analytics.server"
+import { loadBulkCurrentState } from "~/integrations/fertilizer-application-impact.server"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import {
+  addFertilizerApplicationToFields,
+  captureBulkFertilizerApplicationAdded,
+  getFertilizerOptions,
+  toBulkFieldOptions,
+} from "~/lib/fertilizer-application-bulk.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
-import { modifySearchParams } from "~/lib/url-utils"
 
 export const meta: MetaFunction = () => {
   return [
     { title: `Bemesting toevoegen | ${clientConfig.name}` },
     {
       name: "description",
-      content: "",
+      content:
+        "Voeg één bemesting toe aan meerdere percelen en zie direct het effect op gebruiksruimte, advies en stikstofbalans.",
     },
   ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the active farm
     const b_id_farm = params.b_id_farm
@@ -95,8 +61,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     // Get cultivationIds from search params
-    const url = new URL(request.url)
     const cultivationIds = url.searchParams.get("cultivationIds")?.split(",").filter(Boolean) ?? []
+    if (cultivationIds.length === 0) {
+      throw data("missing: cultivationIds", {
+        status: 400,
+        statusText: "missing: cultivationIds",
+      })
+    }
 
     // Get the session
     const session = await getSession(request)
@@ -124,134 +95,54 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     })
 
-    // Get all fields for the farm and their cultivations
-    const cultivationsForFarm = await getCultivationsForFarm(
-      fdm,
-      session.principal_id,
-      b_id_farm,
-      timeframe,
-    )
-    const allFieldsWithCultivations = await Promise.all(
-      (await getFields(fdm, session.principal_id, b_id_farm, timeframe)).map(async (field) => {
-        const cultivations = cultivationsForFarm.get(field.b_id) ?? []
-        return {
-          ...field,
-          cultivations: cultivations.map((c) => c.b_lu_catalogue),
-        }
-      }),
-    )
+    // Get the fields of the farm, their cultivations, the crop catalogue and the fertilizers
+    const [fields, cultivationsByField, cultivationCatalogue, fertilizerOptions] =
+      await Promise.all([
+        getFields(fdm, session.principal_id, b_id_farm, timeframe),
+        getCultivationsForFarm(fdm, session.principal_id, b_id_farm, timeframe),
+        getCultivationsFromCatalogue(fdm, session.principal_id, b_id_farm),
+        getFertilizerOptions(fdm, session.principal_id, b_id_farm),
+      ])
+    const fieldOptions = toBulkFieldOptions(fields, cultivationsByField, calendar)
 
-    // Get fieldIds from search params (if any)
+    const cultivationName =
+      cultivationCatalogue.find(
+        (c: { b_lu_catalogue: string }) => c.b_lu_catalogue === cultivationIds[0],
+      )?.b_lu_name ?? ""
+
+    // Use the fields in the search params, or default to the fields with the selected crop
     const fieldIdsFromSearchParams =
       url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? null
-
-    // Filter fields based on cultivationIds or fieldIdsFromSearchParams
-    let selectedFields = []
-    let cultivationName = ""
-    let cultivationCatalogueData = []
-
-    if (cultivationIds.length > 0) {
-      cultivationCatalogueData = await getCultivationsFromCatalogue(
-        fdm,
-        session.principal_id,
-        b_id_farm,
+    const selectedFieldIds = fieldOptions
+      .filter((field) =>
+        fieldIdsFromSearchParams
+          ? fieldIdsFromSearchParams.includes(field.b_id)
+          : field.cultivations.some((c) => cultivationIds.includes(c)),
       )
+      .map((field) => field.b_id)
 
-      const targetCultivation = cultivationCatalogueData.find(
-        (c: { b_lu_catalogue: string }) => c.b_lu_catalogue === cultivationIds[0],
-      )
-
-      if (targetCultivation) {
-        cultivationName = targetCultivation.b_lu_name
-      }
-
-      if (fieldIdsFromSearchParams) {
-        // If fieldIds are in search params, use them to determine selected fields
-        selectedFields =
-          fieldIdsFromSearchParams.length > 0
-            ? allFieldsWithCultivations.filter((field) =>
-                fieldIdsFromSearchParams.includes(field.b_id!),
-              )
-            : []
-      } else {
-        // Otherwise, default to fields with the selected cultivation
-        selectedFields = allFieldsWithCultivations.filter((field) =>
-          field.cultivations.some((c) => cultivationIds.includes(c)),
-        )
-      }
-    } else {
-      throw data("missing: cultivationIds", {
-        status: 400,
-        statusText: "missing: cultivationIds",
-      })
-    }
-
-    const fieldOptions = allFieldsWithCultivations.map((field) => {
-      if (!field?.b_id || !field?.b_name) {
-        throw new Error("Invalid field data structure")
-      }
-      return {
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-        cultivations: field.cultivations, // Pass cultivations for each field
-      }
+    // Start calculating the impact on norms, advice and balance; streamed to the page
+    const current = loadBulkCurrentState({
+      fdm,
+      principal_id: session.principal_id,
+      b_id_farm,
+      calendar,
+      timeframe,
+      farmFields: fields,
+      selectedFieldIds,
     })
 
-    // Get available fertilizers for the farm
-    const fertilizers = await getFertilizers(fdm, session.principal_id, b_id_farm)
-    const fertilizerParameterDescription = getFertilizerParametersDescription()
-    const applicationMethods = fertilizerParameterDescription.find(
-      (x: { parameter: string }) => x.parameter === "p_app_method_options",
-    )
-    if (!applicationMethods) throw new Error("Parameter metadata missing")
-    const availableApplicationMethodOptions = (applicationMethods.options ?? [])
-      .filter(
-        (option): option is { value: ApplicationMethods; label: string } => option.value !== null,
-      )
-      .map((option) => ({
-        value: option.value,
-        label: option.label,
-      }))
-    // Map fertilizers to options for the combobox
-    const fertilizerOptions: FertilizerOption[] = fertilizers.map((fertilizer) => ({
-      value: fertilizer.p_id,
-      label: fertilizer.p_name_nl ?? "",
-      applicationMethodOptions: (fertilizer.p_app_method_options ?? [])
-        .map((opt) => availableApplicationMethodOptions.find((x) => x.value === opt))
-        .filter(
-          (
-            option,
-          ): option is {
-            value: ApplicationMethods
-            label: string
-          } => option !== undefined,
-        ),
-      p_app_amount_unit: fertilizer.p_app_amount_unit,
-    }))
-
-    // Return user information from loader
     return {
       b_id_farm: b_id_farm,
       farmOptions: farmOptions,
-      fieldAmount: selectedFields.length,
       fertilizerOptions: fertilizerOptions,
       calendar: calendar,
-      selectedFields: selectedFields.map((field) => ({
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: Math.round((field.b_area ?? 0) * 10) / 10,
-        cultivations: field.cultivations,
-      })),
-      fieldOptions: fieldOptions.map((field) => ({
-        b_id: field.b_id,
-        b_name: field.b_name,
-        b_area: field.b_area ?? 0,
-        cultivations: field.cultivations,
-      })), // All fields for selection
+      selectedFieldIds,
+      fieldOptions,
       cultivationName: cultivationName,
       cultivationIds: cultivationIds,
       create: url.searchParams.has("create"),
+      current,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -260,261 +151,62 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export default function FarmRotationFertilizerAddIndex() {
   const loaderData = useLoaderData<typeof loader>()
-  const navigation = useNavigation()
   const location = useLocation()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [open, setOpen] = useState(false)
-  const [selectedFieldIds, setSelectedFieldIds] = useKeyedState(
-    loaderData.selectedFields,
-    (fields) => fields.map((field) => field.b_id!),
+  const rotationUrl = loaderData.create
+    ? `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`
+    : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`
+
+  const farmName =
+    loaderData.farmOptions.find((farm) => farm.b_id_farm === loaderData.b_id_farm)?.b_name_farm ??
+    ""
+  const back = { to: rotationUrl, label: "Terug naar bouwplan", disabled: false }
+
+  const content = (
+    <main>
+      <FarmTitle
+        title={`Bemesting toevoegen aan ${loaderData.cultivationName || "bouwplan"}`}
+        description="Voeg één bemesting toe aan meerdere percelen en zie direct het effect op gebruiksruimte, advies en stikstofbalans."
+      />
+      <FarmContent>
+        <BulkFertilizerPage
+          b_id_farm={loaderData.b_id_farm}
+          calendar={loaderData.calendar}
+          fertilizerOptions={loaderData.fertilizerOptions}
+          fieldOptions={loaderData.fieldOptions}
+          selectedFieldIds={loaderData.selectedFieldIds}
+          cultivationIds={loaderData.cultivationIds}
+          cultivationName={loaderData.cultivationName}
+          current={loaderData.current}
+          formAction={`${location.pathname}${location.search}`}
+          formStoreKey={loaderData.cultivationIds.join(",") || "cultivationIds"}
+          overviewUrl={rotationUrl}
+        />
+      </FarmContent>
+    </main>
   )
 
-  const isSubmitting = navigation.state !== "idle" && Boolean(navigation.formData)
-
-  const handleSelectionChange = () => {
-    const newSearchParams = new URLSearchParams(searchParams)
-    newSearchParams.set("fieldIds", selectedFieldIds.join(","))
-    newSearchParams.set("cultivationIds", loaderData.cultivationIds.join(","))
-    setSearchParams(newSearchParams, { preventScrollReset: true })
-    setOpen(false)
-  }
-
-  const isSelected = (fieldId: string) => selectedFieldIds.includes(fieldId)
-
-  const toggleSelection = (fieldId: string) => {
-    setSelectedFieldIds((prev) =>
-      isSelected(fieldId) ? prev.filter((id) => id !== fieldId) : [...prev, fieldId],
+  // In the farm creation wizard, keep the wizard header so the user stays in the flow
+  if (loaderData.create) {
+    return (
+      <>
+        <Header action={back}>
+          <HeaderFarmCreate b_name_farm={farmName} />
+        </Header>
+        {content}
+      </>
     )
-  }
-
-  const displayedSelectedFields = loaderData.fieldOptions.filter((field) =>
-    selectedFieldIds.includes(field.b_id!),
-  )
-
-  function handleSelectionDialogOpenChange(open: boolean) {
-    if (!open) {
-      handleSelectionChange()
-    }
-    setOpen(open)
   }
 
   return (
     <SidebarInset>
-      <Header
-        action={{
-          to: loaderData.create
-            ? `/farm/create/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`
-            : `/farm/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`,
-          label: "Terug naar bouwplan",
-          disabled: false,
-        }}
-      >
+      <Header action={back}>
         <HeaderFarm b_id_farm={loaderData.b_id_farm} farmOptions={loaderData.farmOptions} />
         <BreadcrumbSeparator />
         <BreadcrumbItem className="hidden md:block">Bouwplan</BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem className="hidden md:block">Bemesting toevoegen</BreadcrumbItem>
       </Header>
-      <main>
-        <FarmTitle
-          title={`Bemesting toevoegen aan ${loaderData.cultivationName}`}
-          description="Kies 1 of meerdere percelen om een bemesting toe te voegen"
-        />
-        <div className="relative">
-          {isSubmitting && (
-            <div className="bg-background/80 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
-              <div className="text-muted-foreground flex items-center text-sm">
-                <Spinner className="mr-2" />
-                <span>Bemesting wordt toegevoegd...</span>
-              </div>
-            </div>
-          )}
-          <FarmContent>
-            <div className="flex flex-col space-y-8 pb-10 md:flex-row md:space-y-0 md:space-x-12">
-              <Card className="md:w-1/3">
-                <CardHeader>
-                  <CardTitle>Geselecteerde percelen</CardTitle>
-                  <CardDescription>
-                    De bemesting wordt toegepast op de volgende percelen.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {displayedSelectedFields.length > 0 ? (
-                    <div className="max-h-[60vh] space-y-2 overflow-y-auto">
-                      {displayedSelectedFields.map((field) => (
-                        <div
-                          key={field.b_id}
-                          className="flex items-center justify-between rounded-md border p-3"
-                        >
-                          <p className="text-sm font-medium">{field.b_name}</p>
-                          <div className="flex items-center gap-2">
-                            {!field.cultivations.some((c) =>
-                              loaderData.cultivationIds.includes(c),
-                            ) && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Dit perceel heeft het geselecteerde gewas niet</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                            <Badge variant="secondary">{field.b_area} ha</Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex h-full min-h-96 flex-col items-center justify-center rounded-md border border-dashed text-center">
-                      <Info className="text-muted-foreground/50 h-10 w-10" />
-                      <h3 className="mt-4 text-lg font-semibold">Geen percelen geselecteerd</h3>
-                      <p className="text-muted-foreground mt-2 max-w-xs text-sm">
-                        Pas uw selectie aan, of ga naar het percelenoverzicht voor meer
-                        filtermogelijkheden.
-                      </p>
-                      <Button asChild variant="link" className="mt-4">
-                        <NavLink
-                          to={`/farm/${loaderData.b_id_farm}/${loaderData.calendar}/rotation`}
-                        >
-                          Naar bouwplanoverzicht
-                        </NavLink>
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  <Dialog open={open} onOpenChange={handleSelectionDialogOpenChange}>
-                    <DialogTrigger asChild>
-                      <Button variant="secondary" className="w-full">
-                        Wijzig selectie
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>Percelen selecteren</DialogTitle>
-                        <DialogDescription>
-                          Selecteer de percelen voor de bemesting.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="mb-4 max-h-[30vh] space-y-2 overflow-y-auto rounded-md border p-2">
-                          {loaderData.fieldOptions
-                            .filter((field) =>
-                              field.cultivations.some((c) => loaderData.cultivationIds.includes(c)),
-                            )
-                            .map((field) => (
-                              <div
-                                key={field.b_id}
-                                className="hover:bg-accent flex items-center space-x-2 rounded-md p-2"
-                              >
-                                <Checkbox
-                                  id={field.b_id}
-                                  checked={isSelected(field.b_id!)}
-                                  onCheckedChange={() => toggleSelection(field.b_id!)}
-                                />
-                                <Label htmlFor={field.b_id} className="flex-1 cursor-pointer">
-                                  {field.b_name}
-                                </Label>
-                                <Badge variant="secondary">{field.b_area} ha</Badge>
-                              </div>
-                            ))}
-                        </div>
-                        <div>
-                          <Accordion type="single" collapsible className="space-y-2">
-                            <AccordionItem value="item-1">
-                              <AccordionTrigger>
-                                <span className="text-sm font-semibold">
-                                  Percelen zonder {loaderData.cultivationName}
-                                </span>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="max-h-[30vh] space-y-2 overflow-y-auto rounded-md border p-2">
-                                  {loaderData.fieldOptions
-                                    .filter(
-                                      (field) =>
-                                        !field.cultivations.some((c) =>
-                                          loaderData.cultivationIds.includes(c),
-                                        ),
-                                    )
-                                    .map((field) => (
-                                      <div
-                                        key={field.b_id}
-                                        className="hover:bg-accent flex items-center space-x-2 rounded-md p-2"
-                                      >
-                                        <Checkbox
-                                          id={field.b_id}
-                                          checked={isSelected(field.b_id!)}
-                                          onCheckedChange={() => toggleSelection(field.b_id!)}
-                                        />
-                                        <Label
-                                          htmlFor={field.b_id}
-                                          className="flex-1 cursor-pointer"
-                                        >
-                                          {field.b_name}
-                                        </Label>
-                                        <Badge variant="secondary">{field.b_area} ha</Badge>
-                                      </div>
-                                    ))}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          </Accordion>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          onClick={() => handleSelectionDialogOpenChange(false)}
-                        >
-                          Sluiten
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </CardFooter>
-              </Card>
-              <Card className="flex-1">
-                <CardHeader>
-                  <CardTitle>Bemesting toevoegen</CardTitle>
-                  <CardDescription>
-                    {loaderData.fieldAmount === 0
-                      ? "Selecteer eerst een of meerdere percelen."
-                      : loaderData.fieldAmount === 1
-                        ? "Voeg een nieuwe bemestingstoepassing toe aan het geselecteerde perceel."
-                        : `Voeg een nieuwe bemestingstoepassing toe aan de ${loaderData.fieldAmount} geselecteerde percelen.`}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {loaderData.fieldAmount > 0 ? (
-                    <FertilizerApplicationForm
-                      options={loaderData.fertilizerOptions}
-                      action={modifySearchParams(
-                        `${location.pathname}${location.search}`,
-                        (searchParams) => searchParams.set("fieldIds", selectedFieldIds.join(",")),
-                      )}
-                      navigation={navigation as unknown as Navigation}
-                      b_id_farm={loaderData.b_id_farm}
-                      b_id_or_b_lu_catalogue={
-                        searchParams.get("cultivationIds") || "cultivationIds"
-                      }
-                      fertilizerApplication={undefined}
-                    />
-                  ) : (
-                    <div className="flex h-full min-h-60 items-center justify-center rounded-md border border-dashed">
-                      <p className="text-muted-foreground text-sm">
-                        Selecteer eerst percelen in de linkerkolom.
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </FarmContent>
-        </div>
-      </main>
+      {content}
     </SidebarInset>
   )
 }
@@ -527,38 +219,30 @@ export async function action({ request, params, url }: ActionFunctionArgs) {
     }
 
     const session = await getSession(request)
-    const fieldIds = url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
-
-    if (!fieldIds || fieldIds.length === 0) {
+    const requestedFieldIds = url.searchParams.get("fieldIds")?.split(",").filter(Boolean) ?? []
+    if (requestedFieldIds.length === 0) {
       return dataWithError(null, "Selecteer eerst een perceel.")
     }
 
     const validatedData = await extractFormValuesFromRequest(request, FormSchema)
 
-    await Promise.all(
-      fieldIds.map((fieldId) =>
-        addFertilizerApplication(
-          fdm,
-          session.principal_id,
-          fieldId,
-          validatedData.p_id,
-          validatedData.p_app_amount_display,
-          validatedData.p_app_method,
-          validatedData.p_app_date,
-        ),
-      ),
-    )
+    const fieldIds = await addFertilizerApplicationToFields({
+      fdm,
+      principal_id: session.principal_id,
+      b_id_farm,
+      fieldIds: requestedFieldIds,
+      values: validatedData,
+    })
 
-    for (const fieldId of fieldIds) {
-      captureEvent(session.principal_id, "fertilizer_application_added", {
-        b_id_farm,
-        b_id: fieldId,
-        p_id: validatedData.p_id,
-        calendar: String(calendar),
-        source: "rotation_table",
-        field_count: fieldIds.length,
-      })
-    }
+    captureBulkFertilizerApplicationAdded({
+      principal_id: session.principal_id,
+      b_id_farm,
+      calendar: String(calendar),
+      p_id: validatedData.p_id,
+      fieldIds,
+      source: "rotation_table",
+      url,
+    })
 
     return redirectWithSuccess(
       url.searchParams.has("create")
