@@ -438,7 +438,7 @@ export function registerCultivationRoutes(
             ? `Cultivation ${body.b_lu_catalogue}`
             : "Cultivation's current cultivation code"
         const secondPart =
-          body.b_lu_start || body.b_lu_end
+          body.b_lu_start !== undefined || body.b_lu_end !== undefined
             ? "the updated time period"
             : "the cultivation's current time period"
         const errorMessage = `${firstPart} is not available for ${secondPart}.`

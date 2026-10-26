@@ -486,6 +486,39 @@ describe("PATCH /cultivations/:b_lu", () => {
     ])
   })
 
+  it("returns 400 problem details when the current cultivation code is unavailable because b_lu_end is nulled", async () => {
+    const app = makeApp({
+      // Mimics the error shape fdm-core produces: a wrapper error whose cause carries the reason.
+      updateCultivation: vi.fn().mockRejectedValue(
+        new Error("Exception for addCultivation", {
+          cause: new Error("Cultivation code is not available for this time period"),
+        }),
+      ),
+      getCultivation: vi.fn(),
+    })
+    const res = await app.request("/cultivations/cult-1", {
+      method: "PATCH",
+      headers: { "x-api-key": "valid", "content-type": "application/json" },
+      body: JSON.stringify({ b_lu_end: null }),
+    })
+    expect(res.status).toBe(400)
+    expect(res.headers.get("content-type")).toContain("application/problem+json")
+    const body = await res.json()
+    expect(body.type).toMatch(/\/problems\/validation-failed$/)
+    expect(body.status).toBe(400)
+    expect(body.detail).toBe(
+      "Cultivation's current cultivation code is not available for the updated time period.",
+    )
+    expect(body.errors).toEqual([
+      {
+        code: "custom",
+        path: ["b_lu_end"],
+        message:
+          "Cultivation's current cultivation code is not available for the updated time period.",
+      },
+    ])
+  })
+
   it("does not leak other core errors as 400 on update", async () => {
     const app = makeApp({
       updateCultivation: vi
