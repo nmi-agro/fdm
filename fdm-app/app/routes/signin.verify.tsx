@@ -37,9 +37,8 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, url }: LoaderFunctionArgs) {
   try {
-    const url = new URL(request.url)
     const code = url.searchParams.get("code") || ""
     const redirectTo = url.searchParams.get("redirectTo") || "/farm"
 

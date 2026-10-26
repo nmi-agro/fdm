@@ -3,6 +3,7 @@ import type { FeatureCollection, Geometry } from "geojson"
 import type { StyleSpecification } from "maplibre-gl"
 import type { ComponentType } from "react"
 import type { CultivationHistory } from "~/components/blocks/atlas-fields/cultivation-history"
+import type { CultivationAvailabilityResult } from "~/components/blocks/cultivation/availability-warning"
 import type { BcsScores } from "~/components/blocks/soil-visual/bcs-color-utils"
 import type { BcsPreviewResult } from "~/lib/bcs"
 import type { CultivationSuggestionResult } from "~/lib/cultivation-suggestion.server"
@@ -184,6 +185,7 @@ export interface FieldDashboardData {
     endedCount: number
   }
   asyncInsights: {
+    showAvailabilityYearWarning: Promise<CultivationAvailabilityResult>
     fertilizer: Promise<FieldDashboardFertilizerAsyncSummary>
     bln: Promise<AsyncTileResult<FieldDashboardBlnSummary>>
     cultivationHistory: Promise<AsyncTileResult<FieldDashboardCultivationHistoryEntry[]>>

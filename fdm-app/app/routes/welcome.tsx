@@ -256,10 +256,9 @@ export default function Welcome() {
   )
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, url }: ActionFunctionArgs) {
   try {
     // Get the URL object to extract search params
-    const url = new URL(request.url)
     const redirectTo = url.searchParams.get("redirectTo") || "/farm"
     // Validate redirectTo to prevent open redirect
     const isValidRedirect = redirectTo.startsWith("/") && !redirectTo.startsWith("//")

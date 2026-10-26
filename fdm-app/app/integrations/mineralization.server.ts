@@ -1,696 +1,514 @@
 /**
  * @file mineralization.server.ts
  *
- * Server-side orchestration layer for the Mineralisatie (Nitrogen Mineralization) feature.
+ * Server-side orchestration of the Mineralisatie feature.
  *
- * This module acts as a thin bridge between the FDM database and the calculation
- * functions in `@nmi-agro/fdm-calculator`. It is responsible for:
- * 1. Fetching the required FDM domain objects (field, soil data, cultivations, fertilizers).
- * 2. Building the NMI API request bodies via the calculator builders.
- * 3. Calling the cached calculator functions (`getNSupply`, `getDyna`).
- * 4. Farm-level aggregation (running per-field calculations in parallel).
- * 5. Generating Dutch-language user-facing insights from the results.
- *
- * **All core calculation logic, types, schemas, and error classes live in
- * `@nmi-agro/fdm-calculator/mineralisatie`.** This file re-exports the types
- * that are needed by the app's route files and components.
+ * Gathers the FDM data of a farm once, prepares the Dyna v2 calculation per field with
+ * `@nmi-agro/fdm-calculator`, runs the (cached) calculation and weather forecast, and interprets
+ * the result. Per-field failures are returned as an outcome instead of being thrown, so one field
+ * never breaks a page.
  */
 
+import type { ApplicationMethods } from "@nmi-agro/fdm-data"
 import {
-  assessDataCompleteness,
-  buildDynaRequest,
-  buildNSupplyRequest,
-  getDyna,
-  getNSupply,
-  type NSupplyComputeInput,
+  applyScenarioToRequest,
+  diffScenario,
+  type DynaV2Request,
+  HARVEST_PARAMETER_KEYS,
+  type HarvestParameterValues,
+  type DynaV2Result,
+  deriveMineralizationInsights,
+  getDynaV2,
+  getWeatherForecast,
+  type MineralizationCultivation,
+  type MineralizationUsedInput,
+  type MineralizationFieldData,
+  type MineralizationScenario,
+  NmiApiError,
+  prepareMineralizationInput,
+  restrictToMainCultivation,
+  roundCoordinate,
+  type WeatherForecast,
 } from "@nmi-agro/fdm-calculator"
 import {
-  getCultivations,
+  addFertilizerApplication,
+  addHarvest,
+  type Fertilizer,
+  type Field,
   getCultivationsForFarm,
-  getCultivationsFromCatalogue,
-  getCurrentSoilData,
   getCurrentSoilDataForFarm,
+  getDefaultDatesOfCultivation,
   getFertilizerApplicationsForFarm,
   getFertilizers,
-  getField,
   getFields,
-  getGrazingIntention,
   getHarvestsForFarm,
+  getParametersForHarvestCat,
+  removeFertilizerApplication,
+  removeHarvest,
+  startOfDayInFdmTimeZone,
   type Timeframe,
+  toFdmDateString,
+  updateFertilizerApplication,
+  updateHarvest,
 } from "@nmi-agro/fdm-core"
+import type {
+  FieldMineralizationOutcome,
+  MineralizationMainCultivation,
+} from "~/lib/mineralization"
 import { getNmiApiKey } from "~/integrations/nmi.server"
 import { fdm } from "~/lib/fdm.server"
 
-// Re-export types consumed by route files and UI components
-export type {
-  DataCompleteness,
-  DynaDailyPoint,
-  DynaFertilizerAdvice,
-  DynaNitrogenBalance,
-  DynaResult,
-  NSupplyDataPoint,
-  NSupplyMethod,
-  NSupplyResult,
-} from "@nmi-agro/fdm-calculator"
-export { assessDataCompleteness, buildNSupplyRequest, NmiApiError } from "@nmi-agro/fdm-calculator"
-
-/**
- * Result wrapper for DYNA at farm level.
- */
-export type FarmDynaResult = {
-  b_id: string
-  b_name: string | null
-  result?: import("@nmi-agro/fdm-calculator").DynaResult
-  error?: string
+/** All FDM data of a farm needed for the mineralization calculations of one year. */
+export interface FarmMineralizationContext {
+  year: number
+  today: Date
+  fields: Field[]
+  data: Map<string, MineralizationFieldData>
+  fertilizers: Fertilizer[]
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 /**
- * Converts a day-of-year (DOY) integer to a Dutch-locale date string.
+ * Returns the timeframe of a calendar year in Europe/Amsterdam.
  *
- * @param doy - Day of year (1–366).
  * @param year - Calendar year.
- * @returns Formatted date string, e.g. `"15 april"`.
- *
- * @internal
+ * @returns Timeframe from 1 January up to and including 31 December.
  */
-function doyToDateString(doy: number, year: number): string {
-  const date = new Date(year, 0)
-  date.setDate(doy)
-  return date.toLocaleDateString("nl-NL", { day: "numeric", month: "long" })
+export function getMineralizationTimeframe(year: number): Timeframe {
+  return {
+    start: startOfDayInFdmTimeZone(year, 1, 1),
+    end: new Date(startOfDayInFdmTimeZone(year + 1, 1, 1).getTime() - 1),
+  }
 }
 
 /**
- * Builds a flat `soilData` map from the array returned by `getCurrentSoilData`,
- * and captures the sampling depth from the first entry.
+ * Parses the calendar route parameter into a year; falls back to the current year.
  *
- * @internal
+ * @param calendar - The `calendar` route parameter.
+ * @returns The calendar year.
  */
-function buildSoilDataMap(soilDataArray: Awaited<ReturnType<typeof getCurrentSoilData>>): {
-  soilData: Record<string, number | string | null | undefined>
-  soilMeta: Record<string, { source?: string; date?: Date }>
-} {
-  const soilData: Record<string, number | string | null | undefined> = {}
-  const soilMeta: Record<string, { source?: string; date?: Date }> = {}
-
-  if (!soilDataArray || soilDataArray.length === 0) {
-    return { soilData, soilMeta }
-  }
-
-  for (const entry of soilDataArray) {
-    if (entry.parameter && entry.value !== undefined) {
-      soilData[entry.parameter] = entry.value as number | string | null | undefined
-      soilMeta[entry.parameter] = {
-        source: entry.a_source ?? undefined,
-        date: entry.b_sampling_date ?? undefined,
-      }
-    }
-  }
-
-  // Use depth from a_som_loi specifically
-  const somEntry = soilDataArray.find((e) => e.parameter === "a_som_loi")
-  if (somEntry?.a_depth_lower !== undefined) {
-    soilData.a_depth_lower = somEntry.a_depth_lower
-  } else if (soilDataArray[0]?.a_depth_lower !== undefined) {
-    // Fallback to first if som not found
-    soilData.a_depth_lower = soilDataArray[0].a_depth_lower
-  }
-
-  return { soilData, soilMeta }
-}
-
-// ─── Public API ───────────────────────────────────────────────────────────────
-
-/**
- * Fetches the N supply mineralization curve for a single field.
- *
- * Orchestrates the full pipeline:
- * 1. Retrieves field geometry, soil data, and cultivations from FDM.
- * 2. Assesses data completeness for the chosen method.
- * 3. Builds the nsupply API request body.
- * 4. Delegates to {@link getNSupply} (DB-cached) from `@nmi-agro/fdm-calculator`.
- *
- * Results are automatically cached in the FDM database. The cache is
- * invalidated whenever the underlying soil data, cultivations, or method changes.
- *
- * @param params.principal_id - Authenticated user / principal identifier.
- * @param params.b_id - FDM field identifier.
- * @param params.method - Mineralization model (`"minip"`, `"pmn"`, or `"century"`).
- * @param params.timeframe - Calendar year window; used to set `d_start`/`d_end` in the request.
- * @returns A fully populated {@link NSupplyResult} with 365/366 daily data points.
- * @throws `Error` if the field is not found or the NMI API key is not configured.
- * @throws {@link NmiApiError} on NMI API errors (422, 503, etc.).
- */
-export async function getNSupplyForField({
-  principal_id,
-  b_id,
-  method,
-  timeframe,
-  field: preFetchedField,
-  soilDataArray: preFetchedSoilData,
-  cultivations: preFetchedCultivations,
-}: {
-  principal_id: string
-  b_id: string
-  method: import("@nmi-agro/fdm-calculator").NSupplyMethod
-  timeframe: Timeframe
-  field?: Awaited<ReturnType<typeof getField>>
-  soilDataArray?: Awaited<ReturnType<typeof getCurrentSoilData>>
-  cultivations?: Awaited<ReturnType<typeof getCultivations>>
-}): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult> {
-  const nmiApiKey = getNmiApiKey()
-  if (!nmiApiKey) {
-    throw new Error("NMI API-sleutel niet geconfigureerd")
-  }
-
-  const field = preFetchedField ?? (await getField(fdm, principal_id, b_id))
-  if (!field) {
-    throw new Error(`Perceel niet gevonden: ${b_id}`)
-  }
-
-  const [soilDataArray, cultivations] = await Promise.all([
-    preFetchedSoilData ?? getCurrentSoilData(fdm, principal_id, b_id),
-    preFetchedCultivations ?? getCultivations(fdm, principal_id, b_id),
-  ])
-
-  const { soilData, soilMeta } = buildSoilDataMap(soilDataArray)
-  const completeness = assessDataCompleteness(soilData, method, soilMeta)
-  const requestBody = buildNSupplyRequest(field, soilData, cultivations, method, timeframe)
-
-  const input: NSupplyComputeInput = {
-    b_id,
-    b_name: field.b_name ?? b_id,
-    area: field.b_area ?? 0,
-    nmiApiKey,
-    requestBody,
-    method,
-    completeness,
-    cacheDate: new Date().toLocaleDateString("en-CA"),
-  }
-
-  return getNSupply(fdm, input)
+export function getMineralizationYear(calendar: string | undefined): number {
+  const year = Number(calendar)
+  return Number.isInteger(year) && year > 1900
+    ? year
+    : Number(toFdmDateString(new Date()).slice(0, 4))
 }
 
 /**
- * Fetches N supply curves for all non-buffer fields in a farm, in parallel.
+ * Loads all FDM data of a farm that is needed for the mineralization calculations of a year.
  *
- * Per-field errors are caught and returned as an {@link NSupplyResult} with an
- * `error` property set to a Dutch-language message. This ensures that a single
- * field with missing data does not prevent other fields from rendering.
+ * Uses one query per data type for the whole farm.
  *
- * @param params.principal_id - Authenticated user / principal identifier.
- * @param params.b_id_farm - FDM farm identifier.
- * @param params.method - Mineralization model to use for all fields.
- * @param params.timeframe - Calendar year window.
- * @returns Array of {@link NSupplyResult} — one per non-buffer field.
- *   Entries with `error` set should be displayed with a warning indicator.
+ * @param args.principal_id - Principal of the session.
+ * @param args.b_id_farm - Farm identifier.
+ * @param args.year - Calendar year.
+ * @returns The farm context.
  */
-export async function getNSupplyForFarm({
-  principal_id,
-  b_id_farm,
-  method,
-  timeframe,
-}: {
+export async function loadFarmMineralizationContext(args: {
   principal_id: string
   b_id_farm: string
-  method: import("@nmi-agro/fdm-calculator").NSupplyMethod
-  timeframe: Timeframe
-}): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult[]> {
-  const [fields, cultivationsMap, soilDataMap] = await Promise.all([
+  year: number
+}): Promise<FarmMineralizationContext> {
+  const { principal_id, b_id_farm, year } = args
+  const timeframe = getMineralizationTimeframe(year)
+  const [fields, cultivations, harvests, applications, fertilizers, soil] = await Promise.all([
     getFields(fdm, principal_id, b_id_farm, timeframe),
     getCultivationsForFarm(fdm, principal_id, b_id_farm),
-    getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm),
-  ])
-
-  const nonBufferFields = fields.filter((f) => !f.b_bufferstrip)
-
-  // Simple concurrency limiting: process in chunks of 10
-  const CONCURRENCY = 10
-  const results: import("@nmi-agro/fdm-calculator").NSupplyResult[] = []
-
-  for (let i = 0; i < nonBufferFields.length; i += CONCURRENCY) {
-    const chunk = nonBufferFields.slice(i, i + CONCURRENCY)
-    const chunkResults = await Promise.all(
-      chunk.map(async (field): Promise<import("@nmi-agro/fdm-calculator").NSupplyResult> => {
-        try {
-          return await getNSupplyForField({
-            principal_id,
-            b_id: field.b_id,
-            method,
-            timeframe,
-            field,
-            soilDataArray: soilDataMap.get(field.b_id) ?? [],
-            cultivations: cultivationsMap.get(field.b_id) ?? [],
-          })
-        } catch (err) {
-          const errorMessage =
-            err instanceof Error ? err.message : "Onbekende fout bij ophalen mineralisatiegegevens"
-          return {
-            b_id: field.b_id,
-            b_name: field.b_name ?? field.b_id,
-            area: field.b_area ?? 0,
-            method,
-            data: [],
-            totalAnnualN: 0,
-            completeness: {
-              available: [],
-              missing: [],
-              estimated: [],
-              score: 0,
-            },
-            error: errorMessage,
-          }
-        }
-      }),
-    )
-    results.push(...chunkResults)
-  }
-
-  return results
-}
-
-/**
- * Fetches the DYNA nitrogen advice simulation for a single field.
- *
- * Orchestrates the full pipeline:
- * 1. Retrieves field geometry, soil data, all cultivations (across all years),
- *    and crop catalogue data from FDM.
- * 2. Builds the DYNA API request body via {@link buildDynaRequest}.
- * 3. Delegates to {@link getDyna} (DB-cached) from `@nmi-agro/fdm-calculator`.
- *
- * **Important:** All cultivations are fetched without a timeframe filter so that
- * preceding-year entries appear in the rotation array. The DYNA model requires
- * historical rotation data to compute carry-over N from previous seasons.
- *
- * Results are automatically cached in the FDM database. The cache is
- * invalidated whenever cultivations, soil data, or fertilizer applications change.
- *
- * @param params.principal_id - Authenticated user / principal identifier.
- * @param params.b_id - FDM field identifier.
- * @param params.b_id_farm - FDM farm identifier (used to look up crop catalogue).
- * @param params.timeframe - Calendar year window; determines the requested calculation year.
- * @param params.farmSector - Farm sector string (e.g. `"arable"`, `"dairy"`).
- * @param params.fertilizers - Fertilizer applications for the current year,
- *   enriched with nutrient content from the fertilizer catalogue.
- * @returns A {@link DynaResult} with daily simulation data, nitrogen balance,
- *   and optional fertilizer / harvest recommendations.
- * @throws `Error` if the field is not found or the NMI API key is not configured.
- * @throws {@link NmiApiError} on NMI API errors.
- */
-/**
- * Internal helper that executes a DYNA calculation for a field where all
- * inputs have already been fetched.
- *
- * @internal
- */
-/** Subset of fertilizer properties needed by the DYNA request builder. */
-type FertilizerNutrientProps = {
-  p_id: string
-  p_n_rt?: number | null
-  p_n_if?: number | null
-  p_n_of?: number | null
-  p_n_wc?: number | null
-  p_p_rt?: number | null
-  p_k_rt?: number | null
-  p_dm?: number | null
-  p_om?: number | null
-}
-
-type FertilizerApplication = {
-  p_id: string
-  p_app_date: Date | null
-  p_app_amount: number | null
-  p_app_method?: string | null
-}
-
-async function runDynaForPrefetchedField({
-  field,
-  soilDataArray,
-  cultivations,
-  applications,
-  fertilizerMap,
-  catalogueEntries,
-  harvestsMap,
-  farmSector,
-  timeframe,
-  nmiApiKey,
-}: {
-  field: Awaited<ReturnType<typeof getField>>
-  soilDataArray: Awaited<ReturnType<typeof getCurrentSoilData>>
-  cultivations: Awaited<ReturnType<typeof getCultivations>>
-  applications: FertilizerApplication[]
-  fertilizerMap: Map<string, FertilizerNutrientProps>
-  catalogueEntries: Awaited<ReturnType<typeof getCultivationsFromCatalogue>>
-  harvestsMap: Awaited<ReturnType<typeof getHarvestsForFarm>>
-  farmSector: string
-  timeframe: Timeframe
-  nmiApiKey: string
-}): Promise<import("@nmi-agro/fdm-calculator").DynaResult> {
-  if (!field) throw new Error("perceelsgegevens ontbreken")
-
-  const { soilData } = buildSoilDataMap(soilDataArray)
-
-  // Pre-flight check: any main crop without a harvest date will cause
-  // the DYNA API to return 400 "b_date_harvest is missing".
-  const ongoingMainCrops = cultivations.filter(
-    (c) => c.b_lu_end == null && c.b_lu_croprotation !== "catchcrop",
-  )
-  for (const crop of ongoingMainCrops) {
-    if (!crop.b_lu) continue
-    const harvests = harvestsMap.get(crop.b_lu) ?? []
-    const hasDatedHarvest = harvests.some((h) => h.b_lu_harvest_date != null)
-    if (!hasDatedHarvest) {
-      throw new Error("Oogstdatum ontbreekt voor lopend gewas")
-    }
-  }
-
-  const dynaFertilizers = applications.map((app) => {
-    const props = fertilizerMap.get(app.p_id)
-    return {
-      p_id: app.p_id,
-      p_n_rt: props?.p_n_rt ?? null,
-      p_n_if: props?.p_n_if ?? null,
-      p_n_of: props?.p_n_of ?? null,
-      p_n_wc: props?.p_n_wc ?? null,
-      p_p_rt: props?.p_p_rt ?? null,
-      p_k_rt: props?.p_k_rt ?? null,
-      p_dm: props?.p_dm ?? null,
-      p_om: props?.p_om ?? null,
-      p_date: app.p_app_date,
-      p_dose: app.p_app_amount ?? 0,
-      p_app_method: app.p_app_method ?? null,
-    }
-  })
-
-  const cultivationCodes = new Set(cultivations.map((c) => c.b_lu_catalogue).filter(Boolean))
-  const cropProperties = catalogueEntries
-    .filter((e) => cultivationCodes.has(e.b_lu_catalogue))
-    .map((e) => ({
-      b_lu_catalogue: e.b_lu_catalogue,
-      b_lu_yield: e.b_lu_yield ?? null,
-      b_lu_n_harvestable: e.b_lu_n_harvestable ?? null,
-      b_lu_n_residue: e.b_lu_n_residue ?? null,
-    }))
-
-  // Build harvestsByBlu for this specific field's cultivations
-  const fieldHarvestsByBlu = new Map<
-    string,
-    { b_lu_harvest_date?: Date | null; b_lu_yield?: number | null }[]
-  >()
-  for (const cult of cultivations) {
-    if (cult.b_lu) {
-      const harvests = harvestsMap.get(cult.b_lu) ?? []
-      fieldHarvestsByBlu.set(
-        cult.b_lu,
-        harvests.map((h) => ({
-          b_lu_harvest_date: h.b_lu_harvest_date,
-          b_lu_yield: h.harvestable?.harvestable_analyses?.[0]?.b_lu_yield ?? null,
-        })),
-      )
-    }
-  }
-
-  const requestBody = buildDynaRequest(
-    field,
-    soilData,
-    cultivations,
-    dynaFertilizers,
-    farmSector,
-    timeframe,
-    cropProperties.length > 0 ? cropProperties : undefined,
-    fieldHarvestsByBlu,
-  )
-
-  return getDyna(fdm, {
-    b_id: field.b_id,
-    nmiApiKey,
-    requestBody,
-    cacheDate: new Date().toLocaleDateString("en-CA"),
-  })
-}
-
-/**
- * Fetches the DYNA nitrogen advice simulation for a single field.
- *
- * Orchestrates the full pipeline:
- * 1. Retrieves field geometry, soil data, all cultivations (across all years),
- *    and crop catalogue data from FDM.
- * 2. Builds the DYNA API request body via {@link buildDynaRequest}.
- * 3. Delegates to {@link getDyna} (DB-cached) from `@nmi-agro/fdm-calculator`.
- *
- * **Important:** All cultivations are fetched without a timeframe filter so that
- * preceding-year entries appear in the rotation array. The DYNA model requires
- * historical rotation data to compute carry-over N from previous seasons.
- *
- * Results are automatically cached in the FDM database. The cache is
- * invalidated whenever cultivations, soil data, or fertilizer applications change.
- *
- * @param params.principal_id - Authenticated user / principal identifier.
- * @param params.b_id - FDM field identifier.
- * @param params.b_id_farm - FDM farm identifier (used to look up crop catalogue).
- * @param params.timeframe - Calendar year window; determines the requested calculation year.
- * @param params.farmSector - Farm sector string (e.g. `"arable"`, `"dairy"`).
- * @param params.fertilizers - Fertilizer applications for the current year,
- *   enriched with nutrient content from the fertilizer catalogue.
- * @returns A {@link DynaResult} with daily simulation data, nitrogen balance,
- *   and optional fertilizer / harvest recommendations.
- * @throws `Error` if the field is not found or the NMI API key is not configured.
- * @throws {@link NmiApiError} on NMI API errors.
- */
-export async function getDynaForField({
-  principal_id,
-  b_id,
-  b_id_farm,
-  timeframe,
-  farmSector,
-  fertilizers,
-}: {
-  principal_id: string
-  b_id: string
-  b_id_farm: string
-  timeframe: Timeframe
-  farmSector: string
-  fertilizers?: {
-    p_id: string
-    p_n_rt?: number | null
-    p_n_if?: number | null
-    p_n_of?: number | null
-    p_n_wc?: number | null
-    p_p_rt?: number | null
-    p_k_rt?: number | null
-    p_dm?: number | null
-    p_om?: number | null
-    p_date?: Date | null
-    p_dose?: number | null
-    p_app_method?: string | null
-  }[]
-}): Promise<import("@nmi-agro/fdm-calculator").DynaResult> {
-  const nmiApiKey = getNmiApiKey()
-  if (!nmiApiKey) {
-    throw new Error("NMI API-sleutel niet geconfigureerd")
-  }
-
-  const [field, soilDataArray, cultivations, catalogueEntries, harvestsMap] = await Promise.all([
-    getField(fdm, principal_id, b_id),
-    getCurrentSoilData(fdm, principal_id, b_id),
-    // Fetch ALL cultivations (no timeframe) so preceding-year entries
-    // appear in the DYNA rotation history
-    getCultivations(fdm, principal_id, b_id),
-    getCultivationsFromCatalogue(fdm, principal_id, b_id_farm),
     getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
-  ])
-
-  if (!field) throw new Error(`Perceel niet gevonden: ${b_id}`)
-
-  // Reuse applications from input or fetch if missing (though usually passed in)
-  const applications = (fertilizers ?? []).map((f) => ({
-    p_id: f.p_id,
-    p_app_date: f.p_date ?? null,
-    p_app_amount: f.p_dose ?? 0,
-    p_app_method: f.p_app_method ?? null,
-  }))
-  const fertilizerMap = new Map<string, FertilizerNutrientProps>(
-    (fertilizers ?? []).map((f) => [
-      f.p_id,
-      {
-        p_id: f.p_id,
-        p_n_rt: f.p_n_rt,
-        p_n_if: f.p_n_if,
-        p_n_of: f.p_n_of,
-        p_n_wc: f.p_n_wc,
-        p_p_rt: f.p_p_rt,
-        p_k_rt: f.p_k_rt,
-        p_dm: f.p_dm,
-        p_om: f.p_om,
-      },
-    ]),
-  )
-
-  return runDynaForPrefetchedField({
-    field,
-    soilDataArray,
-    cultivations,
-    applications,
-    fertilizerMap,
-    catalogueEntries,
-    harvestsMap,
-    farmSector,
-    timeframe,
-    nmiApiKey,
-  })
-}
-
-/**
- * Fetches the DYNA nitrogen advice simulation for all non-buffer fields in a farm.
- *
- * This is an optimized batch operation that fetches all required data (soil,
- * cultivations, fertilizers, harvests) for the entire farm in a few queries,
- * then maps them per-field and returns an array of independent promises.
- *
- * **Architecture:** Because DYNA calculations can take 30-60 seconds per field,
- * this function returns an array of promises. The UI can then resolve each field
- * independently (streaming) rather than waiting for the entire farm to finish.
- */
-export async function getDynaForFarm({
-  principal_id,
-  b_id_farm,
-  timeframe,
-}: {
-  principal_id: string
-  b_id_farm: string
-  timeframe: Timeframe
-}): Promise<Promise<FarmDynaResult>[]> {
-  const nmiApiKey = getNmiApiKey()
-  if (!nmiApiKey) {
-    throw new Error("NMI API-sleutel niet geconfigureerd")
-  }
-
-  const year = timeframe.start?.getFullYear() ?? new Date().getFullYear()
-
-  // 1. Optimized batch fetching for all fields in the farm
-  const [
-    fields,
-    isGrazing,
-    applications,
-    fertilizers,
-    cultivations,
-    soilDataArray,
-    catalogueEntries,
-    harvestsMap,
-  ] = await Promise.all([
-    getFields(fdm, principal_id, b_id_farm, timeframe),
-    getGrazingIntention(fdm, principal_id, b_id_farm, year),
     getFertilizerApplicationsForFarm(fdm, principal_id, b_id_farm, timeframe),
     getFertilizers(fdm, principal_id, b_id_farm),
-    getCultivationsForFarm(fdm, principal_id, b_id_farm),
     getCurrentSoilDataForFarm(fdm, principal_id, b_id_farm),
-    getCultivationsFromCatalogue(fdm, principal_id, b_id_farm),
-    getHarvestsForFarm(fdm, principal_id, b_id_farm, timeframe),
   ])
 
-  const farmSector = isGrazing ? "dairy" : "arable"
-  const nonBufferFields = fields.filter((f) => !f.b_bufferstrip)
   const fertilizerMap = new Map(fertilizers.map((f) => [f.p_id, f]))
+  const data = new Map<string, MineralizationFieldData>()
+  for (const field of fields) {
+    data.set(field.b_id, {
+      field: {
+        b_id: field.b_id,
+        b_name: field.b_name,
+        b_centroid: field.b_centroid ?? null,
+        b_bufferstrip: field.b_bufferstrip,
+      },
+      soil: soil.get(field.b_id) ?? [],
+      cultivations: cultivations.get(field.b_id) ?? [],
+      harvests,
+      applications: applications.get(field.b_id) ?? [],
+      fertilizers: fertilizerMap,
+    })
+  }
 
-  // 3. Map each field to an independent calculation promise with concurrency limiting
-  const CONCURRENCY = 5
-  const activeTasks: Promise<any>[] = Array.from({ length: CONCURRENCY }, () => Promise.resolve())
-  let taskIndex = 0
+  return { year, today: new Date(), fields, data, fertilizers }
+}
 
-  return nonBufferFields.map((field) => {
-    const currentSlot = taskIndex % CONCURRENCY
-    const task = activeTasks[currentSlot].then(async (): Promise<FarmDynaResult> => {
-      try {
-        const result = await runDynaForPrefetchedField({
-          field,
-          soilDataArray: soilDataArray.get(field.b_id) ?? [],
-          cultivations: cultivations.get(field.b_id) ?? [],
-          applications: applications.get(field.b_id) ?? [],
-          fertilizerMap,
-          catalogueEntries,
-          harvestsMap,
-          farmSector,
-          timeframe,
-          nmiApiKey,
-        })
-        return {
-          b_id: field.b_id,
-          b_name: field.b_name ?? field.b_id,
-          result,
+/**
+ * Runs Dyna for a prepared request.
+ *
+ * Requests with several cultivations can fail at the API. In that case the calculation is
+ * repeated with only the main cultivation and the outcome is marked as partial.
+ */
+/**
+ * Requests with several cultivations that the API could not calculate, so they are not sent again
+ * while this server runs. Bounded to keep memory use small.
+ */
+const failedMultiCultivationRequests = new Set<string>()
+const MAX_REMEMBERED_FAILURES = 1000
+
+async function runDyna(
+  nmiApiKey: string,
+  request: DynaV2Request,
+  mainB_lu: string,
+  calculationDate: string,
+): Promise<{ result: DynaV2Result; partial: boolean }> {
+  const multipleCultivations = (request.cultivations?.length ?? 0) > 1
+  const requestKey = multipleCultivations ? JSON.stringify(request) : ""
+  const fallback = async () => ({
+    result: await getDynaV2(fdm, {
+      nmiApiKey,
+      request: restrictToMainCultivation(request, mainB_lu),
+      calculationDate,
+    }),
+    partial: true,
+  })
+  if (multipleCultivations && failedMultiCultivationRequests.has(requestKey)) {
+    return fallback()
+  }
+  try {
+    const result = await getDynaV2(fdm, { nmiApiKey, request, calculationDate })
+    return { result, partial: false }
+  } catch (error) {
+    if (error instanceof NmiApiError && error.status >= 500 && multipleCultivations) {
+      if (failedMultiCultivationRequests.size >= MAX_REMEMBERED_FAILURES) {
+        failedMultiCultivationRequests.clear()
+      }
+      failedMultiCultivationRequests.add(requestKey)
+      return fallback()
+    }
+    throw error
+  }
+}
+
+/** Reduces a cultivation to the fields that are sent to the browser. */
+function summarizeCultivation(c: MineralizationCultivation): MineralizationMainCultivation {
+  return {
+    b_lu: c.b_lu,
+    b_lu_catalogue: c.b_lu_catalogue,
+    b_lu_name: c.b_lu_name,
+    b_lu_harvestable: c.b_lu_harvestable,
+    b_lu_harvestcat: c.b_lu_harvestcat,
+    b_lu_croprotation: c.b_lu_croprotation ?? null,
+  }
+}
+
+/**
+ * Calculates the mineralization of one field.
+ *
+ * Never rejects: problems are returned as an outcome with `status: "error"` and a Dutch message.
+ *
+ * @param ctx - Farm context from {@link loadFarmMineralizationContext}.
+ * @param b_id - Field identifier.
+ * @param principal_id - Principal of the session.
+ * @param b_id_farm - Farm identifier.
+ * @param options.calculation - Optional replacement of the prepared request (used for scenarios).
+ * @returns The outcome of the field.
+ */
+export async function calculateFieldMineralization(
+  ctx: FarmMineralizationContext,
+  b_id: string,
+  principal_id: string,
+  b_id_farm: string,
+  options: {
+    transformRequest?: (
+      request: DynaV2Request,
+      mainCultivation: MineralizationCultivation,
+      usedInput: MineralizationUsedInput,
+    ) => DynaV2Request
+  } = {},
+): Promise<FieldMineralizationOutcome> {
+  const field = ctx.fields.find((f) => f.b_id === b_id)
+  const base = {
+    b_id,
+    b_name: field?.b_name ?? null,
+    b_area: field?.b_area ?? null,
+  }
+  try {
+    const data = ctx.data.get(b_id)
+    if (!data) {
+      return { ...base, status: "error", message: "Dit perceel is niet gevonden in dit jaar." }
+    }
+
+    const preparation = prepareMineralizationInput(data, ctx.year, ctx.today)
+    switch (preparation.status) {
+      case "excluded":
+        return { ...base, status: "excluded", reason: preparation.reason }
+      case "missing_location":
+      case "no_cultivation":
+        return { ...base, status: preparation.status }
+      case "missing_harvest": {
+        const main = preparation.mainCultivation
+        let defaultHarvestDate: string | null = null
+        try {
+          const defaults = await getDefaultDatesOfCultivation(
+            fdm,
+            principal_id,
+            b_id_farm,
+            main.b_lu_catalogue,
+            ctx.year,
+          )
+          defaultHarvestDate = defaults.b_lu_end ? toFdmDateString(defaults.b_lu_end) : null
+        } catch {
+          defaultHarvestDate = null
         }
-      } catch (err) {
         return {
-          b_id: field.b_id,
-          b_name: field.b_name ?? field.b_id,
-          error: err instanceof Error ? err.message : String(err),
+          ...base,
+          status: "missing_harvest",
+          mainCultivation: summarizeCultivation(main),
+          defaultHarvestDate,
         }
       }
+      case "ready":
+        break
+    }
+
+    const nmiApiKey = getNmiApiKey()
+    if (!nmiApiKey) {
+      return {
+        ...base,
+        status: "error",
+        message: "De berekening is niet beschikbaar: er is geen NMI API-sleutel ingesteld.",
+      }
+    }
+
+    const main = preparation.mainCultivation
+    const request = options.transformRequest
+      ? options.transformRequest(preparation.request, main, preparation.usedInput)
+      : preparation.request
+    const todayDate = toFdmDateString(ctx.today)
+    const currentYear = Number(todayDate.slice(0, 4))
+
+    const forecastPromise: Promise<WeatherForecast | null> =
+      ctx.year === currentYear
+        ? getWeatherForecast(fdm, {
+            nmiApiKey,
+            a_lat: roundCoordinate(request.field.a_lat),
+            a_lon: roundCoordinate(request.field.a_lon),
+            date: todayDate,
+          }).catch(() => null)
+        : Promise.resolve(null)
+
+    const [{ result, partial }, forecast] = await Promise.all([
+      runDyna(nmiApiKey, request, main.b_lu, todayDate),
+      forecastPromise,
+    ])
+
+    const mainCultivation = request.cultivations?.find((c) => c.b_lu_id === main.b_lu)
+    const mainStart = mainCultivation?.b_lu_start ?? `${ctx.year}-01-01`
+    const mainHarvest =
+      request.harvests?.filter((h) => h.b_lu_id === main.b_lu).at(-1)?.b_date_harvest ??
+      mainCultivation?.b_lu_end ??
+      `${ctx.year}-12-31`
+
+    const insights = deriveMineralizationInsights({
+      result,
+      events: preparation.events,
+      forecast,
+      year: ctx.year,
+      today: ctx.today,
+      mainStart,
+      mainHarvest,
     })
-    activeTasks[currentSlot] = task
-    taskIndex++
-    return task
+
+    return {
+      ...base,
+      status: "ok",
+      mainCultivation: summarizeCultivation(main),
+      result,
+      insights,
+      events: preparation.events,
+      usedInput: preparation.usedInput,
+      forecast,
+      mainStart,
+      mainHarvest,
+      partial,
+      fertilizerOptions: ctx.fertilizers.map((f) => ({
+        p_id: f.p_id,
+        p_name_nl: f.p_name_nl,
+        p_app_amount_unit: f.p_app_amount_unit,
+        p_app_method_options: f.p_app_method_options ?? [],
+        p_type: f.p_type ?? null,
+      })),
+    }
+  } catch (error) {
+    console.error(`Mineralization calculation failed for field ${b_id}:`, error)
+    return {
+      ...base,
+      status: "error",
+      message: error instanceof NmiApiError ? error.message : "Er ging iets mis bij de berekening.",
+    }
+  }
+}
+
+/**
+ * Calculates a what-if scenario for a field without saving it.
+ *
+ * @param args.scenario - Applications and harvest of the scenario; validate with
+ *   `getMineralizationScenarioSchema(year)` first.
+ * @returns The outcome of the field with the scenario applied.
+ */
+export async function calculateScenario(args: {
+  principal_id: string
+  b_id_farm: string
+  b_id: string
+  year: number
+  scenario: MineralizationScenario
+}): Promise<FieldMineralizationOutcome> {
+  let ctx: FarmMineralizationContext
+  try {
+    ctx = await loadFarmMineralizationContext(args)
+  } catch (error) {
+    console.error(`Loading mineralization data failed for field ${args.b_id}:`, error)
+    return {
+      b_id: args.b_id,
+      b_name: null,
+      b_area: null,
+      status: "error",
+      message: "De gegevens van dit perceel konden niet worden geladen.",
+    }
+  }
+  const fertilizers = new Map(ctx.fertilizers.map((f) => [f.p_id, f]))
+  return calculateFieldMineralization(ctx, args.b_id, args.principal_id, args.b_id_farm, {
+    transformRequest: (request, main, usedInput) =>
+      applyScenarioToRequest({
+        request,
+        scenario: args.scenario,
+        fertilizers,
+        mainB_lu: main.b_lu,
+        mainHarvestable: main.b_lu_harvestable,
+        mainHarvestcat: main.b_lu_harvestcat,
+        mainHarvestIds: usedInput.harvests
+          .filter((h) => h.b_lu === main.b_lu)
+          .map((h) => h.b_id_harvesting),
+      }),
   })
 }
 
-// ─── Insights ─────────────────────────────────────────────────────────────────
-
 /**
- * Generates Dutch-language insights comparing a field's N supply to the farm
- * average and reporting season progress.
+ * Saves a scenario to the fertilization plan of a field: fertilizer applications in the year and
+ * the harvests of the main cultivation in the year are added, changed or removed, all in one
+ * transaction.
  *
- * This is a presentation-layer helper — it produces user-facing text strings
- * suitable for display in an "Inzicht" card on the field detail page.
- *
- * **Rules:**
- * - If `totalAnnualN` is >20% above `farmAvgN`: warn about potential over-supply.
- * - If `totalAnnualN` is >20% below `farmAvgN`: suggest improving organic matter.
- * - If `completeness.score < 70`: advise a more comprehensive soil analysis.
- * - Always: report current-season progress (N mineralised to date vs. remaining).
- *
- * @param nsupply - The N supply result for the field.
- * @param farmAvgN - Weighted farm-average annual N mineralisation (kg N/ha).
- *   Pass `undefined` when not yet available (e.g. farm-level call still pending).
- * @param currentDoy - Day of year to use as "today" (1–366).
- * @returns Array of Dutch insight strings. May be empty if no noteworthy conditions.
+ * @throws `Error` when the field has no main cultivation in the year.
  */
-export function generateInsights(
-  nsupply: import("@nmi-agro/fdm-calculator").NSupplyResult,
-  farmAvgN: number | undefined,
-  currentDoy: number,
-  year: number,
-): string[] {
-  const insights: string[] = []
-  const totalN = nsupply.totalAnnualN
+export async function saveScenario(args: {
+  principal_id: string
+  b_id_farm: string
+  b_id: string
+  year: number
+  scenario: MineralizationScenario
+  /** The scenario as the user started editing it; only its applications and harvests can be changed. */
+  base: MineralizationScenario
+}): Promise<void> {
+  const { principal_id, b_id, year, scenario } = args
+  const ctx = await loadFarmMineralizationContext(args)
+  const data = ctx.data.get(b_id)
+  if (!data) throw new Error("Perceel niet gevonden")
 
-  if (farmAvgN !== undefined && farmAvgN > 0) {
-    const ratio = totalN / farmAvgN
-    if (ratio > 1.2) {
-      const pct = Math.round((ratio - 1) * 100)
-      insights.push(
-        `Het N-leverend vermogen is ${pct}% hoger dan het bedrijfsgemiddelde. Overweeg de kunstmestgift te verlagen.`,
-      )
-    } else if (ratio < 0.8) {
-      insights.push(
-        "Relatief laag N-leverend vermogen. Verhogen van het organische stofgehalte kan de mineralisatie verbeteren.",
+  const preparation = prepareMineralizationInput(data, year, ctx.today)
+  if (preparation.status !== "ready" && preparation.status !== "missing_harvest") {
+    throw new Error("Dit perceel heeft geen hoofdteelt om een scenario voor op te slaan")
+  }
+  const main = preparation.mainCultivation
+
+  const prefix = `${year}-`
+  const currentApplications = data.applications.filter((a) =>
+    toFdmDateString(a.p_app_date).startsWith(prefix),
+  )
+  const currentHarvests = (data.harvests.get(main.b_lu) ?? []).flatMap((h) => {
+    if (!h.b_lu_harvest_date || !toFdmDateString(h.b_lu_harvest_date).startsWith(prefix)) {
+      return []
+    }
+    const analysis = h.harvestable?.harvestable_analyses?.[0]
+    const parameters: HarvestParameterValues = {}
+    for (const key of HARVEST_PARAMETER_KEYS) {
+      const value = analysis?.[key]
+      if (value != null) parameters[key] = value
+    }
+    return [
+      {
+        b_id_harvesting: h.b_id_harvesting,
+        b_date_harvest: toFdmDateString(h.b_lu_harvest_date),
+        parameters,
+      },
+    ]
+  })
+
+  const diff = diffScenario(currentApplications, currentHarvests, scenario, args.base)
+
+  const toDate = (date: string) => {
+    const [y, m, d] = date.split("-").map(Number)
+    return startOfDayInFdmTimeZone(y, m, d)
+  }
+
+  await fdm.transaction(async (tx) => {
+    for (const p_app_id of diff.remove) {
+      await removeFertilizerApplication(tx, principal_id, p_app_id)
+    }
+    for (const app of diff.update) {
+      await updateFertilizerApplication(
+        tx,
+        principal_id,
+        app.p_app_id,
+        app.p_id,
+        app.p_app_amount_display,
+        app.p_app_method as ApplicationMethods,
+        toDate(app.p_app_date),
       )
     }
-  }
-
-  if (nsupply.completeness.score < 70) {
-    insights.push(
-      `Betrouwbaarheid beperkt (${nsupply.completeness.score}%). Een uitgebreidere bodemanalyse wordt aanbevolen.`,
-    )
-  }
-
-  const currentPoint = nsupply.data.find((d) => d.doy >= currentDoy)
-  if (currentPoint) {
-    const remaining = totalN - currentPoint.d_n_supply_actual
-    const date = doyToDateString(currentDoy, year)
-    insights.push(
-      `Op ${date} is circa ${Math.round(currentPoint.d_n_supply_actual)} kg N/ha gemineraliseerd. Tot einde groeiseizoen wordt nog ~${Math.round(remaining)} kg N/ha verwacht.`,
-    )
-  }
-
-  return insights
+    for (const app of diff.add) {
+      await addFertilizerApplication(
+        tx,
+        principal_id,
+        b_id,
+        app.p_id,
+        app.p_app_amount_display,
+        app.p_app_method as ApplicationMethods,
+        toDate(app.p_app_date),
+      )
+    }
+    // Harvests are saved with the parameters of their harvest class, as in the harvest form;
+    // fdm-core derives the dry matter yield and nitrogen content from them
+    const required = getParametersForHarvestCat(main.b_lu_harvestcat)
+    const harvestProperties = (harvest: { parameters?: HarvestParameterValues }) => {
+      if (!harvest.parameters || required.length === 0) return undefined
+      const properties: HarvestParameterValues = {}
+      for (const key of required) {
+        const value = harvest.parameters[key]
+        if (value === undefined) {
+          throw new Error("Vul bij elke gewijzigde oogst alle gegevens in.")
+        }
+        properties[key] = value
+      }
+      return properties
+    }
+    for (const b_id_harvesting of diff.harvests.remove) {
+      await removeHarvest(tx, principal_id, b_id_harvesting)
+    }
+    for (const harvest of diff.harvests.update) {
+      await updateHarvest(
+        tx,
+        principal_id,
+        harvest.b_id_harvesting,
+        toDate(harvest.b_date_harvest),
+        harvestProperties(harvest),
+      )
+    }
+    for (const harvest of diff.harvests.add) {
+      await addHarvest(
+        tx,
+        principal_id,
+        main.b_lu,
+        toDate(harvest.b_date_harvest),
+        harvestProperties(harvest),
+      )
+    }
+  })
 }

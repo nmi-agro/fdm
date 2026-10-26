@@ -33,7 +33,7 @@ function getRouteParams(params: ActionFunctionArgs["params"]) {
   return { b_id, b_id_farm, calendar }
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const { b_id } = getRouteParams(params)
     const session = await getSession(request)
@@ -45,14 +45,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       })
     }
 
-    await checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      new URL(request.url).pathname,
-    )
+    await checkPermission(fdm, "field", "write", b_id, session.principal_id, url.pathname)
 
     const { labContext: _labContext, labAnalysisDate } = await deriveBcsScores(
       fdm,

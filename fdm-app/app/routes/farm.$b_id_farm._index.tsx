@@ -228,7 +228,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
     // FARM_VERIFICATION_HIDDEN: re-enable when farmers can verify their own farm
@@ -262,7 +262,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 /**
  * Handles action requests for the farm dashboard, such as batch-accepting BRP cultivation suggestions in a single step.
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -277,7 +277,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
     if (!farmWritePermission) {

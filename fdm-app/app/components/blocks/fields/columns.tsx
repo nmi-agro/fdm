@@ -4,6 +4,10 @@ import { ArrowUpRightFromSquare, MoreHorizontal } from "lucide-react"
 import { NavLink } from "react-router"
 import type { BcsColor } from "~/components/blocks/soil-visual/bcs-color-utils"
 import type { CultivationSuggestion } from "~/lib/cultivation-suggestion.server"
+import {
+  type CultivationAvailabilityResult,
+  CultivationAvailabilityWarningIcon,
+} from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionBadge } from "~/components/blocks/cultivation/suggestion"
 import { DataTableColumnHeader } from "~/components/blocks/data-table/column-header"
 import { getFertilizerCategoryFromRvoCode } from "~/components/blocks/fertilizer/utils"
@@ -33,7 +37,7 @@ const BCS_BADGE_CLASS: Record<BcsColor, string> = {
 export type FieldExtended = {
   b_id: string
   b_name: string
-  cultivations: Cultivation[]
+  cultivations: (Cultivation & { availabilityWarning?: CultivationAvailabilityResult })[]
   cultivationSuggestion?: CultivationSuggestion
   fertilizers: Fertilizer[]
   d_n_supply_base: number | null
@@ -123,10 +127,13 @@ export function buildColumns(
                 style={{
                   backgroundColor: getCultivationColor(cultivation.b_lu_croprotation ?? undefined),
                 }}
-                className="text-white"
+                className="gap-1 text-white"
                 variant="default"
               >
                 {cultivation.b_lu_name}
+                {cultivation.availabilityWarning ? (
+                  <CultivationAvailabilityWarningIcon result={cultivation.availabilityWarning} />
+                ) : null}
               </Badge>
             ))}
             {field.cultivationSuggestion && (

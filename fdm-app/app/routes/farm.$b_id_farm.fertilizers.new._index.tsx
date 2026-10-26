@@ -20,6 +20,7 @@ import {
 } from "~/components/ui/command"
 import { getSession } from "~/lib/auth.server"
 import { fdm } from "~/lib/fdm.server"
+import { stripDataSuffixFromAddress } from "~/lib/url-utils"
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { b_id_farm } = params
@@ -58,7 +59,8 @@ export default function NewFertilizerIndexPage() {
   }, [])
 
   const handleSelect = (p_id: string) => {
-    const returnUrl = searchParams.get("returnUrl")
+    const returnUrlParam = searchParams.get("returnUrl")
+    const returnUrl = returnUrlParam ? stripDataSuffixFromAddress(returnUrlParam) : null
     const url = returnUrl ? `${p_id}?returnUrl=${encodeURIComponent(returnUrl)}` : `${p_id}`
     void navigate(url)
   }
@@ -116,7 +118,7 @@ export default function NewFertilizerIndexPage() {
                     <Link
                       to={
                         searchParams.has("returnUrl")
-                          ? `custom?returnUrl=${encodeURIComponent(searchParams.get("returnUrl") ?? "")}`
+                          ? `custom?returnUrl=${encodeURIComponent(stripDataSuffixFromAddress(searchParams.get("returnUrl") ?? ""))}`
                           : "custom"
                       }
                     >

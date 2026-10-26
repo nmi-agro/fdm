@@ -60,7 +60,7 @@ export const meta: MetaFunction = () => {
  * @throws {Error} If the retrieved farm or field data does not match the expected structure.
  * @throws The error processed by {@link handleLoaderError} for any other issues encountered.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -144,7 +144,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         "write",
         b_id,
         session.principal_id,
-        new URL(request.url).pathname,
+        url.pathname,
         false,
       )),
       user: session.user,

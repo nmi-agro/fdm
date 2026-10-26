@@ -23,6 +23,7 @@ import {
   useLocation,
 } from "react-router"
 import { BufferStripWarning } from "~/components/blocks/balance/buffer-strip-warning"
+import { isEffectiveNitrogenRequested } from "~/components/blocks/balance/effective-nitrogen-toggle"
 import { NitrogenBalanceChart } from "~/components/blocks/balance/nitrogen-chart"
 import NitrogenBalanceDetails from "~/components/blocks/balance/nitrogen-details"
 import { NitrogenBalanceFallback } from "~/components/blocks/balance/skeletons"
@@ -87,6 +88,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get timeframe from calendar store
     const timeframe = getTimeframe(params)
 
+    // Calculate with effective nitrogen when selected with the toggle
+    const useEffectiveNitrogen = isEffectiveNitrogenRequested(request)
+
     // Get details of farm
     const farm = await getFarm(fdm, session.principal_id, b_id_farm)
     if (!farm) {
@@ -119,6 +123,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         fieldWritePermission,
         fieldAvailability,
         calendar: params.calendar ?? "",
+        useEffectiveNitrogen,
       }
     }
 
@@ -130,7 +135,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       timeframe,
       b_id,
     ).then(async (input) => {
-      const nitrogenBalanceResult = await calculateNitrogenBalance(fdm, input)
+      const nitrogenBalanceResult = await calculateNitrogenBalance(fdm, {
+        ...input,
+        useEffectiveNitrogen,
+      })
       let fieldResult: NitrogenFieldResultWithErrorId | undefined =
         nitrogenBalanceResult.fields.find((field: { b_id: string }) => field.b_id === b_id)
 
@@ -183,6 +191,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       fieldWritePermission,
       fieldAvailability: null,
       calendar: params.calendar ?? "",
+      useEffectiveNitrogen,
     }
   } catch (error) {
     throw handleLoaderError(error)
@@ -208,7 +217,7 @@ export default function FarmBalanceNitrogenFieldBlock() {
   return (
     <div className="space-y-4">
       <Suspense
-        key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}`}
+        key={`${loaderData.farm.b_id_farm}#${loaderData.field.b_id}#${loaderData.useEffectiveNitrogen}`}
         fallback={<NitrogenBalanceFallback />}
       >
         <NitrogenBalance {...loaderData} nitrogenBalanceResult={loaderData.nitrogenBalanceResult} />
@@ -230,6 +239,7 @@ function NitrogenBalance({
   farm,
   field,
   nitrogenBalanceResult,
+  useEffectiveNitrogen,
 }: Awaited<ReturnType<typeof loader>> & {
   nitrogenBalanceResult: NonNullable<Awaited<ReturnType<typeof loader>>["nitrogenBalanceResult"]>
 }) {
@@ -334,14 +344,21 @@ function NitrogenBalance({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overschot / Doel (Perceel)</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {/* The target applies to the balance with total nitrogen only */}
+              {useEffectiveNitrogen ? "Overschot (Perceel)" : "Overschot / Doel (Perceel)"}
+            </CardTitle>
             <ArrowRightLeft className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               <div className="flex items-center gap-4">
-                <p>{`${result.balance} / ${result.target}`}</p>
-                {result.balance <= result.target ? (
+                <p>
+                  {useEffectiveNitrogen
+                    ? `${result.balance}`
+                    : `${result.balance} / ${result.target}`}
+                </p>
+                {useEffectiveNitrogen ? null : result.balance <= result.target ? (
                   <CircleCheck className="rounded-full bg-green-100 p-0 text-green-500 " />
                 ) : (
                   <CircleAlert className="rounded-full bg-red-100 text-red-500 " />
@@ -353,7 +370,9 @@ function NitrogenBalance({
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aanvoer</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {useEffectiveNitrogen ? "Aanvoer (werkzaam)" : "Aanvoer"}
+            </CardTitle>
             <ArrowDown className="text-muted-foreground text-xs" />
           </CardHeader>
           <CardContent>

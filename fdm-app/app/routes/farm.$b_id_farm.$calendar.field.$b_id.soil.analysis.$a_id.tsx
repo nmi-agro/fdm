@@ -37,7 +37,7 @@ import { Dialog, DialogTrigger } from "../components/ui/dialog"
  * @throws {Error} If the field ID is missing (HTTP 400).
  * @throws {Error} If the field is not found (HTTP 404).
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -100,7 +100,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       a_id,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

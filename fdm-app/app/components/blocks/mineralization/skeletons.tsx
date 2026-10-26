@@ -1,160 +1,41 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Skeleton } from "~/components/ui/skeleton"
+import { Spinner } from "~/components/ui/spinner"
 
-export function MineralizationCardSkeleton() {
+/** Placeholder for the field page while Dyna calculates; follows the layout of the result. */
+export function FieldMineralizationSkeleton() {
   return (
-    <Card className="animate-pulse">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <Skeleton className="h-4 w-28" />
-        <Skeleton className="h-4 w-4 rounded-full" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="mt-2 h-3 w-24" />
-      </CardContent>
-    </Card>
-  )
-}
-
-export function MineralizationChartSkeleton() {
-  return (
-    <Card className="animate-pulse">
-      <CardHeader>
-        <CardTitle>
-          <Skeleton className="h-6 w-48" />
-        </CardTitle>
-        <CardDescription>
-          <Skeleton className="mt-2 h-4 w-full" />
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-[300px] w-full" />
-      </CardContent>
-    </Card>
-  )
-}
-
-export function MineralizationFieldsSkeleton() {
-  return (
-    <Card className="animate-pulse">
-      <CardHeader>
-        <CardTitle>
-          <Skeleton className="h-6 w-32" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between">
-              <Skeleton className="h-4 w-36" />
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-4 w-4 rounded-full" />
+    <div className="flex flex-col gap-6" aria-busy="true">
+      <div className="flex items-center justify-between gap-4">
+        <Skeleton className="h-9 w-72" />
+        <Skeleton className="h-9 w-40" />
+      </div>
+      <Card>
+        <CardHeader className="space-y-4">
+          <Skeleton className="h-5 w-56" />
+          <div className="@container">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 @lg:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-/** Fallback for the farm overview page */
-export function MineralizationFallback() {
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="lg:col-span-4">
-          <MineralizationChartSkeleton />
-        </div>
-        <div className="lg:col-span-3">
-          <MineralizationFieldsSkeleton />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** Fallback for the DYNA page */
-export function DynaFallback() {
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-      </div>
-      <MineralizationChartSkeleton />
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="animate-pulse">
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-full" />
-            ))}
-          </CardContent>
-        </Card>
-        <Card className="animate-pulse">
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-full" />
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-      <Card className="animate-pulse">
-        <CardHeader>
-          <Skeleton className="h-5 w-40" />
+          </div>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[220px] w-full" />
+          <div className="bg-muted/40 flex h-80 flex-col items-center justify-center gap-2 rounded-lg">
+            <Spinner className="size-5" />
+            <p className="text-muted-foreground text-sm">
+              De stikstof door het seizoen wordt berekend. Dit duurt meestal enkele seconden.
+            </p>
+          </div>
         </CardContent>
       </Card>
-    </div>
-  )
-}
-
-/** Fallback for the field detail page */
-export function MineralizationFieldDetailFallback() {
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-        <MineralizationCardSkeleton />
-      </div>
-      <MineralizationChartSkeleton />
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="animate-pulse">
-          <CardHeader>
-            <Skeleton className="h-5 w-40" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-full" />
-            ))}
-          </CardContent>
-        </Card>
-        <Card className="animate-pulse">
-          <CardHeader>
-            <Skeleton className="h-5 w-36" />
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-4 w-full" />
-            ))}
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="h-56 rounded-xl" />
+        <Skeleton className="h-56 rounded-xl" />
       </div>
     </div>
   )

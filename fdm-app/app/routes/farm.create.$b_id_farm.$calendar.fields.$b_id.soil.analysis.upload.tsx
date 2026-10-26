@@ -91,7 +91,7 @@ export default function FarmFieldSoilAnalysisUploadBlock() {
  * @param params - The route parameters containing `b_id_farm` and `b_id`.
  * @returns A redirect response to the soil analysis page.
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   // Get the farm id
   const b_id_farm = params.b_id_farm
   if (!b_id_farm) {
@@ -207,8 +207,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       }
       void handleActionError(gcsSaveError)
     }
-
-    const url = new URL(request.url)
 
     // Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route
     return redirectWithSuccess(`../${url.search}`, {

@@ -81,7 +81,7 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs): Promise<LoaderData> {
+export async function loader({ request, params, url }: LoaderFunctionArgs): Promise<LoaderData> {
   try {
     // Get the organization
     const slug = params.slug
@@ -91,8 +91,6 @@ export async function loader({ request, params }: LoaderFunctionArgs): Promise<L
         statusText: "missing: slug",
       })
     }
-
-    const url = new URL(request.url)
 
     const searchParamFarmIds = parseFarmIdsParam(url)
 
