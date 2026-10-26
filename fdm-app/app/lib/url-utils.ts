@@ -137,7 +137,7 @@ export function getSafeRedirect(address: string | null | undefined): string {
 }
 
 /**
- * Strips any .data suffix from a URL pathname that might have been introduced
+ * Strips any .data suffixes from a URL pathname that might have been introduced
  * by React Router V8+.
  *
  * Use this for redirect-URL sanitization only, and use the pathname of the
@@ -145,10 +145,10 @@ export function getSafeRedirect(address: string | null | undefined): string {
  * other purposes.
  *
  * @param pathname pathname like `/farm/farm-id/fertilizers.data` to sanitize.
- * @returns the pathname with any `.data` or `/_.data` suffix stripped off.
+ * @returns the pathname with any `.data` or `/_.data` suffixes stripped off.
  */
 export function stripDataSuffix(pathname: string): string {
-  return pathname.replace(/\/_\.data$/, "/").replace(/\.data$/, "")
+  return pathname.replace(/(?:\.data)+$/, "").replace(/\/_$/, "/")
 }
 
 /**
