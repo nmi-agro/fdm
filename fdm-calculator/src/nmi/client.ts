@@ -235,3 +235,7 @@ export class NmiApiClient {
 export const bln3Client = new NmiApiClient()
 export const soilEstimatesClient = new NmiApiClient()
 export const soilReaderClient = new NmiApiClient()
+/** Client for Dyna nitrogen simulations; at most 5 simulations run at the same time. */
+export const dynaClient = new NmiApiClient({ maxConcurrency: 5, maxRetries: 2 })
+/** Client for weather forecasts. */
+export const weatherClient = new NmiApiClient({ maxRetries: 2 })

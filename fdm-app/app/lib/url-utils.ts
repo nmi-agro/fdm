@@ -83,13 +83,13 @@ export function normalizePage(page: string): string {
 }
 
 /**
- * Checks if the given URL-like might be a full URL, and if so, if it is of the
- * origin given. No origin checks are performed if neither a URI scheme nor a
- * protocol-relative prefix (`//`) is detected.
+ * Checks whether the given URL-like stays on the given origin. Full URLs must be
+ * same-origin HTTP(S); protocol-relative input (`//`) is rejected; relative and
+ * root-relative input is resolved against the origin and must not change it.
  *
  * @param href URL-like
- * @param origin origin, like `example.com` to check if full URL is detected
- * @returns the validation result for full URLs, true if no full URL is found
+ * @param origin origin to compare with, like `https://example.com`
+ * @returns whether following `href` stays on `origin`
  */
 export function isOfOrigin(href: string, origin: string) {
   try {
@@ -97,12 +97,11 @@ export function isOfOrigin(href: string, origin: string) {
     // These can be exploited for open redirects when used in browser contexts
     if (href.startsWith("//")) return false
 
-    // Allow root-relative paths (e.g., /path/to/page)
-    if (href.startsWith("/")) return true
-
-    // If no URI scheme is present, treat as relative/path-like input
+    // Root-relative and path-like input (e.g. /path/to/page) is resolved against the origin,
+    // because backslashes and control characters can change the host: "/\evil.com" is read by
+    // browsers as the protocol-relative "//evil.com"
     const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(href)
-    if (!hasScheme) return true
+    if (!hasScheme) return new URL(href, origin).origin === origin
 
     // For absolute URLs, only allow same-origin HTTP(S)
     const parsed = new URL(href)

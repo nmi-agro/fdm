@@ -1,130 +1,109 @@
-import { getFarm, getFields } from "@nmi-agro/fdm-core"
-import { Component, Zap } from "lucide-react"
-import { Suspense, use, useEffect } from "react"
-import { data, type LoaderFunctionArgs, type MetaFunction, useLoaderData } from "react-router"
-import { DynaFieldList } from "~/components/blocks/mineralization/dyna-field-list"
-import { FieldList } from "~/components/blocks/mineralization/field-list"
-import { MethodSelector } from "~/components/blocks/mineralization/method-selector"
-import { FarmMineralizationChart } from "~/components/blocks/mineralization/mineralization-chart"
-import { FarmNSupplyKpi } from "~/components/blocks/mineralization/nsupply-kpi"
-import { MineralizationFallback } from "~/components/blocks/mineralization/skeletons"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { getFields, toFdmDateString } from "@nmi-agro/fdm-core"
+import { Map as MapIcon } from "lucide-react"
+import { useEffect } from "react"
+import {
+  data,
+  type LoaderFunctionArgs,
+  type MetaFunction,
+  NavLink,
+  useLoaderData,
+} from "react-router"
+import {
+  FarmAttentionList,
+  FarmFieldTable,
+  FarmSummary,
+} from "~/components/blocks/mineralization/farm-overview"
+import { useSettledOutcomes } from "~/components/blocks/mineralization/use-settled-outcomes"
+import { Button } from "~/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty"
 import { useAnalytics } from "~/hooks/use-analytics"
 import {
-  type FarmDynaResult,
-  getDynaForFarm,
-  getNSupplyForFarm,
-  type NSupplyMethod,
-  type NSupplyResult,
+  calculateFieldMineralization,
+  getMineralizationTimeframe,
+  getMineralizationYear,
+  loadFarmMineralizationContext,
 } from "~/integrations/mineralization.server"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleLoaderError, reportError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { type FieldMineralizationOutcome, getBulkHarvestHref } from "~/lib/mineralization"
 
 export const meta: MetaFunction = () => {
   return [
-    {
-      title: `Mineralisatie | Bedrijfsoverzicht | ${clientConfig.name}`,
-    },
+    { title: `Mineralisatie | Bedrijfsoverzicht | ${clientConfig.name}` },
     {
       name: "description",
-      content: "Bedrijfsoverzicht stikstofmineralisatie.",
+      content:
+        "Stikstofaanbod, opname en uitspoeling per perceel, met de percelen die aandacht vragen.",
     },
   ]
 }
 
-export async function loader({ request, params, url }: LoaderFunctionArgs) {
+/**
+ * Loads the fields of the farm and streams the mineralization outcome of every field.
+ *
+ * Only the field list is awaited; the farm data and the Dyna calculations are returned as promises
+ * so the page renders immediately and fills in per field.
+ */
+export async function loader({ request, params }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
-      throw data("invalid: b_id_farm", {
-        status: 400,
-        statusText: "invalid: b_id_farm",
-      })
+      throw data("invalid: b_id_farm", { status: 400, statusText: "invalid: b_id_farm" })
     }
-
     const session = await getSession(request)
-    const timeframe = getTimeframe(params)
+    const year = getMineralizationYear(params.calendar)
+    const fields = await getFields(
+      fdm,
+      session.principal_id,
+      b_id_farm,
+      getMineralizationTimeframe(year),
+    )
 
-    const farm = await getFarm(fdm, session.principal_id, b_id_farm)
-    if (!farm) {
-      throw data("not found: b_id_farm", {
-        status: 404,
-        statusText: "not found: b_id_farm",
-      })
-    }
+    const contextPromise = loadFarmMineralizationContext({
+      principal_id: session.principal_id,
+      b_id_farm,
+      year,
+    })
+    // Rows handle a failed load themselves; without rows nothing else observes the promise
+    contextPromise.catch(() => undefined)
 
-    const allFields = await getFields(fdm, session.principal_id, b_id_farm, timeframe)
-    const fields = allFields.filter((f) => !f.b_bufferstrip)
-
-    // Read method from search params (default: minip)
-    const methodParam = url.searchParams.get("method")
-    const method: NSupplyMethod =
-      methodParam === "minip" || methodParam === "pmn" || methodParam === "century"
-        ? methodParam
-        : "minip"
-
-    const asyncNSupply = (async () => {
-      try {
-        const results = await getNSupplyForFarm({
-          principal_id: session.principal_id,
-          b_id_farm,
-          method,
-          timeframe,
-        })
-        return { results }
-      } catch (err) {
-        reportError(
-          err instanceof Error ? err.message : String(err),
-          {
-            page: "farm/{b_id_farm}/{calendar}/mineralization/_index",
-            scope: "loader/asyncNSupply",
-          },
-          { b_id_farm },
+    const rows = fields.map((field) => ({
+      b_id: field.b_id,
+      b_name: field.b_name,
+      b_area: field.b_area,
+      outcome: contextPromise
+        .then((ctx) =>
+          calculateFieldMineralization(ctx, field.b_id, session.principal_id, b_id_farm),
         )
-        return { results: [] as NSupplyResult[] }
-      }
-    })()
+        .catch((error: unknown): FieldMineralizationOutcome => {
+          reportError(error, { page: "mineralization", scope: "farm-overview" })
+          return {
+            b_id: field.b_id,
+            b_name: field.b_name,
+            b_area: field.b_area,
+            status: "error",
+            message: "De gegevens van dit bedrijf konden niet worden geladen.",
+          }
+        }),
+    }))
 
-    const asyncDynaPromises = (async () => {
-      try {
-        return await getDynaForFarm({
-          principal_id: session.principal_id,
-          b_id_farm,
-          timeframe,
-        })
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err)
-        reportError(
-          errorMessage,
-          {
-            page: "farm/{b_id_farm}/{calendar}/mineralization/_index",
-            scope: "loader/asyncDynaPromises",
-          },
-          { b_id_farm },
-        )
-        // Fabricate a failed promise for each field so the UI remains aligned
-        return fields.map(
-          async (field) =>
-            ({
-              b_id: field.b_id,
-              b_name: field.b_name ?? field.b_id,
-              error: errorMessage,
-            }) as FarmDynaResult,
-        )
-      }
-    })()
+    const currentYear = Number(toFdmDateString(new Date()).slice(0, 4))
 
     return {
-      farm,
-      fields,
       b_id_farm,
-      method,
-      calendar: params.calendar ?? "",
-      asyncNSupply,
-      asyncDynaPromises,
+      calendar: params.calendar ?? String(year),
+      year,
+      isCurrentYear: year === currentYear,
+      rows,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -134,171 +113,71 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
 
 export default function MineralizationFarmOverview() {
   const loaderData = useLoaderData<typeof loader>()
-  const { b_id_farm, method, calendar, asyncNSupply, asyncDynaPromises, fields } = loaderData
+  // Remount per farm and year, so outcomes of another year are never shown
+  return <FarmOverview key={`${loaderData.b_id_farm}-${loaderData.year}`} {...loaderData} />
+}
+
+function FarmOverview({
+  b_id_farm,
+  calendar,
+  year,
+  isCurrentYear,
+  rows,
+}: ReturnType<typeof useLoaderData<typeof loader>>) {
+  const outcomes = useSettledOutcomes(rows)
   const { capture } = useAnalytics()
 
   useEffect(() => {
-    capture("mineralization_viewed", { b_id_farm, calendar })
-  }, [capture, b_id_farm, calendar])
+    capture("mineralization_viewed", { b_id_farm, year, page: "farm" })
+  }, [capture, b_id_farm, year])
 
-  return (
-    <div className="space-y-8">
-      <Suspense fallback={<MineralizationFallback />}>
-        <MineralizationOverviewContent
-          asyncNSupply={asyncNSupply}
-          asyncDynaPromises={asyncDynaPromises}
-          b_id_farm={b_id_farm}
-          method={method}
-          calendar={calendar}
-          fields={fields}
-        />
-      </Suspense>
-    </div>
-  )
-}
-
-function MineralizationOverviewContent({
-  asyncNSupply,
-  asyncDynaPromises,
-  b_id_farm,
-  method,
-  calendar,
-  fields,
-}: {
-  asyncNSupply: Promise<{ results: NSupplyResult[] }>
-  asyncDynaPromises: Promise<Promise<FarmDynaResult>[]>
-  b_id_farm: string
-  method: NSupplyMethod
-  calendar: string
-  fields: { b_id: string; b_name: string | null }[]
-}) {
-  const { results } = use(asyncNSupply)
-  const dynaPromisesArray = use(asyncDynaPromises)
-
-  // Map the array of promises to a keyed object for the DynaFieldList
-  const dynaPromises = Object.fromEntries(
-    fields.map((field, i) => [field.b_id, dynaPromisesArray[i]]),
-  )
-
-  // Compute farm-average curve (simple average per DOY across all valid results)
-  const validResults = results.filter((r) => !r.error && r.data.length > 0)
-  const farmAvgData = computeFarmAverageCurve(validResults)
-
-  return (
-    <div className="space-y-8">
-      {/* 1. N-Supply Section */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 px-1">
-          <Zap className="h-4 w-4 text-amber-500" />
-          <h3 className="text-lg font-semibold tracking-tight">Bodem N-levering</h3>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <FarmNSupplyKpi results={results} />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <div className="col-span-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Mineralisatiecurve — Bedrijfsgemiddelde</CardTitle>
-                <CardDescription>
-                  Cumulatieve N-levering (kg N/ha) over het jaar. Schatting op basis van
-                  bodemgegevens.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FarmMineralizationChart data={farmAvgData} year={Number(calendar)} />
-              </CardContent>
-            </Card>
-          </div>
-          <div className="col-span-3">
-            <Card className="flex h-full flex-col">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-                <div>
-                  <CardTitle>Percelen</CardTitle>
-                  <CardDescription>Gesorteerd op N-levering</CardDescription>
-                </div>
-                <MethodSelector value={method} />
-              </CardHeader>
-              <CardContent className="max-h-[400px] flex-1 overflow-auto">
-                <FieldList results={results} b_id_farm={b_id_farm} calendar={calendar} />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. DYNA Section */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 px-1">
-          <Component className="h-4 w-4 text-emerald-500" />
-          <h3 className="text-lg font-semibold tracking-tight">DYNA</h3>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Resultaten per perceel</CardTitle>
-            <CardDescription>
-              Dag-voor-dag berekening van N-beschikbaarheid en gewasopname op basis van bodem, gewas
-              én bemesting. Resultaten laden per perceel.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="max-h-[500px] overflow-auto">
-            <DynaFieldList
-              fields={fields}
-              promises={dynaPromises}
-              b_id_farm={b_id_farm}
-              calendar={calendar}
-            />
-          </CardContent>
-        </Card>
-      </section>
-    </div>
-  )
-}
-
-function computeFarmAverageCurve(
-  results: NSupplyResult[],
-): { doy: number; d_n_supply_actual: number }[] {
-  if (results.length === 0) return []
-
-  const doyMap = new Map<
-    number,
-    {
-      sumWeighted: number
-      sumArea: number
-      sumUnweighted: number
-      count: number
-    }
-  >()
-
-  for (const result of results) {
-    if (result.error || result.data.length === 0) continue
-    const area = result.area || 0
-
-    for (const point of result.data) {
-      const existing = doyMap.get(point.doy) ?? {
-        sumWeighted: 0,
-        sumArea: 0,
-        sumUnweighted: 0,
-        count: 0,
-      }
-      if (area > 0) {
-        existing.sumWeighted += area * point.d_n_supply_actual
-        existing.sumArea += area
-      }
-      existing.sumUnweighted += point.d_n_supply_actual
-      existing.count += 1
-      doyMap.set(point.doy, existing)
-    }
+  const fields = rows.map(({ b_id, b_name, b_area }) => ({ b_id, b_name, b_area }))
+  const overviewHref = `/farm/${b_id_farm}/${calendar}/mineralization`
+  const props = {
+    fields,
+    outcomes,
+    year,
+    isCurrentYear,
+    fieldHref: (b_id: string) => `${overviewHref}/${b_id}`,
+    harvestHref: (b_lu_catalogue: string, fieldIds: string[]) =>
+      getBulkHarvestHref({
+        b_id_farm,
+        calendar,
+        b_lu_catalogue,
+        fieldIds,
+        returnUrl: overviewHref,
+      }),
   }
 
-  return Array.from(doyMap.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([doy, { sumWeighted, sumArea, sumUnweighted, count }]) => ({
-      doy,
-      d_n_supply_actual:
-        sumArea > 0 ? sumWeighted / sumArea : count > 0 ? sumUnweighted / count : 0,
-    }))
+  if (fields.length === 0) {
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <MapIcon />
+          </EmptyMedia>
+          <EmptyTitle>Nog geen percelen in {year}</EmptyTitle>
+          <EmptyDescription>
+            Voeg percelen toe aan dit bedrijf om de mineralisatie te berekenen.
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button asChild>
+            <NavLink to={`/farm/${b_id_farm}/${calendar}/field/new`}>Percelen toevoegen</NavLink>
+          </Button>
+        </EmptyContent>
+      </Empty>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* The summary introduces the attention list, so it sits closer to it than the cards do */}
+      <div className="flex flex-col gap-3">
+        <FarmSummary fields={fields} outcomes={outcomes} />
+        <FarmAttentionList {...props} />
+      </div>
+      <FarmFieldTable {...props} />
+    </div>
+  )
 }
