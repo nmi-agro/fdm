@@ -144,7 +144,7 @@ export default function FarmFieldSoilOverviewBlock() {
  * @throws {Response} If any ID is missing (HTTP 400).
  * @throws {Response} If there is an error during the creation (HTTP 500).
  */
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request, params, url }: ActionFunctionArgs) {
   // Get the farm id
   const b_id_farm = params.b_id_farm
   if (!b_id_farm) {
@@ -181,8 +181,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       formValues.b_sampling_date,
       formValues,
     )
-
-    const url = new URL(request.url)
 
     // Search needed for the /farm/$b_id_farm/$calendar/field/new/fields route
     return redirectWithSuccess(`../${url.search}`, {

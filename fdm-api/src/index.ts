@@ -2,10 +2,6 @@
 
 import type { FdmAuth, FdmType } from "@nmi-agro/fdm-core"
 import {
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // assessDataCompleteness,
-  // buildDynaRequest,
-  // buildNSupplyRequest,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
   collectInputForNitrogenBalance,
@@ -15,8 +11,6 @@ import {
   getFarmIndicators,
   getFieldIndicators,
   getFieldMeasureOptions,
-  // getDyna,
-  // getNSupply,
   getNitrogenBalanceField,
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice,
@@ -38,7 +32,6 @@ import {
   getCultivations,
   getCultivationsForFarm,
   getCurrentSoilData,
-  // getCultivationsFromCatalogue,
   getFarm,
   getFarmGroup,
   getFarms,
@@ -49,12 +42,9 @@ import {
   getFertilizersFromCatalogue,
   getField,
   getFields,
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // getGrazingIntention,
   getGrazingIntentions,
   getHarvest,
   getHarvests,
-  // getHarvestsForFarm,
   getMeasure,
   getMeasures,
   getOrganicCertification,
@@ -205,22 +195,10 @@ export interface FdmApiServices {
   calculateOrganicMatterBalance: typeof calculateOrganicMatterBalance
   getOrganicMatterBalanceField: typeof getOrganicMatterBalanceField
   getDoseForField: typeof getDoseForField
-  // Additional data fetching for norms/mineralization
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
-  // getHarvestsForFarm: typeof getHarvestsForFarm
-  // getGrazingIntention: typeof getGrazingIntention
   // Norms
   createFunctionsForNorms: typeof createFunctionsForNorms
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice: typeof getNutrientAdvice
-  // Mineralization (N-Supply + DYNA)
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // buildNSupplyRequest: typeof buildNSupplyRequest
-  // assessDataCompleteness: typeof assessDataCompleteness
-  // getNSupply: typeof getNSupply
-  // buildDynaRequest: typeof buildDynaRequest
-  // getDyna: typeof getDyna
 }
 
 const defaultServices: FdmApiServices = {
@@ -297,18 +275,9 @@ const defaultServices: FdmApiServices = {
   calculateOrganicMatterBalance,
   getOrganicMatterBalanceField,
   getDoseForField,
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // getCultivationsFromCatalogue,
-  // getHarvestsForFarm,
-  // getGrazingIntention,
   createFunctionsForNorms,
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice,
-  // buildNSupplyRequest,
-  // assessDataCompleteness,
-  // getNSupply,
-  // buildDynaRequest,
-  // getDyna,
 }
 
 /**

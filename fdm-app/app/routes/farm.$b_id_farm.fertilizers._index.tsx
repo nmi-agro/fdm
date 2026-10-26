@@ -30,7 +30,7 @@ export const meta: MetaFunction = () => {
   ]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -102,7 +102,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

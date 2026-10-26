@@ -26,7 +26,7 @@ const MIME_TO_EXT: Record<string, string> = {
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, url }: ActionFunctionArgs) {
   const session = await getSession(request)
   if (!session) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
@@ -65,14 +65,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
-    await checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      new URL(request.url).pathname,
-    )
+    await checkPermission(fdm, "field", "write", b_id, session.principal_id, url.pathname)
   } catch {
     return Response.json(
       {

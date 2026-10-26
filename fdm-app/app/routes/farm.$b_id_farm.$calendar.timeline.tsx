@@ -24,7 +24,7 @@ import {
   updateHarvest,
   updateSoilAnalysis,
 } from "@nmi-agro/fdm-core"
-import { ApplicationMethods } from "@nmi-agro/fdm-data"
+import { ApplicationMethods, getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
@@ -136,7 +136,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     // TIMELINE_START_YEAR/END_YEAR in gantt-view.tsx), so it fetches that same full range up
     // front rather than just the single selected year — otherwise scrolling into any other year
     // always looked empty, even when it genuinely had data.
-    const [timelineFields, fertilizers, cultivationCatalogue] = await Promise.all([
+    const [timelineFields, fertilizers, cultivationsCatalogue] = await Promise.all([
       fetchTimelineFields(
         session.principal_id,
         b_id_farm,
@@ -178,17 +178,27 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       p_app_amount_unit: fertilizer.p_app_amount_unit,
     }))
 
+    // Map catalogue cultivations to options for the add-cultivation combobox
+    const cultivationOptions = cultivationsCatalogue.map((cultivation) => {
+      const catalogueCode = cultivation.b_lu_catalogue.split("_")[1]
+      return {
+        value: cultivation.b_lu_catalogue,
+        label: catalogueCode
+          ? `${cultivation.b_lu_name} (${catalogueCode})`
+          : cultivation.b_lu_name,
+        b_lu_ya: cultivation.b_lu_ya,
+      }
+    })
+
     return {
       b_id_farm,
       calendar,
+      lastCultivationAvailabilityYear: await getLastCultivationAvailabilityYear(),
       farmWritePermission,
       farmOptions,
       fields: timelineFields,
       fertilizerOptions: fertilizerOptions,
-      cultivationOptions: cultivationCatalogue.map((c) => ({
-        value: c.b_lu_catalogue,
-        label: c.b_lu_name,
-      })),
+      cultivationOptions: cultivationOptions,
     }
   } catch (error) {
     const normalized = handleLoaderError(error)
@@ -861,6 +871,7 @@ export default function TimelinePage() {
       <AddEventSheet
         b_id_farm={loaderData.b_id_farm}
         calendar={loaderData.calendar}
+        lastCultivationAvailabilityYear={loaderData.lastCultivationAvailabilityYear}
         canModify={loaderData.farmWritePermission}
         fertilizerOptions={loaderData.fertilizerOptions}
         cultivationOptions={loaderData.cultivationOptions}

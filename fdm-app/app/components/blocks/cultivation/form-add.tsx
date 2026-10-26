@@ -1,6 +1,7 @@
 import type { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useRef, useState } from "react"
+import { useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Combobox } from "~/components/custom/combobox"
@@ -15,10 +16,12 @@ import {
 } from "~/components/ui/dialog"
 import { Spinner } from "~/components/ui/spinner"
 import type { CultivationsFormProps } from "./types"
+import { CultivationAvailabilityWarning } from "./availability-warning"
 import { CultivationAddFormSchema } from "./schema"
 
 export function CultivationAddFormDialog({
   options,
+  lastCultivationAvailabilityYear,
   defaultValues,
   onClose,
 }: CultivationsFormProps & { onClose?: () => void }) {
@@ -45,6 +48,7 @@ export function CultivationAddFormDialog({
         </DialogHeader>
         <CultivationAddForm
           options={options}
+          lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
           defaultValues={defaultValues}
           onSuccess={() => handleOpenChange(false)}
         />
@@ -55,6 +59,7 @@ export function CultivationAddFormDialog({
 
 export function CultivationAddForm({
   options,
+  lastCultivationAvailabilityYear,
   defaultValues,
   onSuccess,
   editable = true,
@@ -78,6 +83,11 @@ export function CultivationAddForm({
       b_lu_end: defaultValues?.b_lu_end ?? undefined,
     },
   })
+
+  const current_b_lu_catalogue = useWatch({ control: form.control, name: "b_lu_catalogue" })
+  const current_b_lu_start = useWatch({ control: form.control, name: "b_lu_start" })
+  const current_b_lu_end = useWatch({ control: form.control, name: "b_lu_end" })
+  const current_b_lu_ya = options.find((option) => option.value === current_b_lu_catalogue)?.b_lu_ya
 
   const { isSubmitting, isSubmitSuccessful } = form.formState
   const isSubmittingRef = useRef(isSubmitting)
@@ -127,6 +137,11 @@ export function CultivationAddForm({
                 disabled={form.formState.isSubmitting}
               />
             </div>
+            <CultivationAvailabilityWarning
+              period={{ b_lu_start: current_b_lu_start, b_lu_end: current_b_lu_end }}
+              b_lu_ya={current_b_lu_ya}
+              lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+            />
             <div className="">
               <Button type="submit" className="w-full">
                 {form.formState.isSubmitting ? (

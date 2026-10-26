@@ -44,7 +44,7 @@ function getDetailPath(params: ActionFunctionArgs["params"]) {
   return `${getBcsPath(params)}/${a_id}`
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const { a_id, b_id, b_id_farm } = getRouteParams(params)
     const session = await getSession(request)
@@ -54,14 +54,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       throw data("Field is not found", { status: 404, statusText: "Field is not found" })
     }
 
-    await checkPermission(
-      fdm,
-      "field",
-      "write",
-      b_id,
-      session.principal_id,
-      new URL(request.url).pathname,
-    )
+    await checkPermission(fdm, "field", "write", b_id, session.principal_id, url.pathname)
 
     const analysis = await getSoilAnalysis(fdm, session.principal_id, a_id)
     if (analysis.b_id !== b_id || !isBcsAnalysis(analysis)) {
