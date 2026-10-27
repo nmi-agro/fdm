@@ -88,7 +88,6 @@ import {
   summarizeChangesAgainstRvo,
   ChangeSummaryAgainstRvo,
 } from "./review-fields"
-import { UserChoicesSummary } from "./user-choices-summary"
 
 export type { ImportReviewFlags }
 
@@ -1004,14 +1003,12 @@ function RvoImportReviewTableComponent({
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex justify-between">
-          <ImportDifferenceSummary
-            statusCounts={differences.statusCounts}
-            columnCounts={differences.columnCounts}
-            matches={{ expanded: showMatches, onToggle: toggleMatches }}
-          />
-          <UserChoicesSummary changeSummaryAgainstRvo={changeSummaryAgainstRvo} />
-        </div>
+        <ImportDifferenceSummary
+          statusCounts={differences.statusCounts}
+          columnCounts={differences.columnCounts}
+          changeSummaryAgainstRvo={changeSummaryAgainstRvo}
+          matches={{ expanded: showMatches, onToggle: toggleMatches }}
+        />
         <div className="bg-card rounded-md border">
           <Table>
             <TableHeader>

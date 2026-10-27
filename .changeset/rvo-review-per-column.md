@@ -10,7 +10,7 @@ The RVO and shapefile import review table now lets you choose per column whether
 - After applying the changes a confirmation message is shown. Error messages are now in Dutch.
 - Clearer wording in the table. The statuses are now "Alleen bij RVO", "Alleen in" the app and "Niet meer bij RVO", and their explanations say what happens by default. The column explanations now say that choosing an area also chooses the field boundary, and how the buffer strip is estimated for shapefile uploads.
 - Fields without a crop now also get soil estimates when they are imported.
-- A summary above the table shows how many fields there are per status, and which columns differ for the fields with differences.
+- A summary above the table shows how many fields there are per status, and which columns differ for the fields with differences. It also states whether the fields will match RVO after saving, or how many will differ because of your choices.
 - The table lists the fields that need a decision first. Fields that match RVO are collapsed and can be shown with one click. Ignored fields are dimmed, and a field with a problem shows that problem in its row.
 - The buttons to save stay visible while you scroll through a long list of fields.
 - Calmer status badges. Statuses that change data by default (Verschil, Alleen bij RVO, Niet meer bij RVO) get a filled badge, and the others stay neutral. Each badge has an icon, so the meaning no longer depends on color, and "Verschil" is no longer shown in red as if it were an error.

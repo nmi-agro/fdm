@@ -1,7 +1,8 @@
-import { AlertCircle, type LucideIcon } from "lucide-react"
+import { AlertCircle, ArrowLeftRight, Check, type LucideIcon } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
-import type { ImportChangeSummary, ImportIssue } from "./review-fields"
+import { clientConfig } from "~/lib/config"
+import type { ChangeSummaryAgainstRvo, ImportChangeSummary, ImportIssue } from "./review-fields"
 
 /** How many field names are listed per kind of change before the rest is summarized. */
 const MAX_LISTED_NAMES = 8
@@ -88,17 +89,84 @@ export interface DifferenceCount {
   icon?: LucideIcon
 }
 
+/** Names the state of the fields that one half of the summary compares with RVO. */
+function SummaryHeading({ title }: { title: string }) {
+  return (
+    <p>
+      <span className="font-medium">{title}</span>{" "}
+      <span className="text-muted-foreground">vergeleken met RVO</span>
+    </p>
+  )
+}
+
 /**
- * Summarizes how the fields in the app compare to RVO before the user looks at the table: how many
- * fields there are per status and, for fields that differ, which columns differ.
+ * States whether the fields will match RVO once the review is saved and, if not, which choices of
+ * the user cause them to differ.
+ */
+function SavedResultSummary({
+  changeSummaryAgainstRvo,
+}: {
+  changeSummaryAgainstRvo: ChangeSummaryAgainstRvo
+}) {
+  const choices = [
+    { key: "ignore", count: changeSummaryAgainstRvo.ignore, label: "niet toegevoegd" },
+    { key: "keep", count: changeSummaryAgainstRvo.keep, label: "behouden" },
+    { key: "doNotClose", count: changeSummaryAgainstRvo.doNotClose, label: "niet afgesloten" },
+    { key: "update", count: changeSummaryAgainstRvo.update, label: "met andere gegevens dan RVO" },
+  ].filter((choice) => choice.count > 0)
+  const total = choices.reduce((sum, choice) => sum + choice.count, 0)
+
+  return (
+    <div className="space-y-2 pt-3 md:pt-0 md:pl-6" aria-live="polite">
+      <SummaryHeading title="Na opslaan" />
+      {total === 0 ? (
+        <>
+          <p className="flex items-center gap-1.5">
+            <Check className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+            Alle percelen komen overeen met RVO.
+          </p>
+          <p className="text-muted-foreground">
+            Standaard worden de gegevens van RVO overgenomen. Pas alleen aan wat niet klopt.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="flex items-center gap-1.5">
+            <ArrowLeftRight className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="font-semibold tabular-nums">{total}</span>{" "}
+              {total === 1 ? "perceel wijkt" : "percelen wijken"} af van RVO door uw keuzes:
+            </span>
+          </p>
+          <p className="text-muted-foreground">
+            {choices.map(({ key, count, label }, index) => (
+              <span key={key}>
+                {index > 0 && " · "}
+                <span className="text-foreground tabular-nums">{count}</span> {label}
+              </span>
+            ))}
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Summarizes how the fields in the app compare to RVO: before the user looks at the table, how
+ * many fields there are per status and, for fields that differ, which columns differ; and, as the
+ * user makes choices, whether the saved result will match RVO.
  */
 export function ImportDifferenceSummary({
   statusCounts,
   columnCounts,
+  changeSummaryAgainstRvo,
   matches,
 }: {
   statusCounts: DifferenceCount[]
   columnCounts: DifferenceCount[]
+  /** How the saved result will differ from RVO, given the choices of the user. */
+  changeSummaryAgainstRvo: ChangeSummaryAgainstRvo
   /** Shows or hides the fields that match RVO, from their count in the summary. */
   matches?: { expanded: boolean; onToggle: () => void }
 }) {
@@ -107,43 +175,44 @@ export function ImportDifferenceSummary({
 
   return (
     <section
-      aria-label="Samenvatting van de vergelijking met RVO"
-      className="bg-card space-y-2 rounded-md border px-4 py-3 text-sm"
+      aria-label="Vergelijking met RVO"
+      className="bg-card grid divide-y rounded-md border px-4 py-3 text-sm md:grid-cols-2 md:divide-x md:divide-y-0"
     >
-      <ul className="flex flex-wrap gap-x-5 gap-y-1">
-        {visibleStatuses.map(({ key, count, label, icon: Icon }) => (
-          <li key={key} className="flex items-center gap-1.5">
-            {Icon && <Icon className="text-muted-foreground size-4" aria-hidden="true" />}
-            <span className="font-semibold tabular-nums">{count}</span>
-            <span>{label}</span>
-            {key === "MATCH" && matches && (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto px-1 py-0"
-                aria-expanded={matches.expanded}
-                onClick={matches.onToggle}
-              >
-                {matches.expanded ? "verbergen" : "tonen"}
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-      {columnCounts.length > 0 && (
-        <p className="text-muted-foreground">
-          Verschillen per kolom:{" "}
-          {columnCounts.map(({ key, count, label }, index) => (
-            <span key={key}>
-              {index > 0 && " · "}
-              {label} <span className="text-foreground tabular-nums">{count}</span>
-            </span>
+      <div className="space-y-2 pb-3 md:pr-6 md:pb-0">
+        <SummaryHeading title={`Nu in ${clientConfig.name}`} />
+        <ul className="flex flex-wrap gap-x-5 gap-y-1">
+          {visibleStatuses.map(({ key, count, label, icon: Icon }) => (
+            <li key={key} className="flex items-center gap-1.5">
+              {Icon && <Icon className="text-muted-foreground size-4" aria-hidden="true" />}
+              <span className="font-semibold tabular-nums">{count}</span>
+              <span>{label}</span>
+              {key === "MATCH" && matches && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-1 py-0"
+                  aria-expanded={matches.expanded}
+                  onClick={matches.onToggle}
+                >
+                  {matches.expanded ? "verbergen" : "tonen"}
+                </Button>
+              )}
+            </li>
           ))}
-        </p>
-      )}
-      <p className="text-muted-foreground">
-        Standaard worden de gegevens van RVO overgenomen. Pas alleen aan wat niet klopt.
-      </p>
+        </ul>
+        {columnCounts.length > 0 && (
+          <p className="text-muted-foreground">
+            Verschillen per kolom:{" "}
+            {columnCounts.map(({ key, count, label }, index) => (
+              <span key={key}>
+                {index > 0 && " · "}
+                {label} <span className="text-foreground tabular-nums">{count}</span>
+              </span>
+            ))}
+          </p>
+        )}
+      </div>
+      <SavedResultSummary changeSummaryAgainstRvo={changeSummaryAgainstRvo} />
     </section>
   )
 }
