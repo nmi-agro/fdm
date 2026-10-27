@@ -41,7 +41,7 @@ export const meta: MetaFunction = () => {
  * @returns {Promise<object>} An object containing farm details, the list of available fields, cultivation options, and other related data.
  * @throws {Response} If the farm ID is missing.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the Id and name of the farm
     const b_id_farm = params.b_id_farm
@@ -54,7 +54,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
-    const url = new URL(request.url)
 
     // Obtain the fieldIds
     // Redirect to one of them if not viewing a field currently.

@@ -10,6 +10,7 @@ import {
   getHarvestsForFarm,
   updateCultivation,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import { useEffect } from "react"
 import { type MetaFunction, NavLink, Outlet, redirect, useLoaderData } from "react-router"
 import { dataWithError, dataWithSuccess } from "remix-toast"
@@ -28,6 +29,7 @@ import { useAnalytics } from "~/hooks/use-analytics"
 import { getSession } from "~/lib/auth.server"
 import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
+import { isCultivationUnavailableInPeriod } from "~/lib/cultivation-availability"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
 import { extractFormValuesFromRequest } from "~/lib/form"
@@ -185,6 +187,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }
     })
 
+    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
+
     const rotationExtended = cultivationsInRotation.map((b_lu_catalogue) => {
       const catalogueItem = cultivationCatalogue.find(
         (cat) => cat.b_lu_catalogue === b_lu_catalogue,
@@ -213,8 +217,21 @@ export async function loader({ request, params }: Route.LoaderArgs) {
           (cultivation) => harvestsForFarm.get(cultivation.b_lu) ?? [],
         )
 
+        // First period in which the RVO crop code is unavailable, if any.
+        const availabilityWarning =
+          cultivationsForCatalogue
+            .map((cultivation) =>
+              isCultivationUnavailableInPeriod(
+                cultivation,
+                catalogueItem.b_lu_ya,
+                lastCultivationAvailabilityYear,
+              ),
+            )
+            .find((result) => result !== null) ?? null
+
         return {
           type: "field",
+          availabilityWarning: availabilityWarning,
           canModify: farmWritePermission,
           b_id: field.b_id,
           b_name: field.b_name,
@@ -270,6 +287,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
       return {
         type: "crop",
+        availabilityWarning:
+          fieldRows.find((fieldRow) => fieldRow.availabilityWarning !== null)
+            ?.availabilityWarning ?? null,
         canModify: farmWritePermission,
         b_lu_catalogue: b_lu_catalogue,
         b_lu_name: b_lu_name ?? "",

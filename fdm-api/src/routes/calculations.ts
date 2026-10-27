@@ -10,25 +10,13 @@ import type {
   NitrogenBalanceFieldNumeric,
   NitrogenBalanceNumeric,
 } from "@nmi-agro/fdm-calculator"
-// [MINERALIZATION: disabled — behind feature flag in fdm-app]
-// import {
-//     getCultivationsFromCatalogue,
-//     getGrazingIntention,
-//     getHarvestsForFarm,
-// } from "@nmi-agro/fdm-core"
 import type { FdmType, getField } from "@nmi-agro/fdm-core"
 import { createRoute, z } from "@hono/zod-openapi"
 import {
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // NmiApiError,
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // assessDataCompleteness,
-  // buildDynaRequest,
-  // buildNSupplyRequest,
   type createFunctionsForNorms,
   NormNotApplicableError,
-  // getDyna,
-  // getNSupply,
   // getNutrientAdvice,
 } from "@nmi-agro/fdm-calculator"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
@@ -64,21 +52,11 @@ export interface CalculationServices {
   createFunctionsForNorms: typeof createFunctionsForNorms
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // getNutrientAdvice: typeof getNutrientAdvice
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // buildNSupplyRequest: typeof buildNSupplyRequest
-  // assessDataCompleteness: typeof assessDataCompleteness
-  // getNSupply: typeof getNSupply
-  // buildDynaRequest: typeof buildDynaRequest
-  // getDyna: typeof getDyna
   // Additional FDM core data fetching
   getCultivations: typeof import("@nmi-agro/fdm-core").getCultivations
   getCurrentSoilData: typeof import("@nmi-agro/fdm-core").getCurrentSoilData
   getFertilizerApplications: typeof import("@nmi-agro/fdm-core").getFertilizerApplications
   getFertilizers: typeof import("@nmi-agro/fdm-core").getFertilizers
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // getCultivationsFromCatalogue: typeof getCultivationsFromCatalogue
-  // getHarvestsForFarm: typeof getHarvestsForFarm
-  // getGrazingIntention: typeof getGrazingIntention
 }
 
 // ---------------------------------------------------------------------------
@@ -390,81 +368,6 @@ const FarmNormsSchema = z
 //     })
 //     .openapi("NutrientAdvice")
 
-// [MINERALIZATION: disabled — behind feature flag in fdm-app]
-// const NSupplyDataPointSchema = z.object({
-//     doy: z.number().int().describe("Day of year (1–366)"),
-//     d_n_supply_actual: z.number().describe("Cumulative mineralised N to this DOY (kg N/ha)"),
-// })
-//
-// const DataCompletenessSchema = z.object({
-//     available: z.array(
-//         z.object({
-//             param: z.string(),
-//             value: z.union([z.number(), z.string()]),
-//             source: z.string().optional(),
-//             date: z.string().datetime().optional(),
-//         }),
-//     ),
-//     missing: z.array(z.string()),
-//     estimated: z.array(z.string()),
-//     score: z.number().int().describe("Completeness score from 0 to 100"),
-// })
-//
-// const NSupplyResultSchema = z
-//     .object({
-//         b_id: z.string(),
-//         b_name: z.string(),
-//         area: z.number().describe("Field area in ha"),
-//         method: z.enum(["minip", "pmn", "century"]).describe("Mineralization model used"),
-//         totalAnnualN: z.number().describe("Total annual N mineralised (kg N/ha/yr)"),
-//         data: z.array(NSupplyDataPointSchema).describe("Daily cumulative N supply curve"),
-//         completeness: DataCompletenessSchema,
-//     })
-//     .openapi("NSupplyResult")
-//
-// const DynaDailyPointSchema = z.object({
-//     b_date_calculation: z.string().describe("Calendar date (ISO 8601)"),
-//     b_nw: z.number().describe("Simulated N availability — central estimate (kg N/ha)"),
-//     b_nw_min: z.number(),
-//     b_nw_max: z.number(),
-//     b_nw_recommended: z.number().nullable(),
-//     b_n_uptake: z.number().nullable().describe("Cumulative N uptake (kg N/ha)"),
-//     b_n_uptake_min: z.number(),
-//     b_n_uptake_max: z.number(),
-//     b_n_uptake_recommended: z.number(),
-//     b_no3_leach: z.number().nullable().describe("Cumulative NO₃ leaching (kg NO₃/ha)"),
-//     b_no3_leach_min: z.number(),
-//     b_no3_leach_max: z.number(),
-//     b_no3_leach_recommended: z.number(),
-// })
-//
-// const DynaNitrogenBalanceSchema = z.object({
-//     b_nw: z.number().describe("Total N supply (kg N/ha)"),
-//     b_n_uptake: z.number().describe("Total N uptake (kg N/ha)"),
-//     b_n_greenmanure: z.number().describe("N from green manure incorporation (kg N/ha)"),
-//     b_n_fertilizer_organic: z.number().describe("N from organic fertilizers (kg N/ha)"),
-//     b_n_fertilizer_artificial: z.number().describe("N from mineral fertilizers (kg N/ha)"),
-//     b_n_fertilizer_preceeding: z.number().describe("N carry-over from preceding crop (kg N/ha)"),
-// })
-//
-// const DynaFertilizerAdviceSchema = z.object({
-//     b_n_recommended: z.number().describe("Recommended N dose (kg N/ha)"),
-//     b_date_recommended: z.string().describe("Recommended application date (ISO 8601)"),
-//     b_n_remaining: z.number().describe("N remaining after applying recommendation (kg N/ha)"),
-// })
-//
-// const DynaResultSchema = z
-//     .object({
-//         b_id: z.string(),
-//         calculationDyna: z.array(DynaDailyPointSchema).describe("Daily simulation points"),
-//         nitrogenBalance: DynaNitrogenBalanceSchema,
-//         fertilizingRecommendations: DynaFertilizerAdviceSchema.nullable(),
-//         harvestingRecommendation: z
-//             .object({ b_date_harvest: z.string() })
-//             .nullable(),
-//     })
-//     .openapi("DynaResult")
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -676,56 +579,6 @@ const fieldNormsRoute = createRoute({
 //         200: {
 //             description: "Nutrient advice",
 //             content: { "application/json": { schema: NutrientAdviceSchema } },
-//         },
-//         ...commonErrorResponses,
-//     },
-// })
-
-// [MINERALIZATION: disabled — behind feature flag in fdm-app]
-// const NSupplyQuerySchema = YearQuerySchema.extend({
-//     method: z
-//         .enum(["minip", "pmn", "century"])
-//         .default("minip")
-//         .describe("Mineralization model: minip (organic matter), pmn (incubation), century (carbon cycling)"),
-// })
-//
-// const fieldNSupplyRoute = createRoute({
-//     method: "get",
-//     path: "/fields/{b_id}/calculations/nsupply",
-//     summary: "Calculate nitrogen mineralization curve for a field",
-//     description:
-//         "Computes the daily cumulative nitrogen supply (N mineralization) curve for the field using the chosen model. Requires NMI API key to be configured on the server.",
-//     tags: ["Calculations"],
-//     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-//     request: {
-//         params: z.object({ b_id: z.string() }),
-//         query: NSupplyQuerySchema,
-//     },
-//     responses: {
-//         200: {
-//             description: "N-Supply curve",
-//             content: { "application/json": { schema: NSupplyResultSchema } },
-//         },
-//         ...commonErrorResponses,
-//     },
-// })
-//
-// const fieldDynaRoute = createRoute({
-//     method: "get",
-//     path: "/fields/{b_id}/calculations/dyna",
-//     summary: "Run DYNA nitrogen advice simulation for a field",
-//     description:
-//         "Simulates daily nitrogen dynamics through the growing season for the field, combining soil N supply, crop uptake, fertilizer releases, and leaching. Returns a fertilizer dose/timing recommendation. Requires NMI API key to be configured on the server.",
-//     tags: ["Calculations"],
-//     security: [{ ApiKeyHeader: [] }, { BearerAuth: [] }],
-//     request: {
-//         params: z.object({ b_id: z.string() }),
-//         query: YearQuerySchema,
-//     },
-//     responses: {
-//         200: {
-//             description: "DYNA simulation result",
-//             content: { "application/json": { schema: DynaResultSchema } },
 //         },
 //         ...commonErrorResponses,
 //     },
@@ -1148,118 +1001,6 @@ export function registerCalculationRoutes(
   //     }
   // }
 
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // const fieldNSupplyHandler: RouteHandler<typeof fieldNSupplyRoute> = async (c) => {
-  //     const principal = c.get("principal") as unknown as ApiPrincipalContext
-  //     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-  //     const { b_id } = c.req.valid("param") as { b_id: string }
-  //     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-  //     const { year, method } = c.req.valid("query") as {
-  //         year: string
-  //         method: "minip" | "pmn" | "century"
-  //     }
-  //     const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
-  //     if (!field) throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
-  //     const nmiApiKey = process.env.NMI_API_KEY
-  //     if (!nmiApiKey) throw new ApiError(503, "service-unavailable", "NMI API key is not configured on this server.")
-  //     const yearNum = Number.parseInt(year)
-  //     const timeframe = { start: new Date(yearNum, 0, 1), end: new Date(yearNum, 11, 31) }
-  //     const [soilDataArray, cultivations] = await Promise.all([
-  //         services.getCurrentSoilData(fdm, principal.effectivePrincipalId, b_id),
-  //         services.getCultivations(fdm, principal.effectivePrincipalId, b_id),
-  //     ])
-  //     const soilData: Record<string, number | string | null | undefined> = {}
-  //     const soilMeta: Record<string, { source?: string; date?: Date }> = {}
-  //     for (const entry of soilDataArray) {
-  //         if (entry.parameter && entry.value !== undefined) {
-  //             soilData[entry.parameter] = entry.value as number | string | null | undefined
-  //             soilMeta[entry.parameter] = { source: entry.a_source ?? undefined, date: entry.b_sampling_date ?? undefined }
-  //         }
-  //     }
-  //     const somEntry = soilDataArray.find((e) => e.parameter === "a_som_loi")
-  //     const anyEntry = soilDataArray[0]
-  //     if (somEntry && "a_depth_lower" in somEntry && somEntry.a_depth_lower !== undefined)
-  //         soilData.a_depth_lower = somEntry.a_depth_lower as number
-  //     else if (anyEntry && "a_depth_lower" in anyEntry && anyEntry.a_depth_lower !== undefined)
-  //         soilData.a_depth_lower = anyEntry.a_depth_lower as number
-  //     const completeness = services.assessDataCompleteness(soilData, method, soilMeta)
-  //     const requestBody = services.buildNSupplyRequest(field, soilData, cultivations, method, timeframe)
-  //     try {
-  //         const result = await services.getNSupply(fdm, {
-  //             b_id, b_name: field.b_name ?? b_id, area: field.b_area ?? 0,
-  //             nmiApiKey, requestBody, method, completeness,
-  //             cacheDate: new Date().toLocaleDateString("en-CA"),
-  //         })
-  //         return c.json(result as z.infer<typeof NSupplyResultSchema>, 200)
-  //     } catch (err) { toApiError(err) }
-  // }
-  //
-  // const fieldDynaHandler: RouteHandler<typeof fieldDynaRoute> = async (c) => {
-  //     const principal = c.get("principal") as unknown as ApiPrincipalContext
-  //     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-  //     const { b_id } = c.req.valid("param") as { b_id: string }
-  //     // @ts-expect-error: @hono/zod-openapi type inference is broken with TypeScript 6 + Zod v4
-  //     const { year } = c.req.valid("query") as { year: string }
-  //     const field = await services.getField(fdm, principal.effectivePrincipalId, b_id)
-  //     if (!field) throw new ApiError(404, "not-found", `Field '${b_id}' not found.`)
-  //     const nmiApiKey = process.env.NMI_API_KEY
-  //     if (!nmiApiKey) throw new ApiError(503, "service-unavailable", "NMI API key is not configured on this server.")
-  //     const yearNum = Number.parseInt(year)
-  //     const timeframe = { start: new Date(yearNum, 0, 1), end: new Date(yearNum, 11, 31) }
-  //     const isGrazing = await services.getGrazingIntention(fdm, principal.effectivePrincipalId, field.b_id_farm, yearNum)
-  //     const farmSector = isGrazing ? "dairy" : "arable"
-  //     const [soilDataArray, cultivations, catalogueEntries, harvestsMap, applications] = await Promise.all([
-  //         services.getCurrentSoilData(fdm, principal.effectivePrincipalId, b_id),
-  //         services.getCultivations(fdm, principal.effectivePrincipalId, b_id),
-  //         services.getCultivationsFromCatalogue(fdm, principal.effectivePrincipalId, field.b_id_farm),
-  //         services.getHarvestsForFarm(fdm, principal.effectivePrincipalId, field.b_id_farm, timeframe),
-  //         services.getFertilizerApplications(fdm, principal.effectivePrincipalId, b_id, timeframe),
-  //     ])
-  //     const fertilizers = await services.getFertilizers(fdm, principal.effectivePrincipalId, field.b_id_farm)
-  //     const fertilizerMap = new Map(fertilizers.map((f) => [f.p_id, f] as const))
-  //     const soilData: Record<string, number | string | null | undefined> = {}
-  //     for (const entry of soilDataArray) {
-  //         if (entry.parameter && entry.value !== undefined)
-  //             soilData[entry.parameter] = entry.value as number | string | null | undefined
-  //     }
-  //     const somEntry = soilDataArray.find((e) => e.parameter === "a_som_loi")
-  //     const anyEntry = soilDataArray[0]
-  //     if (somEntry && "a_depth_lower" in somEntry && somEntry.a_depth_lower !== undefined)
-  //         soilData.a_depth_lower = somEntry.a_depth_lower as number
-  //     else if (anyEntry && "a_depth_lower" in anyEntry && anyEntry.a_depth_lower !== undefined)
-  //         soilData.a_depth_lower = anyEntry.a_depth_lower as number
-  //     const dynaFertilizers = applications.map((app) => {
-  //         const props = fertilizerMap.get(app.p_id)
-  //         return { p_id: app.p_id, p_n_rt: props?.p_n_rt ?? null, p_n_if: props?.p_n_if ?? null,
-  //             p_n_of: props?.p_n_of ?? null, p_n_wc: props?.p_n_wc ?? null, p_p_rt: props?.p_p_rt ?? null,
-  //             p_k_rt: props?.p_k_rt ?? null, p_dm: props?.p_dm ?? null, p_om: props?.p_om ?? null,
-  //             p_date: app.p_app_date ?? null, p_dose: app.p_app_amount ?? 0, p_app_method: app.p_app_method ?? null }
-  //     })
-  //     const cultivationCodes = new Set(cultivations.map((c) => c.b_lu_catalogue).filter((code): code is string => Boolean(code)))
-  //     const cropProperties = catalogueEntries
-  //         .filter((e) => e.b_lu_catalogue && cultivationCodes.has(e.b_lu_catalogue))
-  //         .map((e) => ({ b_lu_catalogue: e.b_lu_catalogue, b_lu_yield: e.b_lu_yield ?? null,
-  //             b_lu_n_harvestable: e.b_lu_n_harvestable ?? null, b_lu_n_residue: e.b_lu_n_residue ?? null }))
-  //     const fieldHarvestsByBlu = new Map<string, { b_lu_harvest_date?: Date | null; b_lu_yield?: number | null }[]>()
-  //     for (const cult of cultivations) {
-  //         if (cult.b_lu) {
-  //             const harvests = harvestsMap.get(cult.b_lu) ?? []
-  //             fieldHarvestsByBlu.set(cult.b_lu, harvests.map((h) => ({
-  //                 b_lu_harvest_date: h.b_lu_harvest_date ?? null,
-  //                 b_lu_yield: h.harvestable.harvestable_analyses[0]?.b_lu_yield ?? null,
-  //             })))
-  //         }
-  //     }
-  //     const requestBody = services.buildDynaRequest(field, soilData, cultivations, dynaFertilizers,
-  //         farmSector, timeframe, cropProperties.length > 0 ? cropProperties : undefined, fieldHarvestsByBlu)
-  //     try {
-  //         const result = await services.getDyna(fdm, {
-  //             b_id, nmiApiKey, requestBody, cacheDate: new Date().toLocaleDateString("en-CA"),
-  //         })
-  //         return c.json(result as z.infer<typeof DynaResultSchema>, 200)
-  //     } catch (err) { toApiError(err) }
-  // }
-
   app.openapi(farmNitrogenBalanceRoute, farmNitrogenBalanceHandler)
   app.openapi(farmOrganicMatterBalanceRoute, farmOrganicMatterBalanceHandler)
   app.openapi(fieldNitrogenBalanceRoute, fieldNitrogenBalanceHandler)
@@ -1269,7 +1010,4 @@ export function registerCalculationRoutes(
   app.openapi(fieldNormsRoute, fieldNormsHandler)
   // [NMI API: disabled — requires NMI credit/billing strategy before enabling via API]
   // app.openapi(fieldNutrientAdviceRoute, fieldNutrientAdviceHandler)
-  // [MINERALIZATION: disabled — behind feature flag in fdm-app]
-  // app.openapi(fieldNSupplyRoute, fieldNSupplyHandler)
-  // app.openapi(fieldDynaRoute, fieldDynaHandler)
 }

@@ -74,7 +74,7 @@ export const meta: MetaFunction = ({ params }) => {
   return [{ title: `Percelen ophalen bij RVO - Nieuw Bedrijf ${b_id_farm}` }]
 }
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   const { b_id_farm, calendar: yearString } = params
   if (!b_id_farm || !yearString) {
     throw new Response("Farm ID en kalender zijn verplicht", {
@@ -87,7 +87,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   const session = await getSession(request)
-  const url = new URL(request.url)
   const rvoToken = await parseRvoToken(request.headers.get("Cookie"))
 
   let rvoImportReviewData: ReviewItem[] = []

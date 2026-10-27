@@ -19,7 +19,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009"
   },
   {
     "b_lu_catalogue": "nl_174",
@@ -41,7 +42,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_175",
@@ -63,7 +65,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_176",
@@ -85,7 +88,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_212",
@@ -107,7 +111,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_229",
@@ -129,7 +134,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013"
   },
   {
     "b_lu_catalogue": "nl_233",
@@ -151,7 +157,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_234",
@@ -173,7 +180,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_235",
@@ -195,7 +203,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "09-14",
-    "b_date_harvest_default": "07-21"
+    "b_date_harvest_default": "07-21",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_236",
@@ -217,7 +226,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_237",
@@ -239,7 +249,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_238",
@@ -261,7 +272,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_239",
@@ -283,7 +295,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_240",
@@ -305,7 +318,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "07-21"
+    "b_date_harvest_default": "07-21",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_241",
@@ -327,7 +341,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_242",
@@ -349,7 +364,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_243",
@@ -371,7 +387,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_244",
@@ -393,7 +410,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "07-21"
+    "b_date_harvest_default": "07-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_246",
@@ -415,7 +433,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-15",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_247",
@@ -437,7 +456,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-15",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_249",
@@ -459,7 +479,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-24"
+    "b_date_harvest_default": "08-24",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_256",
@@ -481,7 +502,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_257",
@@ -503,7 +525,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2009||2010||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_258",
@@ -525,7 +548,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_259",
@@ -547,7 +571,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_262",
@@ -569,7 +594,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "09-01"
+    "b_date_harvest_default": "09-01",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021"
   },
   {
     "b_lu_catalogue": "nl_263",
@@ -591,7 +617,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_265",
@@ -613,7 +640,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_266",
@@ -635,7 +663,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_294",
@@ -657,7 +686,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2013||2014"
   },
   {
     "b_lu_catalogue": "nl_308",
@@ -679,7 +709,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_311",
@@ -701,7 +732,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_314",
@@ -723,7 +755,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_316",
@@ -745,7 +778,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_317",
@@ -767,7 +801,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_331",
@@ -789,7 +824,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_332",
@@ -811,7 +847,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_333",
@@ -833,7 +870,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_334",
@@ -855,7 +893,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_335",
@@ -877,7 +916,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_336",
@@ -899,7 +939,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018"
   },
   {
     "b_lu_catalogue": "nl_337",
@@ -921,7 +962,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_338",
@@ -943,7 +985,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2019||2020||2021||2022||2023||2024||2025"
   },
   {
     "b_lu_catalogue": "nl_343",
@@ -965,7 +1008,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_344",
@@ -987,7 +1031,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_345",
@@ -1009,7 +1054,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016"
   },
   {
     "b_lu_catalogue": "nl_346",
@@ -1031,7 +1077,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_347",
@@ -1053,7 +1100,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_370",
@@ -1075,7 +1123,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_372",
@@ -1097,7 +1146,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_375",
@@ -1119,7 +1169,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_381",
@@ -1141,7 +1192,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_382",
@@ -1163,13 +1215,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_383",
     "b_lu_name": "graszaad",
     "b_lu_name_en": "grass seed",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -1185,7 +1238,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_426",
@@ -1207,7 +1261,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_427",
@@ -1229,7 +1284,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_428",
@@ -1251,7 +1307,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_511",
@@ -1273,7 +1330,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_513",
@@ -1295,7 +1353,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_515",
@@ -1317,7 +1376,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_516",
@@ -1339,7 +1399,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_636",
@@ -1361,7 +1422,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_637",
@@ -1383,7 +1445,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_652",
@@ -1405,7 +1468,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2017||2018||2019||2020||2021||2022||2023||2024"
   },
   {
     "b_lu_catalogue": "nl_653",
@@ -1427,7 +1491,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024"
   },
   {
     "b_lu_catalogue": "nl_654",
@@ -1449,7 +1514,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2020||2021||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_655",
@@ -1471,7 +1537,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_656",
@@ -1493,7 +1560,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_657",
@@ -1515,7 +1583,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_658",
@@ -1537,7 +1606,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_659",
@@ -1559,7 +1629,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_660",
@@ -1581,7 +1652,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_661",
@@ -1603,7 +1675,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_662",
@@ -1625,7 +1698,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_663",
@@ -1647,7 +1721,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_664",
@@ -1669,7 +1744,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2017||2018||2019||2020||2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_665",
@@ -1691,7 +1767,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_666",
@@ -1713,7 +1790,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-24"
+    "b_date_harvest_default": "08-24",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_669",
@@ -1735,7 +1813,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2022"
   },
   {
     "b_lu_catalogue": "nl_670",
@@ -1757,7 +1836,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_671",
@@ -1779,7 +1859,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_672",
@@ -1801,7 +1882,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_794",
@@ -1823,7 +1905,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_795",
@@ -1845,7 +1928,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_796",
@@ -1867,7 +1951,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_799",
@@ -1889,7 +1974,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_800",
@@ -1911,7 +1997,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_801",
@@ -1933,7 +2020,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_802",
@@ -1955,7 +2043,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2020||2021||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_803",
@@ -1977,7 +2066,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_804",
@@ -1999,7 +2089,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_814",
@@ -2021,7 +2112,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_853",
@@ -2043,7 +2135,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_854",
@@ -2065,7 +2158,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_859",
@@ -2087,7 +2181,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_863",
@@ -2109,7 +2204,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_864",
@@ -2131,7 +2227,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_944",
@@ -2153,7 +2250,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_964",
@@ -2175,7 +2273,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_965",
@@ -2197,7 +2296,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_967",
@@ -2219,7 +2319,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_968",
@@ -2241,7 +2342,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2020||2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_970",
@@ -2263,7 +2365,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_971",
@@ -2285,7 +2388,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2019||2020||2021||2023"
   },
   {
     "b_lu_catalogue": "nl_973",
@@ -2307,7 +2411,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_974",
@@ -2329,7 +2434,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_976",
@@ -2351,7 +2457,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2019||2020||2021||2022||2023||2024"
   },
   {
     "b_lu_catalogue": "nl_977",
@@ -2373,7 +2480,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_979",
@@ -2395,7 +2503,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_980",
@@ -2417,7 +2526,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2019||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_982",
@@ -2439,7 +2549,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_983",
@@ -2461,7 +2572,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2022||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_985",
@@ -2483,7 +2595,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_986",
@@ -2505,7 +2618,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_988",
@@ -2527,7 +2641,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_989",
@@ -2549,7 +2664,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2022"
   },
   {
     "b_lu_catalogue": "nl_991",
@@ -2571,7 +2687,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_992",
@@ -2593,7 +2710,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_994",
@@ -2615,7 +2733,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2023||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_995",
@@ -2637,7 +2756,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016"
   },
   {
     "b_lu_catalogue": "nl_997",
@@ -2659,7 +2779,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_998",
@@ -2681,7 +2802,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_999",
@@ -2703,7 +2825,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1000",
@@ -2725,7 +2848,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017"
   },
   {
     "b_lu_catalogue": "nl_1001",
@@ -2747,7 +2871,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1002",
@@ -2769,7 +2894,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1003",
@@ -2791,7 +2917,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1004",
@@ -2813,7 +2940,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1005",
@@ -2835,7 +2963,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1006",
@@ -2857,7 +2986,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1007",
@@ -2879,7 +3009,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1010",
@@ -2901,7 +3032,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1011",
@@ -2923,7 +3055,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_1012",
@@ -2945,7 +3078,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1013",
@@ -2967,7 +3101,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1014",
@@ -2989,7 +3124,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2020||2023"
   },
   {
     "b_lu_catalogue": "nl_1015",
@@ -3011,7 +3147,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1016",
@@ -3033,7 +3170,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2023||2024"
   },
   {
     "b_lu_catalogue": "nl_1017",
@@ -3055,7 +3193,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_1018",
@@ -3077,7 +3216,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2021||2022"
   },
   {
     "b_lu_catalogue": "nl_1019",
@@ -3099,7 +3239,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1020",
@@ -3121,7 +3262,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1021",
@@ -3143,7 +3285,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-14",
-    "b_date_harvest_default": "06-15"
+    "b_date_harvest_default": "06-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1022",
@@ -3165,7 +3308,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "08-31"
+    "b_date_harvest_default": "08-31",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1023",
@@ -3187,7 +3331,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-21"
+    "b_date_harvest_default": "10-21",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1024",
@@ -3209,7 +3354,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-21"
+    "b_date_harvest_default": "10-21",
+    "b_lu_ya": "2016||2017||2018||2020||2021||2022||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1025",
@@ -3231,7 +3377,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": "Alchemilla mollis||Carthamus||Gypsophila paniculata||Lymonium||Lysimachia||Paeonia||Solidago||Veronica",
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1026",
@@ -3253,7 +3400,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": "Alchemilla mollis||Carthamus||Gypsophila paniculata||Lymonium||Lysimachia||Paeonia||Solidago||Veronica",
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1027",
@@ -3275,7 +3423,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017"
   },
   {
     "b_lu_catalogue": "nl_1028",
@@ -3297,7 +3446,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2020||2022||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1029",
@@ -3319,7 +3469,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_1030",
@@ -3341,7 +3492,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1031",
@@ -3363,7 +3515,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_1032",
@@ -3385,7 +3538,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1033",
@@ -3407,7 +3561,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1034",
@@ -3429,7 +3584,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1035",
@@ -3451,7 +3607,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1036",
@@ -3473,7 +3630,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1037",
@@ -3495,7 +3653,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-15",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1038",
@@ -3517,7 +3676,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-15",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2016||2017||2018||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1039",
@@ -3539,7 +3699,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1040",
@@ -3561,7 +3722,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2021"
   },
   {
     "b_lu_catalogue": "nl_1042",
@@ -3583,7 +3745,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1043",
@@ -3605,7 +3768,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1044",
@@ -3627,7 +3791,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1045",
@@ -3649,7 +3814,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1046",
@@ -3671,7 +3837,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_1047",
@@ -3693,7 +3860,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1048",
@@ -3715,7 +3883,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1049",
@@ -3737,7 +3906,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2019||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1050",
@@ -3759,7 +3929,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1051",
@@ -3781,7 +3952,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1052",
@@ -3803,7 +3975,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1053",
@@ -3825,7 +3998,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1054",
@@ -3847,7 +4021,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": "Alchemilla mollis||Carthamus||Gypsophila paniculata||Lymonium||Lysimachia||Paeonia||Solidago||Veronica",
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1055",
@@ -3869,7 +4044,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_1067",
@@ -3891,7 +4067,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1068",
@@ -3913,7 +4090,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1069",
@@ -3935,7 +4113,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1070",
@@ -3957,7 +4136,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1071",
@@ -3979,7 +4159,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1072",
@@ -4001,7 +4182,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1073",
@@ -4023,7 +4205,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1074",
@@ -4045,7 +4228,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1075",
@@ -4067,7 +4251,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1076",
@@ -4089,7 +4274,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1077",
@@ -4111,7 +4297,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1078",
@@ -4133,7 +4320,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1079",
@@ -4155,7 +4343,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1080",
@@ -4177,7 +4366,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1081",
@@ -4199,7 +4389,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1082",
@@ -4221,7 +4412,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1083",
@@ -4243,7 +4435,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1084",
@@ -4265,7 +4458,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1085",
@@ -4287,7 +4481,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1086",
@@ -4309,7 +4504,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1087",
@@ -4331,7 +4527,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1088",
@@ -4353,7 +4550,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1089",
@@ -4375,7 +4573,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1090",
@@ -4397,7 +4596,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1091",
@@ -4419,7 +4619,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1092",
@@ -4441,7 +4642,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1093",
@@ -4463,7 +4665,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1094",
@@ -4485,7 +4688,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1095",
@@ -4507,7 +4711,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1096",
@@ -4529,7 +4734,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1097",
@@ -4551,7 +4757,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1098",
@@ -4573,7 +4780,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1099",
@@ -4595,7 +4803,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1100",
@@ -4617,7 +4826,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1570",
@@ -4639,7 +4849,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1574",
@@ -4661,7 +4872,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2013||2014||2015"
   },
   {
     "b_lu_catalogue": "nl_1575",
@@ -4683,7 +4895,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_1697",
@@ -4705,7 +4918,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1698",
@@ -4727,7 +4941,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1869",
@@ -4749,7 +4964,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1870",
@@ -4771,7 +4987,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1872",
@@ -4793,7 +5010,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1873",
@@ -4815,7 +5033,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1874",
@@ -4837,7 +5056,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1876",
@@ -4859,7 +5079,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1909",
@@ -4881,7 +5102,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_1910",
@@ -4903,7 +5125,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_1911",
@@ -4925,7 +5148,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_1912",
@@ -4947,13 +5171,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_1914",
     "b_lu_name": "graszaad, overig",
     "b_lu_name_en": "Grass seed, other",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -4969,13 +5194,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1915",
     "b_lu_name": "graszaad, rietzwenkgras",
     "b_lu_name_en": "Grass seed, reed fescue",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -4991,13 +5217,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1916",
     "b_lu_name": "graszaad, veldbeemd",
     "b_lu_name_en": "Grass seed, meadowsweet",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -5013,13 +5240,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1917",
     "b_lu_name": "graszaad, roodzwenkgras, 1e jaar",
     "b_lu_name_en": "Grass seed, red fescue, 1st year",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -5035,13 +5263,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1918",
     "b_lu_name": "graszaad, roodzwenkgras, overjarig",
     "b_lu_name_en": "Grass seed, red fescue, perennial",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -5057,13 +5286,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1919",
     "b_lu_name": "graszaad, westerwolds",
     "b_lu_name_en": "Grass seed, westerwolds",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -5079,13 +5309,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1920",
     "b_lu_name": "graszaad, italiaans",
     "b_lu_name_en": "Grass Seed, Italian",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -5101,7 +5332,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_1921",
@@ -5123,7 +5355,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1922",
@@ -5145,7 +5378,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "08-22",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1923",
@@ -5167,7 +5401,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1925",
@@ -5189,7 +5424,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017"
   },
   {
     "b_lu_catalogue": "nl_1926",
@@ -5211,7 +5447,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1927",
@@ -5233,7 +5470,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1928",
@@ -5255,7 +5493,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_1929",
@@ -5277,7 +5516,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_1930",
@@ -5299,7 +5539,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_1931",
@@ -5321,7 +5562,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015||2016||2017||2018"
   },
   {
     "b_lu_catalogue": "nl_1932",
@@ -5343,7 +5585,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1933",
@@ -5365,7 +5608,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1934",
@@ -5387,7 +5631,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1935",
@@ -5409,7 +5654,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1936",
@@ -5431,7 +5677,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1940",
@@ -5453,7 +5700,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1949",
@@ -5475,7 +5723,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_1950",
@@ -5497,7 +5746,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_1959",
@@ -5519,7 +5769,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012"
   },
   {
     "b_lu_catalogue": "nl_2014",
@@ -5541,7 +5792,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": "Adora||Annabelle||Bintje||Carlita||Courage||Draga||Felsina||Fontane||Innovator||Inova||Jaerla||Lady Blanca||Lady Olympia||Lady Rosetta||Liseta||Maritiema||Marlen||Miranda||Ramos||Redstar||Sante||Satellite||Victoria||VR 808||Zorba||Agria||Allure||Alpha||Aprilia||Asterix||Aziza||Ballys||Baraka||Bartina||Ceasar||Dore||Eigenheimer||El Paso||Futura||Gloria||Irene||Maradonna||Markies||Milva||Minerva||Mondial||Morene||Mozart||Producent||Remarka||Rodeo||Safari||Saphire||Simply Red||Spirit||Terra Gold||Ukama||Vision",
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2015",
@@ -5563,7 +5815,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": "Adora||Agata||Annabelle||Arinda||Berber||Binella||Climax||Donald||Elisabeth||Fontane||Gloria||Inova||Jaerla||Junior||Lady Rosetta||Lady Olympia||Leyla||Linzer Delikatess||Miriam||Orinana||Premiere||Primura||Prior||Rikea||Romano||Satellite||Sirco||Sirtema||Tresor||Ukama||Arcade||Astarte||Asterix||Baraka||Bartina||Diamant||Dolce Vita||Elles||Elvira||Everest||Florijn||Kardal||Karnico||Maradonna||Mondial||Morene||Mozart||Picasso||Remarka||Resonant||Rodeo||Saphire||Sifra||Simply Red||Spirit||Van Gogh||Vebesta||Vento||Voyager",
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2016",
@@ -5585,7 +5838,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": "Adora||Agata||Annabelle||Arinda||Berber||Binella||Climax||Donald||Elisabeth||Fontane||Gloria||Inova||Jaerla||Junior||Lady Rosetta||Lady Olympia||Leyla||Linzer Delikatess||Miriam||Orinana||Premiere||Primura||Prior||Rikea||Romano||Satellite||Sirco||Sirtema||Tresor||Ukama||Arcade||Astarte||Asterix||Baraka||Bartina||Diamant||Dolce Vita||Elles||Elvira||Everest||Florijn||Kardal||Karnico||Maradonna||Mondial||Morene||Mozart||Picasso||Remarka||Resonant||Rodeo||Saphire||Sifra||Simply Red||Spirit||Van Gogh||Vebesta||Vento||Voyager",
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2017",
@@ -5607,7 +5861,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2025",
@@ -5629,7 +5884,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2026",
@@ -5651,7 +5907,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2027",
@@ -5673,7 +5930,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2029",
@@ -5695,13 +5953,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2030",
     "b_lu_name": "graszaad, engels raai 1e jaar",
     "b_lu_name_en": "Grass seed, English row 1st year",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -5717,13 +5976,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_2031",
     "b_lu_name": "graszaad, engels raai overjarig",
     "b_lu_name_en": "Grass seed, perennial perennial",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -5739,7 +5999,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010"
   },
   {
     "b_lu_catalogue": "nl_2032",
@@ -5761,7 +6022,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2033",
@@ -5783,7 +6045,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014||2015||2016"
   },
   {
     "b_lu_catalogue": "nl_2297",
@@ -5805,7 +6068,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2298",
@@ -5827,7 +6091,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2299",
@@ -5849,7 +6114,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2009||2010||2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2300",
@@ -5871,7 +6137,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2301",
@@ -5893,7 +6160,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_2302",
@@ -5915,7 +6183,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_2303",
@@ -5937,7 +6206,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_2304",
@@ -5959,7 +6229,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2009||2010||2011"
   },
   {
     "b_lu_catalogue": "nl_2325",
@@ -5981,7 +6252,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2326",
@@ -6003,7 +6275,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2327",
@@ -6025,7 +6298,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2328",
@@ -6047,7 +6321,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2617",
@@ -6069,7 +6344,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2618",
@@ -6091,7 +6367,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2619",
@@ -6113,7 +6390,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2620",
@@ -6135,7 +6413,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2621",
@@ -6157,7 +6436,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2622",
@@ -6179,7 +6459,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2624",
@@ -6201,7 +6482,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2625",
@@ -6223,7 +6505,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2626",
@@ -6245,7 +6528,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2628",
@@ -6267,7 +6551,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2629",
@@ -6289,7 +6574,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2630",
@@ -6311,7 +6597,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2631",
@@ -6333,7 +6620,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2633",
@@ -6355,7 +6643,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_2634",
@@ -6377,7 +6666,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2635",
@@ -6399,7 +6689,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_2636",
@@ -6421,7 +6712,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2637",
@@ -6443,7 +6735,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2638",
@@ -6465,7 +6758,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024"
   },
   {
     "b_lu_catalogue": "nl_2639",
@@ -6487,7 +6781,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2640",
@@ -6509,7 +6804,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_2641",
@@ -6531,7 +6827,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_2642",
@@ -6553,7 +6850,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2643",
@@ -6575,7 +6873,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_2644",
@@ -6597,7 +6896,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_2645",
@@ -6619,7 +6919,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2011||2012||2013||2014||2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025"
   },
   {
     "b_lu_catalogue": "nl_2650",
@@ -6641,7 +6942,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2651",
@@ -6663,7 +6965,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2652",
@@ -6685,13 +6988,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2011||2012||2013||2014||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2653",
     "b_lu_name": "graszaad (inclusief klaverzaad)",
     "b_lu_name_en": "Grass seed (including clover seed)",
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": "3301090100",
     "b_lu_hcat3_name": "temporary_grass",
     "b_lu_croprotation": "grass",
@@ -6707,7 +7011,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2011||2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_2700",
@@ -6729,7 +7034,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2701",
@@ -6751,7 +7057,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2702",
@@ -6773,7 +7080,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2703",
@@ -6795,7 +7103,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2704",
@@ -6817,7 +7126,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2705",
@@ -6839,7 +7149,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2706",
@@ -6861,7 +7172,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2707",
@@ -6883,7 +7195,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2708",
@@ -6905,7 +7218,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2709",
@@ -6927,7 +7241,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-14"
+    "b_date_harvest_default": "10-14",
+    "b_lu_ya": "2015||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2710",
@@ -6949,7 +7264,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2711",
@@ -6971,7 +7287,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2712",
@@ -6993,7 +7310,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2713",
@@ -7015,7 +7333,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-15",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015"
   },
   {
     "b_lu_catalogue": "nl_2714",
@@ -7037,7 +7356,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-15",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015"
   },
   {
     "b_lu_catalogue": "nl_2715",
@@ -7059,7 +7379,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "12-01"
+    "b_date_harvest_default": "12-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2716",
@@ -7081,7 +7402,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "12-01"
+    "b_date_harvest_default": "12-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2717",
@@ -7103,7 +7425,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2718",
@@ -7125,7 +7448,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2024"
   },
   {
     "b_lu_catalogue": "nl_2719",
@@ -7147,7 +7471,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2720",
@@ -7169,7 +7494,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2721",
@@ -7191,7 +7517,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2722",
@@ -7213,7 +7540,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2723",
@@ -7235,7 +7563,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2724",
@@ -7257,7 +7586,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2725",
@@ -7279,7 +7609,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "11-01"
+    "b_date_harvest_default": "11-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2726",
@@ -7301,7 +7632,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "11-01"
+    "b_date_harvest_default": "11-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2727",
@@ -7323,7 +7655,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2728",
@@ -7345,7 +7678,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2019||2020||2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_2729",
@@ -7367,7 +7701,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2730",
@@ -7389,7 +7724,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2022||2023||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2731",
@@ -7411,7 +7747,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2732",
@@ -7433,7 +7770,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2733",
@@ -7455,7 +7793,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2018||2019||2021||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2734",
@@ -7477,7 +7816,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2016||2019"
   },
   {
     "b_lu_catalogue": "nl_2735",
@@ -7499,7 +7839,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-15",
-    "b_date_harvest_default": "09-21"
+    "b_date_harvest_default": "09-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2736",
@@ -7521,7 +7862,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-15",
-    "b_date_harvest_default": "09-21"
+    "b_date_harvest_default": "09-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2737",
@@ -7543,7 +7885,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "11-01"
+    "b_date_harvest_default": "11-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2738",
@@ -7565,7 +7908,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "11-01"
+    "b_date_harvest_default": "11-01",
+    "b_lu_ya": "2018||2021||2022||2023||2024"
   },
   {
     "b_lu_catalogue": "nl_2739",
@@ -7587,7 +7931,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2740",
@@ -7609,7 +7954,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2018||2019||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2741",
@@ -7631,7 +7977,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2742",
@@ -7653,7 +8000,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2743",
@@ -7675,7 +8023,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2744",
@@ -7697,7 +8046,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2745",
@@ -7719,7 +8069,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2746",
@@ -7741,7 +8092,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2018||2022||2023||2024"
   },
   {
     "b_lu_catalogue": "nl_2747",
@@ -7763,7 +8115,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2748",
@@ -7785,7 +8138,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2023||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2749",
@@ -7807,7 +8161,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015"
   },
   {
     "b_lu_catalogue": "nl_2750",
@@ -7829,7 +8184,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015"
   },
   {
     "b_lu_catalogue": "nl_2751",
@@ -7851,7 +8207,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2752",
@@ -7873,7 +8230,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2753",
@@ -7895,7 +8253,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "05-21"
+    "b_date_harvest_default": "05-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2754",
@@ -7917,7 +8276,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "05-21"
+    "b_date_harvest_default": "05-21",
+    "b_lu_ya": "2016||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2755",
@@ -7939,7 +8299,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2756",
@@ -7961,7 +8322,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2757",
@@ -7983,7 +8345,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "05-15"
+    "b_date_harvest_default": "05-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2758",
@@ -8005,7 +8368,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "05-15"
+    "b_date_harvest_default": "05-15",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2759",
@@ -8027,7 +8391,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2760",
@@ -8049,7 +8414,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_2761",
@@ -8071,7 +8437,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "02-15",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2762",
@@ -8093,7 +8460,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "02-15",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015||2016||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2763",
@@ -8115,7 +8483,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "11-15"
+    "b_date_harvest_default": "11-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2764",
@@ -8137,7 +8506,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "11-15"
+    "b_date_harvest_default": "11-15",
+    "b_lu_ya": "2017||2020||2021||2022||2023||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2765",
@@ -8159,7 +8529,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2766",
@@ -8181,7 +8552,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2767",
@@ -8203,7 +8575,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2768",
@@ -8225,7 +8598,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2769",
@@ -8247,7 +8621,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2770",
@@ -8269,7 +8644,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2016||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_2771",
@@ -8291,7 +8667,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2772",
@@ -8313,7 +8690,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2773",
@@ -8335,7 +8713,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-01"
+    "b_date_harvest_default": "06-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2774",
@@ -8357,7 +8736,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "06-01"
+    "b_date_harvest_default": "06-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2775",
@@ -8379,7 +8759,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "06-01",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2776",
@@ -8401,7 +8782,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "06-01",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2015||2017||2018||2019||2020||2021||2022||2023"
   },
   {
     "b_lu_catalogue": "nl_2777",
@@ -8423,7 +8805,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "11-14"
+    "b_date_harvest_default": "11-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2778",
@@ -8445,7 +8828,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "11-14"
+    "b_date_harvest_default": "11-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2779",
@@ -8467,7 +8851,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2780",
@@ -8489,7 +8874,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2781",
@@ -8511,7 +8897,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2782",
@@ -8533,7 +8920,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2783",
@@ -8555,7 +8943,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2784",
@@ -8577,7 +8966,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2785",
@@ -8599,7 +8989,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-21"
+    "b_date_harvest_default": "10-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2786",
@@ -8621,7 +9012,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "10-21"
+    "b_date_harvest_default": "10-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2787",
@@ -8643,7 +9035,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-21",
-    "b_date_harvest_default": "09-21"
+    "b_date_harvest_default": "09-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2788",
@@ -8665,7 +9058,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-21",
-    "b_date_harvest_default": "09-21"
+    "b_date_harvest_default": "09-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2789",
@@ -8687,7 +9081,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2790",
@@ -8709,7 +9104,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "08-14"
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2791",
@@ -8731,7 +9127,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2792",
@@ -8753,7 +9150,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2793",
@@ -8775,7 +9173,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2794",
@@ -8797,7 +9196,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "06-21"
+    "b_date_harvest_default": "06-21",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2795",
@@ -8819,7 +9219,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2796",
@@ -8841,7 +9242,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2022||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2797",
@@ -8863,7 +9265,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-15",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2798",
@@ -8885,7 +9288,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-15",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2799",
@@ -8907,7 +9311,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "04-01"
+    "b_date_harvest_default": "04-01",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2800",
@@ -8929,7 +9334,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "07-14",
-    "b_date_harvest_default": "04-01"
+    "b_date_harvest_default": "04-01",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2801",
@@ -8951,7 +9357,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2802",
@@ -8973,7 +9380,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "07-14"
+    "b_date_harvest_default": "07-14",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_2951",
@@ -8995,7 +9403,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3055",
@@ -9017,7 +9426,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3500",
@@ -9039,7 +9449,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3501",
@@ -9061,7 +9472,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2018"
   },
   {
     "b_lu_catalogue": "nl_3502",
@@ -9083,7 +9495,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3503",
@@ -9105,7 +9518,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2017||2020||2021||2024"
   },
   {
     "b_lu_catalogue": "nl_3504",
@@ -9127,7 +9541,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3505",
@@ -9149,7 +9564,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3506",
@@ -9171,7 +9587,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3507",
@@ -9193,7 +9610,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3508",
@@ -9215,7 +9633,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3509",
@@ -9237,7 +9656,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3510",
@@ -9259,7 +9679,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3511",
@@ -9281,7 +9702,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3512",
@@ -9303,7 +9725,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3513",
@@ -9325,7 +9748,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3514",
@@ -9347,7 +9771,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_3515",
@@ -9369,7 +9794,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3516",
@@ -9391,7 +9817,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2015||2016"
   },
   {
     "b_lu_catalogue": "nl_3517",
@@ -9413,7 +9840,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3518",
@@ -9435,7 +9863,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024"
   },
   {
     "b_lu_catalogue": "nl_3519",
@@ -9457,7 +9886,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3520",
@@ -9479,7 +9909,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "08-15",
-    "b_date_harvest_default": "10-15"
+    "b_date_harvest_default": "10-15",
+    "b_lu_ya": "2024"
   },
   {
     "b_lu_catalogue": "nl_3521",
@@ -9501,7 +9932,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "08-01",
-    "b_date_harvest_default": "11-15"
+    "b_date_harvest_default": "11-15",
+    "b_lu_ya": "2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3522",
@@ -9523,7 +9955,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3523",
@@ -9545,7 +9978,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3524",
@@ -9567,7 +10001,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3718",
@@ -9589,7 +10024,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3719",
@@ -9611,7 +10047,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3720",
@@ -9633,7 +10070,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3721",
@@ -9655,7 +10093,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3722",
@@ -9677,7 +10116,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3730",
@@ -9699,7 +10139,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2014"
   },
   {
     "b_lu_catalogue": "nl_3731",
@@ -9721,7 +10162,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2014"
   },
   {
     "b_lu_catalogue": "nl_3732",
@@ -9743,7 +10185,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2014"
   },
   {
     "b_lu_catalogue": "nl_3736",
@@ -9765,7 +10208,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-24"
+    "b_date_harvest_default": "08-24",
+    "b_lu_ya": "2015||2016||2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3792",
@@ -9787,7 +10231,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-15",
-    "b_date_harvest_default": "09-14"
+    "b_date_harvest_default": "09-14",
+    "b_lu_ya": "2012||2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3801",
@@ -9809,7 +10254,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3802",
@@ -9831,7 +10277,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3803",
@@ -9853,7 +10300,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3804",
@@ -9875,7 +10323,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3805",
@@ -9897,7 +10346,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_3806",
@@ -9919,7 +10369,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2013||2014"
   },
   {
     "b_lu_catalogue": "nl_3807",
@@ -9941,7 +10392,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2017||2018||2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_3808",
@@ -9963,7 +10415,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2019||2020||2021||2022"
   },
   {
     "b_lu_catalogue": "nl_6520",
@@ -9985,7 +10438,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_6521",
@@ -10007,7 +10461,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020"
   },
   {
     "b_lu_catalogue": "nl_6522",
@@ -10029,7 +10484,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2020||2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6632",
@@ -10051,7 +10507,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-15",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6636",
@@ -10073,7 +10530,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2021||2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6660",
@@ -10095,7 +10553,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "09-01"
+    "b_date_harvest_default": "09-01",
+    "b_lu_ya": "2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6664",
@@ -10117,13 +10576,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "09-01"
+    "b_date_harvest_default": "09-01",
+    "b_lu_ya": "2022||2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6746",
     "b_lu_name": "beemdlangbloem, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10139,7 +10599,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6748",
@@ -10161,7 +10622,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6749",
@@ -10183,13 +10645,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6750",
     "b_lu_name": "engels raaigras, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10205,7 +10668,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6751",
@@ -10227,13 +10691,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6752",
     "b_lu_name": "festulolium, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10249,7 +10714,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6753",
@@ -10271,13 +10737,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6754",
     "b_lu_name": "italiaans raaigras, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10293,7 +10760,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6755",
@@ -10315,7 +10783,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6756",
@@ -10337,7 +10806,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6757",
@@ -10359,7 +10829,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6758",
@@ -10381,7 +10852,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6759",
@@ -10403,7 +10875,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6760",
@@ -10425,7 +10898,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6761",
@@ -10447,7 +10921,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6762",
@@ -10469,7 +10944,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6763",
@@ -10491,7 +10967,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6764",
@@ -10513,7 +10990,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6765",
@@ -10535,7 +11013,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6766",
@@ -10557,7 +11036,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_6767",
@@ -10579,13 +11059,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6768",
     "b_lu_name": "overig graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10601,7 +11082,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6769",
@@ -10623,13 +11105,14 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6782",
     "b_lu_name": "rietzwenkgras, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10645,7 +11128,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6783",
@@ -10667,13 +11151,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6784",
     "b_lu_name": "roodzwenkgras, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10689,7 +11174,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6785",
@@ -10711,13 +11197,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6786",
     "b_lu_name": "timothee, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10733,7 +11220,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6787",
@@ -10755,13 +11243,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6788",
     "b_lu_name": "veldbeemdgras, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10777,7 +11266,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6789",
@@ -10799,13 +11289,14 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6790",
     "b_lu_name": "westerwolds raaigras, graszaad",
     "b_lu_name_en": null,
-    "b_lu_harvestable": "once",
+    "b_lu_harvestable": "multiple",
     "b_lu_hcat3": null,
     "b_lu_hcat3_name": null,
     "b_lu_croprotation": "grass",
@@ -10821,7 +11312,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6791",
@@ -10843,7 +11335,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6792",
@@ -10865,7 +11358,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6793",
@@ -10887,7 +11381,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6794",
@@ -10909,7 +11404,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6795",
@@ -10931,7 +11427,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6796",
@@ -10953,7 +11450,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_6797",
@@ -10975,7 +11473,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6798",
@@ -10997,7 +11496,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6799",
@@ -11019,7 +11519,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_6800",
@@ -11041,7 +11542,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6801",
@@ -11063,7 +11565,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6802",
@@ -11085,7 +11588,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6803",
@@ -11107,7 +11611,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6804",
@@ -11129,7 +11634,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_6805",
@@ -11151,7 +11657,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_6806",
@@ -11173,7 +11680,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-01",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2023"
   },
   {
     "b_lu_catalogue": "nl_6807",
@@ -11195,7 +11703,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6808",
@@ -11217,7 +11726,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_6809",
@@ -11239,7 +11749,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2023||2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7121",
@@ -11261,7 +11772,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7122",
@@ -11283,7 +11795,31 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2024||2025||2026"
+  },
+  {
+    "b_lu_catalogue": "nl_7123",
+    "b_lu_name": "Raapzaad, zomer",
+    "b_lu_name_en": "rapeseed, summer",
+    "b_lu_harvestable": "once",
+    "b_lu_hcat3": "3301060402",
+    "b_lu_hcat3_name": "spring_rapeseed_rape",
+    "b_lu_croprotation": "rapeseed",
+    "b_lu_harvestcat": "HC010",
+    "b_lu_yield": 270,
+    "b_lu_dm": 90,
+    "b_lu_hi": 0.28,
+    "b_lu_eom": 975,
+    "b_lu_eom_residue": 0,
+    "b_lu_n_harvestable": 38.9,
+    "b_lu_n_residue": 7.1,
+    "b_n_fixation": 0,
+    "b_lu_rest_oravib": true,
+    "b_lu_variety_options": null,
+    "b_lu_start_default": "04-01",
+    "b_date_harvest_default": "08-14",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7124",
@@ -11305,7 +11841,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7125",
@@ -11327,7 +11864,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7126",
@@ -11349,7 +11887,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7127",
@@ -11371,7 +11910,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7128",
@@ -11393,7 +11933,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2024"
   },
   {
     "b_lu_catalogue": "nl_7129",
@@ -11415,7 +11956,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7130",
@@ -11437,7 +11979,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-03",
-    "b_date_harvest_default": "08-15"
+    "b_date_harvest_default": "08-15",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7131",
@@ -11459,7 +12002,8 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2024||2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7134",
@@ -11481,7 +12025,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7135",
@@ -11503,7 +12048,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7136",
@@ -11525,7 +12071,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "10-15",
-    "b_date_harvest_default": "07-15"
+    "b_date_harvest_default": "07-15",
+    "b_lu_ya": "2026"
   },
   {
     "b_lu_catalogue": "nl_7137",
@@ -11547,7 +12094,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "05-01",
-    "b_date_harvest_default": "08-22"
+    "b_date_harvest_default": "08-22",
+    "b_lu_ya": "2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7138",
@@ -11569,7 +12117,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "04-01",
-    "b_date_harvest_default": "10-01"
+    "b_date_harvest_default": "10-01",
+    "b_lu_ya": "2025||2026"
   },
   {
     "b_lu_catalogue": "nl_7139",
@@ -11591,7 +12140,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2026"
   },
   {
     "b_lu_catalogue": "nl_7193",
@@ -11613,7 +12163,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2026"
   },
   {
     "b_lu_catalogue": "nl_7194",
@@ -11635,7 +12186,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2026"
   },
   {
     "b_lu_catalogue": "nl_7195",
@@ -11657,7 +12209,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2026"
   },
   {
     "b_lu_catalogue": "nl_7196",
@@ -11679,7 +12232,8 @@
     "b_lu_rest_oravib": false,
     "b_lu_variety_options": null,
     "b_lu_start_default": "03-21",
-    "b_date_harvest_default": "08-01"
+    "b_date_harvest_default": "08-01",
+    "b_lu_ya": "2026"
   },
   {
     "b_lu_catalogue": "nl_7197",
@@ -11701,6 +12255,7 @@
     "b_lu_rest_oravib": true,
     "b_lu_variety_options": null,
     "b_lu_start_default": "01-01",
-    "b_date_harvest_default": "12-31"
+    "b_date_harvest_default": "12-31",
+    "b_lu_ya": "2026"
   }
 ]

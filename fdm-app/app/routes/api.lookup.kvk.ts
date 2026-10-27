@@ -10,11 +10,11 @@ import { handleLoaderError } from "~/lib/error"
  * Query parameters:
  * - `kvk`: KvK number of 8 digits.
  */
-export async function loader({ request }: LoaderFunctionArgs): Promise<KvkLookupResponse> {
+export async function loader({ request, url }: LoaderFunctionArgs): Promise<KvkLookupResponse> {
   try {
     await getSession(request)
 
-    const kvk = new URL(request.url).searchParams.get("kvk")?.trim() ?? ""
+    const kvk = url.searchParams.get("kvk")?.trim() ?? ""
     if (!KVK_NUMBER_PATTERN.test(kvk)) {
       throw data("KvK-nummer moet uit 8 cijfers bestaan", { status: 400 })
     }

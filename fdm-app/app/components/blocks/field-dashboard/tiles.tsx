@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { lazy, type ReactNode, Suspense } from "react"
 import { Await, Link } from "react-router"
+import { CultivationAvailabilityWarning } from "~/components/blocks/cultivation/availability-warning"
 import { CultivationSuggestionStatusBanner } from "~/components/blocks/cultivation/suggestion"
 import { ScoreBadge } from "~/components/blocks/indicators/score-badge"
 import { NormProgressBar } from "~/components/blocks/norms/progress-bar"
@@ -255,6 +256,11 @@ export function FieldDashboardCurrentCultivationTile({ dashboard, tile }: FieldD
             Gestart op {formatDateLabel(activeCultivation.startDate)}.
           </p>
         </div>
+        <Suspense fallback={null}>
+          <Await resolve={dashboard.asyncInsights.showAvailabilityYearWarning} errorElement={<></>}>
+            {(availabilityResult) => <CultivationAvailabilityWarning result={availabilityResult} />}
+          </Await>
+        </Suspense>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border p-3">
             <p className="text-muted-foreground text-xs uppercase">Teeltperiode</p>
