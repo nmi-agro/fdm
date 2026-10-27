@@ -2,9 +2,6 @@ import type { OpenAPIHono } from "@hono/zod-openapi"
 import { createRoute, z } from "@hono/zod-openapi"
 import {
   getMeasuresFromCatalogue,
-  type disableCultivationCatalogue,
-  type disableFertilizerCatalogue,
-  type disableMeasureCatalogue,
   type enableCultivationCatalogue,
   type enableFertilizerCatalogue,
   type enableMeasureCatalogue,
@@ -76,12 +73,6 @@ export interface CatalogueServices {
   enableCultivationCatalogue: typeof enableCultivationCatalogue
   /** Enables a field measure catalogue for the farm. */
   enableMeasureCatalogue: typeof enableMeasureCatalogue
-  /** Disables a fertilizer catalogue for the farm. */
-  disableFertilizerCatalogue: typeof disableFertilizerCatalogue
-  /** Disables a cultivation catalogue for the farm. */
-  disableCultivationCatalogue: typeof disableCultivationCatalogue
-  /** Disables a field measure catalogue for the farm. */
-  disableMeasureCatalogue: typeof disableMeasureCatalogue
 }
 
 // -------------------- LIST CATALOGUE ROUTES --------------------

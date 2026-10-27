@@ -28,9 +28,6 @@ import {
   addOrganicCertification,
   addSoilAnalysis,
   createFarmGroup,
-  disableCultivationCatalogue,
-  disableFertilizerCatalogue,
-  disableMeasureCatalogue,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -146,7 +143,6 @@ export interface FdmApiServices {
   // Cultivations
   getEnabledCultivationCatalogues: typeof getEnabledCultivationCatalogues
   enableCultivationCatalogue: typeof enableCultivationCatalogue
-  disableCultivationCatalogue: typeof disableCultivationCatalogue
   getCultivationsFromCatalogues: typeof getCultivationsFromCatalogues
   getCultivations: typeof getCultivations
   getCultivationsForFarm: typeof getCultivationsForFarm
@@ -163,7 +159,6 @@ export interface FdmApiServices {
   // Fertilizers
   getEnabledFertilizerCatalogues: typeof getEnabledFertilizerCatalogues
   enableFertilizerCatalogue: typeof enableFertilizerCatalogue
-  disableFertilizerCatalogue: typeof disableFertilizerCatalogue
   getFertilizersFromCatalogues: typeof getFertilizersFromCatalogues
   getFertilizers: typeof getFertilizers
   addFertilizer: typeof addFertilizer
@@ -179,7 +174,6 @@ export interface FdmApiServices {
   // Measures
   getEnabledMeasureCatalogues: typeof getEnabledMeasureCatalogues
   enableMeasureCatalogue: typeof enableMeasureCatalogue
-  disableMeasureCatalogue: typeof disableMeasureCatalogue
   getMeasuresFromCatalogue: typeof getMeasuresFromCatalogue
   getMeasures: typeof getMeasures
   getMeasure: typeof getMeasure
@@ -249,7 +243,6 @@ const defaultServices: FdmApiServices = {
   removeField,
   getEnabledCultivationCatalogues,
   enableCultivationCatalogue,
-  disableCultivationCatalogue,
   getCultivationsFromCatalogues,
   getCultivations,
   getCultivationsForFarm,
@@ -269,7 +262,6 @@ const defaultServices: FdmApiServices = {
   getFertilizersFromCatalogue,
   enableFertilizerCatalogue,
   getEnabledFertilizerCatalogues,
-  disableFertilizerCatalogue,
   getFertilizersFromCatalogues,
   getFertilizerApplications,
   getFertilizerApplication,
@@ -278,7 +270,6 @@ const defaultServices: FdmApiServices = {
   removeFertilizerApplication,
   getEnabledMeasureCatalogues,
   enableMeasureCatalogue,
-  disableMeasureCatalogue,
   getMeasuresFromCatalogue,
   getMeasures,
   getMeasure,
