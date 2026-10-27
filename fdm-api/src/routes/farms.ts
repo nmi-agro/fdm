@@ -316,7 +316,7 @@ export function registerFarmRoutes(
         principal.effectivePrincipalId,
         b_id_farm,
       )
-      await Promise.all(
+      const addFertilizerResults = await Promise.allSettled(
         fertilizers.map((fertilizer) =>
           services.addFertilizer(
             tx,
@@ -328,6 +328,10 @@ export function registerFarmRoutes(
           ),
         ),
       )
+      const rejectedAddFertilizer = addFertilizerResults.find((r) => r.status === "rejected")
+      if (rejectedAddFertilizer) {
+        throw rejectedAddFertilizer.reason
+      }
       // Get the newly created farm.
       const farm = await services.getFarm(tx, principal.effectivePrincipalId, b_id_farm)
       if (!farm?.b_id_farm) {
