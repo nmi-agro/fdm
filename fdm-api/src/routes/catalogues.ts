@@ -14,7 +14,12 @@ import {
 } from "@nmi-agro/fdm-core"
 import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
-import { commonErrorResponses } from "../schemas"
+import {
+  commonErrorResponses,
+  PaginationQuerySchema,
+  paginatedResponse,
+  paginatedSchema,
+} from "../schemas"
 
 const CatalogueSourcesSchema = z.record(
   z.enum(["cultivation", "fertilizer", "measure"]),
@@ -438,7 +443,7 @@ const listAvailableCataloguesRoute = createRoute({
   tags: ["Catalogues", "Cultivations", "Fertilizers", "Measures"],
   summary: "List the available catalogues",
   description:
-    "Lists the available cultivation, fertilizer, and field measure catalogues that can be enabled on a farm. Enable/disable endpoints may be called by using `source` as the last parameter.",
+    "Lists the available cultivation, fertilizer, and field measure catalogues. The `source` codes can be used to list the items of a catalogue that is enabled on a farm.",
   responses: {
     200: {
       description: "Available catalogues are listed successfully.",
@@ -528,11 +533,11 @@ const listCultivationCatalogueRoute = createRoute({
   tags: ["Catalogues", "Cultivations"],
   summary: "List a cultivation catalogue",
   description: "Lists the cultivations in a cultivation catalogue.",
-  request: { params: ListCatalogueItemsParamsSchema },
+  request: { params: ListCatalogueItemsParamsSchema, query: PaginationQuerySchema },
   responses: {
     200: {
       description: "Cultivations in the catalogue are listed successfully.",
-      content: { "application/json": { schema: CultivationCatalogueSchema.array() } },
+      content: { "application/json": { schema: paginatedSchema(CultivationCatalogueSchema) } },
     },
     ...commonErrorResponses,
   },
@@ -544,11 +549,11 @@ const listFertilizerCatalogueRoute = createRoute({
   tags: ["Catalogues", "Fertilizers"],
   summary: "List a fertilizer catalogue",
   description: "Lists the fertilizers in a fertilizer catalogue.",
-  request: { params: ListCatalogueItemsParamsSchema },
+  request: { params: ListCatalogueItemsParamsSchema, query: PaginationQuerySchema },
   responses: {
     200: {
       description: "Fertilizers in the catalogue are listed successfully.",
-      content: { "application/json": { schema: FertilizerCatalogueSchema.array() } },
+      content: { "application/json": { schema: paginatedSchema(FertilizerCatalogueSchema) } },
     },
     ...commonErrorResponses,
   },
@@ -560,11 +565,11 @@ const listMeasureCatalogueRoute = createRoute({
   tags: ["Catalogues", "Measures"],
   summary: "List a field measures catalogue",
   description: "Lists the field measures in a field measure catalogue.",
-  request: { params: ListCatalogueItemsParamsSchema },
+  request: { params: ListCatalogueItemsParamsSchema, query: PaginationQuerySchema },
   responses: {
     200: {
-      description: "FIeld measures in the catalogue are listed successfully.",
-      content: { "application/json": { schema: MeasureCatalogueSchema.array() } },
+      description: "Field measures in the catalogue are listed successfully.",
+      content: { "application/json": { schema: paginatedSchema(MeasureCatalogueSchema) } },
     },
     ...commonErrorResponses,
   },
@@ -612,13 +617,15 @@ export function listItemsInCatalogueRouteHandler(
     if (!catalogueSources.includes(source)) {
       throw new ApiError(404, "not-found", "Catalogue not enabled on this farm.")
     }
+    // fdm-core cannot paginate catalogue queries, so the page is sliced after retrieval.
+    const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
     const data = await itemsGetter(fdm, principal.effectivePrincipalId, [source])
-    return c.json(data)
+    return c.json(paginatedResponse(data, limit, offset))
   }
 }
 
 /**
- * Registers the catalogue enable and disable routes on the API application.
+ * Registers the catalogue listing routes on the API application.
  *
  * @param app - OpenAPI-enabled Hono application that receives the route registrations.
  * @param fdm - Database and service context used by route handlers.
@@ -659,7 +666,9 @@ export function registerCatalogueRoutes(
     (...args) => services.getEnabledMeasureCatalogues(...args),
     // Workaround until a getMeasuresFromCatalogues function is implemented in fdm-core.
     async (fdm, _principalId, sources) =>
-      sources.includes("bln") ? await services.getMeasuresFromCatalogue(fdm) : [],
+      (await services.getMeasuresFromCatalogue(fdm)).filter((measure) =>
+        sources.includes(measure.m_source),
+      ),
   )
   app.openapi(listAvailableCataloguesRoute, (c) => {
     return c.json(CATALOGUE_SOURCES, 200)

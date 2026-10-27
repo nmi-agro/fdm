@@ -155,7 +155,19 @@ describe("Catalogues - list catalogue items", () => {
     })
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data).toEqual(brp)
+    expect(data).toEqual({ data: brp, limit: 50, offset: 0, total: 1 })
+  })
+
+  it("applies limit and offset for GET /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+    const brp = [{ b_lu_catalogue: "a" }, { b_lu_catalogue: "b" }, { b_lu_catalogue: "c" }]
+    services.getEnabledCultivationCatalogues.mockResolvedValueOnce(["brp"])
+    services.getCultivationsFromCatalogues.mockResolvedValueOnce(brp)
+    const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp?limit=1&offset=1`, {
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toEqual({ data: [brp[1]], limit: 1, offset: 1, total: 3 })
   })
 
   it("returns 200 for GET /farms/{b_id_farm}/catalogues/fertilizer/{source}", async () => {
@@ -167,11 +179,11 @@ describe("Catalogues - list catalogue items", () => {
     })
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data).toEqual(baat)
+    expect(data).toEqual({ data: baat, limit: 50, offset: 0, total: 1 })
   })
 
   it("returns 200 for GET /farms/{b_id_farm}/catalogues/measure/bln", async () => {
-    const bln = [{ m_id: "bln_BM100" }]
+    const bln = [{ m_id: "bln_BM100", m_source: "bln" }]
     services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["bln"])
     services.getMeasuresFromCatalogue.mockResolvedValueOnce(bln)
     const res = await app.request(`/farms/farm-1/catalogues/measure/bln`, {
@@ -179,19 +191,20 @@ describe("Catalogues - list catalogue items", () => {
     })
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data).toEqual(bln)
+    expect(data).toEqual({ data: bln, limit: 50, offset: 0, total: 1 })
   })
 
-  it("returns 200 for GET /farms/{b_id_farm}/catalogues/measure/anlb", async () => {
-    const anlb = [{ m_id: "anlb_12a" }]
+  it("returns only anlb measures for GET /farms/{b_id_farm}/catalogues/measure/anlb", async () => {
+    const bln = [{ m_id: "bln_BM100", m_source: "bln" }]
+    const anlb = [{ m_id: "anlb_12a", m_source: "anlb" }]
     services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["anlb"])
-    services.getMeasuresFromCatalogue.mockResolvedValueOnce(anlb)
+    services.getMeasuresFromCatalogue.mockResolvedValueOnce([...bln, ...anlb])
     const res = await app.request(`/farms/farm-1/catalogues/measure/anlb`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data).toEqual([])
+    expect(data).toEqual({ data: anlb, limit: 50, offset: 0, total: 1 })
   })
 
   it("returns 404 for GET /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
