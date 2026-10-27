@@ -5,10 +5,12 @@ import {
   checkPermission,
   getCultivation,
   getCultivationsFromCatalogue,
+  getField,
   getFarms,
   getFertilizerApplication,
   getFertilizerParametersDescription,
   getFertilizers,
+  getHarvest,
   getHarvests,
   getParametersForHarvestCat,
   getSoilAnalysis,
@@ -50,6 +52,10 @@ import { getEffectiveHarvestable, getHarvestTerm } from "~/components/blocks/har
 import { Header } from "~/components/blocks/header/base"
 import { HeaderFarm } from "~/components/blocks/header/farm"
 import { AddEventSheet } from "~/components/blocks/timeline/add-event-sheet"
+import {
+  isDateInFieldPeriod,
+  OUTSIDE_FIELD_PERIOD_MESSAGE,
+} from "~/components/blocks/timeline/field-period"
 import { TimelineGanttView } from "~/components/blocks/timeline/gantt-view"
 import { TimelineMobileView } from "~/components/blocks/timeline/mobile-view"
 import { TimelineToolbar } from "~/components/blocks/timeline/toolbar"
@@ -65,6 +71,7 @@ import { endMonth, getTimeframeForYears, startMonth } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
+import { parseAppIds } from "~/lib/fertilizer-application-helpers"
 import { extractFormValuesFromRequest } from "~/lib/form"
 import { fetchTimelineFields } from "~/lib/timeline-data.server"
 import { useCalendarJump, useCalendarStore } from "~/store/calendar"
@@ -230,7 +237,11 @@ const ActionSchema = z.discriminatedUnion("intent", [
   }),
   z.object({
     intent: z.literal("update_fertilizer_date"),
-    p_app_id: z.string(),
+    // A single `b_id:p_app_id` pair, like the fertilizer application pages of the rotation table
+    appIds: z
+      .string()
+      .transform(parseAppIds)
+      .refine((ids) => ids.length === 1, { error: "missing: appIds" }),
     p_app_date: dateField,
   }),
   z.object({
@@ -260,6 +271,23 @@ const ActionSchema = z.discriminatedUnion("intent", [
     a_id: z.string(),
   }),
 ])
+
+/**
+ * Checks that the dates lie within the period in which the field is in use.
+ *
+ * @returns `true` when every date is within the period (or has no date), `false` otherwise.
+ */
+async function areDatesInFieldPeriod(
+  principal_id: string,
+  b_id: string,
+  dates: (Date | null | undefined)[],
+): Promise<boolean> {
+  const field = await getField(fdm, principal_id, b_id)
+  return dates.every((date) => !date || isDateInFieldPeriod(date, field))
+}
+
+const outsideFieldPeriodError = () => dataWithError(null, OUTSIDE_FIELD_PERIOD_MESSAGE)
+
 export async function action({ request, params }: Route.LoaderArgs) {
   try {
     const session = await getSession(request)
@@ -306,6 +334,11 @@ export async function action({ request, params }: Route.LoaderArgs) {
 
     if (formValues.intent === "add_cultivation") {
       const { b_lu_catalogue, b_id, b_lu_start, b_lu_end } = formValues
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, b_id ?? "", [b_lu_start, b_lu_end]))
+      ) {
+        return outsideFieldPeriodError()
+      }
       await addCultivation(
         fdm,
         session.principal_id,
@@ -327,6 +360,15 @@ export async function action({ request, params }: Route.LoaderArgs) {
 
     if (formValues.intent === "update_cultivation") {
       const { b_lu, b_lu_start, b_lu_end } = formValues
+      const cultivationToUpdate = await getCultivation(fdm, session.principal_id, b_lu ?? "")
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, cultivationToUpdate.b_id, [
+          b_lu_start,
+          b_lu_end,
+        ]))
+      ) {
+        return outsideFieldPeriodError()
+      }
       await updateCultivation(
         fdm,
         session.principal_id,
@@ -343,6 +385,14 @@ export async function action({ request, params }: Route.LoaderArgs) {
       const { b_id_farm, calendar } = params
       if (!b_id_farm) {
         throw new Error("Farm ID is missing")
+      }
+
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, formValues.b_id ?? "", [
+          formValues.p_app_date,
+        ]))
+      ) {
+        return outsideFieldPeriodError()
       }
 
       await addFertilizerApplication(
@@ -377,6 +427,14 @@ export async function action({ request, params }: Route.LoaderArgs) {
         throw new Error("Farm ID is missing")
       }
 
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, formValues.b_id ?? "", [
+          formValues.p_app_date,
+        ]))
+      ) {
+        return outsideFieldPeriodError()
+      }
+
       await updateFertilizerApplication(
         fdm,
         session.principal_id,
@@ -408,6 +466,14 @@ export async function action({ request, params }: Route.LoaderArgs) {
         targetCultivationInstance.b_lu_harvestable,
         true,
       )
+
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, targetCultivationInstance.b_id, [
+          formValues.b_lu_harvest_date,
+        ]))
+      ) {
+        return outsideFieldPeriodError()
+      }
 
       // Get required harvest parameters for the cultivation's harvest category
       const requiredHarvestParameters = getParametersForHarvestCat(
@@ -499,6 +565,14 @@ export async function action({ request, params }: Route.LoaderArgs) {
         true,
       )
 
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, targetCultivationInstance.b_id, [
+          formValues.b_lu_harvest_date,
+        ]))
+      ) {
+        return outsideFieldPeriodError()
+      }
+
       if (!formValues.b_lu_harvest_date) {
         const errors = [
           {
@@ -564,19 +638,19 @@ export async function action({ request, params }: Route.LoaderArgs) {
     }
 
     if (formValues.intent === "update_fertilizer_date") {
-      const original = await getFertilizerApplication(
-        fdm,
-        session.principal_id,
-        formValues.p_app_id,
-      )
+      const [{ b_id, p_app_id }] = formValues.appIds
+      const original = await getFertilizerApplication(fdm, session.principal_id, p_app_id)
       if (!original) {
         return dataWithError(null, "Bemesting is niet gevonden.")
+      }
+      if (!(await areDatesInFieldPeriod(session.principal_id, b_id, [formValues.p_app_date]))) {
+        return outsideFieldPeriodError()
       }
 
       await updateFertilizerApplication(
         fdm,
         session.principal_id,
-        formValues.p_app_id,
+        p_app_id,
         original.p_id,
         original.p_app_amount_display,
         original.p_app_method,
@@ -592,6 +666,15 @@ export async function action({ request, params }: Route.LoaderArgs) {
     }
 
     if (formValues.intent === "update_harvest_date") {
+      const harvest = await getHarvest(fdm, session.principal_id, formValues.b_id_harvesting)
+      const cultivation = await getCultivation(fdm, session.principal_id, harvest.b_lu)
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, cultivation.b_id, [
+          formValues.b_lu_harvest_date,
+        ]))
+      ) {
+        return outsideFieldPeriodError()
+      }
       await updateHarvest(
         fdm,
         session.principal_id,
@@ -608,6 +691,14 @@ export async function action({ request, params }: Route.LoaderArgs) {
     }
 
     if (formValues.intent === "update_soil_analysis_date") {
+      const analysis = await getSoilAnalysis(fdm, session.principal_id, formValues.a_id)
+      if (
+        !(await areDatesInFieldPeriod(session.principal_id, analysis.b_id, [
+          formValues.b_sampling_date,
+        ]))
+      ) {
+        return outsideFieldPeriodError()
+      }
       await updateSoilAnalysis(fdm, session.principal_id, formValues.a_id, {
         b_sampling_date: formValues.b_sampling_date,
       })
@@ -831,6 +922,7 @@ export default function TimelinePage() {
               onFiltersChange={setFilters}
               canModify={loaderData.farmWritePermission}
               onRequest={setSheetRequest}
+              calendarYear={calendarYear}
             />
           </>
         ) : (
@@ -858,6 +950,7 @@ export default function TimelinePage() {
                 fertilizerTypeById={fertilizerTypeById}
                 fields={loaderData.fields}
                 filters={filters}
+                isSheetOpen={!!sheetRequest}
                 onFiltersChange={setFilters}
                 onSheetRequest={setSheetRequest}
                 onUndoChange={handleUndoChange}

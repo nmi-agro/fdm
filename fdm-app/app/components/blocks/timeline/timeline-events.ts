@@ -352,7 +352,11 @@ export function getActiveCultivations(fields: TimelineField[]): ActiveCultivatio
   for (const field of fields) {
     for (const cultivation of field.cultivations) {
       if (!cultivation.b_lu_start) continue
-      const end = cultivation.b_lu_end
+      // A cultivation never runs past the end of its field, also when it has no end date
+      const end =
+        field.b_end && (!cultivation.b_lu_end || cultivation.b_lu_end > field.b_end)
+          ? field.b_end
+          : cultivation.b_lu_end
       if (cultivation.b_lu_start <= today && (end == null || end >= today)) {
         active.push({
           fieldId: field.b_id,

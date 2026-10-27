@@ -36,6 +36,8 @@ function toDate(value: Date | string) {
 }
 
 type HarvestFormDialogProps = {
+  /** Days outside this range cannot be picked for the harvest date. */
+  dateRange?: { from?: Date | null; to?: Date | null }
   intent?: string
   b_id_harvesting?: string
   b_lu_croprotation?: string
@@ -226,6 +228,7 @@ function HarvestFields({
   exampleHarvestableAnalysis,
   example_b_lu_harvest_date,
   b_lu_harvest_date,
+  dateRange,
 }: HarvestFormDialogProps & {
   form: UseRemixFormReturn<HarvestFormValues, any, any>
   className?: React.ComponentProps<typeof FieldGroup>["className"]
@@ -258,6 +261,7 @@ function HarvestFields({
             }}
             fieldState={fieldState}
             required={true}
+            dateRange={dateRange}
           />
         )}
       />

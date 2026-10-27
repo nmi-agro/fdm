@@ -8,6 +8,7 @@ import { format } from "date-fns"
 import { nl } from "date-fns/locale"
 import { CalendarIcon } from "lucide-react"
 import { type ChangeEvent, useEffect, useState } from "react"
+import { type DatePickerRange, getDisabledDays } from "~/components/custom/date-picker"
 import { Button } from "~/components/ui/button"
 import { Calendar } from "~/components/ui/calendar"
 import { Field, FieldDescription, FieldError, FieldLabel } from "~/components/ui/field"
@@ -27,6 +28,8 @@ type DatePickerProps = {
   fieldState: ControllerFieldState
   required?: boolean
   className?: string
+  /** Days outside this range are disabled in the calendar. */
+  dateRange?: DatePickerRange
 }
 
 export function DatePicker({
@@ -38,6 +41,7 @@ export function DatePicker({
   fieldState,
   required,
   className,
+  dateRange,
 }: DatePickerProps) {
   const { calendar } = useCalendarStore()
   // Computed once, not on every render: only used as a fallback when the store has no calendar yet.
@@ -136,6 +140,7 @@ export function DatePicker({
               onSelect={handleDateSelect}
               startMonth={new Date(1970, 0)}
               endMonth={endMonth}
+              disabled={getDisabledDays(dateRange)}
               locale={calenderLocale}
               required={required}
             />

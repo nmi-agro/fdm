@@ -15,11 +15,10 @@ import { fdm } from "~/lib/fdm.server"
 import { isBcsAnalysis } from "./bcs"
 
 /**
- * Fetches and shapes one timeframe's worth of timeline data for a farm. Shared by the timeline
- * page's full load (an initial multi-year window) and the on-demand single-year resource route
- * (`farm.$b_id_farm.$calendar.timeline.year.ts`, triggered as the user scrolls near the edge of
- * what's already loaded, or jumps to a year via the sidebar) — both need identical shaping so the
- * client can merge results from either path without special-casing.
+ * Fetches and shapes one timeframe's worth of timeline data for a farm. The timeline page calls
+ * it once for the whole supported year range, so scrolling or jumping to another year needs no
+ * further requests. Each field includes its period (`b_start`, `b_end`) so the view can group
+ * fields that are not in use and cut off open cultivations at the end of the field.
  */
 export async function fetchTimelineFields(
   principal_id: string,
@@ -92,6 +91,8 @@ export async function fetchTimelineFields(
         b_name: field.b_name,
         b_area: field.b_area != null ? Math.round(field.b_area * 10) / 10 : 0,
         b_bufferstrip: field.b_bufferstrip ?? false,
+        b_start: field.b_start ?? null,
+        b_end: field.b_end ?? null,
         cultivations: cultivations.map((cultivation) => ({
           b_lu: cultivation.b_lu,
           b_lu_catalogue: cultivation.b_lu_catalogue,

@@ -8,14 +8,24 @@ import {
 } from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { HarvestableAnalysis, HarvestParameters } from "@nmi-agro/fdm-core"
-import { addDays, addMonths, format, getDaysInMonth } from "date-fns"
+import { addDays, addMonths, format, getDaysInMonth, startOfDay } from "date-fns"
 import { nl } from "date-fns/locale"
-import { LandPlot, Loader2, Shovel, TestTube2, Wheat } from "lucide-react"
+import {
+  ChevronRight,
+  LandPlot,
+  Loader2,
+  Shovel,
+  TestTube2,
+  TriangleAlert,
+  Wheat,
+} from "lucide-react"
 import {
   forwardRef,
+  useCallback,
   useContext,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -72,7 +82,23 @@ import {
   EmptyTitle,
 } from "~/components/ui/empty"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "~/components/ui/tooltip"
+import { useKeyedState } from "~/hooks/use-keyed-state"
 import { endMonth, startMonth } from "~/lib/calendar"
+import { cn } from "~/lib/utils"
+import { useCalendarStore } from "~/store/calendar"
+import {
+  clampToFieldPeriod,
+  type FieldPeriod,
+  getFieldEndTooltip,
+  getFieldPeriodBadge,
+  getFieldPeriodStatus,
+  getFieldStartTooltip,
+  getInactiveGroupLabel,
+  getNoFieldsInUseLabel,
+  getOpenCultivationEndAt,
+  getRegroupAnnouncement,
+  isDateInFieldPeriod,
+} from "./field-period"
 import { TimelineEventType } from "./timeline-events"
 
 // The years the Gantt renders/scrolls through must never exceed what the app's "Calendar" year
@@ -134,26 +160,18 @@ export function findActiveCultivationForDate(
 }
 
 /**
- * Invisible, full-row click target rendered *behind* a field's `GanttFeatureRow` (i.e. before it
- * in DOM order — see the "positioned elements painted in DOM order" rule) so cultivation
- * bars/event icons, painted after, still win hit-testing over their own area, while the rest of
- * the row's empty space hits this instead. On click, resolves the date under the cursor and opens
- * a menu to add a cultivation, fertilizer application or soil analysis at that date.
+ * Measures the width of the gantt's scrollable content, without the sidebar.
+ *
+ * `GanttFeatureListGroup`/`GanttFeatureRow` have no real box width of their own — every bar
+ * inside is `position: absolute`, so none of them contribute to their ancestor's (otherwise
+ * `w-max`) intrinsic width. That left a plain `w-full`/`w-max` overlay only as wide as
+ * whatever tiny box those ancestors collapse to, so most of a row's empty space fell straight
+ * through to the real full-width element behind it: `GanttColumn`'s striped background grid
+ * (sized from the header's real, non-absolutely-positioned columns). Measure the gantt's own
+ * scrollable content width directly instead, so overlays always span the full row.
  */
-function RowClickCatcher({
-  onSelect,
-}: {
-  onSelect: (type: "cultivation-add" | "fertilizer" | "soil" | "soil-bcs", date: Date) => void
-}) {
+function useTimelineContentWidth(): number {
   const gantt = useContext(GanttContext)
-  const [scrollX] = useGanttScrollX()
-  // `GanttFeatureListGroup`/`GanttFeatureRow` have no real box width of their own — every bar
-  // inside is `position: absolute`, so none of them contribute to their ancestor's (otherwise
-  // `w-max`) intrinsic width. That left a plain `w-full`/`w-max` overlay only as wide as
-  // whatever tiny box those ancestors collapse to, so most of a row's empty space fell straight
-  // through to the real full-width element behind it: `GanttColumn`'s striped background grid
-  // (sized from the header's real, non-absolutely-positioned columns). Measure the gantt's own
-  // scrollable content width directly instead, so this overlay always spans the full row.
   const [width, setWidth] = useState(0)
 
   useEffect(() => {
@@ -176,12 +194,37 @@ function RowClickCatcher({
     }
   }, [gantt.ref, gantt.sidebarWidth])
 
+  return width
+}
+
+/**
+ * Invisible, full-row click target rendered *behind* a field's `GanttFeatureRow` (i.e. before it
+ * in DOM order — see the "positioned elements painted in DOM order" rule) so cultivation
+ * bars/event icons, painted after, still win hit-testing over their own area, while the rest of
+ * the row's empty space hits this instead. On click, resolves the date under the cursor and opens
+ * a menu to add a cultivation, fertilizer application or soil analysis at that date. Clicks on a
+ * date outside the field's period are ignored.
+ */
+function RowClickCatcher({
+  fieldPeriod,
+  onSelect,
+  width,
+}: {
+  fieldPeriod: FieldPeriod
+  onSelect: (type: "cultivation-add" | "fertilizer" | "soil" | "soil-bcs", date: Date) => void
+  width: number
+}) {
+  const gantt = useContext(GanttContext)
+  const [scrollX] = useGanttScrollX()
+
   const clickedDate = useRef<Date>(undefined)
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const ganttRect = gantt.ref?.current?.getBoundingClientRect()
     const x = event.clientX - (ganttRect?.left ?? 0) + scrollX - gantt.sidebarWidth
-    clickedDate.current = getDateFromOffsetX(x, gantt.range)
+    const date = getDateFromOffsetX(x, gantt.range)
+    if (!isDateInFieldPeriod(date, fieldPeriod)) return
+    clickedDate.current = date
     openMenuFromClick(event)
   }
 
@@ -218,6 +261,106 @@ function RowClickCatcher({
         style={{ width }}
       />
     </TimelineContextMenu>
+  )
+}
+
+/** Diagonal hatch built from muted tokens, so it works in light and dark mode. */
+const HATCH_STYLE: React.CSSProperties = {
+  backgroundColor: "color-mix(in oklab, var(--muted) 55%, transparent)",
+  backgroundImage:
+    "repeating-linear-gradient(135deg, color-mix(in oklab, var(--muted-foreground) 35%, transparent) 0 1px, transparent 1px 6px)",
+}
+
+/**
+ * Marks the part of a row in which the field is not in use: hatched blocks before `b_start` and
+ * after `b_end`, with a thin marker (and tooltip) at each boundary. The hatched area swallows
+ * clicks, so nothing can be added there. Rendered after the click catcher and before the
+ * features, so bars and icons that do lie in the hatched area stay usable.
+ */
+function FieldPeriodOverlay({
+  fieldPeriod,
+  fullyHatched,
+  range,
+  width,
+}: {
+  fieldPeriod: FieldPeriod
+  fullyHatched: boolean
+  range: Range
+  width: number
+}) {
+  const { b_start, b_end } = fieldPeriod
+  const startOffset = b_start ? computeScrollOffset(startOfDay(b_start), range) : 0
+  // The end date itself is still in use, so the hatch starts on the next day
+  const endOffset = b_end ? computeScrollOffset(addDays(startOfDay(b_end), 1), range) : width
+
+  const blocks: { left: number; width: number; key: string }[] = fullyHatched
+    ? [{ key: "all", left: 0, width }]
+    : [
+        ...(b_start && startOffset > 0 ? [{ key: "before", left: 0, width: startOffset }] : []),
+        ...(b_end && endOffset < width
+          ? [{ key: "after", left: endOffset, width: width - endOffset }]
+          : []),
+      ]
+
+  const marker = (left: number, tooltip: string, key: string) => (
+    <Tooltip key={key}>
+      <TooltipTrigger asChild>
+        <div className="absolute inset-y-0 z-[1] w-2 -translate-x-1/2 cursor-help" style={{ left }}>
+          <div className="bg-muted-foreground absolute inset-y-0 left-1/2 w-px -translate-x-1/2" />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>{tooltip}</TooltipContent>
+    </Tooltip>
+  )
+
+  return (
+    <>
+      {blocks.map((block) => (
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-0 cursor-not-allowed"
+          key={block.key}
+          style={{ ...HATCH_STYLE, left: block.left, width: block.width }}
+        />
+      ))}
+      {b_start && startOffset > 0
+        ? marker(startOffset, getFieldStartTooltip(b_start), "start")
+        : null}
+      {b_end && endOffset < width ? marker(endOffset, getFieldEndTooltip(b_end), "end") : null}
+    </>
+  )
+}
+
+/**
+ * Everything drawn behind a field's bars: the click target for adding events and the hatching of
+ * the part of the row in which the field is not in use.
+ */
+function RowBackdrop({
+  canModify,
+  fieldPeriod,
+  fullyHatched,
+  onSelect,
+  range,
+}: {
+  canModify: boolean
+  fieldPeriod: FieldPeriod
+  fullyHatched: boolean
+  onSelect: (type: "cultivation-add" | "fertilizer" | "soil" | "soil-bcs", date: Date) => void
+  range: Range
+}) {
+  const width = useTimelineContentWidth()
+  return (
+    <>
+      {canModify && !fullyHatched ? (
+        <RowClickCatcher fieldPeriod={fieldPeriod} onSelect={onSelect} width={width} />
+      ) : null}
+      <FieldPeriodOverlay
+        fieldPeriod={fieldPeriod}
+        fullyHatched={fullyHatched}
+        range={range}
+        width={width}
+      />
+    </>
   )
 }
 
@@ -274,6 +417,10 @@ export type TimelineField = {
   b_name: string
   b_area: number
   b_bufferstrip: boolean
+  /** Start of the period in which the field is in use. `null` means no lower bound. */
+  b_start: Date | null
+  /** End of the period in which the field is in use. `null` means the field is still in use. */
+  b_end: Date | null
   cultivations: TimelineCultivation[]
   fertilizerApplications: TimelineFertilizerApplication[]
   harvests: TimelineHarvest[]
@@ -320,6 +467,12 @@ type TimelineFeature = GanttFeature & {
   b_lu?: string
   b_lu_harvestable?: "none" | "once" | "multiple"
   entityId?: string
+  /** Period in which the field is in use; limits where this feature may be dragged or clicked. */
+  fieldPeriod?: FieldPeriod
+  /** The cultivation has no end date and is drawn up to the end of its field. */
+  openEndCut?: boolean
+  /** The cultivation's end date lies after the end of its field, so it is drawn up to that end. */
+  exceedsFieldEnd?: boolean
 }
 
 /** Identifies exactly which record a delete/edit action targets. */
@@ -442,8 +595,18 @@ function buildFieldFeatures(
       // Cultivations without an end date are still ongoing — extend the bar all the way to the
       // edge of the rendered timeline (rather than stopping at the selected calendar year) so it
       // visually keeps going instead of implying it ended on Dec 31.
-      const endAt = cultivation.b_lu_end ?? openCultivationEndAt
+      const fieldEnd = field.b_end
+      const exceedsFieldEnd = !!(
+        cultivation.b_lu_end &&
+        fieldEnd &&
+        cultivation.b_lu_end > fieldEnd
+      )
+      const openEndCut = !cultivation.b_lu_end && fieldEnd !== null
+      // Never changes the stored cultivation: past the end of the field the bar is only cut off.
+      const rawEndAt = exceedsFieldEnd ? fieldEnd : (cultivation.b_lu_end ?? openCultivationEndAt)
+      const endAt = rawEndAt && rawEndAt < startAt ? startAt : (rawEndAt ?? startAt)
       const name = cultivation.b_lu_name ?? "Onbekend gewas"
+      const fieldEndText = fieldEnd && (openEndCut || exceedsFieldEnd) ? formatNl(fieldEnd) : null
       const color = cultivationStatus(cultivation.b_lu_croprotation).color
       cultivationFeatures.push({
         id: `cultivation-${cultivation.b_lu}`,
@@ -456,7 +619,17 @@ function buildFieldFeatures(
         kind: "cultivation",
         href: `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/cultivation`,
         label: name,
-        detail: `${field.b_name}\n${formatNl(startAt)} – ${cultivation.b_lu_end ? formatNl(cultivation.b_lu_end) : "nu actief"}`,
+        detail: `${field.b_name}\n${formatNl(startAt)} – ${
+          openEndCut && fieldEndText
+            ? `${fieldEndText}\nGeen einddatum – getoond tot einde perceel (${fieldEndText})`
+            : exceedsFieldEnd && fieldEndText && cultivation.b_lu_end
+              ? `${formatNl(cultivation.b_lu_end)}\n${name} loopt door na einde perceel (${fieldEndText})`
+              : cultivation.b_lu_end
+                ? formatNl(cultivation.b_lu_end)
+                : "nu actief"
+        }`,
+        openEndCut,
+        exceedsFieldEnd,
         events: [],
         b_id: field.b_id,
         b_lu: cultivation.b_lu,
@@ -772,6 +945,7 @@ function EventOverlay({
   cultivationStartAt,
   editing,
   event,
+  fieldPeriod,
   range,
 }: {
   b_id: string
@@ -781,6 +955,7 @@ function EventOverlay({
   cultivationStartAt: Date
   editing: TimelineEditing
   event: AttachedEvent
+  fieldPeriod: FieldPeriod
   range: Range
 }) {
   const gantt = useContext(GanttContext)
@@ -837,11 +1012,14 @@ function EventOverlay({
     const centerX = rect.left + rect.width / 2
     const x = centerX - ganttRect.left + scrollX - gantt.sidebarWidth
     const rawDate = getDateFromOffsetX(x, range)
-    return rawDate < cultivationStartAt
-      ? cultivationStartAt
-      : rawDate > latestDate
-        ? latestDate
-        : rawDate
+    const withinCultivation =
+      rawDate < cultivationStartAt
+        ? cultivationStartAt
+        : rawDate > latestDate
+          ? latestDate
+          : rawDate
+    // Events can never be moved outside the period in which the field is in use
+    return clampToFieldPeriod(withinCultivation, fieldPeriod)
   }
 
   const handleDragMove = (dragEvent: DragMoveEvent) => {
@@ -974,6 +1152,10 @@ function FeatureContent({
   const b_id = feature.b_id
   const b_lu = feature.b_lu
   const entityId = feature.entityId
+  const fieldPeriod = useMemo<FieldPeriod>(
+    () => feature.fieldPeriod ?? { b_start: null, b_end: null },
+    [feature.fieldPeriod],
+  )
 
   const entity: EditableEntity | null =
     feature.kind === "cultivation" && b_id && b_lu
@@ -1024,8 +1206,9 @@ function FeatureContent({
 
     const captureClickDate = (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.detail === 0) {
-        clickDateRef.current = feature.startAt
-        clickHarvestDateRef.current = feature.startAt
+        const startDate = clampToFieldPeriod(feature.startAt, fieldPeriod)
+        clickDateRef.current = startDate
+        clickHarvestDateRef.current = startDate
         return
       }
       const ganttRect = gantt.ref?.current?.getBoundingClientRect()
@@ -1037,14 +1220,17 @@ function FeatureContent({
           : feature.endAt && date > feature.endAt
             ? feature.endAt
             : date
-      clickDateRef.current = clamped
-      clickHarvestDateRef.current = allowHarvestPastEnd
-        ? date < feature.startAt
-          ? feature.startAt
-          : date > TIMELINE_END_DATE
-            ? TIMELINE_END_DATE
-            : date
-        : clamped
+      clickDateRef.current = clampToFieldPeriod(clamped, fieldPeriod)
+      clickHarvestDateRef.current = clampToFieldPeriod(
+        allowHarvestPastEnd
+          ? date < feature.startAt
+            ? feature.startAt
+            : date > TIMELINE_END_DATE
+              ? TIMELINE_END_DATE
+              : date
+          : clamped,
+        fieldPeriod,
+      )
     }
 
     const addActions: TimelineMenuAction[] =
@@ -1108,6 +1294,21 @@ function FeatureContent({
               >
                 {feature.name}
               </p>
+              {feature.exceedsFieldEnd ? (
+                <span
+                  aria-label={`${feature.name} loopt door na einde perceel`}
+                  className="absolute top-0.5 right-1 text-amber-600 dark:text-amber-400"
+                  role="img"
+                >
+                  <TriangleAlert className="size-3.5" />
+                </span>
+              ) : null}
+              {feature.openEndCut ? (
+                <div
+                  aria-hidden="true"
+                  className="to-background/70 pointer-events-none absolute inset-y-0 right-0 w-10 rounded-r-sm border-r-2 border-dashed border-current bg-gradient-to-r from-transparent opacity-60"
+                />
+              ) : null}
             </div>
           </TooltipTrigger>
           <TooltipContent className="whitespace-pre-line">
@@ -1129,6 +1330,7 @@ function FeatureContent({
               cultivationStartAt={feature.startAt}
               editing={editing}
               event={event}
+              fieldPeriod={fieldPeriod}
               key={event.id}
               range={range}
             />
@@ -1227,6 +1429,70 @@ const ROW_HEIGHT_PX = 32
 const GROUP_GAP_PX = 8 // Tailwind's `space-y-2`, used both in GanttSidebar and GanttFeatureList
 const GANTT_HEADER_HEIGHT_PX = 60
 
+/** How long scrolling must have stopped before the fields are regrouped for the year in view. */
+const YEAR_SETTLE_DELAY_MS = 300
+
+/** The field row the user is looking at, used to keep it in place when the rows are regrouped. */
+type RowAnchor = {
+  id: string
+  /** Distance from the top of the scroll area to the top of the row. */
+  top: number
+  /** Ids of all rows in use at the time, in display order. */
+  order: string[]
+}
+
+/**
+ * Finds the field row nearest to the vertical centre of the scroll area. Rows are marked with
+ * `data-field-row`; rows in the collapsed "not in use" group are not.
+ */
+function measureAnchor(scrollElement: HTMLElement): RowAnchor | null {
+  const rows = Array.from(scrollElement.querySelectorAll<HTMLElement>("[data-field-row]"))
+  if (rows.length === 0) return null
+  const scrollRect = scrollElement.getBoundingClientRect()
+  const centerY = scrollRect.top + scrollElement.clientHeight / 2
+  let best: { row: HTMLElement; top: number } | null = null
+  let bestDistance = Number.POSITIVE_INFINITY
+  for (const row of rows) {
+    const rect = row.getBoundingClientRect()
+    const distance = centerY < rect.top ? rect.top - centerY : Math.max(0, centerY - rect.bottom)
+    if (distance < bestDistance) {
+      best = { row, top: rect.top - scrollRect.top }
+      bestDistance = distance
+    }
+  }
+  if (!best?.row.dataset.fieldRow) return null
+  return {
+    id: best.row.dataset.fieldRow,
+    top: best.top,
+    order: rows.map((row) => row.dataset.fieldRow ?? ""),
+  }
+}
+
+/**
+ * Scrolls vertically so the anchor row is at the same position on screen as before. When the
+ * anchor row left the list, the closest row that used to be next to it is used instead.
+ */
+function restoreAnchor(scrollElement: HTMLElement, anchor: RowAnchor) {
+  const rowsById = new Map(
+    Array.from(scrollElement.querySelectorAll<HTMLElement>("[data-field-row]")).map((row) => [
+      row.dataset.fieldRow,
+      row,
+    ]),
+  )
+  const index = anchor.order.indexOf(anchor.id)
+  const candidates = [anchor.id]
+  for (let distance = 1; distance < anchor.order.length; distance++) {
+    candidates.push(anchor.order[index + distance], anchor.order[index - distance])
+  }
+  const target = candidates.map((id) => rowsById.get(id)).find((row) => row !== undefined)
+  if (!target) return
+  const scrollRect = scrollElement.getBoundingClientRect()
+  const currentTop = target.getBoundingClientRect().top - scrollRect.top
+  // The anchor row may have moved when it is a neighbour, so use the original position of
+  // whichever row was found
+  scrollElement.scrollTop += currentTop - anchor.top
+}
+
 /** Type for the imperative handle used for scrolling the Gantt chart around, and to refresh the data displayed on it. */
 export type TimelineGanttViewHandle = {
   /** Scrolls the timeline horizontally so today's date is in view. */
@@ -1253,6 +1519,8 @@ export const TimelineGanttView = forwardRef<
     onSheetRequest?: (request: AddEventSheetRequest) => void
     /** Called with a function that reverts the last saved move, or `null` when there is none. */
     onUndoChange?: (undo: (() => void) | null) => void
+    /** Whether the side sheet is open. Fields are not regrouped while it is. */
+    isSheetOpen?: boolean
   }
 >(function TimelineGanttView(
   {
@@ -1267,10 +1535,21 @@ export const TimelineGanttView = forwardRef<
     canModify,
     onSheetRequest,
     onUndoChange,
+    isSheetOpen = false,
   },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
+  // Set when the view jumps to a year or to today, so the fields regroup as soon as it arrives
+  const jumpPendingRef = useRef(false)
+  const jumpResetTimeoutRef = useRef<number | undefined>(undefined)
+  const markJumpPending = () => {
+    jumpPendingRef.current = true
+    window.clearTimeout(jumpResetTimeoutRef.current)
+    jumpResetTimeoutRef.current = window.setTimeout(() => {
+      jumpPendingRef.current = false
+    }, 2000)
+  }
   const navigate = useNavigate()
   const fetcher = useFetcher()
   useScrollToCalendarYear(containerRef, calendarYear, range)
@@ -1323,11 +1602,16 @@ export const TimelineGanttView = forwardRef<
   useImperativeHandle(
     ref,
     () => ({
-      scrollToToday: () => scrollToCenteredOffset(computeScrollOffset(new Date(), range)),
+      scrollToToday: () => {
+        markJumpPending()
+        scrollToCenteredOffset(computeScrollOffset(new Date(), range))
+      },
       // Center on mid-year (rather than Jan 1) so the jump lands with months of context visible
       // on both sides, instead of the target date sitting at the very left of what's in view.
-      scrollToYear: (year: number) =>
-        scrollToCenteredOffset(computeScrollOffset(new Date(year, 6, 1), range)),
+      scrollToYear: (year: number) => {
+        markJumpPending()
+        scrollToCenteredOffset(computeScrollOffset(new Date(year, 6, 1), range))
+      },
       remount: remountPreservingScroll,
     }),
     [range, scrollToCenteredOffset, remountPreservingScroll],
@@ -1346,12 +1630,27 @@ export const TimelineGanttView = forwardRef<
   } | null>(null)
   const [hoveredEntityId, setHoveredEntityId] = useState<string | null>(null)
 
+  const isSaving = fetcher.state !== "idle"
+
+  // The fields are grouped by whether they are in use in the "reference year": the year at the
+  // centre of the visible timeline, once scrolling has stopped. Regrouping never happens during an
+  // interaction (dragging, a saving move, an open sheet or dialog): the year is frozen at the
+  // moment the interaction starts and the year in view is applied when it ends.
+  const [detectedYear, setDetectedYear] = useKeyedState(calendarYear, (year) => year)
+  const [frozenYear, setFrozenYear] = useState(calendarYear)
+  const [pointerActive, setPointerActive] = useState(false)
+  const [inactiveOpen, setInactiveOpen] = useState(false)
+  const isBusy = pointerActive || isSheetOpen || isSaving || pendingDelete !== null
+  const referenceYear = isBusy ? frozenYear : detectedYear
+  const freezeYear = useCallback(() => setFrozenYear(referenceYear), [referenceYear])
+
   // Form data that reverts the last drag/resize; it is handed to the page once the change is saved.
   const [pendingUndo, setPendingUndo] = useState<FormData | null>(null)
   const handledFetcherData = useRef<unknown>(null)
   const isUndoingRef = useRef(false)
 
   const submitMove = (formData: FormData, undoFormData: FormData) => {
+    freezeYear()
     setPendingUndo(undoFormData)
     onUndoChange?.(null)
     void fetcher.submit(formData, { method: "POST" })
@@ -1372,12 +1671,11 @@ export const TimelineGanttView = forwardRef<
     if (!undoFormData || !(result.moved || result.closeSheet)) return
     onUndoChange?.(() => {
       onUndoChange(null)
+      freezeYear()
       isUndoingRef.current = true
       void fetcher.submit(undoFormData, { method: "POST" })
     })
-  }, [fetcher.state, fetcher.data, fetcher, onUndoChange, pendingUndo])
-
-  const isSaving = fetcher.state !== "idle"
+  }, [fetcher.state, fetcher.data, fetcher, onUndoChange, pendingUndo, freezeYear])
 
   const submitCultivationMove = (
     b_id: string,
@@ -1401,13 +1699,14 @@ export const TimelineGanttView = forwardRef<
   }
 
   const submitFertilizerDate = (p_app_id: string, p_app_date: Date) => {
-    const original = fields
-      .flatMap((field) => field.fertilizerApplications)
-      .find((f) => f.p_app_id === p_app_id)
+    const field = fields.find((f) => f.fertilizerApplications.some((a) => a.p_app_id === p_app_id))
+    if (!field) return
+    const original = field.fertilizerApplications.find((f) => f.p_app_id === p_app_id)
     const build = (date: Date) => {
       const formData = new FormData()
       formData.set("intent", "update_fertilizer_date")
-      formData.set("p_app_id", p_app_id)
+      // The server checks the date against the period of this field
+      formData.set("appIds", `${field.b_id}:${p_app_id}`)
       formData.set("p_app_date", date.toISOString())
       return formData
     }
@@ -1456,8 +1755,18 @@ export const TimelineGanttView = forwardRef<
     void navigate(`/farm/${b_id_farm}/${calendar}/field/${b_id}/bcs/${a_id}/edit`)
   }
 
-  const requestDelete = (entity: EditableEntity, label: string) =>
-    setPendingDelete({ entity, label })
+  const requestDelete = useCallback(
+    (entity: EditableEntity, label: string) => {
+      freezeYear()
+      setPendingDelete({ entity, label })
+    },
+    [freezeYear],
+  )
+
+  const requestSheet = (request: AddEventSheetRequest) => {
+    freezeYear()
+    onSheetRequest?.(request)
+  }
 
   const confirmDelete = () => {
     if (!pendingDelete) return
@@ -1527,7 +1836,7 @@ export const TimelineGanttView = forwardRef<
     }
     document.addEventListener("keydown", onKeyDown)
     return () => document.removeEventListener("keydown", onKeyDown)
-  }, [canModify, hoveredEntityId, fields])
+  }, [canModify, hoveredEntityId, fields, requestDelete])
 
   const editing: TimelineEditing = {
     canModify,
@@ -1535,7 +1844,7 @@ export const TimelineGanttView = forwardRef<
     onEditHarvest,
     onEditBcs,
     onEditSoil,
-    onSheetRequest: canModify ? onSheetRequest : undefined,
+    onSheetRequest: canModify ? requestSheet : undefined,
     requestDelete,
     setHoveredEntityId,
     submitCultivationMove,
@@ -1547,6 +1856,84 @@ export const TimelineGanttView = forwardRef<
   const visibleFields = fields
     .filter((field) => filters.showBufferStrips || !field.b_bufferstrip)
     .sort((a, b) => b.b_area - a.b_area || a.b_name.localeCompare(b.b_name, "nl"))
+
+  const inactiveFieldCount = visibleFields.filter(
+    (field) => getFieldPeriodStatus(field, referenceYear) === "inactive",
+  ).length
+
+  const anchorRef = useRef<RowAnchor | null>(null)
+  const liveRegionRef = useRef<HTMLDivElement>(null)
+  const appliedYearRef = useRef(referenceYear)
+
+  // Find the year at the centre of the view once scrolling stops, and remember the row the user
+  // is looking at so it can be kept in place when the fields are regrouped.
+  useEffect(() => {
+    const scrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
+    if (!scrollElement) return
+    let settleTimeout: number | undefined
+    let frame: number | undefined
+
+    const settle = () => {
+      const sidebarWidth =
+        scrollElement
+          .querySelector<HTMLDivElement>('[data-roadmap-ui="gantt-sidebar"]')
+          ?.getBoundingClientRect().width ?? 0
+      const centerOffset = Math.max(
+        0,
+        scrollElement.scrollLeft + (scrollElement.clientWidth - sidebarWidth) / 2,
+      )
+      const year = getDateFromOffsetX(centerOffset, range).getFullYear()
+      setDetectedYear(Math.min(TIMELINE_END_YEAR, Math.max(TIMELINE_START_YEAR, year)))
+    }
+    const onScroll = () => {
+      window.clearTimeout(settleTimeout)
+      settleTimeout = window.setTimeout(settle, YEAR_SETTLE_DELAY_MS)
+      frame ??= window.requestAnimationFrame(() => {
+        frame = undefined
+        anchorRef.current = measureAnchor(scrollElement)
+      })
+    }
+    // A jump (sidebar year selector, "Vandaag") regroups as soon as it has arrived
+    const onScrollEnd = () => {
+      if (!jumpPendingRef.current) return
+      jumpPendingRef.current = false
+      window.clearTimeout(settleTimeout)
+      settle()
+    }
+
+    scrollElement.addEventListener("scroll", onScroll, { passive: true })
+    scrollElement.addEventListener("scrollend", onScrollEnd)
+    return () => {
+      scrollElement.removeEventListener("scroll", onScroll)
+      scrollElement.removeEventListener("scrollend", onScrollEnd)
+      window.clearTimeout(settleTimeout)
+      if (frame !== undefined) window.cancelAnimationFrame(frame)
+    }
+  }, [ganttChartId, range, setDetectedYear])
+
+  useEffect(() => {
+    const release = () => setPointerActive(false)
+    window.addEventListener("pointerup", release)
+    window.addEventListener("pointercancel", release)
+    return () => {
+      window.removeEventListener("pointerup", release)
+      window.removeEventListener("pointercancel", release)
+    }
+  }, [])
+
+  // After the fields are regrouped: keep the row the user was looking at in place, update the
+  // Calendar year selector in the sidebar (no navigation) and tell screen readers.
+  useLayoutEffect(() => {
+    if (appliedYearRef.current === referenceYear) return
+    appliedYearRef.current = referenceYear
+    const scrollElement = containerRef.current?.querySelector<HTMLDivElement>(".gantt")
+    if (scrollElement && anchorRef.current) restoreAnchor(scrollElement, anchorRef.current)
+    const { calendar: storedCalendar, setCalendar } = useCalendarStore.getState()
+    if (storedCalendar !== String(referenceYear)) setCalendar(String(referenceYear))
+    if (liveRegionRef.current) {
+      liveRegionRef.current.textContent = getRegroupAnnouncement(referenceYear, inactiveFieldCount)
+    }
+  }, [referenceYear, inactiveFieldCount])
 
   if (fields.length === 0) {
     return (
@@ -1591,31 +1978,50 @@ export const TimelineGanttView = forwardRef<
     )
   }
 
-  const openCultivationEndAt = TIMELINE_END_DATE
-
   // Precompute each field's features once (reused for the timeline row) and its resulting
   // sub-row count, so we can give `GanttTimeline` an explicit total height below.
-  const fieldsWithFeatures = visibleFields.map((field) => {
+  const fieldEntries = visibleFields.map((field) => {
+    const fieldPeriod: FieldPeriod = { b_start: field.b_start, b_end: field.b_end }
     const { cultivationFeatures, pointFeatures } = buildFieldFeatures(
       field,
       filters,
       fertilizerTypeById,
       b_id_farm,
       calendar,
-      openCultivationEndAt,
+      getOpenCultivationEndAt(field, TIMELINE_END_DATE),
     )
-    const features = [...cultivationFeatures, ...pointFeatures]
-    const maxSubRows = computeGanttSubRowCount(features)
-    return { field, features, maxSubRows }
+    const features = [...cultivationFeatures, ...pointFeatures].map((feature) => ({
+      ...feature,
+      fieldPeriod,
+    }))
+    return {
+      badge: getFieldPeriodBadge(field, referenceYear),
+      features,
+      field,
+      fieldPeriod,
+      maxSubRows: computeGanttSubRowCount(features),
+      status: getFieldPeriodStatus(field, referenceYear),
+    }
   })
+  const inUseEntries = fieldEntries.filter((entry) => entry.status !== "inactive")
+  const inactiveEntries = fieldEntries.filter((entry) => entry.status === "inactive")
 
-  const handlePointMove = (id: string, startAt: Date) => {
+  const handlePointMove = (id: string, movedTo: Date) => {
+    const entityId = id.slice(id.indexOf("-") + 1)
+    const field = fields.find(
+      (f) =>
+        f.fertilizerApplications.some((a) => a.p_app_id === entityId) ||
+        f.harvests.some((h) => h.b_id_harvesting === entityId) ||
+        f.soilAnalyses.some((a) => a.a_id === entityId),
+    )
+    // Events can never be moved outside the period in which the field is in use
+    const startAt = field ? clampToFieldPeriod(movedTo, field) : movedTo
     if (id.startsWith("fertilizer-")) {
-      submitFertilizerDate(id.slice("fertilizer-".length), startAt)
+      submitFertilizerDate(entityId, startAt)
     } else if (id.startsWith("harvest-")) {
-      submitHarvestDate(id.slice("harvest-".length), startAt)
+      submitHarvestDate(entityId, startAt)
     } else if (id.startsWith("soil-")) {
-      submitSoilAnalysisDate(id.slice("soil-".length), startAt)
+      submitSoilAnalysisDate(entityId, startAt)
     }
   }
 
@@ -1625,15 +2031,34 @@ export const TimelineGanttView = forwardRef<
     const cultivation = fields.flatMap((field) => field.cultivations).find((c) => c.b_lu === b_lu)
     const field = fields.find((f) => f.cultivations.some((c) => c.b_lu === b_lu))
     if (!cultivation || !field) return
-    const clampedStart =
-      startAt < new Date(TIMELINE_START_YEAR, 0, 1) ? new Date(TIMELINE_START_YEAR, 0, 1) : startAt
-    const clampedEnd = endAt && endAt > openCultivationEndAt ? openCultivationEndAt : endAt
+    // A cultivation stays within the timeline and within the period in which its field is in use
+    const lowerBound = clampToFieldPeriod(new Date(TIMELINE_START_YEAR, 0, 1), field)
+    const upperBound = clampToFieldPeriod(getOpenCultivationEndAt(field, TIMELINE_END_DATE), field)
     const wasOpenEnded = cultivation.b_lu_end === null
-    const originalStart = cultivation.b_lu_start ?? clampedStart
-    const originalEnd = cultivation.b_lu_end ?? openCultivationEndAt
+    const originalStart = cultivation.b_lu_start ?? startAt
+    const originalEnd = cultivation.b_lu_end ?? upperBound
     const deltaStartMs = startAt.getTime() - originalStart.getTime()
-    const deltaEndMs = (endAt ?? TIMELINE_END_DATE).getTime() - originalEnd.getTime()
+    const deltaEndMs = (endAt ?? upperBound).getTime() - originalEnd.getTime()
     const isWholeBarMove = Math.abs(deltaEndMs - deltaStartMs) < 24 * 60 * 60 * 1000
+
+    let clampedStart = startAt
+    let clampedEnd = endAt
+    if (isWholeBarMove && endAt) {
+      // Keep the duration: shift the bar back inside the bounds instead of shortening it
+      const duration = endAt.getTime() - startAt.getTime()
+      if (clampedStart < lowerBound) {
+        clampedStart = lowerBound
+        clampedEnd = new Date(lowerBound.getTime() + duration)
+      }
+      if (clampedEnd && clampedEnd > upperBound) {
+        clampedEnd = upperBound
+        const shifted = new Date(upperBound.getTime() - duration)
+        clampedStart = shifted < lowerBound ? lowerBound : shifted
+      }
+    } else {
+      clampedStart = startAt < lowerBound ? lowerBound : startAt > upperBound ? upperBound : startAt
+      clampedEnd = endAt && endAt > upperBound ? upperBound : endAt
+    }
     const nextEnd = wasOpenEnded && isWholeBarMove ? null : clampedEnd
     submitCultivationMove(field.b_id, b_lu, clampedStart, nextEnd)
   }
@@ -1646,20 +2071,102 @@ export const TimelineGanttView = forwardRef<
     }
   }
 
+  type FieldEntry = (typeof fieldEntries)[number]
+
+  const rowsHeight = (entries: FieldEntry[]) =>
+    entries.reduce((sum, { maxSubRows }) => sum + maxSubRows * ROW_HEIGHT_PX, 0) +
+    Math.max(0, entries.length - 1) * GROUP_GAP_PX
+  const inactiveRowsHeight = rowsHeight(inactiveEntries)
+
   // Kibo UI's `GanttTimeline` uses `overflow-clip` combined with a percentage (`h-full`) height,
   // which — inside this nested sidebar/timeline grid layout — resolves to the height of the
   // *initially visible* viewport instead of stretching to fit all field rows. That silently
   // clips any bars/markers (including the "today" line) beyond roughly the first screenful,
   // even though the sidebar (which sizes itself from real content) keeps scrolling correctly.
   // Fix: give it an explicit pixel height computed from the actual content, overriding `h-full`.
+  const blockHeights = [
+    ...inUseEntries.map(({ maxSubRows }) => maxSubRows * ROW_HEIGHT_PX),
+    // The "no fields in use" row
+    ...(inUseEntries.length === 0 ? [ROW_HEIGHT_PX] : []),
+    // The header of the group of fields that are not in use, with its rows when it is open
+    ...(inactiveEntries.length > 0
+      ? [ROW_HEIGHT_PX + (inactiveOpen ? inactiveRowsHeight : 0)]
+      : []),
+  ]
   const totalTimelineHeight =
     GANTT_HEADER_HEIGHT_PX +
-    fieldsWithFeatures.reduce((sum, { maxSubRows }) => sum + maxSubRows * ROW_HEIGHT_PX, 0) +
-    Math.max(0, fieldsWithFeatures.length - 1) * GROUP_GAP_PX
+    blockHeights.reduce((sum, height) => sum + height, 0) +
+    Math.max(0, blockHeights.length - 1) * GROUP_GAP_PX
+
+  const renderSidebarRow = ({ badge, field, maxSubRows }: FieldEntry, inactive: boolean) => (
+    <GanttSidebarGroup
+      key={field.b_id}
+      name={
+        <>
+          <span className="text-foreground truncate text-xs font-semibold">{field.b_name}</span>
+          <span className="text-muted-foreground flex shrink-0 flex-col items-end text-xs leading-none">
+            <span>{field.b_area} ha</span>
+            {badge ? <span className="mt-0.5 text-[10px]">{badge}</span> : null}
+          </span>
+        </>
+      }
+    >
+      {/* No per-cultivation listing here (a field's cultivations, fertilizer
+          applications, etc. are all visible directly on the bar/icons and their
+          tooltips) — this is purely blank filler reserving the same height as the
+          corresponding timeline row(s), so the two panes stay vertically aligned even
+          when a field's bar needs extra sub-rows for overlapping features. It also marks the
+          row for keeping the user's place when the fields are regrouped. */}
+      <div
+        data-field-row={inactive ? undefined : field.b_id}
+        data-field-row-inactive={inactive ? field.b_id : undefined}
+        style={{ height: maxSubRows * ROW_HEIGHT_PX }}
+      />
+    </GanttSidebarGroup>
+  )
+
+  const renderTimelineRow = ({ features, field, fieldPeriod }: FieldEntry, inactive: boolean) => (
+    <GanttFeatureListGroup key={field.b_id} className="relative">
+      <RowBackdrop
+        canModify={editing.canModify}
+        fieldPeriod={fieldPeriod}
+        fullyHatched={inactive}
+        onSelect={(type, date) => {
+          if (type === "soil") {
+            void navigate(`/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil/analysis/new`)
+          } else if (type === "soil-bcs") {
+            void navigate(`/farm/${b_id_farm}/${calendar}/field/${field.b_id}/bcs/new`)
+          } else {
+            requestSheet({ context: { b_id: field.b_id, date }, type })
+          }
+        }}
+        range={range}
+      />
+      <GanttFeatureRow
+        features={features.map((feature) =>
+          editing.canModify ? feature : { ...feature, draggable: false, resizable: false },
+        )}
+        onMove={editing.canModify ? handleFeatureMove : undefined}
+      >
+        {(feature) => (
+          <FeatureContent editing={editing} feature={feature as TimelineFeature} range={range} />
+        )}
+      </GanttFeatureRow>
+    </GanttFeatureListGroup>
+  )
+
+  const inactiveGroupLabel = getInactiveGroupLabel(referenceYear, inactiveEntries.length)
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="timeline-gantt-view relative" ref={containerRef}>
+      <div
+        className="timeline-gantt-view relative"
+        onPointerDownCapture={() => {
+          freezeYear()
+          setPointerActive(true)
+        }}
+        ref={containerRef}
+      >
         <style
           dangerouslySetInnerHTML={{
             __html: `
@@ -1670,6 +2177,7 @@ export const TimelineGanttView = forwardRef<
 `,
           }}
         />
+        <div aria-live="polite" className="sr-only" ref={liveRegionRef} role="status" />
         {isSaving && (
           <div
             aria-busy="true"
@@ -1692,69 +2200,71 @@ export const TimelineGanttView = forwardRef<
           zoom={100}
         >
           <GanttSidebar>
-            {fieldsWithFeatures.map(({ field, maxSubRows }) => (
-              <GanttSidebarGroup
-                key={field.b_id}
-                name={
-                  <>
-                    <span className="text-foreground truncate text-xs font-semibold">
-                      {field.b_name}
-                    </span>
-                    <span className="text-muted-foreground shrink-0 text-xs">
-                      {field.b_area} ha
-                    </span>
-                  </>
-                }
+            {inUseEntries.map((entry) => renderSidebarRow(entry, false))}
+            {inUseEntries.length === 0 ? (
+              <div
+                className="text-muted-foreground flex items-center p-1.5 text-xs"
+                style={{ height: ROW_HEIGHT_PX }}
               >
-                {/* No per-cultivation listing here (a field's cultivations, fertilizer
-                    applications, etc. are all visible directly on the bar/icons and their
-                    tooltips) — this is purely blank filler reserving the same height as the
-                    corresponding timeline row(s), so the two panes stay vertically aligned even
-                    when a field's bar needs extra sub-rows for overlapping features. */}
-                <div style={{ height: maxSubRows * ROW_HEIGHT_PX }} />
-              </GanttSidebarGroup>
-            ))}
+                {getNoFieldsInUseLabel(referenceYear)}
+              </div>
+            ) : null}
+            {inactiveEntries.length > 0 ? (
+              <div>
+                <button
+                  aria-controls="timeline-inactive-fields"
+                  aria-expanded={inactiveOpen}
+                  className="hover:bg-muted/50 focus-visible:ring-ring/50 flex w-full items-center gap-1.5 p-1.5 text-left text-xs font-medium outline-none focus-visible:ring-[3px]"
+                  onClick={() => setInactiveOpen((open) => !open)}
+                  style={{ height: ROW_HEIGHT_PX }}
+                  type="button"
+                >
+                  <ChevronRight
+                    aria-hidden="true"
+                    className={cn(
+                      "size-3.5 shrink-0 transition-transform motion-reduce:transition-none",
+                      inactiveOpen && "rotate-90",
+                    )}
+                  />
+                  <span className="truncate">{inactiveGroupLabel}</span>
+                </button>
+                <div
+                  className="overflow-hidden transition-[height] duration-200 motion-reduce:transition-none"
+                  id="timeline-inactive-fields"
+                  inert={!inactiveOpen}
+                  style={{ height: inactiveOpen ? inactiveRowsHeight : 0 }}
+                >
+                  <div className="space-y-2">
+                    {inactiveEntries.map((entry) => renderSidebarRow(entry, true))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </GanttSidebar>
-          <GanttTimeline style={{ height: totalTimelineHeight }}>
+          <GanttTimeline
+            className="transition-[height] duration-200 motion-reduce:transition-none"
+            style={{ height: totalTimelineHeight }}
+          >
             <GanttHeader />
             <GanttFeatureList>
-              {fieldsWithFeatures.map(({ features, field }) => (
-                <GanttFeatureListGroup key={field.b_id} className="relative">
-                  {editing.canModify ? (
-                    <RowClickCatcher
-                      onSelect={(type, date) => {
-                        if (type === "soil") {
-                          void navigate(
-                            `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/soil/analysis/new`,
-                          )
-                        } else if (type === "soil-bcs") {
-                          void navigate(
-                            `/farm/${b_id_farm}/${calendar}/field/${field.b_id}/bcs/new`,
-                          )
-                        } else {
-                          onSheetRequest?.({ context: { b_id: field.b_id, date }, type })
-                        }
-                      }}
-                    />
-                  ) : null}
-                  <GanttFeatureRow
-                    features={features.map((feature) =>
-                      editing.canModify
-                        ? feature
-                        : { ...feature, draggable: false, resizable: false },
-                    )}
-                    onMove={editing.canModify ? handleFeatureMove : undefined}
+              {inUseEntries.map((entry) => renderTimelineRow(entry, false))}
+              {inUseEntries.length === 0 ? (
+                <div aria-hidden="true" style={{ height: ROW_HEIGHT_PX }} />
+              ) : null}
+              {inactiveEntries.length > 0 ? (
+                <div>
+                  <div aria-hidden="true" style={{ height: ROW_HEIGHT_PX }} />
+                  <div
+                    className="overflow-x-visible overflow-y-clip transition-[height] duration-200 motion-reduce:transition-none"
+                    inert={!inactiveOpen}
+                    style={{ height: inactiveOpen ? inactiveRowsHeight : 0 }}
                   >
-                    {(feature) => (
-                      <FeatureContent
-                        editing={editing}
-                        feature={feature as TimelineFeature}
-                        range={range}
-                      />
-                    )}
-                  </GanttFeatureRow>
-                </GanttFeatureListGroup>
-              ))}
+                    <div className="space-y-2">
+                      {inactiveEntries.map((entry) => renderTimelineRow(entry, true))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </GanttFeatureList>
             <GanttToday />
           </GanttTimeline>

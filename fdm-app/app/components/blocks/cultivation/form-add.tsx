@@ -67,6 +67,7 @@ export function CultivationAddForm({
   intent,
   b_id,
   b_lu,
+  dateRange,
 }: CultivationsFormProps & { editable?: boolean; onSuccess?: () => void; action?: string }) {
   const isSuggested = !!defaultValues
   // Computed once, not on every render: used only as the default when there's no start date yet.
@@ -128,6 +129,7 @@ export function CultivationAddForm({
                 label={"Zaaidatum"}
                 description={""}
                 disabled={form.formState.isSubmitting}
+                dateRange={dateRange}
               />
               <DatePicker
                 form={form as any}
@@ -135,6 +137,7 @@ export function CultivationAddForm({
                 label={"Einddatum"}
                 description={"Datum waarop het gewas wordt beëindigd"}
                 disabled={form.formState.isSubmitting}
+                dateRange={dateRange}
               />
             </div>
             <CultivationAvailabilityWarning

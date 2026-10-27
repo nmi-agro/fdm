@@ -13,6 +13,12 @@ import {
   isRenureRvoCode,
 } from "~/components/blocks/fertilizer/utils"
 import {
+  getFieldPeriodBadge,
+  getFieldPeriodStatus,
+  getInactiveGroupLabel,
+  getNoFieldsInUseLabel,
+} from "~/components/blocks/timeline/field-period"
+import {
   EVENT_TYPE_COLOR,
   getFertilizerKindColor,
 } from "~/components/blocks/timeline/timeline-colors"
@@ -450,8 +456,11 @@ function FieldGroupedView({
   fieldHeaderRefs,
   canModify,
   onRequest,
+  referenceYear,
 }: {
   groups: ReturnType<typeof groupEventsByField>
+  /** The year in view, to describe the period in which a field is in use. */
+  referenceYear: number
   expandedFields: Set<string>
   onToggleField: (fieldId: string) => void
   fieldHeaderRefs: React.MutableRefObject<Map<string, HTMLDivElement | null>>
@@ -488,6 +497,11 @@ function FieldGroupedView({
                       >
                         {field.b_name}
                       </span>
+                      {getFieldPeriodBadge(field, referenceYear) ? (
+                        <Badge className="shrink-0 text-[10px]" variant="outline">
+                          {getFieldPeriodBadge(field, referenceYear)}
+                        </Badge>
+                      ) : null}
                       <ChevronRight
                         aria-hidden="true"
                         className={`text-muted-foreground size-4 shrink-0 transition-transform ${
@@ -565,7 +579,10 @@ export function TimelineMobileView({
   onFiltersChange,
   canModify,
   onRequest,
+  calendarYear,
 }: {
+  /** The selected Calendar year: the year by which fields are grouped as in use or not. */
+  calendarYear: number
   fields: TimelineField[]
   fertilizerTypeById: Map<string, FertilizerTypeInfo>
   b_id_farm: string
@@ -641,9 +658,22 @@ export function TimelineMobileView({
   }, [events, monthYear])
 
   const dateGroups = useMemo(() => groupEventsByDate(filteredEvents), [filteredEvents])
+  // Fields that are not in use at any moment of the year in view go to a section at the end
+  const inUseFields = useMemo(
+    () => visibleFields.filter((field) => getFieldPeriodStatus(field, calendarYear) !== "inactive"),
+    [visibleFields, calendarYear],
+  )
+  const inactiveFields = useMemo(
+    () => visibleFields.filter((field) => getFieldPeriodStatus(field, calendarYear) === "inactive"),
+    [visibleFields, calendarYear],
+  )
   const fieldGroups = useMemo(
-    () => groupEventsByField(filteredEvents, visibleFields),
-    [filteredEvents, visibleFields],
+    () => groupEventsByField(filteredEvents, inUseFields),
+    [filteredEvents, inUseFields],
+  )
+  const inactiveFieldGroups = useMemo(
+    () => groupEventsByField(filteredEvents, inactiveFields),
+    [filteredEvents, inactiveFields],
   )
 
   useEffect(() => {
@@ -784,6 +814,9 @@ export function TimelineMobileView({
         </>
       ) : (
         <>
+          {fieldGroups.length === 0 && inactiveFieldGroups.length > 0 ? (
+            <p className="text-muted-foreground text-sm">{getNoFieldsInUseLabel(calendarYear)}</p>
+          ) : null}
           <FieldGroupedView
             expandedFields={expandedFields}
             fieldHeaderRefs={fieldHeaderRefs}
@@ -791,6 +824,7 @@ export function TimelineMobileView({
             onToggleField={toggleField}
             canModify={canModify}
             onRequest={onRequest}
+            referenceYear={calendarYear}
           />
           {hasMore ? (
             <div aria-hidden className="h-8" ref={sentinelRef} />
@@ -799,6 +833,33 @@ export function TimelineMobileView({
               <p className="text-muted-foreground py-2 text-center text-xs">Alles geladen</p>
             )
           )}
+          {inactiveFieldGroups.length > 0 && !hasMore ? (
+            <Collapsible className="space-y-2">
+              <CollapsibleTrigger asChild>
+                <button
+                  className="focus-visible:ring-ring/50 bg-card text-muted-foreground flex w-full items-center justify-between rounded-lg border p-3 text-left text-xs font-semibold outline-none focus-visible:ring-[3px] [&[data-state=open]>svg]:rotate-90"
+                  type="button"
+                >
+                  <span>{getInactiveGroupLabel(calendarYear, inactiveFieldGroups.length)}</span>
+                  <ChevronRight
+                    aria-hidden="true"
+                    className="size-4 shrink-0 transition-transform motion-reduce:transition-none"
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <FieldGroupedView
+                  expandedFields={expandedFields}
+                  fieldHeaderRefs={fieldHeaderRefs}
+                  groups={inactiveFieldGroups}
+                  onToggleField={toggleField}
+                  canModify={canModify}
+                  onRequest={onRequest}
+                  referenceYear={calendarYear}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          ) : null}
         </>
       )}
     </div>

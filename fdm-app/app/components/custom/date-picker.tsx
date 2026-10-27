@@ -94,12 +94,25 @@ function isValidDate(date: Date | undefined) {
   return !Number.isNaN(date.getTime())
 }
 
+/** Days outside this range cannot be selected. A missing bound leaves that side open. */
+export type DatePickerRange = { from?: Date | null; to?: Date | null }
+
+/** Converts a selectable range to the matchers of the calendar for the days that are disabled. */
+export function getDisabledDays(range: DatePickerRange | undefined) {
+  const disabled = []
+  if (range?.from) disabled.push({ before: range.from })
+  if (range?.to) disabled.push({ after: range.to })
+  return disabled.length > 0 ? disabled : undefined
+}
+
 interface DatePickerProps<TFieldValues extends FieldValues> {
   form: UseFormReturn<TFieldValues>
   name: Path<TFieldValues> // Use Path for better type inference with react-hook-form
   label: string
   description: string
   disabled?: boolean
+  /** Days outside this range are disabled in the calendar. */
+  dateRange?: DatePickerRange
 }
 
 export function DatePicker<TFieldValues extends FieldValues>({
@@ -108,6 +121,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
   label,
   description,
   disabled = false,
+  dateRange,
 }: DatePickerProps<TFieldValues>) {
   const { calendar } = useCalendarStore()
   // Computed once, not on every render: only used as a fallback when the store has no calendar yet.
@@ -213,6 +227,7 @@ export function DatePicker<TFieldValues extends FieldValues>({
                   }}
                   startMonth={new Date(1970, 0)}
                   endMonth={endMonth}
+                  disabled={getDisabledDays(dateRange)}
                   locale={nl}
                   className="rounded-lg border shadow-sm"
                 />

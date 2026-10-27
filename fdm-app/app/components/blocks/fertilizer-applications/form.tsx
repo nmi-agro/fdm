@@ -76,6 +76,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   submitAreaClassName,
   onCancel,
   onDirtyChange,
+  dateRange,
 }: {
   intent?: string
   b_id?: string
@@ -97,6 +98,8 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   submitAreaClassName?: string
   onCancel?: () => void
   onDirtyChange?: (dirty: boolean) => void
+  /** Days outside this range cannot be picked for the application date. */
+  dateRange?: { from?: Date | null; to?: Date | null }
 }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -400,6 +403,7 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
                     value: field.value,
                   }}
                   fieldState={fieldState}
+                  dateRange={dateRange}
                 />
               )}
             />

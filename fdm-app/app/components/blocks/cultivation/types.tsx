@@ -28,6 +28,8 @@ export interface CultivationsFormProps {
   options: CultivationOption[]
   /** Last year that is checked for the RVO availability of cultivations without an end date. */
   lastCultivationAvailabilityYear?: number
+  /** Days outside this range cannot be picked, e.g. the period in which the field is in use. */
+  dateRange?: { from?: Date | null; to?: Date | null }
   /** When set, pre-fills the form and auto-opens the dialog (used for accepted suggestions). */
   defaultValues?: CultivationDefaultValues
 }

@@ -32,6 +32,7 @@ import {
 } from "~/components/ui/sheet"
 import type { AddEventSheetRequest } from "./add-event-types"
 import { getHarvestTerm } from "../harvest/utils"
+import { clampToFieldPeriod, getFieldPeriodHint } from "./field-period"
 import { findActiveCultivationForDate, type TimelineField } from "./gantt-view"
 
 const SHEET_TITLES: Record<AddEventSheetRequest["type"], string> = {
@@ -85,8 +86,21 @@ export function AddEventSheet({
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   // Computed once, not on every render: used only as a fallback start date for new cultivations.
   const [today] = useState(() => new Date())
+  // Dates outside the period in which the field is in use cannot be picked or used as default
+  // Copies of the dates, so passing them to helpers cannot affect the loader data
+  const fieldPeriod = field
+    ? {
+        b_start: field.b_start ? new Date(field.b_start) : null,
+        b_end: field.b_end ? new Date(field.b_end) : null,
+      }
+    : undefined
+  const dateRange = fieldPeriod ? { from: fieldPeriod.b_start, to: fieldPeriod.b_end } : undefined
+  const periodHint = fieldPeriod ? getFieldPeriodHint(fieldPeriod) : null
+  const defaultDate = (date: Date | undefined) =>
+    fieldPeriod ? clampToFieldPeriod(date ?? today, fieldPeriod) : (date ?? today)
   const submittedDeleteInteractionRef = useRef<AddEventSheetRequest | undefined>(null)
 
+  const fieldEnd = field?.b_end
   const fertilizerApplication = useMemo(() => {
     if (!request || request.type !== "fertilizer-edit" || !field) return undefined
     return field.fertilizerApplications.find((f) => f.p_app_id === request.context.p_app_id)
@@ -103,9 +117,9 @@ export function AddEventSheet({
     return findActiveCultivationForDate(
       field.cultivations,
       request.context.date,
-      new Date(8640000000000000),
+      fieldEnd ?? new Date(8640000000000000),
     )
-  }, [request, field])
+  }, [request, field, fieldEnd])
 
   const harvest = useMemo(() => {
     if (!request || request.type !== "harvest-edit") return undefined
@@ -225,6 +239,7 @@ export function AddEventSheet({
           <SheetDescription>
             {field ? `Perceel: ${field.b_name}` : "Kies eerst een perceel"}
           </SheetDescription>
+          {periodHint && <p className="text-muted-foreground text-xs">{periodHint}</p>}
         </SheetHeader>
         <div className="px-4 pb-6">
           {request && field && request.type === "fertilizer" ? (
@@ -234,7 +249,8 @@ export function AddEventSheet({
               action="#"
               b_id_farm={b_id_farm}
               b_id_or_b_lu_catalogue={field.b_id}
-              fertilizerApplication={{ p_app_date: request.context.date }}
+              fertilizerApplication={{ p_app_date: defaultDate(request.context.date) }}
+              dateRange={dateRange}
               options={fertilizerOptions}
               navigation={navigation as never}
               fieldsClassName="md:grid-cols-1"
@@ -259,7 +275,10 @@ export function AddEventSheet({
                   b_lu_croprotation={cultivation.b_lu_croprotation ?? undefined}
                   b_lu_dm={loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_dm ?? undefined}
                   b_lu_end={cultivation.b_lu_end}
-                  b_lu_harvest_date={request.context.date}
+                  b_lu_harvest_date={
+                    request.context.date ? defaultDate(request.context.date) : undefined
+                  }
+                  dateRange={dateRange}
                   b_lu_harvestable={cultivation.b_lu_harvestable}
                   b_lu_moist={
                     loadedHarvestableAnalysis.harvestParameterDefaults?.b_lu_moist ?? undefined
@@ -302,7 +321,7 @@ export function AddEventSheet({
               b_lu={undefined}
               defaultValues={{
                 b_lu_catalogue: "",
-                b_lu_start: request.context.date ?? today,
+                b_lu_start: defaultDate(request.context.date),
                 b_lu_end: undefined,
               }}
               lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
@@ -314,6 +333,7 @@ export function AddEventSheet({
                       c.b_lu_ya === null ||
                       c.b_lu_ya.includes(cultivationAvailabilityYear))),
               )}
+              dateRange={dateRange}
             />
           ) : null}
           {request &&
@@ -328,10 +348,11 @@ export function AddEventSheet({
                 b_lu_start: cultivation?.b_lu_start ?? today,
                 b_lu_end:
                   request.type === "cultivation-end" && request.context.date
-                    ? request.context.date
+                    ? defaultDate(request.context.date)
                     : (cultivation?.b_lu_end ?? undefined),
               }}
               lastCultivationAvailabilityYear={lastCultivationAvailabilityYear}
+              dateRange={dateRange}
               options={cultivationOptions}
             />
           ) : null}
@@ -348,6 +369,7 @@ export function AddEventSheet({
                 p_app_method: fertilizerApplication.p_app_method ?? undefined,
               }}
               fieldsClassName="md:grid-cols-1"
+              dateRange={dateRange}
               navigation={navigation as never}
               options={fertilizerOptions}
               schema={
@@ -377,6 +399,7 @@ export function AddEventSheet({
               b_lu_yield_bruto={harvest.harvestableAnalysis?.b_lu_yield_bruto ?? undefined}
               b_lu_yield_fresh={harvest.harvestableAnalysis?.b_lu_yield_fresh ?? undefined}
               harvestParameters={harvest.parameters.map((x) => x.id)}
+              dateRange={dateRange}
               onDelete={() => setConfirmingDelete(true)}
             />
           ) : null}
