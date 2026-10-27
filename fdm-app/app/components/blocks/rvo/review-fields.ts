@@ -370,20 +370,33 @@ export function getRemoteTarget(field: ReviewField, item: ReviewItem, ctx: Revie
   return getDiffKeys(item).has(field.key) || isNullish(local) ? remote : local
 }
 
-/** The action that corresponds with the choices made for a field that exists in both FDM and RVO. */
+/**
+ * The action that corresponds with the choices made for a field that exists in both FDM and RVO.
+ *
+ * A value that the comparison with RVO does not mark as different follows RVO, also when "Gebruik
+ * RVO" would fill it in. For example, a missing local cultivation next to an RVO crop code is not a
+ * difference, so keeping it empty still follows RVO.
+ */
 export function getConflictRowAction(
   item: ReviewItem,
   ctx: ReviewFieldContext,
   choices: ReviewChoices | undefined,
 ): "UPDATE_FROM_REMOTE" | "KEEP_LOCAL" | "CUSTOM" {
   const fields = getRowFields(ctx)
-  const matches = (pick: (field: ReviewField) => unknown) =>
-    fields.every((field) => {
-      return valuesEqual(field.type, getEffectiveValue(field, item, ctx, choices), pick(field))
-    })
+  const diffKeys = getDiffKeys(item)
+  const effectiveEquals = (field: ReviewField, value: unknown) =>
+    valuesEqual(field.type, getEffectiveValue(field, item, ctx, choices), value)
 
-  if (matches((field) => getRemoteTarget(field, item, ctx))) return "UPDATE_FROM_REMOTE"
-  if (matches((field) => field.getLocal(item))) return "KEEP_LOCAL"
+  if (
+    fields.every(
+      (field) =>
+        effectiveEquals(field, getRemoteTarget(field, item, ctx)) ||
+        (!diffKeys.has(field.key) && effectiveEquals(field, field.getLocal(item))),
+    )
+  ) {
+    return "UPDATE_FROM_REMOTE"
+  }
+  if (fields.every((field) => effectiveEquals(field, field.getLocal(item)))) return "KEEP_LOCAL"
   return "CUSTOM"
 }
 
