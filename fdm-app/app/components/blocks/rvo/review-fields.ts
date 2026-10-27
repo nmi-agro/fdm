@@ -496,6 +496,11 @@ export function buildImportFormValues(
       continue
     }
 
+    // Be safe and skip updates to fields that fdm-rvo has reported as a MATCH.
+    if (item.status === "MATCH") {
+      continue
+    }
+
     // We have already warned.
     if (!item.localField || !choices) continue
 
@@ -613,6 +618,7 @@ export function summarizeChangesAgainstRvo(
         break
       }
       case "MATCH":
+        break
       case "CONFLICT": {
         if (!item.localField) break
         const update = updatesById.get(item.localField.b_id)
