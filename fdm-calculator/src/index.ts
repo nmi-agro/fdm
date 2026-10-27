@@ -55,21 +55,27 @@ export type {
 export {
   calculatePhosphateBalance,
   calculatePhosphateBalanceField,
+  calculatePhosphateProjection,
   calculatePhosphateSaturation,
-  calculatePhosphateStock,
+  calculatePhosphateSaturationThreshold,
+  classifyYears,
   collectInputForPhosphateBalance,
+  determinePhosphateFrame,
   estimatePsdFromPAl,
   getPhosphateSoilTypeParameters,
+  ghgPerGroundwaterClass,
   phosphateSoilTypeParameters,
-  PSD_REFERENCE_DEFAULT,
 } from "./balance/phosphate/index"
 export type {
   PhosphateBalance,
   PhosphateBalanceField,
   PhosphateBalanceInput,
+  PhosphateFrame,
+  PhosphateProjection,
   PhosphateSaturation,
+  PhosphateSaturationThreshold,
   PhosphateSoilTypeParameters,
-  PhosphateStock,
+  YearsClass,
 } from "./balance/phosphate/index"
 export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
 export { deriveCropPlanFractions } from "./bcs/crop-plan"

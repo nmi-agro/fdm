@@ -1,7 +1,11 @@
 import type { Harvest } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import type { PhosphateBalanceInput } from "./types"
-import { calculatePhosphateBalance, calculatePhosphateBalanceField } from "./field"
+import {
+  calculatePhosphateBalance,
+  calculatePhosphateBalanceField,
+  determinePhosphateFrame,
+} from "./field"
 
 const harvest = (b_lu: string, b_lu_yield: number | null, b_lu_p_harvestable: number | null) =>
   ({
@@ -77,8 +81,9 @@ describe("calculatePhosphateBalanceField", () => {
     expect(result.removal.residues.total).toBeCloseTo(-5)
     expect(result.balance).toBeCloseTo(64.5 - 45)
     expect(result.saturation.source).toBe("oxalate")
-    expect(result.stock?.depth.source).toBe("default_arable")
-    expect(result.stock?.delta_psd_per_year.value).toBeGreaterThan(0)
+    expect(result.projection?.depth.source).toBe("default_arable")
+    // Balance 19.5 (per 364 days, scaled to a year) minus fixation 20: slightly negative
+    expect(result.projection?.balance_effective_per_year).toBeCloseTo((19.5 * 365.25) / 364 - 20)
   })
 
   it("should use the phosphate content of the harvest analysis when present", () => {
@@ -99,7 +104,24 @@ describe("calculatePhosphateBalanceField", () => {
       timeFrame: input.timeFrame,
     })
     expect(result.balance).toBe(0)
-    expect(result.stock).toBeNull()
+    expect(result.projection).toBeNull()
+  })
+})
+
+describe("determinePhosphateFrame", () => {
+  it("should follow the P-AL bands of the issue", () => {
+    expect(determinePhosphateFrame(20, 20)).toEqual({
+      name: "opbouwen",
+      a_p_al: 20,
+      target_balance_min: 20,
+    })
+    expect(determinePhosphateFrame(30, 20).name).toBe("onderhouden")
+    expect(determinePhosphateFrame(50, 20)).toEqual({
+      name: "afbouwen",
+      a_p_al: 50,
+      target_balance_min: null,
+    })
+    expect(determinePhosphateFrame(null, 20).name).toBeNull()
   })
 })
 

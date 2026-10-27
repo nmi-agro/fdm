@@ -26,6 +26,7 @@ export type PhosphateSoilAnalysis = Pick<
   | "a_p_cc" // mg P / kg
   | "a_density_sa" // g / cm³
   | "b_soiltype_agr"
+  | "b_gwl_class"
 >
 
 /** Input of one field for the phosphate balance. */
@@ -72,14 +73,17 @@ export type PhosphateBalanceItem = { id: string; value: number }
 
 /** Where the phosphorus saturation degree comes from. */
 export type PhosphateSaturationSource =
-  /** Computed from a_p_ox, a_fe_ox and a_al_ox of the soil analyses */
+  /** Computed from a_p_ox, a_fe_ox and a_al_ox of the soil analyses (measured or NMI map values) */
   | "oxalate"
   /** Taken from a_p_sg; PSC from the oxalate data or the soil-type defaults */
   | "a_p_sg"
-  /** Estimated from P-AL and the soil-type default PSC (van Doorn 2026, Fig. S5.7) */
+  /** Estimated from P-AL and the PSC (van Doorn 2026, Fig. S5.7): indicative only */
   | "estimated_from_p_al"
   /** Not enough data */
   | "missing"
+
+/** A value with its range; `min` and `max` equal `value` when no uncertainty is known. */
+export type ValueWithRange = { value: number; min: number; max: number }
 
 /** Phosphorus saturation of the topsoil. */
 export type PhosphateSaturation = {
@@ -88,33 +92,76 @@ export type PhosphateSaturation = {
   analysis_sources: string[]
   b_soiltype_agr: SoilAnalysis["b_soiltype_agr"] | null
   alpha_max: number
-  /** Phosphorus sorption capacity (mmol / kg) with its range from alpha_max */
-  psc: { value: number; min: number; max: number } | null
-  /** Phosphorus saturation degree (%) with its range from alpha_max */
-  psd: { value: number; min: number; max: number } | null
+  /** Phosphorus sorption capacity (mmol / kg) */
+  psc: number | null
+  /** Phosphorus saturation degree (%); a range only when estimated from P-AL */
+  psd: ValueWithRange | null
   /** Oxalate-extractable P (mmol / kg) */
   a_p_ox: number | null
-  /** Whether the oxalate-based PSD is meaningful for this soil type */
+  /** P-AL (mg P2O5 / 100 g), when available */
+  a_p_al: number | null
+  /** Whether the oxalate-based PSD is meaningful for this soil type (shown with a warning when not) */
   psd_valid: boolean
   warnings: string[]
 }
 
-/** Effect of the yearly balance on the soil phosphorus stock of the sampled layer. */
-export type PhosphateStock = {
+/** PSD threshold of the topsoil (van Doorn 2026, Eq. 5.5), capped at the agronomic target PSD. */
+export type PhosphateSaturationThreshold = {
+  /** Threshold used (%) */
+  value: number | null
+  source: "field" | "default_25"
+  /** Environmental PSD threshold (%) */
+  psd_env: number | null
+  /** PSD at the agronomic P-AL target (%) */
+  psd_agronomic: number | null
+  /** Mean highest groundwater level (cm below surface) derived from b_gwl_class */
+  ghg: number | null
+  /** Critical ortho-P concentration (mg P / L) */
+  c_p_env: number | null
+  /** Langmuir affinity constant (m³ / mol) */
+  k_l: number | null
+  warnings: string[]
+}
+
+/** Years until a level is reached, as a class for display. */
+export type YearsClass = "reached" | "lt_5" | "5_10" | "10_20" | "gt_20" | "not_reached"
+
+/** Opbouwen / Onderhouden / Afbouwen, based on P-AL. */
+export type PhosphateFrame = {
+  name: "opbouwen" | "onderhouden" | "afbouwen" | null
+  a_p_al: number | null
+  /** Minimum desirable balance (kg P2O5 / ha / year); `null` when a deficit is acceptable */
+  target_balance_min: number | null
+}
+
+/** Projection of the soil P status at the current balance. */
+export type PhosphateProjection = {
+  /** Balance per year minus fixation (kg P2O5 / ha / year) */
+  balance_effective_per_year: number
+  fixation: number
   /** Sampling depth used (m) and where it comes from */
   depth: { value: number; source: "soil_analysis" | "default_grassland" | "default_arable" }
   /** Bulk density used (g / cm³) and where it comes from */
   a_density_sa: { value: number; source: "soil_analysis" | "default_soil_type" }
-  /** Oxalate-extractable P stock in the sampled layer (kg P2O5 / ha) */
-  stock_p_ox: number | null
-  /** Change of P-ox per year at the current balance (mmol / kg / year) */
-  delta_p_ox_per_year: number
-  /** Change of the PSD per year at the current balance (% / year), with its range */
-  delta_psd_per_year: { value: number; min: number; max: number }
-  /** Years until the PSD reaches the reference value at the current balance, with its range */
-  years_to_reference: { value: number; min: number; max: number } | null
-  /** Reference PSD used for `years_to_reference` (%) */
-  psd_reference: number
+  /** P-AL track: ΔP-AL = (balance − fixation) / buffer */
+  p_al: {
+    current: number
+    /** kg P2O5 / ha per P-AL unit, scaled to the sampling depth */
+    buffer: ValueWithRange
+    delta_per_year: ValueWithRange
+    /** Lower bound the P-AL declines towards: 45 (afbouwen) or 25 (onderhouden) */
+    floor: number | null
+    years: ValueWithRange | null
+    years_class: YearsClass
+  } | null
+  /** PSD track (van Doorn 2026, Eq. 5.7): ΔP-ox = (balance − fixation) / (ρ · d · 0.31) */
+  psd: {
+    current: ValueWithRange
+    delta_per_year: number
+    threshold: PhosphateSaturationThreshold
+    years: number | null
+    years_class: YearsClass
+  } | null
 }
 
 /** Phosphate balance of one field (kg P2O5 / ha for the timeframe). */
@@ -138,8 +185,9 @@ export type PhosphateBalanceField = {
     harvests: { total: number; harvests: PhosphateBalanceItem[] }
     residues: { total: number; cultivations: PhosphateBalanceItem[] }
   }
+  frame: PhosphateFrame
   saturation: PhosphateSaturation
-  stock: PhosphateStock | null
+  projection: PhosphateProjection | null
 }
 
 /** Phosphate balance of a farm: area-weighted averages per ha, plus the field results. */

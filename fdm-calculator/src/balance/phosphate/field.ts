@@ -2,13 +2,15 @@ import Decimal from "decimal.js"
 import type {
   PhosphateBalance,
   PhosphateBalanceField,
+  PhosphateFrame,
   PhosphateBalanceInput,
   PhosphateCultivationDetail,
   PhosphateFertilizerDetail,
   PhosphateFieldInput,
 } from "./types"
-import { calculatePhosphateSaturation } from "./saturation"
-import { calculatePhosphateStock } from "./stock"
+import { getPhosphateSoilTypeParameters } from "./alpha-max"
+import { calculatePhosphateProjection } from "./projection"
+import { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
 
 type FieldCalculationInput = {
   fieldInput: PhosphateFieldInput
@@ -114,10 +116,29 @@ function calculateRemovalByResidues(
 }
 
 /**
+ * Determines the Opbouwen / Onderhouden / Afbouwen frame from P-AL, as proposed in the issue:
+ * P-AL < 25 opbouwen, 25–45 onderhouden, > 45 afbouwen. The minimum desirable balance is the fixation
+ * (offtake + fixation) when building up or maintaining; when reducing, a deficit is acceptable.
+ *
+ * DRAFT: the same P-AL bands are used for grassland and arable land.
+ *
+ * @param a_p_al - P-AL (mg P2O5 / 100 g), or `null`.
+ * @param fixation - Fixation (kg P2O5 / ha / year).
+ * @returns The frame.
+ */
+export function determinePhosphateFrame(a_p_al: number | null, fixation: number): PhosphateFrame {
+  if (a_p_al === null) return { name: null, a_p_al: null, target_balance_min: null }
+  if (a_p_al < 25) return { name: "opbouwen", a_p_al, target_balance_min: fixation }
+  if (a_p_al <= 45) return { name: "onderhouden", a_p_al, target_balance_min: fixation }
+  return { name: "afbouwen", a_p_al, target_balance_min: null }
+}
+
+/**
  * Calculates the phosphate balance of one field (kg P2O5 / ha for the timeframe), the phosphorus
  * saturation of the topsoil and the effect of the balance on the soil phosphorus stock.
  *
- * PROTOTYPE for discussion: no deposition, mineralisation, leaching or fixation terms yet.
+ * PROTOTYPE for discussion: no deposition, mineralisation or leaching terms yet; fixation is used in the
+ * projection, not in the balance itself.
  *
  * @param input - The field input with the fertilizer and cultivation details and the timeframe.
  * @returns The phosphate balance of the field.
@@ -130,6 +151,10 @@ export function calculatePhosphateBalanceField(
   const { field } = fieldInput
   const isGrassland = fieldInput.cultivations.some((c) => c.b_lu_croprotation === "grass")
   const saturation = calculatePhosphateSaturation(fieldInput.soilAnalyses, isGrassland)
+  const frame = determinePhosphateFrame(
+    saturation.a_p_al,
+    getPhosphateSoilTypeParameters(saturation.b_soiltype_agr).fixation,
+  )
 
   if (field.b_bufferstrip) {
     return {
@@ -145,8 +170,9 @@ export function calculatePhosphateBalanceField(
         harvests: { total: 0, harvests: [] },
         residues: { total: 0, cultivations: [] },
       },
+      frame,
       saturation,
-      stock: null,
+      projection: null,
     }
   }
 
@@ -166,9 +192,15 @@ export function calculatePhosphateBalanceField(
     (timeFrame.end.getTime() - timeFrame.start.getTime()) / (365.25 * 24 * 3600 * 1000),
     1 / 365.25,
   )
-  const stock = calculatePhosphateStock(
+  const threshold = calculatePhosphateSaturationThreshold(
+    saturation,
+    fieldInput.soilAnalyses,
+    isGrassland,
+  )
+  const projection = calculatePhosphateProjection(
     balance.dividedBy(years).toNumber(),
     saturation,
+    threshold,
     fieldInput.soilAnalyses,
     isGrassland,
   )
@@ -195,8 +227,9 @@ export function calculatePhosphateBalanceField(
       harvests: { total: harvests.total.toNumber(), harvests: toItems(harvests.items) },
       residues: { total: residues.total.toNumber(), cultivations: toItems(residues.items) },
     },
+    frame,
     saturation,
-    stock,
+    projection,
   }
 }
 
