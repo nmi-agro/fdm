@@ -102,6 +102,7 @@ describe("Harvest Data Model", () => {
       b_lu_eom: null,
       b_lu_eom_residue: null,
       b_date_harvest_default: "09-15",
+      b_lu_ya: null,
     })
 
     await addCultivationToCatalogue(fdm, {
@@ -126,6 +127,7 @@ describe("Harvest Data Model", () => {
       b_lu_eom: null,
       b_lu_eom_residue: null,
       b_date_harvest_default: "09-15",
+      b_lu_ya: null,
     })
 
     b_lu_start = new Date("2024-01-01")
@@ -409,6 +411,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-HC010",
@@ -437,6 +440,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-HC020",
@@ -465,6 +469,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-HC031",
@@ -493,6 +498,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-HC040",
@@ -521,6 +527,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-HC041",
@@ -549,6 +556,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-HC042",
@@ -577,6 +585,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-HC050",
@@ -605,6 +614,7 @@ describe("getDefaultsForHarvestParameters", () => {
       b_lu_variety_options: null,
       b_lu_start_default: "01-01",
       b_date_harvest_default: "12-31",
+      b_lu_ya: null,
       created: new Date(),
       updated: new Date(),
       hash: "test-hash-UNKNOWN",
@@ -934,6 +944,7 @@ describe("getHarvestsForFarm", () => {
       b_lu_eom: null,
       b_lu_eom_residue: null,
       b_date_harvest_default: "09-15",
+      b_lu_ya: null,
     })
 
     b_lu = await addCultivation(fdm, principal_id, b_lu_catalogue, b_id, new Date("2024-03-01"))

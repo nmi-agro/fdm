@@ -49,7 +49,7 @@ export const meta: MetaFunction = () => {
  * (`rowPromises`) and streamed in, since it requires an external NMI API call per field.
  * `pendingFields` lets the table show every field's name while its advice is still loading.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -72,7 +72,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_id_farm,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 

@@ -36,11 +36,11 @@ type OrganizationLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
  *
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the session
     const session = await getSession(request)
-    const sessionCheckResponse = await checkSession(session, request)
+    const sessionCheckResponse = await checkSession(session, url)
     // If checkSession returns a Response, it means a redirect is needed
     if (sessionCheckResponse instanceof Response) {
       return sessionCheckResponse
@@ -106,7 +106,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // If getSession throws (e.g., invalid token), it might result in a 401
     // We need to handle that case here as well, similar to the ErrorBoundary
     if (error instanceof Response && error.status === 401) {
-      const currentPath = new URL(request.url).pathname
+      const currentPath = url.pathname
       const signInUrl = `/signin?redirectTo=${encodeURIComponent(currentPath)}`
       return redirect(signInUrl)
     }

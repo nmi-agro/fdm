@@ -86,7 +86,7 @@ export function buildFarmMultiPolygon(
   }
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
+export async function loader({ request, params, url }: Route.LoaderArgs) {
   try {
     const timeframe = getTimeframe(params)
     const calendar = getCalendar(params)
@@ -104,7 +104,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     }
 
     const allFarms = await getFarms(fdm, organization.id)
-    const farms = selectFarms(allFarms, parseFarmIdsParam(new URL(request.url)))
+    const farms = selectFarms(allFarms, parseFarmIdsParam(url))
     const session = await getSession(request)
     const farmGroups = await getOrganizationFarmGroups(
       session.principal_id,

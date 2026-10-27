@@ -856,6 +856,7 @@ describe("Farm Data Model", () => {
         b_lu_variety_options: [], // Added missing property
         b_lu_start_default: "03-15",
         b_date_harvest_default: "10-15",
+        b_lu_ya: null,
       })
     })
 

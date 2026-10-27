@@ -1,5 +1,5 @@
 {
-  "id": "37f91cd5-54cd-4434-bc2f-b1b564986d73",
+  "id": "cdd02854-9ac4-4aea-ad4d-2cceea21a516",
   "prevId": "66186baf-7123-456e-b1dd-d92f960c1ac4",
   "version": "7",
   "dialect": "postgresql",
@@ -399,6 +399,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "b_lu_ya": {
+          "name": "b_lu_ya",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": false
+        },
         "b_lu_harvestable": {
           "name": "b_lu_harvestable",
           "type": "b_lu_harvestable",
@@ -458,18 +464,6 @@
         },
         "b_lu_n_residue": {
           "name": "b_lu_n_residue",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "b_lu_p_harvestable": {
-          "name": "b_lu_p_harvestable",
-          "type": "numeric",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "b_lu_p_residue": {
-          "name": "b_lu_p_residue",
           "type": "numeric",
           "primaryKey": false,
           "notNull": false
@@ -550,6 +544,21 @@
           "isUnique": true,
           "concurrently": false,
           "method": "btree",
+          "with": {}
+        },
+        "b_lu_ya_idx": {
+          "name": "b_lu_ya_idx",
+          "columns": [
+            {
+              "expression": "b_lu_ya",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         }
       },

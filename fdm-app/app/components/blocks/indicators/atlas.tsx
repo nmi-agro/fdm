@@ -251,7 +251,7 @@ export function ScoreSelect({
                 <SelectItem value="S_WAT">Water</SelectItem>
                 <SelectItem value="S_NUT">Nutriëntenkringloop</SelectItem>
                 <SelectItem value="S_CLIM">Klimaat</SelectItem>
-                <SelectItem value="S_PROD_T">Productie (OBI)</SelectItem>
+                <SelectItem value="S_PROD">Productie (OBI)</SelectItem>
               </SelectGroup>
               <SelectSeparator />
               <SelectGroup>

@@ -26,11 +26,11 @@ type UserLoaderData = ReturnType<typeof useLoaderData<typeof loader>>
  *
  * @throws {Error} If an error occurs during session retrieval, processed by handleLoaderError.
  */
-export async function loader({ request }: LoaderFunctionArgs) {
+export async function loader({ request, url }: LoaderFunctionArgs) {
   try {
     // Get the session
     const session = await getSession(request)
-    const sessionCheckResponse = await checkSession(session, request)
+    const sessionCheckResponse = await checkSession(session, url)
     // If checkSession returns a Response, it means a redirect is needed
     if (sessionCheckResponse instanceof Response) {
       return sessionCheckResponse

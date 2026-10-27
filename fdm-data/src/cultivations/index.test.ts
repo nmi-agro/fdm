@@ -1,10 +1,54 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { getCatalogueBrp } from "./catalogues/brp"
-import { getCultivationCatalogue } from "./index"
+import type * as brpModule from "./catalogues/brp"
+import {
+  aggregateCultivationCatalogueInfoBrp,
+  aggregateCultivationCatalogueInfoBrpInternal,
+  getCatalogueBrp,
+} from "./catalogues/brp"
+import {
+  aggregateCultivationCatalogueInfo,
+  getCultivationCatalogue,
+  getCultivationCatalogueBuildingContext,
+  getLastCultivationAvailabilityYear,
+  LAST_CULTIVATION_AVAILABILITY_YEAR,
+} from "./index"
+
+vi.mock("./catalogues/brp", async (importOriginal: () => Promise<typeof brpModule>) => {
+  const original = await importOriginal()
+  return {
+    ...original,
+    aggregateCultivationCatalogueInfoBrp: vi.fn(original.aggregateCultivationCatalogueInfoBrp),
+  }
+})
+
+describe("aggregateCultivationCatalogueInfo", () => {
+  it("should skip b_lu_ya that cannot be parsed", async () => {
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    const catalogue = await aggregateCultivationCatalogueInfoBrpInternal(buildingContext, [
+      {
+        b_lu_ya: "",
+        b_lu_harvestable: "multiple",
+        b_lu_croprotation: "cereal",
+        b_lu_harvestcat: "HC050",
+      } as any,
+    ])
+    expect(catalogue.b_lu_ya_min).toBeUndefined()
+    expect(catalogue.b_lu_ya_max).toBeUndefined()
+  })
+
+  it("should forward any errors in collection from one catalogue", async () => {
+    vi.mocked(aggregateCultivationCatalogueInfoBrp).mockRejectedValueOnce("Failed to read JSON")
+    await expect(aggregateCultivationCatalogueInfo(undefined as any)).rejects.toThrow(
+      "Failed to read JSON",
+    )
+  })
+})
 
 describe("getCultivationCatalogue", () => {
   it("should return the BRP catalogue when catalogueName is 'brp'", async () => {
-    const expectedCatalogue = await getCatalogueBrp()
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    const aggregatedInfo = await aggregateCultivationCatalogueInfo(buildingContext)
+    const expectedCatalogue = await getCatalogueBrp(buildingContext, aggregatedInfo)
     const actualCatalogue = await getCultivationCatalogue("brp")
     expect(actualCatalogue).toEqual(expectedCatalogue)
   })
@@ -35,11 +79,20 @@ describe("getCultivationCatalogue", () => {
       expect(["once", "multiple", "none"]).toContain(item.b_lu_harvestable)
     }
   })
+
+  it("should not have any items with an empty b_lu_ya array", async () => {
+    const catalogue = await getCultivationCatalogue("brp")
+    for (const item of catalogue) {
+      expect(item.b_lu_ya === null || item.b_lu_ya.length > 0).toBe(true)
+    }
+  })
 })
 
 describe("getCatalogueBrp", () => {
   it("should return an array of CatalogueCultivationItem", async () => {
-    const catalogue = await getCatalogueBrp()
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    const aggregatedInfo = await aggregateCultivationCatalogueInfo(buildingContext)
+    const catalogue = await getCatalogueBrp(buildingContext, aggregatedInfo)
     expect(Array.isArray(catalogue)).toBe(true)
     for (const item of catalogue) {
       expect(typeof item).toBe("object")
@@ -60,13 +113,37 @@ describe("getCatalogueBrp", () => {
       expect(item).toHaveProperty("b_lu_p_harvestable")
       expect(item).toHaveProperty("b_lu_p_residue")
       expect(item).toHaveProperty("b_n_fixation")
+      expect(item).toHaveProperty("b_lu_ya")
       expect(item).toHaveProperty("hash")
     }
   })
 
   it("should return at least one item", async () => {
-    const catalogue = await getCatalogueBrp()
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    const aggregatedInfo = await aggregateCultivationCatalogueInfo(buildingContext)
+    const catalogue = await getCatalogueBrp(buildingContext, aggregatedInfo)
     expect(catalogue.length).toBeGreaterThan(0)
+  })
+
+  it("should not set any b_lu_ya to null if aggregated info is available", async () => {
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    const aggregatedInfo = await aggregateCultivationCatalogueInfo(buildingContext)
+    const catalogue = await getCatalogueBrp(buildingContext, aggregatedInfo)
+    expect(catalogue.some((cultivation) => cultivation.b_lu_ya === null)).toBe(true)
+  })
+
+  it("should not set any b_lu_ya to null if aggregated info is missing", async () => {
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    const catalogue = await getCatalogueBrp(buildingContext, {})
+    expect(catalogue.some((cultivation) => cultivation.b_lu_ya === null)).toBe(false)
+  })
+})
+
+describe("getLastCultivationAvailabilityYear", () => {
+  it("should return LAST_CULTIVATION_AVAILABILITY_YEAR", async () => {
+    await expect(getLastCultivationAvailabilityYear()).resolves.toBe(
+      LAST_CULTIVATION_AVAILABILITY_YEAR,
+    )
   })
 })
 
@@ -74,6 +151,11 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
+
+  const getBrp = async (options?: { nmiApiKey?: string }) => {
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    return getCatalogueBrp(buildingContext, {}, options)
+  }
 
   const nmiResponse = (cultivations: unknown[]) =>
     new Response(JSON.stringify({ success: true, status: 200, data: { cultivations } }), {
@@ -85,7 +167,7 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
     const fetchMock = vi.fn()
     vi.stubGlobal("fetch", fetchMock)
 
-    const catalogue = await getCatalogueBrp()
+    const catalogue = await getBrp()
 
     expect(fetchMock).not.toHaveBeenCalled()
     for (const item of catalogue) {
@@ -103,7 +185,7 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
     )
     vi.stubGlobal("fetch", fetchMock)
 
-    const catalogue = await getCatalogueBrp({ nmiApiKey: "test-key" })
+    const catalogue = await getBrp({ nmiApiKey: "test-key" })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(fetchMock).toHaveBeenCalledWith(
@@ -131,7 +213,7 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
         ),
     )
 
-    const catalogue = await getCatalogueBrp({ nmiApiKey: "test-key" })
+    const catalogue = await getBrp({ nmiApiKey: "test-key" })
     const grassland = catalogue.find((item) => item.b_lu_catalogue === "nl_265")
 
     expect(grassland?.b_lu_p_harvestable).toBeNull()
@@ -141,7 +223,7 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
   it("should throw when the NMI API request fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unauthorized", { status: 401 })))
 
-    await expect(getCatalogueBrp({ nmiApiKey: "invalid-key" })).rejects.toThrowError(
+    await expect(getBrp({ nmiApiKey: "invalid-key" })).rejects.toThrowError(
       /Failed to fetch NMI cultivations lookup: 401/,
     )
   })
@@ -152,7 +234,7 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
       vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError")),
     )
 
-    await expect(getCatalogueBrp({ nmiApiKey: "test-key" })).rejects.toThrowError(
+    await expect(getBrp({ nmiApiKey: "test-key" })).rejects.toThrowError(
       /Fetching NMI cultivations lookup timed out after 30000ms/,
     )
   })
@@ -160,7 +242,7 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
   it("should rethrow other network errors from the NMI API request", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")))
 
-    await expect(getCatalogueBrp({ nmiApiKey: "test-key" })).rejects.toThrowError("fetch failed")
+    await expect(getBrp({ nmiApiKey: "test-key" })).rejects.toThrowError("fetch failed")
   })
 
   it("should throw when the NMI API response has an unexpected shape", async () => {
@@ -174,7 +256,7 @@ describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
       ),
     )
 
-    await expect(getCatalogueBrp({ nmiApiKey: "test-key" })).rejects.toThrowError(
+    await expect(getBrp({ nmiApiKey: "test-key" })).rejects.toThrowError(
       /Unexpected response shape/,
     )
   })

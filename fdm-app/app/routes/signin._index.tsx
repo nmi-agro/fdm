@@ -1623,9 +1623,8 @@ export default function SignIn() {
   )
 }
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ request, url }: ActionFunctionArgs) {
   // Get the URL object to extract search params
-  const url = new URL(request.url)
   const redirectTo = url.searchParams.get("redirectTo") || "/farm"
   // Validate redirectTo to prevent open redirect
   let safeRedirectTo = getSafeRedirect(redirectTo)

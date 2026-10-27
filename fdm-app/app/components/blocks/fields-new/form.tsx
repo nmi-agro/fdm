@@ -1,8 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import { AlertTriangle } from "lucide-react"
 import { useEffect } from "react"
+import { useWatch } from "react-hook-form"
 import { Form } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
 import { Combobox } from "~/components/custom/combobox"
+import { Alert } from "~/components/ui/alert"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card"
 import { Checkbox } from "~/components/ui/checkbox"
@@ -25,6 +28,7 @@ export function NewFieldsForm({
   b_area,
   b_lu_catalogue,
   b_bufferstrip,
+  cultivationAvailabilityYear,
   cultivationOptions,
 }: NewFieldsFormProps) {
   const form = useRemixForm({
@@ -47,6 +51,9 @@ export function NewFieldsForm({
       b_bufferstrip: b_bufferstrip ?? false,
     })
   }, [formReset, b_name, b_area, b_lu_catalogue, b_bufferstrip])
+
+  const current_b_lu_catalogue = useWatch({ control: form.control, name: "b_lu_catalogue" })
+  const currentSelection = cultivationOptions.find((c) => c.value === current_b_lu_catalogue)
 
   return (
     <RemixFormProvider {...form}>
@@ -99,6 +106,15 @@ export function NewFieldsForm({
                         label={"Hoofdgewas"}
                         defaultValue={b_lu_catalogue}
                       />
+                      {currentSelection && currentSelection.availableThisYear === false && (
+                        <Alert className="border-amber-200 bg-amber-50 text-amber-700">
+                          <AlertTriangle className="size-4 stroke-amber-700" />
+                          <p>
+                            Deze gewascode is niet beschikbaar voor{" "}
+                            {cultivationAvailabilityYear ?? "het huidig geselecteerde jaar"}.
+                          </p>
+                        </Alert>
+                      )}
                       <Input type="hidden" {...field} />
                       <FormDescription />
                       <FormMessage />
@@ -152,8 +168,10 @@ type NewFieldsFormProps = {
   b_area: number
   b_lu_catalogue: string
   b_bufferstrip: boolean
+  cultivationAvailabilityYear: number | undefined
   cultivationOptions: {
     value: string
     label: string
+    availableThisYear?: boolean
   }[]
 }

@@ -54,7 +54,7 @@ export const meta: MetaFunction = () => {
  * @throws {Error} - Throws an error if the `b_id_farm` or `b_id` parameter is missing.
  * @throws {Error} - Throws an error if any error occurs during the process, handled by `handleLoaderError`.
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     const b_id_farm = params.b_id_farm
     if (!b_id_farm) {
@@ -106,7 +106,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           throw handleLoaderError("missing: cultivations")
         }
 
-        const url = new URL(request.url)
         const cultivationId = url.searchParams.get("cultivation")
 
         const activeCultivation = cultivationId

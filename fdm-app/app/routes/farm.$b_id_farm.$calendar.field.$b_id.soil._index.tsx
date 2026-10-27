@@ -46,7 +46,7 @@ import { cn } from "~/lib/utils"
  * @throws {Error} If the field ID is missing (HTTP 400).
  * @throws {Error} If the field is not found (HTTP 404).
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -97,7 +97,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Get soil parameter descriptions
     const soilParameterDescription = getSoilParametersDescription()
 
-    const pathname = new URL(request.url).pathname
+    const pathname = url.pathname
     const fieldWritePermission = checkPermission(
       fdm,
       "field",

@@ -9,6 +9,7 @@ import {
   removeCultivation,
   updateCultivation,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import {
   type ActionFunctionArgs,
   data,
@@ -61,7 +62,7 @@ export const meta: MetaFunction = () => {
  *
  * @throws {Response} If the farm, field, or cultivation ID is missing (status 400) or if the field or cultivation cannot be found (status 404).
  */
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, url }: LoaderFunctionArgs) {
   try {
     // Get the farm id
     const b_id_farm = params.b_id_farm
@@ -103,7 +104,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "write",
       b_lu,
       session.principal_id,
-      new URL(request.url).pathname,
+      url.pathname,
       false,
     )
 
@@ -120,18 +121,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     let b_lu_variety_options: { value: string; label: string }[] = []
     let b_lu_harvestable: HarvestableType = "none"
 
+    // First load all cultivations then filter because the previously selected cultivation might have
+    // been selected before we added the b_lu_ya gating.
     const cultivationsCatalogue: CultivationCatalogue[] = await getCultivationsFromCatalogue(
       fdm,
       session.principal_id,
       b_id_farm,
     )
-    // Map cultivations to options for the combobox
-    const cultivationsCatalogueOptions = cultivationsCatalogue.map((cultivation) => {
-      return {
-        value: cultivation.b_lu_catalogue,
-        label: cultivation.b_lu_name,
-      }
-    })
 
     // Get cultivation
     const cultivation = await getCultivation(fdm, session.principal_id, b_lu)
@@ -164,17 +160,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
     const harvestParameters = getParametersForHarvestCat(cultivation.b_lu_harvestcat)
 
+    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
+
     // Return user information from loader
     return {
       field: field,
-      cultivationsCatalogueOptions: cultivationsCatalogueOptions,
       cultivation: cultivation,
       harvests: harvests,
       b_lu_harvestable: b_lu_harvestable,
       harvestParameters: harvestParameters,
+      b_lu_ya: cultivationCatalogueItem?.b_lu_ya ?? null,
       b_lu_variety_options: b_lu_variety_options,
       b_id_farm: b_id_farm,
       calendar: calendar,
+      lastCultivationAvailabilityYear: lastCultivationAvailabilityYear,
       cultivationWritePermission: await cultivationWritePermission,
     }
   } catch (error) {
@@ -194,8 +193,10 @@ export default function FarmFieldsOverviewBlock() {
     <div className="space-y-6">
       <CultivationDetailsCard
         cultivation={loaderData.cultivation}
+        b_lu_ya={loaderData.b_lu_ya}
         b_lu_variety_options={loaderData.b_lu_variety_options}
         editable={loaderData.cultivationWritePermission}
+        lastCultivationAvailabilityYear={loaderData.lastCultivationAvailabilityYear}
       />
       <CultivationHarvestsCard
         harvests={loaderData.harvests}
