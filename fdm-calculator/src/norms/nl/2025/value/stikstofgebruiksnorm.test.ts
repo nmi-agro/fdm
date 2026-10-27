@@ -3139,6 +3139,32 @@ describe("calculateNL2025StikstofGebruiksNorm - overwintered temporary grassland
     expect(result.normSource).toContain("van 1 januari tot minstens 15 april")
     expect(result.normSource).toContain("heringezaaid")
   })
+
+  it("leaves out a replaced overwintered stand even when it is the hoofdteelt", async () => {
+    setupGeoMock(1, 0) // klei, non-NV
+    const result = await calculateNL2025StikstofGebruiksNorm(
+      baseInput([
+        {
+          b_lu: "grass-old",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2024, 8, 1),
+          b_lu_end: new Date(2025, 7, 1),
+        } as NL2025NormsInputForCultivation,
+        {
+          b_lu: "grass-new",
+          b_lu_catalogue: "nl_266",
+          b_lu_start: new Date(2025, 7, 2),
+          b_lu_end: null,
+        } as unknown as NL2025NormsInputForCultivation,
+      ]),
+    )
+
+    // The re-sown grass carries the norm; no renewal korting on clay without derogation
+    expect(result.normValue).toBe(280)
+    expect(result.normSource).toBe(
+      "Tijdelijk grasland (vanaf 15 mei tot minstens 15 oktober) (heringezaaid).",
+    )
+  })
 })
 
 describe("NL2025 stikstof eenmalige vs. meermalige oogst", () => {

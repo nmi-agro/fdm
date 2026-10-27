@@ -732,9 +732,13 @@ export async function calculateNL2026StikstofGebruiksNorm(
     // If it started before the norm year, it is only included if it is the hoofdteelt of the norm year,
     // or temporary grassland that lasts until at least 15 April ("van 1 januari tot minstens …" rows in
     // Tabel 2, e.g. grass before maize) and is not replaced by renewed grass. Temporary grassland
-    // ending earlier receives no norm.
+    // ending earlier receives no norm. Temporary grassland is checked this way even when it is the
+    // hoofdteelt, so a replaced stand is left out.
     if (c.b_lu_start && new Date(c.b_lu_start).getFullYear() < 2026) {
-      return c === hoofdteelt || isOverwinteredTijdelijkGrasland(c)
+      if (tijdelijkGraslandCodes.includes(c.b_lu_catalogue)) {
+        return isOverwinteredTijdelijkGrasland(c)
+      }
+      return c === hoofdteelt
     }
     // If it started after the norm year, it is not part of this year
     if (c.b_lu_start && new Date(c.b_lu_start).getFullYear() > 2026) {
