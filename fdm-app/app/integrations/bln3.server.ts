@@ -24,6 +24,8 @@ import {
 } from "@nmi-agro/fdm-calculator"
 import {
   type FieldTopOpportunity,
+  getBestVariantIds,
+  getFieldOpportunityCandidates,
   getTopOpportunitiesForField,
   type MeasureApplicabilityInfo,
 } from "@nmi-agro/fdm-calculator"
@@ -443,7 +445,13 @@ export type FarmMeasureRecommendation = {
  * empty state that would present a fetch failure as "no recommendations".
  */
 export type FarmMeasureRecommendationsResult = {
+  /** Each field's best variant per measure family */
   recommendations: FarmMeasureRecommendation[]
+  /**
+   * Every eligible variant per field, used to choose one variant per family
+   * over the whole farm. Not shown as recommendations themselves.
+   */
+  candidates: FarmMeasureRecommendation[]
   adviceAvailable: boolean
 }
 
@@ -455,6 +463,10 @@ export type FarmMeasureOpportunity = FieldTopOpportunity & {
 /**
  * Fetches and filters farm-wide measure opportunities using the same
  * applicability, advice, score, and active-measure rules as field views.
+ *
+ * `opportunities` holds one variant per measure family per field (the field's
+ * best variant). `candidates` holds every eligible variant per field, so
+ * callers can choose one variant per family over several fields.
  *
  * Advice failures are represented by missing entries and skipped. A rejection
  * of either batch fetch is intentionally propagated so route loaders can
@@ -476,13 +488,18 @@ export async function getFarmMeasureOpportunities({
   scoreByBid: Map<string, Bln3Score | null>
   activeMeasureIdsByField: Map<string, Set<string>>
   measureNameById: Map<string, string>
-}): Promise<{ opportunities: FarmMeasureOpportunity[]; adviceAvailable: boolean }> {
+}): Promise<{
+  opportunities: FarmMeasureOpportunity[]
+  candidates: FarmMeasureOpportunity[]
+  adviceAvailable: boolean
+}> {
   const [applicabilityByField, adviceByField] = await Promise.all([
     getMeasureApplicabilityForFields({ principal_id, b_ids, b_year, timeframe }),
     getMeasureAdviceForFields({ principal_id, b_ids, b_year, timeframe }),
   ])
 
   const opportunities: FarmMeasureOpportunity[] = []
+  const candidates: FarmMeasureOpportunity[] = []
   let adviceAvailable = false
 
   for (const b_id of b_ids) {
@@ -493,19 +510,26 @@ export async function getFarmMeasureOpportunities({
     if (applicability === null || applicability === undefined) continue
 
     adviceAvailable = true
-    for (const opportunity of getTopOpportunitiesForField({
+    const fieldCandidates = getFieldOpportunityCandidates({
       advice,
       score: scoreByBid.get(b_id) ?? null,
       applicability,
       activeMeasureIds: activeMeasureIdsByField.get(b_id) ?? new Set(),
-    })) {
-      opportunities.push({
+    })
+    // Same per-field selection as `getTopOpportunitiesForField`.
+    const bestVariantIds = getBestVariantIds(
+      new Map(fieldCandidates.map((c) => [c.m_id, c.aggregateImpact])),
+    )
+    for (const candidate of fieldCandidates) {
+      const entry = {
         b_id,
-        ...opportunity,
-        m_name: measureNameById.get(opportunity.m_id) ?? opportunity.m_id.replace("bln_", ""),
-      })
+        ...candidate,
+        m_name: measureNameById.get(candidate.m_id) ?? candidate.m_id.replace("bln_", ""),
+      }
+      candidates.push(entry)
+      if (bestVariantIds.has(candidate.m_id)) opportunities.push(entry)
     }
   }
 
-  return { opportunities, adviceAvailable }
+  return { opportunities, candidates, adviceAvailable }
 }

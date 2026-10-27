@@ -153,7 +153,9 @@ const MeasureOptionSchema = z
           ),
       })
       .nullable()
-      .describe("`null` when the option is not recommended."),
+      .describe(
+        "`null` when the option is not recommended. At most one variant of a measure (IDs that differ only in a trailing lowercase letter, such as `bln_BM56b` and `bln_BM56c`) is recommended, and none when another variant is already adopted on the field.",
+      ),
   })
   .openapi("MeasureOption")
 

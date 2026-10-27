@@ -7,6 +7,7 @@ import {
   getHarvests,
   removeCultivation,
 } from "@nmi-agro/fdm-core"
+import { getLastCultivationAvailabilityYear } from "@nmi-agro/fdm-data"
 import {
   type ActionFunctionArgs,
   data,
@@ -21,7 +22,7 @@ import { CultivationListCard } from "~/components/blocks/cultivation/card-list"
 import { CultivationAddFormSchema } from "~/components/blocks/cultivation/schema"
 import { captureEvent } from "~/lib/analytics.server"
 import { getSession } from "~/lib/auth.server"
-import { getTimeframe } from "~/lib/calendar"
+import { getCalendar, getTimeframe } from "~/lib/calendar"
 import { clientConfig } from "~/lib/config"
 import { handleActionError, handleLoaderError } from "~/lib/error"
 import { fdm } from "~/lib/fdm.server"
@@ -86,6 +87,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     const session = await getSession(request)
 
     // Get timeframe from calendar store
+    const calendar = getCalendar(params)
     const timeframe = getTimeframe(params)
 
     const fieldWritePermission = await checkPermission(
@@ -108,18 +110,33 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     }
 
     // Get available cultivations for the farm
+    const lastCultivationAvailabilityYear = await getLastCultivationAvailabilityYear()
+    const availabilityYearRaw = Number.parseInt(calendar)
+    const availabilityYear = Number.isNaN(availabilityYearRaw)
+      ? undefined
+      : Math.min(lastCultivationAvailabilityYear, availabilityYearRaw)
     const cultivationsCatalogue = await getCultivationsFromCatalogue(
       fdm,
       session.principal_id,
       b_id_farm,
+      availabilityYear,
     )
+
     // Map cultivations to options for the combobox
-    const cultivationsCatalogueOptions = cultivationsCatalogue.map((cultivation) => {
-      return {
-        value: cultivation.b_lu_catalogue,
-        label: cultivation.b_lu_name,
-      }
-    })
+    const cultivationsCatalogueOptions = cultivationsCatalogue
+      .filter(
+        (item) =>
+          typeof availabilityYear === "undefined" ||
+          item.b_lu_ya === null ||
+          item.b_lu_ya.includes(availabilityYear),
+      )
+      .map((cultivation) => {
+        return {
+          value: cultivation.b_lu_catalogue,
+          label: cultivation.b_lu_name,
+          b_lu_ya: cultivation.b_lu_ya,
+        }
+      })
 
     // Get cultivations for the field
     const cultivations = await getCultivations(fdm, session.principal_id, b_id, timeframe)
@@ -137,6 +154,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
     return {
       field: field,
       cultivationsCatalogueOptions: cultivationsCatalogueOptions,
+      lastCultivationAvailabilityYear: lastCultivationAvailabilityYear,
       cultivations: cultivations,
       harvests: harvests,
       fieldWritePermission: fieldWritePermission,
@@ -206,6 +224,7 @@ export default function FarmFieldsOverviewBlock() {
       <div className="grid gap-4 2xl:grid-cols-2">
         <CultivationListCard
           cultivationsCatalogueOptions={loaderData.cultivationsCatalogueOptions}
+          lastCultivationAvailabilityYear={loaderData.lastCultivationAvailabilityYear}
           cultivations={loaderData.cultivations}
           harvests={loaderData.harvests}
           editable={loaderData.fieldWritePermission}
