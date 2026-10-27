@@ -957,12 +957,13 @@ function RvoImportReviewTableComponent({
   })
 
   // Every field starts out following RVO: conflicting fields take the RVO values, expired fields
-  // are closed and fields that are new at RVO are added.
+  // are closed, fields that are new at RVO are added and fields RVO does not report are removed.
   useLayoutEffect(() => {
     clearActiveForm()
     const ctx = ctxRef.current
     const initialChoices = new Map<string, ReviewChoices>()
     const initialFieldsToAdd: string[] = []
+    const initialFieldsToRemove: string[] = []
     for (const item of data) {
       if (item.status === "CONFLICT") {
         initialChoices.set(getItemId(item), getRowActionValues("UPDATE_FROM_REMOTE", item, ctx))
@@ -970,9 +971,13 @@ function RvoImportReviewTableComponent({
         initialChoices.set(getItemId(item), getExpiredRowValues("CLOSE_LOCAL", item, ctx))
       } else if (item.status === "NEW_REMOTE") {
         initialFieldsToAdd.push(getItemId(item))
+      } else if (item.status === "NEW_LOCAL") {
+        initialFieldsToRemove.push(getItemId(item))
       }
     }
-    useRvoImportReviewStore.getState().reset(initialChoices, initialFieldsToAdd)
+    useRvoImportReviewStore
+      .getState()
+      .reset(initialChoices, initialFieldsToAdd, initialFieldsToRemove)
   }, [data, clearActiveForm])
 
   // Fields that match RVO need no decision, so they are collapsed until the user asks for them.
