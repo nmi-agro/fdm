@@ -311,7 +311,6 @@ export function registerFarmRoutes(
       }
       return farm
     })
-    console.log(farm)
     c.header("Location", `${new URL(c.req.url).origin}/farms/${farm.b_id_farm}`)
     return c.json(serialiseFarm(farm), 201)
   }
