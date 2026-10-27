@@ -1,6 +1,7 @@
 import type { OpenAPIHono, RouteHandler } from "@hono/zod-openapi"
 import type {
   addFarm,
+  addFertilizer,
   enableCultivationCatalogue,
   enableFertilizerCatalogue,
   enableMeasureCatalogue,
@@ -8,6 +9,7 @@ import type {
   getFarm,
   getFarmGroup,
   getFarms,
+  getFertilizersFromCatalogue,
   removeFarm,
   updateFarm,
 } from "@nmi-agro/fdm-core"
@@ -41,6 +43,10 @@ export interface FarmServices {
   enableCultivationCatalogue: typeof enableCultivationCatalogue
   /** Enables a field measure catalogue for the farm. */
   enableMeasureCatalogue: typeof enableMeasureCatalogue
+  /** Lists the fertilizers in the catalogues enabled on a farm. */
+  getFertilizersFromCatalogue: typeof getFertilizersFromCatalogue
+  /** Adds a catalogue fertilizer to the farm's fertilizer list. */
+  addFertilizer: typeof addFertilizer
   /** Updates the metadata of an existing farm. */
   updateFarm: typeof updateFarm
   /** Permanently deletes a farm and all its associated resources. */
@@ -304,6 +310,24 @@ export function registerFarmRoutes(
           throw result.reason
         }
       }
+      // Add the catalogue fertilizers to the farm's fertilizer list.
+      const fertilizers = await services.getFertilizersFromCatalogue(
+        tx,
+        principal.effectivePrincipalId,
+        b_id_farm,
+      )
+      await Promise.all(
+        fertilizers.map((fertilizer) =>
+          services.addFertilizer(
+            tx,
+            principal.effectivePrincipalId,
+            fertilizer.p_id_catalogue,
+            b_id_farm,
+            null,
+            null,
+          ),
+        ),
+      )
       // Get the newly created farm.
       const farm = await services.getFarm(tx, principal.effectivePrincipalId, b_id_farm)
       if (!farm?.b_id_farm) {

@@ -276,6 +276,10 @@ describe("POST /farms", () => {
       enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
       enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
       enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      getFertilizersFromCatalogue: vi
+        .fn()
+        .mockResolvedValue([{ p_id_catalogue: "baat_1" }, { p_id_catalogue: "baat_2" }]),
+      addFertilizer: vi.fn().mockResolvedValue("p-1"),
       getFarm: vi.fn().mockResolvedValue(newFarm),
     }
     const app = makeApp(services)
@@ -317,6 +321,17 @@ describe("POST /farms", () => {
       "user-1",
       body.b_id_farm,
       "bln",
+    )
+
+    // Check if the catalogue fertilizers were added to the farm.
+    expect(services.addFertilizer).toHaveBeenCalledTimes(2)
+    expect(services.addFertilizer).toHaveBeenCalledWith(
+      expect.anything(),
+      "user-1",
+      "baat_1",
+      body.b_id_farm,
+      null,
+      null,
     )
   })
 
@@ -377,9 +392,15 @@ describe("POST /farms", () => {
   })
 
   it("returns 500 if getFarm returns null", async () => {
+    const getFarm = vi.fn().mockResolvedValue(null)
     const app = makeApp({
       addFarm: vi.fn().mockResolvedValue("farm-new"),
-      getFarm: vi.fn().mockResolvedValue(null),
+      enableFertilizerCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableCultivationCatalogue: vi.fn().mockResolvedValue(undefined),
+      enableMeasureCatalogue: vi.fn().mockResolvedValue(undefined),
+      getFertilizersFromCatalogue: vi.fn().mockResolvedValue([]),
+      addFertilizer: vi.fn().mockResolvedValue("p-1"),
+      getFarm,
     })
     const res = await app.request("/farms", {
       method: "POST",
@@ -390,6 +411,7 @@ describe("POST /farms", () => {
       body: JSON.stringify({ b_name_farm: "Farm" }),
     })
     expect(res.status).toBe(500)
+    expect(getFarm).toHaveBeenCalled()
   })
 
   it("returns 500 if catalogue enablement fails", async () => {
