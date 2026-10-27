@@ -10,7 +10,7 @@ export const AGG_IDS: AggregationId[] = [
   "S_WAT",
   "S_NUT",
   "S_CLIM",
-  "S_PROD_T",
+  "S_PROD",
   "S_WAT_GWQUAN",
   "S_WAT_GWQUAL",
   "S_WAT_SWQUAL",
@@ -25,7 +25,7 @@ export type AggregationId =
   | "S_WAT"
   | "S_NUT"
   | "S_CLIM"
-  | "S_PROD_T"
+  | "S_PROD"
   | "S_WAT_GWQUAN"
   | "S_WAT_GWQUAL"
   | "S_WAT_SWQUAL"
@@ -80,8 +80,8 @@ export const AGGREGATIONS: Record<AggregationId, AggregationInfo> = {
     parent: "S_BLN",
     color: "#78716c", // Stone-500
   },
-  S_PROD_T: {
-    id: "S_PROD_T",
+  S_PROD: {
+    id: "S_PROD",
     name: "Productie (OBI)",
     description:
       "De Open Bodem Index (OBI) score die de biologische, chemische en fysische geschiktheid van de bodem voor gewasproductie samenvat.",
@@ -117,7 +117,7 @@ export const AGGREGATIONS: Record<AggregationId, AggregationInfo> = {
     name: "Biologische bodemkwaliteit",
     description:
       "De biologische gezondheid van de bodem, bepaald door het bodemleven en ziektewerend vermogen.",
-    parent: "S_PROD_T",
+    parent: "S_PROD",
     color: "#22c55e", // Green-500
   },
   S_PROD_C: {
@@ -125,7 +125,7 @@ export const AGGREGATIONS: Record<AggregationId, AggregationInfo> = {
     name: "Chemische bodemkwaliteit",
     description:
       "De chemische bodemvruchtbaarheid, bepaald door de zuurgraad en de beschikbaarheid van hoofd- en spoorelementen.",
-    parent: "S_PROD_T",
+    parent: "S_PROD",
     color: "#eab308", // Yellow-500
   },
   S_PROD_P: {
@@ -133,7 +133,7 @@ export const AGGREGATIONS: Record<AggregationId, AggregationInfo> = {
     name: "Fysische bodemkwaliteit",
     description:
       "De fysische bodemstructuur, bepaald door de aggregaatstabiliteit, bewerkbaarheid, bewortelbaarheid en weerstand tegen verdichting of verslemping.",
-    parent: "S_PROD_T",
+    parent: "S_PROD",
     color: "#ea580c", // Orange-600
   },
 }
@@ -146,7 +146,7 @@ export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
   // Top-levels (non-leaves) do not have their own indicators directly; they inherit from their leaf children.
   S_BLN: [],
   S_WAT: [],
-  S_PROD_T: [],
+  S_PROD: [],
 
   // S_BBWP acts as both a top-level aggregation and maps directly to its indicators
   S_BBWP: ["GW_GWR", "GW_NLEA", "GW_WHC", "P_DS", "P_WS", "NUT_N", "NUT_P", "SW_NLEA", "SW_PLEA"],
@@ -168,7 +168,7 @@ export const LEAF_AGGREGATION_INDICATORS: Record<AggregationId, string[]> = {
   S_PROD_P: ["P_AS", "P_CO", "P_CR", "P_DS", "P_DU", "P_RO", "P_SE", "P_PAW", "P_WO", "P_WS"],
 }
 
-export const TOP_LEVEL_AGGREGATION_IDS: AggregationId[] = ["S_WAT", "S_NUT", "S_CLIM", "S_PROD_T"]
+export const TOP_LEVEL_AGGREGATION_IDS: AggregationId[] = ["S_WAT", "S_NUT", "S_CLIM", "S_PROD"]
 
 export const LEAF_AGGREGATION_IDS: AggregationId[] = [
   "S_WAT_GWQUAN",

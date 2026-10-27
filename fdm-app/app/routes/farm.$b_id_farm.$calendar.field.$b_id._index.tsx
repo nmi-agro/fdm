@@ -787,7 +787,7 @@ export async function loader({ request, params, url }: LoaderFunctionArgs) {
           { id: "S_WAT", label: "Water" },
           { id: "S_NUT", label: "Nutriëntenkringloop" },
           { id: "S_CLIM", label: "Klimaat" },
-          { id: "S_PROD_T", label: "Productie" },
+          { id: "S_PROD", label: "Productie" },
         ].map(({ id, label }) => {
           const score01 = getFieldAggregationScore(
             result.score,

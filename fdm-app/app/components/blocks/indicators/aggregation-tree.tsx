@@ -67,7 +67,7 @@ export function AggregationTree({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     S_BLN: true,
     S_WAT: true,
-    S_PROD_T: true,
+    S_PROD: true,
     S_BBWP: false,
   })
 

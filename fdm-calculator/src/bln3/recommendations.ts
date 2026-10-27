@@ -104,22 +104,102 @@ export type FieldTopOpportunity = {
 }
 
 /**
- * Derives a ranked list of recommended measures for a field from raw measure advice,
- * cross-referenced with the current score and a fresh applicability check.
+ * Returns the family key of a measure.
+ *
+ * Variants of one BLN3 measure share a catalogue ID that differs only in one trailing
+ * lowercase letter (for example `bln_BM56b` and `bln_BM56c` are intensities of
+ * `bln_BM56`). Measures without such a suffix, and IDs from other sources, are their own
+ * family.
+ *
+ * @param m_id - Catalogue ID of the measure.
+ * @returns The family key, e.g. `bln_BM56` for `bln_BM56c`.
+ */
+export function getMeasureFamilyId(m_id: string): string {
+  return m_id.replace(/^(bln_[A-Z]+\d+)[a-z]$/, "$1")
+}
+
+/**
+ * Selects the best variant per measure family.
+ *
+ * For each family (see {@link getMeasureFamilyId}) the measure with the highest impact
+ * wins. On a tie the ID that sorts first wins, so the earliest suffix letter is preferred
+ * (`bln_BM56b` before `bln_BM56c`).
+ *
+ * @param impactByMeasureId - Impact per measure ID; the caller decides how impact is defined
+ *   (for example summed over indicators, fields or area).
+ * @returns The IDs of the winning variants, one per family.
+ */
+export function getBestVariantIds(impactByMeasureId: Map<string, number>): Set<string> {
+  const bestByFamily = new Map<string, { m_id: string; impact: number }>()
+  for (const [m_id, impact] of impactByMeasureId) {
+    const family = getMeasureFamilyId(m_id)
+    const best = bestByFamily.get(family)
+    if (
+      !best ||
+      impact > best.impact ||
+      (impact === best.impact && m_id.localeCompare(best.m_id) < 0)
+    ) {
+      bestByFamily.set(family, { m_id, impact })
+    }
+  }
+  return new Set([...bestByFamily.values()].map((best) => best.m_id))
+}
+
+/**
+ * Impact of one measure variant on one field, used to choose variants over several fields.
+ */
+export type FieldVariantImpact = {
+  b_id: string
+  m_id: string
+  impact: number
+}
+
+/**
+ * Selects one variant per measure family over several fields, for example a whole farm.
+ *
+ * Pass the impacts of all eligible variants per field (see
+ * {@link getFieldOpportunityCandidates}), not only each field's best variant; otherwise a
+ * variant that narrowly loses on many fields can never win. The impacts are summed per
+ * variant, optionally multiplied by a weight per field (for example its area), and the best
+ * variant per family is chosen with {@link getBestVariantIds}.
+ *
+ * @param impacts - Impact per field and variant.
+ * @param weightByField - Optional weight per field ID. When given, fields without a positive
+ *   weight are ignored. When omitted, every field has weight 1.
+ * @returns The IDs of the winning variants, one per family.
+ */
+export function getFarmBestVariantIds(
+  impacts: FieldVariantImpact[],
+  weightByField?: Map<string, number>,
+): Set<string> {
+  const totals = new Map<string, Decimal>()
+  for (const { b_id, m_id, impact } of impacts) {
+    const weight = weightByField ? (weightByField.get(b_id) ?? 0) : 1
+    if (!(weight > 0)) continue
+    const total = totals.get(m_id) ?? new Decimal(0)
+    totals.set(m_id, total.plus(new Decimal(impact).times(weight)))
+  }
+  return getBestVariantIds(new Map([...totals].map(([m_id, total]) => [m_id, total.toNumber()])))
+}
+
+/**
+ * Collects all eligible measure candidates for a field from raw measure advice, before
+ * reducing them to one variant per measure family.
  *
  * Only non-green indicators are used. Measures that are not `applicable` according to
- * `applicability` (an absent entry counts as not applicable) or that are already active are
- * dropped. Remaining entries are grouped per measure and sorted by descending
- * `aggregateImpact`. This is a pure function; it performs no NMI request.
+ * `applicability` (an absent entry counts as not applicable) or that belong to the same
+ * measure family as an active measure (see {@link getMeasureFamilyId}) are dropped.
+ * Remaining entries are grouped per measure. Use this when variants must be compared over
+ * several fields; use {@link getTopOpportunitiesForField} for a single field.
  *
  * @param params - Inputs.
  * @param params.advice - Measure advice for the field.
  * @param params.score - Current indicator score of the field.
  * @param params.applicability - Applicability per measure ID.
  * @param params.activeMeasureIds - Catalogue IDs of measures already adopted.
- * @returns Opportunities sorted by descending aggregate impact.
+ * @returns Candidates sorted by descending aggregate impact, possibly several per family.
  */
-export function getTopOpportunitiesForField({
+export function getFieldOpportunityCandidates({
   advice,
   score,
   applicability,
@@ -136,11 +216,12 @@ export function getTopOpportunitiesForField({
       .map((ind) => ind.indicator_id),
   )
 
+  const activeFamilyIds = new Set([...activeMeasureIds].map(getMeasureFamilyId))
   const byMeasure = new Map<string, FieldTopOpportunity>()
   for (const indicatorAdvice of advice.indicator_advice) {
     if (!weakIndicatorIds.has(indicatorAdvice.indicator)) continue
     for (const candidate of indicatorAdvice.measures) {
-      if (activeMeasureIds.has(candidate.m_id)) continue
+      if (activeFamilyIds.has(getMeasureFamilyId(candidate.m_id))) continue
       if (applicability[candidate.m_id]?.applicability !== "applicable") continue
       const impact = {
         indicator_id: indicatorAdvice.indicator,
@@ -162,6 +243,45 @@ export function getTopOpportunitiesForField({
     }
   }
   return [...byMeasure.values()].sort((a, b) => b.aggregateImpact - a.aggregateImpact)
+}
+
+/**
+ * Derives a ranked list of recommended measures for a field from raw measure advice,
+ * cross-referenced with the current score and a fresh applicability check.
+ *
+ * Takes the candidates of {@link getFieldOpportunityCandidates}, reduces them to the best
+ * variant per measure family (see {@link getBestVariantIds}) and sorts them by descending
+ * `aggregateImpact`. When `selectableMeasureIds` is given, other candidates are dropped
+ * before the variants are compared, so a variant that cannot be adopted (for example
+ * because it conflicts with an active measure) does not hide a sibling that can. This is a
+ * pure function; it performs no NMI request.
+ *
+ * @param params - Inputs.
+ * @param params.advice - Measure advice for the field.
+ * @param params.score - Current indicator score of the field.
+ * @param params.applicability - Applicability per measure ID.
+ * @param params.activeMeasureIds - Catalogue IDs of measures already adopted.
+ * @param params.selectableMeasureIds - Optional catalogue IDs that can be adopted; when
+ *   omitted, every eligible candidate is considered.
+ * @returns Opportunities sorted by descending aggregate impact.
+ */
+export function getTopOpportunitiesForField({
+  selectableMeasureIds,
+  ...params
+}: {
+  advice: Bln3MeasureAdviceResult
+  score: Bln3Score | null
+  applicability: Record<string, MeasureApplicabilityInfo>
+  activeMeasureIds: Set<string>
+  selectableMeasureIds?: Set<string>
+}): FieldTopOpportunity[] {
+  const candidates = getFieldOpportunityCandidates(params).filter(
+    (o) => !selectableMeasureIds || selectableMeasureIds.has(o.m_id),
+  )
+  const bestVariantIds = getBestVariantIds(
+    new Map(candidates.map((o) => [o.m_id, o.aggregateImpact])),
+  )
+  return candidates.filter((o) => bestVariantIds.has(o.m_id))
 }
 
 /**
@@ -310,6 +430,7 @@ export function buildMeasureOptions(params: {
     score: params.score,
     applicability: applicabilityInfo,
     activeMeasureIds: new Set(params.activeMeasures.map((a) => a.m_id)),
+    selectableMeasureIds: new Set(options.filter((o) => o.selectable).map((o) => o.m_id)),
   })
     .filter((c) => c.aggregateImpact > 0 && optionById.get(c.m_id)?.selectable)
     .sort((a, b) => b.aggregateImpact - a.aggregateImpact || a.m_id.localeCompare(b.m_id))
