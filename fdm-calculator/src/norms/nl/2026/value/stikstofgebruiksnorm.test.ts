@@ -823,7 +823,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
       expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
     })
 
-    it("should apply 50 discount on Clay (June 1 - Aug 31)", async () => {
+    it("should not apply renewal korting on Clay (footnote 14 applies to sand and loess only)", async () => {
       const mockInput: NL2026NormsInput = {
         farm: {
           has_grazing_intention: false,
@@ -848,7 +848,7 @@ describe("calculateNL2026StikstofGebruiksNorm - Korting Logic", () => {
       }
 
       const result = await calculateNL2026StikstofGebruiksNorm(mockInput)
-      expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
+      expect(result.normSource).not.toContain("graslandvernieuwing")
     })
 
     it("should not apply renewal korting for invalid renewal date on Sand", async () => {
@@ -1574,7 +1574,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
     dataSpy.mockRestore()
   })
 
-  it("applies clay renewal korting for grass transitions", async () => {
+  it("does not apply renewal korting on clay for grass transitions", async () => {
     setupGeoMock(1, 0) // klei, non-NV
     const dataSpy = spyNitrogenStandards([
       {
@@ -1608,12 +1608,13 @@ describe("NL2026 stikstof additional branch coverage", () => {
       ]),
     )
 
-    expect(result.normValue).toBe(210)
-    expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
+    // 260 for the first grass + 0 for the re-sown grass, without korting
+    expect(result.normValue).toBe(260)
+    expect(result.normSource).not.toContain("graslandvernieuwing")
     dataSpy.mockRestore()
   })
 
-  it("applies clay destruction korting for maize in both NV and non-NV", async () => {
+  it("does not apply destruction korting on clay (NV and non-NV)", async () => {
     const dataSpy = spyNitrogenStandards([
       {
         b_lu_catalogue_match: ["nl_265"],
@@ -1644,7 +1645,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
         } as NL2026NormsInputForCultivation,
       ]),
     )
-    expect(nvResult.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
+    expect(nvResult.normSource).not.toContain("graslandvernietiging")
 
     setupGeoMock(1, 0)
     const nonNvResult = await calculateNL2026StikstofGebruiksNorm(
@@ -1661,7 +1662,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
         } as NL2026NormsInputForCultivation,
       ]),
     )
-    expect(nonNvResult.normSource).toContain("Korting: 65kg N/ha: graslandvernietiging")
+    expect(nonNvResult.normSource).not.toContain("graslandvernietiging")
     dataSpy.mockRestore()
   })
 
@@ -1817,7 +1818,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
     dataSpy.mockRestore()
   })
 
-  it("applies clay renewal korting for a pure grass-to-grass transition", async () => {
+  it("does not apply renewal korting on clay for a pure grass-to-grass transition", async () => {
     setupGeoMock(1, 0) // klei, non-NV
     const dataSpy = spyNitrogenStandards([
       {
@@ -1844,7 +1845,7 @@ describe("NL2026 stikstof additional branch coverage", () => {
       ]),
     )
 
-    expect(result.normSource).toContain("Korting: 50kg N/ha: graslandvernieuwing")
+    expect(result.normSource).not.toContain("graslandvernieuwing")
     dataSpy.mockRestore()
   })
 })
@@ -2708,12 +2709,11 @@ describe("calculateNL2026StikstofGebruiksNorm - overwintered temporary grassland
       ]),
     )
 
-    // "vanaf 15 mei tot minstens 15 oktober" 280 minus 50 graslandvernieuwing
-    expect(result.normValue).toBe(230)
-    expect(result.normSource).toContain(
-      "Tijdelijk grasland (vanaf 15 mei tot minstens 15 oktober) (heringezaaid)",
+    // The re-sown grass carries the norm; no renewal korting on clay
+    expect(result.normValue).toBe(280)
+    expect(result.normSource).toBe(
+      "Tijdelijk grasland (vanaf 15 mei tot minstens 15 oktober) (heringezaaid).",
     )
-    expect(result.normSource).toContain("graslandvernieuwing")
   })
 })
 

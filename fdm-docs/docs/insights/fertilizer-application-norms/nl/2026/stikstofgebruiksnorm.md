@@ -40,8 +40,8 @@ The nitrogen usage norm sets the maximum total effective nitrogen (in kg N/ha) t
 5. **Sum Cultivation Norms**: The total field nitrogen allowance is the sum of norms across all cultivations in the year.
 6. **Apply Nitrogen Usage Norm Reductions (`Kortingen`)**: Reductions are subtracted from the total:
    - **Catch crop reduction (art. 28d Urm)**: Assessed on the previous calendar year (2025) on sand and loess.
-   - **Grassland renewal (gras-na-gras, footnote 14)**: 50 kg N/ha reduction when grassland is renewed between **1 June and 31 August** across all soil types.
-   - **Grassland destruction (gras-naar-bouwland, footnotes 15/16)**: 65 kg N/ha reduction when destroyed for maize or eligible consumption/factory potatoes within allowed spring windows (excluding previous catch-crop grass).
+   - **Grassland renewal (gras-na-gras, footnote 14)**: 50 kg N/ha reduction when grassland is renewed between **1 June and 31 August** on sand and loess.
+   - **Grassland destruction (gras-naar-bouwland, footnotes 15/16)**: 65 kg N/ha reduction on sand and loess when destroyed for maize or eligible consumption/factory potatoes between **1 February and 10 May** (excluding previous catch-crop grass).
    - Reductions are **cumulative**. If the total norm would become negative, it is floored at 0.
 
 A field marked as a buffer strip (`b_bufferstrip`) receives a norm of 0.
@@ -151,7 +151,7 @@ Specific nitrogen usage norm reductions (`kortingen`) apply when grassland is re
 
 ### 1. Grassland Renewal (Gras-na-Gras)
 
-When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. Per footnote 14, this applies across all soil types when renewal occurs between **June 1st and August 31st**.
+When grassland is directly followed by new grassland, a reduction of **50 kg N/ha** applies. Per footnote 14, this applies on sand and loess soils when renewal occurs between **June 1st and August 31st**. On clay and peat soils no reduction applies.
 
 ### 2. Grassland Destruction (Gras-naar-Bouwland)
 
@@ -161,9 +161,7 @@ When grassland is replaced by maize or specific potato types, a reduction of **6
 - **Excluded Crops**: **Seed potatoes (`Pootaardappelen`)** do not trigger this reduction.
 - **Allowed Periods**:
   - **Sand and Loess Soils**: February 1st – May 10th.
-  - **Clay and Peat Soils**:
-    - **NV-Area**: February 1st – March 15th.
-    - **Non-NV-Area**: February 1st – May 31st.
+  - **Clay and Peat Soils**: No reduction applies (footnotes 15 and 16 apply to sand and loess only).
 
 The reduction is not applied when the preceding crop was itself a catch crop, since incorporating a catch crop is not grassland destruction.
 

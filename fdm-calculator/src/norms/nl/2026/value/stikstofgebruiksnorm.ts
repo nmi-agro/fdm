@@ -257,33 +257,29 @@ function determineSubTypeOmschrijving(
  * Implements three statutory reduction mechanisms:
  * 1. **Grassland renewal (Graslandvernieuwing, Footnote 14)**:
  *    - Applies a **50 kg N/ha** reduction when grassland is renewed (gras-na-gras transition) between 1 June and 31 August.
- *    - In 2026: Applies on all soil types (sand, loess, clay, peat) for all farms (as derogation no longer exists in 2026).
- * 2. **Grassland destruction (Graslandvernietiging / Scheuren)**:
+ *    - In 2026: Applies on sand and loess soils only. Clay and peat soils receive no reduction.
+ * 2. **Grassland destruction (Graslandvernietiging / Scheuren, Footnotes 15 and 16)**:
  *    - Applies a **65 kg N/ha** reduction when grassland is converted to arable land (gras-naar-bouwland transition)
  *      for maize or eligible potato cultivations (excluding seed potatoes and early harvest varieties).
- *    - Allowed destruction windows:
- *      - Sand & Loess: 1 February – 10 May.
- *      - Clay & Peat (NV-gebied): 1 February – 15 March.
- *      - Clay & Peat (Non-NV): 1 February – 31 May.
+ *    - Applies on sand and loess soils only, for destruction between 1 February and 10 May. Clay and peat soils
+ *      receive no reduction.
  *    - Catch crops (vanggewas) sown in autumn of the previous year are excluded from triggering grassland destruction korting.
  * 3. **Article 28d Meststoffenwet (Catch crops and winter crops after sand/loess main crops)**:
  *    - Evaluated by `calculateVanggewasWinterteeltKorting` anchored to the main crop of year N-1.
  *
  * @param cultivations - Array of cultivations across current and preceding years.
  * @param region - Soil region (`zand_nwc`, `zand_zuid`, `loess`, `klei`, `veen`).
- * @param is_nv_area - Flag indicating if the parcel is located in a nutrient-polluted zone (NV-gebied).
  * @returns An object containing the total reduction amount (Decimal) and formatted descriptive text.
  */
 function calculateKorting(
   cultivations: NL2026NormsInputForCultivation[],
   region: RegionKey,
-  is_nv_area: boolean,
 ): { amount: Decimal; description: string } {
   const currentYear = 2026
   const previousYear = currentYear - 1
 
   const sandyOrLoessRegions: RegionKey[] = ["zand_nwc", "zand_zuid", "loess"]
-  const clayOrPeatRegions: RegionKey[] = ["klei", "veen"]
+  const isSandyOrLoess = sandyOrLoessRegions.includes(region)
 
   let totalAmount = new Decimal(0)
   const descriptions: string[] = []
@@ -319,12 +315,12 @@ function calculateKorting(
       const renewalDate = prevCult.b_lu_end
       let isValidRenewal = false
 
-      // Footnote 14 (2026): Renewal between 1 June and 31 August for all soil types
+      // Footnote 14 (2026): Renewal between 1 June and 31 August, on sand and loess only
       const isJuneToAugust =
         renewalDate >= new Date(currentYear, 5, 1) && // June 1
         renewalDate <= new Date(currentYear, 7, 31) // Aug 31
 
-      if (isJuneToAugust) {
+      if (isSandyOrLoess && isJuneToAugust) {
         isValidRenewal = true
       }
 
@@ -360,31 +356,13 @@ function calculateKorting(
       const destructionDate = prevCult.b_lu_end
       let isValidDestruction = false
 
-      if (sandyOrLoessRegions.includes(region)) {
-        // Sand/Loess: Feb 1 - May 10
+      // Footnotes 15 and 16 (2026): Sand/Loess only, Feb 1 - May 10
+      if (isSandyOrLoess) {
         if (
           destructionDate >= new Date(currentYear, 1, 1) && // Feb 1
           destructionDate <= new Date(currentYear, 4, 10) // May 10
         ) {
           isValidDestruction = true
-        }
-      } else if (clayOrPeatRegions.includes(region)) {
-        if (is_nv_area) {
-          // Clay/Peat NV: Feb 1 - Mar 15
-          if (
-            destructionDate >= new Date(currentYear, 1, 1) &&
-            destructionDate <= new Date(currentYear, 2, 15)
-          ) {
-            isValidDestruction = true
-          }
-        } else {
-          // Clay/Peat Non-NV: Feb 1 - May 31
-          if (
-            destructionDate >= new Date(currentYear, 1, 1) &&
-            destructionDate <= new Date(currentYear, 4, 31)
-          ) {
-            isValidDestruction = true
-          }
         }
       }
 
@@ -661,8 +639,8 @@ function calculateSingleCultivationNorm(
  *    - The main crop receives its 1st cultivation standard (`1e teelt`).
  *    - Successive crops receive volgteelt / subtype standards with applicable footnote checks (footnotes 2, 6, 7a, 7b).
  * 5. **Statutory Reductions ("Kortingen")**:
- *    - Grassland renewal reduction (50 kg N/ha on all soils, footnote 14).
- *    - Grassland destruction reduction (65 kg N/ha).
+ *    - Grassland renewal reduction (50 kg N/ha on sand and loess, footnote 14).
+ *    - Grassland destruction reduction (65 kg N/ha on sand and loess, footnotes 15 and 16).
  *    - Article 28d catch-crop / winter-crop shortfall reductions.
  * 6. **Floor & Formatting**: Enforces non-negative norm floor (min 0) and generates a detailed audit breakdown string.
  *
@@ -799,7 +777,6 @@ export async function calculateNL2026StikstofGebruiksNorm(
   const { amount: kortingAmount, description: kortingDescription } = calculateKorting(
     cultivations,
     region,
-    is_nv_area,
   )
   let finalNormValue = totalNormValue.minus(kortingAmount)
 
