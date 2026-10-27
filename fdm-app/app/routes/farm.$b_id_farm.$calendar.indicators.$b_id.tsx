@@ -86,7 +86,7 @@ const MAP_SCORE_OPTION_GROUPS: ScoreOptionGroup[] = [
       { value: "S_WAT", label: "Water" },
       { value: "S_NUT", label: "Nutriëntenkringloop" },
       { value: "S_CLIM", label: "Klimaat" },
-      { value: "S_PROD_T", label: "Productie (OBI)" },
+      { value: "S_PROD", label: "Productie (OBI)" },
     ],
   },
   {
