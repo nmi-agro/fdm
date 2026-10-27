@@ -51,6 +51,7 @@ export default function UpdateWithMijnPercelenPage() {
         b_id_farm={loaderData.b_id_farm}
         calendar={loaderData.calendar}
         backUrl={`/farm/${loaderData.b_id_farm}`}
+        isFarmCreateWizard={false}
       />
     </SidebarInset>
   )
