@@ -16,16 +16,21 @@ import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { commonErrorResponses } from "../schemas"
 
-const CatalogueSourceSchema = z.object({
-  source: z.string().openapi({
-    title: "Catalogue source code",
-    description: "Code to call other catalogue endpoints with.",
-  }),
-  title: z.string().openapi({
-    title: "Catalogue source title",
-    description: "Full name of the source of the catalogue data so you can look it up.",
-  }),
-})
+const CatalogueSourcesSchema = z.record(
+  z.enum(["cultivation", "fertilizer", "measure"]),
+  z.array(
+    z.object({
+      source: z.string().openapi({
+        title: "Catalogue source code",
+        description: "Code to call other catalogue endpoints with.",
+      }),
+      title: z.string().openapi({
+        title: "Catalogue source title",
+        description: "Full name of the source of the catalogue data so you can look it up.",
+      }),
+    }),
+  ),
+)
 
 const CultivationCatalogueSchema = z.looseObject({
   b_lu_catalogue: z.string(),
@@ -132,9 +137,9 @@ const FertilizerCatalogueSchema = z.looseObject({})
 
 const MeasureCatalogueSchema = z.looseObject({})
 
-type CatalogueSource = z.infer<typeof CatalogueSourceSchema>
+type CatalogueSources = z.infer<typeof CatalogueSourcesSchema>
 
-export const CATALOGUE_SOURCES = {
+export const CATALOGUE_SOURCES: CatalogueSources = {
   cultivation: [
     {
       source: "brp",
@@ -153,7 +158,7 @@ export const CATALOGUE_SOURCES = {
       title: "BLN3 Maatregelencatalogus",
     },
   ],
-} as const satisfies Record<string, CatalogueSource[]>
+}
 
 const ListEnabledCataloguesParamsSchema = z.object({
   b_id_farm: z.string(),
@@ -201,7 +206,7 @@ const listAvailableCataloguesRoute = createRoute({
       description: "Available catalogues are listed successfully.",
       content: {
         "application/json": {
-          schema: CatalogueSourceSchema.array(),
+          schema: CatalogueSourcesSchema,
         },
       },
     },
@@ -419,7 +424,7 @@ export function registerCatalogueRoutes(
       sources.includes("bln") ? await services.getMeasuresFromCatalogue(fdm) : [],
   )
   app.openapi(listAvailableCataloguesRoute, (c) => {
-    return c.json(CATALOGUE_SOURCES)
+    return c.json(CATALOGUE_SOURCES, 200)
   })
   app.openapi(listEnabledCultivationCataloguesRoute, listEnabledCultivationCataloguesHandler)
   app.openapi(listEnabledFertilizerCataloguesRoute, listEnabledFertilizerCataloguesHandler)
