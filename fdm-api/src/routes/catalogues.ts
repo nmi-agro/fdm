@@ -16,10 +16,123 @@ import type { ApiEnv, ApiPrincipalContext } from "../types"
 import { ApiError } from "../error"
 import { commonErrorResponses } from "../schemas"
 
-interface CatalogueSource {
-  source: string
-  title: string
-}
+const CatalogueSourceSchema = z.object({
+  source: z.string().openapi({
+    title: "Catalogue source code",
+    description: "Code to call other catalogue endpoints with.",
+  }),
+  title: z.string().openapi({
+    title: "Catalogue source title",
+    description: "Full name of the source of the catalogue data so you can look it up.",
+  }),
+})
+
+const CultivationCatalogueSchema = z.looseObject({
+  b_lu_catalogue: z.string(),
+  b_lu_source: z.string(),
+  b_lu_name: z.string(),
+  b_lu_name_en: z.string().nullable(),
+  b_lu_ya: z.number().array().nullable().openapi({
+    title: "Cultivation availability years",
+    description:
+      "Years this cultivation is available for in the catalogue. A null value means there is no limitation. Also, too recent years that the catalogue has not yet been updated for are always allowed. If present, cultivations that reference this catalogue cultivation cannot be added outside of these years.",
+  }),
+  b_lu_harvestable: z.enum(["once", "multiple", "none"]).openapi({
+    title: "Cultivation harvestability",
+    description:
+      "For how many times the cultivation can be harvested for. If a cultivation's corresponding catalogue cultivation can only be harvested, up to one harvest event will be allowed which will be kept in sync with the cultivation end date. Harvests will not be allowed at all if the catalogue cultivation is not harvestable.",
+  }),
+  b_lu_harvestcat: z
+    .enum([
+      "HC010", // Standard
+      "HC020", // Grass
+      "HC031", // Maize
+      "HC040", // Root crops
+      "HC041", // Sugar beets
+      "HC042", // Potatoes
+      "HC050", // Cereals
+    ])
+    .openapi({
+      title: "Harvest category",
+      description:
+        "Harvest category mainly used to determine the interesting harvest analysis parameters for a harvest event. HC020 for grass, HC031 for maize, HC040 for root crops, HC041 for sugar beet, HC042 for potatoes, and HC050 for cereals.",
+    }),
+  b_lu_hcat3: z.string().nullable(),
+  b_lu_hcat3_name: z.string().nullable(),
+  b_lu_croprotation: z
+    .enum([
+      "other",
+      "clover",
+      "nature",
+      "potato",
+      "grass",
+      "rapeseed",
+      "starch",
+      "maize",
+      "cereal",
+      "sugarbeet",
+      "alfalfa",
+      "catchcrop",
+    ])
+    .nullable()
+    .openapi({
+      title: "Crop category by crop rotation",
+      description: "Crop category used during agronomic planning of farm activities.",
+    }),
+  b_lu_yield: z.number().nullable().openapi({
+    title: "Total yield",
+    description: "Standard dry yield in kg per ha for this crop.",
+  }),
+  b_lu_dm: z.number().nullable().openapi({
+    title: "Dry matter yield",
+    description: "Standard dry matter yield in g per kg of dry product for this crop.",
+  }),
+  b_lu_hi: z.number().nullable().openapi({
+    title: "Harvest index",
+    description: "Ratio of dry product to the mass of the whole plant above ground.",
+  }),
+  b_lu_n_harvestable: z.number().nullable().openapi({
+    title: "Nitrogen yield",
+    description: "Nitrogen yield in g per kg of dry product for this crop.",
+  }),
+  b_lu_n_residue: z.number().nullable().openapi({
+    title: "Nitrogen residue",
+    description:
+      "Nitrogen residue in g per kg of dry residue left on the ground after the harvest.",
+  }),
+  b_n_fixation: z.number().nullable().openapi({
+    title: "Nitrogen fixation",
+    description: "Nitrogen fixed in kg per ha by this crop.",
+  }),
+  b_lu_eom: z.number().nullable(),
+  b_lu_eom_residue: z.number().nullable(),
+  b_lu_rest_oravib: z.boolean().nullable().openapi({
+    title: "Is rest crop",
+    description:
+      "A value of true means that a significant part of the living plant is left over after the harvest.",
+  }),
+  b_lu_variety_options: z.string().array().nullable().openapi({
+    title: "Cultivars",
+    description:
+      "List of varieties that can be selected for this crop. The variety should be passed in the `b_lu_variety` parameter when creating or updating a cultivation.",
+  }),
+  b_lu_start_default: z.string().date().openapi({
+    title: "Default sowing date",
+    description: "Typical sowing date for this cultivation.",
+    example: "2024-01-15",
+  }), // MM-dd
+  b_date_harvest_default: z.string().date().openapi({
+    title: "Default harvest date",
+    description: "Typical harvesting date for this cultivation.",
+    example: "2024-01-15",
+  }), // MM-dd
+})
+
+const FertilizerCatalogueSchema = z.looseObject({})
+
+const MeasureCatalogueSchema = z.looseObject({})
+
+type CatalogueSource = z.infer<typeof CatalogueSourceSchema>
 
 export const CATALOGUE_SOURCES = {
   cultivation: [
@@ -86,6 +199,11 @@ const listAvailableCataloguesRoute = createRoute({
   responses: {
     200: {
       description: "Available catalogues are listed successfully.",
+      content: {
+        "application/json": {
+          schema: CatalogueSourceSchema.array(),
+        },
+      },
     },
     ...commonErrorResponses,
   },
@@ -101,6 +219,14 @@ const listEnabledCultivationCataloguesRoute = createRoute({
   responses: {
     200: {
       description: "Enabled cultivation catalogues are listed successfully.",
+      content: {
+        "application/json": {
+          schema: z.string().array().openapi({
+            title: "Enabled cultivation catalogue source codes",
+            description: "Cultivation catalogue source codes that have been enabled on this farm.",
+          }),
+        },
+      },
     },
     ...commonErrorResponses,
   },
@@ -116,6 +242,14 @@ const listEnabledFertilizerCataloguesRoute = createRoute({
   responses: {
     200: {
       description: "Enabled fertilizer catalogues are listed successfully.",
+      content: {
+        "application/json": {
+          schema: z.string().array().openapi({
+            title: "Enabled fertilizer catalogue source codes",
+            description: "Fertilizer catalogue source codes that have been enabled on this farm.",
+          }),
+        },
+      },
     },
     ...commonErrorResponses,
   },
@@ -131,6 +265,15 @@ const listEnabledMeasureCataloguesRoute = createRoute({
   responses: {
     200: {
       description: "Enabled field measure catalogues are listed successfully.",
+      content: {
+        "application/json": {
+          schema: z.string().array().openapi({
+            title: "Enabled field measure catalogue source codes",
+            description:
+              "Field measure catalogue source codes that have been enabled on this farm.",
+          }),
+        },
+      },
     },
     ...commonErrorResponses,
   },
@@ -146,6 +289,7 @@ const listCultivationCatalogueRoute = createRoute({
   responses: {
     200: {
       description: "Cultivations in the catalogue are listed successfully.",
+      content: { "application/json": { schema: CultivationCatalogueSchema.array() } },
     },
     ...commonErrorResponses,
   },
@@ -161,6 +305,7 @@ const listFertilizerCatalogueRoute = createRoute({
   responses: {
     200: {
       description: "Fertilizers in the catalogue are listed successfully.",
+      content: { "application/json": { schema: FertilizerCatalogueSchema.array() } },
     },
     ...commonErrorResponses,
   },
@@ -176,6 +321,7 @@ const listMeasureCatalogueRoute = createRoute({
   responses: {
     200: {
       description: "FIeld measures in the catalogue are listed successfully.",
+      content: { "application/json": { schema: MeasureCatalogueSchema.array() } },
     },
     ...commonErrorResponses,
   },
