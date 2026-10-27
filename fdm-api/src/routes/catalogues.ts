@@ -57,6 +57,7 @@ const CultivationCatalogueSchema = z.looseObject({
     title: "Cultivation availability years",
     description:
       "Years this cultivation is available for in the catalogue. A null value means there is no limitation. Also, too recent years that the catalogue has not yet been updated for are always allowed. If present, cultivations that reference this catalogue cultivation cannot be added outside of these years.",
+    example: 2024,
   }),
   b_lu_harvestable: z.enum(["once", "multiple", "none"]).openapi({
     title: "Cultivation harvestability",
@@ -137,15 +138,15 @@ const CultivationCatalogueSchema = z.looseObject({
     description:
       "List of varieties that can be selected for this crop. The variety should be passed in the `b_lu_variety` parameter when creating or updating a cultivation.",
   }),
-  b_lu_start_default: z.string().date().openapi({
+  b_lu_start_default: z.string().openapi({
     title: "Default sowing date",
-    description: "Typical sowing date for this cultivation.",
-    example: "2024-01-15",
+    description: "Typical sowing date for this cultivation. In MM-DD format.",
+    example: "01-15",
   }), // MM-dd
-  b_date_harvest_default: z.string().date().openapi({
+  b_date_harvest_default: z.string().openapi({
     title: "Default harvest date",
-    description: "Typical harvesting date for this cultivation.",
-    example: "2024-01-15",
+    description: "Typical harvesting date for this cultivation. In MM-DD format.",
+    example: "01-15",
   }), // MM-dd
 })
 
