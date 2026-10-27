@@ -336,7 +336,44 @@ const FertilizerCatalogueSchema = z.looseObject({
   }),
 })
 
-const MeasureCatalogueSchema = z.looseObject({})
+const MeasureCatalogueSchema = z.looseObject({
+  m_id: z.string().openapi({
+    title: "Field measure code in catalogue",
+    description: "Catalogue code used to reference this catalogue item in field measure records.",
+  }),
+  m_source: z.string().openapi({
+    title: "Fertilizer catalogue source",
+    description: "The code for the measure's source.",
+  }),
+  m_name: z.string().openapi({
+    title: "Dutch title",
+    description: "Name of the measure.",
+  }),
+  m_description: z.string().nullable().openapi({
+    title: "Dutch description",
+    description: "Detailed description of the measure and its effects on soil functioning.",
+  }),
+  m_summary: z.string().openapi({
+    title: "Short Dutch description",
+    description:
+      "A brief description of the measure, ideally no longer than 100 characters. The summary can be used for applications such as tool-tips.",
+  }),
+  m_source_url: z.string().openapi({
+    title: "Source URL",
+    description:
+      "Url or uri to a source which describes the measure or from which the measure is derived. Indicator calculations that involve this measure are based on this document.",
+  }),
+  m_conflicts: z.string().array().openapi({
+    title: "Conflicting measures",
+    description:
+      "List of m_ids for measures that cannot be implemented simultaneously with this one.",
+  }),
+  m_stage_applicability: z.looseObject({}).array().openapi({
+    title: "Applicability conditions",
+    description:
+      "List of conditions determining whether this measure is applicable to a specific field or farm.",
+  }),
+})
 
 type CatalogueSources = z.infer<typeof CatalogueSourcesSchema>
 
