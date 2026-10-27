@@ -2,14 +2,17 @@ import {
   calculateDose,
   calculateNitrogenBalance,
   calculateOrganicMatterBalance,
+  calculatePhosphateBalance,
   collectInputForNitrogenBalance,
   collectInputForOrganicMatterBalance,
+  collectInputForPhosphateBalance,
   createFunctionsForFertilizerApplicationFilling,
   createFunctionsForNorms,
   type GebruiksnormResult,
   getNitrogenBalanceField,
   getNutrientAdvice,
   getOrganicMatterBalanceField,
+  getPhosphateBalanceField,
   GROENE_BRAAK,
   type NitrogenBalanceFieldResultNumeric,
   type NitrogenBalanceNumeric,
@@ -17,6 +20,9 @@ import {
   type NutrientAdvice,
   type OrganicMatterBalanceFieldResultNumeric,
   type OrganicMatterBalanceNumeric,
+  type PhosphateBalance,
+  type PhosphateBalanceFieldResult,
+  type PhosphateFieldInput,
 } from "@nmi-agro/fdm-calculator"
 import {
   type FdmType,
@@ -304,6 +310,71 @@ export async function getOrganicMatterBalanceForFarm({
     ...input,
     timeFrame: getRequiredTimeFrame(input.timeFrame),
   })
+}
+
+// Get phosphate balance for a field (prototype, see FDM-305)
+export async function getPhosphateBalanceForField({
+  fdm,
+  principal_id,
+  b_id_farm,
+  b_id,
+  timeframe,
+}: {
+  fdm: FdmType
+  principal_id: PrincipalId
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
+  b_id: Field["b_id"]
+  timeframe: Timeframe
+}): Promise<{
+  fieldResult: PhosphateBalanceFieldResult
+  fieldInput: PhosphateFieldInput
+}> {
+  const { fields, ...rest } = await collectInputForPhosphateBalance(
+    fdm,
+    principal_id,
+    b_id_farm,
+    timeframe,
+    b_id,
+  )
+
+  if (fields.length === 0) {
+    throw new Error(`Field ${b_id} not found for farm ${b_id_farm}`)
+  }
+
+  const fieldInput = fields[0]
+  const base = {
+    b_id: b_id,
+    b_area: fieldInput.field.b_area ?? 0,
+    b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+  }
+  try {
+    const balance = await getPhosphateBalanceField(fdm, { fieldInput, ...rest })
+    return { fieldResult: { ...base, balance }, fieldInput }
+  } catch (error) {
+    return {
+      fieldResult: {
+        ...base,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      },
+      fieldInput,
+    }
+  }
+}
+
+// Get phosphate balance for a farm (prototype, see FDM-305)
+export async function getPhosphateBalanceForFarm({
+  fdm,
+  principal_id,
+  b_id_farm,
+  timeframe,
+}: {
+  fdm: FdmType
+  principal_id: PrincipalId
+  b_id_farm: fdmSchema.farmsTypeSelect["b_id_farm"]
+  timeframe: Timeframe
+}): Promise<PhosphateBalance> {
+  const input = await collectInputForPhosphateBalance(fdm, principal_id, b_id_farm, timeframe)
+  return calculatePhosphateBalance(fdm, input)
 }
 
 export async function getNutrientAdviceForField({

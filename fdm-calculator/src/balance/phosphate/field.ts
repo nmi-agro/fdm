@@ -1,18 +1,21 @@
+import { type FdmType, withCalculationCache } from "@nmi-agro/fdm-core"
 import Decimal from "decimal.js"
 import type {
   PhosphateBalance,
   PhosphateBalanceField,
+  PhosphateBalanceFieldResult,
   PhosphateFrame,
   PhosphateBalanceInput,
   PhosphateCultivationDetail,
   PhosphateFertilizerDetail,
   PhosphateFieldInput,
 } from "./types"
+import pkg from "../../package"
 import { getPhosphateSoilTypeParameters } from "./alpha-max"
 import { calculatePhosphateProjection } from "./projection"
 import { calculatePhosphateSaturation, calculatePhosphateSaturationThreshold } from "./saturation"
 
-type FieldCalculationInput = {
+export type PhosphateBalanceFieldCalculationInput = {
   fieldInput: PhosphateFieldInput
   fertilizerDetails: PhosphateFertilizerDetail[]
   cultivationDetails: PhosphateCultivationDetail[]
@@ -58,7 +61,24 @@ function calculateSupplyByFertilizers(
 function calculateRemovalByHarvests(
   input: PhosphateFieldInput,
   details: Map<string, PhosphateCultivationDetail>,
+  timeFrame: { start: Date; end: Date },
+  warnings: string[],
 ) {
+  // A harvestable cultivation that ended in the timeframe (or is harvested several times, like
+  // grassland) without any harvest gives no removal: report it instead of silently using 0.
+  for (const cultivation of input.cultivations) {
+    const detail = details.get(cultivation.b_lu_catalogue)
+    if (!detail || detail.b_lu_harvestable === "none") continue
+    if (input.harvests.some((h) => h.b_lu === cultivation.b_lu)) continue
+    const end = cultivation.b_lu_end ? new Date(cultivation.b_lu_end) : null
+    const endedInTimeframe = end !== null && end >= timeFrame.start && end <= timeFrame.end
+    if (endedInTimeframe || detail.b_lu_harvestable === "multiple") {
+      warnings.push(
+        `Voor ${cultivation.b_lu_name ?? cultivation.b_lu_catalogue} is in deze periode geen oogst geregistreerd: de afvoer met de oogst is 0.`,
+      )
+    }
+  }
+
   const items = input.harvests.map((harvest) => {
     const cultivation = input.cultivations.find((c) => c.b_lu === harvest.b_lu)
     const detail = cultivation ? details.get(cultivation.b_lu_catalogue) : undefined
@@ -66,11 +86,23 @@ function calculateRemovalByHarvests(
       throw new Error(`Harvest ${harvest.b_id_harvesting} has no corresponding cultivation details`)
     }
     const analyses = harvest.harvestable.harvestable_analyses
+    const name = cultivation?.b_lu_name ?? detail.b_lu_catalogue
     const values = (analyses.length > 0 ? analyses : [{}]).map(
       (analysis: { b_lu_yield?: number | null; b_lu_p_harvestable?: number | null }) => {
-        const b_lu_yield = analysis.b_lu_yield ?? detail.b_lu_yield ?? 0
-        const b_lu_p_harvestable = analysis.b_lu_p_harvestable ?? detail.b_lu_p_harvestable ?? 0
-        return new Decimal(b_lu_yield).times(b_lu_p_harvestable).dividedBy(1000).times(-1)
+        const b_lu_yield = analysis.b_lu_yield ?? detail.b_lu_yield
+        const b_lu_p_harvestable = analysis.b_lu_p_harvestable ?? detail.b_lu_p_harvestable
+        if (b_lu_p_harvestable == null) {
+          warnings.push(
+            `Geen fosfaatgehalte bekend voor ${name}: de afvoer met de oogst is op 0 gezet. Controleer of de gewascatalogus is gesynchroniseerd met een NMI API-sleutel.`,
+          )
+        }
+        if (b_lu_yield == null) {
+          warnings.push(`Geen opbrengst bekend voor ${name}: de afvoer met de oogst is op 0 gezet.`)
+        }
+        return new Decimal(b_lu_yield ?? 0)
+          .times(b_lu_p_harvestable ?? 0)
+          .dividedBy(1000)
+          .times(-1)
       },
     )
     const value = values.reduce((a, b) => a.add(b), new Decimal(0)).dividedBy(values.length)
@@ -145,7 +177,7 @@ export function determinePhosphateFrame(a_p_al: number | null, fixation: number)
  * @alpha
  */
 export function calculatePhosphateBalanceField(
-  input: FieldCalculationInput,
+  input: PhosphateBalanceFieldCalculationInput,
 ): PhosphateBalanceField {
   const { fieldInput, timeFrame } = input
   const { field } = fieldInput
@@ -173,6 +205,7 @@ export function calculatePhosphateBalanceField(
       frame,
       saturation,
       projection: null,
+      warnings: [],
     }
   }
 
@@ -183,7 +216,8 @@ export function calculatePhosphateBalanceField(
     fieldInput.fertilizerApplications,
     fertilizerDetails,
   )
-  const harvests = calculateRemovalByHarvests(fieldInput, cultivationDetails)
+  const warnings: string[] = []
+  const harvests = calculateRemovalByHarvests(fieldInput, cultivationDetails, timeFrame, warnings)
   const residues = calculateRemovalByResidues(fieldInput, cultivationDetails)
   const removal = harvests.total.add(residues.total)
   const balance = fertilizers.total.add(removal)
@@ -230,35 +264,45 @@ export function calculatePhosphateBalanceField(
     frame,
     saturation,
     projection,
+    warnings: [...new Set(warnings)],
   }
 }
 
 /**
- * Calculates the phosphate balance of a farm as the area-weighted average per ha of its fields.
- * Buffer strips are excluded from the farm average.
+ * Cached version of `calculatePhosphateBalanceField` (same input and output). The cache key includes
+ * `pkg.calculatorVersion`, so results are recalculated after a calculator release.
  *
- * PROTOTYPE for discussion: not cached yet.
- *
- * @param input - The farm input.
- * @returns The farm balance and the results per field.
  * @alpha
  */
-export function calculatePhosphateBalance(input: PhosphateBalanceInput): PhosphateBalance {
-  const fields = input.fields.map((fieldInput) =>
-    calculatePhosphateBalanceField({
-      fieldInput,
-      fertilizerDetails: input.fertilizerDetails,
-      cultivationDetails: input.cultivationDetails,
-      timeFrame: input.timeFrame,
-    }),
+export const getPhosphateBalanceField = withCalculationCache(
+  calculatePhosphateBalanceField,
+  "calculatePhosphateBalanceField",
+  pkg.calculatorVersion,
+)
+
+/**
+ * Aggregates field results to the farm: the area-weighted average per ha of supply, removal and
+ * balance. Buffer strips and fields whose balance could not be calculated are excluded.
+ *
+ * @param fields - The results per field.
+ * @param fieldErrorMessages - The error messages of the fields that failed.
+ * @returns The farm balance.
+ * @alpha
+ */
+export function calculatePhosphateBalanceFieldsToFarm(
+  fields: PhosphateBalanceFieldResult[],
+  fieldErrorMessages: string[],
+): PhosphateBalance {
+  const counted = fields.filter(
+    (f): f is PhosphateBalanceFieldResult & { balance: PhosphateBalanceField } =>
+      f.balance !== undefined && !f.b_bufferstrip && f.b_area > 0,
   )
-  const counted = fields.filter((f, i) => !input.fields[i].field.b_bufferstrip && f.b_area > 0)
   const area = counted.reduce((a, f) => a.add(f.b_area), new Decimal(0))
   const weighted = (pick: (f: PhosphateBalanceField) => number) =>
     area.isZero()
       ? 0
       : counted
-          .reduce((a, f) => a.add(new Decimal(pick(f)).times(f.b_area)), new Decimal(0))
+          .reduce((a, f) => a.add(new Decimal(pick(f.balance)).times(f.b_area)), new Decimal(0))
           .dividedBy(area)
           .toNumber()
   return {
@@ -266,5 +310,60 @@ export function calculatePhosphateBalance(input: PhosphateBalanceInput): Phospha
     supply: weighted((f) => f.supply.total),
     removal: weighted((f) => f.removal.total),
     fields,
+    hasErrors: fields.some((f) => f.errorMessage !== undefined),
+    fieldErrorMessages,
   }
+}
+
+/**
+ * Calculates the phosphate balance of a farm as the area-weighted average per ha of its fields.
+ * Buffer strips are excluded from the farm average. Fields are calculated in batches of 50 with the
+ * cached `getPhosphateBalanceField`; a failing field is reported in `fields[].errorMessage` instead
+ * of failing the farm.
+ *
+ * @param fdm - The FDM instance (used for the calculation cache).
+ * @param input - The farm input.
+ * @returns The farm balance and the results per field.
+ * @alpha
+ */
+export async function calculatePhosphateBalance(
+  fdm: FdmType,
+  input: PhosphateBalanceInput,
+): Promise<PhosphateBalance> {
+  if (input.fields.length === 0) {
+    const errorMessage = "No fields in input"
+    return { ...calculatePhosphateBalanceFieldsToFarm([], [errorMessage]), errorMessage }
+  }
+
+  const results: PhosphateBalanceFieldResult[] = []
+  const batchSize = 50
+  for (let i = 0; i < input.fields.length; i += batchSize) {
+    const batch = input.fields.slice(i, i + batchSize)
+    const batchResults = await Promise.all(
+      batch.map(async (fieldInput): Promise<PhosphateBalanceFieldResult> => {
+        const base = {
+          b_id: fieldInput.field.b_id,
+          b_area: fieldInput.field.b_area ?? 0,
+          b_bufferstrip: fieldInput.field.b_bufferstrip ?? false,
+        }
+        try {
+          const balance = await getPhosphateBalanceField(fdm, {
+            fieldInput,
+            fertilizerDetails: input.fertilizerDetails,
+            cultivationDetails: input.cultivationDetails,
+            timeFrame: input.timeFrame,
+          })
+          return { ...base, balance }
+        } catch (error) {
+          return { ...base, errorMessage: error instanceof Error ? error.message : String(error) }
+        }
+      }),
+    )
+    results.push(...batchResults)
+  }
+
+  const fieldErrorMessages = results
+    .filter((r) => r.errorMessage !== undefined)
+    .map((r) => r.errorMessage as string)
+  return calculatePhosphateBalanceFieldsToFarm(results, fieldErrorMessages)
 }

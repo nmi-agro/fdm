@@ -1,11 +1,24 @@
-import type { Harvest } from "@nmi-agro/fdm-core"
+import type { FdmType, Harvest } from "@nmi-agro/fdm-core"
 import { describe, expect, it } from "vitest"
 import type { PhosphateBalanceInput } from "./types"
 import {
   calculatePhosphateBalance,
   calculatePhosphateBalanceField,
+  calculatePhosphateBalanceFieldsToFarm,
   determinePhosphateFrame,
 } from "./field"
+
+// Minimal FDM mock: every cache lookup misses and cache writes are ignored
+const mockFdm = {
+  select: () => mockFdm,
+  from: () => mockFdm,
+  where: () => mockFdm,
+  limit: () => mockFdm,
+  execute: async () => [],
+  insert: () => mockFdm,
+  values: () => mockFdm,
+  onConflictDoNothing: async () => undefined,
+} as unknown as FdmType
 
 const harvest = (b_lu: string, b_lu_yield: number | null, b_lu_p_harvestable: number | null) =>
   ({
@@ -30,6 +43,7 @@ const input: PhosphateBalanceInput = {
       b_lu_croprotation: "potato",
       b_lu_yield: 12000,
       b_lu_hi: 0.8,
+      b_lu_harvestable: "once",
       b_lu_p_harvestable: 4,
       b_lu_p_residue: 2,
     },
@@ -41,6 +55,7 @@ const input: PhosphateBalanceInput = {
         {
           b_lu: "c1",
           b_lu_catalogue: "nl_2014",
+          b_lu_name: "Aardappelen",
           b_lu_croprotation: "potato",
           m_cropresidue: false,
           b_lu_start: new Date("2025-04-01"),
@@ -96,6 +111,44 @@ describe("calculatePhosphateBalanceField", () => {
     expect(result.removal.harvests.total).toBeCloseTo(-60)
   })
 
+  it("should warn when a harvested cultivation has no phosphate content", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: input.fields[0],
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: [{ ...input.cultivationDetails[0], b_lu_p_harvestable: null }],
+      timeFrame: input.timeFrame,
+    })
+    expect(result.removal.harvests.total).toBe(0)
+    expect(result.warnings).toHaveLength(1)
+    expect(result.warnings[0]).toMatch(/Geen fosfaatgehalte bekend voor Aardappelen/)
+  })
+
+  it("should warn when a cultivation that ended in the timeframe has no harvest", () => {
+    const result = calculatePhosphateBalanceField({
+      fieldInput: { ...input.fields[0], harvests: [] },
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+    })
+    expect(result.removal.harvests.total).toBe(0)
+    expect(result.warnings[0]).toMatch(/geen oogst geregistreerd/)
+  })
+
+  it("should not warn for a cultivation that is still growing at the end of the timeframe", () => {
+    const fieldInput = {
+      ...input.fields[0],
+      harvests: [],
+      cultivations: [{ ...input.fields[0].cultivations[0], b_lu_end: new Date("2026-08-01") }],
+    }
+    const result = calculatePhosphateBalanceField({
+      fieldInput,
+      fertilizerDetails: input.fertilizerDetails,
+      cultivationDetails: input.cultivationDetails,
+      timeFrame: input.timeFrame,
+    })
+    expect(result.warnings).toEqual([])
+  })
+
   it("should return zeros for a buffer strip", () => {
     const result = calculatePhosphateBalanceField({
       fieldInput: input.fields[1],
@@ -126,9 +179,49 @@ describe("determinePhosphateFrame", () => {
 })
 
 describe("calculatePhosphateBalance", () => {
-  it("should average the fields per ha and exclude buffer strips", () => {
-    const result = calculatePhosphateBalance(input)
+  it("should average the fields per ha and exclude buffer strips", async () => {
+    const result = await calculatePhosphateBalance(mockFdm, input)
     expect(result.fields).toHaveLength(2)
     expect(result.balance).toBeCloseTo(19.5)
+    expect(result.hasErrors).toBe(false)
+    expect(result.fieldErrorMessages).toEqual([])
+  })
+
+  it("should report a failing field without failing the farm", async () => {
+    const result = await calculatePhosphateBalance(mockFdm, {
+      ...input,
+      fields: [
+        input.fields[0],
+        {
+          ...input.fields[0],
+          field: { b_id: "f2", b_area: 5, b_bufferstrip: false },
+          fertilizerApplications: [
+            { p_app_id: "a3", p_id_catalogue: "unknown", p_app_amount: 10 },
+          ] as PhosphateBalanceInput["fields"][number]["fertilizerApplications"],
+        },
+      ],
+    })
+    expect(result.hasErrors).toBe(true)
+    expect(result.fields[1].errorMessage).toMatch(/no fertilizerDetails/)
+    // Only f1 counts in the farm average
+    expect(result.balance).toBeCloseTo(19.5)
+  })
+
+  it("should return an error when there are no fields", async () => {
+    const result = await calculatePhosphateBalance(mockFdm, { ...input, fields: [] })
+    expect(result.errorMessage).toBe("No fields in input")
+    expect(result.balance).toBe(0)
+  })
+})
+
+describe("calculatePhosphateBalanceFieldsToFarm", () => {
+  it("should return zeros when no field has an area", () => {
+    const result = calculatePhosphateBalanceFieldsToFarm(
+      [{ b_id: "f", b_area: 0, b_bufferstrip: false }],
+      [],
+    )
+    expect(result.balance).toBe(0)
+    expect(result.supply).toBe(0)
+    expect(result.removal).toBe(0)
   })
 })

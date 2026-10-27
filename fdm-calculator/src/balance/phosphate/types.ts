@@ -34,7 +34,13 @@ export type PhosphateFieldInput = {
   field: Pick<Field, "b_id" | "b_area" | "b_bufferstrip">
   cultivations: Pick<
     Cultivation,
-    "b_lu" | "b_lu_catalogue" | "b_lu_croprotation" | "m_cropresidue" | "b_lu_start" | "b_lu_end"
+    | "b_lu"
+    | "b_lu_catalogue"
+    | "b_lu_name"
+    | "b_lu_croprotation"
+    | "m_cropresidue"
+    | "b_lu_start"
+    | "b_lu_end"
   >[]
   harvests: Harvest[]
   soilAnalyses: Partial<PhosphateSoilAnalysis>[]
@@ -48,6 +54,7 @@ export type PhosphateCultivationDetail = Pick<
   | "b_lu_croprotation"
   | "b_lu_yield" // kg DM / ha
   | "b_lu_hi" // -
+  | "b_lu_harvestable"
   | "b_lu_p_harvestable" // g P2O5 / kg DM
   | "b_lu_p_residue" // g P2O5 / kg DM
 >
@@ -188,6 +195,17 @@ export type PhosphateBalanceField = {
   frame: PhosphateFrame
   saturation: PhosphateSaturation
   projection: PhosphateProjection | null
+  /** Missing data that makes the balance incomplete (Dutch, for display) */
+  warnings: string[]
+}
+
+/** Result of one field within the farm balance: the balance, or the error that prevented it. */
+export type PhosphateBalanceFieldResult = {
+  b_id: string
+  b_area: number
+  b_bufferstrip: boolean
+  balance?: PhosphateBalanceField
+  errorMessage?: string
 }
 
 /** Phosphate balance of a farm: area-weighted averages per ha, plus the field results. */
@@ -195,5 +213,10 @@ export type PhosphateBalance = {
   balance: number
   supply: number
   removal: number
-  fields: PhosphateBalanceField[]
+  fields: PhosphateBalanceFieldResult[]
+  /** Whether the balance of one or more (non buffer strip) fields could not be calculated */
+  hasErrors: boolean
+  fieldErrorMessages: string[]
+  /** Set when the farm balance could not be calculated at all (e.g. "No fields in input") */
+  errorMessage?: string
 }
