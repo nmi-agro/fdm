@@ -558,6 +558,8 @@ export const cultivationsCatalogue = fdmSchema.table(
     b_lu_hi: numericCasted(),
     b_lu_n_harvestable: numericCasted(),
     b_lu_n_residue: numericCasted(),
+    b_lu_p_harvestable: numericCasted(), // g P2O5 / kg DM
+    b_lu_p_residue: numericCasted(), // g P2O5 / kg DM
     b_n_fixation: numericCasted(),
     b_lu_eom: numericCasted(),
     b_lu_eom_residue: numericCasted(),

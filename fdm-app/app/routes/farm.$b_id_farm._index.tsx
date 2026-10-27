@@ -639,6 +639,23 @@ export default function FarmDashboardIndex() {
                       </CardHeader>
                     </Card>
                   </NavLink>
+                  <NavLink to={`${calendar}/balance/phosphate`}>
+                    <Card className="h-full transition-all hover:shadow-md">
+                      <CardHeader>
+                        <div className="flex items-center gap-4">
+                          <div className="bg-muted rounded-lg p-3">
+                            <ArrowRightLeft className="text-primary h-6 w-6" />
+                          </div>
+                          <div>
+                            <CardTitle>Fosfaatbalans</CardTitle>
+                            <CardDescription>
+                              Aanvoer, afvoer en bodemvoorraad van fosfaat.
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  </NavLink>
 
                   <NavLink to={`${calendar}/nutrient_advice`}>
                     <Card className="h-full transition-all hover:shadow-md">

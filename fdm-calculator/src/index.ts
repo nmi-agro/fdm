@@ -52,6 +52,38 @@ export type {
   OrganicMatterSupplyNumeric,
   OrganicMatterSupplyResiduesNumeric,
 } from "./balance/organic-matter/types"
+export {
+  calculatePhosphateBalance,
+  calculatePhosphateBalanceField,
+  calculatePhosphateBalanceFieldsToFarm,
+  calculatePhosphateProjection,
+  calculatePhosphateSaturation,
+  calculatePhosphateSaturationThreshold,
+  classifyYears,
+  collectInputForPhosphateBalance,
+  determinePhosphateFrame,
+  estimatePsdFromPAl,
+  getPhosphateBalanceField,
+  getPhosphateSoilTypeParameters,
+  ghgPerGroundwaterClass,
+  phosphateSoilTypeParameters,
+} from "./balance/phosphate/index"
+export type {
+  PhosphateBalance,
+  PhosphateBalanceField,
+  PhosphateBalanceFieldCalculationInput,
+  PhosphateBalanceFieldResult,
+  PhosphateBalanceInput,
+  PhosphateFieldInput,
+  PhosphateFrame,
+  PhosphateProjection,
+  PhosphateSaturation,
+  PhosphateSaturationSource,
+  PhosphateSaturationThreshold,
+  PhosphateSoilTypeParameters,
+  ValueWithRange,
+  YearsClass,
+} from "./balance/phosphate/index"
 export type { CropPlanFractions, CultivationForCropPlan } from "./bcs/crop-plan"
 export { deriveCropPlanFractions } from "./bcs/crop-plan"
 export type {

@@ -604,7 +604,8 @@ export async function isMeasureCatalogueEnabled(
  * Synchronizes the fertilizer, cultivation, and optionally measures catalogues in the FDM database.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
- * @param options Optional configuration. Provide `nmiApiKey` to also sync the measures catalogue from the NMI API.
+ * @param options Optional configuration. Provide `nmiApiKey` to also sync the measures catalogue from the NMI API
+ * and to add the phosphate contents (`b_lu_p_harvestable`, `b_lu_p_residue`) to the cultivation catalogue.
  * @returns A promise that resolves when the synchronization is complete.
  */
 export async function syncCatalogues(
@@ -612,7 +613,7 @@ export async function syncCatalogues(
   options?: { nmiApiKey?: string },
 ): Promise<void> {
   await syncFertilizerCatalogue(fdm)
-  await syncCultivationCatalogue(fdm)
+  await syncCultivationCatalogue(fdm, options?.nmiApiKey)
   if (options?.nmiApiKey) {
     await syncMeasuresCatalogue(fdm, options.nmiApiKey)
   }
@@ -705,8 +706,8 @@ async function extendCatalogueFertilizer(catalogueFertilizer: CatalogueFertilize
   }
 }
 
-async function syncCultivationCatalogue(fdm: FdmType) {
-  const brpCatalogue = await getCultivationCatalogue("brp")
+async function syncCultivationCatalogue(fdm: FdmType, nmiApiKey?: string) {
+  const brpCatalogue = await getCultivationCatalogue("brp", { nmiApiKey })
 
   await fdm.transaction(async (tx) => {
     try {

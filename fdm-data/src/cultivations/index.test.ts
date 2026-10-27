@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import type * as brpModule from "./catalogues/brp"
 import {
   aggregateCultivationCatalogueInfoBrp,
@@ -110,6 +110,8 @@ describe("getCatalogueBrp", () => {
       expect(item).toHaveProperty("b_lu_hi")
       expect(item).toHaveProperty("b_lu_n_harvestable")
       expect(item).toHaveProperty("b_lu_n_residue")
+      expect(item).toHaveProperty("b_lu_p_harvestable")
+      expect(item).toHaveProperty("b_lu_p_residue")
       expect(item).toHaveProperty("b_n_fixation")
       expect(item).toHaveProperty("b_lu_ya")
       expect(item).toHaveProperty("hash")
@@ -142,5 +144,129 @@ describe("getLastCultivationAvailabilityYear", () => {
     await expect(getLastCultivationAvailabilityYear()).resolves.toBe(
       LAST_CULTIVATION_AVAILABILITY_YEAR,
     )
+  })
+})
+
+describe("getCatalogueBrp with phosphate contents from the NMI API", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const getBrp = async (options?: { nmiApiKey?: string }) => {
+    const buildingContext = await getCultivationCatalogueBuildingContext()
+    return getCatalogueBrp(buildingContext, {}, options)
+  }
+
+  const nmiResponse = (cultivations: unknown[]) =>
+    new Response(JSON.stringify({ success: true, status: 200, data: { cultivations } }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    })
+
+  it("should not call the NMI API and return null phosphate contents without a key", async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    const catalogue = await getBrp()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    for (const item of catalogue) {
+      expect(item.b_lu_p_harvestable).toBeNull()
+      expect(item.b_lu_p_residue).toBeNull()
+    }
+  })
+
+  it("should add the phosphate contents per BRP code when a key is provided", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      nmiResponse([
+        { b_lu: "NL_265", b_lu_brp: 265, b_p_harvestable: 9.8, b_p_residue: 0 },
+        { b_lu: "FAO_1-01b", b_lu_brp: null, b_p_harvestable: 8 },
+      ]),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const catalogue = await getBrp({ nmiApiKey: "test-key" })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://api.nmi-agro.nl/lookup/cultivations?b_region=nl",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: "Bearer test-key" }),
+      }),
+    )
+    const grassland = catalogue.find((item) => item.b_lu_catalogue === "nl_265")
+    expect(grassland?.b_lu_p_harvestable).toBe(9.8)
+    expect(grassland?.b_lu_p_residue).toBe(0)
+
+    const other = catalogue.find((item) => item.b_lu_catalogue !== "nl_265")
+    expect(other?.b_lu_p_harvestable).toBeNull()
+    expect(other?.b_lu_p_residue).toBeNull()
+  })
+
+  it("should use null for missing or invalid phosphate contents", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          nmiResponse([{ b_lu_brp: 265, b_p_harvestable: "unknown", b_p_residue: -1 }]),
+        ),
+    )
+
+    const catalogue = await getBrp({ nmiApiKey: "test-key" })
+    const grassland = catalogue.find((item) => item.b_lu_catalogue === "nl_265")
+
+    expect(grassland?.b_lu_p_harvestable).toBeNull()
+    expect(grassland?.b_lu_p_residue).toBeNull()
+  })
+
+  it("should throw when the NMI API request fails", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unauthorized", { status: 401 })))
+
+    await expect(getBrp({ nmiApiKey: "invalid-key" })).rejects.toThrowError(
+      /Failed to fetch NMI cultivations lookup: 401/,
+    )
+  })
+
+  it("should throw a clear error when the NMI API request times out", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError")),
+    )
+
+    await expect(getBrp({ nmiApiKey: "test-key" })).rejects.toThrowError(
+      /Fetching NMI cultivations lookup timed out after 30000ms/,
+    )
+  })
+
+  it("should rethrow other network errors from the NMI API request", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")))
+
+    await expect(getBrp({ nmiApiKey: "test-key" })).rejects.toThrowError("fetch failed")
+  })
+
+  it("should throw when the NMI API response has an unexpected shape", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: {} }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    )
+
+    await expect(getBrp({ nmiApiKey: "test-key" })).rejects.toThrowError(
+      /Unexpected response shape/,
+    )
+  })
+
+  it("should pass the key through getCultivationCatalogue", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(nmiResponse([]))
+    vi.stubGlobal("fetch", fetchMock)
+
+    await getCultivationCatalogue("brp", { nmiApiKey: "test-key" })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

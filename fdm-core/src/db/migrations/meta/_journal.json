@@ -281,6 +281,13 @@
       "when": 1792404545744,
       "tag": "0039_fluffy_sprite",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793089109664,
+      "tag": "0040_cultivations_catalogue_phosphate_content",
+      "breakpoints": true
     }
   ]
 }

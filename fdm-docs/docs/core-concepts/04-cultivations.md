@@ -28,5 +28,6 @@ The `cultivationsCatalogue` provides a wealth of information about each crop, in
 - `b_lu_harvestable`: Indicates whether the crop is harvested `none`, `once`, or `multiple` times.
 - `b_lu_yield`: The typical yield of the crop.
 - `b_lu_n_harvestable` and `b_lu_n_residue`: The nitrogen content of the harvestable part of the crop and the residue, respectively.
+- `b_lu_p_harvestable` and `b_lu_p_residue`: The phosphate content (g P₂O₅ / kg DM) of the harvestable part of the crop and the residue, respectively. These values are retrieved from the NMI API (`/lookup/cultivations`) when the catalogues are synchronised with an NMI API key (`NMI_API_KEY` in `fdm-app`). Without a key, or when the NMI API has no value for a cultivation, they are empty.
 
 A farm can select which cultivation catalogues it wants to use by creating an entry in the `cultivationCatalogueSelecting` table.

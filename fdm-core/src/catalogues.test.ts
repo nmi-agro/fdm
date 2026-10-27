@@ -785,25 +785,30 @@ describe("Measures Catalogue Sync", () => {
   })
 
   it("syncCatalogues with nmiApiKey should sync measures catalogue", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          data: {
-            measures: [
-              {
-                m_id: "SYNC1",
-                m_name: "Test Sync Measure",
-                m_summary: null,
-                m_description: null,
-                m_source_url: null,
-                m_conflicts: null,
-                m_applicability: [],
+    const fetchMock = vi.fn().mockImplementation(async (url: string) =>
+      url.includes("/lookup/cultivations")
+        ? new Response(JSON.stringify({ data: { cultivations: [] } }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        : new Response(
+            JSON.stringify({
+              data: {
+                measures: [
+                  {
+                    m_id: "SYNC1",
+                    m_name: "Test Sync Measure",
+                    m_summary: null,
+                    m_description: null,
+                    m_source_url: null,
+                    m_conflicts: null,
+                    m_applicability: [],
+                  },
+                ],
               },
-            ],
-          },
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
     )
     vi.stubGlobal("fetch", fetchMock)
     try {
@@ -823,6 +828,46 @@ describe("Measures Catalogue Sync", () => {
       .from(schema.measuresCatalogue)
       .where(eq(schema.measuresCatalogue.m_id, "bln_SYNC1"))
     expect(rows).toHaveLength(1)
+  })
+
+  it("syncCatalogues with nmiApiKey should add phosphate contents to the cultivation catalogue", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (url: string) =>
+      url.includes("/lookup/cultivations")
+        ? new Response(
+            JSON.stringify({
+              data: {
+                cultivations: [{ b_lu_brp: 265, b_p_harvestable: 9.8, b_p_residue: 0 }],
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          )
+        : new Response(JSON.stringify({ data: { measures: [] } }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      await syncCatalogues(fdm, { nmiApiKey: "test-key" })
+      const rows = await fdm
+        .select({
+          b_lu_p_harvestable: schema.cultivationsCatalogue.b_lu_p_harvestable,
+          b_lu_p_residue: schema.cultivationsCatalogue.b_lu_p_residue,
+        })
+        .from(schema.cultivationsCatalogue)
+        .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
+      expect(rows[0]).toEqual({ b_lu_p_harvestable: 9.8, b_lu_p_residue: 0 })
+
+      // Without a key the phosphate contents are not available and are reset to null
+      await syncCatalogues(fdm)
+      const rowsWithoutKey = await fdm
+        .select({ b_lu_p_harvestable: schema.cultivationsCatalogue.b_lu_p_harvestable })
+        .from(schema.cultivationsCatalogue)
+        .where(eq(schema.cultivationsCatalogue.b_lu_catalogue, "nl_265"))
+      expect(rowsWithoutKey[0].b_lu_p_harvestable).toBeNull()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })
 
