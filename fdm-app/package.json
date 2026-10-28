@@ -15,6 +15,7 @@
     "lint": "oxlint --type-aware ."
   },
   "dependencies": {
+    "@base-ui/react": "^1.9.0",
     "@better-auth/api-key": "catalog:",
     "@date-fns/tz": "^1.5.0",
     "@daypicker/react": "^10.0.2",
@@ -92,7 +93,6 @@
     "posthog-node": "^5.57.2",
     "postmark": "^5.1.0",
     "proj4": "^2.22.0",
-    "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-big-calendar": "^1.20.0",
     "react-dom": "^19.3.1",
