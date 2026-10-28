@@ -199,6 +199,7 @@ BRP cultivation codes are not valid in every year: codes are added, merged and r
 - Redirects no longer depend on parsing the request URL by hand, and return links after saving are checked against the application's own address, so a crafted link can no longer send users to another site.
 - The application now uses the React Compiler. Dependencies were updated, among them `@hookform/resolvers` 6 and `framer-motion` 14.
 - The API reference in the documentation is complete again. After a change in TypeDoc's module resolution, most functions and types had disappeared from it; the build now fails instead of silently leaving them out.
+- Pages that list the fields or soil analyses of a farm load faster. New database indexes on `field_acquiring` (by farm) and `soil_sampling` (by field and sampling date, and by analysis) mean that these lookups no longer scan every field or soil sample in the database. The migration only adds indexes and leaves the data unchanged.
 
 ### Hotfixes since September 2026
 

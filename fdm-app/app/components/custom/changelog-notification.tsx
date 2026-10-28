@@ -1,31 +1,49 @@
-import { ArrowRight, Circle, X } from "lucide-react"
-import { NavLink } from "react-router"
-import { Button } from "~/components/ui/button"
+import { X } from "lucide-react"
+import { Link } from "react-router"
+import { SidebarMenuItem } from "~/components/ui/sidebar"
+import { changelogReleases } from "~/lib/changelog"
+import { clientConfig } from "~/lib/config"
 import { useChangelogStore } from "~/store/changelog"
 
+/**
+ * Sidebar notice for a release the user has not seen yet. It shows the title of the newest
+ * release, links to the changelog page and can be closed until the next release.
+ *
+ * Must be rendered inside a `SidebarMenu`.
+ */
 export function ChangelogNotification() {
-  const { hasNewUpdates, latestUpdateTitle, markAllAsSeen } = useChangelogStore()
+  const hasNewUpdates = useChangelogStore((state) => state.hasNewUpdates)
+  const dismissNotification = useChangelogStore((state) => state.dismissNotification)
 
-  if (!hasNewUpdates || !latestUpdateTitle) {
+  const latestRelease = changelogReleases[0]
+  if (!hasNewUpdates || !latestRelease) {
     return null
   }
 
+  const heading = `Nieuw in ${clientConfig.name}`
+
   return (
-    <div className="border-muted-foreground/20 bg-background hover:border-primary flex items-center justify-between gap-2 rounded-md border p-2 text-sm shadow-sm transition-colors">
-      <NavLink to="/about/whats-new" className="flex grow items-center gap-2">
-        <Circle aria-hidden="true" className="fill-primary text-primary size-2 shrink-0" />
-        <span className="font-medium">{latestUpdateTitle}</span>
-        <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" />
-      </NavLink>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={markAllAsSeen}
-        aria-label="Melding over nieuwe versie sluiten"
-        className="text-muted-foreground hover:bg-muted-foreground/20 h-6 w-6"
+    <SidebarMenuItem className="motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 mb-2 duration-300 ease-out">
+      <Link
+        to="/about/whats-new"
+        className="bg-background border-border hover:bg-sidebar-accent focus-visible:ring-sidebar-ring flex gap-2.5 rounded-md border py-2.5 pr-10 pl-3 transition-colors outline-none focus-visible:ring-2"
       >
-        <X aria-hidden="true" className="h-4 w-4" />
-      </Button>
-    </div>
+        <span aria-hidden="true" className="bg-primary mt-1.5 size-2 shrink-0 rounded-full" />
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-foreground text-sm leading-5 font-semibold">{heading}</span>
+          <span className="text-muted-foreground line-clamp-2 text-xs leading-4">
+            {latestRelease.title}
+          </span>
+        </span>
+      </Link>
+      <button
+        type="button"
+        onClick={dismissNotification}
+        aria-label="Melding over nieuwe versie sluiten"
+        className="text-muted-foreground hover:text-foreground hover:bg-sidebar-accent focus-visible:ring-sidebar-ring absolute top-1 right-1 flex size-8 items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-2"
+      >
+        <X aria-hidden="true" className="size-4" />
+      </button>
+    </SidebarMenuItem>
   )
 }
