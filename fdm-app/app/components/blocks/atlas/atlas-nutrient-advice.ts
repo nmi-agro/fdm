@@ -124,19 +124,19 @@ export const NAV_T = "nav_t"
 
 /**
  * Status colours for applied vs. advice:
- * - orange: applied is less than the advice (< 90 %),
+ * - red: applied is less than the advice (< 90 %),
  * - green: applied is within ±10 % of the advice (90–110 %),
- * - red: applied is more than the advice (> 110 %); never for EOC.
+ * - orange: applied is more than the advice (> 110 %); never for EOC.
  *
  * Same thresholds and colours as `computeAdviceProgress`, the progress bars and the overview table
- * (Tailwind orange-500, green-500 and red-500). Used for the legend and tooltip swatches; the map
+ * (Tailwind red-500, green-500 and orange-500). Used for the legend and tooltip swatches; the map
  * itself uses the continuous {@link NUTRIENT_ADVICE_PERCENTAGE_STOPS}. Colour alone is not
  * colour-blind safe, so the legend and the tooltip always add a text label (DESIGN.md).
  */
 export const NUTRIENT_ADVICE_STATUS_COLORS: Record<AdviceProgressStatus, string> = {
-  under: "#f97316",
+  under: "#ef4444",
   "on-target": "#22c55e",
-  over: "#ef4444",
+  over: "#f97316",
 }
 
 /** Highest percentage of the advice on the colour scale; anything above gets the last colour. */
@@ -144,7 +144,7 @@ export const NUTRIENT_ADVICE_PERCENTAGE_MAX = 200
 
 /**
  * Continuous palette for "% van advies", as `[percentage of advice, colour]` stops: dark
- * orange at 0 %, through orange to green around 100 %, then through red to dark red at
+ * red at 0 %, through red to green around 100 %, then through orange to dark orange at
  * {@link NUTRIENT_ADVICE_PERCENTAGE_MAX} %. Small differences between fields stay visible, while
  * 90–110 % is the same green as the "on target" status class.
  */
@@ -397,7 +397,7 @@ function rampStops(ramp: readonly string[], from: number, to: number): (number |
 
 /**
  * Fill style of the layer, driven by `nav_class` and `nav_t`. The status classes share the
- * continuous orange–green–red palette on the percentage of the advice (interpolated in Lab, so the
+ * continuous red–green–orange palette on the percentage of the advice (interpolated in Lab, so the
  * transitions stay even); "Nog te geven" uses the purple ramp and "Advies" the blue ramp. The style does not depend on the data or
  * the mode: the mode is already encoded in the classes.
  *

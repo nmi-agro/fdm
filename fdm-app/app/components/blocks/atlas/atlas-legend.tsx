@@ -478,9 +478,9 @@ function NutrientAdviceLegendRamp({
  *
  * - "Nog te geven": a purple bar from 0 (nothing left, also for a surplus) to the largest amount
  *   still to apply on the farm.
- * - "% van advies": the continuous orange–green–red bar on the percentage of the advice, plus the
+ * - "% van advies": the continuous red–green–orange bar on the percentage of the advice, plus the
  *   number of fields that are under (< 90 %), on (90–110 %) and over (> 110 %) the advice. EOC is
- *   never "over", so its bar ends at 100 % and it has no red row.
+ *   never "over", so its bar ends at 100 % and it has no orange row.
  * - "Advies": a blue bar from the lowest to the highest advice on the farm.
  *
  * Rows for "no need" (advice 0) and "no advice" appear only when such fields exist. While loading
