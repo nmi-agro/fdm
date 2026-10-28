@@ -1,0 +1,216 @@
+---
+slug: release-october-2026
+title: October 2026 Release
+authors: [svenverweij]
+tags: [release, fdm-app, fdm-core, fdm-calculator, fdm-data, fdm-api, fdm-rvo, fdm-docs]
+date: 2026-10-28
+---
+
+This release is mostly about fertilization planning. When you add a fertilizer application, FDM now shows what it does to the gebruiksruimte, the nutrient advice and the nitrogen balance before you save it. A new Atlas layer shows the nutrient advice of every field on the map.
+
+Organizations can now group their farms, for example per project or study group, and filter their dashboards by group. The REST API gets endpoints for the BLN3 indicator scores and the recommended measures of a field, calculated with the same rules as the application. In Labs, the Mineralisatie pages have been rebuilt on the NMI Dyna v2 model.
+
+Smaller changes include a nitrogen balance based on effective nitrogen, corrected stikstofgebruiksnormen for temporary grassland, a more flexible review step in the RVO import, cultivation codes that follow the years in which RVO accepts them, and a KvK lookup when creating a farm.
+
+{/* truncate */}
+
+### Fertilization: See the Effect Before Saving
+
+Until now, you only saw what an application did to the norms, the advice and the balance after saving it and opening another page. In this release, that information moves onto the fertilizer pages themselves, and it updates while you fill in the form.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The page for adding one application to several fields, opened from the fields table or the rotation table, has been redesigned. It shows the gebruiksruimte of the farm and how much of it is used, the area-weighted N, P₂O₅ and K₂O advice and nitrogen balance of the selected fields, and a breakdown per field. The numbers are calculated in the browser from data loaded once with the page, so they change as you type.
+- Fields can be left out from the field table, and the field selection has a search and buttons to select all fields with the crop or none. When buffer strips are selected, a warning offers to exclude them with one click.
+- Next to the save button you get one verdict: how much room is left per norm, or by how much it is exceeded. On a field page this includes the farm as a whole, since that is the level that counts legally. Notes are added when the nitrogen balance ends above its target or a field ends above the advice. Exceeding a norm gives a warning, but saving is never blocked.
+- The fertilizer page of a single field works the same way. The form is on the page instead of in a dialog, with the gebruiksruimte of the field (or, with a switch, of the whole farm) and the advice and nitrogen balance before and after the application. The advice is always based on the main cultivation. Saved applications are listed at the top with the workable N, P and K each one supplies, and editing one previews the effect of the change.
+- The applications of one fertilizer have their own page instead of a dialog. You can select several applications and change or remove them together, again with a preview of the effect.
+- Adding an application from the rotation table now runs in a single transaction and ignores duplicate fields, as the fields table already did. Errors are shown in Dutch with a retry option, and the application method is filled in when a fertilizer has only one.
+- The advice block of the fertilizer application metrics now shows workable nitrogen instead of total nitrogen, matching the nutrient advice itself.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- A new entry point, `@nmi-agro/fdm-calculator/browser`, contains the calculations for doses, nitrogen balances, norm fillings and farm aggregation without server-only dependencies. This is what makes the live preview possible. It includes a new function that calculates the fillings of all gebruiksnormen of a field for 2025 or 2026 when the soil region is already known.
+- Raster values such as the soil region and atmospheric deposition are cached in memory per location, so repeated calculations for the same fields do not read the raster again.
+
+### Farm Groups
+
+Advisory firms, cooperatives and research projects often work with many farms, but rarely look at all of them at once. They follow the participants of a project, a study group or a region. Until now, the organization pages always showed every farm. Farm groups let you define these subsets and use them on the organization pages and in the REST API.
+
+A group belongs to one organization and contains farms of that organization; a farm can be in more than one group. Membership is recorded as a period with a start date and an optional end date. These are the dates on which the farm actually joined and left the group, not the date someone entered them. That way you can see for each calendar year which farms were in a group: a farm counts as part of a group in a year if it was in the group at any point in that year. Ending a membership keeps the history, while a period entered by mistake can be deleted as if it never existed.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The organization has a new groups page, with a page per group that lists the periods of its farms in the selected year. Groups can be created, renamed and removed there.
+- Dates are set with the date picker. The start date defaults to 1 January of the selected year and there is no default end date. To end a membership, give the period an end date; an end date before the start date is rejected.
+- The organization dashboards for the nitrogen balance, the organic matter balance, indicators and measures, and the indicators map in the atlas, have a group picker. Pick a group and the page only shows the farms that were in it during the selected year, so you can, for example, follow a study group over several years.
+- The organization farms table has a "Groepen" column, a group filter and a bulk action to add several farms to a group. The farm overview shows organization farms under collapsible group headers, and the farm cards on the organization page show their groups for the selected year.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- Following the Asset–Action model, joining and leaving a group are stored as separate events with the dates `b_group_joined` and `b_group_leaved`, and the membership periods are derived from them. Group names are unique within an organization, and the periods of one farm in a group cannot overlap.
+- Groups have their own authorization resource, owned by the organization. Members of the organization can list and create groups.
+- The new farm group functions cover creating, renaming and removing groups, and adding, ending, changing and deleting memberships. Removing a farm also removes it from its groups. The functions are marked as alpha, so their signatures may still change.
+
+**FDM API (`@nmi-agro/fdm-api`)**
+
+- Groups are listed and created under `/organizations/{organization_id}/farm-groups`, and read, renamed and removed under `/farm-groups/{b_id_group}`.
+- Farms are added with `POST /farm-groups/{b_id_group}/farms`, with optional `b_group_joined` and `b_group_leaved` dates. Their membership can be ended, and a single period can be changed or deleted.
+- `GET /farms` accepts a `b_id_group` query parameter to list only the farms of a group.
+
+### Indicators and Recommended Measures in the API
+
+The BLN3 indicator scores and the recommended measures were only available in the application. They can now also be retrieved through the REST API, for example by advisory software or in research workflows. To make sure both give the same answer, the logic for scoring, aggregation and ranking has moved from the application into fdm-calculator, and the application uses it from there.
+
+**FDM API (`@nmi-agro/fdm-api`)**
+
+- `GET /fields/{b_id}/indicators` returns the indicator and aggregation scores of a field for a given year. Buffer strips and nature fields are not scored and return `is_excluded: true`.
+- `GET /farms/{b_id_farm}/indicators` returns the scores of all eligible fields of a farm together with the area-weighted farm scores. If one field cannot be scored, the whole request fails rather than returning a partial result.
+- `GET /fields/{b_id}/measures/catalogue` lists the measures from the catalogues enabled on the farm. For each measure it gives the applicability, whether it is already taken or conflicts with a measure that is, whether it can be selected, and its predicted impact per indicator. The predicted impacts are advice for this field and year and are not stored on the measure.
+- Up to five measures are recommended, ranked by their combined impact on the indicators of the field that are not green yet. A recommended measure can be adopted directly by passing its `m_id` to `POST /fields/{b_id}/measures`.
+- All three endpoints are read-only and need a `year` query parameter. Because they call the NMI API, they have their own rate limit of 10 requests per minute per API key, separate from the general limit; a farm request counts as one request regardless of the number of fields. If the scores are temporarily unavailable, they return `503`, and the cause is logged on the server under the same `error_id` as the response.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- New functions return the indicator scores of a field or farm and the measure options of a field. The underlying helpers for aggregation and ranking are also available from the browser entry point.
+- Some measures come in variants, such as a measure with two different water levels. Their IDs differ only in a trailing letter, for example `bln_BM56b` and `bln_BM56c`. The ranking now recommends only the best variant of each measure, and none when a variant is already in place on the field. A variant that cannot be selected no longer hides one that can.
+- Scores and applicability now use all soil analyses up to the selected year, not only those taken in that year. More measured lab data is therefore used, and fewer estimates from NMI BodemSchat.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- Recommended measures follow the same variant rule. For "Hoger stuwpeil in hoofdwatergang", for example, only the stronger of the 20 cm and 35 cm variants is shown, and the freed place goes to another measure. This applies to "Aanbevolen maatregelen" on the farm, "Waar te beginnen" in the Knelpunten panel and the recommendations per indicator on the field page.
+
+### Atlas: Bemestingsadvies Layer
+
+The Bemestingsadvies overview shows the nutrient advice of a farm as a table. The new Atlas layer shows the same advice on the map, which makes it easier to see where on the farm there is still room to fertilize.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The layer colours each field by the advice for the selected nutrient, in kg/ha. You can show what is still to apply ("Nog te geven"), the share of the advice that has been applied ("% van advies"), or the advice itself. Hovering over a field shows the advice, what has been applied, what is left and the percentage; clicking it opens its advice page.
+- In "Nog te geven", fields run from light (nothing left, also when more than the advice was applied) to dark (the most left to apply on the farm). In "% van advies", the colour runs on a continuous scale from orange through green to red, so small differences between fields stay visible. Fields with an advice of 0 and nothing applied are shown as "Geen behoefte".
+- The legend counts the fields under, on and over the advice. Results appear field by field as they are calculated ("Advies berekend voor X van N percelen"), on the map as well as in the overview, and the next field no longer waits for the slowest one of a batch.
+- All views of the nutrient advice now use the same colours: orange below 90 % of the advice, green from 90 to 110 %, and red above 110 %. EOC is never marked as too much. Before, the table and the summary cards each used their own thresholds.
+- The farm row in the overview now says whether it shows the area-weighted average per hectare ("Bedrijfsgemiddelde") or the farm total ("Bedrijfstotaal").
+
+### Mineralisatie (Labs): Rebuilt on Dyna v2
+
+A fertilization plan is made before the season, but how much nitrogen the crop actually gets depends on the soil, the weather and the timing of applications and harvests. The Mineralisatie pages show this during the season. They are now based on the NMI Dyna v2 model, which simulates the nitrogen in a field day by day: what becomes available from soil, fertilizers and crop residues, what the crop takes up, and what leaches as nitrate. It uses measured weather up to today, the forecast for the coming days, and long-term climate data after that.
+
+The Mineralisatie pages are part of Labs. Both the design and the model are experimental, and the pages are only available to test users.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- The farm overview shows per field the available nitrogen, the uptake and the leaching. It highlights fields that need attention: an expected nitrogen shortage, rain around a planned application or harvest, a nitrogen surplus, or a calculation that failed.
+- Fields without a harvest are grouped per crop, with a link to the harvest form of the crop rotation where the harvests or cuts of all those fields can be entered at once.
+- The field page has an interactive chart of nitrogen supply, uptake, available nitrogen and leaching over the season, with sowing, fertilization and harvests marked as events. Beside it are the workable nitrogen balance, the input data and, during the season, the weather forecast.
+- You can try out a scenario before changing the plan, for example a later application or an extra cut. For grassland, every cut of the year can be changed, added or removed, with the usual yield and crude protein for the crop as a starting point. The effect is shown next to the chart, and before saving the page lists what will change in the fertilization plan.
+- The page adapts to the phase of the season. When planning, the scenario sits right under the chart; during the growing season the nitrogen balance and the points of attention come first. When a harvest is missing, the page asks for the measured or planned harvest.
+- Dyna needs at least 10 days between two harvests of one cultivation. A harvest closer to the previous one is left out of the calculation, and the page says which one.
+- Results appear per field as they are calculated. The old pages for soil nitrogen supply (MINIP, PMN, Century) have been removed.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- The mineralization module has been rewritten for Dyna v2. It prepares the input from the data in FDM (the main cultivation, any green manure or catch crop after it, and the harvests and applications of the year), runs and caches the calculation, fetches the weather forecast, derives the signals shown in the application, and supports scenarios. Buffer strips and nature and landscape elements are left out.
+- **Breaking:** the previous N-supply integration and the Dyna v1 functions have been removed.
+
+**FDM Core (`@nmi-agro/fdm-core`)**
+
+- The conversion from the harvest parameters as entered (for example yield and crude protein) to dry matter yield and nitrogen content is now exported, so it can be used without saving a harvest.
+
+### Nitrogen Balance with Effective Nitrogen
+
+The nitrogen balance has always used total nitrogen. For questions about nitrogen use efficiency during the season, effective nitrogen is often more useful, so you can now choose between the two.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- With the new option `useEffectiveNitrogen`, the supply from fertilizers is calculated with effective nitrogen (`p_n_rt * p_n_wc`) and the mineralization from the soil with the MINIP model. Nitrate leaching is still based on the surplus of the balance with total nitrogen. Total nitrogen remains the default.
+- The nitrogen balance and the nitrogen supplying capacity (NLV) now share one MINIP implementation. Each keeps its own parameters, so the results do not change.
+
+**FDM Application (`@nmi-agro/fdm-app`)** and **FDM API (`@nmi-agro/fdm-api`)**
+
+- The nitrogen balance pages have a switch between total and effective nitrogen, and the API accepts `effective_nitrogen=true`. The target is only shown for total nitrogen, because it is only defined for that balance; the API leaves it out of the response.
+
+### Stikstofgebruiksnormen
+
+The norm for temporary grassland depends on when the grass was sown and how long it stays. The way FDM picked the row from RVO Tabel 2 was too simple in several cases, mostly for grass sown late in the season and for grass followed by another crop. The changes apply to 2025 and 2026.
+
+**FDM Calculator (`@nmi-agro/fdm-calculator`)**
+
+- Grass sown on or after 15 April now gets the latest "vanaf …" sowing window that has started, instead of always "vanaf 15 april". Grass sown on 15 October, for example, now gets 0 kg N/ha instead of the norm for "vanaf 15 april tot minstens 15 oktober".
+- Temporary grassland that continues into the next year gets the norm for the full year instead of "tot minstens 15 april". Grass sown between 1 January and 15 April uses the "van 1 januari tot minstens …" rows.
+- Grassland from a previous year that is destroyed in spring before another main crop, such as maize, was left out because it was not the hoofdteelt. It now gets its "van 1 januari tot minstens …" norm if it lasts until at least 15 April. When the grass is renewed with grass sown before 15 October that stays until at least 15 October, the new grass carries the norm and is marked as heringezaaid.
+- Grass that does not reach the minimum period of any row gets 0 kg N/ha with the note "geen ruimte: minimale periode niet gehaald". The norm description now names the period that was applied, for example "Tijdelijk grasland (vanaf 15 oktober) (0 kg N/ha)".
+- `Gras voor industriële verwerking` sown before 15 May in its first year gets the norm for "inzaai voor 15 mei en volgende jaren" instead of "inzaai in september en eerste jaar".
+- In 2026, the reductions for grassland renewal (50 kg N/ha) and grassland destruction (65 kg N/ha) only apply on sand and loess, following footnotes 14 to 16 of Tabel 2. They were applied on clay and peat as well.
+- The norm for `Bladgewassen overig` and `Kruiden` gave an error and is now calculated. With more than one harvest in the norm year the norm for _meermalige oogst_ applies, otherwise the norm for _eenmalige oogst_. The catalogue now allows multiple harvests for these crops.
+
+**FDM Application (`@nmi-agro/fdm-app`)** and **FDM Docs (`@nmi-agro/fdm-docs`)**
+
+- The norms disclaimer lists two situations that are not supported. The generic herb codes use the norm for leaf crops, because separate norms for root and seed herbs are not applied. Grow-out of consumption and seed potatoes with haulm destruction after 15 August is not supported, because the date of haulm destruction is not recorded.
+- The documentation of the 2025 and 2026 norms describes the rules above.
+
+### RVO and Shapefile Import Review
+
+The review step of the RVO and shapefile import compares your fields with those at RVO. You used to decide per field; you can now decide per column whether to keep the RVO value, keep the value in FDM, or enter your own.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- By default, every field follows RVO: new fields are added, differing fields take the RVO values, and fields that RVO no longer reports are closed. The table shows the date on which each field will be closed.
+- A summary above the table shows how many fields there are per status and which columns differ, and whether the fields will match RVO after saving. Fields that need a decision come first, and fields that already match are collapsed.
+- The import is blocked when a field has no name, no start date, or an end date that is not after its start date. The server checks the same rules.
+- Before applying, a confirmation names the fields that will be added, updated, closed or removed. It warns that removing a field also removes its cultivations, harvests, fertilizer applications, soil analyses and measures. Error messages are now in Dutch.
+- The statuses have clearer names ("Alleen bij RVO", "Niet meer bij RVO") and icons, so their meaning does not depend on colour, and "Verschil" is no longer red as if it were an error. Every choice is labelled with its column and field for screen readers, and the save buttons stay visible while scrolling.
+- Fields without a crop now also get soil estimates when they are imported.
+
+### Cultivation Codes per Year
+
+BRP cultivation codes are not valid in every year: codes are added, merged and retired. The catalogues now record in which years each code is accepted by RVO.
+
+**FDM Data (`@nmi-agro/fdm-data`)** and **FDM Core (`@nmi-agro/fdm-core`)**
+
+- Each catalogue cultivation has a new field `b_lu_ya` with the years from 2009 to 2026 in which the code is available in the Basisregistratie Percelen. An empty value means it is available in all those years. The cultivation catalogue can be filtered by year.
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- You can only select cultivation codes that RVO accepts for the year in question, which also makes the lists shorter.
+- Existing cultivations stay as they are and are still used in calculations. If their code is not accepted for that year, a warning names the first year in which it is no longer available. The warning appears on the field dashboard, the cultivation page and the cultivation form, and as a warning triangle on the cultivation badges in the field and rotation tables.
+
+### REST API: Catalogues and Other Changes
+
+**FDM API (`@nmi-agro/fdm-api`)**
+
+- `GET /catalogues` lists the available cultivation, fertilizer and measure catalogues. Per farm, `/farms/{b_id_farm}/catalogues/{type}` lists the catalogues that are enabled and `.../items` their contents, with an optional `source` filter and pagination. A catalogue that is not enabled on the farm returns `404`.
+- A farm created with `POST /farms` now gets the default catalogues (`baat` and the farm's own fertilizers, `brp` cultivations and `bln` measures) and their fertilizers, in the same transaction. It can be used for cultivations, applications and measures right away.
+- **Breaking:** `/farms/{b_id_farm}/fertilizer-catalogue` has been removed. Use `/farms/{b_id_farm}/catalogues/fertilizer/items` instead.
+- The API reference has a Changelog page for API users, directly below the introduction, and new operations are marked with a "New" badge.
+
+### Farms and Organizations
+
+**FDM Application (`@nmi-agro/fdm-app`)**
+
+- When creating a farm, you can start with its KvK number to fill in the name and address from the KvK Handelsregister, or skip this step if the farm has none. The address and postal code can now be entered during creation as well. The farm settings page has an "Ophalen uit KvK" button.
+- Self-hosted installations can enable the lookup with `KVK_API_KEY` (and optionally `KVK_API_BASE_URL`); without it, the option is hidden. The documentation describes the setup.
+- The slug of an organization can no longer be changed after creation, so renaming an organization keeps its URL. On the create form, the suggested slug follows the name as you type.
+
+### Smaller Improvements and Under the Hood
+
+- The units and names of several soil parameters have been corrected to match the NMI definitions. `a_c_of` is shown in g C/kg and `a_n_rt` in mg N/kg. `a_mg_co`, `a_ca_co` and `a_k_co` all use "mmol+/kg" and are labelled "uitwisselbaar" instead of "totale bodemvoorraad". The input range of `a_ca_co_po` is limited to 1 to 100 %.
+- An empty `NMI_API_KEY` is now treated as not configured. Before, the text `undefined` was sent as key, so requests to the NMI API failed instead of being skipped.
+- Redirects no longer depend on parsing the request URL by hand, and return links after saving are checked against the application's own address, so a crafted link can no longer send users to another site.
+- The application now uses the React Compiler. Dependencies were updated, among them `@hookform/resolvers` 6 and `framer-motion` 14.
+- The API reference in the documentation is complete again. After a change in TypeDoc's module resolution, most functions and types had disappeared from it; the build now fails instead of silently leaving them out.
+
+### Hotfixes since September 2026
+
+These fixes were released as patches between the September and October releases.
+
+- **Calendar years.** Dates are now interpreted in the Europe/Amsterdam timezone instead of UTC. A field or measure ended on 31 December or 1 January no longer shows up in the next year or in its calculations: an end date on 1 January is returned as 31 December of the previous year. The REST API returns dates in the same timezone, and updating a field without an end date keeps the stored one.
+- **Fields outside the selected year.** If you open a field page for a year in which the field is not managed, the application says so, with links to the first or last year of the field and to its settings, instead of showing an empty page.
+- **RVO.** Before connecting to RVO, you now choose whether you log in with the eHerkenning of the farm itself or of your own organisation with a machtiging. The KvK number is only sent for a machtiging, so farmers who use their own eHerkenning no longer get "Toegang geweigerd". If access is still refused, the page explains why and offers the other option. Farm verification badges are hidden for now.
+- **RVO logging.** For debugging, the SOAP messages exchanged with RVO can be logged with the environment variable `RVO_LOG_XML`. These messages can contain farm data, so only enable it temporarily.
+- **BLN3.** FDM uses the new aggregation codes of the NMI API (for example `S_WAT` instead of `S_WAT_BLN`) and only sends documented parameters, which fixed failing requests. Cached results with the old codes are discarded.
+- **Other.** Selected rows in the fields table are highlighted, BodemConditieScore analyses have their own icon on the timeline, BRP cultivation suggestions are carried over correctly, and 404 and 405 responses caused by bots and scanners are no longer reported as errors.
+
+---
+
+For a detailed list of changes, please refer to the package-specific changelogs for [fdm-app](https://github.com/nmi-agro/fdm/blob/main/fdm-app/CHANGELOG.md), [fdm-core](https://github.com/nmi-agro/fdm/blob/main/fdm-core/CHANGELOG.md), [fdm-calculator](https://github.com/nmi-agro/fdm/blob/main/fdm-calculator/CHANGELOG.md), [fdm-data](https://github.com/nmi-agro/fdm/blob/main/fdm-data/CHANGELOG.md), [fdm-api](https://github.com/nmi-agro/fdm/blob/main/fdm-api/CHANGELOG.md), [fdm-rvo](https://github.com/nmi-agro/fdm/blob/main/fdm-rvo/CHANGELOG.md), and [fdm-docs](https://github.com/nmi-agro/fdm/blob/main/fdm-docs/CHANGELOG.md). Feedback and contributions are welcome on our GitHub repository.
