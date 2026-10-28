@@ -181,7 +181,6 @@ export const FertilizerCatalogueSchema = z.looseObject({
     .string()
     .nullable()
     .openapi({ title: "Description", description: "Further detail about the fertilizer." }),
-  // RVO type
   p_type: z.enum(["mineral", "manure", "compost"]).nullable().openapi({
     title: "Fertilizer type",
     description: "Fertilizer type that is relevant for compliance.",
@@ -190,19 +189,6 @@ export const FertilizerCatalogueSchema = z.looseObject({
     title: "RVO fertilizer code",
     description: "Fertilizer type code according to RVO. It is an integer formatted as a string.",
   }),
-  // Flags
-  p_type_manure: z
-    .boolean()
-    .nullable()
-    .openapi({ title: "Is manure", description: "Whether this fertilizer is a manure." }),
-  p_type_mineral: z.boolean().nullable().openapi({
-    title: "Mineral fertilizer",
-    description: "Whether this fertilizer is a mineral fertilizer.",
-  }),
-  p_type_compost: z
-    .boolean()
-    .nullable()
-    .openapi({ title: "Is compost", description: "Whether this fertilizer is a compost." }),
   p_app_method_options: z.string().array().nullable().openapi({
     title: "Application method options",
     description:
