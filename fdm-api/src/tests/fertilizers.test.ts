@@ -111,31 +111,6 @@ describe("GET /farms/:b_id_farm/fertilizers", () => {
   })
 })
 
-describe("GET /farms/:b_id_farm/fertilizer-catalogue", () => {
-  beforeEach(validKey)
-
-  it("returns 200 with paginated catalogue items", async () => {
-    const app = makeApp({
-      getFertilizersFromCatalogue: vi.fn().mockResolvedValue([baseCatalogue]),
-    })
-    const res = await app.request("/farms/farm-1/fertilizer-catalogue", {
-      headers: { "x-api-key": "valid" },
-    })
-    expect(res.status).toBe(200)
-    expect((await res.json()).data[0].p_id_catalogue).toBe("cat-1")
-  })
-
-  it("returns 403 when principal lacks access", async () => {
-    const app = makeApp({
-      getFertilizersFromCatalogue: vi.fn().mockRejectedValue(new Error("Permission denied")),
-    })
-    const res = await app.request("/farms/farm-1/fertilizer-catalogue", {
-      headers: { "x-api-key": "valid" },
-    })
-    expect(res.status).toBe(403)
-  })
-})
-
 describe("POST /farms/:b_id_farm/fertilizers", () => {
   beforeEach(validKey)
 

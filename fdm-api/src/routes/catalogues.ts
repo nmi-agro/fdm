@@ -150,7 +150,7 @@ const CultivationCatalogueSchema = z.looseObject({
   }), // MM-dd
 })
 
-const FertilizerCatalogueSchema = z.looseObject({
+export const FertilizerCatalogueSchema = z.looseObject({
   p_id_catalogue: z.string().openapi({
     title: "Fertilizer code in catalogue",
     description: "Catalogue code used to reference this catalogue item in fertilizer applications.",
