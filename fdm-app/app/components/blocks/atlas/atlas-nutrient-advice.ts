@@ -149,14 +149,14 @@ export const NUTRIENT_ADVICE_PERCENTAGE_MAX = 200
  * 90–110 % is the same green as the "on target" status class.
  */
 export const NUTRIENT_ADVICE_PERCENTAGE_STOPS: readonly (readonly [number, string])[] = [
-  [0, "#c2410c"],
-  [50, "#f97316"],
-  [80, "#fb923c"],
+  [0, "#991b1b"],
+  [50, "#ef4444"],
+  [80, "#f87171"],
   [90, "#22c55e"],
   [110, "#22c55e"],
-  [125, "#f87171"],
-  [150, "#ef4444"],
-  [NUTRIENT_ADVICE_PERCENTAGE_MAX, "#991b1b"],
+  [125, "#fb923c"],
+  [150, "#f97316"],
+  [NUTRIENT_ADVICE_PERCENTAGE_MAX, "#c2410c"],
 ]
 
 /**
