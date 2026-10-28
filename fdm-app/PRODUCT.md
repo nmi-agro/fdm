@@ -27,7 +27,7 @@ Two working rhythms, both organized around the crop year (the calendar in the UR
 
 Advisors work across multiple farms and share access through organizations. Data arrives from outside as much as by hand: RVO parcel registration imports, lab soil analyses as PDF, spatial datasets (Bodemkaart, Hoogtekaart/AHN). A bemestingsplan PDF is the artifact that leaves the app and gets handed over. Sessions with real users are the current feedback channel.
 
-The authenticated app is the primary surface and the one the product is judged by. The public, unauthenticated pages — sign-in, privacy, about / what's-new — double as fdm-app's marketing: for most prospective users they are the only thing seen before signing in.
+The authenticated app is the primary surface and the one the product is judged by. The public, unauthenticated pages — sign-in and privacy — double as fdm-app's marketing: for most prospective users they are the only thing seen before signing in.
 
 ## Capabilities and Constraints
 
@@ -55,7 +55,7 @@ Real and citable:
 - In production with real users who give feedback in sessions.
 - Currently a free pilot.
 - Product screenshots in `fdm-app/public/`: `fdm-screenshot-atlas-cultivations.png`, `fdm-screenshot-atlas-cultivation-history.png`, `fdm-screenshot-atlas-elevation.png`, `fdm-screenshot-nutrient-advice-npk.png`, plus `bemestingsplan_cover.jpg` and the logo set.
-- Public surfaces that carry factual content: `/about/whats-new` (changelog) and `/privacy` (policy fetched from `FDM_PRIVACY_URL`).
+- Surfaces that carry factual content: `/about/whats-new` (changelog, behind sign-in) and `/privacy` (public; policy fetched from `FDM_PRIVACY_URL`).
 
 Deliberately absent — never fabricate: named customers or logos, testimonials, quantified outcome claims (yield gained, nitrogen saved), user counts, awards, certifications, pricing or licensing tiers, and SLA or deployment guarantees.
 
