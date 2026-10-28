@@ -2,6 +2,20 @@ Notable changes to the REST API, newest first. Operations that were added recent
 
 ## UNRELEASED
 
+### Catalogues
+
+New read-only endpoints for the cultivation, fertilizer and field measure catalogues.
+
+- `GET /catalogues` lists the available catalogues per type, with their `source` code and title.
+- `GET /farms/{b_id_farm}/catalogues/cultivation`, `.../fertilizer` and `.../measure` list the `source` codes of the catalogues enabled on a farm.
+- `GET /farms/{b_id_farm}/catalogues/cultivation/items`, `.../fertilizer/items` and `.../measure/items` list the items in the catalogues enabled on a farm. Pass the optional `source` query parameter to list a single catalogue. These responses are paginated with `limit` and `offset`. They return `404` when the catalogue is not enabled on the farm.
+
+Use the identifiers from these lists to add cultivations, fertilizers and measures to a farm or field.
+
+### Default catalogues for new farms
+
+`POST /farms` now enables the default catalogues for the new farm: `baat` and the farm's own fertilizers, `brp` for cultivations and `bln` for field measures. The fertilizers in these catalogues are added to the farm's fertilizer list. This happens in the same transaction as creating the farm, so either all steps succeed or no farm is created. The request and response are unchanged.
+
 ### Nitrogen balance with effective nitrogen
 
 `GET /farms/{b_id_farm}/calculations/nitrogen-balance` and `GET /fields/{b_id}/calculations/nitrogen-balance` accept an optional `effective_nitrogen` query parameter (`true` or `false`, default `false`).
