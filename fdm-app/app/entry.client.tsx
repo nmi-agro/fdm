@@ -13,6 +13,7 @@ import { StrictMode, startTransition } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { HydratedRouter } from "react-router/dom"
 import { clientConfig } from "~/lib/config"
+import { useCookieConsentStore } from "~/store/cookie-consent"
 
 setWorkerUrl(workerUrl)
 
@@ -83,6 +84,29 @@ if (clientConfig.analytics.sentry) {
       graphQL: { document: false, variables: false },
     },
   })
+}
+
+// Initialize PostHog before hydration so that child effects (identify, group, capture) always
+// run against an initialized client and events carry a distinct_id.
+const posthogConfig = clientConfig.analytics.posthog
+if (posthogConfig) {
+  try {
+    posthog.init(posthogConfig.key, {
+      api_host: "/ingest",
+      ui_host: posthogConfig.host,
+      person_profiles: "always",
+      persistence:
+        useCookieConsentStore.getState().consent === "yes" ? "localStorage+cookie" : "memory",
+      bootstrap: {
+        featureFlags: {
+          gerrit: false,
+          mineralization: false,
+        },
+      },
+    })
+  } catch (error) {
+    console.error("Failed to initialize PostHog:", error)
+  }
 }
 
 startTransition(() => {
