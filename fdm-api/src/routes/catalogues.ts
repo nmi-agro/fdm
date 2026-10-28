@@ -2,9 +2,6 @@ import type { OpenAPIHono } from "@hono/zod-openapi"
 import { createRoute, z } from "@hono/zod-openapi"
 import {
   getMeasuresFromCatalogue,
-  type enableCultivationCatalogue,
-  type enableFertilizerCatalogue,
-  type enableMeasureCatalogue,
   type FdmType,
   type getCultivationsFromCatalogues,
   type getEnabledCultivationCatalogues,
@@ -437,12 +434,6 @@ export interface CatalogueServices {
   getFertilizersFromCatalogues: typeof getFertilizersFromCatalogues
   /** Gets the BLN3 measures catalogue. */
   getMeasuresFromCatalogue: typeof getMeasuresFromCatalogue
-  /** Enables a fertilizer catalogue for the farm. */
-  enableFertilizerCatalogue: typeof enableFertilizerCatalogue
-  /** Enables a cultivation catalogue for the farm. */
-  enableCultivationCatalogue: typeof enableCultivationCatalogue
-  /** Enables a field measure catalogue for the farm. */
-  enableMeasureCatalogue: typeof enableMeasureCatalogue
 }
 
 // -------------------- LIST CATALOGUE ROUTES --------------------
@@ -541,7 +532,7 @@ const listCultivationCatalogueRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/cultivation/items",
   tags: ["Catalogues", "Cultivations"],
   summary: "List a cultivation catalogue",
-  description: "Lists the cultivations in a cultivation catalogue.",
+  description: "Lists the cultivations in a farm's cultivation catalogue.",
   request: { params: ListEnabledCataloguesParamsSchema, query: ListCatalogueItemsQuerySchema },
   responses: {
     200: {
@@ -557,7 +548,7 @@ const listFertilizerCatalogueRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/fertilizer/items",
   tags: ["Catalogues", "Fertilizers"],
   summary: "List a fertilizer catalogue",
-  description: "Lists the fertilizers in a fertilizer catalogue.",
+  description: "Lists the fertilizers in a farm's fertilizer catalogue.",
   request: { params: ListEnabledCataloguesParamsSchema, query: ListCatalogueItemsQuerySchema },
   responses: {
     200: {
@@ -573,7 +564,7 @@ const listMeasureCatalogueRoute = createRoute({
   path: "/farms/{b_id_farm}/catalogues/measure/items",
   tags: ["Catalogues", "Measures"],
   summary: "List a field measures catalogue",
-  description: "Lists the field measures in a field measure catalogue.",
+  description: "Lists the field measures in a farm's field measure catalogue.",
   request: { params: ListEnabledCataloguesParamsSchema, query: ListCatalogueItemsQuerySchema },
   responses: {
     200: {
