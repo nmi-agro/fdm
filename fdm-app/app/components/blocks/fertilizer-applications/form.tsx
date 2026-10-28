@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { formatDate } from "date-fns"
 import { nl } from "date-fns/locale"
 import { Plus } from "lucide-react"
-import { useEffect, useId, useRef } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { Controller, useWatch } from "react-hook-form"
 import { Form, useNavigate, useSearchParams } from "react-router"
 import { RemixFormProvider, useRemixForm } from "remix-hook-form"
@@ -208,18 +208,23 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
   const deleteFertilizerForm = useFieldFertilizerFormStore((s) => s.delete)
 
   // If the user had a saved fertilizer form and was creating a new fertilizer, fill the form back in
-  useEffect(() => {
-    if (b_id_farm && b_id_or_b_lu_catalogue) {
+  const [lastFilledInSavedFormValues, setLastFilledInSavedFormValues] = useState<
+    Partial<FieldFertilizerFormValues> | undefined
+  >(undefined)
+  if (b_id_farm && b_id_or_b_lu_catalogue) {
+    const savedForm = loadFertilizerForm(b_id_farm, b_id_or_b_lu_catalogue, calendar)
+    if (savedForm && lastFilledInSavedFormValues !== savedForm) {
+      setLastFilledInSavedFormValues(savedForm)
       const savedFormValues = loadFertilizerForm(b_id_farm, b_id_or_b_lu_catalogue, calendar)
       if (savedFormValues) {
         for (const [k, v] of Object.entries(savedFormValues)) {
           if (typeof v === "undefined" || v === null) continue
           const hydrated = k === "p_app_date" && v ? new Date(v as any) : (v as any)
-          form.setValue(k as any, hydrated)
+          formSetValue(k as any, hydrated)
         }
       }
     }
-  }, [b_id_farm, b_id_or_b_lu_catalogue, form, loadFertilizerForm, calendar])
+  }
 
   useEffect(() => {
     const p_app_amount_display = fertilizerApplication?.p_app_amount_display
@@ -230,11 +235,11 @@ export function FertilizerApplicationForm<T extends typeof FormSchemaPartial>({
 
   // Change fertilizer selection if the user has added a new fertilizer
   const new_p_id = searchParams.get("p_id")
-  useEffect(() => {
-    if (new_p_id) {
-      formSetValue("p_id", new_p_id)
-    }
-  }, [formSetValue, new_p_id])
+  const [last_filled_in_p_id, set_last_filled_in_p_id] = useState<string | undefined>(undefined)
+  if (new_p_id && last_filled_in_p_id !== new_p_id) {
+    set_last_filled_in_p_id(new_p_id)
+    formSetValue("p_id", new_p_id)
+  }
 
   useEffect(() => {
     if (form.formState.isSubmitSuccessful) {
