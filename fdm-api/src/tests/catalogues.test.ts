@@ -56,21 +56,21 @@ describe("Catalogues - unauthenticated", () => {
     expect(res.status).toBe(401)
   })
 
-  it("returns 401 for GET /farms/{b_id_farm}/catalogues/cultivation/{source} without key", async () => {
+  it("returns 401 for GET /farms/{b_id_farm}/catalogues/cultivation/items?source={source} without key", async () => {
     const app = makeApp()
-    const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp`)
+    const res = await app.request(`/farms/farm-1/catalogues/cultivation/items?source=brp`)
     expect(res.status).toBe(401)
   })
 
-  it("returns 401 for GET /farms/{b_id_farm}/catalogues/fertilizer/{source} without key", async () => {
+  it("returns 401 for GET /farms/{b_id_farm}/catalogues/fertilizer/items?source={source} without key", async () => {
     const app = makeApp()
-    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/baat`)
+    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/items?source=baat`)
     expect(res.status).toBe(401)
   })
 
-  it("returns 401 for GET /farms/{b_id_farm}/catalogues/measure/{source} without key", async () => {
+  it("returns 401 for GET /farms/{b_id_farm}/catalogues/measure/items?source={source} without key", async () => {
     const app = makeApp()
-    const res = await app.request(`/farms/farm-1/catalogues/measure/bln`)
+    const res = await app.request(`/farms/farm-1/catalogues/measure/items?source=bln`)
     expect(res.status).toBe(401)
   })
 })
@@ -146,11 +146,11 @@ describe("Catalogues - list catalogue items", () => {
     validKey()
   })
 
-  it("returns 200 for GET /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+  it("returns 200 for GET /farms/{b_id_farm}/catalogues/cultivation/items without source", async () => {
     const brp = [{ b_lu_catalogue: "nl_test" }]
     services.getEnabledCultivationCatalogues.mockResolvedValueOnce(["brp"])
     services.getCultivationsFromCatalogues.mockResolvedValueOnce(brp)
-    const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp`, {
+    const res = await app.request(`/farms/farm-1/catalogues/cultivation/items`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(200)
@@ -158,23 +158,38 @@ describe("Catalogues - list catalogue items", () => {
     expect(data).toEqual({ data: brp, limit: 50, offset: 0, total: 1 })
   })
 
-  it("applies limit and offset for GET /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+  it("returns 200 for GET /farms/{b_id_farm}/catalogues/cultivation/items?source={source}", async () => {
+    const brp = [{ b_lu_catalogue: "nl_test" }]
+    services.getEnabledCultivationCatalogues.mockResolvedValueOnce(["brp"])
+    services.getCultivationsFromCatalogues.mockResolvedValueOnce(brp)
+    const res = await app.request(`/farms/farm-1/catalogues/cultivation/items?source=brp`, {
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toEqual({ data: brp, limit: 50, offset: 0, total: 1 })
+  })
+
+  it("applies limit and offset for GET /farms/{b_id_farm}/catalogues/cultivation/items?source={source}", async () => {
     const brp = [{ b_lu_catalogue: "a" }, { b_lu_catalogue: "b" }, { b_lu_catalogue: "c" }]
     services.getEnabledCultivationCatalogues.mockResolvedValueOnce(["brp"])
     services.getCultivationsFromCatalogues.mockResolvedValueOnce(brp)
-    const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp?limit=1&offset=1`, {
-      headers: { "x-api-key": "valid-key" },
-    })
+    const res = await app.request(
+      `/farms/farm-1/catalogues/cultivation/items?source=brp&limit=1&offset=1`,
+      {
+        headers: { "x-api-key": "valid-key" },
+      },
+    )
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toEqual({ data: [brp[1]], limit: 1, offset: 1, total: 3 })
   })
 
-  it("returns 200 for GET /farms/{b_id_farm}/catalogues/fertilizer/{source}", async () => {
+  it("returns 200 for GET /farms/{b_id_farm}/catalogues/fertilizer/items without source", async () => {
     const baat = [{ p_id_catalogue: "BAAT001" }]
     services.getEnabledFertilizerCatalogues.mockResolvedValueOnce(["baat", "farm-1"])
     services.getFertilizersFromCatalogues.mockResolvedValueOnce(baat)
-    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/baat`, {
+    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/items`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(200)
@@ -182,11 +197,23 @@ describe("Catalogues - list catalogue items", () => {
     expect(data).toEqual({ data: baat, limit: 50, offset: 0, total: 1 })
   })
 
-  it("returns 200 for GET /farms/{b_id_farm}/catalogues/measure/bln", async () => {
+  it("returns 200 for GET /farms/{b_id_farm}/catalogues/fertilizer/items?source={source}", async () => {
+    const baat = [{ p_id_catalogue: "BAAT001" }]
+    services.getEnabledFertilizerCatalogues.mockResolvedValueOnce(["baat", "farm-1"])
+    services.getFertilizersFromCatalogues.mockResolvedValueOnce(baat)
+    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/items?source=baat`, {
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toEqual({ data: baat, limit: 50, offset: 0, total: 1 })
+  })
+
+  it("returns 200 for GET /farms/{b_id_farm}/catalogues/measure/items without source", async () => {
     const bln = [{ m_id: "bln_BM100", m_source: "bln" }]
     services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["bln"])
     services.getMeasuresFromCatalogue.mockResolvedValueOnce(bln)
-    const res = await app.request(`/farms/farm-1/catalogues/measure/bln`, {
+    const res = await app.request(`/farms/farm-1/catalogues/measure/items`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(200)
@@ -194,44 +221,55 @@ describe("Catalogues - list catalogue items", () => {
     expect(data).toEqual({ data: bln, limit: 50, offset: 0, total: 1 })
   })
 
-  it("returns only anlb measures for GET /farms/{b_id_farm}/catalogues/measure/anlb", async () => {
+  it("returns 200 for GET /farms/{b_id_farm}/catalogues/measure/items?source=bln", async () => {
     const bln = [{ m_id: "bln_BM100", m_source: "bln" }]
-    const anlb = [{ m_id: "anlb_12a", m_source: "anlb" }]
-    services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["anlb"])
-    services.getMeasuresFromCatalogue.mockResolvedValueOnce([...bln, ...anlb])
-    const res = await app.request(`/farms/farm-1/catalogues/measure/anlb`, {
+    services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["bln"])
+    services.getMeasuresFromCatalogue.mockResolvedValueOnce(bln)
+    const res = await app.request(`/farms/farm-1/catalogues/measure/items?source=bln`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data).toEqual({ data: anlb, limit: 50, offset: 0, total: 1 })
+    expect(data).toEqual({ data: bln, limit: 50, offset: 0, total: 1 })
   })
 
-  it("returns 404 for GET /farms/{b_id_farm}/catalogues/cultivation/{source}", async () => {
+  it("returns no measures for GET /farms/{b_id_farm}/catalogues/measure/items?source=anlb", async () => {
+    services.getEnabledMeasureCatalogues.mockResolvedValueOnce(["anlb"])
+    services.getMeasuresFromCatalogue.mockResolvedValueOnce([])
+    const res = await app.request(`/farms/farm-1/catalogues/measure/items?source=anlb`, {
+      headers: { "x-api-key": "valid-key" },
+    })
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toEqual({ data: [], limit: 50, offset: 0, total: 0 })
+    expect(services.getMeasuresFromCatalogue).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 for GET /farms/{b_id_farm}/catalogues/cultivation/items?source={source}", async () => {
     const brp = [{ b_lu_catalogue: "nl_test" }]
     services.getEnabledCultivationCatalogues.mockResolvedValueOnce([])
     services.getCultivationsFromCatalogues.mockResolvedValueOnce(brp)
-    const res = await app.request(`/farms/farm-1/catalogues/cultivation/brp`, {
+    const res = await app.request(`/farms/farm-1/catalogues/cultivation/items?source=brp`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(404)
   })
 
-  it("returns 404 for GET /farms/{b_id_farm}/catalogues/fertilizer/{source}", async () => {
+  it("returns 404 for GET /farms/{b_id_farm}/catalogues/fertilizer/items?source={source}", async () => {
     const baat = [{ p_id_catalogue: "BAAT001" }]
     services.getEnabledFertilizerCatalogues.mockResolvedValueOnce(["farm-1"])
     services.getFertilizersFromCatalogues.mockResolvedValueOnce(baat)
-    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/baat`, {
+    const res = await app.request(`/farms/farm-1/catalogues/fertilizer/items?source=baat`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(404)
   })
 
-  it("returns 404 for GET /farms/{b_id_farm}/catalogues/measure/bln", async () => {
+  it("returns 404 for GET /farms/{b_id_farm}/catalogues/measure/items?source=bln", async () => {
     const bln = [{ m_id: "bln_BM100" }]
     services.getEnabledMeasureCatalogues.mockResolvedValueOnce([])
     services.getMeasuresFromCatalogue.mockResolvedValueOnce(bln)
-    const res = await app.request(`/farms/farm-1/catalogues/measure/bln`, {
+    const res = await app.request(`/farms/farm-1/catalogues/measure/items?source=bln`, {
       headers: { "x-api-key": "valid-key" },
     })
     expect(res.status).toBe(404)

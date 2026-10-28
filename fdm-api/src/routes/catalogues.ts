@@ -426,9 +426,13 @@ const ListEnabledCataloguesParamsSchema = z.object({
   b_id_farm: z.string(),
 })
 
-const ListCatalogueItemsParamsSchema = z.object({
-  b_id_farm: z.string(),
-  source: z.string().describe("Catalogue source identifier."),
+const ListCatalogueItemsQuerySchema = PaginationQuerySchema.extend({
+  source: z
+    .string()
+    .optional()
+    .describe(
+      "Catalogue source identifier. When omitted, items from all catalogues enabled on the farm are listed.",
+    ),
 })
 
 /**
@@ -548,11 +552,11 @@ const listEnabledMeasureCataloguesRoute = createRoute({
 
 const listCultivationCatalogueRoute = createRoute({
   method: "get",
-  path: "/farms/{b_id_farm}/catalogues/cultivation/{source}",
+  path: "/farms/{b_id_farm}/catalogues/cultivation/items",
   tags: ["Catalogues", "Cultivations"],
   summary: "List a cultivation catalogue",
   description: "Lists the cultivations in a cultivation catalogue.",
-  request: { params: ListCatalogueItemsParamsSchema, query: PaginationQuerySchema },
+  request: { params: ListEnabledCataloguesParamsSchema, query: ListCatalogueItemsQuerySchema },
   responses: {
     200: {
       description: "Cultivations in the catalogue are listed successfully.",
@@ -564,11 +568,11 @@ const listCultivationCatalogueRoute = createRoute({
 
 const listFertilizerCatalogueRoute = createRoute({
   method: "get",
-  path: "/farms/{b_id_farm}/catalogues/fertilizer/{source}",
+  path: "/farms/{b_id_farm}/catalogues/fertilizer/items",
   tags: ["Catalogues", "Fertilizers"],
   summary: "List a fertilizer catalogue",
   description: "Lists the fertilizers in a fertilizer catalogue.",
-  request: { params: ListCatalogueItemsParamsSchema, query: PaginationQuerySchema },
+  request: { params: ListEnabledCataloguesParamsSchema, query: ListCatalogueItemsQuerySchema },
   responses: {
     200: {
       description: "Fertilizers in the catalogue are listed successfully.",
@@ -580,11 +584,11 @@ const listFertilizerCatalogueRoute = createRoute({
 
 const listMeasureCatalogueRoute = createRoute({
   method: "get",
-  path: "/farms/{b_id_farm}/catalogues/measure/{source}",
+  path: "/farms/{b_id_farm}/catalogues/measure/items",
   tags: ["Catalogues", "Measures"],
   summary: "List a field measures catalogue",
   description: "Lists the field measures in a field measure catalogue.",
-  request: { params: ListCatalogueItemsParamsSchema, query: PaginationQuerySchema },
+  request: { params: ListEnabledCataloguesParamsSchema, query: ListCatalogueItemsQuerySchema },
   responses: {
     200: {
       description: "Field measures in the catalogue are listed successfully.",
@@ -629,16 +633,21 @@ export function listItemsInCatalogueRouteHandler(
   itemsGetter: (fdm: FdmType, principalId: string, sources: string[]) => Promise<any[]>,
 ) {
   return async function (c: any) {
-    const params = c.req.valid("param")
-    const { b_id_farm, source } = params as z.infer<typeof ListCatalogueItemsParamsSchema>
+    const { b_id_farm } = c.req.valid("param") as z.infer<typeof ListEnabledCataloguesParamsSchema>
+    const { limit, offset, source } = c.req.valid("query") as z.infer<
+      typeof ListCatalogueItemsQuerySchema
+    >
     const principal = c.get("principal") as unknown as ApiPrincipalContext
     const catalogueSources = await cataloguesGetter(fdm, principal.effectivePrincipalId, b_id_farm)
-    if (!catalogueSources.includes(source)) {
+    if (source && !catalogueSources.includes(source)) {
       throw new ApiError(404, "not-found", "Catalogue not enabled on this farm.")
     }
     // fdm-core cannot paginate catalogue queries, so the page is sliced after retrieval.
-    const { limit, offset } = c.req.valid("query") as z.infer<typeof PaginationQuerySchema>
-    const data = await itemsGetter(fdm, principal.effectivePrincipalId, [source])
+    const data = await itemsGetter(
+      fdm,
+      principal.effectivePrincipalId,
+      source ? [source] : catalogueSources,
+    )
     return c.json(paginatedResponse(data, limit, offset))
   }
 }
@@ -685,9 +694,7 @@ export function registerCatalogueRoutes(
     (...args) => services.getEnabledMeasureCatalogues(...args),
     // Workaround until a getMeasuresFromCatalogues function is implemented in fdm-core.
     async (fdm, _principalId, sources) =>
-      (await services.getMeasuresFromCatalogue(fdm)).filter((measure) =>
-        sources.includes(measure.m_source),
-      ),
+      sources.includes("bln") ? await services.getMeasuresFromCatalogue(fdm) : [],
   )
   app.openapi(listAvailableCataloguesRoute, (c) => {
     return c.json(CATALOGUE_SOURCES, 200)
