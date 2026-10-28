@@ -128,8 +128,16 @@ const CultivationCatalogueSchema = z
       title: "Nitrogen fixation",
       description: "Nitrogen fixed in kg per ha by this crop.",
     }),
-    b_lu_eom: z.number().nullable(),
-    b_lu_eom_residue: z.number().nullable(),
+    b_lu_eom: z.number().nullable().openapi({
+      title: "Effective organic matter content",
+      description:
+        "Default value for effective organic matter content in kg EOM / ha in harvestable parts for this crop.",
+    }),
+    b_lu_eom_residue: z.number().nullable().openapi({
+      title: "Effective organic matter content of crop residues",
+      description:
+        "Default value for effective organic matter content in kg EOM / ha for the residues of this crop.",
+    }),
     b_lu_rest_oravib: z.boolean().nullable().openapi({
       title: "Classification for 'rustgewas'",
       description: "Is the cultivation a 'rustgewas' with regards to Dutch manure legislation.",
