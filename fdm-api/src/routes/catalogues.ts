@@ -103,25 +103,26 @@ const CultivationCatalogueSchema = z
         description: "Crop category used during agronomic planning of farm activities.",
       }),
     b_lu_yield: z.number().nullable().openapi({
-      title: "Total yield",
-      description: "Standard dry yield in kg per ha for this crop.",
+      title: "Dry matter yield",
+      description: "Default value for dry matter yield in kg / ha for this crop.",
     }),
     b_lu_dm: z.number().nullable().openapi({
-      title: "Dry matter yield",
-      description: "Standard dry matter yield in g per kg of dry product for this crop.",
+      title: "Dry matter content",
+      description: "Default value for for dry matter content in g / kg for this crop.",
     }),
     b_lu_hi: z.number().nullable().openapi({
       title: "Harvest index",
       description: "Ratio of dry product to the mass of the whole plant above ground.",
     }),
     b_lu_n_harvestable: z.number().nullable().openapi({
-      title: "Nitrogen yield",
-      description: "Nitrogen yield in g per kg of dry product for this crop.",
+      title: "Nitrogen content",
+      description:
+        "Default value for nitrogen content in g N / kg dm in harvestable parts for this crop.",
     }),
     b_lu_n_residue: z.number().nullable().openapi({
-      title: "Nitrogen residue",
+      title: "Nitrogen content of crop residues",
       description:
-        "Nitrogen residue in g per kg of dry residue left on the ground after the harvest.",
+        "Default value for nitrogen content in g N / kg dm for the residues of this crop.",
     }),
     b_n_fixation: z.number().nullable().openapi({
       title: "Nitrogen fixation",
@@ -130,12 +131,11 @@ const CultivationCatalogueSchema = z
     b_lu_eom: z.number().nullable(),
     b_lu_eom_residue: z.number().nullable(),
     b_lu_rest_oravib: z.boolean().nullable().openapi({
-      title: "Is rest crop",
-      description:
-        "A value of true means that a significant part of the living plant is left over after the harvest.",
+      title: "Classification for 'rustgewas'",
+      description: "Is the cultivation a 'rustgewas' with regards to Dutch manure legislation.",
     }),
     b_lu_variety_options: z.string().array().nullable().openapi({
-      title: "Cultivars",
+      title: "Varieties",
       description:
         "List of varieties that can be selected for this crop. The variety should be passed in the `b_lu_variety` parameter when creating or updating a cultivation.",
     }),
@@ -206,10 +206,10 @@ export const FertilizerCatalogueSchema = z.looseObject({
       "Unit in which the amount of this fertilizer is entered and displayed when creating or updating an application.",
   }),
   // Chemical properties
-  p_dm: z
-    .number()
-    .nullable()
-    .openapi({ title: "Dry matter", description: "Dry matter in g per kg for this fertilizer." }),
+  p_dm: z.number().nullable().openapi({
+    title: "Dry matter",
+    description: "Dry matter content in g per kg for this fertilizer.",
+  }),
   p_density: z
     .number()
     .nullable()
@@ -357,7 +357,7 @@ const MeasureCatalogueSchema = z
       description: "Catalogue code used to reference this catalogue item in field measure records.",
     }),
     m_source: z.string().openapi({
-      title: "Fertilizer catalogue source",
+      title: "Measure catalogue source",
       description: "The code for the measure's source.",
     }),
     m_name: z.string().openapi({
