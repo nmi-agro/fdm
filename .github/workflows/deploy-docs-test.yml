@@ -45,6 +45,8 @@ jobs:
           cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --filter fdm-docs
+        run: pnpm install --frozen-lockfile --filter fdm-docs...
+      - name: Build documented packages
+        run: pnpm --filter "@nmi-agro/fdm-docs^..." run build
       - name: Build website
         run: pnpm build-docs
