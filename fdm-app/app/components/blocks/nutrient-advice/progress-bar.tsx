@@ -7,30 +7,30 @@ const ADVICE_OVER_THRESHOLD = 110
 
 /*
  * Status colours for nutrient advice, shared by the progress bar, the overview table and the
- * Atlas map: orange below 90 % of the advice, green within 90–110 %, red above 110 %. EOC is
- * never "over", so it is only ever orange or green. Usage norms (gebruiksruimte) follow different
+ * Atlas map: red below 90 % of the advice, green within 90–110 %, orange above 110 %. EOC is
+ * never "over", so it is only ever red or green. Usage norms (gebruiksruimte) follow different
  * rules and do not use these colours.
  */
 const ADVICE_STATUS_INDICATOR_CLASSES: Record<AdviceProgressStatus, string> = {
-  under: "bg-orange-500",
+  under: "bg-red-500",
   "on-target": "bg-green-500",
-  over: "bg-red-500",
+  over: "bg-orange-500",
 }
 
 /** Text colour per status, for applied-vs-advice numbers such as the overview table cells. */
 export const ADVICE_STATUS_TEXT_CLASSES: Record<AdviceProgressStatus, string> = {
-  under: "text-orange-600 dark:text-orange-500",
+  under: "text-red-600 dark:text-red-500",
   "on-target": "text-green-600 dark:text-green-500",
-  over: "text-red-600 dark:text-red-500",
+  over: "text-orange-600 dark:text-orange-500",
 }
 
 /**
  * Computes the fill percentage and status for a nutrient-advice usage bar.
  *
- * Orange when supplied < 90% of the advice (risk of yield loss), green when within
- * 90–110% of the advice, red when > 110% of the advice (risk of environmental loss).
+ * Red when supplied < 90% of the advice (risk of yield loss), green when within
+ * 90–110% of the advice, orange when > 110% of the advice (risk of environmental loss).
  * When there is no requirement (target <= 0), any applied amount is treated as an
- * unnecessary excess (red); no application against no requirement reads as on-target.
+ * unnecessary excess (orange); no application against no requirement reads as on-target.
  *
  * Some nutrients (e.g. EOC / effective organic carbon) are never harmful in excess, so
  * `excessExempt` caps the status at "on-target" instead of ever reporting "over".

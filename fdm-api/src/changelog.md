@@ -1,6 +1,22 @@
 Notable changes to the REST API, newest first. Operations that were added recently carry a **New** badge in this reference.
 
-## UNRELEASED
+## 0.3.0
+
+### Breaking: fertilizer catalogue endpoint removed
+
+`GET /farms/{b_id_farm}/fertilizer-catalogue` has been removed. Use `GET /farms/{b_id_farm}/catalogues/fertilizer/items` instead, which lists the fertilizers in the catalogues enabled on the farm and supports the `source`, `limit` and `offset` query parameters.
+
+### Farm groups
+
+New endpoints for farm groups: named groups of farms within an organization, for example the participants of a project or a study group. A farm can be part of several groups. Its membership is recorded as periods with a join date (`b_group_joined`) and an optional end date (`b_group_leaved`). These are the dates chosen by the caller and can lie in the past or the future; they are not the moment of the request.
+
+- `GET /organizations/{organization_id}/farm-groups` lists the groups of an organization and `POST` on the same path creates one. The owner of the API key must be a member of the organization.
+- `GET /farm-groups/{b_id_group}` returns a group with its current farms and all membership periods. `PATCH` renames the group and `DELETE` removes it with its membership history; the farms themselves are not affected.
+- `POST /farm-groups/{b_id_group}/farms` adds a farm of the same organization to the group, with an optional `b_group_joined` (default: today) and `b_group_leaved`.
+- `DELETE /farm-groups/{b_id_group}/farms/{b_id_farm}` ends the membership on the optional `b_group_leaved` query date (default: today) and keeps the history.
+- `PATCH /farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}` changes the join date and/or end date of the period that starts on `b_group_joined`. Pass `b_group_leaved: null` to remove the end date. Periods of the same farm in a group may not overlap.
+- `DELETE /farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}` deletes that period, as if the farm never was part of the group in it. Use this to correct a mistake; use the endpoint above to end a membership.
+- `GET /farms` accepts the optional `b_id_group` query parameter to list only the farms that are currently part of that group.
 
 ### Catalogues
 
@@ -37,3 +53,11 @@ Good to know:
 - These endpoints have their own rate limit of **10 requests per minute per API key**. They do not count towards the general limit.
 - They return `503` when scores, applicability or advice are temporarily unavailable.
 - Existing measure endpoints are unchanged.
+
+## 0.2.9
+
+### Dates in Europe/Amsterdam
+
+- Dates in responses are serialised as their calendar date in Europe/Amsterdam instead of UTC. A date stored at midnight in Europe/Amsterdam is no longer returned as the previous day.
+- `b_end` of a field and `m_end` of a measure are the last day the field is managed or the measure is applied (inclusive). An end date on 1 January is returned as 31 December of the previous year, so the field or measure is not counted in the next calendar year.
+- Updating a field without `b_end` now leaves its stored end date unchanged.

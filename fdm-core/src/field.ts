@@ -20,7 +20,7 @@ import { createId } from "./id"
  * `b_end` is the last day the field is managed (inclusive), interpreted as a calendar date in
  * Europe/Amsterdam. It is stored as entered. When the field is read, a date on 1 January is
  * returned as the end of 31 December of the previous year, so that a field ended "on 1 January" is
- * not part of that new calendar year. See {@link adjustEndDateAtYearStart}.
+ * not part of that new calendar year. See `adjustEndDateAtYearStart`.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The unique identifier of the principal performing the operation.
@@ -207,7 +207,7 @@ export async function getField(
  * When a timeframe is provided, only fields that are managed during (part of) the timeframe are
  * returned: fields acquired on or before the end of the timeframe and not ended before its start.
  * A `b_end` on 1 January is returned as the end of 31 December of the previous year (see
- * {@link adjustEndDateAtYearStart}), so a field ended on 31 December or 1 January is not returned
+ * `adjustEndDateAtYearStart`), so a field ended on 31 December or 1 January is not returned
  * for the next calendar year.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
@@ -311,7 +311,7 @@ export async function getFields(
  * It performs a permission check to ensure the principal has write access and validates that the acquiring date is earlier than the discarding date, when applicable.
  *
  * `b_end` is stored as entered. When the field is read, a date on 1 January is returned as the end
- * of 31 December of the previous year. See {@link adjustEndDateAtYearStart}.
+ * of 31 December of the previous year. See `adjustEndDateAtYearStart`.
  *
  * @param fdm The FDM instance providing the connection to the database. The instance can be created with {@link createFdmServer}.
  * @param principal_id - The identifier of the principal performing the update.

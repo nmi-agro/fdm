@@ -272,14 +272,21 @@
       "idx": 38,
       "version": "7",
       "when": 1791281209822,
-      "tag": "0038_jazzy_eddie_brock",
+      "tag": "0038_v0-39-0-1",
       "breakpoints": true
     },
     {
       "idx": 39,
       "version": "7",
       "when": 1792404545744,
-      "tag": "0039_fluffy_sprite",
+      "tag": "0039_v0-39-0-2",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1793195352983,
+      "tag": "0040_v0-39-0-3",
       "breakpoints": true
     }
   ]

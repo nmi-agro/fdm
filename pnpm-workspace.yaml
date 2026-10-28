@@ -20,7 +20,7 @@ catalog:
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.4
   nanoid: ^6.0.2
-  tsdown: ^0.23.1
+  tsdown: 0.23.1
   typedoc: ^0.28.20
   typedoc-plugin-missing-exports: ^4.1.4
   typescript: ^7.0.2

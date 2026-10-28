@@ -157,189 +157,191 @@ const CultivationCatalogueSchema = z
   })
   .openapi("CultivationCatalogue")
 
-export const FertilizerCatalogueSchema = z.looseObject({
-  p_id_catalogue: z.string().openapi({
-    title: "Fertilizer code in catalogue",
-    description: "Catalogue code used to reference this catalogue item in fertilizer applications.",
-  }),
-  p_source: z.string().openapi({
-    title: "Fertilizer catalogue source",
-    description:
-      "Code of the catalogue this fertilizer is from. For custom fertilizers this is the farm ID.",
-  }),
-  p_name_nl: z
-    .string()
-    .openapi({ title: "Dutch name", description: "Name of this fertilizer in Dutch." }),
-  p_name_en: z
-    .string()
-    .nullable()
-    .openapi({ title: "English name", description: "Name of this fertilizer in English." }),
-  p_description: z
-    .string()
-    .nullable()
-    .openapi({ title: "Description", description: "Further detail about the fertilizer." }),
-  p_type: z.enum(["mineral", "manure", "compost"]).nullable().openapi({
-    title: "Fertilizer type",
-    description: "Fertilizer type that is relevant for compliance.",
-  }),
-  p_type_rvo: z.string().nullable().openapi({
-    title: "RVO fertilizer code",
-    description: "Fertilizer type code according to RVO. It is an integer formatted as a string.",
-  }),
-  p_app_method_options: z.string().array().nullable().openapi({
-    title: "Application method options",
-    description:
-      "List of application methods. Pass this as the p_app_method parameter when creating or updating a fertilizer application.",
-  }),
-  p_app_amount_unit: z.enum(["kg/ha", "l/ha", "ton/ha", "m3/ha"]).openapi({
-    title: "Application amount unit",
-    description:
-      "Unit in which the amount of this fertilizer is entered and displayed when creating or updating an application.",
-  }),
-  // Chemical properties
-  p_dm: z.number().nullable().openapi({
-    title: "Dry matter",
-    description: "Dry matter content in g per kg for this fertilizer.",
-  }),
-  p_density: z
-    .number()
-    .nullable()
-    .openapi({ title: "Density", description: "Density in kg per L for this fertilizer." }),
-  p_om: z
-    .number()
-    .nullable()
-    .openapi({ title: "Organic matter", description: "Organic matter content in g per kg." }),
-  p_a: z.number().nullable(),
-  p_hc: z.number().nullable(),
-  p_eom: z.number().nullable().openapi({
-    title: "Effective organic matter",
-    description: "Effective organic matter content in g per kg.",
-  }),
-  p_eoc: z.number().nullable().openapi({
-    title: "Effective organic carbon",
-    description: "Effective organic carbon content in g per kg.",
-  }),
-  p_c_rt: z.number().nullable(),
-  p_c_of: z.number().nullable(),
-  p_c_if: z.number().nullable(),
-  p_c_fr: z.number().nullable(),
-  p_cn_of: z.number().nullable(),
-  p_n_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Total nitrogen", description: "Total nitrogen content in g N per kg." }),
-  p_n_if: z.number().nullable(),
-  p_n_of: z.number().nullable(),
-  p_n_wc: z.number().nullable().openapi({
-    title: "Nitrogen working coefficient",
-    description: "Nitrogen working coefficient as a fraction (0–1) of the total nitrogen.",
-  }),
-  // Nutrient content parameters
-  p_no3_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Nitrate", description: "Nitrate content in g N per kg." }),
-  p_nh4_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Ammonium", description: "Ammonium content in g N per kg." }),
-  p_p_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Phosphate", description: "Total phosphate content in g P2O5 per kg." }),
-  p_k_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Potassium", description: "Total potassium content in g K2O per kg." }),
-  p_mg_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Magnesium", description: "Total magnesium content in g MgO per kg." }),
-  p_ca_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Calcium", description: "Total calcium content in g CaO per kg." }),
-  p_ne: z.number().nullable(),
-  p_s_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Sulphur", description: "Total sulphur content in g SO3 per kg." }),
-  p_s_wc: z.number().nullable().openapi({
-    title: "Sulphur working coefficient",
-    description: "Sulphur working as a fraction (0–1) of the total sulphur.",
-  }),
-  // Trace nutrient content parameters
-  p_cu_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Copper", description: "Total copper content in mg Cu per kg." }),
-  p_zn_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Zinc", description: "Total zinc content in mg Zn per kg." }),
-  p_na_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Sodium", description: "Total sodium content in g Na2O per kg." }),
-  p_si_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Silicon", description: "Total silicon content in g per kg." }),
-  p_b_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Boron", description: "Total boron content in mg B per kg." }),
-  p_mn_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Manganese", description: "Total manganese content in mg Mn per kg." }),
-  p_ni_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Nickel", description: "Total nickel content in mg Ni per kg." }),
-  p_fe_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Iron", description: "Total iron content in mg Fe per kg." }),
-  p_mo_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Molybdenum", description: "Total molybdenum content in mg Mo per kg." }),
-  p_co_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Cobalt", description: "Total cobalt content in mg Co per kg." }),
-  p_as_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Arsenic", description: "Total arsenic content in mg As per kg." }),
-  p_cd_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Cadmium", description: "Total cadmium content in mg Cd per kg." }),
-  p_cr_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Chromium", description: "Total chromium content in mg Cr per kg." }),
-  p_cr_vi: z.number().nullable().openapi({
-    title: "Chromium (VI)",
-    description: "Hexavalent chromium content in mg Cr per kg.",
-  }),
-  p_pb_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Lead", description: "Total lead content in mg Pb per kg." }),
-  p_hg_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Mercury", description: "Total mercury content in mg Hg per kg." }),
-  p_cl_rt: z
-    .number()
-    .nullable()
-    .openapi({ title: "Chloride", description: "Total chlorine content in g Cl per kg." }),
-  p_ef_nh3: z.number().nullable(),
-})
-//  .openapi("FertilizerCatalogue")
+export const FertilizerCatalogueSchema = z
+  .looseObject({
+    p_id_catalogue: z.string().openapi({
+      title: "Fertilizer code in catalogue",
+      description:
+        "Catalogue code used to reference this catalogue item in fertilizer applications.",
+    }),
+    p_source: z.string().openapi({
+      title: "Fertilizer catalogue source",
+      description:
+        "Code of the catalogue this fertilizer is from. For custom fertilizers this is the farm ID.",
+    }),
+    p_name_nl: z
+      .string()
+      .openapi({ title: "Dutch name", description: "Name of this fertilizer in Dutch." }),
+    p_name_en: z
+      .string()
+      .nullable()
+      .openapi({ title: "English name", description: "Name of this fertilizer in English." }),
+    p_description: z
+      .string()
+      .nullable()
+      .openapi({ title: "Description", description: "Further detail about the fertilizer." }),
+    p_type: z.enum(["mineral", "manure", "compost"]).nullable().openapi({
+      title: "Fertilizer type",
+      description: "Fertilizer type that is relevant for compliance.",
+    }),
+    p_type_rvo: z.string().nullable().openapi({
+      title: "RVO fertilizer code",
+      description: "Fertilizer type code according to RVO. It is an integer formatted as a string.",
+    }),
+    p_app_method_options: z.string().array().nullable().openapi({
+      title: "Application method options",
+      description:
+        "List of application methods. Pass this as the p_app_method parameter when creating or updating a fertilizer application.",
+    }),
+    p_app_amount_unit: z.enum(["kg/ha", "l/ha", "ton/ha", "m3/ha"]).openapi({
+      title: "Application amount unit",
+      description:
+        "Unit in which the amount of this fertilizer is entered and displayed when creating or updating an application.",
+    }),
+    // Chemical properties
+    p_dm: z.number().nullable().openapi({
+      title: "Dry matter",
+      description: "Dry matter content in g per kg for this fertilizer.",
+    }),
+    p_density: z
+      .number()
+      .nullable()
+      .openapi({ title: "Density", description: "Density in kg per L for this fertilizer." }),
+    p_om: z
+      .number()
+      .nullable()
+      .openapi({ title: "Organic matter", description: "Organic matter content in g per kg." }),
+    p_a: z.number().nullable(),
+    p_hc: z.number().nullable(),
+    p_eom: z.number().nullable().openapi({
+      title: "Effective organic matter",
+      description: "Effective organic matter content in g per kg.",
+    }),
+    p_eoc: z.number().nullable().openapi({
+      title: "Effective organic carbon",
+      description: "Effective organic carbon content in g per kg.",
+    }),
+    p_c_rt: z.number().nullable(),
+    p_c_of: z.number().nullable(),
+    p_c_if: z.number().nullable(),
+    p_c_fr: z.number().nullable(),
+    p_cn_of: z.number().nullable(),
+    p_n_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Total nitrogen", description: "Total nitrogen content in g N per kg." }),
+    p_n_if: z.number().nullable(),
+    p_n_of: z.number().nullable(),
+    p_n_wc: z.number().nullable().openapi({
+      title: "Nitrogen working coefficient",
+      description: "Nitrogen working coefficient as a fraction (0–1) of the total nitrogen.",
+    }),
+    // Nutrient content parameters
+    p_no3_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Nitrate", description: "Nitrate content in g N per kg." }),
+    p_nh4_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Ammonium", description: "Ammonium content in g N per kg." }),
+    p_p_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Phosphate", description: "Total phosphate content in g P2O5 per kg." }),
+    p_k_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Potassium", description: "Total potassium content in g K2O per kg." }),
+    p_mg_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Magnesium", description: "Total magnesium content in g MgO per kg." }),
+    p_ca_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Calcium", description: "Total calcium content in g CaO per kg." }),
+    p_ne: z.number().nullable(),
+    p_s_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Sulphur", description: "Total sulphur content in g SO3 per kg." }),
+    p_s_wc: z.number().nullable().openapi({
+      title: "Sulphur working coefficient",
+      description: "Sulphur working as a fraction (0–1) of the total sulphur.",
+    }),
+    // Trace nutrient content parameters
+    p_cu_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Copper", description: "Total copper content in mg Cu per kg." }),
+    p_zn_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Zinc", description: "Total zinc content in mg Zn per kg." }),
+    p_na_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Sodium", description: "Total sodium content in g Na2O per kg." }),
+    p_si_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Silicon", description: "Total silicon content in g per kg." }),
+    p_b_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Boron", description: "Total boron content in mg B per kg." }),
+    p_mn_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Manganese", description: "Total manganese content in mg Mn per kg." }),
+    p_ni_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Nickel", description: "Total nickel content in mg Ni per kg." }),
+    p_fe_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Iron", description: "Total iron content in mg Fe per kg." }),
+    p_mo_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Molybdenum", description: "Total molybdenum content in mg Mo per kg." }),
+    p_co_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Cobalt", description: "Total cobalt content in mg Co per kg." }),
+    p_as_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Arsenic", description: "Total arsenic content in mg As per kg." }),
+    p_cd_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Cadmium", description: "Total cadmium content in mg Cd per kg." }),
+    p_cr_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Chromium", description: "Total chromium content in mg Cr per kg." }),
+    p_cr_vi: z.number().nullable().openapi({
+      title: "Chromium (VI)",
+      description: "Hexavalent chromium content in mg Cr per kg.",
+    }),
+    p_pb_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Lead", description: "Total lead content in mg Pb per kg." }),
+    p_hg_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Mercury", description: "Total mercury content in mg Hg per kg." }),
+    p_cl_rt: z
+      .number()
+      .nullable()
+      .openapi({ title: "Chloride", description: "Total chlorine content in g Cl per kg." }),
+    p_ef_nh3: z.number().nullable(),
+  })
+  .openapi("FertilizerCatalogue")
 
 const MeasureCatalogueSchema = z
   .looseObject({

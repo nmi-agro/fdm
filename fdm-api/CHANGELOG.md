@@ -1,5 +1,36 @@
 # @nmi-agro/fdm-api
 
+## 0.3.0
+
+### Minor Changes
+
+- [#829](https://github.com/nmi-agro/fdm/pull/829) [`641f7d7`](https://github.com/nmi-agro/fdm/commit/641f7d70815e82a4c3c70ee8de36823bdea7cb8a) Thanks [@SvenVw](https://github.com/SvenVw)! - Add a Changelog page to the API reference, shown directly below the introduction. It is written in `src/changelog.md`, which is copied to `dist` during the build, and lists notable API changes for API users.
+
+- [#873](https://github.com/nmi-agro/fdm/pull/873) [`e4ac9ad`](https://github.com/nmi-agro/fdm/commit/e4ac9ad7d4d2efc0aa43e2595c3f9c3a75ff56ac) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - Add the optional query parameter `effective_nitrogen` to `GET /farms/{b_id_farm}/calculations/nitrogen-balance` and `GET /fields/{b_id}/calculations/nitrogen-balance`. With `effective_nitrogen=true`, the nitrogen balance is calculated with effective nitrogen and MINIP mineralization, and the `target` is omitted from the response because it only applies to the balance with total nitrogen. The default remains the balance with total nitrogen.
+
+- [#832](https://github.com/nmi-agro/fdm/pull/832) [`fd705d4`](https://github.com/nmi-agro/fdm/commit/fd705d46a9923b56a6b255300b44fc6ee587eea7) Thanks [@SvenVw](https://github.com/SvenVw)! - Add farm group endpoints: `GET`/`POST /organizations/{organization_id}/farm-groups`, `GET`/`PATCH`/`DELETE /farm-groups/{b_id_group}`, and `POST /farm-groups/{b_id_group}/farms` and `DELETE /farm-groups/{b_id_group}/farms/{b_id_farm}` to add farms and end their membership, and `PATCH /farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}` to update the join date and/or end date of a period, and `DELETE /farm-groups/{b_id_group}/farms/{b_id_farm}/{b_group_joined}` to delete a period as if the farm never was part of the group in it. The optional dates `b_group_joined` and `b_group_leaved` set from and until when a farm is part of a group. `GET /farms` accepts a `b_id_group` query parameter.
+
+- [#829](https://github.com/nmi-agro/fdm/pull/829) [`1821195`](https://github.com/nmi-agro/fdm/commit/1821195fa5fb7579b8cdfc82661a906dbf01f06b) Thanks [@SvenVw](https://github.com/SvenVw)! - Add read-only indicator endpoints: `GET /fields/{b_id}/indicators`, `GET /farms/{b_id_farm}/indicators` (area-weighted farm scores) and `GET /fields/{b_id}/measures/catalogue` (field measure options with applicability, predicted impacts and recommendations). These endpoints use a new `nmi` rate-limit bucket (10 requests per minute per key), counted instead of the `general` bucket. The API reference marks these operations with a "New" badge. When indicator results are unavailable, the endpoints return a generic 503; the underlying cause is logged server-side under the same `error_id` as the response.
+
+- [#881](https://github.com/nmi-agro/fdm/pull/881) [`feeea94`](https://github.com/nmi-agro/fdm/commit/feeea943853f8ef0b36e10ef48de2a159fa63cb6) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Removed the /farms/{b_id_farm}/fertilizer-catalogue endpoint. Use /farms/{b_id_farm}/catalogues/fertilizer instead.
+
+- [#881](https://github.com/nmi-agro/fdm/pull/881) [`0ae30e9`](https://github.com/nmi-agro/fdm/commit/0ae30e94aba841a757d402bbb92e5b10968d3e43) Thanks [@BoraIneviNMI](https://github.com/BoraIneviNMI)! - Add read-only endpoints for the cultivation, fertilizer and field measure catalogues:
+
+  - `GET /catalogues` lists the available catalogues and their `source` codes.
+  - `GET /farms/{b_id_farm}/catalogues/{cultivation|fertilizer|measure}` lists the catalogues enabled on a farm.
+  - `GET /farms/{b_id_farm}/catalogues/{cultivation|fertilizer|measure}/items` lists the items in the enabled catalogues, or in one catalogue with the optional `source` query parameter, paginated with `limit` and `offset`. Returns `404` when the catalogue is not enabled on the farm.
+
+  `POST /farms` now enables the default catalogues (`baat` and the farm's own fertilizers, `brp` cultivations and `bln` field measures) and adds the catalogue fertilizers to the farm's fertilizer list, all in the same transaction as the farm itself. Farms created through the API can therefore be used for cultivations, fertilizer applications and measures right away.
+
+### Patch Changes
+
+- [#875](https://github.com/nmi-agro/fdm/pull/875) [`ab316a7`](https://github.com/nmi-agro/fdm/commit/ab316a75bba36d412fea4686a2214b65f6fb741e) Thanks [@octavianchiriac-agro](https://github.com/octavianchiriac-agro)! - `GET /fields/{b_id}/measures/catalogue` recommends at most one variant per measure (IDs that differ only in a trailing lowercase letter, such as `bln_BM56b` and `bln_BM56c`) and no variant when another variant of that measure is already adopted on the field. A variant that is not selectable (for example because it conflicts with an adopted measure) no longer hides a selectable variant of the same measure. The API reference and changelog describe this.
+
+- [#870](https://github.com/nmi-agro/fdm/pull/870) [`fdad56f`](https://github.com/nmi-agro/fdm/commit/fdad56f8f24e47a68322272c0e201780dbd59a57) Thanks [@SvenVw](https://github.com/SvenVw)! - Remove the disabled, commented-out mineralization endpoints, which depended on calculator functions that no longer exist.
+- Updated dependencies [[`2d9da29`](https://github.com/nmi-agro/fdm/commit/2d9da29dcf294ad8817ce8095fe02a178f49ea67), [`05fcc10`](https://github.com/nmi-agro/fdm/commit/05fcc106e6bf1c5018c436c0d33f296a75f137ba), [`cc8a891`](https://github.com/nmi-agro/fdm/commit/cc8a89101cb6a573a3822be02ced6d17224d54fa), [`23d5b19`](https://github.com/nmi-agro/fdm/commit/23d5b19b517523ac206ac528ef59abbb5e9f144f), [`cf1fb25`](https://github.com/nmi-agro/fdm/commit/cf1fb25994f3d8485410e826fc4220143acd4050), [`2e0ab65`](https://github.com/nmi-agro/fdm/commit/2e0ab65ac95fac055d38d494ee08aac366a11eeb), [`1970cef`](https://github.com/nmi-agro/fdm/commit/1970cef75abba6dd5c831a7a70b71c27d043689b), [`d8b1b60`](https://github.com/nmi-agro/fdm/commit/d8b1b602987a3d10448b94dbc3bd66805ef192bd), [`fdad56f`](https://github.com/nmi-agro/fdm/commit/fdad56f8f24e47a68322272c0e201780dbd59a57), [`8498cbc`](https://github.com/nmi-agro/fdm/commit/8498cbce7096b00e466225cbd8b9a2c57bb702e9), [`fa57acb`](https://github.com/nmi-agro/fdm/commit/fa57acb13cb01e8e896661d01cbe3099f150552e), [`4f209c9`](https://github.com/nmi-agro/fdm/commit/4f209c969a41b26a67411a8ffc7ab342f244e196), [`0e9b593`](https://github.com/nmi-agro/fdm/commit/0e9b593b0080553b243d23f68bf56d972d651eda), [`b8d12f1`](https://github.com/nmi-agro/fdm/commit/b8d12f19fd2c7cb859ed500dd01115e24a8b5ebc), [`f7c4ff2`](https://github.com/nmi-agro/fdm/commit/f7c4ff2f57048bb0d5e88a90c2e7d85294ab9d7b)]:
+  - @nmi-agro/fdm-calculator@0.20.0
+  - @nmi-agro/fdm-core@0.39.0
+
 ## 0.2.9
 
 ### Patch Changes

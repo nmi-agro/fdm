@@ -146,7 +146,7 @@ export default function UserSettingsApiKeys() {
       }
       setCreateOpen(false)
       setNewKeyName("")
-      await loadKeys()
+      loadKeys()
     } catch {
       toast.error("Aanmaken van API-sleutel mislukt.")
     } finally {
@@ -162,7 +162,7 @@ export default function UserSettingsApiKeys() {
         return
       }
       toast.success("API-sleutel ingetrokken.")
-      await loadKeys()
+      loadKeys()
     } catch {
       toast.error("Intrekken van API-sleutel mislukt.")
     }
@@ -182,7 +182,7 @@ export default function UserSettingsApiKeys() {
       }
       toast.success("Naam bijgewerkt.")
       setEditId(null)
-      await loadKeys()
+      loadKeys()
     } catch {
       toast.error("Bijwerken mislukt.")
     } finally {

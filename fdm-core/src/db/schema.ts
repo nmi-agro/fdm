@@ -79,7 +79,10 @@ export const fieldAcquiring = fdmSchema.table(
     updated: timestamp({ withTimezone: true }),
   },
   (table) => {
-    return [primaryKey({ columns: [table.b_id, table.b_id_farm] })]
+    return [
+      primaryKey({ columns: [table.b_id, table.b_id_farm] }),
+      index("field_acquiring_b_id_farm_idx").on(table.b_id_farm),
+    ]
   },
 )
 
@@ -850,23 +853,31 @@ export type soilAnalysisTypeSelect = typeof soilAnalysis.$inferSelect
 export type soilAnalysisTypeInsert = typeof soilAnalysis.$inferInsert
 
 // Define soil_sampling table
-export const soilSampling = fdmSchema.table("soil_sampling", {
-  b_id_sampling: text().primaryKey(),
-  b_id: text()
-    .notNull()
-    .references(() => fields.b_id),
-  a_id: text()
-    .notNull()
-    .references(() => soilAnalysis.a_id),
-  a_depth_upper: numericCasted().notNull().default(0),
-  a_depth_lower: numericCasted(),
-  b_sampling_date: timestamp({ withTimezone: true }),
-  b_sampling_geometry: geometry("b_sampling_geometry", {
-    type: "MultiPoint",
-  }),
-  created: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  updated: timestamp({ withTimezone: true }),
-})
+export const soilSampling = fdmSchema.table(
+  "soil_sampling",
+  {
+    b_id_sampling: text().primaryKey(),
+    b_id: text()
+      .notNull()
+      .references(() => fields.b_id),
+    a_id: text()
+      .notNull()
+      .references(() => soilAnalysis.a_id),
+    a_depth_upper: numericCasted().notNull().default(0),
+    a_depth_lower: numericCasted(),
+    b_sampling_date: timestamp({ withTimezone: true }),
+    b_sampling_geometry: geometry("b_sampling_geometry", {
+      type: "MultiPoint",
+    }),
+    created: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updated: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    // Matches the per-field lookups that return the most recent sampling first
+    index("soil_sampling_b_id_date_idx").on(table.b_id, table.b_sampling_date.desc().nullsLast()),
+    index("soil_sampling_a_id_idx").on(table.a_id),
+  ],
+)
 
 export type soilSamplingTypeSelect = typeof soilSampling.$inferSelect
 export type soilSamplingTypeInsert = typeof soilSampling.$inferInsert
