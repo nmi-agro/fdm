@@ -18,4 +18,3 @@ Near the save button, the page now gives one verdict on the same level as the no
 - An application method is filled in when a fertilizer has only one, and all required fields are marked.
 - Removing applications asks for confirmation with the effect on the nutrient supply.
 - In the farm creation wizard, the bulk page keeps the wizard header, and the breadcrumb shows the rotation step.
-
