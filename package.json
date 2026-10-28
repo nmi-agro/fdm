@@ -25,8 +25,8 @@
     "@changesets/changelog-github": "^1.0.1",
     "@changesets/cli": "^3.0.3",
     "oxfmt": "^0.74.0",
-    "oxlint": "^1.89.0",
-    "oxlint-tsgolint": "^7.0.2004",
+    "oxlint": "^1.90.0",
+    "oxlint-tsgolint": "^7.0.2005",
     "turbo": "^2.11.10"
   },
   "packageManager": "pnpm@12.8.1"
