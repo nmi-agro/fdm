@@ -694,7 +694,9 @@ export function registerCatalogueRoutes(
     (...args) => services.getEnabledMeasureCatalogues(...args),
     // Workaround until a getMeasuresFromCatalogues function is implemented in fdm-core.
     async (fdm, _principalId, sources) =>
-      sources.includes("bln") ? await services.getMeasuresFromCatalogue(fdm) : [],
+      (await services.getMeasuresFromCatalogue(fdm)).filter((measure) =>
+        sources.includes(measure.m_source),
+      ),
   )
   app.openapi(listAvailableCataloguesRoute, (c) => {
     return c.json(CATALOGUE_SOURCES, 200)

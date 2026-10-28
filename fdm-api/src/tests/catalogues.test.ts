@@ -242,7 +242,6 @@ describe("Catalogues - list catalogue items", () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toEqual({ data: [], limit: 50, offset: 0, total: 0 })
-    expect(services.getMeasuresFromCatalogue).not.toHaveBeenCalled()
   })
 
   it("returns 404 for GET /farms/{b_id_farm}/catalogues/cultivation/items?source={source}", async () => {
