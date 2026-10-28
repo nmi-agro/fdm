@@ -232,6 +232,10 @@ All errors follow [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9
         description: "Manage soil analyses on fields",
       },
       {
+        name: "Catalogues",
+        description: "Access the cultivation, fertilizer, and field measure catalogues",
+      },
+      {
         name: "Farm Groups",
         description: "Manage groups of farms within an organization",
       },
